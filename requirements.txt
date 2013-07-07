@@ -1,0 +1,12 @@
+biopython
+numpy
+ipython
+tornado
+pyzmq
+matplotlib
+pandas
+simplejson
+pygame
+pytagcloud
+discover
+reportlab
