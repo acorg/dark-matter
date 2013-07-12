@@ -88,9 +88,9 @@ def summarizeAllRecords(filename):
                 item['count'] += 1
                 item['eTotal'] += description.e
                 # item['hitLengths'].append(record.alignments[index].length)
-        return result
     stop = time()
     report('Record summary generated in %.3f minutes.' % ((stop - start) / 60.0))
+    return result
 
 
 def summarizeAllRecordsByCountHTML(filename):
