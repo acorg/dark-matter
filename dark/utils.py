@@ -102,8 +102,16 @@ def summarizeAllRecords(filename):
     return result
 
 
-def summarizeAllRecordsByCountHTML(filename):
-    summary = summarizeAllRecords(filename)
+def summarizeAllRecordsByCountHTML(filenameOrSummary):
+    """
+    Given a filename of BLAST output or a dict that already summarizes
+    BLAST output, produce an HTML object with the records sorted by number
+    of reads that match sequences.
+    """
+    if isinstance(filenameOrSummary, dict):
+        summary = filenameOrSummary
+    else:
+        summary = summarizeAllRecords(filenameOrSummary)
     out = []
     keysByFreq = sorted(
         ((summary[key]['count'], summary[key]['eMean'], summary[key]['length'],
@@ -118,8 +126,16 @@ def summarizeAllRecordsByCountHTML(filename):
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
-def summarizeAllRecordsByEValueHTML(filename):
-    summary = summarizeAllRecords(filename)
+def summarizeAllRecordsByEValueHTML(filenameOrSummary):
+    """
+    Given a filename of BLAST output or a dict that already summarizes
+    BLAST output, produce an HTML object with the records sorted by mean
+    e-value.
+    """
+    if isinstance(filenameOrSummary, dict):
+        summary = filenameOrSummary
+    else:
+        summary = summarizeAllRecords(filenameOrSummary)
     out = []
     keysByEValue = sorted(
         ((summary[key]['eMean'], summary[key]['count'], summary[key]['length'],
@@ -868,7 +884,6 @@ def alignmentPanel(summary, recordFilename, fastaFilename, db='nt',
     maxStop: Reads that end after this subject offset should not be shown.
     """
     start = time()
-    width = height = 15
     # figure = plt.figure(figsize=(15, 15))
     titles = sorted(summary.keys())
     cols = 5
