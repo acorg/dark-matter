@@ -10,3 +10,5 @@ pygame
 pytagcloud
 discover
 reportlab
+pep8
+pyflakes

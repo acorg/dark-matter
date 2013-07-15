@@ -42,4 +42,5 @@ def dePrefixAndSuffixFasta(sequences):
             for start in xrange(len(thisSeq) - 1):
                 seen.add(md5(thisSeq[start + 1:]).digest())
             yield s
-    # print 'seen contains %d hashes. total bytes = %d' % (len(seen), len(seen) * len(md5('x').digest()))
+    # print 'seen contains %d hashes. total bytes = %d' % (len(seen),
+    # len(seen) * len(md5('x').digest()))

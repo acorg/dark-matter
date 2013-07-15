@@ -12,7 +12,9 @@ class FastaDeDup(TestCase):
         self.assertEqual(list(dedupFasta([])), [])
 
     def testLengthOne(self):
-        """A FASTA list with just one item gets de-duped to the same one item."""
+        """
+        A FASTA list with just one item gets de-duped to the same one item.
+        """
         seq = '>hey\nagtcagtcagtc'
         s1 = SeqIO.read(StringIO(seq), 'fasta')
         self.assertEqual(list(dedupFasta([s1])), [s1])
@@ -32,7 +34,9 @@ class Unused(TestCase):
         self.assertEqual(list(dePrefixAndSuffixFasta([])), [])
 
     def testLengthOne(self):
-        """A FASTA list with just one item gets de-duped to the same one item."""
+        """
+        A FASTA list with just one item gets de-duped to the same one item.
+        """
         seq = '>hey\nagtcagtcagtc'
         s1 = SeqIO.read(StringIO(seq), 'fasta')
         self.assertEqual(list(dePrefixAndSuffixFasta([s1])), [s1])
@@ -57,7 +61,9 @@ class Unused(TestCase):
         self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s1])
 
     def testRemovalOfPrefixSuffixAndDuplicate(self):
-        """Prefixes, suffixes, and duplicates should collectively all be removed."""
+        """
+        Prefixes, suffixes, and duplicates should collectively all be removed.
+        """
         s1 = SeqIO.read(StringIO('>s1\nagtcagtcagtc'), 'fasta')
         s2 = SeqIO.read(StringIO('>s2\nagtcagtcagtc'), 'fasta')
         s3 = SeqIO.read(StringIO('>s3\nagtcagt'), 'fasta')
@@ -65,7 +71,10 @@ class Unused(TestCase):
         self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2, s3, s4])), [s1])
 
     def testOrderIndependent(self):
-        """A sequence that is a prefix of another is removed when it appears first."""
+        """
+        A sequence that is a prefix of another is removed when it appears
+        first.
+        """
         s1 = SeqIO.read(StringIO('>s1\nagtcag'), 'fasta')
         s2 = SeqIO.read(StringIO('>s2\nagtcagtcagtc'), 'fasta')
         self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s2])

@@ -1,3 +1,4 @@
+import re
 from IPython.display import HTML
 from collections import defaultdict
 from random import uniform
@@ -12,6 +13,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib import gridspec
 from urllib2 import URLError
+from dimension import dimensionalIterator
 
 
 Entrez.email = 'tcj25@cam.ac.uk'
@@ -53,7 +55,7 @@ def printBlastRecord(record):
     for key in sorted(record.__dict__.keys()):
         if key not in ['alignments', 'descriptions', 'reference']:
             print '%s: %r' % (key, record.__dict__[key])
-    print 'descriptions and alignments: (%d in total):' % len(record.alignments)
+    print 'alignments: (%d in total):' % len(record.alignments)
     for i, alignment in enumerate(record.alignments):
         print '  description %d:' % (i + 1)
         for attr in ['accession', 'bits', 'e', 'num_alignments', 'score',
@@ -69,10 +71,15 @@ def printBlastRecord(record):
 
 
 def summarizeAllRecords(filename):
+    """
+    Read a file of BLAST XML results and return a dictionary keyed by sequence
+    title, with values containing information about the number of times the
+    sequence was hit, the e value, and the sequence length.
+    """
     start = time()
+    result = {}
     with open(filename) as fp:
         blast_records = NCBIXML.parse(fp)
-        result = {}
         for record in blast_records:
             for index, description in enumerate(record.descriptions):
                 title = description.title
@@ -88,8 +95,10 @@ def summarizeAllRecords(filename):
                 item['count'] += 1
                 item['eTotal'] += description.e
                 # item['hitLengths'].append(record.alignments[index].length)
+    for key, item in result.iteritems():
+        item['eMean'] = item['eTotal'] / float(item['count'])
     stop = time()
-    report('Record summary generated in %.3f minutes.' % ((stop - start) / 60.0))
+    report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
     return result
 
 
@@ -97,9 +106,8 @@ def summarizeAllRecordsByCountHTML(filename):
     summary = summarizeAllRecords(filename)
     out = []
     keysByFreq = sorted(
-        ((summary[key]['count'],
-          summary[key]['eTotal'] / float(summary[key]['count']),
-          summary[key]['length'], key) for key in summary),
+        ((summary[key]['count'], summary[key]['eMean'], summary[key]['length'],
+          key) for key in summary),
         reverse=True)
     for i, (count, e, length, title) in enumerate(keysByFreq):
         ref = title.split('|')[3].split('.')[0]
@@ -114,9 +122,8 @@ def summarizeAllRecordsByEValueHTML(filename):
     summary = summarizeAllRecords(filename)
     out = []
     keysByEValue = sorted(
-        ((summary[key]['eTotal'] / float(summary[key]['count']),
-          summary[key]['count'],
-          summary[key]['length'], key) for key in summary))
+        ((summary[key]['eMean'], summary[key]['count'], summary[key]['length'],
+          key) for key in summary))
     for i, (e, count, length, title) in enumerate(keysByEValue):
         ref = title.split('|')[3].split('.')[0]
         out.append(
@@ -124,6 +131,40 @@ def summarizeAllRecordsByEValueHTML(filename):
             '<a href="http://www.ncbi.nlm.nih.gov/nuccore/%s" target="_blank">'
             '%s</a>' % (i + 1, count, length, e, ref, title))
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
+
+
+def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
+                       maxSequenceLen=None, minMatchingReads=None,
+                       maxMeanEValue=None):
+    """
+    Given a summary of BLAST results, produced by summarizeAllRecords, return
+    a dictionary consisting of just the interesting records.
+
+    summary: the dict output of summarizeAllRecords
+    keyRegex: a regex that sequence titles must match.
+    minSequenceLen: sequences of lesser length will be elided.
+    maxSequenceLen: sequences of greater length will be elided.
+    minMatchingReads: sequences that are matched by fewer reads
+        will be elided.
+    maxMeanEValue: sequences that are matched with a mean e-value
+        that is greater will be elided.
+    """
+    result = {}
+    if keyRegex is not None:
+        keyRegex = re.compile(keyRegex)
+    for title, item in summary.iteritems():
+        if keyRegex and keyRegex.search(title) is None:
+            continue
+        if minSequenceLen is not None and item['length'] < minSequenceLen:
+            continue
+        if maxSequenceLen is not None and item['length'] > maxSequenceLen:
+            continue
+        if minMatchingReads is not None and item['count'] < minMatchingReads:
+            continue
+        if maxMeanEValue is not None and item['eMean'] > maxMeanEValue:
+            continue
+        result[title] = item
+    return result
 
 
 def getSequence(hitId, db='nt'):
@@ -150,7 +191,8 @@ def findHits(recordFilename, hitId, limit=None, meta=None):
         reads right now.
     """
     readCount = 0
-    for sequenceNum, record in enumerate(readHits(recordFilename, limit=limit)):
+    for sequenceNum, record in enumerate(
+            readHits(recordFilename, limit=limit)):
         readCount += 1
         for alignment in record.alignments:
             if alignment.hit_id == hitId:
@@ -187,7 +229,8 @@ def getSeqFromGenbank(hitId):
     """
     gi = hitId.split('|')[1]
     try:
-        client = Entrez.efetch(db='nucleotide', rettype='gb', retmode='text', id=gi)
+        client = Entrez.efetch(db='nucleotide', rettype='gb', retmode='text',
+                               id=gi)
     except URLError:
         return None
     else:
@@ -216,13 +259,17 @@ def addFeatures(fig, record, minX, maxX):
                 totalSubfeatures += len(feature.sub_features)
 
     if record is None or not toPlot:
-        fig.text(minX + (maxX - minX) / 3.0, 0, 'No features found.' if record else 'You (or Genbank) appear to be offline.', fontsize=16)
+        fig.text(minX + (maxX - minX) / 3.0, 0,
+                 ('No features found.' if record
+                  else 'You (or Genbank) appear to be offline.'),
+                 fontsize=16)
         fig.axis([minX, maxX, -1, 1])
         fig.set_yticks([])
         return []
 
     # Have a look at the colormaps here and decide which one you'd like:
-    # http://matplotlib.sourceforge.net/examples/pylab_examples/show_colormaps.html
+    # http://matplotlib.sourceforge.net/examples/pylab_examples/
+    # show_colormaps.html
     # colormap = plt.cm.gist_ncar
     # colormap = plt.cm.hsv
     colormap = plt.cm.coolwarm
@@ -244,7 +291,8 @@ def addFeatures(fig, record, minX, maxX):
             'start': start,
         })
         frame = start % 3
-        fig.plot([start, end], [frame, frame], color=colors[index], linewidth=2)
+        fig.plot([start, end], [frame, frame], color=colors[index],
+                 linewidth=2)
         gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
         product = feature.qualifiers.get('product', ['<no product>'])[0]
         labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
@@ -325,7 +373,8 @@ def addReversedORFs(fig, seq, minX, maxX):
         for (codons, codonType, color) in (
                 (START_CODONS, 'start', 'green'),
                 (STOP_CODONS, 'stop', 'red')):
-            offsets = map(lambda offset: maxX - offset, findCodons(target, codons))
+            offsets = map(lambda offset: maxX - offset,
+                          findCodons(target, codons))
             if offsets:
                 fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
                          markersize=4, color=color, linestyle='None')
@@ -333,7 +382,7 @@ def addReversedORFs(fig, seq, minX, maxX):
     fig.axis([minX, maxX, -1, 3])
     fig.set_yticks(np.arange(3))
     fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Reversed target sequence start (%s) and stop (%s) codons' % (
+    fig.set_title('Reversed target sequence start (%s) & stop (%s) codons' % (
         ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
         fontsize=20)
 
@@ -433,8 +482,8 @@ def summarizeHits(hits, sequence, fastaFilename, eCutoff=None,
                 break
             normalized = normalizeHSP(hsp, queryLen)
             if ((minStart is not None and normalized['queryStart'] < minStart)
-                or
-                (maxStop is not None and normalized['queryEnd'] > maxStop)):
+                    or (maxStop is not None and
+                        normalized['queryEnd'] > maxStop)):
                 continue
             if hsp.expect == 0.0:
                 e = None
@@ -460,8 +509,8 @@ def summarizeHits(hits, sequence, fastaFilename, eCutoff=None,
                 'subjectSense': hsp.frame[1],
             })
 
-    # Set the expect values that were zero to a randomly high value (higher than
-    # the max e value we just calculated).
+    # Set the expect values that were zero to a randomly high value (higher
+    # than the max e value we just calculated).
     maxEIncludingRandoms = maxE
     for item in items:
         if item['e'] is None:
@@ -493,7 +542,8 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     hitId: the str sequence id to examine the BLAST output for hits against.
     fastaFilename: the name of the FASTA file with the query sequences.
     eCutoff: converted e values less than this will be ignored.
-    db: the BLAST db to use to look up the target and, if given, actual sequence.
+    db: the BLAST db to use to look up the target and, if given, actual
+        sequence.
     actualSequenceId: the str id of the actual sequence (if known).
     """
 
@@ -502,7 +552,8 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
 
     start = time()
     if isinstance(recordFilename, str):
-        allhits = findHits(recordFilename, hitId, limit=100)  # TODO: REMOVE THIS LIMIT!
+        # TODO: REMOVE THE LIMIT IN THE NEXT LINE!
+        allhits = findHits(recordFilename, hitId, limit=100)
     else:
         allhits = recordFilename
     sequence = getSequence(hitId, db)
@@ -515,18 +566,20 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     print summary['hitCount']
     print 'seq len =', len(sequence)
     fasta = summary['fasta']
-    # The length of the consensus depends on where the query sequences fell when
-    # aligned with the target. The consensus could extend the target at both
-    # ends.
+    # The length of the consensus depends on where the query sequences fell
+    # when aligned with the target. The consensus could extend the target
+    # at both ends.
     consensusLen = maxX - minX
     consensus = [None, ] * consensusLen
     for item in summary['items']:
         print 'NEW HSP'
         printHSP(item['origHsp'])  # TODO: REMOVE ME
         hsp = item['hsp']
-        print 'HIT  query-start=%d query-stop=%d subj-start=%d subj-stop=%d' % (
-            hsp['queryStart'], hsp['queryEnd'], hsp['subjectStart'], hsp['subjectEnd'])
-        # print '   match: %s%s' % ('.' * hsp['subjectStart'], '-' * (hsp['subjectEnd'] - hsp['subjectStart']))
+        print 'HIT query-start=%d query-stop=%d subj-start=%d subj-stop=%d' % (
+            hsp['queryStart'], hsp['queryEnd'], hsp['subjectStart'],
+            hsp['subjectEnd'])
+        # print '   match: %s%s' % ('.' * hsp['subjectStart'], '-' *
+        # (hsp['subjectEnd'] - hsp['subjectStart']))
         if item['subjectSense'] == 1:
             query = fasta[item['sequenceId']].seq
         else:
@@ -537,11 +590,13 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
         for index in xrange(hsp['subjectStart'], hsp['subjectEnd']):
             queryIndex = index - hsp['queryStart']
             match.append('.' if query[queryIndex] == sequence[index] else '*')
-        print '    match: %s%s' % (' ' * (hsp['subjectStart'] - hsp['queryStart']), ''.join(match))
+        print '    match: %s%s' % (
+            ' ' * (hsp['subjectStart'] - hsp['queryStart']), ''.join(match))
         print '    score:', item['e']
         print 'match len:', hsp['subjectEnd'] - hsp['subjectStart']
         print '    sense:', item['subjectSense']
-        for queryIndex, sequenceIndex in enumerate(xrange(hsp['queryStart'], hsp['queryEnd'])):
+        for queryIndex, sequenceIndex in enumerate(
+                xrange(hsp['queryStart'], hsp['queryEnd'])):
             consensusIndex = sequenceIndex + minX
             locus = consensus[consensusIndex]
             if locus is None:
@@ -558,7 +613,8 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
         consensusIndex = index - minX
         try:
             if consensus[consensusIndex]:
-                print '%d: %r (%s)' % (index, consensus[index], sequence[index])
+                print '%d: %r (%s)' % (
+                    index, consensus[index], sequence[index])
         except KeyError:
             # There's nothing left in the consensus, so we're done.
             break
@@ -567,14 +623,16 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
         if consensus[consensusIndex]:
             print '%d: %r' % (index, consensus[consensusIndex])
     stop = time()
-    report('Consensus sequence generated in %.3f minutes.' % ((stop - start) / 60.0))
+    report('Consensus sequence generated in %.3f mins.' %
+           ((stop - start) / 60.0))
     return summary, consensus
 
 
 def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
                    addQueryLines=True, showFeatures=True, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
-                   maxStop=None):
+                   maxStop=None, createFigure=True, addTitleToAlignments=True,
+                   readsAx=None):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -594,14 +652,21 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
         addQueryLines is meaningless since the whole query is shown colored.
     minStart: Reads that start before this subject offset should not be shown.
     maxStop: Reads that end after this subject offset should not be shown.
+    createFigure: If True, create a figure and give it a title.
+    addTitleToAlignments: If True, add a title to the subplot that shows the
+        read alignments.
+    readsAx: If not None, use this as the subplot for displaying reads.
     """
     start = time()
     sequence = getSequence(hitId, db)
-    dpi = 80
 
-    # width = max(float(len(sequence)) / float(dpi), 25)
-    width = 20
-    figure = plt.figure(figsize=(width, 20), dpi=dpi)
+    if createFigure:
+        dpi = 80
+        # width = max(float(len(sequence)) / float(dpi), 25)
+        width = 20
+        figure = plt.figure(figsize=(width, 20), dpi=dpi)
+
+    createdReadsAx = readsAx is None
 
     if showFeatures:
         gbSeq = getSeqFromGenbank(hitId)
@@ -609,15 +674,14 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
         featureAx = plt.subplot(gs[0, 0])
         orfAx = plt.subplot(gs[1, 0])
         orfReversedAx = plt.subplot(gs[2, 0])
-        fig = plt.subplot(gs[3, 0])
+        readsAx = readsAx or plt.subplot(gs[3, 0])
     else:
         featureEndpoints = []
-        fig = plt.subplot(111)
+        readsAx = readsAx or plt.subplot(111)
 
     findHitsMeta = {}
     if isinstance(recordFilename, str):
-        report('Creating alignment graph for BLAST records in %s, looking '
-               'for sequence %s.' % (recordFilename, hitId))
+        report('Creating alignment graph for %s.' % hitId)
         allhits = findHits(recordFilename, hitId, meta=findHitsMeta)
     else:
         allhits = recordFilename
@@ -625,8 +689,6 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
     summary = summarizeHits(allhits, sequence, fastaFilename, eCutoff=eCutoff,
                             maxHspsPerHit=maxHspsPerHit, minStart=minStart,
                             maxStop=maxStop)
-
-    report('summary generated.')
 
     fasta = summary['fasta']
     items = summary['items']
@@ -638,7 +700,8 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
 
     if colorQueryBases:
         # Color each query by its bases.
-        data = np.ones((maxEIncludingRandoms - minE + 1, maxX - minX + 1), dtype=(float, 3))
+        data = np.ones((maxEIncludingRandoms - minE + 1, maxX - minX + 1),
+                       dtype=(float, 3))
         for item in items:
             hsp = item['hsp']
             e = int(item['e'])
@@ -695,55 +758,55 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
 
             # 3. Right part.
             xOffset = hsp['subjectEnd'] - minX
-            queryOffset = hsp['subjectEnd'] - hsp['queryStart'];
+            queryOffset = hsp['subjectEnd'] - hsp['queryStart']
             for queryIndex in xrange(hsp['queryEnd'] - hsp['subjectEnd']):
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
                 data[e - minE][xOffset + queryIndex] = color
 
-        fig.imshow(data, aspect='auto', origin='lower',
-                   extent=[minX, maxX, minE, maxEIncludingRandoms])
+        readsAx.imshow(data, aspect='auto', origin='lower',
+                       extent=[minX, maxX, minE, maxEIncludingRandoms])
 
         # data1 = np.ones((40, 1000), dtype=(float, 3))
         # for _ in xrange(1000):
         #     data1[0][_] = (1.0, 0.0, 0.0)
-        # fig.imshow(data1, aspect='auto',  extent=[4000, 5000, 40, 80])
+        # readsAx.imshow(data1, aspect='auto',  extent=[4000, 5000, 40, 80])
 
         # data1 = np.ones((20, 500), dtype=(float, 3))
         # for _ in xrange(500):
         #     data1[0][_] = (0.0, 0.0, 1.0)
-        # fig.imshow(data1, aspect='auto',  origin='lower', extent=[6000, 6500, 60, 80])
+        # readsAx.imshow(data1, aspect='auto',  origin='lower',
+        # extent=[6000, 6500, 60, 80])
     else:
         # Add horizontal lines for all the query sequences.
         if addQueryLines:
             for item in items:
                 e = int(item['e'])
                 hsp = item['hsp']
-                line = Line2D([hsp['queryStart'], hsp['queryEnd']], [e, e], color='#aaaaaa')
-                fig.add_line(line)
+                line = Line2D([hsp['queryStart'], hsp['queryEnd']], [e, e],
+                              color='#aaaaaa')
+                readsAx.add_line(line)
 
         # Add the horizontal BLAST alignment lines.
         for item in items:
             e = int(item['e'])
             hsp = item['hsp']
-            line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e], color='blue')
-            fig.add_line(line)
-
-    report('about to do features.')
+            line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
+                          color='blue')
+            readsAx.add_line(line)
 
     # Add vertical lines for the sequence features.
     if showFeatures:
         featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
         report('got %d feature endpoints' % len(featureEndpoints))
         for fe in featureEndpoints:
-            line = Line2D([fe['start'], fe['start']], [0, maxEIncludingRandoms],
-                          color=fe['color'])
-            fig.add_line(line)
+            line = Line2D([fe['start'], fe['start']],
+                          [0, maxEIncludingRandoms], color=fe['color'])
+            readsAx.add_line(line)
             line = Line2D([fe['end'], fe['end']], [0, maxEIncludingRandoms],
                           color='#cccccc')
-            fig.add_line(line)
+            readsAx.add_line(line)
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
         if featureEndpoints:
-            report('adding orfReversedAx text to say there were features.')
             orfReversedAx.text(
                 minX + (maxX - minX) / 3.0, 0,
                 'Reverse ORFs not shown due to Genbank feature presence.',
@@ -754,26 +817,111 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
                 'Reverse ORFs not shown due to Genbank feature presence.',
                 fontsize=20)
         else:
-            report('no features, doing reverse ORFs')
-            addReversedORFs(orfReversedAx, sequence.reverse_complement().seq, minX, maxX)
+            addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
+                            minX, maxX)
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
     if summary['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='red', linewidth=3)
-        fig.add_line(line)
+        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='red',
+                      linewidth=3)
+        readsAx.add_line(line)
 
     # Titles, axis, etc.
-    figure.suptitle('%s (length %d, %d hits)' % (
-        sequence.description, len(sequence), summary['hitCount']), fontsize=20)
-    fig.set_title('Read alignments', fontsize=20)
-    plt.ylabel('$- log_{10}(e)$', fontsize=17)
-    plt.axis([minX, maxX, minE, maxEIncludingRandoms])
+    if createFigure:
+        figure.suptitle('%s (length %d, %d hits)' % (
+            sequence.description, len(sequence), summary['hitCount']),
+            fontsize=20)
+    if createdReadsAx:
+        # Only add title and y-axis label if we made the read axes.
+        readsAx.set_title('Read alignments', fontsize=20)
+        plt.ylabel('$- log_{10}(e)$', fontsize=17)
+    readsAx.axis([minX, maxX, minE, maxEIncludingRandoms])
+    if createFigure:
+        plt.show()
+    stop = time()
+    report('Number of reads BLASTed: %s' %
+           findHitsMeta.get('readCount', '<unknown>'))
+    report('Number of HSPs plotted: %d' % len(items))
+    report('Alignment graph generated in %.3f mins.' % ((stop - start) / 60.0))
+
+    return summary
+
+
+def alignmentPanel(summary, recordFilename, fastaFilename, db='nt',
+                   eCutoff=2.0, maxHspsPerHit=None, minStart=None,
+                   maxStop=None):
+    """
+    Produces a rectangular panel of graphs that each contain an alignment graph
+    against a given sequence.
+
+    summary: the dict output of summarizeAllRecords (or interestingRecords).
+        The keys of this dict are the sequence titles that the reads (according
+        to the BLAST hits in recordFilename) will be aligned against.
+    recordFilename: the BLAST XML output file.
+    fastaFilename: the name of the FASTA file with the query sequences.
+    db: the BLAST db to use to look up the target and, if given, actual
+        sequence.
+    eCutoff: converted e values less than this will be ignored.
+    maxHspsPerHit: A numeric max number of HSPs to show for each hit on hitId.
+    minStart: Reads that start before this subject offset should not be shown.
+    maxStop: Reads that end after this subject offset should not be shown.
+    """
+    start = time()
+    width = height = 15
+    # figure = plt.figure(figsize=(15, 15))
+    titles = sorted(summary.keys())
+    cols = 5
+    rows = int(len(titles) / cols) + (0 if len(titles) % cols == 0 else 1)
+    report('Plotting %d titles in %dx%d grid' % (len(titles), rows, cols))
+    figure, ax = plt.subplots(rows, cols, squeeze=False)
+    coords = dimensionalIterator((rows, cols))
+
+    maxEIncludingRandoms = -1
+    minE = 1000  # Something improbably large.
+    maxX = -1
+    minX = 1e10  # Something improbably large.
+
+    for i, title in enumerate(titles):
+        report('---> %d: %s' % (i, title))
+        row, col = coords.next()
+        hitId = title.split(' ')[0]
+        info = alignmentGraph(
+            recordFilename, hitId, fastaFilename, db=db, addQueryLines=True,
+            showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
+            colorQueryBases=False, minStart=minStart, maxStop=maxStop,
+            createFigure=False, addTitleToAlignments=False,
+            readsAx=ax[row][col])
+
+        ax[row][col].set_title(
+            '%d: %s' % (i, title.split(' ', 1)[1][:20]), fontsize=8)
+
+        if info['maxEIncludingRandoms'] > maxEIncludingRandoms:
+            maxEIncludingRandoms = info['maxEIncludingRandoms']
+        if info['minE'] < minE:
+            minE = info['minE']
+        if info['maxX'] > maxX:
+            maxX = info['maxX']
+        if info['minX'] < minX:
+            minX = info['minX']
+
+    coords = dimensionalIterator((rows, cols))
+    for row, col in coords:
+        a = ax[row][col]
+        a.axis([minX, maxX, minE, maxEIncludingRandoms])
+        a.set_yticks([])
+        a.set_xticks([])
+
+    # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
+    # wspace=0.1, hspace=None)
+    figure.suptitle('X: %d to %d, Y: %d to %d' %
+                    (minX, maxX, int(minE), int(maxEIncludingRandoms)),
+                    fontsize=20)
+    figure.set_size_inches(2 * cols, 2 * rows, forward=True)
+    # figure.savefig('evalues.png')
     plt.show()
     stop = time()
-    report('Number of reads given to BLAST: %s' % findHitsMeta.get('readCount', '<unknown>'))
-    report('Number of HSPs plotted above: %d' % len(items))
-    report('Alignment graph generated in %.3f minutes.' % ((stop - start) / 60.0))
+    report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
 
 
 def report(msg):
@@ -783,11 +931,12 @@ def report(msg):
 def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
                 width=5, height=5):
     """
-    Produces a rectangular panel of graphs that each show sorted e-values for a read.
-    Read hits against a certain strain (see find, below) are highlighted.
+    Produces a rectangular panel of graphs that each show sorted e-values for
+    a read. Read hits against a certain strain (see find, below) are
+    highlighted.
 
-    find: A function that can be passed a sequence title. If the function returns True
-    a (currently) red dot is put into the graph at that point.
+    find: A function that can be passed a sequence title. If the function
+    returns True a (currently) red dot is put into the graph at that point.
     titles: Show read sequence names.
     minHits: only show reads with at least this many hits.
     """
@@ -820,7 +969,8 @@ def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
                 for i, desc in enumerate(record.descriptions):
                     e = -1.0 * log10(desc.e)
                     if e < 0:
-                        # print 'oops, e =', e, desc.e, record.alignments[i].hsps[0].align_length, desc.title
+                        # print 'oops, e =', e, desc.e,
+                        # record.alignments[i].hsps[0].align_length, desc.title
                         break
                     evalues.append(e)
                     if find and find(desc.title):
@@ -837,7 +987,9 @@ def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
                     # a.plot(foundx, foundy, 'ro', markersize=5)
                     a.plot(foundx, foundy, 'ro')
                 if titles:
-                    a.set_title('%s (%d)' % (record.query, record.query_length), fontsize=10)
+                    a.set_title('%s (%d)' %
+                                (record.query, record.query_length),
+                                fontsize=10)
 
     count = 0
     for row in xrange(rows):
@@ -851,8 +1003,10 @@ def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
             a.set_yticks([])
             a.set_xticks([])
 
-    plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=.93, wspace=0.1, hspace=None)
-    f.suptitle('maxHits %d, maxE %f, ignored %d, (minHits %d)' % (globalMaxDescriptions, globalMaxE, lowHitCount, minHits))
+    plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
+                        wspace=0.1, hspace=None)
+    f.suptitle('maxHits %d, maxE %f, ignored %d, (minHits %d)' %
+               (globalMaxDescriptions, globalMaxE, lowHitCount, minHits))
     f.set_size_inches(width, height, forward=True)
     # f.set_size_inches(10, 10)
     # f.savefig('evalues.png')
@@ -885,5 +1039,6 @@ def scatterAlign(seq1, seq2, window=7):
     plt.ylim(0, len(seq2) - window)
     plt.xlabel('length %i bp' % (len(seq1)))
     plt.ylabel('length %i bp' % (len(seq2)))
-    plt.title('Dot plot using window size %i\n(allowing no mis-matches)' % window)
+    plt.title('Dot plot using window size %i\n(allowing no mis-matches)' %
+              window)
     plt.show()
