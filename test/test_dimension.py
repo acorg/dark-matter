@@ -1,5 +1,5 @@
 from unittest import TestCase
-from dimension import dimensionalIterator
+from dark.dimension import dimensionalIterator
 
 
 class TestDimensionalIterator(TestCase):
