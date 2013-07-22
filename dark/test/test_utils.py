@@ -1,5 +1,7 @@
 from unittest import TestCase
-from dark.utils import findCodons, normalizeHSP, interestingRecords
+from dark.utils import (
+    findCodons, normalizeHSP, interestingRecords, NCBISequenceLinkURL,
+    NCBISequenceLink)
 from Bio.Seq import Seq
 
 
@@ -240,6 +242,20 @@ class NormalizeHSPSubjectOffsetsDescending(TestCase):
             'queryEnd': 5,
         }, normalized)
 
+    def test20130721Debugging(self):
+        """
+        This is an example I manually examined on 2013-07-21.
+        """
+        hsp = HSP(subjectStart=9018, subjectEnd=8764, queryStart=66,
+                  queryEnd=315)
+        normalized = normalizeHSP(hsp, 316)
+        self.assertEqual({
+            'subjectStart': 8763,
+            'subjectEnd': 9018,
+            'queryStart': 8767,
+            'queryEnd': 9083,
+        }, normalized)
+
 
 class TestFindCodons(TestCase):
     """Tests of the findCodons helper. """
@@ -279,6 +295,40 @@ class TestFindCodons(TestCase):
         """
         seq = Seq('TATGAAAGGGCCC')
         self.assertEqual([], list(findCodons(seq, set(['ATG', 'CCC']))))
+
+
+class TestNCBISequenceLinkURL(TestCase):
+    """
+    Test the NCBISequenceLinkURL function.
+    """
+
+    def testGenericTitle1(self):
+        title = 'gi|323924|gb|M15204.1|FCVMYCCA Feline leukemia virus myc gene'
+        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/M15204',
+                         NCBISequenceLinkURL(title))
+
+    def testGenericTitle2(self):
+        title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
+        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/AY253278',
+                         NCBISequenceLinkURL(title))
+
+
+class TestNCBISequenceLink(TestCase):
+    """
+    Test the NCBISequenceLink function.
+    """
+
+    def testGenericTitle1(self):
+        title = 'gi|323924|gb|M15204.1|FCVMYCCA Feline leukemia virus myc gene'
+        self.assertEqual(
+            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/M15204" ' +
+            'target="_blank">' + title + '</a>', NCBISequenceLink(title))
+
+    def testGenericTitle2(self):
+        title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
+        self.assertEqual(
+            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/AY253278" ' +
+            'target="_blank">' + title + '</a>', NCBISequenceLink(title))
 
 
 class InterestingRecords(TestCase):
