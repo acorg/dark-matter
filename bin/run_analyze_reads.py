@@ -1,4 +1,4 @@
-from turn_reads_nr3 import getReads, _longestPrefixOfTwoSeqs
+from dark.analyze_reads import getReads, _longestPrefixOfTwoSeqs
 from Bio import SeqIO
 import sys
 
@@ -8,7 +8,7 @@ if len(sys.argv) > 2:
     sys.exit(1)
 
 else:
-    caller = sys.argv[1]
+    caller = open(sys.argv[1], "rU")
     getReads(caller)
 
 
