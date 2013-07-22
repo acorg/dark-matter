@@ -2,7 +2,6 @@ from unittest import TestCase
 from cStringIO import StringIO
 from collections import defaultdict
 from Bio import SeqIO
-
 from dark.summarize import summarize_reads
 
 
@@ -74,7 +73,7 @@ class TestSummarizeReads(TestCase):
         self.assertEqual(result['min_length'], 5)
 
     def testSequenceListEmptyInput(self):
-        result = summarize_reads(StringIO())
+        result = summarize_reads(StringIO(), returnSequences=True)
         self.assertEqual(result['sequences'], [])
 
     def testSequenceListOneString(self):
@@ -90,3 +89,27 @@ class TestSummarizeReads(TestCase):
         test_result = SeqIO.parse(StringIO(seq), 'fasta')
         return test_result
         self.assertEqual(result['sequences'], test_result)
+
+    def testMedianEmptyInput(self):
+        result = summarize_reads(StringIO())
+        self.assertEqual(result['median_length'], 0)
+
+    def testMedianOneString(self):
+        seq = '>hey\nagtcagtcagtc'
+        result = summarize_reads(StringIO(seq))
+        self.assertEqual(result['median_length'], 12)
+
+    def testMedianThreeStrings(self):
+        seq = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc'
+        result = summarize_reads(StringIO(seq))
+        self.assertEqual(result['median_length'], 7)
+
+    def testMedianFourStrings(self):
+        seq = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\natggctattgaactgtatct'
+        result = summarize_reads(StringIO(seq))
+        self.assertEqual(result['median_length'], 9.5)
+
+
+
+
+
