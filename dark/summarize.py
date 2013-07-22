@@ -2,7 +2,7 @@ from Bio import SeqIO
 from collections import defaultdict
 
 
-def summarize_reads(filename, returnSequences=False):
+def summarize_reads(file_handle, returnSequences=False):
     """
     open a .fasta file, prints number of of reads, average length of read,
     total number of bases, longest, shortest and median read, total number
@@ -14,7 +14,7 @@ def summarize_reads(filename, returnSequences=False):
     length_list = []
     sequenceList = []
 
-    for record in SeqIO.parse(open(filename, "rU"), "fasta"):
+    for record in SeqIO.parse(file_handle, "fasta"):
         total_length += len(record)
         read_number += 1
         length_list.append(len(record))
@@ -36,10 +36,10 @@ def summarize_reads(filename, returnSequences=False):
     result = {
         "read_number": read_number,
         "total_length": total_length,
-        "average_length": total_length / read_number,
-        "max_length": max(length_list),
-        "min_length": min(length_list),
-        "median_length": median(length_list),
+        "average_length": total_length / read_number if read_number > 0 else 0,
+        "max_length": max(length_list) if length_list else 0,
+        "min_length": min(length_list) if length_list else 0,
+        "median_length": median(length_list) if length_list else 0,
         "base_counts": base_counts
     }
 
