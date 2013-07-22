@@ -105,11 +105,7 @@ class TestSummarizeReads(TestCase):
         self.assertEqual(result['median_length'], 7)
 
     def testMedianFourStrings(self):
-        seq = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\natggctattgaactgtatct'
+        seq = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
+        atggctattgaactgtatct'
         result = summarize_reads(StringIO(seq))
         self.assertEqual(result['median_length'], 9.5)
-
-
-
-
-
