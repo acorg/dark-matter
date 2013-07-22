@@ -78,16 +78,14 @@ class TestSummarizeReads(TestCase):
 
     def testSequenceListOneString(self):
         seq = '>hey\nagtcagtcagtc'
-        result = summarize_reads(StringIO(seq))
-        test_result = SeqIO.parse(StringIO(seq), 'fasta')
-        return test_result
+        result = summarize_reads(StringIO(seq), returnSequences=True)
+        test_result = list(SeqIO.parse(StringIO(seq), 'fasta'))
         self.assertEqual(result['sequences'], test_result)
 
     def testSequenceListTwoStrings(self):
         seq = '>hey\nagtcagtcagtc\n>you\nacctg'
-        result = summarize_reads(StringIO(seq))
-        test_result = SeqIO.parse(StringIO(seq), 'fasta')
-        return test_result
+        result = summarize_reads(StringIO(seq), returnSequences=True)
+        test_result = list(SeqIO.parse(StringIO(seq), 'fasta'))
         self.assertEqual(result['sequences'], test_result)
 
     def testMedianEmptyInput(self):
