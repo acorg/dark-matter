@@ -20,10 +20,8 @@ def getPrefixAndSuffix(file_handle):
         sequences = read_list
         nSequences = len(sequences)
         if nSequences == 1:
-            print "This file contains one read only!"
             return len(sequences[0])
         elif nSequences == 0:
-            print "This file is empty!"
             return 0
         else:
             prefix = sequences[0]
