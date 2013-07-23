@@ -22,6 +22,9 @@ def getPrefixAndSuffix(file_handle):
         if nSequences == 1:
             print "This file contains one read only!"
             return len(sequences[0])
+        elif nSequences == 0:
+            print "This file is empty!"
+            return 0
         else:
             prefix = sequences[0]
             result = len(prefix)
@@ -29,18 +32,15 @@ def getPrefixAndSuffix(file_handle):
             while index < nSequences:
                 thisLen = _longestPrefixOfTwoSeqs(prefix, sequences[index])
                 if thisLen == 0:
-                    result = 0
-                    return result
+                    return 0
                 elif thisLen < result:
                     prefix = prefix[:thisLen]
-                    result = thisLen
-                    return result
+                    return thisLen
                 index += 1
 
-    result_prefix = longestCommonPrefix(read_list)
-    result_suffix = longestCommonPrefix(reversed_read_list)
-    result = [result_prefix, result_suffix]
-    return result
+    prefix = longestCommonPrefix(read_list)
+    suffix = longestCommonPrefix(reversed_read_list)
+    return prefix, suffix
 
 
 def trimReads(prefix, suffix, file_handle):

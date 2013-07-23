@@ -8,11 +8,8 @@ if len(sys.argv) > 2:
 
 else:
     filename = sys.argv[1]
-    result = getPrefixAndSuffix(filename)
-    prefix = result[0]
-    suffix = result[1]
+    prefix, suffix = getPrefixAndSuffix(filename)
 
-    print "prefix", prefix
-    print "suffix", suffix
+    print "prefix %d, suffix %d" % (prefix, suffix)
 
     trimReads(prefix, suffix, filename)
