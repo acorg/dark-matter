@@ -1,4 +1,5 @@
 import re
+from math import ceil
 from IPython.display import HTML
 from collections import defaultdict
 from random import uniform
@@ -14,6 +15,7 @@ from matplotlib.lines import Line2D
 from matplotlib import gridspec
 from urllib2 import URLError
 from dimension import dimensionalIterator
+from baseimage import BaseImage
 
 
 Entrez.email = 'tcj25@cam.ac.uk'
@@ -22,21 +24,39 @@ START_CODONS = set(['ATG'])
 STOP_CODONS = set(['TAA', 'TAG', 'TGA'])
 
 QUERY_COLORS = {
-    'A': (1.0, 0.0, 0.0),
-    'C': (0.0, 0.0, 1.0),
-    'G': (0.0, 1.0, 0.0),
-    'N': (1.0, 0.0, 1.0),
-    'T': (0.0, 0.75, 1.0),
-    'gap': (0.5, 0.5, 0.5),
-    'match': (0.9, 0.9, 0.9),
+    'A': (1.0, 0.0, 0.0),  # Red.
+    'C': (0.0, 0.0, 1.0),  # Blue.
+    'G': (0.0, 1.0, 0.0),  # Green.
+    'N': (1.0, 0.0, 1.0),  # Purple.
+    'T': (1.0, 0.8, 0.0),  # Orange.
+    'gap': (0.2, 0.2, 0.2),  # Almost black.
+    'match': (0.9, 0.9, 0.9),  # Almost white.
 }
+
+
+def NCBISequenceLinkURL(title):
+    """
+    Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
+    return the URL of a link to the info page at NCBI.
+    """
+    ref = title.split('|')[3].split('.')[0]
+    return 'http://www.ncbi.nlm.nih.gov/nuccore/%s' % (ref,)
+
+
+def NCBISequenceLink(title):
+    """
+    Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
+    return an HTML A tag dispalying a link to the info page at NCBI.
+    """
+    return '<a href="%s" target="_blank">%s</a>' % (
+        NCBISequenceLinkURL(title), title)
 
 
 def readHits(filename, limit=None):
     with open(filename) as fp:
         records = NCBIXML.parse(fp)
         for count, record in enumerate(records):
-            if limit and count == limit:
+            if limit is not None and count == limit:
                 break
             else:
                 yield record
@@ -89,69 +109,80 @@ def summarizeAllRecords(filename):
                     item = result[title] = {
                         'count': 0,
                         'eTotal': 0.0,
-                        # 'hitLengths': [],
-                        'length': record.alignments[index].length
+                        'eValues': [],
+                        'length': record.alignments[index].length,
+                        'reads': set()
                     }
                 item['count'] += 1
-                item['eTotal'] += description.e
-                # item['hitLengths'].append(record.alignments[index].length)
+                item['eValues'].append(description.e)
+                # record.query is the name of the read in the FASTA file.
+                item['reads'].add(record.query)
+
+    # Compute mean and median e values and delete the eTotal keys.
     for key, item in result.iteritems():
-        item['eMean'] = item['eTotal'] / float(item['count'])
+        item['eMean'] = sum(item['eValues']) / float(item['count'])
+        item['eMedian'] = np.median(item['eValues'])
+        del item['eValues']
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
     return result
 
 
+def _sortSummary(filenameOrSummary, attr='count', reverse=False):
+    """
+    Given a filename of BLAST output or a dict that already summarizes
+    BLAST output, produce an HTML object with the records sorted by the
+    given attribute ('count', 'eMean', 'eMedian', or 'length').
+    """
+    if isinstance(filenameOrSummary, dict):
+        summary = filenameOrSummary
+    else:
+        summary = summarizeAllRecords(filenameOrSummary)
+    if attr not in ('count', 'eMean', 'eMedian', 'length'):
+        raise ValueError("attr must be one of 'count', 'eMean', "
+                         "'eMedian', or 'length'")
+    out = []
+    titles = sorted(summary.keys(), key=lambda title: summary[title][attr],
+                    reverse=reverse)
+    for i, title in enumerate(titles, start=1):
+        item = summary[title]
+        link = NCBISequenceLink(title)
+        out.append(
+            '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
+            (i, item['count'], item['length'], item['eMedian'], item['eMean'],
+             link))
+    return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
+
+
+def summarizeAllRecordsByMeanEValueHTML(filenameOrSummary):
+    return _sortSummary(filenameOrSummary, 'eMean')
+
+
+def summarizeAllRecordsByMedianEValueHTML(filenameOrSummary):
+    return _sortSummary(filenameOrSummary, 'eMedian')
+
+
 def summarizeAllRecordsByCountHTML(filenameOrSummary):
-    """
-    Given a filename of BLAST output or a dict that already summarizes
-    BLAST output, produce an HTML object with the records sorted by number
-    of reads that match sequences.
-    """
-    if isinstance(filenameOrSummary, dict):
-        summary = filenameOrSummary
-    else:
-        summary = summarizeAllRecords(filenameOrSummary)
-    out = []
-    keysByFreq = sorted(
-        ((summary[key]['count'], summary[key]['eMean'], summary[key]['length'],
-          key) for key in summary),
-        reverse=True)
-    for i, (count, e, length, title) in enumerate(keysByFreq):
-        ref = title.split('|')[3].split('.')[0]
-        out.append(
-            '%3d: count=%4d, len=%7d, mean evalue=%20s: '
-            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/%s" target="_blank">'
-            '%s</a>' % (i + 1, count, length, e, ref, title))
-    return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
+    return _sortSummary(filenameOrSummary, 'count', reverse=True)
 
 
-def summarizeAllRecordsByEValueHTML(filenameOrSummary):
+def summarizeAllRecordsByLengthHTML(filenameOrSummary):
+    return _sortSummary(filenameOrSummary, 'length', reverse=True)
+
+
+def getAllHitsForSummary(summary, recordFilename):
     """
-    Given a filename of BLAST output or a dict that already summarizes
-    BLAST output, produce an HTML object with the records sorted by mean
-    e-value.
+    For the keys of summary (these are sequence titles), pull out a list of
+    hit ids and find all those hits in recordFilename.
     """
-    if isinstance(filenameOrSummary, dict):
-        summary = filenameOrSummary
-    else:
-        summary = summarizeAllRecords(filenameOrSummary)
-    out = []
-    keysByEValue = sorted(
-        ((summary[key]['eMean'], summary[key]['count'], summary[key]['length'],
-          key) for key in summary))
-    for i, (e, count, length, title) in enumerate(keysByEValue):
-        ref = title.split('|')[3].split('.')[0]
-        out.append(
-            '%3d: count=%4d, len=%7d, mean evalue=%20s: '
-            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/%s" target="_blank">'
-            '%s</a>' % (i + 1, count, length, e, ref, title))
-    return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
+    titles = sorted(summary.keys())
+    hitIds = set([title.split(' ')[0] for title in titles])
+    return list(findHits(recordFilename, hitIds))
 
 
 def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
                        maxSequenceLen=None, minMatchingReads=None,
-                       maxMeanEValue=None):
+                       maxMeanEValue=None, maxMedianEValue=None):
     """
     Given a summary of BLAST results, produced by summarizeAllRecords, return
     a dictionary consisting of just the interesting records.
@@ -163,6 +194,8 @@ def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
     minMatchingReads: sequences that are matched by fewer reads
         will be elided.
     maxMeanEValue: sequences that are matched with a mean e-value
+        that is greater will be elided.
+    maxMedianEValue: sequences that are matched with a median e-value
         that is greater will be elided.
     """
     result = {}
@@ -178,6 +211,8 @@ def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
         if minMatchingReads is not None and item['count'] < minMatchingReads:
             continue
         if maxMeanEValue is not None and item['eMean'] > maxMeanEValue:
+            continue
+        if maxMedianEValue is not None and item['eMedian'] > maxMedianEValue:
             continue
         result[title] = item
     return result
@@ -195,26 +230,34 @@ def getSequence(hitId, db='nt'):
     return SeqIO.read(StringIO(fasta), 'fasta')
 
 
-def findHits(recordFilename, hitId, limit=None, meta=None):
+def findHits(recordFilename, hitIds, limit=None):
     """
+    Look in recordFilename (a BLAST XML output file) for hits with ids in the
+    set hitIds.
+
     recordFilename: the str file name to read BLAST records from. Must have
         contents produced via the "-outfmt 5" given on the blast command line.
-    hitId: the hit_id field from a BLAST record hsp. Of the form
-        'gi|63148399|gb|DQ011818.1|' or anything recognized by the -entry param
-        of blastdbcmd.
+    hitIds: a set of hit_id field values from a BLAST record hsp. Each hitId is
+        of the form 'gi|63148399|gb|DQ011818.1|' or anything recognized by the
+        -entry param of blastdbcmd.
     limit: the int number of records to read from recordFilename.
-    meta: if not None, a dict to store metadata in. We only store number of
-        reads right now.
+
+    Return a generator that yields (read number, hit id, hit length, hsps)
+    tuples.
     """
-    readCount = 0
-    for sequenceNum, record in enumerate(
+    start = time()
+    report('Looking for hits on %d sequence ids in %s' %
+           (len(hitIds), recordFilename))
+    hitCount = 0
+    for readNum, record in enumerate(
             readHits(recordFilename, limit=limit)):
-        readCount += 1
         for alignment in record.alignments:
-            if alignment.hit_id == hitId:
-                yield [sequenceNum, alignment.hsps]
-    if meta is not None:
-        meta['readCount'] = readCount
+            if alignment.hit_id in hitIds:
+                hitCount += 1
+                yield (readNum, alignment.hit_id, alignment.length,
+                       alignment.hsps)
+    stop = time()
+    report('%d hits found in %.3f mins.' % (hitCount, (stop - start) / 60.0))
 
 
 def findCodons(seq, codons):
@@ -286,12 +329,7 @@ def addFeatures(fig, record, minX, maxX):
     # Have a look at the colormaps here and decide which one you'd like:
     # http://matplotlib.sourceforge.net/examples/pylab_examples/
     # show_colormaps.html
-    # colormap = plt.cm.gist_ncar
-    # colormap = plt.cm.hsv
     colormap = plt.cm.coolwarm
-    # colormap = plt.cm.CMRmap
-    # colormap = plt.cm.cool
-    # colormap = plt.cm.Dark2
     colors = [colormap(i) for i in
               np.linspace(0.0, 0.99, len(toPlot) + totalSubfeatures)]
     labels = []
@@ -458,14 +496,14 @@ def normalizeHSP(hsp, queryLen):
     }
 
 
-def summarizeHits(hits, sequence, fastaFilename, eCutoff=None,
+def summarizeHits(hits, fastaFilename, eCutoff=None,
                   maxHspsPerHit=None, minStart=None, maxStop=None):
     """
     Summarize the information found in 'hits'.
 
     hits: The result of calling findHits (above).
-    sequence: The sequence the hits are against.
-    fastaFilename: The name of the FASTA file containing query sequences.
+    fastaFilename: The name of the FASTA file containing query sequences,
+        or a list of fasta sequences from SeqIO.parse
     eCutoff: A float e value. Hits with converted e value less than this will
         not be reurned. A converted e value is -1 times the log of the actual
         e value.
@@ -474,25 +512,37 @@ def summarizeHits(hits, sequence, fastaFilename, eCutoff=None,
         returned.
     maxStop: Reads that end after this subject offset should not be returned.
 
-    Return a dict with keys giving summary information.
+    Return a 2-tuple: a list of the SeqIO parsed fasta file, and a dict whose
+        keys are sequence ids and whose values give hit summary information.
     """
-    fasta = list(SeqIO.parse(fastaFilename, 'fasta'))
-    hitCount = 0
-    items = []
-    maxE = 0.0
-    minE = 1000  # Something ridiculously large.
-    maxQueryLen = 0
-    maxX = maxStop or len(sequence)
-    minX = minStart or 0
-    zeroEValueFound = False
+
+    if isinstance(fastaFilename, str):
+        fasta = list(SeqIO.parse(fastaFilename, 'fasta'))
+    else:
+        fasta = fastaFilename
     zeroEValueUpperRandomIncrement = 150
 
+    def resultDict(sequenceLen):
+        return {
+            'hitCount': 0,
+            'items': [],
+            'maxE': 0.0,
+            'minE': 1000,  # Something ridiculously large.
+            'maxX': maxStop or sequenceLen,
+            'minX': minStart or 0,
+            'zeroEValueFound': False,
+        }
+
+    result = {}
+
     # Extract all e values.
-    for sequenceId, hsps in hits:
-        hitCount += 1  # Manually count the hits (hits may be a generator).
+    for sequenceId, hitId, hitLen, hsps in hits:
+        if hitId not in result:
+            result[hitId] = resultDict(hitLen)
+        hitInfo = result[hitId]
+        # Manually count the hits ('hits' may be a generator).
+        hitInfo['hitCount'] += 1
         queryLen = len(fasta[sequenceId])
-        if queryLen > maxQueryLen:
-            maxQueryLen = queryLen
         for hspCount, hsp in enumerate(hsps, start=1):
             if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
                 break
@@ -503,20 +553,21 @@ def summarizeHits(hits, sequence, fastaFilename, eCutoff=None,
                 continue
             if hsp.expect == 0.0:
                 e = None
-                zeroEValueFound = True
+                hitInfo['zeroEValueFound'] = True
             else:
                 e = -1.0 * log10(hsp.expect)
                 if e < 0.0 or (eCutoff is not None and e < eCutoff):
                     continue
-                if e > maxE:
-                    maxE = e
-                elif e < minE:
-                    minE = e
-            if normalized['queryStart'] < minX:
-                minX = normalized['queryStart']
-            if normalized['queryEnd'] > maxX:
-                maxX = normalized['queryEnd']
-            items.append({
+                if e > hitInfo['maxE']:
+                    hitInfo['maxE'] = e
+                # Don't use elif for testing minE. Both conditions can be true.
+                if e < hitInfo['minE']:
+                    hitInfo['minE'] = e
+            if normalized['queryStart'] < hitInfo['minX']:
+                hitInfo['minX'] = normalized['queryStart']
+            if normalized['queryEnd'] > hitInfo['maxX']:
+                hitInfo['maxX'] = normalized['queryEnd']
+            hitInfo['items'].append({
                 'e': e,
                 'hsp': normalized,
                 'origHsp': hsp,
@@ -525,28 +576,20 @@ def summarizeHits(hits, sequence, fastaFilename, eCutoff=None,
                 'subjectSense': hsp.frame[1],
             })
 
-    # Set the expect values that were zero to a randomly high value (higher
-    # than the max e value we just calculated).
-    maxEIncludingRandoms = maxE
-    for item in items:
-        if item['e'] is None:
-            item['e'] = e = uniform(maxE + 2, maxE + 2 +
-                                    zeroEValueUpperRandomIncrement)
-            if e > maxEIncludingRandoms:
-                maxEIncludingRandoms = e
+    for hitInfo in result.itervalues():
+        # For each sequence we have hits on, set the expect values that
+        # were zero to a randomly high value (higher than the max e value
+        # we just calculated).
+        maxEIncludingRandoms = hitInfo['maxE']
+        for item in hitInfo['items']:
+            if item['e'] is None:
+                item['e'] = e = (hitInfo['maxE'] + 2 +
+                                 uniform(0, zeroEValueUpperRandomIncrement))
+                if e > maxEIncludingRandoms:
+                    maxEIncludingRandoms = e
+        hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
-    return {
-        'fasta': fasta,
-        'hitCount': hitCount,
-        'items': items,
-        'maxE': maxE,
-        'maxEIncludingRandoms': maxEIncludingRandoms,
-        'maxQueryLen': maxQueryLen,
-        'maxX': maxX,
-        'minE': minE,
-        'minX': minX,
-        'zeroEValueFound': zeroEValueFound,
-    }
+    return fasta, result
 
 
 def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
@@ -556,7 +599,8 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
 
     recordFilename: the BLAST XML output file.
     hitId: the str sequence id to examine the BLAST output for hits against.
-    fastaFilename: the name of the FASTA file with the query sequences.
+    fastaFilename: The name of the FASTA file containing query sequences,
+        or a list of fasta sequences from SeqIO.parse
     eCutoff: converted e values less than this will be ignored.
     db: the BLAST db to use to look up the target and, if given, actual
         sequence.
@@ -569,11 +613,11 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     start = time()
     if isinstance(recordFilename, str):
         # TODO: REMOVE THE LIMIT IN THE NEXT LINE!
-        allhits = findHits(recordFilename, hitId, limit=100)
+        allhits = findHits(recordFilename, set([hitId]), limit=100)
     else:
         allhits = recordFilename
     sequence = getSequence(hitId, db)
-    summary = summarizeHits(allhits, sequence, fastaFilename, eCutoff=eCutoff)
+    fasta, summary = summarizeHits(allhits, fastaFilename, eCutoff=eCutoff)
     minX, maxX = summary['minX'], summary['maxX']
     if actualSequenceId:
         # UNUSED.
@@ -644,7 +688,7 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     return summary, consensus
 
 
-def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
+def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    addQueryLines=True, showFeatures=True, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, addTitleToAlignments=True,
@@ -652,9 +696,12 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
     """
     Align a set of BLAST hits against a sequence.
 
-    recordFilename: the BLAST XML output file.
+    recordFilenameOrHits: if a string, the BLAST XML output file. Else, a
+        dict of BLAST records (e.g., from interestingRecords or
+        summarizeAllRecords).
     hitId: the str sequence id to examine the BLAST output for hits against.
-    fastaFilename: the name of the FASTA file with the query sequences.
+    fastaFilename: The name of the FASTA file containing query sequences,
+        or a list of fasta sequences from SeqIO.parse
     db: the BLAST db to use to look up the target and, if given, actual
         sequence.
     addQueryLines: if True, draw query lines in full (these will then be partly
@@ -695,32 +742,33 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
         featureEndpoints = []
         readsAx = readsAx or plt.subplot(111)
 
-    findHitsMeta = {}
-    if isinstance(recordFilename, str):
-        report('Creating alignment graph for %s.' % hitId)
-        allhits = findHits(recordFilename, hitId, meta=findHitsMeta)
+    if isinstance(recordFilenameOrHits, str):
+        allhits = findHits(recordFilenameOrHits, set([hitId]))
     else:
-        allhits = recordFilename
+        # The recordFilename is actually a dict of hits.
+        allhits = recordFilenameOrHits
 
-    summary = summarizeHits(allhits, sequence, fastaFilename, eCutoff=eCutoff,
-                            maxHspsPerHit=maxHspsPerHit, minStart=minStart,
-                            maxStop=maxStop)
+    fasta, summary = summarizeHits(
+        allhits, fastaFilename, eCutoff=eCutoff,
+        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop)
 
-    fasta = summary['fasta']
-    items = summary['items']
-    maxEIncludingRandoms = int(summary['maxEIncludingRandoms'])
-    maxE = int(summary['maxE'])
-    minE = int(summary['minE'])
-    maxX = summary['maxX']
-    minX = summary['minX']
+    hitInfo = summary[hitId]
+    items = hitInfo['items']
+    maxEIncludingRandoms = int(ceil(hitInfo['maxEIncludingRandoms']))
+    maxE = int(ceil(hitInfo['maxE']))
+    minE = int(hitInfo['minE'])
+    maxX = hitInfo['maxX']
+    minX = hitInfo['minX']
 
     if colorQueryBases:
         # Color each query by its bases.
-        data = np.ones((maxEIncludingRandoms - minE + 1, maxX - minX + 1),
-                       dtype=(float, 3))
+        xScale = 3
+        yScale = 2
+        baseImage = BaseImage(maxX - minX, maxEIncludingRandoms - minE,
+                              xScale, yScale)
         for item in items:
             hsp = item['hsp']
-            e = int(item['e'])
+            e = item['e'] - minE
             if item['subjectSense'] == 1:
                 query = fasta[item['sequenceId']].seq
             else:
@@ -737,7 +785,7 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
             queryOffset = 0
             for queryIndex in xrange(hsp['subjectStart'] - queryStart):
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
-                data[e - minE][xOffset + queryIndex] = color
+                baseImage.set(xOffset + queryIndex, e, color)
 
             # 2. Match part.
             xOffset = hsp['subjectStart'] - minX
@@ -763,13 +811,12 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
                     else:
                         if origQuery[matchIndex] == '-':
                             # A gap in the query. All query gaps get the
-                            # same 'gap' color. Don't advance the query
-                            # index as we have not used up a query base.
+                            # same 'gap' color.
                             color = QUERY_COLORS['gap']
                         else:
                             # Query doesn't match subject (and is not a gap).
                             color = QUERY_COLORS[origQuery[matchIndex]]
-                    data[e - minE][xOffset + xIndex] = color
+                    baseImage.set(xOffset + xIndex, e, color)
                     xIndex += 1
 
             # 3. Right part.
@@ -777,9 +824,10 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
             queryOffset = hsp['subjectEnd'] - hsp['queryStart']
             for queryIndex in xrange(hsp['queryEnd'] - hsp['subjectEnd']):
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
-                data[e - minE][xOffset + queryIndex] = color
+                baseImage.set(xOffset + queryIndex, e, color)
 
-        readsAx.imshow(data, aspect='auto', origin='lower',
+        readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
+                       interpolation='nearest',
                        extent=[minX, maxX, minE, maxEIncludingRandoms])
 
         # data1 = np.ones((40, 1000), dtype=(float, 3))
@@ -796,7 +844,7 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
         # Add horizontal lines for all the query sequences.
         if addQueryLines:
             for item in items:
-                e = int(item['e'])
+                e = item['e']
                 hsp = item['hsp']
                 line = Line2D([hsp['queryStart'], hsp['queryEnd']], [e, e],
                               color='#aaaaaa')
@@ -804,7 +852,7 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
 
         # Add the horizontal BLAST alignment lines.
         for item in items:
-            e = int(item['e'])
+            e = item['e']
             hsp = item['hsp']
             line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
                           color='blue')
@@ -813,7 +861,6 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
     # Add vertical lines for the sequence features.
     if showFeatures:
         featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
-        report('got %d feature endpoints' % len(featureEndpoints))
         for fe in featureEndpoints:
             line = Line2D([fe['start'], fe['start']],
                           [0, maxEIncludingRandoms], color=fe['color'])
@@ -838,35 +885,34 @@ def alignmentGraph(recordFilename, hitId, fastaFilename, db='nt',
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
-    if summary['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='red',
-                      linewidth=3)
+    if hitInfo['zeroEValueFound']:
+        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='#cccccc',
+                      linewidth=1)
         readsAx.add_line(line)
 
     # Titles, axis, etc.
     if createFigure:
         figure.suptitle('%s (length %d, %d hits)' % (
-            sequence.description, len(sequence), summary['hitCount']),
+            sequence.description, len(sequence), hitInfo['hitCount']),
             fontsize=20)
     if createdReadsAx:
         # Only add title and y-axis label if we made the read axes.
         readsAx.set_title('Read alignments', fontsize=20)
         plt.ylabel('$- log_{10}(e)$', fontsize=17)
     readsAx.axis([minX, maxX, minE, maxEIncludingRandoms])
+    readsAx.grid()
     if createFigure:
         plt.show()
     stop = time()
-    report('Number of reads BLASTed: %s' %
-           findHitsMeta.get('readCount', '<unknown>'))
-    report('Number of HSPs plotted: %d' % len(items))
-    report('Alignment graph generated in %.3f mins.' % ((stop - start) / 60.0))
+    report('Graph generated in %.3f mins. Read count: %d. HSP count: %d.' %
+           ((stop - start) / 60.0, len(fasta), len(items)))
 
-    return summary
+    return hitInfo
 
 
-def alignmentPanel(summary, recordFilename, fastaFilename, db='nt',
+def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
-                   maxStop=None):
+                   maxStop=None, sortOn='eMedian'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -874,51 +920,98 @@ def alignmentPanel(summary, recordFilename, fastaFilename, db='nt',
     summary: the dict output of summarizeAllRecords (or interestingRecords).
         The keys of this dict are the sequence titles that the reads (according
         to the BLAST hits in recordFilename) will be aligned against.
-    recordFilename: the BLAST XML output file.
-    fastaFilename: the name of the FASTA file with the query sequences.
+    recordFilenameOrHits: if a string, the BLAST XML output file. Else, a
+        dict of BLAST records (e.g., from interestingRecords or
+        summarizeAllRecords).
+    fastaFilename: The name of the FASTA file containing query sequences,
+        or a list of fasta sequences from SeqIO.parse
     db: the BLAST db to use to look up the target and, if given, actual
         sequence.
     eCutoff: converted e values less than this will be ignored.
     maxHspsPerHit: A numeric max number of HSPs to show for each hit on hitId.
     minStart: Reads that start before this subject offset should not be shown.
     maxStop: Reads that end after this subject offset should not be shown.
+    sortOn: The attribute to sort subplots on. Either "eMean", "eMedian",
+        "title" or "reads"
     """
     start = time()
-    # figure = plt.figure(figsize=(15, 15))
-    titles = sorted(summary.keys())
+    # Sort titles by mean eValue then title.
+    if sortOn == 'eMean':
+        titles = sorted(
+            summary.iterkeys(),
+            key=lambda title: (summary[title]['eMean'], title))
+    if sortOn == 'eMedian':
+        titles = sorted(
+            summary.iterkeys(),
+            key=lambda title: (summary[title]['eMedian'], title))
+    elif sortOn == 'reads':
+        titles = sorted(
+            summary.iterkeys(), reverse=True,
+            key=lambda title: (len(summary[title]['reads']), title))
+    elif sortOn == 'title':
+        titles = sorted(summary.iterkeys())
+    else:
+        raise ValueError('sortOn must be one of "eMean", "eMedian", '
+                         '"title" or "reads"')
+
     cols = 5
     rows = int(len(titles) / cols) + (0 if len(titles) % cols == 0 else 1)
-    report('Plotting %d titles in %dx%d grid' % (len(titles), rows, cols))
     figure, ax = plt.subplots(rows, cols, squeeze=False)
     coords = dimensionalIterator((rows, cols))
+    report('Plotting %d titles in %dx%d grid, sorted on %s' %
+           (len(titles), rows, cols, sortOn))
 
     maxEIncludingRandoms = -1
+    maxE = -1
     minE = 1000  # Something improbably large.
     maxX = -1
     minX = 1e10  # Something improbably large.
+    postProcessInfo = defaultdict(dict)
+
+    if isinstance(recordFilenameOrHits, str):
+        report('Finding all hits in %s.' % recordFilenameOrHits)
+        hitIds = set([title.split(' ')[0] for title in titles])
+        allhits = list(findHits(recordFilenameOrHits, hitIds))
+        report('Found %d hits.' % len(allhits))
+    else:
+        # recordFilenameOrHits is already the hits we need.
+        allhits = recordFilenameOrHits
 
     for i, title in enumerate(titles):
-        report('---> %d: %s' % (i, title))
         row, col = coords.next()
+        report('---> %d: %s %s' % (i, title, NCBISequenceLinkURL(title)))
         hitId = title.split(' ')[0]
-        info = alignmentGraph(
-            recordFilename, hitId, fastaFilename, db=db, addQueryLines=True,
+        hitInfo = alignmentGraph(
+            allhits, hitId, fastaFilename, db=db, addQueryLines=True,
             showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
             colorQueryBases=False, minStart=minStart, maxStop=maxStop,
             createFigure=False, addTitleToAlignments=False,
             readsAx=ax[row][col])
 
-        ax[row][col].set_title(
-            '%d: %s' % (i, title.split(' ', 1)[1][:20]), fontsize=8)
+        # Remember the maxE value for sequences that had e values of zero and
+        # remember the maxX value.
+        if hitInfo['zeroEValueFound']:
+            postProcessInfo[(row, col)]['maxE'] = hitInfo['maxE']
 
-        if info['maxEIncludingRandoms'] > maxEIncludingRandoms:
-            maxEIncludingRandoms = info['maxEIncludingRandoms']
-        if info['minE'] < minE:
-            minE = info['minE']
-        if info['maxX'] > maxX:
-            maxX = info['maxX']
-        if info['minX'] < minX:
-            minX = info['minX']
+        postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
+
+        meanE = int(-1.0 * log10(summary[title]['eMean']))
+        medianE = int(-1.0 * log10(summary[title]['eMedian']))
+        ax[row][col].set_title(
+            '%d: %s\n%d reads, 1e-%d median, 1e-%d mean' % (
+                i, title.split(' ', 1)[1][:40],
+                len(summary[title]['reads']), medianE, meanE), fontsize=10)
+
+        if hitInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
+            maxEIncludingRandoms = hitInfo['maxEIncludingRandoms']
+        if hitInfo['maxE'] > maxE:
+            maxE = hitInfo['maxE']
+        if hitInfo['minE'] < minE:
+            minE = hitInfo['minE']
+        if hitInfo['maxX'] > maxX:
+            maxX = hitInfo['maxX']
+        if hitInfo['minX'] < minX:
+            minX = hitInfo['minX']
 
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
@@ -926,13 +1019,36 @@ def alignmentPanel(summary, recordFilename, fastaFilename, db='nt',
         a.axis([minX, maxX, minE, maxEIncludingRandoms])
         a.set_yticks([])
         a.set_xticks([])
+        # Post-process each non-empty graph.
+        hitInfo = postProcessInfo[(row, col)]
+        if hitInfo:
+            if 'maxE' in hitInfo:
+                # Overdraw the horizontal divider between the highest e value
+                # and the randomly higher ones (if any). We need to do this
+                # as the plots will be changing width, to all be as wide as
+                # the widest.
+                e = hitInfo['maxE']
+                line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
+                              linewidth=1)
+                a.add_line(line)
+            # Add a vertical line at x=0 so we can see reads that match to
+            # the left of the sequence we're aligning against.
+            line = Line2D([0, 0], [minE, maxEIncludingRandoms],
+                          color='#cccccc', linewidth=1)
+            a.add_line(line)
+            # Add a line on the right of each sub-plot so we can see where
+            # the sequence ends (as all panel graphs have the same width and
+            # we otherwise couldn't tell).
+            line = Line2D([hitInfo['maxX'], hitInfo['maxX']],
+                          [minE, maxEIncludingRandoms], color='#cccccc',
+                          linewidth=1)
+            a.add_line(line)
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
     figure.suptitle('X: %d to %d, Y: %d to %d' %
-                    (minX, maxX, int(minE), int(maxEIncludingRandoms)),
-                    fontsize=20)
-    figure.set_size_inches(2 * cols, 2 * rows, forward=True)
+                    (minX, maxX, int(minE), int(maxE)), fontsize=20)
+    figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     # figure.savefig('evalues.png')
     plt.show()
     stop = time()
