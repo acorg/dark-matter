@@ -44,6 +44,6 @@ def getPrefixAndSuffix(file_handle):
 def trimReads(prefix, suffix, file_handle):
     for record in SeqIO.parse(file_handle, "fasta"):
         if suffix == 0:
-            return record[prefix:]
+            yield record[prefix:]
         else:
-            return record[prefix:-suffix]
+            yield record[prefix:-suffix]

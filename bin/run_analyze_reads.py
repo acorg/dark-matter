@@ -2,8 +2,8 @@ from dark.analyze_reads import getPrefixAndSuffix, trimReads
 import sys
 
 
-if len(sys.argv) > 2:
-    print >> sys.stderr, "ERROR, takes at least two arguments."
+if len(sys.argv) != 2:
+    print >> sys.stderr, "getPrefixAndSuffix() takes exactly 1 argument"
     sys.exit(1)
 
 else:
@@ -12,4 +12,5 @@ else:
 
     print "prefix %d, suffix %d" % (prefix, suffix)
 
-    trimReads(prefix, suffix, filename)
+    result = trimReads(prefix, suffix, filename)
+    print result
