@@ -8,7 +8,7 @@ if len(sys.argv) > 2:
     sys.exit(1)
 
 else:
-    caller = open(sys.argv[1], "rU")
+    caller = sys.argv[1]
     getReads(caller)
 
 

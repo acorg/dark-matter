@@ -12,9 +12,9 @@ def _longestPrefixOfTwoSeqs(a, b):
     return result
 
 
-def getReads(caller):
+def getReads(filename):
     read_list = []
-    for record in SeqIO.parse("caller", "fasta"):
+    for record in SeqIO.parse(open(filename, "rU"), "fasta"):
         read_list.append(record)
     print read_list
 
@@ -47,14 +47,14 @@ def getReads(caller):
     print "result_prefix", result_prefix
     print "result_suffix", result_suffix
 
-    def clipSequences(caller):
+    def clipSequences(filename):
         print result_prefix
         print result_suffix
-        for record in SeqIO.parse(caller, "fasta"):
+        for record in SeqIO.parse(open(filename, "rU"), "fasta"):
             if result_suffix == 0:
                 print record[result_prefix:]
             else:
                 print record[result_prefix:-result_suffix]
-    clipSequences(caller)
+    clipSequences(filename)
 
 
