@@ -33,8 +33,9 @@ def getPrefixAndSuffix(file_handle):
                     return 0
                 elif thisLen < result:
                     prefix = prefix[:thisLen]
-                    return thisLen
+                    result = thisLen
                 index += 1
+            return result
 
     prefix = longestCommonPrefix(read_list)
     suffix = longestCommonPrefix(reversed_read_list)

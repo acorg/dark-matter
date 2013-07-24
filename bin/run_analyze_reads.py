@@ -1,4 +1,5 @@
-from dark.analyze_reads import getPrefixAndSuffix, trimReads
+from dark.analyze_reads import getPrefixAndSuffix
+from dark.analyze_reads import trimReads
 import sys
 
 
@@ -12,5 +13,4 @@ else:
 
     print "prefix %d, suffix %d" % (prefix, suffix)
 
-    result = trimReads(prefix, suffix, filename)
-    print result
+    trimReads(prefix, suffix, filename)

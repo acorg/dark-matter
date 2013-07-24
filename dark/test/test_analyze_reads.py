@@ -6,7 +6,7 @@ from Bio import SeqIO
 
 class TestGetPrefixAndSuffix(TestCase):
     """
-    Tests for analyze_reads.py
+    Tests for getPrefixAndSuffix()
     """
 
     def testZeroInput(self):
@@ -39,31 +39,73 @@ class TestGetPrefixAndSuffix(TestCase):
         self.assertEqual(result, (3, 3))
 
     def testSamePrefixDifferentSuffixThreeReads(self):
-        seq = '>hey\nagtcagtcagtc\n>you\nagttcctggtc\n>how\nagtaatcggtac'
-        result = getPrefixAndSuffix(SeqIO(seq))
+        seq = '>hey\nagtcagtcagtc\n>you\nagttcctggtc\n>how\nagtcggtat'
+        result = getPrefixAndSuffix(StringIO(seq))
         self.assertEqual(result, (3, 0))
 
-    def testDifferentPrefixSameSuffixThreeReads(self):
-        seq = '>hey\nagtcagtcagtc\n>you\ntcctggtc\n>how\nagtaatcggtacgtc'
-        result = getPrefixAndSuffix(SeqIO(seq))
-        self.assertEqual(result, (0, 3))
-
     def testSamePrefixSameSuffixThreeReads(self):
-        seq = '>hey\nagtcagtcagtc\n>you\nagttcctggtc\n>how\nagtaatcggtacgtc'
-        result = getPrefixAndSuffix(SeqIO(seq))
+        seq = '>hey\nagtccttagatcg\n>you\nagtcgaatcg\n>how\nagtaacctcg'
+        result = getPrefixAndSuffix(StringIO(seq))
         self.assertEqual(result, (3, 3))
+
+    def testDifferentPrefixSameSuffixThreeReads(self):
+        seq = '>hey\nagtccttagatcg\n>you\ncgaatcg\n>how\natgacctcg'
+        result = getPrefixAndSuffix(StringIO(seq))
+        self.assertEqual(result, (0, 3))
 
 
 class TestTrimReads(TestCase):
     """
-    Tests for trimReads
+    Tests for trimReads()
     """
+    def testZeroInput(self):
+        result = trimReads(0, 0, StringIO())
+        test_result = list(SeqIO.parse(StringIO(), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+
+    def testOneInput(self):
+        result = trimReads(10, 10, StringIO())
+        test_result = list(SeqIO.parse(StringIO(), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+
     def testZeroPrefixZeroSuffix(self):
-        seq = '>hey\nagtcagtcagtc'
-        prefix = 0
-        suffix = 0
-        result = trimReads(prefix, suffix, SeqIO(seq))
-        self.assertEqual(result, 'agtcagtcagtc')
+        seq = '>hey\nagtccgatcg'
+        result = trimReads(0, 0, StringIO(seq))
+        trimmed_seq = '>hey\nagtccgatcg'
+        test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
 
-    # tbc
+    def testPrefixZeroSuffix(self):
+        seq = '>hey\nagtccgatcg'
+        trimmed_seq = '>hey\nccgatcg'
+        result = trimReads(3, 0, StringIO(seq))
+        test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
 
+    def testZeroPrefixSuffix(self):
+        seq = '>hey\nagtccgatcg'
+        trimmed_seq = '>hey\nagtccga'
+        result = trimReads(0, 3, StringIO(seq))
+        test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+
+    def testPrefixSuffix(self):
+        seq = '>hey\nagtccgatcg'
+        trimmed_seq = '>hey\nccga'
+        result = trimReads(3, 3, StringIO(seq))
+        test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+
+    def testLongPrefixSuffix(self):
+        seq = '>hey\nagtccgatcg'
+        trimmed_seq = '>hey\n'
+        result = trimReads(8, 4, StringIO(seq))
+        test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+
+    def testPrefixLongSuffix(self):
+        seq = '>hey\nagtccgatcg'
+        trimmed_seq = '>hey\n'
+        result = trimReads(4, 8, StringIO(seq))
+        test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
+        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
