@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+from Bio import SeqIO
 from dark.analyze_reads import getPrefixAndSuffix
 from dark.analyze_reads import trimReads
 import sys
@@ -11,6 +14,6 @@ else:
     filename = sys.argv[1]
     prefix, suffix = getPrefixAndSuffix(filename)
 
-    print "prefix %d, suffix %d" % (prefix, suffix)
+    print >>sys.stderr, "Prefix length %d, suffix length %d" % (prefix, suffix)
 
-    trimReads(prefix, suffix, filename)
+    SeqIO.write(trimReads(prefix, suffix, filename), sys.stdout, 'fasta')
