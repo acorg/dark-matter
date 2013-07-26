@@ -180,7 +180,7 @@ def getAllHitsForSummary(summary, recordFilename):
     return list(findHits(recordFilename, hitIds))
 
 
-def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
+def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
                        maxSequenceLen=None, minMatchingReads=None,
                        maxMeanEValue=None, maxMedianEValue=None,
                        negativeTitleRegex=None):
@@ -189,7 +189,8 @@ def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
     a dictionary consisting of just the interesting records.
 
     summary: the dict output of summarizeAllRecords
-    keyRegex: a regex that sequence titles must match.
+    titleRegex: a regex that sequence titles must match.
+    negativeTitleRegex: a regex that sequence titles must not match.
     minSequenceLen: sequences of lesser length will be elided.
     maxSequenceLen: sequences of greater length will be elided.
     minMatchingReads: sequences that are matched by fewer reads
@@ -200,12 +201,12 @@ def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
         that is greater will be elided.
     """
     result = {}
-    if keyRegex is not None:
-        keyRegex = re.compile(keyRegex)
+    if titleRegex is not None:
+        titleRegex = re.compile(titleRegex)
     if negativeTitleRegex is not None:
         negativeTitleRegex = re.compile(negativeTitleRegex)
     for title, item in summary.iteritems():
-        if keyRegex and keyRegex.search(title) is None:
+        if titleRegex and titleRegex.search(title) is None:
             continue
         if negativeTitleRegex and negativeTitleRegex.search(title) is not None:
             continue
