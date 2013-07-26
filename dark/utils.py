@@ -182,7 +182,8 @@ def getAllHitsForSummary(summary, recordFilename):
 
 def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
                        maxSequenceLen=None, minMatchingReads=None,
-                       maxMeanEValue=None, maxMedianEValue=None):
+                       maxMeanEValue=None, maxMedianEValue=None,
+                       negativeTitleRegex=None):
     """
     Given a summary of BLAST results, produced by summarizeAllRecords, return
     a dictionary consisting of just the interesting records.
@@ -201,8 +202,12 @@ def interestingRecords(summary, keyRegex=None, minSequenceLen=None,
     result = {}
     if keyRegex is not None:
         keyRegex = re.compile(keyRegex)
+    if negativeTitleRegex is not None:
+        negativeTitleRegex = re.compile(negativeTitleRegex)
     for title, item in summary.iteritems():
         if keyRegex and keyRegex.search(title) is None:
+            continue
+        if negativeTitleRegex and negativeTitleRegex.search(title) is not None:
             continue
         if minSequenceLen is not None and item['length'] < minSequenceLen:
             continue
