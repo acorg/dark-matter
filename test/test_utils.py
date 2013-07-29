@@ -365,6 +365,70 @@ class InterestingRecords(TestCase):
                 titleRegex='a'
             ))
 
+    def testFilterTitleCaseInsensitive(self):
+        """
+        Filtering with a title (i.e., dictionary key) should work
+        even when case doesn't match.
+        """
+        self.assertEqual(
+            {
+                'The ABC Sequence': 23
+            },
+            interestingRecords(
+                {
+                    'The ABC Sequence': 23,
+                    'b': 15
+                },
+                titleRegex='abc seq'
+            ))
+
+    def testNegativeFilterTitle(self):
+        """
+        Filtering negatively with a title (i.e., dictionary key) should work.
+        """
+        self.assertEqual(
+            {
+                'b': {
+                    'length': 20,
+                }
+            },
+            interestingRecords(
+                {
+                    'The ABC Sequence': {
+                        'length': 10,
+                    },
+                    'b': {
+                        'length': 20,
+                    }
+                },
+                negativeTitleRegex='ABC Sequence',
+                minSequenceLen=5
+            ))
+
+    def testNegativeFilterTitleCaseInsensitive(self):
+        """
+        Filtering negatively with a title (i.e., dictionary key) should
+        work even when case doesn't match.
+        """
+        self.assertEqual(
+            {
+                'b': {
+                    'length': 20,
+                }
+            },
+            interestingRecords(
+                {
+                    'The ABC Sequence': {
+                        'length': 10,
+                    },
+                    'b': {
+                        'length': 20,
+                    }
+                },
+                negativeTitleRegex='abc seq',
+                minSequenceLen=5
+            ))
+
     def testFilterLengthMinMax(self):
         """
         Filtering with a minimum and maximum sequence length should work.
