@@ -362,7 +362,7 @@ class InterestingRecords(TestCase):
                     'a': 23,
                     'b': 15
                 },
-                keyRegex='a'
+                titleRegex='a'
             ))
 
     def testFilterLengthMinMax(self):
