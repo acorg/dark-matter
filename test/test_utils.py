@@ -1,7 +1,7 @@
 from unittest import TestCase
 from dark.utils import (
     findCodons, normalizeHSP, interestingRecords, NCBISequenceLinkURL,
-    NCBISequenceLink)
+    NCBISequenceLink, filterRecords)
 from Bio.Seq import Seq
 
 
@@ -507,3 +507,78 @@ class InterestingRecords(TestCase):
                 },
                 maxMeanEValue=6
             ))
+
+
+class TestFilterRecords(TestCase):
+    """
+    Test the filterRecords function.
+    """
+
+    def testNoHits(self):
+        self.assertEqual({}, filterRecords({}, lambda x: True))
+
+    def testAllTrue(self):
+        summary = {
+            'a': 234,
+            'z': 'hey',
+        }
+        self.assertEqual(summary, filterRecords(summary, lambda x: True))
+
+    def testAllFalse(self):
+        summary = {
+            'a': 234,
+            'z': 'hey',
+        }
+        self.assertEqual({}, filterRecords(summary, lambda x: False))
+
+    def testMatchSome1(self):
+        summary = {
+            'a': {
+                'title': 'A sequence',
+                'length': 44,
+            },
+            'b': {
+                'title': 'Silly',
+                'length': 21
+            },
+            'c': {
+                'title': 'Billy',
+                'length': 100
+            },
+        }
+        self.assertEqual(
+            {
+                'a': {
+                    'title': 'A sequence',
+                    'length': 44,
+                },
+            },
+            filterRecords(summary, lambda x: x['title'].find('sequence') > -1))
+
+    def testMatchSome2(self):
+        summary = {
+            'a': {
+                'title': 'A sequence',
+                'length': 44,
+            },
+            'b': {
+                'title': 'Silly',
+                'length': 21
+            },
+            'c': {
+                'title': 'Billy',
+                'length': 100
+            },
+        }
+        self.assertEqual(
+            {
+                'a': {
+                    'title': 'A sequence',
+                    'length': 44,
+                },
+                'c': {
+                    'title': 'Billy',
+                    'length': 100
+                },
+            },
+            filterRecords(summary, lambda x: x['length'] > 30))
