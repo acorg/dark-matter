@@ -216,9 +216,9 @@ def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
     """
     result = {}
     if titleRegex is not None:
-        titleRegex = re.compile(titleRegex)
+        titleRegex = re.compile(titleRegex, re.I)
     if negativeTitleRegex is not None:
-        negativeTitleRegex = re.compile(negativeTitleRegex)
+        negativeTitleRegex = re.compile(negativeTitleRegex, re.I)
     for title, item in summary.iteritems():
         if titleRegex and titleRegex.search(title) is None:
             continue
