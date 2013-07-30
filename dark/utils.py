@@ -111,7 +111,8 @@ def summarizeAllRecords(filename):
                         'eTotal': 0.0,
                         'eValues': [],
                         'length': record.alignments[index].length,
-                        'reads': set()
+                        'reads': set(),
+                        'title': title,
                     }
                 item['count'] += 1
                 item['eValues'].append(description.e)
@@ -178,6 +179,19 @@ def getAllHitsForSummary(summary, recordFilename):
     titles = sorted(summary.keys())
     hitIds = set([title.split(' ')[0] for title in titles])
     return list(findHits(recordFilename, hitIds))
+
+
+def filterRecords(summary, filterFunc):
+    """
+    Pass each of the items in summary (as produced by summarizeAllRecords)
+    to a filter function and return a dict subset of those for which the
+    filter returns True.
+    """
+    result = {}
+    for title, item in summary.iteritems():
+        if filterFunc(item):
+            result[title] = item
+    return result
 
 
 def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
