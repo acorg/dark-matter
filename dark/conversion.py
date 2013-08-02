@@ -40,7 +40,6 @@ def convertBlastRecordToDict(record):
                 'query': hsp.query,
                 'query_start': hsp.query_start,
                 'query_end': hsp.query_end,
-                'match': hsp.match,
                 'sbjct': hsp.sbjct,
                 'sbjct_start': hsp.sbjct_start,
                 'sbjct_end': hsp.sbjct_end,
@@ -71,8 +70,7 @@ def convertDictToBlastRecord(d):
         for hsp in alignment['hsps']:
             hspInstance = HSP()
             for attr in ['expect', 'frame', 'query', 'query_start',
-                         'query_end', 'match', 'sbjct', 'sbjct_start',
-                         'sbjct_end']:
+                         'query_end', 'sbjct', 'sbjct_start', 'sbjct_end']:
                 setattr(hspInstance, attr, hsp[attr])
             alignmentInstance.hsps.append(hspInstance)
         title = alignment['title']

@@ -823,7 +823,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             xIndex = 0
             queryOffset = hsp['subjectStart'] - hsp['queryStart']
             origSubject = item['origHsp'].sbjct
-            origMatch = item['origHsp'].match
             origQuery = item['origHsp'].query
             for matchIndex in xrange(len(origSubject)):
                 if origSubject[matchIndex] == '-':
@@ -834,7 +833,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     # of the query.
                     pass
                 else:
-                    if origMatch[matchIndex] == '|':
+                    if origSubject[matchIndex] == origQuery[matchIndex]:
                         # The query matched the subject at this location.
                         # Matching bases are all colored in the same
                         # 'match' color.
