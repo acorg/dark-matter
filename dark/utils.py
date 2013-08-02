@@ -107,25 +107,26 @@ def summarizeAllRecords(filename):
     """
     Read a file of BLAST records and return a dictionary keyed by sequence
     title, with values containing information about the number of times the
-    sequence was hit, the e value, and the sequence length.
+    sequence was hit, the e value (from the best HSP), and the sequence
+    length.
     """
     start = time()
     result = {}
     for record in readBlastRecords(filename):
-        for index, description in enumerate(record.descriptions):
-            title = description.title
+        for index, alignment in enumerate(record.alignments):
+            title = record.descriptions[index].title
             if title in result:
                 item = result[title]
             else:
                 item = result[title] = {
                     'count': 0,
                     'eValues': [],
-                    'length': record.alignments[index].length,
+                    'length': alignment.length,
                     'reads': set(),
                     'title': title,
                 }
             item['count'] += 1
-            item['eValues'].append(description.e)
+            item['eValues'].append(alignment.hsps[0].expect)
             # record.query is the name of the read in the FASTA file.
             item['reads'].add(record.query)
 
@@ -1128,7 +1129,10 @@ def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
                 foundx = []
                 foundy = []
                 for i, desc in enumerate(record.descriptions):
-                    e = -1.0 * log10(desc.e)
+                    # NOTE: We are looping over the descriptions here, not
+                    # the multiple HSPs in the alignments. The description
+                    # describes only the first (i.e., the best) HSP.
+                    e = -1.0 * log10(record.alignments[i].hsps[0].expect)
                     if e < 0:
                         break
                     evalues.append(e)

@@ -24,17 +24,14 @@ def convertBlastXMLToJSON(blastFilename, jsonFilename):
 def convertBlastRecordToDict(record):
     """
     Pull (only) the fields we use out of the record and return them as a
-    dict.
+    dict.  Although we take the title from each alignment description, we
+    save space in the JSON output by storing it in the alignment dict (not
+    in a separated 'description' dict). When we undo this conversion (in
+    convertDictToBlastRecord) we'll pull the title out of the alignment
+    dict and put it into the right place in the BLAST record.
     """
-    descriptions = []
-    for description in record.descriptions:
-        descriptions.append({
-            'e': description.e,
-            'title': description.title,
-        })
-
     alignments = []
-    for alignment in record.alignments:
+    for index, alignment in enumerate(record.alignments):
         hsps = []
         for hsp in alignment.hsps:
             hsps.append({
@@ -50,14 +47,13 @@ def convertBlastRecordToDict(record):
             })
 
         alignments.append({
-            'hit_id': alignment.hit_id,
             'hsps': hsps,
             'length': alignment.length,
+            'title': record.descriptions[index].title,
         })
 
     return {
         'alignments': alignments,
-        'descriptions': descriptions,
         'query': record.query,
     }
 
@@ -79,14 +75,13 @@ def convertDictToBlastRecord(d):
                          'sbjct_end']:
                 setattr(hspInstance, attr, hsp[attr])
             alignmentInstance.hsps.append(hspInstance)
-        alignmentInstance.hit_id = alignment['hit_id']
+        title = alignment['title']
+        alignmentInstance.hit_id = title.split(' ', 1)[0]
         alignmentInstance.length = alignment['length']
         record.alignments.append(alignmentInstance)
 
-    for description in d['descriptions']:
         descriptionInstance = Description()
-        descriptionInstance.e = description['e']
-        descriptionInstance.title = description['title']
+        descriptionInstance.title = title
         record.descriptions.append(descriptionInstance)
 
     return record
@@ -98,5 +93,4 @@ def readJSONRecords(filename):
     instances and yield them.
     """
     for line in open(filename).readlines():
-        record = loads(line[:-1])
-        yield convertDictToBlastRecord(record)
+        yield convertDictToBlastRecord(loads(line[:-1]))

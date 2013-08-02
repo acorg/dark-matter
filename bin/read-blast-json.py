@@ -17,6 +17,6 @@ if __name__ == '__main__':
         start = time()
         for count, record in enumerate(readJSONRecords(sys.argv[1])):
             pass
-        stop = time()
-        print 'Read %d JSON BLAST records in %.3f seconds' % (
-            count, stop - start)
+        elapsed = time() - start
+        print 'Read %d JSON BLAST records in %.3f secs (%.0f records/sec)' % (
+            count, elapsed, float(count) / float(elapsed))

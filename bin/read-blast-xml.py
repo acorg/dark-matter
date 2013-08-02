@@ -18,6 +18,6 @@ if __name__ == '__main__':
         with open(sys.argv[1]) as fp:
             for count, record in enumerate(NCBIXML.parse(fp)):
                 pass
-        stop = time()
-        print 'Read %d XML BLAST records in %.3f seconds' % (
-            count, stop - start)
+        elapsed = time() - start
+        print 'Read %d XML BLAST records in %.3f secs (%.0f records/sec)' % (
+            count, elapsed, float(count) / float(elapsed))
