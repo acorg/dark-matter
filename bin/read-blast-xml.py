@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+"""
+Read simplified XML BLAST records and report the elapsed time.
+"""
+
+from Bio.Blast import NCBIXML
+from time import time
+import sys
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print >>sys.stderr, 'Usage: %s file.json' % sys.argv[0]
+        sys.exit(1)
+    else:
+        start = time()
+        with open(sys.argv[1]) as fp:
+            for count, record in enumerate(NCBIXML.parse(fp)):
+                pass
+        stop = time()
+        print 'Read %d XML BLAST records in %.3f seconds' % (
+            count, stop - start)
