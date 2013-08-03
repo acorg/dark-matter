@@ -17,6 +17,8 @@ from urllib2 import URLError
 from dimension import dimensionalIterator
 from baseimage import BaseImage
 
+from dark.conversion import readJSONRecords
+
 
 Entrez.email = 'tcj25@cam.ac.uk'
 
@@ -52,14 +54,25 @@ def NCBISequenceLink(title):
         NCBISequenceLinkURL(title), title)
 
 
-def readHits(filename, limit=None):
-    with open(filename) as fp:
+def readBlastRecords(filename, limit=None):
+    """
+    Read BLAST records in either XML or JSON format.
+    """
+    if filename.endswith('.xml'):
+        fp = open(filename)
         records = NCBIXML.parse(fp)
-        for count, record in enumerate(records):
-            if limit is not None and count == limit:
-                break
-            else:
-                yield record
+    elif filename.endswith('.json'):
+        records = readJSONRecords(filename)
+        fp = None
+    else:
+        raise ValueError('Unknown BLAST record file type.')
+    for count, record in enumerate(records):
+        if limit is not None and count == limit:
+            break
+        else:
+            yield record
+    if fp:
+        fp.close()
 
 
 def printHSP(hsp, indent=''):
@@ -92,32 +105,30 @@ def printBlastRecord(record):
 
 def summarizeAllRecords(filename):
     """
-    Read a file of BLAST XML results and return a dictionary keyed by sequence
+    Read a file of BLAST records and return a dictionary keyed by sequence
     title, with values containing information about the number of times the
-    sequence was hit, the e value, and the sequence length.
+    sequence was hit, the e value (from the best HSP), and the sequence
+    length.
     """
     start = time()
     result = {}
-    with open(filename) as fp:
-        blast_records = NCBIXML.parse(fp)
-        for record in blast_records:
-            for index, description in enumerate(record.descriptions):
-                title = description.title
-                if title in result:
-                    item = result[title]
-                else:
-                    item = result[title] = {
-                        'count': 0,
-                        'eTotal': 0.0,
-                        'eValues': [],
-                        'length': record.alignments[index].length,
-                        'reads': set(),
-                        'title': title,
-                    }
-                item['count'] += 1
-                item['eValues'].append(description.e)
-                # record.query is the name of the read in the FASTA file.
-                item['reads'].add(record.query)
+    for record in readBlastRecords(filename):
+        for index, alignment in enumerate(record.alignments):
+            title = record.descriptions[index].title
+            if title in result:
+                item = result[title]
+            else:
+                item = result[title] = {
+                    'count': 0,
+                    'eValues': [],
+                    'length': alignment.length,
+                    'reads': set(),
+                    'title': title,
+                }
+            item['count'] += 1
+            item['eValues'].append(alignment.hsps[0].expect)
+            # record.query is the name of the read in the FASTA file.
+            item['reads'].add(record.query)
 
     # Compute mean and median e values and delete the eTotal keys.
     for key, item in result.iteritems():
@@ -270,7 +281,7 @@ def findHits(recordFilename, hitIds, limit=None):
            (len(hitIds), recordFilename))
     hitCount = 0
     for readNum, record in enumerate(
-            readHits(recordFilename, limit=limit)):
+            readBlastRecords(recordFilename, limit=limit)):
         for alignment in record.alignments:
             if alignment.hit_id in hitIds:
                 hitCount += 1
@@ -812,7 +823,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             xIndex = 0
             queryOffset = hsp['subjectStart'] - hsp['queryStart']
             origSubject = item['origHsp'].sbjct
-            origMatch = item['origHsp'].match
             origQuery = item['origHsp'].query
             for matchIndex in xrange(len(origSubject)):
                 if origSubject[matchIndex] == '-':
@@ -823,7 +833,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     # of the query.
                     pass
                 else:
-                    if origMatch[matchIndex] == '|':
+                    if origSubject[matchIndex] == origQuery[matchIndex]:
                         # The query matched the subject at this location.
                         # Matching bases are all colored in the same
                         # 'match' color.
@@ -1118,10 +1128,11 @@ def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
                 foundx = []
                 foundy = []
                 for i, desc in enumerate(record.descriptions):
-                    e = -1.0 * log10(desc.e)
+                    # NOTE: We are looping over the descriptions here, not
+                    # the multiple HSPs in the alignments. The description
+                    # describes only the first (i.e., the best) HSP.
+                    e = -1.0 * log10(record.alignments[i].hsps[0].expect)
                     if e < 0:
-                        # print 'oops, e =', e, desc.e,
-                        # record.alignments[i].hsps[0].align_length, desc.title
                         break
                     evalues.append(e)
                     if find and find(desc.title):
