@@ -90,5 +90,6 @@ def readJSONRecords(filename):
     Read lines of JSON from filename, convert them to Bio Blast class
     instances and yield them.
     """
-    for line in open(filename).readlines():
-        yield convertDictToBlastRecord(loads(line[:-1]))
+    with open(filename) as fp:
+        for line in fp.readlines():
+            yield convertDictToBlastRecord(loads(line[:-1]))

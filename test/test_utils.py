@@ -1,8 +1,9 @@
 from unittest import TestCase
+from Bio.Seq import Seq
+
 from dark.utils import (
     findCodons, normalizeHSP, interestingRecords, NCBISequenceLinkURL,
     NCBISequenceLink, filterRecords)
-from Bio.Seq import Seq
 
 
 class HSP(object):

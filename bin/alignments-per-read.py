@@ -15,4 +15,3 @@ if __name__ == '__main__':
         results = readBlastRecords(sys.argv[1])
         for record in results:
             print len(record.alignments), record.query
-

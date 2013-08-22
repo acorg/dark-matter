@@ -12,3 +12,4 @@ discover
 reportlab
 pep8
 pyflakes
+mock
