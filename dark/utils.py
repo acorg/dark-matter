@@ -1025,8 +1025,14 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
         postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
 
-        meanE = int(-1.0 * log10(summary[title]['eMean']))
-        medianE = int(-1.0 * log10(summary[title]['eMedian']))
+        if summary[title]['eMean'] == 0:
+            meanE = 0
+        else:
+            meanE = int(-1.0 * log10(summary[title]['eMean']))
+        if summary[title]['eMedian'] == 0:
+            medianE = 0
+        else:
+            medianE = int(-1.0 * log10(summary[title]['eMedian']))
         ax[row][col].set_title(
             '%d: %s\n%d reads, 1e-%d median, 1e-%d mean' % (
                 i, title.split(' ', 1)[1][:40],
