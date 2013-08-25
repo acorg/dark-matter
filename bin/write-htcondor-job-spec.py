@@ -209,18 +209,15 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    if not args.executableDir.endswith('/'):
-        args.executableDir += '/'
-
     nJobs = splitFASTA(args.fasta, args.seqsPerJob)
 
     params = {
         'blastArgs': args.blastArgs,
         'db': args.db,
-        'dbDir': args.dbDir,
+        'dbDir': args.dbDir.rstrip('/'),
         'email': args.email,
         'executableName': args.executableName,
-        'executableDir': args.executableDir,
+        'executableDir': args.executableDir.rstrip('/'),
         'nJobs': nJobs
     }
     printJobSpec(params)
