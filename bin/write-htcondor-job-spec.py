@@ -152,9 +152,12 @@ def printPostProcessScript(params):
         outfp.write("""\
 #!/bin/sh
 export PYTHONPATH=/syn/terry/dark-matter
-exec /syn/terry/.virtualenvs/dm/bin/python \
-/syn/terry/dark-matter/bin/convert-blast-xml-to-json.py \
-$1.xml $1.json
+for i in "$@"
+do
+    /syn/terry/.virtualenvs/dm/bin/python \
+    /syn/terry/dark-matter/bin/convert-blast-xml-to-json.py \
+    $i.xml $i.json
+done
 """ % params)
 
     # Make the script executable so we can run it.
