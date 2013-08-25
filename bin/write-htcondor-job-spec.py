@@ -12,7 +12,7 @@ DEFAULT_BLAST_ARGS = ''
 DEFAULT_BLAST_DB = 'nt'
 DEFAULT_BLAST_DB_DIR = '/syn/terry/ncbi-blast-dbs'
 DEFAULT_EMAIL = 'tcj25@cam.ac.uk'
-DEFAULT_BLAST_EXECUTABLE_DIR = '/syn/terry/ncbi-blast-2.2.28+/bin'
+DEFAULT_BLAST_EXECUTABLE_DIR = '/syn/terry/ncbi-blast/bin'
 DEFAULT_BLAST_EXECUTABLE_NAME = 'blastn'
 DEFAULT_SEQUENCES_PER_BLAST = 100
 
