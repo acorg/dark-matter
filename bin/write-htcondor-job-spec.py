@@ -30,6 +30,10 @@ EPILOG = """Given a FASTA file argument, write out the following:
   4) A 'post-process.sh' script that can be used to convert BLAST XML to our
      JSON format in the case that the last step of processing fails.
 
+  5) A 'finalize.sh' script that will find all zero length .json result
+     files and post-process them (if they have an XML file) and that also
+     removes any empty .error files.
+
 NOTE: files are overwritten. It is suggested you run this command in an
 empty directory.
 """
@@ -164,6 +168,49 @@ done
     os.chmod('post-process.sh', 0755)
 
 
+def printFinalizeScript(params):
+    """
+    Write out a script that post-processes any empty JSON files and removes
+    zero-length error files.
+
+    Note that we need bash in order to set the nullglob shell option. That
+    prevents an error if there are no *.error or *.json files.
+    """
+    with open('finalize.sh', 'w') as outfp:
+        outfp.write("""\
+#!/usr/bin/env bash
+export PYTHONPATH=/syn/terry/dark-matter
+shopt -s nullglob
+
+for i in *.error
+do
+    if [ -s $i ]
+    then
+        echo "WARNING: $i is non-empty." >&2
+    else
+        rm -f $i
+    fi
+done
+
+for i in *.json
+do
+    if [ ! -s $i ]
+    then
+        n=`echo $i | cut -f1 -d.`
+        if [ -s $n.xml ]
+        then
+            convert-blast-xml-to-json.py $n.xml $n.json
+        else
+            echo "WARNING: $n.xml is empty. Run redo.sh on it." >&2
+        fi
+    fi
+done
+""" % params)
+
+    # Make the script executable so we can run it.
+    os.chmod('finalize.sh', 0755)
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -223,3 +270,4 @@ if __name__ == '__main__':
     printJobSpec(params)
     printPostProcessScript(params)
     printRedoScript(params)
+    printFinalizeScript(params)
