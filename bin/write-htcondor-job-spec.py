@@ -199,7 +199,9 @@ do
         n=`echo $i | cut -f1 -d.`
         if [ -s $n.xml ]
         then
+            set -x
             convert-blast-xml-to-json.py $n.xml $n.json
+            set +x
         else
             echo "WARNING: $n.xml is empty. Run redo.sh on it." >&2
         fi
