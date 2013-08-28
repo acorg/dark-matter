@@ -82,7 +82,7 @@ transfer_input_files      = post-process.sh
 # Job summary:
 #   FASTA input from %(fastaFile)
 #   %(sequenceCount)d sequences split into %(nJobs)d jobs of \
-%(seqsPerJob) sequences each.
+%(seqsPerJob)d sequences each.
 
 arguments                 = -query $(Process).fasta -db %(db)s \
 -out $(Process).xml -outfmt 5 %(blastArgs)s
@@ -283,4 +283,4 @@ if __name__ == '__main__':
     printFinalizeScript(params)
 
     print ('%(sequenceCount)d sequences split into %(nJobs)d jobs of'
-           '%(seqsPerJob) sequences each.' % params)
+           '%(seqsPerJob)d sequences each.' % params)
