@@ -178,43 +178,67 @@ done
 
 def printFinalizeScript(params):
     """
-    Write out a script that post-processes any empty JSON files and removes
-    zero-length error files.
+    Write out a script that post-processes any empty .json files that
+    have non-empty .xml files, figures out which jobs should be re-run, and
+    also removes zero-length error files.
 
     Note that we need bash in order to set the nullglob shell option. That
-    prevents an error if there are no *.error or *.json files.
+    prevents an error if there are no *.fasta files.
     """
     with open('finalize.sh', 'w') as outfp:
         outfp.write("""\
-#!/usr/bin/env bash
+!/usr/bin/env bash
 export PYTHONPATH=/syn/terry/dark-matter
 shopt -s nullglob
 
-for i in *.error
+for i in *.fasta
 do
-    if [ -s $i ]
-    then
-        echo "WARNING: $i is non-empty." >&2
-    else
-        rm -f $i
-    fi
-done
+    n=`echo $i | cut -f1 -d.`
+    error=$n.error
+    json=$n.json
+    xml=$n.xml
 
-for i in *.json
-do
-    if [ ! -s $i ]
+    if [ -f $error ]
     then
-        n=`echo $i | cut -f1 -d.`
-        if [ -s $n.xml ]
+        if [ -s $error ]
         then
-            set -x
-            convert-blast-xml-to-json.py $n.xml $n.json
-            set +x
+            echo "WARNING: $error is non-empty." >&2
         else
-            echo "WARNING: $n.xml is empty. Run redo.sh on it." >&2
+            rm -f $error
+        fi
+    fi
+
+    redo=
+    if [ -f $json ]
+    then
+        if [ ! -s $json ]
+        then
+            if [ -s $xml ]
+            then
+                echo convert-blast-xml-to-json.py $xml $json
+                convert-blast-xml-to-json.py $xml $json
+            else
+                echo "WARNING: $xml is empty. Job $n should be re-run." >&2
+                redo="$redo $n"
+            fi
+        fi
+    else
+        if [ -s $xml ]
+        then
+            echo convert-blast-xml-to-json.py $xml $json
+            convert-blast-xml-to-json.py $xml $json
+        else
+            echo "WARNING: $json does not exist. Job $n should be re-run." >&2
+            redo="$redo $n"
         fi
     fi
 done
+
+if [ -n "$redo" ]
+then
+    echo "Some jobs must be re-run. Please execute the following:"
+    echo "./redo.sh $redo"
+fi
 """ % params)
 
     # Make the script executable so we can run it.
