@@ -81,7 +81,7 @@ transfer_input_files      = post-process.sh
 
 # Job summary:
 #   FASTA input from %(fastaFile)s
-#   %(sequenceCount)d sequences split into %(nJobs)d jobs of\
+#   %(sequenceCount)d sequences split into %(nJobs)d jobs of \
 %(seqsPerJob)d sequences each.
 
 arguments                 = -query $(Process).fasta -db %(db)s \
