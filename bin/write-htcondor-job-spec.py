@@ -228,7 +228,7 @@ if __name__ == '__main__':
         description='Given a FASTA file, write an HTCondor job spec for BLAST',
         epilog=EPILOG)
     parser.add_argument(
-        'fasta', metavar='FASTA-file', type=str, dest='fastaFile',
+        'fasta', metavar='FASTA-file', type=str,
         help='the FASTA file of sequences to BLAST.')
     parser.add_argument(
         '--seqs-per-blast', metavar='N',
@@ -273,7 +273,7 @@ if __name__ == '__main__':
         'email': args.email,
         'executableName': args.executableName,
         'executableDir': args.executableDir.rstrip('/'),
-        'fasta': args.fasta,
+        'fastaFile': args.fasta,
         'seqsPerJob': args.seqsPerJob,
     }
     params['nJobs'], params['sequenceCount'] = splitFASTA(params)
