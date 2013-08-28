@@ -39,24 +39,27 @@ empty directory.
 """
 
 
-def splitFASTA(filename, sequencesPerFile):
-    """Read the FASTA file filename and print out its sequences into files
-    named 0.fasta, 1.fasta, etc. with sequencesPerFile sequences per file.
+def splitFASTA(params):
     """
-    fileNum = count = 0
+    Read the FASTA file named params['fastaFile'] and print out its
+    sequences into files named 0.fasta, 1.fasta, etc. with
+    params['seqsPerJob'] sequences per file.
+    """
+    fileCount = count = seqCount = 0
     outfp = None
-    with open(filename) as infp:
+    with open(params['fastaFile']) as infp:
         for seq in SeqIO.parse(infp, 'fasta'):
-            if count == sequencesPerFile:
+            seqCount += 1
+            if count == params['seqsPerJob']:
                 outfp.close()
                 count = 0
             if count == 0:
-                outfp = open('%d.fasta' % fileNum, 'w')
-                fileNum += 1
+                outfp = open('%d.fasta' % fileCount, 'w')
+                fileCount += 1
             count += 1
             outfp.write('>%s\n%s\n' % (seq.description, str(seq.seq)))
     outfp.close()
-    return fileNum
+    return fileCount, seqCount
 
 
 def printJobSpec(params):
@@ -75,6 +78,11 @@ notify_user               = %(email)s
 max_transfer_input_mb     = -1
 max_transfer_output_mb    = -1
 transfer_input_files      = post-process.sh
+
+# Job summary:
+#   FASTA input from %(fasta)
+#   %(sequenceCount)d sequences split into %(nJobs)d jobs of \
+%(seqsPerJob) sequences each.
 
 arguments                 = -query $(Process).fasta -db %(db)s \
 -out $(Process).xml -outfmt 5 %(blastArgs)s
@@ -220,7 +228,7 @@ if __name__ == '__main__':
         description='Given a FASTA file, write an HTCondor job spec for BLAST',
         epilog=EPILOG)
     parser.add_argument(
-        'fasta', metavar='FASTA-file', type=str,
+        'fasta', metavar='FASTA-file', type=str, dest='fastaFile',
         help='the FASTA file of sequences to BLAST.')
     parser.add_argument(
         '--seqs-per-blast', metavar='N',
@@ -258,8 +266,6 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    nJobs = splitFASTA(args.fasta, args.seqsPerJob)
-
     params = {
         'blastArgs': args.blastArgs,
         'db': args.db,
@@ -267,9 +273,14 @@ if __name__ == '__main__':
         'email': args.email,
         'executableName': args.executableName,
         'executableDir': args.executableDir.rstrip('/'),
-        'nJobs': nJobs
+        'fasta': args.fasta,
+        'seqsPerJob': args.seqsPerJob,
     }
+    params['nJobs'], params['sequenceCount'] = splitFASTA(params)
     printJobSpec(params)
     printPostProcessScript(params)
     printRedoScript(params)
     printFinalizeScript(params)
+
+    print ('%(sequenceCount)d sequences split into %(nJobs)d jobs of'
+           '%(seqsPerJob) sequences each.' % params)

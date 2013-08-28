@@ -29,9 +29,9 @@ def summarize_reads(file_handle, returnSequences=False):
             index_middle_number = (list_count - 1) / 2
             return my_list[index_middle_number]
         else:
-            first_number = my_list[list_count/2]
-            second_number = my_list[(list_count/2)-1]
-            return (first_number+second_number)/2.0
+            first_number = my_list[list_count / 2]
+            second_number = my_list[(list_count / 2) - 1]
+            return (first_number + second_number) / 2.0
 
     result = {
         "read_number": read_number,
