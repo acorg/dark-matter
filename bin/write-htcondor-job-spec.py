@@ -80,7 +80,7 @@ max_transfer_output_mb    = -1
 transfer_input_files      = post-process.sh
 
 # Job summary:
-#   FASTA input from %(fasta)
+#   FASTA input from %(fastaFile)
 #   %(sequenceCount)d sequences split into %(nJobs)d jobs of \
 %(seqsPerJob) sequences each.
 
