@@ -187,7 +187,7 @@ def printFinalizeScript(params):
     """
     with open('finalize.sh', 'w') as outfp:
         outfp.write("""\
-!/usr/bin/env bash
+#!/usr/bin/env bash
 export PYTHONPATH=/syn/terry/dark-matter
 shopt -s nullglob
 
