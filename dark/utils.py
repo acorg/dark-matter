@@ -719,11 +719,29 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     return summary, consensus
 
 
+def convertSummaryEValuesToRanks(hitInfo):
+    """
+    Change e values for the reads that hit a sequence to be their ranks.
+
+    hitInfo is a dict of information of BLAST hits against a sequence. It is
+    one of the values in the result dictionary returned by summarizeHits.
+    """
+    result = hitInfo.copy()
+    items = result['items']
+    items.sort(key=lambda item: item['e'])
+    for i, item in enumerate(items, start=1):
+        item['e'] = i
+    result['maxE'] = result['maxEIncludingRandoms'] = len(items)
+    result['minE'] = 1
+    result['zeroEValueFound'] = False
+    return result
+
+
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    addQueryLines=True, showFeatures=True, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, addTitleToAlignments=True,
-                   readsAx=None):
+                   readsAx=None, rankEValues=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -750,6 +768,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     addTitleToAlignments: If True, add a title to the subplot that shows the
         read alignments.
     readsAx: If not None, use this as the subplot for displaying reads.
+    rankEValues: If True, display reads with a Y axis coord that is the rank of
+        the e value (sorted decreasingly).
     """
     start = time()
     sequence = getSequence(hitId, db)
@@ -783,7 +803,11 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         allhits, fastaFilename, eCutoff=eCutoff,
         maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop)
 
-    hitInfo = summary[hitId]
+    if rankEValues:
+        hitInfo = convertSummaryEValuesToRanks(summary[hitId])
+    else:
+        hitInfo = summary[hitId]
+
     items = hitInfo['items']
     maxEIncludingRandoms = int(ceil(hitInfo['maxEIncludingRandoms']))
     maxE = int(ceil(hitInfo['maxE']))
@@ -859,19 +883,10 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
                        extent=[minX, maxX, minE, maxEIncludingRandoms])
-
-        # data1 = np.ones((40, 1000), dtype=(float, 3))
-        # for _ in xrange(1000):
-        #     data1[0][_] = (1.0, 0.0, 0.0)
-        # readsAx.imshow(data1, aspect='auto',  extent=[4000, 5000, 40, 80])
-
-        # data1 = np.ones((20, 500), dtype=(float, 3))
-        # for _ in xrange(500):
-        #     data1[0][_] = (0.0, 0.0, 1.0)
-        # readsAx.imshow(data1, aspect='auto',  origin='lower',
-        # extent=[6000, 6500, 60, 80])
     else:
-        # Add horizontal lines for all the query sequences.
+        # Add horizontal lines for all the query sequences. These will be the
+        # grey 'whiskers' in the plots once we (below) draw the matched part
+        # on top of part of them.
         if addQueryLines:
             for item in items:
                 e = item['e']
@@ -892,11 +907,13 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     if showFeatures:
         featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
         for fe in featureEndpoints:
-            line = Line2D([fe['start'], fe['start']],
-                          [0, maxEIncludingRandoms], color=fe['color'])
+            line = Line2D(
+                [fe['start'], fe['start']],
+                [minE - 1, maxEIncludingRandoms + 1], color=fe['color'])
             readsAx.add_line(line)
-            line = Line2D([fe['end'], fe['end']], [0, maxEIncludingRandoms],
-                          color='#cccccc')
+            line = Line2D(
+                [fe['end'], fe['end']], [minE - 1, maxEIncludingRandoms + 1],
+                color='#cccccc')
             readsAx.add_line(line)
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
@@ -917,8 +934,11 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     if createdReadsAx:
         # Only add title and y-axis label if we made the read axes.
         readsAx.set_title('Read alignments', fontsize=20)
-        plt.ylabel('$- log_{10}(e)$', fontsize=17)
-    readsAx.axis([minX, maxX, minE, maxEIncludingRandoms])
+        if rankEValues:
+            plt.ylabel('e value rank', fontsize=17)
+        else:
+            plt.ylabel('$- log_{10}(e)$', fontsize=17)
+    readsAx.axis([minX - 1, maxX + 1, minE - 1, maxEIncludingRandoms + 1])
     readsAx.grid()
     if createFigure:
         plt.show()
@@ -931,7 +951,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
-                   maxStop=None, sortOn='eMedian'):
+                   maxStop=None, sortOn='eMedian', rankEValues=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -952,6 +972,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     maxStop: Reads that end after this subject offset should not be shown.
     sortOn: The attribute to sort subplots on. Either "eMean", "eMedian",
         "title" or "reads"
+    rankEValues: If True, display reads with a Y axis coord that is the rank of
+        the e value (sorted decreasingly).
     """
     start = time()
     # Sort titles by mean eValue then title.
@@ -1005,7 +1027,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
             colorQueryBases=False, minStart=minStart, maxStop=maxStop,
             createFigure=False, addTitleToAlignments=False,
-            readsAx=ax[row][col])
+            readsAx=ax[row][col], rankEValues=rankEValues)
 
         # Remember the maxE value for sequences that had e values of zero and
         # remember the maxX value.
@@ -1041,7 +1063,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]
-        a.axis([minX, maxX, minE, maxEIncludingRandoms])
+        a.axis([minX, maxX, minE - 1, maxEIncludingRandoms + 1])
         a.set_yticks([])
         a.set_xticks([])
         # Post-process each non-empty graph.
@@ -1058,14 +1080,14 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 a.add_line(line)
             # Add a vertical line at x=0 so we can see reads that match to
             # the left of the sequence we're aligning against.
-            line = Line2D([0, 0], [minE, maxEIncludingRandoms],
+            line = Line2D([0, 0], [minE - 1, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
             # Add a line on the right of each sub-plot so we can see where
             # the sequence ends (as all panel graphs have the same width and
             # we otherwise couldn't tell).
             line = Line2D([hitInfo['maxX'], hitInfo['maxX']],
-                          [minE, maxEIncludingRandoms], color='#cccccc',
+                          [minE - 1, maxEIncludingRandoms + 1], color='#cccccc',
                           linewidth=1)
             a.add_line(line)
 
