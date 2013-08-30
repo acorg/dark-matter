@@ -561,6 +561,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             'minE': 1000,  # Something ridiculously large.
             'maxX': maxStop or sequenceLen,
             'minX': minStart or 0,
+            'sequenceLen': sequenceLen,
             'zeroEValueFound': False,
         }
 
@@ -1007,12 +1008,13 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             createFigure=False, addTitleToAlignments=False,
             readsAx=ax[row][col])
 
-        # Remember the maxE value for sequences that had e values of zero and
-        # remember the maxX value.
+        # Remember info required for post processing of the whole panel
+        # once we've made all the alignment graphs.
         if hitInfo['zeroEValueFound']:
             postProcessInfo[(row, col)]['maxE'] = hitInfo['maxE']
 
         postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
+        postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
 
         if summary[title]['eMean'] == 0:
             meanE = 0
@@ -1064,7 +1066,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             # Add a line on the right of each sub-plot so we can see where
             # the sequence ends (as all panel graphs have the same width and
             # we otherwise couldn't tell).
-            line = Line2D([hitInfo['maxX'], hitInfo['maxX']],
+            line = Line2D([hitInfo['sequenceLen'], hitInfo['sequenceLen']],
                           [minE, maxEIncludingRandoms], color='#cccccc',
                           linewidth=1)
             a.add_line(line)
