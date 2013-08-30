@@ -899,19 +899,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                           color='#cccccc')
             readsAx.add_line(line)
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
-        if featureEndpoints:
-            orfReversedAx.text(
-                minX + (maxX - minX) / 3.0, 0,
-                'Reverse ORFs not shown due to Genbank feature presence.',
-                fontsize=16)
-            orfReversedAx.axis([minX, maxX, -1, 1])
-            orfReversedAx.set_yticks([])
-            orfReversedAx.set_title(
-                'Reverse ORFs not shown due to Genbank feature presence.',
-                fontsize=20)
-        else:
-            addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
-                            minX, maxX)
+        addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
+                        minX, maxX)
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
