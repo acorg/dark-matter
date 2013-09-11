@@ -2,7 +2,6 @@ import re
 from math import ceil
 from IPython.display import HTML
 from collections import defaultdict
-from random import uniform
 from time import ctime, time
 import subprocess
 from Bio.Blast import NCBIXML
@@ -123,13 +122,14 @@ def summarizeAllRecords(filename):
                     'eValues': [],
                     'length': alignment.length,
                     'reads': set(),
+                    #'reads': list(),
                     'title': title,
                 }
             item['count'] += 1
             item['eValues'].append(alignment.hsps[0].expect)
             # record.query is the name of the read in the FASTA file.
             item['reads'].add(record.query)
-
+            #item['reads'].append(record.query)
     # Compute mean and median e values and delete the eTotal keys.
     for key, item in result.iteritems():
         item['eMean'] = sum(item['eValues']) / float(item['count'])
@@ -182,14 +182,17 @@ def summarizeAllRecordsByLengthHTML(filenameOrSummary):
     return _sortSummary(filenameOrSummary, 'length', reverse=True)
 
 
-def getAllHitsForSummary(summary, recordFilename):
+def getAllHitsForSummary(summary, recordFilename, hitIds=False, idList=False):
     """
     For the keys of summary (these are sequence titles), pull out a list of
     hit ids and find all those hits in recordFilename.
     """
     titles = sorted(summary.keys())
-    hitIds = set([title.split(' ')[0] for title in titles])
-    return list(findHits(recordFilename, hitIds))
+    if hitIds:
+        hitId = hitIds
+    else:
+        hitId = set([title.split(' ')[0] for title in titles])
+    return list(findHits(recordFilename, hitIds=hitId, idList=idList))
 
 
 def filterRecords(summary, filterFunc):
@@ -261,7 +264,7 @@ def getSequence(hitId, db='nt'):
     return SeqIO.read(StringIO(fasta), 'fasta')
 
 
-def findHits(recordFilename, hitIds, limit=None):
+def findHits(recordFilename, hitIds, limit=None, idList=False):
     """
     Look in recordFilename (a BLAST XML output file) for hits with ids in the
     set hitIds.
@@ -276,19 +279,37 @@ def findHits(recordFilename, hitIds, limit=None):
     Return a generator that yields (read number, hit id, hit length, hsps)
     tuples.
     """
+
     start = time()
     report('Looking for hits on %d sequence ids in %s' %
            (len(hitIds), recordFilename))
+    redhitCount = 0
     hitCount = 0
-    for readNum, record in enumerate(
-            readBlastRecords(recordFilename, limit=limit)):
+    for readNum, record in enumerate(readBlastRecords(
+            recordFilename, limit=limit)):
         for alignment in record.alignments:
-            if alignment.hit_id in hitIds:
-                hitCount += 1
-                yield (readNum, alignment.hit_id, alignment.length,
-                       alignment.hsps)
+            if idList is not False:
+                for hsp in alignment.hsps:
+                    redhitCount += 1
+                    if record.query in idList:
+                        yield (readNum, alignment.hit_id,
+                               alignment.length, alignment.hsps)
+                    else:
+                        continue
+            elif idList is False:
+                for alignment in record.alignments:
+                    if alignment.hit_id in hitIds:
+                        hitCount += 1
+                        yield (readNum, alignment.hit_id, alignment.length,
+                               alignment.hsps)
+                    else:
+                        continue
+
     stop = time()
     report('%d hits found in %.3f mins.' % (hitCount, (stop - start) / 60.0))
+    if idList:
+        report('%d redhits found in %.3f mins.' % (
+            redhitCount, (stop - start) / 60.0))
 
 
 def findCodons(seq, codons):
@@ -527,8 +548,8 @@ def normalizeHSP(hsp, queryLen):
     }
 
 
-def summarizeHits(hits, fastaFilename, eCutoff=None,
-                  maxHspsPerHit=None, minStart=None, maxStop=None):
+def summarizeHits(hits, fastaFilename, eCutoff=None, maxHspsPerHit=None,
+                  minStart=None, maxStop=None, idList=False):
     """
     Summarize the information found in 'hits'.
 
@@ -551,7 +572,6 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         fasta = list(SeqIO.parse(fastaFilename, 'fasta'))
     else:
         fasta = fastaFilename
-    zeroEValueUpperRandomIncrement = 150
 
     def resultDict(sequenceLen):
         return {
@@ -615,8 +635,9 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         maxEIncludingRandoms = hitInfo['maxE']
         for item in hitInfo['items']:
             if item['e'] is None:
-                item['e'] = e = (hitInfo['maxE'] + 2 +
-                                 uniform(0, zeroEValueUpperRandomIncrement))
+                item['e'] = e = (hitInfo['maxE'] + 2 + 100)
+                #item['e'] = e = (hitInfo['maxE'] + 2 +
+                                 #uniform(0, zeroEValueUpperRandomIncrement))
                 if e > maxEIncludingRandoms:
                     maxEIncludingRandoms = e
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
@@ -738,11 +759,24 @@ def convertSummaryEValuesToRanks(hitInfo):
     return result
 
 
-def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=2.0,
+def getredReads(summary, hitId, idList=False):
+    allhits = {}
+    for item in summary:
+        if hitId not in item:
+            continue
+        else:
+            for ident in idList:
+                if ident in summary[item]['reads']:
+                    allhits[item] = summary[item]
+    return allhits
+
+
+def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, summary=False,
+                   db='nt', addQueryLines=True, showFeatures=True, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, addTitleToAlignments=True,
-                   readsAx=None, rankEValues=False):
+                   readsAx=None, rankEValues=False, idList=False,
+                   filename=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -771,6 +805,12 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     readsAx: If not None, use this as the subplot for displaying reads.
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
+    idList: If not None, a list of sequence identifiers. These sequences will
+        be coloured red in the plot.
+    summary: the dict output of summarizeAllRecords (or interestingRecords).
+        The keys of this dict are the sequence titles that the reads (according
+        to the BLAST hits in recordFilename) will be aligned against.
+        Needed for redReads.
     """
     start = time()
     sequence = getSequence(hitId, db)
@@ -797,17 +837,55 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     if isinstance(recordFilenameOrHits, str):
         allhits = findHits(recordFilenameOrHits, set([hitId]))
     else:
-        # The recordFilename is actually a dict of hits.
         allhits = recordFilenameOrHits
 
-    fasta, summary = summarizeHits(
-        allhits, fastaFilename, eCutoff=eCutoff,
-        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop)
+    fasta, readSummary = summarizeHits(
+        allhits, fastaFilename, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
+        minStart=minStart, maxStop=maxStop, idList=idList)
+
+    redSummary = None
+
+    if idList:
+        if isinstance(recordFilenameOrHits, str):
+            redhits = findHits(
+                recordFilenameOrHits, set([hitId]), idList=idList)
+
+        else:
+            preredhits = getredReads(summary, hitId, idList=idList)
+            if preredhits == {}:
+                preredhits = False
+                redhits = False
+            elif preredhits != {}:
+                redhits = getAllHitsForSummary(
+                    preredhits, filename, idList=idList)
+        if redhits:
+            redFasta, redSummary = summarizeHits(
+                redhits, fastaFilename, eCutoff=eCutoff,
+                maxHspsPerHit=maxHspsPerHit, minStart=minStart,
+                maxStop=maxStop, idList=idList)
+        else:
+            redSummary = False
 
     if rankEValues:
-        hitInfo = convertSummaryEValuesToRanks(summary[hitId])
+        hitInfo = convertSummaryEValuesToRanks(readSummary[hitId])
+        if redSummary:
+            redhitInfo = convertSummaryEValuesToRanks(redSummary[hitId])
+            redItems = redhitInfo['items']
+        else:
+            redhitInfo = False
+            redItems = False
+
     else:
-        hitInfo = summary[hitId]
+        hitInfo = readSummary[hitId]
+        if redSummary:
+            try:
+                redhitInfo = redSummary[hitId]
+                redItems = redhitInfo['items']
+            except KeyError:
+                redhitInfo = False
+                redItems = False
+        else:
+            redItems = False
 
     items = hitInfo['items']
     maxEIncludingRandoms = int(ceil(hitInfo['maxEIncludingRandoms']))
@@ -904,6 +982,14 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                           color='blue')
             readsAx.add_line(line)
 
+        if redItems:
+            for redItem in redItems:
+                e = redItem['e']
+                hsp = redItem['hsp']
+                line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
+                              color='red')
+                readsAx.add_line(line)
+
     # Add vertical lines for the sequence features.
     if showFeatures:
         featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
@@ -952,7 +1038,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
-                   maxStop=None, sortOn='eMedian', rankEValues=False):
+                   maxStop=None, sortOn='eMedian', rankEValues=False,
+                   idList=False, filename=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -975,6 +1062,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         "title" or "reads"
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
+    idList: If not None, a list of sequence identifiers. These sequences will
+        be coloured red in the plot.
     """
     start = time()
     # Sort titles by mean eValue then title.
@@ -1021,14 +1110,15 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
     for i, title in enumerate(titles):
         row, col = coords.next()
-        report('---> %d: %s %s' % (i, title, NCBISequenceLinkURL(title)))
+        report('---> %d: %s' % (i, title))
         hitId = title.split(' ')[0]
         hitInfo = alignmentGraph(
-            allhits, hitId, fastaFilename, db=db, addQueryLines=True,
+            allhits, hitId, fastaFilename, summary, db=db, addQueryLines=True,
             showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
             colorQueryBases=False, minStart=minStart, maxStop=maxStop,
             createFigure=False, addTitleToAlignments=False,
-            readsAx=ax[row][col], rankEValues=rankEValues)
+            readsAx=ax[row][col], rankEValues=rankEValues, idList=idList,
+            filename=filename)
 
         # Remember info required for post processing of the whole panel
         # once we've made all the alignment graphs.
