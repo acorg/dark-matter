@@ -742,7 +742,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    addQueryLines=True, showFeatures=True, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, addTitleToAlignments=True,
-                   readsAx=None, rankEValues=False, redReads=False, yellowReads=False, greenReads=False):
+                   readsAx=None, rankEValues=False, redReads=False,
+                   yellowReads=False, greenReads=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -911,12 +912,12 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     if redid == items[count]['query']:
                         e = items[count]['e']
                         hsp = items[count]['hsp']
-                        line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
-                                      color='red')
+                        line = Line2D([hsp['subjectStart'], hsp['subjectEnd']],
+                                      [e, e], color='red')
                         readsAx.add_line(line)
                     else:
                         continue
-                count += 1  
+                count += 1
 
         if yellowReads:
             count = 0
@@ -925,12 +926,12 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     if yellowid == items[count]['query']:
                         e = items[count]['e']
                         hsp = items[count]['hsp']
-                        line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
-                                      color='yellow')
+                        line = Line2D([hsp['subjectStart'], hsp['subjectEnd']],
+                                      [e, e], color='yellow')
                         readsAx.add_line(line)
                     else:
                         continue
-                count += 1 
+                count += 1
 
         if greenReads:
             count = 0
@@ -939,13 +940,12 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     if greenid == items[count]['query']:
                         e = items[count]['e']
                         hsp = items[count]['hsp']
-                        line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
-                                      color='green')
+                        line = Line2D([hsp['subjectStart'], hsp['subjectEnd']],
+                                      [e, e], color='green')
                         readsAx.add_line(line)
                     else:
                         continue
-                count += 1         
-
+                count += 1
 
     # Add vertical lines for the sequence features.
     if showFeatures:
@@ -995,7 +995,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
-                   maxStop=None, sortOn='eMedian', rankEValues=False, redReads=False, yellowReads=False, greenReads=False):
+                   maxStop=None, sortOn='eMedian', rankEValues=False,
+                   redReads=False, yellowReads=False, greenReads=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -1071,7 +1072,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
             colorQueryBases=False, minStart=minStart, maxStop=maxStop,
             createFigure=False, addTitleToAlignments=False,
-            readsAx=ax[row][col], rankEValues=rankEValues, redReads=redReads, yellowReads=yellowReads, greenReads=greenReads)
+            readsAx=ax[row][col], rankEValues=rankEValues, redReads=redReads,
+            yellowReads=yellowReads, greenReads=greenReads)
 
         # Remember info required for post processing of the whole panel
         # once we've made all the alignment graphs.
