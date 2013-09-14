@@ -1,22 +1,35 @@
 from Bio import SeqIO
 
 
-def NCBISequenceLinkURL(title):
+def NCBISequenceLinkURL(title, default=None):
     """
     Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
     return the URL of a link to the info page at NCBI.
+
+    title: the sequence title to produce a link URL for.
+    default: the value to return if the title cannot be parsed.
     """
-    ref = title.split('|')[3].split('.')[0]
-    return 'http://www.ncbi.nlm.nih.gov/nuccore/%s' % (ref,)
+    try:
+        ref = title.split('|')[3].split('.')[0]
+    except IndexError:
+        return default
+    else:
+        return 'http://www.ncbi.nlm.nih.gov/nuccore/%s' % (ref,)
 
 
-def NCBISequenceLink(title):
+def NCBISequenceLink(title, default=None):
     """
     Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
     return an HTML A tag dispalying a link to the info page at NCBI.
+
+    title: the sequence title to produce an HTML link for.
+    default: the value to return if the title cannot be parsed.
     """
-    return '<a href="%s" target="_blank">%s</a>' % (
-        NCBISequenceLinkURL(title), title)
+    url = NCBISequenceLinkURL(title)
+    if url is None:
+        return default
+    else:
+        return '<a href="%s" target="_blank">%s</a>' % (url, title)
 
 
 class AlignmentPanelHTML(object):
@@ -84,15 +97,20 @@ class AlignmentPanelHTML(object):
         <a href="#big_%d"><img src="%s" class="thumbnail"/></a>
         Number of reads that hit overall: %d.
         Number of HSPs in this selection: %d.
-        <br/><a href="%s" target="_blank">NCBI info on this target</a>.
         <br/><a href="#big_%d">Full size image</a>.
 """
                      % (i, i, title, i, image['imageBasename'],
-                        hitInfo['hitCount'], len(hitInfo['items']),
-                        NCBISequenceLinkURL(title), i))
+                        hitInfo['hitCount'], len(hitInfo['items']), i))
+
+            url = NCBISequenceLinkURL(title)
+            if url:
+                fp.write("""\
+        <br/><a href="%s" target="_blank">NCBI info on this target</a>.
+"""
+                         % url)
 
             if len(hitInfo['items']):
-                fp.write("""
+                fp.write("""\
         <br/>Reads: <span class="reads">%s</span>
 """
                          % ', '.join(readIds))
