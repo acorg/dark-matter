@@ -18,7 +18,7 @@ from dimension import dimensionalIterator
 from baseimage import BaseImage
 
 from dark.conversion import readJSONRecords
-
+from dark import html
 
 Entrez.email = 'tcj25@cam.ac.uk'
 
@@ -34,24 +34,6 @@ QUERY_COLORS = {
     'gap': (0.2, 0.2, 0.2),  # Almost black.
     'match': (0.9, 0.9, 0.9),  # Almost white.
 }
-
-
-def NCBISequenceLinkURL(title):
-    """
-    Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
-    return the URL of a link to the info page at NCBI.
-    """
-    ref = title.split('|')[3].split('.')[0]
-    return 'http://www.ncbi.nlm.nih.gov/nuccore/%s' % (ref,)
-
-
-def NCBISequenceLink(title):
-    """
-    Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
-    return an HTML A tag dispalying a link to the info page at NCBI.
-    """
-    return '<a href="%s" target="_blank">%s</a>' % (
-        NCBISequenceLinkURL(title), title)
 
 
 def readBlastRecords(filename, limit=None):
@@ -158,7 +140,7 @@ def _sortSummary(filenameOrSummary, attr='count', reverse=False):
                     reverse=reverse)
     for i, title in enumerate(titles, start=1):
         item = summary[title]
-        link = NCBISequenceLink(title)
+        link = html.NCBISequenceLink(title)
         out.append(
             '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
             (i, item['count'], item['length'], item['eMedian'], item['eMean'],
@@ -741,8 +723,9 @@ def convertSummaryEValuesToRanks(hitInfo):
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    addQueryLines=True, showFeatures=True, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
-                   maxStop=None, createFigure=True, addTitleToAlignments=True,
-                   readsAx=None, rankEValues=False):
+                   maxStop=None, createFigure=True, showFigure=True,
+                   readsAx=None, rankEValues=False, imageFile=None,
+                   quiet=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -766,11 +749,14 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     minStart: Reads that start before this subject offset should not be shown.
     maxStop: Reads that end after this subject offset should not be shown.
     createFigure: If True, create a figure and give it a title.
-    addTitleToAlignments: If True, add a title to the subplot that shows the
-        read alignments.
+    showFigure: If True, show the created figure. Set this to False if you're
+        creating a panel of figures or just want to save an image (with
+        imageFile).
     readsAx: If not None, use this as the subplot for displaying reads.
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
+    imageFile: If not None, specifies a filename to write the image to.
+    quiet: If True, don't print progress / timing output.
     """
     start = time()
     sequence = getSequence(hitId, db)
@@ -933,7 +919,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             sequence.description, len(sequence), hitInfo['hitCount']),
             fontsize=20)
     if createdReadsAx:
-        # Only add title and y-axis label if we made the read axes.
+        # Only add title and y-axis label if we made the reads axes.
         readsAx.set_title('Read alignments', fontsize=20)
         if rankEValues:
             plt.ylabel('e value rank', fontsize=17)
@@ -942,17 +928,22 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     readsAx.axis([minX - 1, maxX + 1, minE - 1, maxEIncludingRandoms + 1])
     readsAx.grid()
     if createFigure:
-        plt.show()
+        if showFigure:
+            plt.show()
+        if imageFile:
+            figure.savefig(imageFile)
     stop = time()
-    report('Graph generated in %.3f mins. Read count: %d. HSP count: %d.' %
-           ((stop - start) / 60.0, len(fasta), len(items)))
+    if not quiet:
+        report('Graph generated in %.3f mins. Read count: %d. HSP count: %d.' %
+               ((stop - start) / 60.0, len(fasta), len(items)))
 
     return hitInfo
 
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
-                   maxStop=None, sortOn='eMedian', rankEValues=False):
+                   maxStop=None, sortOn='eMedian', rankEValues=False,
+                   outputDir=None):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -975,6 +966,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         "title" or "reads"
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
+    outputDir: If not None, specifies a directory to write an HTML summary to.
     """
     start = time()
     # Sort titles by mean eValue then title.
@@ -996,10 +988,14 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         raise ValueError('sortOn must be one of "eMean", "eMedian", '
                          '"title" or "reads"')
 
+    if isinstance(fastaFilename, str):
+        fasta = list(SeqIO.parse(fastaFilename, 'fasta'))
+    else:
+        fasta = fastaFilename
+
     cols = 5
     rows = int(len(titles) / cols) + (0 if len(titles) % cols == 0 else 1)
     figure, ax = plt.subplots(rows, cols, squeeze=False)
-    coords = dimensionalIterator((rows, cols))
     report('Plotting %d titles in %dx%d grid, sorted on %s' %
            (len(titles), rows, cols, sortOn))
 
@@ -1019,16 +1015,35 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         # recordFilenameOrHits is already the hits we need.
         allhits = recordFilenameOrHits
 
+    if outputDir:
+        htmlOutput = html.AlignmentPanelHTML(outputDir, fasta)
+
+    coords = dimensionalIterator((rows, cols))
+
     for i, title in enumerate(titles):
         row, col = coords.next()
-        report('---> %d: %s %s' % (i, title, NCBISequenceLinkURL(title)))
+        print '%d: %s %s' % (i, title, html.NCBISequenceLinkURL(title))
         hitId = title.split(' ')[0]
         hitInfo = alignmentGraph(
-            allhits, hitId, fastaFilename, db=db, addQueryLines=True,
+            allhits, hitId, fasta, db=db, addQueryLines=True,
             showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
             colorQueryBases=False, minStart=minStart, maxStop=maxStop,
-            createFigure=False, addTitleToAlignments=False,
-            readsAx=ax[row][col], rankEValues=rankEValues)
+            createFigure=False, showFigure=False, readsAx=ax[row][col],
+            rankEValues=rankEValues, quiet=True)
+
+        if outputDir:
+            imageBasename = '%d.png' % i
+            imageFile = '%s/%s' % (outputDir, imageBasename)
+            alignmentGraph(
+                allhits, hitId, fasta, db=db, addQueryLines=True,
+                eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
+                colorQueryBases=False, minStart=minStart, maxStop=maxStop,
+                showFigure=False, rankEValues=rankEValues, imageFile=imageFile,
+                quiet=True)
+            # Close the image plot, otherwise it will be displayed when we
+            # call plt.show below.
+            plt.close()
+            htmlOutput.addImage(imageBasename, title, hitInfo)
 
         # Remember info required for post processing of the whole panel
         # once we've made all the alignment graphs.
@@ -1089,8 +1104,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             # the sequence ends (as all panel graphs have the same width and
             # we otherwise couldn't tell).
             line = Line2D([hitInfo['sequenceLen'], hitInfo['sequenceLen']],
-                          [minE - 1, maxEIncludingRandoms + 1], color='#cccccc',
-                          linewidth=1)
+                          [minE - 1, maxEIncludingRandoms + 1],
+                          color='#cccccc', linewidth=1)
             a.add_line(line)
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
@@ -1098,8 +1113,11 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     figure.suptitle('X: %d to %d, Y: %d to %d' %
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
-    # figure.savefig('evalues.png')
-    plt.show()
+    if outputDir:
+        panelFilename = 'alignment-panel.png'
+        figure.savefig('%s/%s' % (outputDir, panelFilename))
+        htmlOutput.close(panelFilename)
+    figure.show()
     stop = time()
     report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
 
