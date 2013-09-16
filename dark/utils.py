@@ -773,7 +773,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     createdReadsAx = readsAx is None
 
     if showFeatures:
-        gbSeq = getSeqFromGenbank(hitId, '')
+        gbSeq = getSeqFromGenbank(hitId)
         gs = gridspec.GridSpec(4, 1, height_ratios=[2, 1, 1, 12])
         featureAx = plt.subplot(gs[0, 0])
         orfAx = plt.subplot(gs[1, 0])
