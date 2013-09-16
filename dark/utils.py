@@ -140,7 +140,7 @@ def _sortSummary(filenameOrSummary, attr='count', reverse=False):
                     reverse=reverse)
     for i, title in enumerate(titles, start=1):
         item = summary[title]
-        link = html.NCBISequenceLink(title)
+        link = html.NCBISequenceLink(title, title)
         out.append(
             '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
             (i, item['count'], item['length'], item['eMedian'], item['eMean'],
@@ -1022,7 +1022,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
     for i, title in enumerate(titles):
         row, col = coords.next()
-        print '%d: %s %s' % (i, title, html.NCBISequenceLinkURL(title))
+        print '%d: %s %s' % (i, title, html.NCBISequenceLinkURL(title, ''))
         hitId = title.split(' ')[0]
         hitInfo = alignmentGraph(
             allhits, hitId, fasta, db=db, addQueryLines=True,

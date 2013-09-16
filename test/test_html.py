@@ -17,6 +17,21 @@ class TestNCBISequenceLinkURL(TestCase):
         self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/AY253278',
                          NCBISequenceLinkURL(title))
 
+    def testUnparseableTitleReturnsNone(self):
+        """
+        When an unparseable title is passed, the default return value of
+        NCBISequenceLinkURL is None.
+        """
+        self.assertEqual(None, NCBISequenceLinkURL(''))
+
+    def testUnparseableTitleWithSpecificDefault(self):
+        """
+        When an unparseable title is passed, the default return value passed to
+        NCBISequenceLinkURL must be returned.
+        """
+        default = object()
+        self.assertIs(default, NCBISequenceLinkURL('xxx', default))
+
 
 class TestNCBISequenceLink(TestCase):
     """
@@ -34,3 +49,18 @@ class TestNCBISequenceLink(TestCase):
         self.assertEqual(
             '<a href="http://www.ncbi.nlm.nih.gov/nuccore/AY253278" ' +
             'target="_blank">' + title + '</a>', NCBISequenceLink(title))
+
+    def testUnparseableTitleReturnsNone(self):
+        """
+        When an unparseable title is passed, the default return value of
+        NCBISequenceLink is None.
+        """
+        self.assertEqual(None, NCBISequenceLink(''))
+
+    def testUnparseableTitleWithSpecificDefault(self):
+        """
+        When an unparseable title is passed, the default return value passed to
+        NCBISequenceLink must be returned.
+        """
+        default = object()
+        self.assertIs(default, NCBISequenceLink('xxx', default))
