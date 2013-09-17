@@ -894,7 +894,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             readsAx.add_line(line)
 
         if idList:
-            count = 0
             for item in items:
                 for key in idList:
                     for ids in idList[key]:
@@ -905,9 +904,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                                           hsp['subjectEnd']], [e, e],
                                           color=key)
                             readsAx.add_line(line)
-                        else:
-                            continue
-                    count += 1
 
     # Add vertical lines for the sequence features.
     if showFeatures:
