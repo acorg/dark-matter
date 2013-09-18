@@ -268,7 +268,7 @@ def findHits(recordFilename, hitIds, limit=None):
             if alignment.hit_id in hitIds:
                 hitCount += 1
                 yield (readNum, alignment.hit_id, alignment.length,
-                       alignment.hsps)
+                       alignment.hsps, record.query)
     stop = time()
     report('%d hits found in %.3f mins.' % (hitCount, (stop - start) / 60.0))
 
@@ -550,7 +550,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
     result = {}
 
     # Extract all e values.
-    for sequenceId, hitId, hitLen, hsps in hits:
+    for sequenceId, hitId, hitLen, hsps, query in hits:
         if hitId not in result:
             result[hitId] = resultDict(hitLen)
         hitInfo = result[hitId]
@@ -588,6 +588,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
                 'queryLen': queryLen,
                 'sequenceId': sequenceId,
                 'subjectSense': hsp.frame[1],
+                'query': query
             })
 
     for hitInfo in result.itervalues():
@@ -725,7 +726,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False):
+                   quiet=False, idList=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -757,6 +758,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         the e value (sorted decreasingly).
     imageFile: If not None, specifies a filename to write the image to.
     quiet: If True, don't print progress / timing output.
+    idList: a dictionary. The keys is a color and the values is a list of
+        read identifiers that should be colored in the respective color.
     """
     start = time()
     sequence = getSequence(hitId, db)
@@ -890,6 +893,18 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                           color='blue')
             readsAx.add_line(line)
 
+        if idList:
+            for item in items:
+                for key in idList:
+                    for ids in idList[key]:
+                        if ids == item['query']:
+                            e = item['e']
+                            hsp = item['hsp']
+                            line = Line2D([hsp['subjectStart'],
+                                          hsp['subjectEnd']], [e, e],
+                                          color=key)
+                            readsAx.add_line(line)
+
     # Add vertical lines for the sequence features.
     if showFeatures:
         featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
@@ -943,7 +958,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
-                   outputDir=None):
+                   outputDir=None, idList=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -967,6 +982,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
     outputDir: If not None, specifies a directory to write an HTML summary to.
+    idList: a dictionary. The keys is a color and the values is a list of
+        read identifiers that should be colored in the respective color.
     """
     start = time()
     # Sort titles by mean eValue then title.
@@ -1029,17 +1046,18 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
             colorQueryBases=False, minStart=minStart, maxStop=maxStop,
             createFigure=False, showFigure=False, readsAx=ax[row][col],
-            rankEValues=rankEValues, quiet=True)
+            rankEValues=rankEValues, quiet=True, idList=idList)
 
         if outputDir:
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
-                colorQueryBases=False, minStart=minStart, maxStop=maxStop,
-                showFigure=False, rankEValues=rankEValues, imageFile=imageFile,
-                quiet=True)
+                showFeatures=False, eCutoff=eCutoff,
+                maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
+                minStart=minStart, maxStop=maxStop, showFigure=False,
+                rankEValues=rankEValues, imageFile=imageFile, quiet=True,
+                idList=idList)
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
             plt.close()
