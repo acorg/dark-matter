@@ -809,8 +809,10 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         # Color each query by its bases.
         xScale = 3
         yScale = 2
-        baseImage = BaseImage(maxX - minX, maxEIncludingRandoms - minE,
-                              xScale, yScale)
+        baseImage = BaseImage(
+            maxX - minX,
+            maxEIncludingRandoms - minE + (1 if rankEValues else 0),
+            xScale, yScale)
         for item in items:
             hsp = item['hsp']
             e = item['e'] - minE
