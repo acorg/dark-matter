@@ -1053,7 +1053,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             imageFile = '%s/%s' % (outputDir, imageBasename)
             alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                showFeatures=False, eCutoff=eCutoff,
+                showFeatures=True, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
