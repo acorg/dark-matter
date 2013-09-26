@@ -101,9 +101,9 @@ def summarizeAllRecords(filename):
                 item = result[title]
             else:
                 item = result[title] = {
-                    'count': 0,
+                    'count': 0,  # Should have been called 'readCount'.
                     'eValues': [],
-                    'length': alignment.length,
+                    'length': alignment.length,  # This is the subject length.
                     'reads': set(),
                     'title': title,
                 }
@@ -112,7 +112,7 @@ def summarizeAllRecords(filename):
             # record.query is the name of the read in the FASTA file.
             item['reads'].add(record.query)
 
-    # Compute mean and median e values and delete the eTotal keys.
+    # Compute mean and median e values and delete the eValues keys.
     for key, item in result.iteritems():
         item['eMean'] = sum(item['eValues']) / float(item['count'])
         item['eMedian'] = np.median(item['eValues'])
@@ -478,7 +478,6 @@ def normalizeHSP(hsp, queryLen):
 
     hsp: a HSP from a BLAST record.  All passed hsp offsets are 1-based.
     queryLen: the length of the query sequence.
-
     """
     assert hsp.frame[0] == 1, 'Frame does not start with 1 in %s' % hsp
 
@@ -903,7 +902,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                             e = item['e']
                             hsp = item['hsp']
                             line = Line2D([hsp['subjectStart'],
-                                          hsp['subjectEnd']], [e, e],
+                                           hsp['subjectEnd']], [e, e],
                                           color=key)
                             readsAx.add_line(line)
 
