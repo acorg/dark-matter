@@ -913,11 +913,11 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         for fe in featureEndpoints:
             line = Line2D(
                 [fe['start'], fe['start']],
-                [minE - 1, maxEIncludingRandoms + 1], color=fe['color'])
+                [0, maxEIncludingRandoms + 1], color=fe['color'])
             readsAx.add_line(line)
             line = Line2D(
-                [fe['end'], fe['end']], [minE - 1, maxEIncludingRandoms + 1],
-                color='#cccccc')
+                [fe['end'], fe['end']],
+                [0, maxEIncludingRandoms + 1], color='#cccccc')
             readsAx.add_line(line)
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
@@ -942,7 +942,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             plt.ylabel('e value rank', fontsize=17)
         else:
             plt.ylabel('$- log_{10}(e)$', fontsize=17)
-    readsAx.axis([minX - 1, maxX + 1, minE - 1, maxEIncludingRandoms + 1])
+    readsAx.axis([minX - 1, maxX + 1, 0, maxEIncludingRandoms + 1])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -1100,7 +1100,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]
-        a.axis([minX, maxX, minE - 1, maxEIncludingRandoms + 1])
+        a.axis([minX, maxX, 0, maxEIncludingRandoms + 1])
         a.set_yticks([])
         a.set_xticks([])
         # Post-process each non-empty graph.
@@ -1117,14 +1117,14 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 a.add_line(line)
             # Add a vertical line at x=0 so we can see reads that match to
             # the left of the sequence we're aligning against.
-            line = Line2D([0, 0], [minE - 1, maxEIncludingRandoms + 1],
+            line = Line2D([0, 0], [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
             # Add a line on the right of each sub-plot so we can see where
             # the sequence ends (as all panel graphs have the same width and
             # we otherwise couldn't tell).
             line = Line2D([hitInfo['sequenceLen'], hitInfo['sequenceLen']],
-                          [minE - 1, maxEIncludingRandoms + 1],
+                          [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
 
