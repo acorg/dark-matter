@@ -1,5 +1,6 @@
 def normalizeHSP(hsp, queryLen):
-    """Examime the sense of an HSP and return information about where the
+    """
+    Examime the sense of an HSP and return information about where the
     query and the alignment (match) begin and end.  BLAST always returns
     query start and stop values that are increasing, but the reported
     subject match may be reversed (start > stop).  Return a dict with keys
@@ -52,6 +53,8 @@ def normalizeHSP(hsp, queryLen):
     matchLength = sbjct_end - sbjct_start + 1
     assert matchLength == (query_end - query_start + 1), (
         "%d != %d" % (matchLength, query_end - query_start + 1))
+
+    # TODO: check the mod 3 vsalue of the start offsets.
 
     # Set subject indices to be zero-based.
     subjectStart = sbjct_start - 1
