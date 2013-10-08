@@ -10,9 +10,9 @@ from Bio import SeqIO
 
 DEFAULT_BLAST_ARGS = ''
 DEFAULT_BLAST_DB = 'nt'
-DEFAULT_BLAST_DB_DIR = '/syn/terry/ncbi-blast-dbs'
+DEFAULT_BLAST_DB_DIR = '/syn/terry/dark-matter/ncbi-blast-dbs'
 DEFAULT_EMAIL = 'tcj25@cam.ac.uk'
-DEFAULT_BLAST_EXECUTABLE_DIR = '/syn/terry/ncbi-blast/bin'
+DEFAULT_BLAST_EXECUTABLE_DIR = '/syn/terry/dark-matter/ncbi-blast/bin'
 DEFAULT_BLAST_EXECUTABLE_NAME = 'blastn'
 DEFAULT_SEQUENCES_PER_BLAST = 100
 
@@ -163,11 +163,11 @@ def printPostProcessScript(params):
     with open('post-process.sh', 'w') as outfp:
         outfp.write("""\
 #!/bin/sh
-export PYTHONPATH=/syn/terry/dark-matter
+export PYTHONPATH=/syn/terry/dark-matter/dark-matter
 for i in "$@"
 do
     /syn/terry/.virtualenvs/dm/bin/python \
-    /syn/terry/dark-matter/bin/convert-blast-xml-to-json.py \
+    /syn/terry/dark-matter/dark-matter/bin/convert-blast-xml-to-json.py \
     $i.xml $i.json
 done
 """ % params)
@@ -188,7 +188,7 @@ def printFinalizeScript(params):
     with open('finalize.sh', 'w') as outfp:
         outfp.write("""\
 #!/usr/bin/env bash
-export PYTHONPATH=/syn/terry/dark-matter
+export PYTHONPATH=/syn/terry/dark-matter/dark-matter
 shopt -s nullglob
 
 for i in *.fasta
