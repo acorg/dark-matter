@@ -188,7 +188,7 @@ def printFinalizeScript(params):
     with open('finalize.sh', 'w') as outfp:
         outfp.write("""\
 #!/usr/bin/env bash
-export PYTHONPATH=/syn/terry/dark-matter/dark-matter
+
 shopt -s nullglob
 
 for i in *.fasta
