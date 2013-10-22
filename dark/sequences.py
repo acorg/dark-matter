@@ -32,7 +32,6 @@ def summarizeRecordsBySequence(filename, eCutoff=None, minMatchingReads=None):
                 del result[title]
 
     elapsed = time() - start
-    print 'Read %d BLAST records in %.3f secs (%.0f records/sec)' % (
-        count, elapsed, float(count) / float(elapsed))
+    recordsPerSec 0 float(count) / float(elapsed)
 
-    return result
+    return result, count, elapsed, recordsPerSec
