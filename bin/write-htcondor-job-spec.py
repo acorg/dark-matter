@@ -78,6 +78,7 @@ notify_user               = %(email)s
 max_transfer_input_mb     = -1
 max_transfer_output_mb    = -1
 transfer_input_files      = post-process.sh
+log                       = job.log
 
 # Job summary:
 #   FASTA input from %(fastaFile)s
@@ -88,7 +89,6 @@ arguments                 = -query $(Process).fasta -db %(db)s \
 -out $(Process).xml -outfmt 5 %(blastArgs)s
 input                     = $(Process).fasta
 output                    = $(Process).json
-log                       = $(Process).log
 error                     = $(Process).error
 dont_encrypt_input_files  = $(Process).fasta
 dont_encrypt_output_files = $(Process).xml,$(Process).json
@@ -126,6 +126,7 @@ notify_user               = %(email)s
 max_transfer_input_mb     = -1
 max_transfer_output_mb    = -1
 transfer_input_files      = post-process.sh
+log                       = job.log
 EOF
 
 for jobid in "$@"
@@ -136,7 +137,6 @@ arguments                 = -query $jobid.fasta -db %(db)s -out $jobid.xml \
 -outfmt 5 %(blastArgs)s
 input                     = $jobid.fasta
 output                    = $jobid.json
-log                       = $jobid.log
 error                     = $jobid.error
 dont_encrypt_input_files  = $jobid.fasta
 dont_encrypt_output_files = $jobid.xml,$jobid.json
@@ -145,8 +145,10 @@ dont_encrypt_output_files = $jobid.xml,$jobid.json
 queue
 EOF
 
-    rm -f $jobid.json $jobid.xml $jobid.log $jobid.error
+    rm -f $jobid.json $jobid.xml $jobid.error
 done
+
+rm -f job.log
 
 condor_submit $tmp
 """ % params)
