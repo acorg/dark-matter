@@ -32,6 +32,6 @@ def summarizeRecordsBySequence(filename, eCutoff=None, minMatchingReads=None):
                 del result[title]
 
     elapsed = time() - start
-    recordsPerSec 0 float(count) / float(elapsed)
+    recordsPerSec = float(count) / float(elapsed)
 
     return result, count, elapsed, recordsPerSec
