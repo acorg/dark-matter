@@ -48,13 +48,16 @@ def normalizeHSP(hsp, queryLen):
         # Make subject indices ascending.
         sbjct_start, sbjct_end = sbjct_end, sbjct_start
 
-    # Sanity check that the length of the matches in the subject and
-    # query are identical.
-    matchLength = sbjct_end - sbjct_start + 1
-    assert matchLength == (query_end - query_start + 1), (
-        "%d != %d" % (matchLength, query_end - query_start + 1))
+    # Sanity check that the length of the matches in the subject and query
+    # are identical, taking into account gaps in either (indicated by '-'
+    # characters in the match sequences, as returned by BLAST).
+    subjectLength = sbjct_end - sbjct_start + 1 + hsp.sbjct.count('-')
+    queryLength = query_end - query_start + 1 + hsp.query.count('-')
+    assert subjectLength == queryLength, (
+        'Subject match length (%d) != Query match length (%d)' %
+        (subjectLength, queryLength))
 
-    # TODO: check the mod 3 vsalue of the start offsets.
+    # TODO: check the mod 3 value of the start offsets.
 
     # Set subject indices to be zero-based.
     subjectStart = sbjct_start - 1

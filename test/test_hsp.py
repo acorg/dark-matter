@@ -19,6 +19,8 @@ class HSP(object):
         self.query_end = queryEnd
         assert abs(subjectEnd - subjectStart) == abs(queryEnd - queryStart)
         self.frame = (frame.query, frame.subject)
+        # For now, just put an empty subject and query string into the object.
+        self.sbjct = self.query = ''
 
 
 class Template(object):
