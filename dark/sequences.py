@@ -1,6 +1,5 @@
 from collections import defaultdict
 from dark.utils import readBlastRecords
-from time import time
 
 
 def summarizeRecordsBySequence(filename, eCutoff=None, minMatchingReads=None):
@@ -14,7 +13,6 @@ def summarizeRecordsBySequence(filename, eCutoff=None, minMatchingReads=None):
     minMatchingReads: sequences that are matched by fewer reads
         will be elided.
     """
-    start = time()
     result = defaultdict(set)
     count = 0
     for record in readBlastRecords(filename):
@@ -31,7 +29,4 @@ def summarizeRecordsBySequence(filename, eCutoff=None, minMatchingReads=None):
             if len(result[title]) < minMatchingReads:
                 del result[title]
 
-    elapsed = time() - start
-    recordsPerSec = float(count) / float(elapsed)
-
-    return result, count, elapsed, recordsPerSec
+    return result, count
