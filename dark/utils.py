@@ -959,7 +959,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
-                   outputDir=None, idList=False):
+                   interactive=True, outputDir=None, idList=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -982,10 +982,15 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         "title" or "reads"
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
+    interactive: If True, we are interactive and should display the panel
+        using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
     idList: a dictionary. The keys is a color and the values is a list of
         read identifiers that should be colored in the respective color.
     """
+    if not (interactive or outputDir):
+        raise ValueError('Either interactive or outputDir must be True')
+
     start = time()
     # Sort titles by mean eValue then title.
     if sortOn == 'eMean':
@@ -1042,17 +1047,19 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         row, col = coords.next()
         print '%d: %s %s' % (i, title, html.NCBISequenceLinkURL(title, ''))
         hitId = title.split(' ')[0]
-        hitInfo = alignmentGraph(
-            allhits, hitId, fasta, db=db, addQueryLines=True,
-            showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
-            colorQueryBases=False, minStart=minStart, maxStop=maxStop,
-            createFigure=False, showFigure=False, readsAx=ax[row][col],
-            rankEValues=rankEValues, quiet=True, idList=idList)
+        if interactive:
+            hitInfo = alignmentGraph(
+                allhits, hitId, fasta, db=db, addQueryLines=True,
+                showFeatures=False, eCutoff=eCutoff,
+                maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
+                minStart=minStart, maxStop=maxStop, createFigure=False,
+                showFigure=False, readsAx=ax[row][col],
+                rankEValues=rankEValues, quiet=True, idList=idList)
 
         if outputDir:
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
-            alignmentGraph(
+            hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
                 showFeatures=True, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
@@ -1136,7 +1143,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         panelFilename = 'alignment-panel.png'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
-    figure.show()
+    if interactive:
+        figure.show()
     stop = time()
     report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
 
