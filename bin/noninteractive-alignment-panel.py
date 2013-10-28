@@ -9,6 +9,8 @@ Run with --help for help.
 
 if __name__ == '__main__':
     import sys
+    import os.path
+    import ast
     from Bio import SeqIO
     from dark import utils
     from dark.utils import (alignmentPanel, getAllHitsForSummary,
@@ -107,7 +109,7 @@ if __name__ == '__main__':
         'create the alignment panel.')
 
     parser.add_argument(
-        '--summaryFile', type=str, default=False,
+        '--summaryFile', type=bool, default=False,
         help='Specifies a file to write the summary from summarizeAllRecords to.')
 
     args = parser.parse_args()
@@ -118,15 +120,15 @@ if __name__ == '__main__':
 
 
     if args.summaryFile:
-        if not summaryFile:
+        if not os.path.isfile('summary-file.txt'):
             summaryForFile = summarizeAllRecords(args.json)
-            f = open('summaryFile.txt', 'w')
+            f = open('summary-file.txt', 'w')
             f.write(str(summaryForFile))
             f.close()
-
-            
-        f.open('summaryFile.txt', 'r')
-        summary = f.read()
+  
+        with open('summary-file.txt', 'r') as f:
+            stringSummary = f.read()
+            summary = eval(stringSummary)
 
         interesting = interestingRecords(
             summary, titleRegex=args.titleRegex,
@@ -134,6 +136,7 @@ if __name__ == '__main__':
             minMatchingReads=args.minMatchingReads,
             maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
             negativeTitleRegex=args.negativeTitleRegex)
+
     else:
         summary = summarizeAllRecords(args.json)
         interesting = interestingRecords(
@@ -153,7 +156,7 @@ if __name__ == '__main__':
            (nInteresting, '' if nInteresting == 1 else 's'))
 
     if args.earlyExit:
-        print '\n'.join(interesting.keys())
+        #print '\n'.join(interesting.keys())
         sys.exit(0)
 
     allHits = getAllHitsForSummary(interesting, args.json)
