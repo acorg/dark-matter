@@ -10,6 +10,7 @@ Run with --help for help.
 if __name__ == '__main__':
     import sys
     from Bio import SeqIO
+    import os.path
     from dark import utils
     from dark.utils import (alignmentPanel, getAllHitsForSummary,
                             interestingRecords, report, summarizeAllRecords)
@@ -116,13 +117,34 @@ if __name__ == '__main__':
     fasta = list(SeqIO.parse(args.fasta, 'fasta'))
     report('Read %d sequences.' % len(fasta))
     report('Summarizing all records.')
-    summary = summarizeAllRecords(args.json)
-    interesting = interestingRecords(
-        summary, titleRegex=args.titleRegex,
-        minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
-        minMatchingReads=args.minMatchingReads,
-        maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
-        negativeTitleRegex=args.negativeTitleRegex)
+
+    if args.summaryFile:
+        if not os.path.isfile('summary-file.txt'):
+            summaryForFile = summarizeAllRecords(args.json)
+            f = open('summary-file.txt', 'w')
+            f.write(str(summaryForFile))
+            f.close()
+  
+        with open('summary-file.txt', 'r') as f:
+            stringSummary = f.read()
+            summary = eval(stringSummary)
+
+        interesting = interestingRecords(
+            summary, titleRegex=args.titleRegex,
+            minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
+            minMatchingReads=args.minMatchingReads,
+            maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
+            negativeTitleRegex=args.negativeTitleRegex)
+
+    else:
+        summary = summarizeAllRecords(args.json)
+        interesting = interestingRecords(
+            summary, titleRegex=args.titleRegex,
+            minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
+            minMatchingReads=args.minMatchingReads,
+            maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
+            negativeTitleRegex=args.negativeTitleRegex)
+
 
     nInteresting = len(interesting)
     if nInteresting == 0:
@@ -133,7 +155,7 @@ if __name__ == '__main__':
            (nInteresting, '' if nInteresting == 1 else 's'))
 
     if args.earlyExit:
-        print '\n'.join(interesting.keys())
+        #print '\n'.join(interesting.keys())
         sys.exit(0)
 
     allHits = getAllHitsForSummary(interesting, args.json)
