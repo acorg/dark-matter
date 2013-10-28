@@ -479,7 +479,6 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         fasta = list(SeqIO.parse(fastaFilename, 'fasta'))
     else:
         fasta = fastaFilename
-    zeroEValueUpperRandomIncrement = 150
 
     def resultDict(sequenceLen):
         return {
@@ -544,16 +543,16 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # For each sequence we have hits on, set the expect values that
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
-        maxEIncludingRandoms = hitInfo['maxE']
+        maxEExcludingZero = hitInfo['maxE']
+        hitInfo['maxEExcludingZero'] = maxEExcludingZero
         count = 1
         for item in hitInfo['items']:
             if item['e'] is None:
                 item['e'] = e = (hitInfo['maxE'] + count)
                 count += 1
-                if e > maxEIncludingRandoms:
-                    maxEIncludingRandoms = e
+                if e > hitInfo['maxE']:
+                    hitInfo['maxE'] = e
 
-        hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
     return fasta, result
 
@@ -570,7 +569,7 @@ def convertSummaryEValuesToRanks(hitInfo):
     items.sort(key=lambda item: item['e'])
     for i, item in enumerate(items, start=1):
         item['e'] = i
-    result['maxE'] = result['maxEIncludingRandoms'] = len(items)
+    result['maxE'] = len(items)
     result['minE'] = 1
     result['zeroEValueFound'] = False
     return result
@@ -654,7 +653,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         hitInfo = summary[hitId]
 
     items = hitInfo['items']
-    maxEIncludingRandoms = int(ceil(hitInfo['maxEIncludingRandoms']))
+    maxEExcludingZero = int(ceil(hitInfo['maxEExcludingZero']))
     maxE = int(ceil(hitInfo['maxE']))
     minE = int(hitInfo['minE'])
     maxX = hitInfo['maxX']
@@ -666,7 +665,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         yScale = 2
         baseImage = BaseImage(
             maxX - minX,
-            maxEIncludingRandoms - minE + (1 if rankEValues else 0),
+            maxE - minE + (1 if rankEValues else 0),
             xScale, yScale)
         for item in items:
             hsp = item['hsp']
@@ -733,7 +732,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
-                       extent=[minX, maxX, minE, maxEIncludingRandoms])
+                       extent=[minX, maxX, minE, maxE])
     else:
         # Add horizontal lines for all the query sequences. These will be the
         # grey 'whiskers' in the plots once we (below) draw the matched part
@@ -772,11 +771,11 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         for fe in featureEndpoints:
             line = Line2D(
                 [fe['start'], fe['start']],
-                [0, maxEIncludingRandoms + 1], color=fe['color'])
+                [0, maxE + 1], color=fe['color'])
             readsAx.add_line(line)
             line = Line2D(
                 [fe['end'], fe['end']],
-                [0, maxEIncludingRandoms + 1], color='#cccccc')
+                [0, maxE + 1], color='#cccccc')
             readsAx.add_line(line)
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
@@ -785,7 +784,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
     if hitInfo['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='#cccccc',
+        line = Line2D([minX, maxX], [maxEExcludingZero + 1, maxEExcludingZero + 1], color='#cccccc',
                       linewidth=1)
         readsAx.add_line(line)
 
@@ -801,7 +800,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             plt.ylabel('e value rank', fontsize=17)
         else:
             plt.ylabel('$- log_{10}(e)$', fontsize=17)
-    readsAx.axis([minX - 1, maxX + 1, 0, maxEIncludingRandoms + 1])
+    readsAx.axis([minX - 1, maxX + 1, 0, maxE + 1])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -882,7 +881,6 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     report('Plotting %d titles in %dx%d grid, sorted on %s' %
            (len(titles), rows, cols, sortOn))
 
-    maxEIncludingRandoms = -1
     maxE = -1
     minE = 1000  # Something improbably large.
     maxX = -1
@@ -952,8 +950,6 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 i, title.split(' ', 1)[1][:40],
                 len(summary[title]['reads']), medianE, meanE), fontsize=10)
 
-        if hitInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
-            maxEIncludingRandoms = hitInfo['maxEIncludingRandoms']
         if hitInfo['maxE'] > maxE:
             maxE = hitInfo['maxE']
         if hitInfo['minE'] < minE:
@@ -966,7 +962,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]
-        a.axis([minX, maxX, 0, maxEIncludingRandoms + 1])
+        a.axis([minX, maxX, 0, maxE + 1])
         a.set_yticks([])
         a.set_xticks([])
         # Post-process each non-empty graph.
@@ -983,14 +979,14 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 a.add_line(line)
             # Add a vertical line at x=0 so we can see reads that match to
             # the left of the sequence we're aligning against.
-            line = Line2D([0, 0], [0, maxEIncludingRandoms + 1],
+            line = Line2D([0, 0], [0, maxE + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
             # Add a line on the right of each sub-plot so we can see where
             # the sequence ends (as all panel graphs have the same width and
             # we otherwise couldn't tell).
             line = Line2D([hitInfo['sequenceLen'], hitInfo['sequenceLen']],
-                          [0, maxEIncludingRandoms + 1],
+                          [0, maxE + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
 
