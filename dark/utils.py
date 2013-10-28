@@ -14,11 +14,12 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib import gridspec
 from urllib2 import URLError
-from dimension import dimensionalIterator
-from baseimage import BaseImage
 
-from dark.conversion import readJSONRecords
 from dark import html
+from dark.baseimage import BaseImage
+from dark.conversion import readJSONRecords
+from dark.dimension import dimensionalIterator
+from dark.hsp import normalizeHSP
 
 Entrez.email = 'tcj25@cam.ac.uk'
 
@@ -430,7 +431,7 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints):
 def addReversedORFs(fig, seq, minX, maxX):
     """
     fig is a matplotlib figure.
-    seq is a Bio.Seq.Seq (the reverse compliment of the sequence we're
+    seq is a Bio.Seq.Seq (the reverse complement of the sequence we're
         plotting against).
     minX: the smallest x coordinate.
     maxX: the largest x coordinate.
@@ -452,60 +453,6 @@ def addReversedORFs(fig, seq, minX, maxX):
     fig.set_title('Reversed target sequence start (%s) & stop (%s) codons' % (
         ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
         fontsize=20)
-
-
-def normalizeHSP(hsp, queryLen):
-    """Examime the sense of an HSP and return information about where the
-    query and the alignment (match) begin and end.  BLAST always returns
-    query start and stop values that are increasing, but the reported
-    subject match may be reversed (start > stop).  Return a dict with keys
-    that allow the query and the alignment to be displayed relative to the
-    subject orientation (i.e., with start < stop for both the query and the
-    match).
-
-    NOTE: the returned queryStart value may be negative.  The subject sequence
-    is displayed starting at x=0.  So if the query string has sufficient
-    additional nucleotides before the start of the alignment match, it may
-    protrude to the left of the subject (i.e., have x<0).
-
-    In the returned object, all indices are suitable for Python string
-    slicing etc.  We must be careful to convert from the 1-based offsets
-    found in BLAST output properly.
-
-    NOTE: the returned indices are all into the subject string. They will
-    be negative if the query "sticks out" to the left of the subject (or
-    to the right of a negative sense subject).
-
-    hsp: a HSP from a BLAST record.  All passed hsp offsets are 1-based.
-    queryLen: the length of the query sequence.
-    """
-    assert hsp.frame[0] == 1, 'Frame does not start with 1 in %s' % hsp
-
-    # Adjust all offsets to be zero-based.  Then make the query start/end
-    # be relative to the subject. This can make the query start be negative
-    # and/or the query end be greater than the subject end, depending on
-    # whether the query sticks out from either or both ends of the subject.
-    queryStart = hsp.query_start - 1
-
-    if hsp.frame[1] == 1:
-        # Easy case: subject start < subject end.
-        subjectStart = hsp.sbjct_start - 1
-        subjectEnd = hsp.sbjct_end
-        queryStart = subjectStart - queryStart
-        queryEnd = queryStart + queryLen
-    else:
-        # subject end < subject start
-        subjectStart = hsp.sbjct_end - 1
-        subjectEnd = hsp.sbjct_start
-        queryEnd = subjectEnd + queryStart
-        queryStart = queryEnd - queryLen
-
-    return {
-        'subjectEnd': subjectEnd,
-        'subjectStart': subjectStart,
-        'queryEnd': queryEnd,
-        'queryStart': queryStart,
-    }
 
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
@@ -586,7 +533,10 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
                 'origHsp': hsp,
                 'queryLen': queryLen,
                 'sequenceId': sequenceId,
-                'subjectSense': hsp.frame[1],
+                'frame': {
+                    'query': hsp.frame[0],
+                    'subject': hsp.frame[1],
+                },
                 'query': query
             })
 
@@ -604,102 +554,6 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
     return fasta, result
-
-
-def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
-                      db='nt', actualSequenceId=None):
-    """
-    Build a consensus sequence against a target sequence.
-
-    recordFilename: the BLAST XML output file.
-    hitId: the str sequence id to examine the BLAST output for hits against.
-    fastaFilename: The name of the FASTA file containing query sequences,
-        or a list of fasta sequences from SeqIO.parse
-    eCutoff: converted e values less than this will be ignored.
-    db: the BLAST db to use to look up the target and, if given, actual
-        sequence.
-    actualSequenceId: the str id of the actual sequence (if known).
-    """
-
-    print 'TODO: This function is not finished yet.'
-    return
-
-    start = time()
-    if isinstance(recordFilename, str):
-        # TODO: REMOVE THE LIMIT IN THE NEXT LINE!
-        allhits = findHits(recordFilename, set([hitId]), limit=100)
-    else:
-        allhits = recordFilename
-    sequence = getSequence(hitId, db)
-    fasta, summary = summarizeHits(allhits, fastaFilename, eCutoff=eCutoff)
-    minX, maxX = summary['minX'], summary['maxX']
-    if actualSequenceId:
-        # UNUSED.
-        # actualSequence = getSequence(actualSequenceId, db)
-        pass
-    print summary['hitCount']
-    print 'seq len =', len(sequence)
-    fasta = summary['fasta']
-    # The length of the consensus depends on where the query sequences fell
-    # when aligned with the target. The consensus could extend the target
-    # at both ends.
-    consensusLen = maxX - minX
-    consensus = [None, ] * consensusLen
-    for item in summary['items']:
-        print 'NEW HSP'
-        printHSP(item['origHsp'])  # TODO: REMOVE ME
-        hsp = item['hsp']
-        print 'HIT query-start=%d query-stop=%d subj-start=%d subj-stop=%d' % (
-            hsp['queryStart'], hsp['queryEnd'], hsp['subjectStart'],
-            hsp['subjectEnd'])
-        # print '   match: %s%s' % ('.' * hsp['subjectStart'], '-' *
-        # (hsp['subjectEnd'] - hsp['subjectStart']))
-        if item['subjectSense'] == 1:
-            query = fasta[item['sequenceId']].seq
-        else:
-            query = fasta[item['sequenceId']].reverse_complement().seq
-        print '   target:', sequence[hsp['queryStart']:hsp['queryEnd']].seq
-        print '    query:', query
-        match = []
-        for index in xrange(hsp['subjectStart'], hsp['subjectEnd']):
-            queryIndex = index - hsp['queryStart']
-            match.append('.' if query[queryIndex] == sequence[index] else '*')
-        print '    match: %s%s' % (
-            ' ' * (hsp['subjectStart'] - hsp['queryStart']), ''.join(match))
-        print '    score:', item['e']
-        print 'match len:', hsp['subjectEnd'] - hsp['subjectStart']
-        print '    sense:', item['subjectSense']
-        for queryIndex, sequenceIndex in enumerate(
-                xrange(hsp['queryStart'], hsp['queryEnd'])):
-            consensusIndex = sequenceIndex + minX
-            locus = consensus[consensusIndex]
-            if locus is None:
-                consensus[consensusIndex] = locus = defaultdict(int)
-            locus[query[queryIndex]] += 1
-
-    # Print the consensus before the target, if any.
-    for index in xrange(minX, 0):
-        consensusIndex = index - minX
-        if consensus[consensusIndex]:
-            print '%d: %r' % (index, consensus[consensusIndex])
-    # Print the consensus as it overlaps with the target, if any.
-    for index in xrange(0, len(sequence)):
-        consensusIndex = index - minX
-        try:
-            if consensus[consensusIndex]:
-                print '%d: %r (%s)' % (
-                    index, consensus[index], sequence[index])
-        except KeyError:
-            # There's nothing left in the consensus, so we're done.
-            break
-    for index in xrange(len(sequence), maxX):
-        consensusIndex = index - minX
-        if consensus[consensusIndex]:
-            print '%d: %r' % (index, consensus[consensusIndex])
-    stop = time()
-    report('Consensus sequence generated in %.3f mins.' %
-           ((stop - start) / 60.0))
-    return summary, consensus
 
 
 def convertSummaryEValuesToRanks(hitInfo):
@@ -815,9 +669,13 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         for item in items:
             hsp = item['hsp']
             e = item['e'] - minE
-            if item['subjectSense'] == 1:
+            # If the product of the subject and query frame values is +ve,
+            # then they're either both +ve or both -ve, so we just use the
+            # query as is. Otherwise, we need to reverse complement it.
+            if item['frame']['subject'] * item['frame']['query'] > 0:
                 query = fasta[item['sequenceId']].seq
             else:
+                # One of the subject or query has negative sense.
                 query = fasta[item['sequenceId']].reverse_complement().seq
             queryStart = hsp['queryStart']
             # There are 3 parts of the query string we need to display. 1)
@@ -959,7 +817,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
-                   outputDir=None, idList=False):
+                   interactive=True, outputDir=None, idList=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -982,10 +840,15 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         "title" or "reads"
     rankEValues: If True, display reads with a Y axis coord that is the rank of
         the e value (sorted decreasingly).
+    interactive: If True, we are interactive and should display the panel
+        using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
     idList: a dictionary. The keys is a color and the values is a list of
         read identifiers that should be colored in the respective color.
     """
+    if not (interactive or outputDir):
+        raise ValueError('Either interactive or outputDir must be True')
+
     start = time()
     # Sort titles by mean eValue then title.
     if sortOn == 'eMean':
@@ -1042,17 +905,19 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         row, col = coords.next()
         print '%d: %s %s' % (i, title, html.NCBISequenceLinkURL(title, ''))
         hitId = title.split(' ')[0]
-        hitInfo = alignmentGraph(
-            allhits, hitId, fasta, db=db, addQueryLines=True,
-            showFeatures=False, eCutoff=eCutoff, maxHspsPerHit=maxHspsPerHit,
-            colorQueryBases=False, minStart=minStart, maxStop=maxStop,
-            createFigure=False, showFigure=False, readsAx=ax[row][col],
-            rankEValues=rankEValues, quiet=True, idList=idList)
+        if interactive:
+            hitInfo = alignmentGraph(
+                allhits, hitId, fasta, db=db, addQueryLines=True,
+                showFeatures=False, eCutoff=eCutoff,
+                maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
+                minStart=minStart, maxStop=maxStop, createFigure=False,
+                showFigure=False, readsAx=ax[row][col],
+                rankEValues=rankEValues, quiet=True, idList=idList)
 
         if outputDir:
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
-            alignmentGraph(
+            hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
                 showFeatures=True, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
@@ -1136,7 +1001,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         panelFilename = 'alignment-panel.png'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
-    figure.show()
+    if interactive:
+        figure.show()
     stop = time()
     report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
 
