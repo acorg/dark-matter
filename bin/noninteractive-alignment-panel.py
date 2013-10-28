@@ -121,9 +121,8 @@ if __name__ == '__main__':
     if args.summaryFile:
         if not os.path.isfile('summary-file.txt'):
             summaryForFile = summarizeAllRecords(args.json)
-            f = open('summary-file.txt', 'w')
-            f.write(str(summaryForFile))
-            f.close()
+            with open('summary-file.txt', 'w') as f:
+                f.write(str(summaryForFile))
   
         with open('summary-file.txt', 'r') as f:
             stringSummary = f.read()
