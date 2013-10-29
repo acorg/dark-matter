@@ -11,6 +11,7 @@ if __name__ == '__main__':
     import sys
     from Bio import SeqIO
     import os.path
+    from json import loads, dumps
     from dark import utils
     from dark.utils import (alignmentPanel, getAllHitsForSummary,
                             interestingRecords, report, summarizeAllRecords)
@@ -108,7 +109,7 @@ if __name__ == '__main__':
         'create the alignment panel.')
 
     parser.add_argument(
-        '--summaryFile', type=bool, default=False,
+        '--summaryFile', type=str, default=None,
         help='Specifies a file to write the summary from summarizeAllRecords to.')
 
 
@@ -119,31 +120,23 @@ if __name__ == '__main__':
     report('Summarizing all records.')
 
     if args.summaryFile:
-        if not os.path.isfile('summary-file.txt'):
-            summaryForFile = summarizeAllRecords(args.json)
-            with open('summary-file.txt', 'w') as f:
-                f.write(str(summaryForFile))
-  
-        with open('summary-file.txt', 'r') as f:
-            stringSummary = f.read()
-            summary = eval(stringSummary)
-
-        interesting = interestingRecords(
-            summary, titleRegex=args.titleRegex,
-            minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
-            minMatchingReads=args.minMatchingReads,
-            maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
-            negativeTitleRegex=args.negativeTitleRegex)
-
+        if os.path.isfile(args.summaryFile):
+            with open(args.summaryFile, 'r') as f:
+                summaryString = f.read()
+                summary = loads(summaryString)
+        else:
+            summary = summarizeAllRecords(args.json)
+            with open(args.summaryFile, 'w') as f:
+                f.write(dumps(dict(summary)))
     else:
         summary = summarizeAllRecords(args.json)
-        interesting = interestingRecords(
-            summary, titleRegex=args.titleRegex,
-            minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
-            minMatchingReads=args.minMatchingReads,
-            maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
-            negativeTitleRegex=args.negativeTitleRegex)
 
+    interesting = interestingRecords(
+        summary, titleRegex=args.titleRegex,
+        minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
+        minMatchingReads=args.minMatchingReads,
+        maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
+        negativeTitleRegex=args.negativeTitleRegex)
 
     nInteresting = len(interesting)
     if nInteresting == 0:
@@ -154,7 +147,6 @@ if __name__ == '__main__':
            (nInteresting, '' if nInteresting == 1 else 's'))
 
     if args.earlyExit:
-        #print '\n'.join(interesting.keys())
         sys.exit(0)
 
     allHits = getAllHitsForSummary(interesting, args.json)

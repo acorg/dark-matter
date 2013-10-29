@@ -117,6 +117,7 @@ def summarizeAllRecords(filename):
     for key, item in result.iteritems():
         item['eMean'] = sum(item['eValues']) / float(item['count'])
         item['eMedian'] = np.median(item['eValues'])
+        item['reads'] = sorted(item['reads'])
         del item['eValues']
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
