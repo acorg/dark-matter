@@ -322,8 +322,6 @@ def addFeatures(fig, record, minX, maxX):
     fig.set_title('Target sequence features', fontsize=20)
     # print record.features
 
-    # add condition that file is only written if html!
-
     result = []
     toPlot = []
     tooMany = []
@@ -333,70 +331,98 @@ def addFeatures(fig, record, minX, maxX):
             if len(record.features) > 20:
                 if feature.type in ('CDS', 'rRNA'):
                     tooMany.append(feature)
+                    totalSubfeatures += len(feature.sub_features)
             else:
                 if feature.type in ('CDS', 'rRNA'):
                     toPlot.append(feature)
                     totalSubfeatures += len(feature.sub_features)
 
-    if record is None or not toPlot or tooMany != []:
+    if tooMany != []:
         fig.text(minX + (maxX - minX) / 3.0, 0,
-                 ('No features found.' if record
-                  elif 'You (or Genbank) appear to be offline.' else
-                  'Too many features'),
+                 ('Too many features to plot.'),
                  fontsize=16)
         fig.axis([minX, maxX, -1, 1])
         fig.set_yticks([])
+
+    if not toPlot and not tooMany or record is None:
+        fig.text(minX + (maxX - minX) / 3.0, 0,
+                 ('No features found.' if record
+                  else 'You (or Genbank) appear to be offline.'),
+                 fontsize=16)
+        fig.axis([minX, maxX, -1, 1])
+        fig.set_yticks([])
+
         return []
 
     # Have a look at the colormaps here and decide which one you'd like:
     # http://matplotlib.sourceforge.net/examples/pylab_examples/
     # show_colormaps.html
-    colormap = plt.cm.coolwarm
-    colors = [colormap(i) for i in
-              np.linspace(0.0, 0.99, len(toPlot) + totalSubfeatures)]
-    labels = []
 
-    index = -1
-    for feature in toPlot:
-        index += 1
-        start = int(feature.location.start)
-        end = int(feature.location.end)
-        result.append({
-            'color': colors[index],
-            'end': end,
-            'start': start,
-        })
-        frame = start % 3
-        fig.plot([start, end], [frame, frame], color=colors[index],
-                 linewidth=2)
-        gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
-        product = feature.qualifiers.get('product', ['<no product>'])[0]
-        labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
-        for subfeature in feature.sub_features:
+    if tooMany != []:
+        labels = []
+        for feature in tooMany:
+            featureType = str(feature.type)
+            start = int(feature.location.start)
+            end = int(feature.location.end)
+            gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
+            product = feature.qualifiers.get('product', ['<no product>'])[0]
+            labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
+            for subfeature in feature.sub_features:
+                start = int(subfeature.location.start)
+                end = int(subfeature.location.end)
+                subfeatureFrame = start % 3
+                labels.append('%d-%d: %s subfeature' % (start, end, gene))
+
+    return labels
+
+
+    if toPlot:
+        colormap = plt.cm.coolwarm
+        colors = [colormap(i) for i in
+                  np.linspace(0.0, 0.99, len(toPlot) + totalSubfeatures)]
+        labels = []
+
+        index = -1
+        for feature in toPlot:
             index += 1
-            start = int(subfeature.location.start)
-            end = int(subfeature.location.end)
+            start = int(feature.location.start)
+            end = int(feature.location.end)
             result.append({
                 'color': colors[index],
                 'end': end,
                 'start': start,
             })
-            subfeatureFrame = start % 3
-            if subfeatureFrame == frame:
-                # Move overlapping subfeatures down a little to make them
-                # visible.
-                subfeatureFrame -= 0.2
-            fig.plot([start, end], [subfeatureFrame, subfeatureFrame],
-                     color=colors[index])
-            labels.append('%d-%d: %s subfeature' % (start, end, gene))
+            frame = start % 3
+            fig.plot([start, end], [frame, frame], color=colors[index],
+                     linewidth=2)
+            gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
+            product = feature.qualifiers.get('product', ['<no product>'])[0]
+            labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
+            for subfeature in feature.sub_features:
+                index += 1
+                start = int(subfeature.location.start)
+                end = int(subfeature.location.end)
+                result.append({
+                    'color': colors[index],
+                    'end': end,
+                    'start': start,
+                })
+                subfeatureFrame = start % 3
+                if subfeatureFrame == frame:
+                    # Move overlapping subfeatures down a little to make them
+                    # visible.
+                    subfeatureFrame -= 0.2
+                fig.plot([start, end], [subfeatureFrame, subfeatureFrame],
+                         color=colors[index])
+                labels.append('%d-%d: %s subfeature' % (start, end, gene))
 
-    fig.axis([minX, maxX, -1, 6])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    if labels:
-        # fig.legend(labels, bbox_to_anchor=(0.0, 1.1, 1.0, 0.102), loc=3,
-        # ncol=3, mode='expand', borderaxespad=0.)
-        fig.legend(labels, loc='upper left', ncol=3, shadow=True)
+        fig.axis([minX, maxX, -1, 6])
+        fig.set_yticks(np.arange(3))
+        fig.set_ylabel('Frame', fontsize=17)
+        if labels:
+            # fig.legend(labels, bbox_to_anchor=(0.0, 1.1, 1.0, 0.102), loc=3,
+            # ncol=3, mode='expand', borderaxespad=0.)
+            fig.legend(labels, loc='upper left', ncol=3, shadow=True)
 
     return result
 
@@ -587,7 +613,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False, idList=False):
+                   quiet=False, idList=False, outputDir=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -774,16 +800,23 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Add vertical lines for the sequence features.
     if showFeatures:
-        featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
-        for fe in featureEndpoints:
-            line = Line2D(
-                [fe['start'], fe['start']],
-                [0, maxEIncludingRandoms + 1], color=fe['color'])
-            readsAx.add_line(line)
-            line = Line2D(
-                [fe['end'], fe['end']],
-                [0, maxEIncludingRandoms + 1], color='#cccccc')
-            readsAx.add_line(line)
+        featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX, outputDir=outputDir)
+        if featureEndpoints < 20:
+            for fe in featureEndpoints:
+                line = Line2D(
+                    [fe['start'], fe['start']],
+                    [0, maxEIncludingRandoms + 1], color=fe['color'])
+                readsAx.add_line(line)
+                line = Line2D(
+                    [fe['end'], fe['end']],
+                    [0, maxEIncludingRandoms + 1], color='#cccccc')
+                readsAx.add_line(line)
+        else:
+            featuresBasename = '%s.txt' % hitId
+            featuresFile = '%s/%s' % (outputDir, featuresBasename)
+            with open(featuresFile, 'w') as fp:
+                fp.write(str(featureEndpoints))
+
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
                         minX, maxX)
@@ -920,7 +953,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, createFigure=False,
                 showFigure=False, readsAx=ax[row][col],
-                rankEValues=rankEValues, quiet=True, idList=idList)
+                rankEValues=rankEValues, quiet=True, idList=idList,
+                outputDir=False)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -931,7 +965,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
-                idList=idList)
+                idList=idList, outputDir=outputDir)
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
             plt.close()
