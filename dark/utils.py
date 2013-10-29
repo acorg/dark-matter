@@ -322,19 +322,27 @@ def addFeatures(fig, record, minX, maxX):
     fig.set_title('Target sequence features', fontsize=20)
     # print record.features
 
+    # add condition that file is only written if html!
+
     result = []
     toPlot = []
+    tooMany = []
     totalSubfeatures = 0
     if record:
         for feature in record.features:
-            if feature.type in ('CDS', 'rRNA'):
-                toPlot.append(feature)
-                totalSubfeatures += len(feature.sub_features)
+            if len(record.features) > 20:
+                if feature.type in ('CDS', 'rRNA'):
+                    tooMany.append(feature)
+            else:
+                if feature.type in ('CDS', 'rRNA'):
+                    toPlot.append(feature)
+                    totalSubfeatures += len(feature.sub_features)
 
-    if record is None or not toPlot:
+    if record is None or not toPlot or tooMany != []:
         fig.text(minX + (maxX - minX) / 3.0, 0,
                  ('No features found.' if record
-                  else 'You (or Genbank) appear to be offline.'),
+                  elif 'You (or Genbank) appear to be offline.' else
+                  'Too many features'),
                  fontsize=16)
         fig.axis([minX, maxX, -1, 1])
         fig.set_yticks([])
