@@ -543,16 +543,14 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # For each sequence we have hits on, set the expect values that
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
-        maxEExcludingZero = hitInfo['maxE']
-        hitInfo['maxEExcludingZero'] = maxEExcludingZero
         count = 1
+        originalE = hitInfo['maxE']
         for item in hitInfo['items']:
             if item['e'] is None:
-                item['e'] = e = (hitInfo['maxE'] + count)
+                item['e'] = e = (originalE + count)
                 count += 1
                 if e > hitInfo['maxE']:
                     hitInfo['maxE'] = e
-
 
     return fasta, result
 
@@ -653,7 +651,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         hitInfo = summary[hitId]
 
     items = hitInfo['items']
-    maxEExcludingZero = int(ceil(hitInfo['maxEExcludingZero']))
     maxE = int(ceil(hitInfo['maxE']))
     minE = int(hitInfo['minE'])
     maxX = hitInfo['maxX']
@@ -781,13 +778,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
                         minX, maxX)
 
-    # Add the horizontal divider between the highest e value and the randomly
-    # higher ones (if any).
-    if hitInfo['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxEExcludingZero + 1, maxEExcludingZero + 1], color='#cccccc',
-                      linewidth=1)
-        readsAx.add_line(line)
-
     # Titles, axis, etc.
     if createFigure:
         figure.suptitle('%s (length %d, %d hits)' % (
@@ -908,7 +898,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         if interactive:
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                showFeatures=True, eCutoff=eCutoff,
+                showFeatures=False, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, createFigure=False,
                 showFigure=False, readsAx=ax[row][col],
@@ -968,15 +958,6 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         # Post-process each non-empty graph.
         hitInfo = postProcessInfo[(row, col)]
         if hitInfo:
-            if 'maxE' in hitInfo:
-                # Overdraw the horizontal divider between the highest e value
-                # and the randomly higher ones (if any). We need to do this
-                # as the plots will be changing width, to all be as wide as
-                # the widest.
-                e = hitInfo['maxE']
-                line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
-                              linewidth=1)
-                a.add_line(line)
             # Add a vertical line at x=0 so we can see reads that match to
             # the left of the sequence we're aligning against.
             line = Line2D([0, 0], [0, maxE + 1],
