@@ -372,8 +372,7 @@ def addFeatures(fig, record, minX, maxX):
                 end = int(subfeature.location.end)
                 subfeatureFrame = start % 3
                 labels.append('%d-%d: %s subfeature' % (start, end, gene))
-
-    return labels
+        return labels
 
 
     if toPlot:
@@ -447,19 +446,20 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints):
                          markersize=4, color=color, linestyle='None')
 
     # Add the feature endpoints.
-    for fe in featureEndpoints:
-        line = Line2D([fe['start'], fe['start']], [-1, 3], color=fe['color'],
-                      linewidth=1)
-        fig.add_line(line)
-        line = Line2D([fe['end'], fe['end']], [-1, 3], color='#cccccc')
-        fig.add_line(line)
+    if len(featureEndpoints) < 20:
+        for fe in featureEndpoints:
+            line = Line2D([fe['start'], fe['start']], [-1, 3], color=fe['color'],
+                          linewidth=1)
+            fig.add_line(line)
+            line = Line2D([fe['end'], fe['end']], [-1, 3], color='#cccccc')
+            fig.add_line(line)
 
-    fig.axis([minX, maxX, -1, 3])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Target sequence start (%s) and stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)
+        fig.axis([minX, maxX, -1, 3])
+        fig.set_yticks(np.arange(3))
+        fig.set_ylabel('Frame', fontsize=17)
+        fig.set_title('Target sequence start (%s) and stop (%s) codons' % (
+            ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
+            fontsize=20)
 
 
 def addReversedORFs(fig, seq, minX, maxX):
@@ -800,8 +800,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Add vertical lines for the sequence features.
     if showFeatures:
-        featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX, outputDir=outputDir)
-        if featureEndpoints < 20:
+        featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX)
+        if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
                     [fe['start'], fe['start']],
@@ -811,11 +811,9 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     [fe['end'], fe['end']],
                     [0, maxEIncludingRandoms + 1], color='#cccccc')
                 readsAx.add_line(line)
+            hitInfo['features'] = []
         else:
-            featuresBasename = '%s.txt' % hitId
-            featuresFile = '%s/%s' % (outputDir, featuresBasename)
-            with open(featuresFile, 'w') as fp:
-                fp.write(str(featureEndpoints))
+            hitInfo['features'] = featureEndpoints
 
         addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
