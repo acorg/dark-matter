@@ -543,14 +543,12 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # For each sequence we have hits on, set the expect values that
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
-        count = 1
-        originalE = hitInfo['maxE']
+        maxE = hitInfo['maxE']
         for item in hitInfo['items']:
             if item['e'] is None:
-                item['e'] = e = (originalE + count)
-                count += 1
-                if e > hitInfo['maxE']:
-                    hitInfo['maxE'] = e
+                maxE += 1
+                item['e'] = maxE
+        hitInfo['maxE'] = maxE
 
     return fasta, result
 
