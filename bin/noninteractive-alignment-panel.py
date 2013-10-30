@@ -127,7 +127,7 @@ if __name__ == '__main__':
         else:
             summary = summarizeAllRecords(args.json)
             with open(args.summaryFile, 'w') as f:
-                f.write(dumps(dict(summary)))
+                f.write(dumps(summary))
     else:
         summary = summarizeAllRecords(args.json)
 
