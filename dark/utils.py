@@ -117,6 +117,7 @@ def summarizeAllRecords(filename):
     for key, item in result.iteritems():
         item['eMean'] = sum(item['eValues']) / float(item['count'])
         item['eMedian'] = np.median(item['eValues'])
+        item['reads'] = sorted(item['reads'])
         del item['eValues']
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
@@ -613,7 +614,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False, idList=False, outputDir=False):
+                   quiet=False, idList=False, xRange='subject'):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -647,7 +648,13 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     quiet: If True, don't print progress / timing output.
     idList: a dictionary. The keys is a color and the values is a list of
         read identifiers that should be colored in the respective color.
+    xRange: set to either 'subject' or 'reads' to indicate the range of the
+        X axis.
     """
+
+    assert xRange in ('subject', 'reads'), (
+        'xRange must be either "subject" or "reads".')
+
     start = time()
     sequence = getSequence(hitId, db)
 
@@ -838,7 +845,30 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             plt.ylabel('e value rank', fontsize=17)
         else:
             plt.ylabel('$- log_{10}(e)$', fontsize=17)
-    readsAx.axis([minX - 1, maxX + 1, 0, maxEIncludingRandoms + 1])
+
+    # Set the x-axis limits.
+    if xRange == 'subject':
+        readsAx.set_xlim([minX - 1, maxX + 1])
+    else:
+        # Look at all the HSPs for this subject and figure out the min read
+        # start and max read end so we can set the X-axis.
+        first = True
+        for item in hitInfo['items']:
+            hsp = item['hsp']
+            if first:
+                queryMin = hsp['queryStart']
+                queryMax = hsp['queryEnd']
+                first = False
+            else:
+                if hsp['queryStart'] < queryMin:
+                    queryMin = hsp['queryStart']
+                if hsp['queryEnd'] > queryMax:
+                    queryMax = hsp['queryEnd']
+        readsAx.set_xlim([queryMin, queryMax])
+        hitInfo['queryMin'] = queryMin
+        hitInfo['queryMax'] = queryMax
+
+    readsAx.set_ylim([0, maxEIncludingRandoms + 1])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -856,7 +886,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
-                   interactive=True, outputDir=None, idList=False):
+                   interactive=True, outputDir=None, idList=False,
+                   equalizeXAxes=True, xRange='subject'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -884,7 +915,15 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     outputDir: If not None, specifies a directory to write an HTML summary to.
     idList: a dictionary. The keys is a color and the values is a list of
         read identifiers that should be colored in the respective color.
+    equalizeXAxes: if True, adjust the X axis on each alignment plot to be
+        the same.
+    xRange: set to either 'subject' or 'reads' to indicate the range of the
+        X axis.
     """
+
+    assert xRange in ('subject', 'reads'), (
+        'xRange must be either "subject" or "reads".')
+
     if not (interactive or outputDir):
         raise ValueError('Either interactive or outputDir must be True')
 
@@ -924,6 +963,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     minE = 1000  # Something improbably large.
     maxX = -1
     minX = 1e10  # Something improbably large.
+    queryMax = -1
+    queryMin = 1e10  # Something improbably large.
     postProcessInfo = defaultdict(dict)
 
     if isinstance(recordFilenameOrHits, str):
@@ -952,7 +993,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 minStart=minStart, maxStop=maxStop, createFigure=False,
                 showFigure=False, readsAx=ax[row][col],
                 rankEValues=rankEValues, quiet=True, idList=idList,
-                outputDir=False)
+                xRange=xRange)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -963,7 +1004,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
-                idList=idList, outputDir=outputDir)
+                idList=idList, xRange=xRange)
+
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
             plt.close()
@@ -1000,17 +1042,28 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             maxX = hitInfo['maxX']
         if hitInfo['minX'] < minX:
             minX = hitInfo['minX']
+        if xRange == 'reads':
+            if hitInfo['queryMin'] < queryMin:
+                queryMin = hitInfo['queryMin']
+            if hitInfo['queryMax'] > queryMax:
+                queryMax = hitInfo['queryMax']
+
 
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]
-        a.axis([minX, maxX, 0, maxEIncludingRandoms + 1])
+        a.set_ylim([0, maxEIncludingRandoms + 1])
+        if equalizeXAxes:
+            if xRange == 'subject':
+                a.set_xlim([minX, maxX])
+            else:
+                a.set_xlim([queryMin, queryMax])
         a.set_yticks([])
         a.set_xticks([])
         # Post-process each non-empty graph.
         hitInfo = postProcessInfo[(row, col)]
         if hitInfo:
-            if 'maxE' in hitInfo:
+            if equalizeXAxes and 'maxE' in hitInfo:
                 # Overdraw the horizontal divider between the highest e value
                 # and the randomly higher ones (if any). We need to do this
                 # as the plots will be changing width, to all be as wide as

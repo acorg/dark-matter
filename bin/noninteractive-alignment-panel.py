@@ -10,6 +10,8 @@ Run with --help for help.
 if __name__ == '__main__':
     import sys
     from Bio import SeqIO
+    import os.path
+    from json import loads, dumps
     from dark import utils
     from dark.utils import (alignmentPanel, getAllHitsForSummary,
                             interestingRecords, report, summarizeAllRecords)
@@ -106,12 +108,29 @@ if __name__ == '__main__':
         help='If True, just print the number of interesting hits, but do not '
         'create the alignment panel.')
 
+    parser.add_argument(
+        '--summaryFile', type=str, default=None,
+        help='Specifies a file to write the summary from summarizeAllRecords to.')
+
+
     args = parser.parse_args()
     report('Reading FASTA from %r.' % args.fasta)
     fasta = list(SeqIO.parse(args.fasta, 'fasta'))
     report('Read %d sequences.' % len(fasta))
     report('Summarizing all records.')
-    summary = summarizeAllRecords(args.json)
+
+    if args.summaryFile:
+        if os.path.isfile(args.summaryFile):
+            with open(args.summaryFile, 'r') as f:
+                summaryString = f.read()
+                summary = loads(summaryString)
+        else:
+            summary = summarizeAllRecords(args.json)
+            with open(args.summaryFile, 'w') as f:
+                f.write(dumps(summary))
+    else:
+        summary = summarizeAllRecords(args.json)
+
     interesting = interestingRecords(
         summary, titleRegex=args.titleRegex,
         minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
@@ -128,7 +147,6 @@ if __name__ == '__main__':
            (nInteresting, '' if nInteresting == 1 else 's'))
 
     if args.earlyExit:
-        print '\n'.join(interesting.keys())
         sys.exit(0)
 
     allHits = getAllHitsForSummary(interesting, args.json)
