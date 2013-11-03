@@ -1008,7 +1008,6 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             if hitInfo['queryMax'] > queryMax:
                 queryMax = hitInfo['queryMax']
 
-
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]

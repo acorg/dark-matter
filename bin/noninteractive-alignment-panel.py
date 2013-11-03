@@ -12,7 +12,6 @@ if __name__ == '__main__':
     from Bio import SeqIO
     import os.path
     from json import loads, dumps
-    from dark import utils
     from dark.utils import (alignmentPanel, getAllHitsForSummary,
                             interestingRecords, report, summarizeAllRecords)
     import argparse
@@ -110,8 +109,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--summaryFile', type=str, default=None,
-        help='Specifies a file to write the summary from summarizeAllRecords to.')
-
+        help='A file to write the summary from summarizeAllRecords to.')
 
     args = parser.parse_args()
     report('Reading FASTA from %r.' % args.fasta)
