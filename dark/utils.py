@@ -457,7 +457,7 @@ def addReversedORFs(fig, seq, minX, maxX):
 
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
-                  maxHspsPerHit=None, minStart=None, maxStop=None):
+                  maxHspsPerHit=None, minStart=None, maxStop=None, random=False):
     """
     Summarize the information found in 'hits'.
 
@@ -546,12 +546,26 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
-        for item in hitInfo['items']:
-            if item['e'] is None:
-                item['e'] = e = (hitInfo['maxE'] + 2 +
+        maxE = hitInfo['maxE'] + 1
+
+        if random:
+            for item in hitInfo['items']:
+                if item['e'] is None:
+                    item['e'] = e = (hitInfo['maxE'] + 2 +
                                  uniform(0, zeroEValueUpperRandomIncrement))
-                if e > maxEIncludingRandoms:
-                    maxEIncludingRandoms = e
+                    if e > maxEIncludingRandoms:
+                        maxEIncludingRandoms = e
+       
+        else:
+            counter = 1
+            for item in hitInfo['items']:
+                if item['e'] is None:
+                    item['e'] = e = hitInfo['maxE'] + counter
+                    counter += 1
+                    if e > maxEIncludingRandoms:
+                        maxEIncludingRandoms = e
+        
+
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
     return fasta, result
@@ -580,7 +594,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False, idList=False, xRange='subject'):
+                   quiet=False, idList=False, xRange='subject', random=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -645,13 +659,14 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     if isinstance(recordFilenameOrHits, str):
         allhits = findHits(recordFilenameOrHits, set([hitId]))
+
     else:
         # The recordFilename is actually a dict of hits.
         allhits = recordFilenameOrHits
 
     fasta, summary = summarizeHits(
         allhits, fastaFilename, eCutoff=eCutoff,
-        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop)
+        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop, random=random)
 
     if rankEValues:
         hitInfo = convertSummaryEValuesToRanks(summary[hitId])
@@ -789,10 +804,11 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
-    if hitInfo['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='#cccccc',
-                      linewidth=1)
-        readsAx.add_line(line)
+    #if hitInfo['zeroEValueFound']:
+
+    line = Line2D([minX, maxX], [maxE + 0, maxE + 0], color='#cccccc',
+            linewidth=1)
+    readsAx.add_line(line)
 
     # Titles, axis, etc.
     if createFigure:
@@ -848,7 +864,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
-                   equalizeXAxes=True, xRange='subject'):
+                   equalizeXAxes=True, xRange='subject', random=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -954,7 +970,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 minStart=minStart, maxStop=maxStop, createFigure=False,
                 showFigure=False, readsAx=ax[row][col],
                 rankEValues=rankEValues, quiet=True, idList=idList,
-                xRange=xRange)
+                xRange=xRange, random=random)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -965,7 +981,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
-                idList=idList, xRange=xRange)
+                idList=idList, xRange=xRange, random=random)
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
             plt.close()
@@ -1008,7 +1024,6 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             if hitInfo['queryMax'] > queryMax:
                 queryMax = hitInfo['queryMax']
 
-
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]
@@ -1023,15 +1038,16 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         # Post-process each non-empty graph.
         hitInfo = postProcessInfo[(row, col)]
         if hitInfo:
-            if equalizeXAxes and 'maxE' in hitInfo:
+            if equalizeXAxes and maxE in hitInfo:
                 # Overdraw the horizontal divider between the highest e value
                 # and the randomly higher ones (if any). We need to do this
                 # as the plots will be changing width, to all be as wide as
                 # the widest.
                 e = hitInfo['maxE']
-                line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
+                line = Line2D([minX, maxX], [e + 0, e + 0], color='#cccccc',
                               linewidth=1)
                 a.add_line(line)
+
             # Add a vertical line at x=0 so we can see reads that match to
             # the left of the sequence we're aligning against.
             line = Line2D([0, 0], [0, maxEIncludingRandoms + 1],
