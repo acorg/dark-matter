@@ -338,7 +338,7 @@ def addFeatures(fig, record, minX, maxX):
                     toPlot.append(feature)
                     totalSubfeatures += len(feature.sub_features)
 
-    if tooMany != []:
+    if tooMany:
         fig.text(minX + (maxX - minX) / 3.0, 0,
                  ('Too many features to plot.'),
                  fontsize=16)
