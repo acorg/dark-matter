@@ -1,3 +1,6 @@
+from math import log
+
+
 class ReadIntervals(object):
     """
 
@@ -50,3 +53,57 @@ class ReadIntervals(object):
 
         else:
             yield (self.EMPTY, (0, self._targetLength))
+
+
+class OffsetAdjuster(object):
+    """
+    A class that knows how to adjust the offsets in a normalized HSP according
+    to the overall set of reads being plotted.
+
+    intervals: an instance of ReadIntervals.
+    base: the logarithmic base to use when adjusting empty spaces in the hit
+        sequence.
+    """
+
+    def __init__(self, intervals=None, base=2.0):
+        self._adjustments = []  # Pairs of (X offset, adjustment).
+        if intervals:
+            divisor = log(base)
+            for (intervalType, (start, stop)) in intervals.walk():
+                if intervalType == ReadIntervals.EMPTY:
+                    width = stop - start
+                    logWidth = log(width) / divisor
+                    self._adjustments.append((stop, width - logWidth))
+
+    def adjustments(self):
+        return self._adjustments
+
+    def _reductionForOffset(self, offset):
+        """Calculate the total reduction for a given X axis offset."""
+        reduction = 0
+        for (thisOffset, thisReduction) in self._adjustments:
+            if offset >= thisOffset:
+                reduction += thisReduction
+            else:
+                break
+        return reduction
+
+    def adjustOffset(self, offset):
+        """Adjust a single X offset."""
+        return offset - self._reductionForOffset(offset)
+
+    def adjustNormalizedHSP(self, hsp):
+        """
+        Adjust the query and subject start and end offsets in a normalized HSP,
+        returning a new normalized HSP.
+
+        hsp: a normalized HSP, as produced by normalizeHSP in hsps.py
+        """
+        reduction = self._reductionForOffset(hsp['queryStart'])
+
+        return {
+            'queryEnd': hsp['queryEnd'] - reduction,
+            'queryStart': hsp['queryStart'] - reduction,
+            'subjectEnd': hsp['subjectEnd'] - reduction,
+            'subjectStart': hsp['subjectStart'] - reduction,
+        }

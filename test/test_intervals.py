@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.intervals import ReadIntervals
+from dark.intervals import OffsetAdjuster, ReadIntervals
 
 
 class TestReadIntervals(TestCase):
@@ -227,3 +227,201 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (-10, 110))
             ],
             list(ri.walk()))
+
+
+class TestOffsetAdjuster(TestCase):
+    """
+    Tests for the OffsetAdjuster class.
+    """
+
+    def testEmpty(self):
+        """
+        When no intervals are given, the reduction should be for the full hit
+        width.
+        """
+        adjuster = OffsetAdjuster()
+        self.assertEqual([], adjuster.adjustments())
+        self.assertEqual(0, adjuster.adjustOffset(0))
+
+    def testNoReads(self):
+        """
+        When no reads are added to an interval, the reduction should be for
+        the full hit width.
+        """
+        ri = ReadIntervals(64)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (64, 58)
+            ],
+            adjuster.adjustments())
+        self.assertEqual(6, adjuster.adjustOffset(64))
+
+    def testOneReadThatExactlyCoversHit(self):
+        """
+        When one read is given that exactly covers the hit, there should
+        be no length reductions.
+        """
+        ri = ReadIntervals(106)
+        ri.add(0, 106)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+            ],
+            adjuster.adjustments())
+        self.assertEqual(106, adjuster.adjustOffset(106))
+
+    def testOneReadThatExceedsHitOnBothEnds(self):
+        """
+        When one read is given that exceeds the hit at both ends, there should
+        be no length reductions.
+        """
+        ri = ReadIntervals(106)
+        ri.add(-100, 200)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+            ],
+            adjuster.adjustments())
+        self.assertEqual(106, adjuster.adjustOffset(106))
+
+    def testOneReadAtStart(self):
+        """
+        When one read is added to the start of an interval, there should be one
+        reduction for the empty section after the read.
+        """
+        ri = ReadIntervals(228)
+        ri.add(0, 100)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (228, 121),
+            ],
+            adjuster.adjustments())
+        self.assertEqual(107, adjuster.adjustOffset(228))
+
+    def testOneReadBeforeStart(self):
+        """
+        When one read is added to the start of an interval before zero, there
+        should be one reduction for the empty section after the read.
+        """
+        ri = ReadIntervals(228)
+        ri.add(-10, 100)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (228, 121),
+            ],
+            adjuster.adjustments())
+        self.assertEqual(107, adjuster.adjustOffset(228))
+
+    def testOneReadAtEnd(self):
+        """
+        When one read is added to the end of an interval, there should be one
+        reduction for the empty section before the read.
+        """
+        ri = ReadIntervals(228)
+        ri.add(128, 228)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (128, 121),
+            ],
+            adjuster.adjustments())
+        self.assertEqual(107, adjuster.adjustOffset(228))
+
+    def testOneReadAfterEnd(self):
+        """
+        When one read is added to the end of an interval, going beyond the end
+        of the hit, there should be one reduction for the empty section before
+        the read.
+        """
+        ri = ReadIntervals(228)
+        ri.add(128, 250)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (128, 121),
+            ],
+            adjuster.adjustments())
+        self.assertEqual(107, adjuster.adjustOffset(228))
+
+    def testOneReadInMiddle(self):
+        """
+        When one read is added to the middle of an interval, there should be
+        two reductions.
+        """
+        ri = ReadIntervals(106)
+        ri.add(32, 42)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (32, 27),
+                (106, 58),
+            ],
+            adjuster.adjustments())
+        self.assertEqual(106 - 27 - 58, adjuster.adjustOffset(106))
+
+    def testTwoReadsInMiddle(self):
+        """
+        When two reads are added to the middle of an interval, there should be
+        three reductions (after first empty area, after 2nd empty area, after
+        final empty area.
+        """
+        ri = ReadIntervals(132)
+        ri.add(32, 42)
+        ri.add(58, 68)
+        adjuster = OffsetAdjuster(ri)
+        self.assertEqual(
+            [
+                (32, 27),
+                (58, 12),
+                (132, 58),
+            ],
+            adjuster.adjustments())
+        self.assertEqual(132 - 27 - 12 - 58, adjuster.adjustOffset(132))
+
+        # Test an HSP at the beginning is unchanged.
+        self.assertEqual(
+            {
+                'queryEnd': 10,
+                'queryStart': 0,
+                'subjectEnd': 10,
+                'subjectStart': 0,
+            },
+            adjuster.adjustNormalizedHSP({
+                'queryEnd': 10,
+                'queryStart': 0,
+                'subjectEnd': 10,
+                'subjectStart': 0,
+            }))
+
+        # Test an HSP in the first read region.
+        self.assertEqual(
+            {
+                'queryEnd': 15,
+                'queryStart': 5,
+                'subjectEnd': 13,
+                'subjectStart': 8,
+            },
+            adjuster.adjustNormalizedHSP({
+                'queryEnd': 42,
+                'queryStart': 32,
+                'subjectEnd': 40,
+                'subjectStart': 35,
+            }))
+
+        # Test an HSP in the second read region.
+        self.assertEqual(
+            {
+                'queryEnd': 29,
+                'queryStart': 19,
+                'subjectEnd': 27,
+                'subjectStart': 21,
+            },
+            adjuster.adjustNormalizedHSP({
+                'queryEnd': 68,
+                'queryStart': 58,
+                'subjectEnd': 66,
+                'subjectStart': 60,
+            }))

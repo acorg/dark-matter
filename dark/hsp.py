@@ -82,8 +82,8 @@ def normalizeHSP(hsp, queryLen):
         queryStart = queryEnd - queryLen
 
     return {
-        'subjectEnd': subjectEnd,
-        'subjectStart': subjectStart,
         'queryEnd': queryEnd,
         'queryStart': queryStart,
+        'subjectEnd': subjectEnd,
+        'subjectStart': subjectStart,
     }
