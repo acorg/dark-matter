@@ -630,6 +630,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         read identifiers that should be colored in the respective color.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
+    random: if true places all reads with EValues of 0.0 at random positions 
+        above the highest read that is not zero. If false, paces them ranked.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -804,11 +806,10 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
-    #if hitInfo['zeroEValueFound']:
-
-    line = Line2D([minX, maxX], [maxE + 0, maxE + 0], color='#cccccc',
-            linewidth=1)
-    readsAx.add_line(line)
+    if hitInfo['zeroEValueFound']:
+        line = Line2D([minX, maxX], [maxE + 0, maxE + 0], color='#cccccc',
+                linewidth=1)
+        readsAx.add_line(line)
 
     # Titles, axis, etc.
     if createFigure:
@@ -896,6 +897,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         the same.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
+    random: if true places all reads with EValues of 0.0 at random positions 
+        above the highest read that is not zero. If false, paces them ranked.
     """
 
     assert xRange in ('subject', 'reads'), (
