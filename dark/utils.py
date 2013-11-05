@@ -457,7 +457,8 @@ def addReversedORFs(fig, seq, minX, maxX):
 
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
-                  maxHspsPerHit=None, minStart=None, maxStop=None, random=False):
+                  maxHspsPerHit=None, minStart=None, maxStop=None,
+                  randomizeZeroEValues=False):
     """
     Summarize the information found in 'hits'.
 
@@ -546,25 +547,21 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
-        maxE = hitInfo['maxE'] + 1
 
-        if random:
+        if randomizeZeroEValues:
             for item in hitInfo['items']:
                 if item['e'] is None:
                     item['e'] = e = (hitInfo['maxE'] + 2 +
-                                 uniform(0, zeroEValueUpperRandomIncrement))
+                                     uniform(
+                                         0, zeroEValueUpperRandomIncrement))
                     if e > maxEIncludingRandoms:
                         maxEIncludingRandoms = e
-       
+
         else:
-            counter = 1
             for item in hitInfo['items']:
                 if item['e'] is None:
-                    item['e'] = e = hitInfo['maxE'] + counter
-                    counter += 1
-                    if e > maxEIncludingRandoms:
-                        maxEIncludingRandoms = e
-        
+                    maxEIncludingRandoms += 1
+                    item['e'] = maxEIncludingRandoms
 
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
@@ -594,7 +591,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False, idList=False, xRange='subject', random=False):
+                   quiet=False, idList=False, xRange='subject',
+                   randomizeZeroEValues=False):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -630,8 +628,9 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         read identifiers that should be colored in the respective color.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
-    random: if true places all reads with EValues of 0.0 at random positions 
-        above the highest read that is not zero. If false, paces them ranked.
+    randomizeZeroEValues: if true places all reads with EValues of 0.0 at
+        random positions above the highest read that is not zero. If false,
+        places them ranked.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -668,7 +667,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     fasta, summary = summarizeHits(
         allhits, fastaFilename, eCutoff=eCutoff,
-        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop, random=random)
+        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop,
+        randomizeZeroEValues=randomizeZeroEValues)
 
     if rankEValues:
         hitInfo = convertSummaryEValuesToRanks(summary[hitId])
@@ -808,7 +808,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # higher ones (if any).
     if hitInfo['zeroEValueFound']:
         line = Line2D([minX, maxX], [maxE + 0, maxE + 0], color='#cccccc',
-                linewidth=1)
+                      linewidth=1)
         readsAx.add_line(line)
 
     # Titles, axis, etc.
@@ -865,7 +865,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
-                   equalizeXAxes=True, xRange='subject', random=False):
+                   equalizeXAxes=True, xRange='subject',
+                   randomizeZeroEValues=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -897,8 +898,9 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         the same.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
-    random: if true places all reads with EValues of 0.0 at random positions 
-        above the highest read that is not zero. If false, paces them ranked.
+    randomizeZeroEValues: if true places all reads with EValues of 0.0 at
+        random positions above the highest read that is not zero. If false,
+        places them ranked.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -973,7 +975,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 minStart=minStart, maxStop=maxStop, createFigure=False,
                 showFigure=False, readsAx=ax[row][col],
                 rankEValues=rankEValues, quiet=True, idList=idList,
-                xRange=xRange, random=random)
+                xRange=xRange, randomizeZeroEValues=randomizeZeroEValues)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -984,7 +986,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
-                idList=idList, xRange=xRange, random=random)
+                idList=idList, xRange=xRange,
+                randomizeZeroEValues=randomizeZeroEValues)
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
             plt.close()
