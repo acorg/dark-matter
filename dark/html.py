@@ -115,7 +115,7 @@ class AlignmentPanelHTML(object):
                 fp.write("""\
         <br/><a href="%s">Features</a>
 """
-                          % features)
+                         % features)
 
             if len(hitInfo['items']):
                 fp.write("""\
@@ -194,7 +194,7 @@ span.reads {
         i: The number of the image in self._images.
         image: A member of self._images.
         """
-        filename = '%s/%d.txt' % (self._outputDir, i)
+        filename = '%s/features-%d.txt' % (self._outputDir, i)
         featureList = image['hitInfo']['features']
         with open(filename, 'w') as fp:
             for item in featureList:
