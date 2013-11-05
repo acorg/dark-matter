@@ -32,7 +32,6 @@ def getFeatures(fig, record, minX, maxX):
     maxX: the largest x coordinate.
     """
     fig.set_title('Target sequence features', fontsize=20)
-    # print record.features
 
     toPlot = []
     totalSubfeatures = 0
@@ -48,7 +47,7 @@ def getFeatures(fig, record, minX, maxX):
                  fontsize=16)
         fig.axis([minX, maxX, -1, 1])
         fig.set_yticks([])
-        return toPlot
+        return toPlot, totalSubfeatures
 
     elif record is None or not toPlot:
         fig.text(minX + (maxX - minX) / 3.0, 0,
@@ -57,22 +56,19 @@ def getFeatures(fig, record, minX, maxX):
                  fontsize=16)
         fig.axis([minX, maxX, -1, 1])
         fig.set_yticks([])
-        return []
+        return [], totalSubfeatures
 
     else:
-        return toPlot
+        return toPlot, totalSubfeatures
 
 
 def addFeatures(fig, record, minX, maxX):
 
-    toPlot = getFeatures(fig, record, minX, maxX)
+    toPlot, totalSubfeatures = getFeatures(fig, record, minX, maxX)
     result = []
-    plotFeatures = True
-
     if len(toPlot) > 20:
-        plotFeatures = False
         for feature in toPlot:
-            featureType = str(feature.type)
+            # featuretype line -> investigate
             start = int(feature.location.start)
             end = int(feature.location.end)
             gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
@@ -83,7 +79,7 @@ def addFeatures(fig, record, minX, maxX):
                 end = int(subfeature.location.end)
                 subfeatureFrame = start % 3
                 result.append('%d-%d: %s subfeature' % (start, end, gene))
-        return plotFeatures, result
+        return result
 
     else:
         colormap = plt.cm.coolwarm
@@ -133,7 +129,7 @@ def addFeatures(fig, record, minX, maxX):
             # ncol=3, mode='expand', borderaxespad=0.)
             fig.legend(labels, loc='upper left', ncol=3, shadow=True)
 
-    return plotFeatures, result
+    return result
 
 
 def addORFs(fig, seq, minX, maxX, featureEndpoints):
@@ -156,12 +152,13 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints):
                          markersize=4, color=color, linestyle='None')
 
     # Add the feature endpoints.
-    for fe in featureEndpoints:
-        line = Line2D([fe['start'], fe['start']], [-1, 3], color=fe['color'],
-                      linewidth=1)
-        fig.add_line(line)
-        line = Line2D([fe['end'], fe['end']], [-1, 3], color='#cccccc')
-        fig.add_line(line)
+    if len(featureEndpoints) < 20:
+        for fe in featureEndpoints:
+            line = Line2D([fe['start'], fe['start']], [-1, 3],
+                          color=fe['color'], linewidth=1)
+            fig.add_line(line)
+            line = Line2D([fe['end'], fe['end']], [-1, 3], color='#cccccc')
+            fig.add_line(line)
 
     fig.axis([minX, maxX, -1, 3])
     fig.set_yticks(np.arange(3))

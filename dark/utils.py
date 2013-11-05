@@ -613,10 +613,9 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Add vertical lines for the sequence features.
     if showFeatures:
-        plotFeatures, featureEndpoints = features.addFeatures(featureAx,
-                                                              gbSeq, minX,
-                                                              maxX)
-        if plotFeatures:
+        #features=getFeatures just with record
+        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX)
+        if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
                     [fe['start'], fe['start']],
