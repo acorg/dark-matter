@@ -3,7 +3,6 @@ from math import log
 
 class ReadIntervals(object):
     """
-
     targetLength: the length of the target sequence that these reads
     were against.
     """
@@ -20,6 +19,12 @@ class ReadIntervals(object):
         self._intervals.append((start, end))
 
     def walk(self):
+        """
+        Yield intervals. Each is (type, (start, stop)) where type is
+        either EMPTY or FULL and (start, stop) is the interval. The
+        endpoint (stop) of the interval is not considered to be in the
+        interval. I.e., the interval is really [start, stop).
+        """
         intervals = sorted(self._intervals)
 
         def nextFull():
@@ -99,7 +104,8 @@ class OffsetAdjuster(object):
 
         hsp: a normalized HSP, as produced by normalizeHSP in hsps.py
         """
-        reduction = self._reductionForOffset(hsp['queryStart'])
+        reduction = self._reductionForOffset(
+            min(hsp['queryStart'], hsp['subjectStart']))
 
         return {
             'queryEnd': hsp['queryEnd'] - reduction,

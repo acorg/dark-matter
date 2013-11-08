@@ -12,6 +12,7 @@ from math import exp, log10
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 from urllib2 import URLError
 
@@ -36,6 +37,11 @@ QUERY_COLORS = {
     'gap': (0.2, 0.2, 0.2),  # Almost black.
     'match': (0.9, 0.9, 0.9),  # Almost white.
 }
+
+# If we're making a plot that has a log-linear X axis, don't show
+# background light grey rectangles for any gap whose (logged) width is less
+# than SMALLEST_LOGGED_GAP_TO_DISPLAY.
+SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
 
 def readBlastRecords(filename, limit=None):
@@ -583,6 +589,24 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
                     minX = adjusted['queryStart']
                 if maxX is None or adjusted['queryEnd'] > maxX:
                     maxX = adjusted['queryEnd']
+
+            # Adjust minX and maxX if we have gaps at the start or end of
+            # the subject.
+            gaps = list(hitInfo['readIntervals'].walk())
+            if gaps:
+                # Check start of first gap:
+                intervalType, (start, stop) = gaps[0]
+                if intervalType == ReadIntervals.EMPTY:
+                    adjustedStart = adjuster.adjustOffset(start)
+                    if adjustedStart < minX:
+                        minX = adjustedStart
+                # Check stop of last gap:
+                intervalType, (start, stop) = gaps[-1]
+                if intervalType == ReadIntervals.EMPTY:
+                    adjustedStop = adjuster.adjustOffset(stop)
+                    if adjustedStop > maxX:
+                        maxX = adjustedStop
+
             hitInfo.update({
                 'minX': minX,
                 'maxX': maxX,
@@ -706,23 +730,45 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     maxX = hitInfo['maxX']
     minX = hitInfo['minX']
 
-    # (Temporary?) Add horizontal lines to show the logarithmic gaps. Add
-    # these lines first so that reads will be plotted on top of them.
-    if logLinearXAxis:
+    # Add light grey vertical rectangles to show the logarithmic gaps. Add
+    # these first so that reads will be plotted on top of them. Only draw
+    # gaps that are more than 20 pixels wide as we could have millions of
+    # tiny gaps for a bacteria and drawing them all will be slow and only
+    # serves to make the entire background grey.
+    if logLinearXAxis and len(hitInfo['offsetAdjuster'].adjustments()) < 100:
         offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
+        #report('Adjustments: %r' % (hitInfo['offsetAdjuster'].adjustments(),))
+        #report('Seq length = %s (adjusted = %0.3f)' % (
+        #hitInfo['sequenceLen'], offsetAdjuster(hitInfo['sequenceLen'])))
         for (intervalType, interval) in hitInfo['readIntervals'].walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = offsetAdjuster(interval[0])
                 adjustedStop = offsetAdjuster(interval[1])
+                width = adjustedStop - adjustedStart
                 # report('Gap of %d reduced to %0.f.  '
                 #        '%r -> (%.0f, %.0f)' % (interval[1] - interval[0],
                 #                                adjustedStop - adjustedStart,
                 #                                interval, adjustedStart,
                 #                                adjustedStop))
-                line = Line2D(
-                    [adjustedStart, adjustedStop], [0, 0], color='#00ffcc',
-                    linewidth=10)
-                readsAx.add_line(line)
+                if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
+                    # TODO: remove
+                    # line = Line2D(
+                    #     [adjustedStart, adjustedStop], [minE + 5, minE + 5],
+                    #     color='#00ffcc', linewidth=10)
+                    # readsAx.add_line(line)
+                    rect = Rectangle(
+                        (adjustedStart, 0), width,
+                        maxEIncludingRandoms + 1, color='#f4f4f4')
+                    readsAx.add_patch(rect)
+                    # TODO: remove
+                    # line = Line2D(
+                    #     [adjustedStart, adjustedStart],
+                    #     [0, maxEIncludingRandoms + 1], color='red')
+                    # readsAx.add_line(line)
+                    # line = Line2D(
+                    #     [adjustedStop, adjustedStop],
+                    #     [0, maxEIncludingRandoms + 1], color='red')
+                    # readsAx.add_line(line)
 
     if colorQueryBases:
         # Color each query by its bases.
