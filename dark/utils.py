@@ -706,6 +706,24 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     maxX = hitInfo['maxX']
     minX = hitInfo['minX']
 
+    # (Temporary?) Add horizontal lines to show the logarithmic gaps. Add
+    # these lines first so that reads will be plotted on top of them.
+    if logLinearXAxis:
+        offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
+        for (intervalType, interval) in hitInfo['readIntervals'].walk():
+            if intervalType == ReadIntervals.EMPTY:
+                adjustedStart = offsetAdjuster(interval[0])
+                adjustedStop = offsetAdjuster(interval[1])
+                # report('Gap of %d reduced to %0.f.  '
+                #        '%r -> (%.0f, %.0f)' % (interval[1] - interval[0],
+                #                                adjustedStop - adjustedStart,
+                #                                interval, adjustedStart,
+                #                                adjustedStop))
+                line = Line2D(
+                    [adjustedStart, adjustedStop], [0, 0], color='#00ffcc',
+                    linewidth=10)
+                readsAx.add_line(line)
+
     if colorQueryBases:
         # Color each query by its bases.
         xScale = 3
@@ -840,23 +858,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='#cccccc',
                       linewidth=1)
         readsAx.add_line(line)
-
-    # (Temporary?) Add horizontal lines to show the logarithmic gaps.
-    if logLinearXAxis:
-        offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
-        for (intervalType, interval) in hitInfo['readIntervals'].walk():
-            if intervalType == ReadIntervals.EMPTY:
-                adjustedStart = offsetAdjuster(interval[0])
-                adjustedStop = offsetAdjuster(interval[1])
-                # report('Gap of %d reduced to %0.f.  '
-                #        '%r -> (%.0f, %.0f)' % (interval[1] - interval[0],
-                #                                adjustedStop - adjustedStart,
-                #                                interval, adjustedStart,
-                #                                adjustedStop))
-                line = Line2D(
-                    [adjustedStart, adjustedStop], [0, 0], color='#00ffcc',
-                    linewidth=10)
-                readsAx.add_line(line)
 
     # Titles, axis, etc.
     if createFigure:
