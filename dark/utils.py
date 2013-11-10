@@ -86,7 +86,7 @@ def printBlastRecord(record):
             printHSP(hsp, '        ')
 
 
-def summarizeAllRecords(filename):
+def summarizeAllRecords(filename, eCutoff=None):
     """
     Read a file of BLAST records and return a dictionary keyed by sequence
     title, with values containing information about the number of times the
@@ -112,13 +112,22 @@ def summarizeAllRecords(filename):
             item['eValues'].append(alignment.hsps[0].expect)
             # record.query is the name of the read in the FASTA file.
             item['reads'].add(record.query)
-
     # Compute mean and median e values and delete the eValues keys.
     for key, item in result.iteritems():
-        item['eMean'] = sum(item['eValues']) / float(item['count'])
-        item['eMedian'] = np.median(item['eValues'])
+        eValuesAboveCutoff = []
+        if eCutoff:
+            for number in item['eValues']:
+                if number < eCutoff:
+                    eValuesAboveCutoff.append(number)
+            item['count'] = len(eValuesAboveCutoff)
+        else:
+            eValuesAboveCutoff = item['eValues']
+        counter = len(eValuesAboveCutoff)
+        if counter == 0:
+            counter = 1
+        item['eMean'] = sum(eValuesAboveCutoff) / float(counter)
+        item['eMedian'] = np.median(eValuesAboveCutoff)
         item['reads'] = sorted(item['reads'])
-        del item['eValues']
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
     return result
@@ -576,7 +585,7 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=2.0,
+                   addQueryLines=True, showFeatures=False, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
@@ -961,7 +970,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                showFeatures=True, eCutoff=eCutoff,
+                showFeatures=False, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
@@ -979,14 +988,22 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
         postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
 
-        if summary[title]['eMean'] == 0:
-            meanE = 0
+        #calculate eMedian and eMean:
+        convertedECutoff = (-1.0 * 10**eCutoff)
+        interestingEValues = []
+        for item in summary[title]['eValues']:
+            if item < convertedECutoff:
+                interestingEValues.append(item)
+
+        if len(interestingEValues) == 0:
+            meanE = medianE = 0
+
         else:
-            meanE = int(-1.0 * log10(summary[title]['eMean']))
-        if summary[title]['eMedian'] == 0:
-            medianE = 0
-        else:
-            medianE = int(-1.0 * log10(summary[title]['eMedian']))
+            absoluteMeanE = sum(interestingEValues) / float(len(interestingEValues))
+            meanE = int(-1.0 * log10(absoluteMeanE))
+            absoluteMedianE = np.median(interestingEValues)
+            medianE = int(-1.0 * lot10(absoluteMedianE))
+
         ax[row][col].set_title(
             '%d: %s\n%d reads, 1e-%d median, 1e-%d mean' % (
                 i, title.split(' ', 1)[1][:40],
