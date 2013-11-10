@@ -989,7 +989,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
 
         #calculate eMedian and eMean:
-        convertedECutoff = (-1.0 * 10**eCutoff)
+        convertedECutoff = 10**-eCutoff
         interestingEValues = []
         for item in summary[title]['eValues']:
             if item < convertedECutoff:
@@ -999,10 +999,11 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             meanE = medianE = 0
 
         else:
-            absoluteMeanE = sum(interestingEValues) / float(len(interestingEValues))
+            absoluteMeanE = sum(interestingEValues) / float(len(
+                interestingEValues))
             meanE = int(-1.0 * log10(absoluteMeanE))
             absoluteMedianE = np.median(interestingEValues)
-            medianE = int(-1.0 * lot10(absoluteMedianE))
+            medianE = int(-1.0 * log10(absoluteMedianE))
 
         ax[row][col].set_title(
             '%d: %s\n%d reads, 1e-%d median, 1e-%d mean' % (
@@ -1024,7 +1025,6 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 queryMin = hitInfo['queryMin']
             if hitInfo['queryMax'] > queryMax:
                 queryMax = hitInfo['queryMax']
-
 
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
