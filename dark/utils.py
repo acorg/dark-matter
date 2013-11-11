@@ -112,22 +112,29 @@ def summarizeAllRecords(filename, eCutoff=None):
             item['eValues'].append(alignment.hsps[0].expect)
             # record.query is the name of the read in the FASTA file.
             item['reads'].add(record.query)
-    # Compute mean and median e values and delete the eValues keys.
+    # Compute mean and median e values.
     for key, item in result.iteritems():
         eValuesAboveCutoff = []
         if eCutoff:
             for number in item['eValues']:
                 if number < eCutoff:
                     eValuesAboveCutoff.append(number)
-            item['count'] = len(eValuesAboveCutoff)
         else:
             eValuesAboveCutoff = item['eValues']
         counter = len(eValuesAboveCutoff)
+        item['remove'] = False
         if counter == 0:
+            item['remove'] = True
             counter = 1
+        item['count'] = len(eValuesAboveCutoff)
         item['eMean'] = sum(eValuesAboveCutoff) / float(counter)
         item['eMedian'] = np.median(eValuesAboveCutoff)
         item['reads'] = sorted(item['reads'])
+    for title, value in result.items():
+        if value['remove'] == True:
+            del result[title]
+    # delete item['remove']
+    # make it so that count is a real count.
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
     return result
@@ -966,7 +973,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 xRange=xRange)
 
         if outputDir:
-            imageBasename = '%d.png' % i
+            imageBasename = '%d.svg' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
@@ -1068,7 +1075,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.png'
+        panelFilename = 'alignment-panel.svg'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:
