@@ -52,7 +52,7 @@ class AlignmentPanelHTML(object):
         self._images.append({
             'hitInfo': hitInfo,
             'imageBasename': imageBasename,
-            'title': title,
+            'title': title
         })
 
     def close(self, panelFilename):
@@ -90,6 +90,8 @@ class AlignmentPanelHTML(object):
             title = image['title']
             hitInfo = image['hitInfo']
             readIds = self._writeFASTA(i, image)
+            if len(hitInfo['features']):
+                features = self._writeFeatures(i, image)
             fp.write("""
       <a id="small_%d"></a>
       <h3>%d: %s</h3>
@@ -108,6 +110,14 @@ class AlignmentPanelHTML(object):
         <br/><a href="%s" target="_blank">NCBI info on this target</a>.
 """
                          % url)
+            if len(hitInfo['features']):
+
+                fp.write("""\
+        <br/><a href="%s">Features</a>
+"""
+                         % features)
+            else:
+                fp.write('<br/>Feature lookup was False (or no features were found).');
 
             if len(hitInfo['items']):
                 fp.write("""\
@@ -177,3 +187,18 @@ span.reads {
                 ids.append(self._fasta[sequenceId].description)
             SeqIO.write(reads, fp, 'fasta')
         return ids
+
+    def _writeFeatures(self, i, image):
+        """
+        Write a txt file containing the features as a table.
+
+        i: The number of the image in self._images.
+        image: A member of self._images.
+        """
+        filename = '%s/features-%d.txt' % (self._outputDir, i)
+        featureList = image['hitInfo']['features']
+        with open(filename, 'w') as fp:
+            for item in featureList:
+                items = str(item)
+                fp.write(items + '\n')
+        return filename

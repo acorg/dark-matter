@@ -22,6 +22,7 @@ from dark.conversion import readJSONRecords
 from dark.dimension import dimensionalIterator
 from dark.hsp import normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark import features
 
 Entrez.email = 'tcj25@cam.ac.uk'
 
@@ -282,24 +283,6 @@ def findHits(recordFilename, hitIds, limit=None):
     report('%d hits found in %.3f mins.' % (hitCount, (stop - start) / 60.0))
 
 
-def findCodons(seq, codons):
-    """
-    Find all instances of the codons in 'codons' in the given sequence.
-
-    seq: A Bio.Seq.Seq instance.
-    codons: A set of codon strings.
-
-    Return: a generator yielding matching codon offsets.
-    """
-    seqLen = len(seq)
-    start = 0
-    while start < seqLen:
-        triplet = str(seq[start:start + 3])
-        if triplet in codons:
-            yield start
-        start = start + 3
-
-
 def getSeqFromGenbank(hitId):
     """
     hitId: a hit from a BLAST record, in the form 'gi|63148399|gb|DQ011818.1|'
@@ -318,151 +301,6 @@ def getSeqFromGenbank(hitId):
         record = SeqIO.read(client, 'gb')
         client.close()
         return record
-
-
-def addFeatures(fig, record, minX, maxX, offsetAdjuster):
-    """
-    fig is a matplotlib figure.
-    record is a Bio.Seq with features, or None (if offline).
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
-    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
-    """
-    fig.set_title('Target sequence features', fontsize=20)
-
-    result = []
-    toPlot = []
-    totalSubfeatures = 0
-    if record:
-        for feature in record.features:
-            if feature.type in ('CDS', 'rRNA'):
-                toPlot.append(feature)
-                totalSubfeatures += len(feature.sub_features)
-
-    if record is None or not toPlot:
-        fig.text(minX + (maxX - minX) / 3.0, 0,
-                 ('No features found.' if record
-                  else 'You (or Genbank) appear to be offline.'),
-                 fontsize=16)
-        fig.axis([minX, maxX, -1, 1])
-        fig.set_yticks([])
-        return []
-
-    # Have a look at the colormaps here and decide which one you'd like:
-    # http://matplotlib.sourceforge.net/examples/pylab_examples/
-    # show_colormaps.html
-    colormap = plt.cm.coolwarm
-    colors = [colormap(i) for i in
-              np.linspace(0.0, 0.99, len(toPlot) + totalSubfeatures)]
-    labels = []
-
-    index = -1
-    for feature in toPlot:
-        index += 1
-        start = offsetAdjuster(int(feature.location.start))
-        end = offsetAdjuster(int(feature.location.end))
-        result.append({
-            'color': colors[index],
-            'end': end,
-            'start': start,
-        })
-        frame = start % 3
-        fig.plot([start, end], [frame, frame], color=colors[index],
-                 linewidth=2)
-        gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
-        product = feature.qualifiers.get('product', ['<no product>'])[0]
-        labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
-        for subfeature in feature.sub_features:
-            index += 1
-            start = offsetAdjuster(int(subfeature.location.start))
-            end = offsetAdjuster(int(subfeature.location.end))
-            result.append({
-                'color': colors[index],
-                'end': end,
-                'start': start,
-            })
-            subfeatureFrame = start % 3
-            if subfeatureFrame == frame:
-                # Move overlapping subfeatures down a little to make them
-                # visible.
-                subfeatureFrame -= 0.2
-            fig.plot([start, end], [subfeatureFrame, subfeatureFrame],
-                     color=colors[index])
-            labels.append('%d-%d: %s subfeature' % (start, end, gene))
-
-    fig.axis([minX, maxX, -1, 6])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    if labels:
-        # fig.legend(labels, bbox_to_anchor=(0.0, 1.1, 1.0, 0.102), loc=3,
-        # ncol=3, mode='expand', borderaxespad=0.)
-        fig.legend(labels, loc='upper left', ncol=3, shadow=True)
-
-    return result
-
-
-def addORFs(fig, seq, minX, maxX, featureEndpoints, offsetAdjuster):
-    """
-    fig is a matplotlib figure.
-    seq is a Bio.Seq.Seq.
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
-    featureEndpoints: an array of features as returned by addFeatures (may be
-        empty).
-    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
-    """
-    for frame in range(3):
-        target = seq[frame:]
-        for (codons, codonType, color) in (
-                (START_CODONS, 'start', 'green'),
-                (STOP_CODONS, 'stop', 'red')):
-            offsets = map(offsetAdjuster, findCodons(target, codons))
-            if offsets:
-                fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
-                         markersize=4, color=color, linestyle='None')
-
-    # Add the feature endpoints.
-    for fe in featureEndpoints:
-        line = Line2D([fe['start'], fe['start']], [-1, 3], color=fe['color'],
-                      linewidth=1)
-        fig.add_line(line)
-        line = Line2D([fe['end'], fe['end']], [-1, 3], color='#cccccc')
-        fig.add_line(line)
-
-    fig.axis([minX, maxX, -1, 3])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Target sequence start (%s) and stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)
-
-
-def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
-    """
-    fig is a matplotlib figure.
-    seq is a Bio.Seq.Seq (the reverse complement of the sequence we're
-        plotting against).
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
-    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
-    """
-    for frame in range(3):
-        target = seq[frame:]
-        for (codons, codonType, color) in (
-                (START_CODONS, 'start', 'green'),
-                (STOP_CODONS, 'stop', 'red')):
-            offsets = map(lambda offset: maxX - offsetAdjuster(offset),
-                          findCodons(target, codons))
-            if offsets:
-                fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
-                         markersize=4, color=color, linestyle='None')
-
-    fig.axis([minX, maxX, -1, 3])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Reversed target sequence start (%s) & stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)
 
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
@@ -876,25 +714,32 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                                           color=key)
                             readsAx.add_line(line)
 
-    # Add vertical lines for the sequence features.
+    # Add to ORF figures and add vertical lines for the sequence features.
+    # The feature and ORF display are linked and they shouldn't be. This
+    # code is a horrible mess.
     if showFeatures:
         if logLinearXAxis:
             offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
         else:
             offsetAdjuster = lambda x: x
-        featureEndpoints = addFeatures(featureAx, gbSeq, minX, maxX,
-                                       offsetAdjuster)
-        for fe in featureEndpoints:
-            line = Line2D(
-                [fe['start'], fe['start']],
-                [0, maxEIncludingRandoms + 1], color=fe['color'])
-            readsAx.add_line(line)
-            line = Line2D(
-                [fe['end'], fe['end']],
-                [0, maxEIncludingRandoms + 1], color='#cccccc')
-            readsAx.add_line(line)
-        addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
-                offsetAdjuster)
+        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
+                                                offsetAdjuster)
+        if len(featureEndpoints) < 20:
+            for fe in featureEndpoints:
+                line = Line2D(
+                    [fe['start'], fe['start']],
+                    [0, maxEIncludingRandoms + 1], color=fe['color'])
+                readsAx.add_line(line)
+                line = Line2D(
+                    [fe['end'], fe['end']],
+                    [0, maxEIncludingRandoms + 1], color='#cccccc')
+                readsAx.add_line(line)
+            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
+                             offsetAdjuster)
+        else:
+            features.addORFs(orfAx, sequence.seq, minX, maxX, [],
+                             offsetAdjuster)
+
         addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
                         minX, maxX, offsetAdjuster)
 
@@ -1084,6 +929,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
                 idList=idList, xRange=xRange, logLinearXAxis=logLinearXAxis,
                 logBase=logBase)
+
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
             plt.close()
