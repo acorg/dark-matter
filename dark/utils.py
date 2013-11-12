@@ -119,16 +119,15 @@ def summarizeAllRecords(filename, eCutoff=None):
             for number in item['eValues']:
                 if number < eCutoff:
                     eValuesAboveCutoff.append(number)
-        else:
-            eValuesAboveCutoff = item['eValues']
-        counter = len(eValuesAboveCutoff)
+            item['eValues'] = eValuesAboveCutoff
+        counter = len(item['eValues'])
         item['remove'] = False
         if counter == 0:
             item['remove'] = True
             counter = 1
-        item['count'] = len(eValuesAboveCutoff)
-        item['eMean'] = sum(eValuesAboveCutoff) / float(counter)
-        item['eMedian'] = np.median(eValuesAboveCutoff)
+        item['count'] = len(item['eValues'])
+        item['eMean'] = sum(item['eValues']) / float(counter)
+        item['eMedian'] = np.median(item['eValues'])
         item['reads'] = sorted(item['reads'])
     for title, value in result.items():
         if value['remove'] == True:
