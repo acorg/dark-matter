@@ -613,7 +613,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Add vertical lines for the sequence features.
     if showFeatures:
-        #features=getFeatures just with record
         featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX)
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
@@ -626,14 +625,13 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     [0, maxEIncludingRandoms + 1], color='#cccccc')
                 readsAx.add_line(line)
             features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
-            hitInfo['features'] = []
         else:
-            hitInfo['features'] = featureEndpoints
             features.addORFs(orfAx, sequence.seq, minX, maxX, [])
 
         features.addReversedORFs(orfReversedAx,
                                  sequence.reverse_complement().seq,
                                  minX, maxX)
+        hitInfo['features'] = featureEndpoints
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
