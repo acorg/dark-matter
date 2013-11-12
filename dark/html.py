@@ -90,7 +90,7 @@ class AlignmentPanelHTML(object):
             title = image['title']
             hitInfo = image['hitInfo']
             readIds = self._writeFASTA(i, image)
-            if len(hitInfo['features']) > 0:
+            if len(hitInfo['features']):
                 features = self._writeFeatures(i, image)
             fp.write("""
       <a id="small_%d"></a>
@@ -116,6 +116,8 @@ class AlignmentPanelHTML(object):
         <br/><a href="%s">Features</a>
 """
                          % features)
+            else:
+                fp.write('<br/>Feature lookup was False (or no features were found).');
 
             if len(hitInfo['items']):
                 fp.write("""\
@@ -188,8 +190,7 @@ span.reads {
 
     def _writeFeatures(self, i, image):
         """
-        If there are too many features, write a txt file containing
-        the features as a table.
+        Write a txt file containing the features as a table.
 
         i: The number of the image in self._images.
         image: A member of self._images.
