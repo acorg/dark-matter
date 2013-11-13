@@ -9,7 +9,8 @@ class Frame(object):
 
 
 class HSP(object):
-    def __init__(self, subjectStart, subjectEnd, queryStart, queryEnd, frame):
+    def __init__(self, subjectStart, subjectEnd, queryStart, queryEnd, frame,
+                 subject='', query=''):
         """
         A fake HSP class (with 1-based offsets, as are used in BLAST).
         """
@@ -17,10 +18,16 @@ class HSP(object):
         self.sbjct_end = subjectEnd
         self.query_start = queryStart
         self.query_end = queryEnd
-        assert abs(subjectEnd - subjectStart) == abs(queryEnd - queryStart)
         self.frame = (frame.query, frame.subject)
-        # For now, just put an empty subject and query string into the object.
-        self.sbjct = self.query = ''
+        self.sbjct = subject
+        self.query = query
+
+        # The following assertion is not valid.
+        # assert abs(subjectEnd - subjectStart) == abs(queryEnd - queryStart)
+        # That's because BLAST might find a match that requires a gap in the
+        # query or subject. The indices that it reports do not include the gap
+        # and so the differences in the lengths of the sections of the query
+        # and subject may not be the same.
 
 
 class Template(object):
@@ -643,7 +650,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         }, normalized)
 
 
-class Old_QueryNegativeSubjectPositive(object):
+class Old_QueryNegativeSubjectPositive(TestCase):
     """
     Tests for normalizeHSP when the query end is less than the query start.
 
@@ -766,7 +773,7 @@ class Old_QueryNegativeSubjectPositive(object):
         }, normalized)
 
 
-class Old_QueryPositiveSubjectNegative(object):
+class Old_QueryPositiveSubjectNegative(TestCase):
     """
     Tests for normalizeHSP when the subject start is greater than the subject
     end.
@@ -900,4 +907,36 @@ class Old_QueryPositiveSubjectNegative(object):
             'subjectEnd': 9018,
             'queryStart': 8767,
             'queryEnd': 9083,
+        }, normalized)
+
+    def test20131113Debugging(self):
+        """
+        This is an example I manually examined on 2013-11-13.
+        """
+        subject = (
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGTGTCCGGCA'
+            'AGGTTGCCAAGGAGCAGATCGACATCGATAACGCCAAGCACACCAAGTGATGCACTGA'
+            'CGACGGGTGAGGCCCAGATTCCTACGGCCTGGGCCTCTGTCTGCGTCGGGATGCCATT'
+            'AGGCCGGTAGGATCGGTCACATGATCGATCCCAAGCTCCTGCGAACGGATCCGGACGC'
+            'CGTTCGTCGCTCCCAGGCCGCCCGCGGCGAGGACTCCTCGGTTGTGGACGACGTTGTC'
+            'GCCGCAGATGAGGCTCGTCGTGAGGCTATTGCTGCCCATGAGAACCTGCGTGCAGAAC'
+            'AGAAGGGACTCGGCAAGCGAATCGCTAAAGCATCCGGTG')
+
+        query = (
+            'GTC-AGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGTGTCCGGCA'
+            'AGGTTGCCAAGGAGCAGATCGACATCGATAACGCCAAGCACACCAAGTGATGCACTGA'
+            'CGACGGGTGAGGCCCAGATTCCTACGGCCTGGGCCTCTGTCTGCGTCGGGATGCCATT'
+            'AGGCCGCTAGGATCGGTCACATGATCGATCCCAAGCTCCTGCGAACGGATCCGGACGC'
+            'CGTTCGTCGCTCCCAGGCCGCCCGCGGCGAGGACTCCTCGGTTGTGGACGACGTTGTC'
+            'GCCGCAGATGAGGCTCGTCGTGAGGCTATTGCTGCCCATGAGAACCTGCGTGCAGAAC'
+            'AGAAGGGACTCGGCAAGCGAATCGCTAAAGCATCCGGTG')
+
+        hsp = HSP(subjectStart=2339751, subjectEnd=2339365, queryStart=1,
+                  queryEnd=386, frame=self.frame, subject=subject, query=query)
+        normalized = normalizeHSP(hsp, 396)
+        self.assertEqual({
+            'subjectStart': 2339364,
+            'subjectEnd': 2339751,
+            'queryStart': 2339355,
+            'queryEnd': 2339751,
         }, normalized)
