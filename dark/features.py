@@ -64,8 +64,8 @@ def getFeatures(fig, record, minX, maxX):
 
 def addFeatures(fig, record, minX, maxX, offsetAdjuster):
     """
-    Add features to fig, as long as we don't have too many (>20).  If we have too
-    many, return the features as an array of descriptive strings.
+    Add features to fig, as long as we don't have too many (>20).  If we have
+    too many, return the features as an array of descriptive strings.
 
     fig is a matplotlib figure.
     record is a Bio.Seq with features, or None (if offline).
@@ -176,7 +176,6 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints, offsetAdjuster):
     fig.set_title('Target sequence start (%s) and stop (%s) codons' % (
         ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
         fontsize=20)
-
 
 
 def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):

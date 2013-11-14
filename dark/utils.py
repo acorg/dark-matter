@@ -740,8 +740,9 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             features.addORFs(orfAx, sequence.seq, minX, maxX, [],
                              offsetAdjuster)
 
-        addReversedORFs(orfReversedAx, sequence.reverse_complement().seq,
-                        minX, maxX, offsetAdjuster)
+        features.addReversedORFs(orfReversedAx,
+                                 sequence.reverse_complement().seq,
+                                 minX, maxX, offsetAdjuster)
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
