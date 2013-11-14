@@ -117,7 +117,8 @@ class AlignmentPanelHTML(object):
 """
                          % features)
             else:
-                fp.write('<br/>Feature lookup was False (or no features were found).');
+                fp.write('<br/>Feature lookup was False \
+                  (or no features were found).')
 
             if len(hitInfo['items']):
                 fp.write("""\

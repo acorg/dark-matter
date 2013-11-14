@@ -87,7 +87,7 @@ def printBlastRecord(record):
             printHSP(hsp, '        ')
 
 
-def summarizeAllRecords(filename):
+def summarizeAllRecords(filename, eCutoff=None):
     """
     Read a file of BLAST records and return a dictionary keyed by sequence
     title, with values containing information about the number of times the
@@ -109,17 +109,32 @@ def summarizeAllRecords(filename):
                     'reads': set(),
                     'title': title,
                 }
-            item['count'] += 1
-            item['eValues'].append(alignment.hsps[0].expect)
-            # record.query is the name of the read in the FASTA file.
-            item['reads'].add(record.query)
-
-    # Compute mean and median e values and delete the eValues keys.
+            if eCutoff:
+                if alignment.hsps[0].expect < eCutoff:
+                    item['count'] += 1
+                    item['eValues'].append(alignment.hsps[0].expect)
+                    # record.query is the name of the read in the FASTA file.
+                    item['reads'].add(record.query)
+            else:
+                item['count'] += 1
+                item['eValues'].append(alignment.hsps[0].expect)
+                # record.query is the name of the read in the FASTA file.
+                item['reads'].add(record.query)
+            item['remove'] = False
+    # Compute mean and median e values.
     for key, item in result.iteritems():
-        item['eMean'] = sum(item['eValues']) / float(item['count'])
+        count = item['count']
+        if count == 0:
+            count = 1
+            item['remove'] = True
+        item['eMean'] = sum(item['eValues']) / float(count)
         item['eMedian'] = np.median(item['eValues'])
         item['reads'] = sorted(item['reads'])
-        del item['eValues']
+    # remove subjects with no hits below the cutoff
+    for title, value in result.items():
+        if value['remove']:
+            del result[title]
+
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
     return result
@@ -826,16 +841,23 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
         postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
 
-        if summary[title]['eMean'] == 0:
-            meanE = 0
+        #calculate eMedian and eMean:
+        interestingEValues = []
+        for number in hitInfo['items']:
+            interestingEValues.append(number['e'])
+
+        if rankEValues:
+            meanE = medianE = 'ranked'
+        elif len(interestingEValues) == 0:
+            meanE = medianE = '1e-0'
         else:
-            meanE = int(-1.0 * log10(summary[title]['eMean']))
-        if summary[title]['eMedian'] == 0:
-            medianE = 0
-        else:
-            medianE = int(-1.0 * log10(summary[title]['eMedian']))
+            numberMeanE = sum(interestingEValues) / float(len(
+                interestingEValues))
+            numberMedianE = np.median(interestingEValues)
+            meanE = '1e-%d' % (numberMeanE)
+            medianE = '1e-%d' % (numberMedianE)
         ax[row][col].set_title(
-            '%d: %s\n%d reads, 1e-%d median, 1e-%d mean' % (
+            '%d: %s\n%d reads, %s median, %s mean' % (
                 i, title.split(' ', 1)[1][:40],
                 len(summary[title]['reads']), medianE, meanE), fontsize=10)
 
