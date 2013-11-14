@@ -51,11 +51,11 @@ def normalizeHSP(hsp, queryLen):
     # Sanity check that the length of the matches in the subject and query
     # are identical, taking into account gaps in either (indicated by '-'
     # characters in the match sequences, as returned by BLAST).
-    subjectLength = sbjct_end - sbjct_start + 1 + hsp.sbjct.count('-')
-    queryLength = query_end - query_start + 1 + hsp.query.count('-')
-    assert subjectLength == queryLength, (
-        'Subject match length (%d) != Query match length (%d)' %
-        (subjectLength, queryLength))
+    subjectLengthWithGaps = sbjct_end - sbjct_start + 1 + hsp.sbjct.count('-')
+    queryLengthWithGaps = query_end - query_start + 1 + hsp.query.count('-')
+    assert subjectLengthWithGaps == queryLengthWithGaps, (
+        'Including gaps, subject match length (%d) != Query match length (%d)'
+        % (subjectLengthWithGaps, queryLengthWithGaps))
 
     # TODO: check the mod 3 value of the start offsets.
 
