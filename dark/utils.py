@@ -920,7 +920,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 logBase=logBase)
 
         if outputDir:
-            imageBasename = '%d.png' % i
+            imageBasename = '%d.svg' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
