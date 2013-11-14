@@ -12,7 +12,6 @@ if __name__ == '__main__':
     from Bio import SeqIO
     import os.path
     from json import loads, dumps
-    from dark import utils
     from dark.utils import (alignmentPanel, getAllHitsForSummary,
                             interestingRecords, report, summarizeAllRecords)
     import argparse
