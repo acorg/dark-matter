@@ -473,7 +473,7 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=2.0,
+                   addQueryLines=True, showFeatures=False, eCutoff=2.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
@@ -743,6 +743,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         features.addReversedORFs(orfReversedAx,
                                  sequence.reverse_complement().seq,
                                  minX, maxX, offsetAdjuster)
+    hitInfo['features'] = featureEndpoints
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
@@ -924,7 +925,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                showFeatures=True, eCutoff=eCutoff,
+                showFeatures=False, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
@@ -1023,7 +1024,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.png'
+        panelFilename = 'alignment-panel.svg'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:
