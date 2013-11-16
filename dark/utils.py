@@ -8,7 +8,7 @@ import subprocess
 from Bio.Blast import NCBIXML
 from Bio import Entrez, SeqIO
 from cStringIO import StringIO
-from math import exp, log10
+from math import log10
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
@@ -20,7 +20,7 @@ from dark import html
 from dark.baseimage import BaseImage
 from dark.conversion import readJSONRecords
 from dark.dimension import dimensionalIterator
-from dark.hsp import normalizeHSP
+from dark.hsp import normalizeHSP, printHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark import features
 
@@ -64,15 +64,6 @@ def readBlastRecords(filename, limit=None):
             yield record
     if fp:
         fp.close()
-
-
-def printHSP(hsp, indent=''):
-    for attr in ['align_length', 'bits', 'expect', 'frame', 'gaps',
-                 'identities', 'num_alignments', 'positives', 'query_end',
-                 'query_start', 'sbjct', 'match', 'query', 'sbjct_end',
-                 'sbjct_start', 'score', 'strand']:
-        print '%s%s: %s' % (indent, attr, getattr(hsp, attr))
-    print '%sp: %.10f' % (indent, 1.0 - exp(-1.0 * hsp.expect))
 
 
 def printBlastRecord(record):
@@ -366,7 +357,19 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         for hspCount, hsp in enumerate(hsps, start=1):
             if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
                 break
-            normalized = normalizeHSP(hsp, queryLen)
+            try:
+                normalized = normalizeHSP(hsp, queryLen)
+            except AssertionError:
+                # TODO: Remove these prints, and the surrounding try/except
+                # once we're sure we have HSP normalization right.
+                #
+                # print 'Assertion error in utils calling normalizeHSP'
+                # print 'sequenceId: %s' % sequenceId
+                # print 'hitId: %s' % hitId
+                # print 'hitLen: %s' % hitLen
+                # print 'query: %s' % query
+                # printHSP(hsp)
+                raise
             if ((minStart is not None and normalized['queryStart'] < minStart)
                     or (maxStop is not None and
                         normalized['queryEnd'] > maxStop)):
