@@ -722,8 +722,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
         else:
             offsetAdjuster = lambda x: x
-        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
-                                                offsetAdjuster)
+        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX)
+                                                #offsetAdjuster)
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
@@ -734,15 +734,16 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     [fe['end'], fe['end']],
                     [0, maxEIncludingRandoms + 1], color='#cccccc')
                 readsAx.add_line(line)
-            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
-                             offsetAdjuster)
+            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
+                             #offsetAdjuster)
         else:
             features.addORFs(orfAx, sequence.seq, minX, maxX, [],
                              offsetAdjuster)
 
         features.addReversedORFs(orfReversedAx,
                                  sequence.reverse_complement().seq,
-                                 minX, maxX, offsetAdjuster)
+                                 minX, maxX)
+                                 #offsetAdjuster)
     hitInfo['features'] = featureEndpoints
 
     # Add the horizontal divider between the highest e value and the randomly
