@@ -25,13 +25,13 @@ def normalizeHSP(hsp, queryLen):
     found in BLAST output properly.  The values in the returned dictionary
     are ALL indices into the subject string.
 
-    hsp.frame is a (query, subject) 2-tuple, with both values coming from
-    the set {-3, -2, -1, 1, 2, 3}. The query value indicates negative or
-    positive sense (negative or positive sign). The subject value is the
-    starting nucleotide match offset modulo 3, plus one (i.e., it tells us
-    which of the 3 possible reading frames is used in the match. It is
-    redundant because that information can also be obtained from the mod 3
-    value of the match offset). In pure nucleotide matching, the
+    hsp.frame is a (query, subject) 2-tuple, with the query value coming
+    from {1, 2, 3} and the subject from {-3, -2, -1, 1, 2, 3}. The sign
+    indicates negative or positive sense (negative or positive sign). The
+    subject value is the starting nucleotide match offset modulo 3, plus
+    one (i.e., it tells us which of the 3 possible reading frames is used
+    in the match. It is redundant because that information can also be
+    obtained from the mod 3 value of the match offset.
 
     NOTE: the returned queryStart value may be negative.  The subject
     sequence is considered to start at offset 0.  So if the query string
@@ -40,7 +40,6 @@ def normalizeHSP(hsp, queryLen):
 
     hsp: a HSP from a BLAST record.  All passed hsp offsets are 1-based.
     queryLen: the length of the query sequence.
-
     """
 
     queryPositive = hsp.frame[0] > 0
