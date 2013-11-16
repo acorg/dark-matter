@@ -82,8 +82,8 @@ def normalizeHSP(hsp, queryLen):
         queryStart = queryEnd - queryLen
 
     # Final sanity check.
-    assert queryStart <= subjectStart
-    assert queryEnd >= subjectEnd
+    #assert queryStart <= subjectStart
+    #assert queryEnd >= subjectEnd
 
     return {
         'subjectEnd': subjectEnd,
