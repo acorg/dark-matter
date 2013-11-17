@@ -431,7 +431,7 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=2.0,
+                   addQueryLines=True, showFeatures=True, eCutoff=3.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
@@ -706,7 +706,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
-                   eCutoff=2.0, maxHspsPerHit=None, minStart=None,
+                   eCutoff=3.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject'):
@@ -818,7 +818,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 xRange=xRange)
 
         if outputDir:
-            imageBasename = '%d.png' % i
+            imageBasename = '%d.pdf' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
