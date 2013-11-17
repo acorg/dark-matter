@@ -629,7 +629,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # Add vertical lines for the sequence features.
     if showFeatures:
         featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX)
-        if len(featureEndpoints) < 20:
+        if len(featureEndpoints) < 50:
             for fe in featureEndpoints:
                 line = Line2D(
                     [fe['start'], fe['start']],
@@ -919,7 +919,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.png'
+        panelFilename = 'alignment-panel.pdf'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:
