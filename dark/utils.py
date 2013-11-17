@@ -12,6 +12,7 @@ from math import exp, log10
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 from urllib2 import URLError
 
@@ -20,6 +21,7 @@ from dark.baseimage import BaseImage
 from dark.conversion import readJSONRecords
 from dark.dimension import dimensionalIterator
 from dark.hsp import normalizeHSP
+from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark import features
 
 Entrez.email = 'tcj25@cam.ac.uk'
@@ -36,6 +38,11 @@ QUERY_COLORS = {
     'gap': (0.2, 0.2, 0.2),  # Almost black.
     'match': (0.9, 0.9, 0.9),  # Almost white.
 }
+
+# If we're making a plot that has a log-linear X axis, don't show
+# background light grey rectangles for any gap whose (logged) width is less
+# than SMALLEST_LOGGED_GAP_TO_DISPLAY.
+SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
 
 def readBlastRecords(filename, limit=None):
@@ -312,7 +319,8 @@ def getSeqFromGenbank(hitId):
 
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
-                  maxHspsPerHit=None, minStart=None, maxStop=None):
+                  maxHspsPerHit=None, minStart=None, maxStop=None,
+                  logLinearXAxis=False, logBase=2.0):
     """
     Summarize the information found in 'hits'.
 
@@ -326,6 +334,10 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
     minStart: Reads that start before this subject offset should not be
         returned.
     maxStop: Reads that end after this subject offset should not be returned.
+    logLinearXAxis: if True, convert read offsets so that empty regions in the
+        plot we're preparing will only be as wide as their logged actual
+        values.
+    logBase: The base of the logarithm to use if logLinearXAxis is True.
 
     Return a 2-tuple: a list of the SeqIO parsed fasta file, and a dict whose
         keys are sequence ids and whose values give hit summary information.
@@ -338,7 +350,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
     zeroEValueUpperRandomIncrement = 150
 
     def resultDict(sequenceLen):
-        return {
+        result = {
             'hitCount': 0,
             'items': [],
             'maxE': 0.0,
@@ -349,6 +361,12 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             'zeroEValueFound': False,
         }
 
+        if logLinearXAxis:
+            result['readIntervals'] = ReadIntervals(sequenceLen)
+            result['offsetAdjuster'] = None  # Will be set below.
+
+        return result
+
     result = {}
 
     # Extract all e values.
@@ -356,9 +374,10 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         if hitId not in result:
             result[hitId] = resultDict(hitLen)
         hitInfo = result[hitId]
-        # Manually count the hits ('hits' may be a generator).
+        # Manually count hits. 'hits' may be a generator so we can't use len().
         hitInfo['hitCount'] += 1
         queryLen = len(fasta[sequenceId])
+
         for hspCount, hsp in enumerate(hsps, start=1):
             if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
                 break
@@ -367,6 +386,9 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
                     or (maxStop is not None and
                         normalized['queryEnd'] > maxStop)):
                 continue
+            if logLinearXAxis:
+                hitInfo['readIntervals'].add(normalized['queryStart'],
+                                             normalized['queryEnd'])
             if hsp.expect == 0.0:
                 e = None
                 hitInfo['zeroEValueFound'] = True
@@ -409,6 +431,41 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
                     maxEIncludingRandoms = e
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
+        # Adjust all HSPs if we're doing a log/linear X axis.
+        if logLinearXAxis:
+            adjuster = OffsetAdjuster(hitInfo['readIntervals'], base=logBase)
+            minX = maxX = None
+            for item in hitInfo['items']:
+                adjusted = adjuster.adjustNormalizedHSP(item['hsp'])
+                item['hsp'] = adjusted
+                if minX is None or adjusted['queryStart'] < minX:
+                    minX = adjusted['queryStart']
+                if maxX is None or adjusted['queryEnd'] > maxX:
+                    maxX = adjusted['queryEnd']
+
+            # Adjust minX and maxX if we have gaps at the start or end of
+            # the subject.
+            gaps = list(hitInfo['readIntervals'].walk())
+            if gaps:
+                # Check start of first gap:
+                intervalType, (start, stop) = gaps[0]
+                if intervalType == ReadIntervals.EMPTY:
+                    adjustedStart = adjuster.adjustOffset(start)
+                    if adjustedStart < minX:
+                        minX = adjustedStart
+                # Check stop of last gap:
+                intervalType, (start, stop) = gaps[-1]
+                if intervalType == ReadIntervals.EMPTY:
+                    adjustedStop = adjuster.adjustOffset(stop)
+                    if adjustedStop > maxX:
+                        maxX = adjustedStop
+
+            hitInfo.update({
+                'minX': minX,
+                'maxX': maxX,
+                'offsetAdjuster': adjuster,
+            })
+
     return fasta, result
 
 
@@ -435,7 +492,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False, idList=False, xRange='subject'):
+                   quiet=False, idList=False, xRange='subject',
+                   logLinearXAxis=False, logBase=2.0):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -471,6 +529,10 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         read identifiers that should be colored in the respective color.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
+    logLinearXAxis: if True, convert read offsets so that empty regions in the
+        plot we're preparing will only be as wide as their logged actual
+        values.
+    logBase: The base of the logarithm to use if logLinearXAxis is True.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -506,7 +568,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     fasta, summary = summarizeHits(
         allhits, fastaFilename, eCutoff=eCutoff,
-        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop)
+        maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop,
+        logLinearXAxis=logLinearXAxis, logBase=logBase)
 
     if rankEValues:
         hitInfo = convertSummaryEValuesToRanks(summary[hitId])
@@ -519,6 +582,46 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     minE = int(hitInfo['minE'])
     maxX = hitInfo['maxX']
     minX = hitInfo['minX']
+
+    # Add light grey vertical rectangles to show the logarithmic gaps. Add
+    # these first so that reads will be plotted on top of them. Only draw
+    # gaps that are more than 20 pixels wide as we could have millions of
+    # tiny gaps for a bacteria and drawing them all will be slow and only
+    # serves to make the entire background grey.
+    if logLinearXAxis and len(hitInfo['offsetAdjuster'].adjustments()) < 100:
+        offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
+        #report('Adjustments: %r' % (hitInfo['offsetAdjuster'].adjustments(),))
+        #report('Seq length = %s (adjusted = %0.3f)' % (
+        #hitInfo['sequenceLen'], offsetAdjuster(hitInfo['sequenceLen'])))
+        for (intervalType, interval) in hitInfo['readIntervals'].walk():
+            if intervalType == ReadIntervals.EMPTY:
+                adjustedStart = offsetAdjuster(interval[0])
+                adjustedStop = offsetAdjuster(interval[1])
+                width = adjustedStop - adjustedStart
+                # report('Gap of %d reduced to %0.f.  '
+                #        '%r -> (%.0f, %.0f)' % (interval[1] - interval[0],
+                #                                adjustedStop - adjustedStart,
+                #                                interval, adjustedStart,
+                #                                adjustedStop))
+                if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
+                    # TODO: remove
+                    # line = Line2D(
+                    #     [adjustedStart, adjustedStop], [minE + 5, minE + 5],
+                    #     color='#00ffcc', linewidth=10)
+                    # readsAx.add_line(line)
+                    rect = Rectangle(
+                        (adjustedStart, 0), width,
+                        maxEIncludingRandoms + 1, color='#f4f4f4')
+                    readsAx.add_patch(rect)
+                    # TODO: remove
+                    # line = Line2D(
+                    #     [adjustedStart, adjustedStart],
+                    #     [0, maxEIncludingRandoms + 1], color='red')
+                    # readsAx.add_line(line)
+                    # line = Line2D(
+                    #     [adjustedStop, adjustedStop],
+                    #     [0, maxEIncludingRandoms + 1], color='red')
+                    # readsAx.add_line(line)
 
     if colorQueryBases:
         # Color each query by its bases.
@@ -626,9 +729,16 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                                           color=key)
                             readsAx.add_line(line)
 
-    # Add vertical lines for the sequence features.
+    # Add to ORF figures and add vertical lines for the sequence features.
+    # The feature and ORF display are linked and they shouldn't be. This
+    # code is a horrible mess.
     if showFeatures:
-        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX)
+        if logLinearXAxis:
+            offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
+        else:
+            offsetAdjuster = lambda x: x
+        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
+                                                offsetAdjuster)
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
@@ -639,14 +749,15 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     [fe['end'], fe['end']],
                     [0, maxEIncludingRandoms + 1], color='#cccccc')
                 readsAx.add_line(line)
-            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
+            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
+                             offsetAdjuster)
         else:
-            features.addORFs(orfAx, sequence.seq, minX, maxX, [])
+            features.addORFs(orfAx, sequence.seq, minX, maxX, [],
+                             offsetAdjuster)
 
         features.addReversedORFs(orfReversedAx,
                                  sequence.reverse_complement().seq,
-                                 minX, maxX)
-        hitInfo['features'] = featureEndpoints
+                                 minX, maxX, offsetAdjuster)
 
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
@@ -709,7 +820,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    eCutoff=2.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
-                   equalizeXAxes=True, xRange='subject'):
+                   equalizeXAxes=True, xRange='subject',
+                   logLinearXAxis=False, logBase=2.0):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -741,6 +853,10 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         the same.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
+    logLinearXAxis: if True, convert read offsets so that empty regions in the
+        plot we're preparing will only be as wide as their logged actual
+        values.
+    logBase: The base of the logarithm to use if logLinearXAxis is True.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -815,10 +931,11 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 minStart=minStart, maxStop=maxStop, createFigure=False,
                 showFigure=False, readsAx=ax[row][col],
                 rankEValues=rankEValues, quiet=True, idList=idList,
-                xRange=xRange)
+                xRange=xRange, logLinearXAxis=logLinearXAxis,
+                logBase=logBase)
 
         if outputDir:
-            imageBasename = '%d.png' % i
+            imageBasename = '%d.svg' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
@@ -826,7 +943,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
-                idList=idList, xRange=xRange)
+                idList=idList, xRange=xRange, logLinearXAxis=logLinearXAxis,
+                logBase=logBase)
 
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
@@ -840,6 +958,9 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
         postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
         postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
+        if logLinearXAxis:
+            postProcessInfo[(row, col)]['offsetAdjuster'] = hitInfo[
+                'offsetAdjuster']
 
         #calculate eMedian and eMean:
         interestingEValues = []
@@ -877,6 +998,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             if hitInfo['queryMax'] > queryMax:
                 queryMax = hitInfo['queryMax']
 
+    # Post-process graphs to adjust axes, etc.
     coords = dimensionalIterator((rows, cols))
     for row, col in coords:
         a = ax[row][col]
@@ -888,9 +1010,9 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 a.set_xlim([queryMin, queryMax])
         a.set_yticks([])
         a.set_xticks([])
-        # Post-process each non-empty graph.
         hitInfo = postProcessInfo[(row, col)]
         if hitInfo:
+            # The graph is non-blank (the last graphs in a panel can be blank).
             if equalizeXAxes and 'maxE' in hitInfo:
                 # Overdraw the horizontal divider between the highest e value
                 # and the randomly higher ones (if any). We need to do this
@@ -908,7 +1030,11 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             # Add a line on the right of each sub-plot so we can see where
             # the sequence ends (as all panel graphs have the same width and
             # we otherwise couldn't tell).
-            line = Line2D([hitInfo['sequenceLen'], hitInfo['sequenceLen']],
+            sequenceLen = hitInfo['sequenceLen']
+            if logLinearXAxis:
+                sequenceLen = hitInfo['offsetAdjuster'].adjustOffset(
+                    sequenceLen)
+            line = Line2D([sequenceLen, sequenceLen],
                           [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)

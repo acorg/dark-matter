@@ -109,8 +109,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--summaryFile', type=str, default=None,
-        help='Specifies a file to write the summary from summarizeAllRecords to.')
-
+        help='A file to write the summary from summarizeAllRecords to.')
 
     args = parser.parse_args()
     report('Reading FASTA from %r.' % args.fasta)
