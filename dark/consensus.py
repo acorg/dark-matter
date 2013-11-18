@@ -64,7 +64,7 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
             match.append('.' if query[queryIndex] == sequence[index] else '*')
         print '        match: %s%s' % (
             ' ' * (hsp['subjectStart'] - hsp['queryStart']), ''.join(match))
-        print '        score:', item['e']
+        print '        score:', item['convertedE']
         print '    match len:', hsp['subjectEnd'] - hsp['subjectStart']
         print 'subject frame:', item['frame']['subject']
         for queryIndex, sequenceIndex in enumerate(
