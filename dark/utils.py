@@ -922,7 +922,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 logBase=logBase)
 
         if outputDir:
-            imageBasename = '%d.svg' % i
+            imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
@@ -1025,7 +1025,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.svg'
+        panelFilename = 'alignment-panel.pdf'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:
