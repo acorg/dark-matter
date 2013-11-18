@@ -473,7 +473,7 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=False, eCutoff=2.0,
+                   addQueryLines=True, showFeatures=False, eCutoff=3.0,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
@@ -804,7 +804,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
-                   eCutoff=2.0, maxHspsPerHit=None, minStart=None,
+                   eCutoff=3.0, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
