@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from re import compile
 import sys
 from dark.utils import getSeqFromGenbank
 
@@ -21,9 +22,11 @@ def main(gi, offsets):
     else:
         printed = set()
         if offsets:
-            for offset in offsets:
+            for (start, end) in offsets:
                 for index, feature in enumerate(record.features):
-                    if offset in feature.location and index not in printed:
+                    if (start < int(feature.location.end) and
+                            end > int(feature.location.start) and
+                            index not in printed):
                         print feature
                         printed.add(index)
         else:
@@ -37,10 +40,25 @@ if __name__ == '__main__':
         print >>sys.stderr, ('Usage: %s gi-number [offset1, offset2, ...]' %
                              sys.argv[0])
         sys.exit(1)
-    try:
-        offsets = map(int, sys.argv[2:])
-    except ValueError:
-        print >>sys.stderr, 'Offsets must be numeric.'
-        sys.exit(2)
-    else:
-        main(sys.argv[1], offsets)
+
+    rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
+    offsets = []
+    for arg in sys.argv[2:]:
+        match = rangeRegex.match(arg)
+        if match:
+            start, end = match.groups()
+            start = int(start)
+            if end is None:
+                end = start
+            else:
+                end = int(end)
+            if start > end:
+                start, end = end, start
+            offsets.append((start, end))
+        else:
+            print >>sys.stderr, (
+                'Illegal argument %r. Offsets must be numbers or '
+                'number-number ranges.' % arg)
+            sys.exit(2)
+
+    main(sys.argv[1], offsets)
