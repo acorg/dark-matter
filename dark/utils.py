@@ -44,6 +44,8 @@ QUERY_COLORS = {
 # than SMALLEST_LOGGED_GAP_TO_DISPLAY.
 SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
+DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
+
 
 def readBlastRecords(filename, limit=None):
     """
@@ -305,7 +307,8 @@ def getSeqFromGenbank(hitId):
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
                   maxHspsPerHit=None, minStart=None, maxStop=None,
-                  logLinearXAxis=False, logBase=2.0):
+                  logLinearXAxis=False,
+                  logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Summarize the information found in 'hits'.
 
@@ -478,7 +481,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
                    quiet=False, idList=False, xRange='subject',
-                   logLinearXAxis=False, logBase=2.0):
+                   logLinearXAxis=False,
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -806,7 +810,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
-                   logLinearXAxis=False, logBase=2.0):
+                   logLinearXAxis=False,
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
