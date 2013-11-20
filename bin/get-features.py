@@ -5,14 +5,15 @@ import sys
 from dark.utils import getSeqFromGenbank
 
 
-def main(gi, offsets):
+def main(gi, ranges):
     """
-    Print the features of the genbank entry given by gi. If offsets is
-    non-emtpy, only print features that include the offsets.
+    Print the features of the genbank entry given by gi. If ranges is
+    non-emtpy, only print features that include the ranges.
 
     gi: either a hit from a BLAST record, in the form
         'gi|63148399|gb|DQ011818.1|' or a gi number (63148399 in this example).
-    offsets: a list (possibly empty) of offsets to print information for.
+    ranges: a possibly empty list of ranges to print information for. Each
+        range is a non-descending (start, end) pair of integers.
     """
     record = getSeqFromGenbank(gi)
 
@@ -21,8 +22,8 @@ def main(gi, offsets):
         sys.exit(3)
     else:
         printed = set()
-        if offsets:
-            for (start, end) in offsets:
+        if ranges:
+            for (start, end) in ranges:
                 for index, feature in enumerate(record.features):
                     if (start < int(feature.location.end) and
                             end > int(feature.location.start) and
@@ -42,7 +43,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
-    offsets = []
+    ranges = []
     for arg in sys.argv[2:]:
         match = rangeRegex.match(arg)
         if match:
@@ -54,11 +55,11 @@ if __name__ == '__main__':
                 end = int(end)
             if start > end:
                 start, end = end, start
-            offsets.append((start, end))
+            ranges.append((start, end))
         else:
             print >>sys.stderr, (
-                'Illegal argument %r. Offsets must be numbers or '
-                'number-number ranges.' % arg)
+                'Illegal argument %r. Ranges must single numbers or '
+                'number-number.' % arg)
             sys.exit(2)
 
-    main(sys.argv[1], offsets)
+    main(sys.argv[1], ranges)
