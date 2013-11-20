@@ -724,6 +724,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             offsetAdjuster = lambda x: x
         featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
                                                 offsetAdjuster)
+        hitInfo['features'] = featureEndpoints
+
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
