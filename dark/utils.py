@@ -303,9 +303,8 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
     hits: The result of calling findHits (above).
     fastaFilename: The name of the FASTA file containing query sequences,
         or a list of fasta sequences from SeqIO.parse
-    eCutoff: A float e value. Hits with converted e value less than this will
-        not be reurned. A converted e value is -1 times the log of the actual
-        e value.
+    eCutoff: A float e value. Hits with e value greater than or equal to
+        this will be ignored.
     maxHspsPerHit: The maximum number of HSPs to examine for each hit.
     minStart: Reads that start before this subject offset should not be
         returned.
@@ -377,24 +376,25 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             if logLinearXAxis:
                 hitInfo['readIntervals'].add(normalized['queryStart'],
                                              normalized['queryEnd'])
-            if hsp.expect == 0.0:
+            e = hsp.expect
+            if eCutoff is not None and e >= eCutoff:
+                continue
+            if e == 0.0:
                 e = None
                 hitInfo['zeroEValueFound'] = True
             else:
-                e = -1.0 * log10(hsp.expect)
-                if e < 0.0 or (eCutoff is not None and e < eCutoff):
-                    continue
-                if e > hitInfo['maxE']:
-                    hitInfo['maxE'] = e
+                convertedE = -1.0 * log10(e)
+                if convertedE > hitInfo['maxE']:
+                    hitInfo['maxE'] = convertedE
                 # Don't use elif for testing minE. Both conditions can be true.
-                if e < hitInfo['minE']:
-                    hitInfo['minE'] = e
+                if convertedE < hitInfo['minE']:
+                    hitInfo['minE'] = convertedE
             if normalized['queryStart'] < hitInfo['minX']:
                 hitInfo['minX'] = normalized['queryStart']
             if normalized['queryEnd'] > hitInfo['maxX']:
                 hitInfo['maxX'] = normalized['queryEnd']
             hitInfo['items'].append({
-                'e': e,
+                'convertedE': convertedE,
                 'hsp': normalized,
                 'origHsp': hsp,
                 'queryLen': queryLen,
@@ -412,9 +412,10 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
         for item in hitInfo['items']:
-            if item['e'] is None:
-                item['e'] = e = (hitInfo['maxE'] + 2 +
-                                 uniform(0, zeroEValueUpperRandomIncrement))
+            if item['convertedE'] is None:
+                item['convertedE'] = e = (
+                    hitInfo['maxE'] + 2 +
+                    uniform(0, zeroEValueUpperRandomIncrement))
                 if e > maxEIncludingRandoms:
                     maxEIncludingRandoms = e
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
@@ -466,9 +467,9 @@ def convertSummaryEValuesToRanks(hitInfo):
     """
     result = hitInfo.copy()
     items = result['items']
-    items.sort(key=lambda item: item['e'])
+    items.sort(key=lambda item: item['convertedE'])
     for i, item in enumerate(items, start=1):
-        item['e'] = i
+        item['convertedE'] = i
     result['maxE'] = result['maxEIncludingRandoms'] = len(items)
     result['minE'] = 1
     result['zeroEValueFound'] = False
@@ -476,7 +477,7 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=2.0,
+                   addQueryLines=True, showFeatures=True, eCutoff=1e-2,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
@@ -498,7 +499,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         'whiskers' that potentially protrude from each side of a query.
     showFeatures: if True, look online for features of the subject sequence
         (given by hitId).
-    eCutoff: converted e values less than this will be ignored.
+    eCutoff: e values greater than or equal to this will be ignored.
     maxHspsPerHit: A numeric max number of HSPs to show for each hit on hitId.
     colorQueryBases: if True, color each base of a query string. If True, then
         addQueryLines is meaningless since the whole query is shown colored.
@@ -621,7 +622,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             xScale, yScale)
         for item in items:
             hsp = item['hsp']
-            e = item['e'] - minE
+            e = item['convertedE'] - minE
             # If the product of the subject and query frame values is +ve,
             # then they're either both +ve or both -ve, so we just use the
             # query as is. Otherwise, we need to reverse complement it.
@@ -691,7 +692,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         # on top of part of them.
         if addQueryLines:
             for item in items:
-                e = item['e']
+                e = item['convertedE']
                 hsp = item['hsp']
                 line = Line2D([hsp['queryStart'], hsp['queryEnd']], [e, e],
                               color='#aaaaaa')
@@ -699,7 +700,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
         # Add the horizontal BLAST alignment lines.
         for item in items:
-            e = item['e']
+            e = item['convertedE']
             hsp = item['hsp']
             line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
                           color='blue')
@@ -710,7 +711,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                 for key in idList:
                     for ids in idList[key]:
                         if ids == item['query']:
-                            e = item['e']
+                            e = item['convertedE']
                             hsp = item['hsp']
                             line = Line2D([hsp['subjectStart'],
                                            hsp['subjectEnd']], [e, e],
@@ -727,6 +728,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             offsetAdjuster = lambda x: x
         featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
                                                 offsetAdjuster)
+        hitInfo['features'] = featureEndpoints
+
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
@@ -805,7 +808,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
-                   eCutoff=2.0, maxHspsPerHit=None, minStart=None,
+                   eCutoff=1e-2, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
@@ -824,7 +827,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         or a list of fasta sequences from SeqIO.parse
     db: the BLAST db to use to look up the target and, if given, actual
         sequence.
-    eCutoff: converted e values less than this will be ignored.
+    eCutoff: e values greater than or equal to this will be ignored.
     maxHspsPerHit: A numeric max number of HSPs to show for each hit on hitId.
     minStart: Reads that start before this subject offset should not be shown.
     maxStop: Reads that end after this subject offset should not be shown.

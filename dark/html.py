@@ -110,7 +110,7 @@ class AlignmentPanelHTML(object):
         <br/><a href="%s" target="_blank">NCBI info on this target</a>.
 """
                          % url)
-            if len(hitInfo['features']):
+            if len(hitInfo.get('features', [])):
 
                 fp.write("""\
         <br/><a href="%s">Features</a>
