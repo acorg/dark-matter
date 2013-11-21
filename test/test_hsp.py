@@ -36,32 +36,32 @@ class Template(object):
         # Allow the first template line to be empty.
         if len(template[0]) == 0:
             template = template[1:]
-        self.subject = template[0].rstrip()
-        self.query = template[1].rstrip()
-        self.queryResult = template[2].rstrip()
 
+        # Analyze the template subject.
+        self.subject = template[0].rstrip()
         (spacesLen, leadingDotsLen, matchLen, trailingDotsLen, positive) = \
             self.analyze(self.subject)
         origin = spacesLen
-
         self.matchLen = matchLen
         self.subjectStart = 0
         self.subjectLen = len(self.subject) - spacesLen
         self.subjectMatchStart = leadingDotsLen
         self.subjectPositive = positive
 
+        # Analyze the template query.
+        self.query = template[1].rstrip()
         (spacesLen, leadingDotsLen, matchLen, trailingDotsLen, positive) = \
             self.analyze(self.query)
-
         assert self.matchLen == matchLen
         self.queryStart = spacesLen - origin
         self.queryLen = len(self.query) - spacesLen
         self.queryMatchStart = leadingDotsLen
         self.queryPositive = positive
 
+        # Analyze the template query result.
+        self.queryResult = template[2].rstrip()
         (spacesLen, leadingDotsLen, matchLen, trailingDotsLen, positive) = \
             self.analyze(self.queryResult)
-
         assert self.matchLen == matchLen
         self.queryResultStart = spacesLen - origin
         self.queryResultLen = len(self.queryResult) - spacesLen
@@ -93,7 +93,10 @@ class Template(object):
                    frame=Frame(
                        1 if self.queryPositive else -1,
                        1 if self.subjectPositive else -1,
-                   ))
+                   ),
+                   # Make non-random non-gapped query and subjects.
+                   subject='a' * self.matchLen,
+                   query='a' * self.matchLen)
 
 
 class TestTemplate(TestCase):
@@ -247,7 +250,7 @@ class SubjectPositiveQueryPositive(TestCase, TestNormalizeHSPMixin):
                   ''')
 
 
-class SubjectPositiveQueryNegative(object):
+class SubjectPositiveQueryNegative(TestCase, TestNormalizeHSPMixin):
 
     """
     This class appears to not be needed. As far as we have seen, the
@@ -447,7 +450,7 @@ class SubjectNegativeQueryPositive(TestCase, TestNormalizeHSPMixin):
                   ''')
 
 
-class SubjectNegativeQueryNegative(object):
+class SubjectNegativeQueryNegative(TestCase, TestNormalizeHSPMixin):
 
     """
     This class appears to not be needed. As far as we have seen, the
