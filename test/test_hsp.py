@@ -454,7 +454,6 @@ class SubjectNegativeQueryNegative(object):
     query is always positive with ascending start, end offsets.
     """
 
-
     def testIdentical1(self):
         self.check('''
                                     <
@@ -665,7 +664,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         This is an example I manually examined for Barbara on 2013-11-15.
         """
 
-        query =   'TTCTTTTTGCATTTGATAGT-TTGCTACAAG'
+        query = 'TTCTTTTTGCATTTGATAGT-TTGCTACAAG'
         subject = 'TTCTTTTTGCAATAGTCAGTCTTGCTAAAAG'
         hsp = HSP(subjectStart=45, subjectEnd=75, queryStart=120,
                   queryEnd=149, frame=self.frame, query=query, subject=subject)
@@ -998,7 +997,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         This is an example I manually examined for BM on 2013-11-15.
         """
-        query =   'CTCTTGCA-CCTTAGGTACC'
+        query = 'CTCTTGCA-CCTTAGGTACC'
         subject = 'CTCTAGCAGCCTTAGGTACC'
         hsp = HSP(subjectStart=1776, subjectEnd=1795, queryStart=131,
                   queryEnd=149, frame=self.frame, query=query, subject=subject)
