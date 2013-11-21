@@ -8,7 +8,7 @@ import subprocess
 from Bio.Blast import NCBIXML
 from Bio import Entrez, SeqIO
 from cStringIO import StringIO
-from math import exp, log10
+from math import log10
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
@@ -20,7 +20,7 @@ from dark import html
 from dark.baseimage import BaseImage
 from dark.conversion import readJSONRecords
 from dark.dimension import dimensionalIterator
-from dark.hsp import normalizeHSP
+from dark.hsp import normalizeHSP, printHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark import features
 
@@ -44,6 +44,8 @@ QUERY_COLORS = {
 # than SMALLEST_LOGGED_GAP_TO_DISPLAY.
 SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
+DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
+
 
 def readBlastRecords(filename, limit=None):
     """
@@ -64,15 +66,6 @@ def readBlastRecords(filename, limit=None):
             yield record
     if fp:
         fp.close()
-
-
-def printHSP(hsp, indent=''):
-    for attr in ['align_length', 'bits', 'expect', 'frame', 'gaps',
-                 'identities', 'num_alignments', 'positives', 'query_end',
-                 'query_start', 'sbjct', 'match', 'query', 'sbjct_end',
-                 'sbjct_start', 'score', 'strand']:
-        print '%s%s: %s' % (indent, attr, getattr(hsp, attr))
-    print '%sp: %.10f' % (indent, 1.0 - exp(-1.0 * hsp.expect))
 
 
 def printBlastRecord(record):
@@ -285,13 +278,20 @@ def findHits(recordFilename, hitIds, limit=None):
 
 def getSeqFromGenbank(hitId):
     """
-    hitId: a hit from a BLAST record, in the form 'gi|63148399|gb|DQ011818.1|'
-        We use the 2nd field, as delimited by '|', to fetch from Genbank.
+    hitId: either a hit from a BLAST record, in the form
+        'gi|63148399|gb|DQ011818.1|' in which case we use the 2nd field, as
+        delimited by '|', to fetch from Genbank.  Or, a gi number (the 2nd
+        field just mentioned).
 
     NOTE: this uses the network!  Also, there is a 3 requests/second limit
     imposed by NCBI on these requests so be careful or your IP will be banned.
     """
-    gi = hitId.split('|')[1]
+    try:
+        gi = hitId.split('|')[1]
+    except IndexError:
+        # Assume we have a gi number directly, and make sure it's a string.
+        gi = str(hitId)
+
     try:
         client = Entrez.efetch(db='nucleotide', rettype='gb', retmode='text',
                                id=gi)
@@ -305,16 +305,16 @@ def getSeqFromGenbank(hitId):
 
 def summarizeHits(hits, fastaFilename, eCutoff=None,
                   maxHspsPerHit=None, minStart=None, maxStop=None,
-                  logLinearXAxis=False, logBase=2.0):
+                  logLinearXAxis=False,
+                  logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Summarize the information found in 'hits'.
 
     hits: The result of calling findHits (above).
     fastaFilename: The name of the FASTA file containing query sequences,
         or a list of fasta sequences from SeqIO.parse
-    eCutoff: A float e value. Hits with converted e value less than this will
-        not be reurned. A converted e value is -1 times the log of the actual
-        e value.
+    eCutoff: A float e value. Hits with e value greater than or equal to
+        this will be ignored.
     maxHspsPerHit: The maximum number of HSPs to examine for each hit.
     minStart: Reads that start before this subject offset should not be
         returned.
@@ -366,7 +366,19 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         for hspCount, hsp in enumerate(hsps, start=1):
             if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
                 break
-            normalized = normalizeHSP(hsp, queryLen)
+            try:
+                normalized = normalizeHSP(hsp, queryLen)
+            except AssertionError:
+                # TODO: Remove these prints, and the surrounding try/except
+                # once we're sure we have HSP normalization right.
+                #
+                # print 'Assertion error in utils calling normalizeHSP'
+                # print 'sequenceId: %s' % sequenceId
+                # print 'hitId: %s' % hitId
+                # print 'hitLen: %s' % hitLen
+                # print 'query: %s' % query
+                # printHSP(hsp)
+                raise
             if ((minStart is not None and normalized['queryStart'] < minStart)
                     or (maxStop is not None and
                         normalized['queryEnd'] > maxStop)):
@@ -374,24 +386,25 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             if logLinearXAxis:
                 hitInfo['readIntervals'].add(normalized['queryStart'],
                                              normalized['queryEnd'])
-            if hsp.expect == 0.0:
+            e = hsp.expect
+            if eCutoff is not None and e >= eCutoff:
+                continue
+            if e == 0.0:
                 e = None
                 hitInfo['zeroEValueFound'] = True
             else:
-                e = -1.0 * log10(hsp.expect)
-                if e < 0.0 or (eCutoff is not None and e < eCutoff):
-                    continue
-                if e > hitInfo['maxE']:
-                    hitInfo['maxE'] = e
+                convertedE = -1.0 * log10(e)
+                if convertedE > hitInfo['maxE']:
+                    hitInfo['maxE'] = convertedE
                 # Don't use elif for testing minE. Both conditions can be true.
-                if e < hitInfo['minE']:
-                    hitInfo['minE'] = e
+                if convertedE < hitInfo['minE']:
+                    hitInfo['minE'] = convertedE
             if normalized['queryStart'] < hitInfo['minX']:
                 hitInfo['minX'] = normalized['queryStart']
             if normalized['queryEnd'] > hitInfo['maxX']:
                 hitInfo['maxX'] = normalized['queryEnd']
             hitInfo['items'].append({
-                'e': e,
+                'convertedE': convertedE,
                 'hsp': normalized,
                 'origHsp': hsp,
                 'queryLen': queryLen,
@@ -409,9 +422,10 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
         for item in hitInfo['items']:
-            if item['e'] is None:
-                item['e'] = e = (hitInfo['maxE'] + 2 +
-                                 uniform(0, zeroEValueUpperRandomIncrement))
+            if item['convertedE'] is None:
+                item['convertedE'] = e = (
+                    hitInfo['maxE'] + 2 +
+                    uniform(0, zeroEValueUpperRandomIncrement))
                 if e > maxEIncludingRandoms:
                     maxEIncludingRandoms = e
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
@@ -463,9 +477,9 @@ def convertSummaryEValuesToRanks(hitInfo):
     """
     result = hitInfo.copy()
     items = result['items']
-    items.sort(key=lambda item: item['e'])
+    items.sort(key=lambda item: item['convertedE'])
     for i, item in enumerate(items, start=1):
-        item['e'] = i
+        item['convertedE'] = i
     result['maxE'] = result['maxEIncludingRandoms'] = len(items)
     result['minE'] = 1
     result['zeroEValueFound'] = False
@@ -473,12 +487,13 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=2.0,
+                   addQueryLines=True, showFeatures=True, eCutoff=1e-2,
                    maxHspsPerHit=None, colorQueryBases=False, minStart=None,
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
                    quiet=False, idList=False, xRange='subject',
-                   logLinearXAxis=False, logBase=2.0):
+                   logLinearXAxis=False,
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Align a set of BLAST hits against a sequence.
 
@@ -495,7 +510,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         'whiskers' that potentially protrude from each side of a query.
     showFeatures: if True, look online for features of the subject sequence
         (given by hitId).
-    eCutoff: converted e values less than this will be ignored.
+    eCutoff: e values greater than or equal to this will be ignored.
     maxHspsPerHit: A numeric max number of HSPs to show for each hit on hitId.
     colorQueryBases: if True, color each base of a query string. If True, then
         addQueryLines is meaningless since the whole query is shown colored.
@@ -575,38 +590,16 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # serves to make the entire background grey.
     if logLinearXAxis and len(hitInfo['offsetAdjuster'].adjustments()) < 100:
         offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
-        #report('Adjustments: %r' % (hitInfo['offsetAdjuster'].adjustments(),))
-        #report('Seq length = %s (adjusted = %0.3f)' % (
-        #hitInfo['sequenceLen'], offsetAdjuster(hitInfo['sequenceLen'])))
         for (intervalType, interval) in hitInfo['readIntervals'].walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = offsetAdjuster(interval[0])
                 adjustedStop = offsetAdjuster(interval[1])
                 width = adjustedStop - adjustedStart
-                # report('Gap of %d reduced to %0.f.  '
-                #        '%r -> (%.0f, %.0f)' % (interval[1] - interval[0],
-                #                                adjustedStop - adjustedStart,
-                #                                interval, adjustedStart,
-                #                                adjustedStop))
                 if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
-                    # TODO: remove
-                    # line = Line2D(
-                    #     [adjustedStart, adjustedStop], [minE + 5, minE + 5],
-                    #     color='#00ffcc', linewidth=10)
-                    # readsAx.add_line(line)
                     rect = Rectangle(
                         (adjustedStart, 0), width,
                         maxEIncludingRandoms + 1, color='#f4f4f4')
                     readsAx.add_patch(rect)
-                    # TODO: remove
-                    # line = Line2D(
-                    #     [adjustedStart, adjustedStart],
-                    #     [0, maxEIncludingRandoms + 1], color='red')
-                    # readsAx.add_line(line)
-                    # line = Line2D(
-                    #     [adjustedStop, adjustedStop],
-                    #     [0, maxEIncludingRandoms + 1], color='red')
-                    # readsAx.add_line(line)
 
     if colorQueryBases:
         # Color each query by its bases.
@@ -618,7 +611,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             xScale, yScale)
         for item in items:
             hsp = item['hsp']
-            e = item['e'] - minE
+            e = item['convertedE'] - minE
             # If the product of the subject and query frame values is +ve,
             # then they're either both +ve or both -ve, so we just use the
             # query as is. Otherwise, we need to reverse complement it.
@@ -688,7 +681,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         # on top of part of them.
         if addQueryLines:
             for item in items:
-                e = item['e']
+                e = item['convertedE']
                 hsp = item['hsp']
                 line = Line2D([hsp['queryStart'], hsp['queryEnd']], [e, e],
                               color='#aaaaaa')
@@ -696,7 +689,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
         # Add the horizontal BLAST alignment lines.
         for item in items:
-            e = item['e']
+            e = item['convertedE']
             hsp = item['hsp']
             line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
                           color='blue')
@@ -707,7 +700,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                 for key in idList:
                     for ids in idList[key]:
                         if ids == item['query']:
-                            e = item['e']
+                            e = item['convertedE']
                             hsp = item['hsp']
                             line = Line2D([hsp['subjectStart'],
                                            hsp['subjectEnd']], [e, e],
@@ -724,6 +717,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             offsetAdjuster = lambda x: x
         featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
                                                 offsetAdjuster)
+        hitInfo['features'] = featureEndpoints
+
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
@@ -802,11 +797,12 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
-                   eCutoff=2.0, maxHspsPerHit=None, minStart=None,
+                   eCutoff=1e-2, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
-                   logLinearXAxis=False, logBase=2.0):
+                   logLinearXAxis=False,
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -821,7 +817,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         or a list of fasta sequences from SeqIO.parse
     db: the BLAST db to use to look up the target and, if given, actual
         sequence.
-    eCutoff: converted e values less than this will be ignored.
+    eCutoff: e values greater than or equal to this will be ignored.
     maxHspsPerHit: A numeric max number of HSPs to show for each hit on hitId.
     minStart: Reads that start before this subject offset should not be shown.
     maxStop: Reads that end after this subject offset should not be shown.
@@ -888,6 +884,10 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     minX = 1e10  # Something improbably large.
     queryMax = -1
     queryMin = 1e10  # Something improbably large.
+
+    # postProcessInfo will accumulate per-hit information gathered as we
+    # make each graph. This will then be used to post-process all the small
+    # plots in the panel to make their appearance uniform in various ways.
     postProcessInfo = defaultdict(dict)
 
     if isinstance(recordFilenameOrHits, str):
@@ -938,14 +938,15 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
         # Remember info required for post processing of the whole panel
         # once we've made all the alignment graphs.
+        post = postProcessInfo[(row, col)]
         if hitInfo['zeroEValueFound']:
-            postProcessInfo[(row, col)]['maxE'] = hitInfo['maxE']
-
-        postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
-        postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
+            post['maxE'] = hitInfo['maxE']
+        post['maxEIncludingRandoms'] = hitInfo['maxEIncludingRandoms']
+        post['maxX'] = hitInfo['maxX']
+        post['sequenceLen'] = hitInfo['sequenceLen']
         if logLinearXAxis:
-            postProcessInfo[(row, col)]['offsetAdjuster'] = hitInfo[
-                'offsetAdjuster']
+            post['offsetAdjuster'] = hitInfo['offsetAdjuster']
+            post['readIntervals'] = hitInfo['readIntervals']
 
         if summary[title]['eMean'] == 0:
             meanE = 0
@@ -1000,8 +1001,9 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
                               linewidth=1)
                 a.add_line(line)
-            # Add a vertical line at x=0 so we can see reads that match to
-            # the left of the sequence we're aligning against.
+            # Add a vertical line at x=0 so we can see the 'whiskers' of
+            # reads that extend to the left of the sequence we're aligning
+            # against.
             line = Line2D([0, 0], [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
@@ -1010,12 +1012,33 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             # we otherwise couldn't tell).
             sequenceLen = hitInfo['sequenceLen']
             if logLinearXAxis:
-                sequenceLen = hitInfo['offsetAdjuster'].adjustOffset(
-                    sequenceLen)
+                offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
+                sequenceLen = offsetAdjuster(sequenceLen)
             line = Line2D([sequenceLen, sequenceLen],
                           [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
+
+            # Add light grey vertical rectangles to show the logarithmic
+            # gaps. Add these only in the region above the highest read in
+            # the individual plot. If we simply added the bar to the full
+            # height of the plot it would obscure the reads it overlapped.
+            if (logLinearXAxis and
+                    len(hitInfo['offsetAdjuster'].adjustments()) < 100):
+                thisMaxEIncludingRandoms = hitInfo['maxEIncludingRandoms']
+                for (intervalType, interval) in hitInfo[
+                        'readIntervals'].walk():
+                    if intervalType == ReadIntervals.EMPTY:
+                        adjustedStart = offsetAdjuster(interval[0])
+                        adjustedStop = offsetAdjuster(interval[1])
+                        width = adjustedStop - adjustedStart
+                        if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
+                            height = (maxEIncludingRandoms -
+                                      thisMaxEIncludingRandoms)
+                            rect = Rectangle(
+                                (adjustedStart, thisMaxEIncludingRandoms + 1),
+                                width, height, color='#f4f4f4')
+                            a.add_patch(rect)
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
