@@ -391,7 +391,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             if eCutoff is not None and e >= eCutoff:
                 continue
             if e == 0.0:
-                e = None
+                convertedE = None
                 hitInfo['zeroEValueFound'] = True
             else:
                 convertedE = -1.0 * log10(e)
@@ -422,20 +422,21 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
-        if randomizeZeroEValues:
-            for item in hitInfo['items']:
-                if item['convertedE'] is None:
-                    item['convertedE'] = e = (
-                        hitInfo['maxE'] + 2 + uniform(
-                            0, zeroEValueUpperRandomIncrement))
-                    if e > maxEIncludingRandoms:
-                        maxEIncludingRandoms = e
+        if hitInfo['zeroEValueFound']:
+            if randomizeZeroEValues:
+                for item in hitInfo['items']:
+                    if item['convertedE'] is None:
+                        item['convertedE'] = convertedE = (
+                            hitInfo['maxE'] + 2 + uniform(
+                                0, zeroEValueUpperRandomIncrement))
+                        if convertedE > maxEIncludingRandoms:
+                            maxEIncludingRandoms = convertedE
 
-        else:
-            for item in hitInfo['items']:
-                if item['convertedE'] is None:
-                    maxEIncludingRandoms += 1
-                    item['convertedE'] = maxEIncludingRandoms
+            else:
+                for item in hitInfo['items']:
+                    if item['convertedE'] is None:
+                        maxEIncludingRandoms += 1
+                        item['convertedE'] = maxEIncludingRandoms
 
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
