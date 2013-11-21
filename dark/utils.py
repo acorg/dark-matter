@@ -430,13 +430,14 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
-        for item in hitInfo['items']:
-            if item['convertedE'] is None:
-                item['convertedE'] = e = (
-                    hitInfo['maxE'] + 2 +
-                    uniform(0, zeroEValueUpperRandomIncrement))
-                if e > maxEIncludingRandoms:
-                    maxEIncludingRandoms = e
+        if hitInfo['zeroEValueFound']:
+            for item in hitInfo['items']:
+                if item['convertedE'] is None:
+                    item['convertedE'] = e = (
+                        hitInfo['maxE'] + 2 +
+                        uniform(0, zeroEValueUpperRandomIncrement))
+                    if e > maxEIncludingRandoms:
+                        maxEIncludingRandoms = e
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
         # Adjust all HSPs if we're doing a log/linear X axis.
