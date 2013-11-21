@@ -590,38 +590,16 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # serves to make the entire background grey.
     if logLinearXAxis and len(hitInfo['offsetAdjuster'].adjustments()) < 100:
         offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
-        #report('Adjustments: %r' % (hitInfo['offsetAdjuster'].adjustments(),))
-        #report('Seq length = %s (adjusted = %0.3f)' % (
-        #hitInfo['sequenceLen'], offsetAdjuster(hitInfo['sequenceLen'])))
         for (intervalType, interval) in hitInfo['readIntervals'].walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = offsetAdjuster(interval[0])
                 adjustedStop = offsetAdjuster(interval[1])
                 width = adjustedStop - adjustedStart
-                # report('Gap of %d reduced to %0.f.  '
-                #        '%r -> (%.0f, %.0f)' % (interval[1] - interval[0],
-                #                                adjustedStop - adjustedStart,
-                #                                interval, adjustedStart,
-                #                                adjustedStop))
                 if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
-                    # TODO: remove
-                    # line = Line2D(
-                    #     [adjustedStart, adjustedStop], [minE + 5, minE + 5],
-                    #     color='#00ffcc', linewidth=10)
-                    # readsAx.add_line(line)
                     rect = Rectangle(
                         (adjustedStart, 0), width,
                         maxEIncludingRandoms + 1, color='#f4f4f4')
                     readsAx.add_patch(rect)
-                    # TODO: remove
-                    # line = Line2D(
-                    #     [adjustedStart, adjustedStart],
-                    #     [0, maxEIncludingRandoms + 1], color='red')
-                    # readsAx.add_line(line)
-                    # line = Line2D(
-                    #     [adjustedStop, adjustedStop],
-                    #     [0, maxEIncludingRandoms + 1], color='red')
-                    # readsAx.add_line(line)
 
     if colorQueryBases:
         # Color each query by its bases.
@@ -906,6 +884,10 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     minX = 1e10  # Something improbably large.
     queryMax = -1
     queryMin = 1e10  # Something improbably large.
+
+    # postProcessInfo will accumulate per-hit information gathered as we
+    # make each graph. This will then be used to post-process all the small
+    # plots in the panel to make their appearance uniform in various ways.
     postProcessInfo = defaultdict(dict)
 
     if isinstance(recordFilenameOrHits, str):
@@ -956,14 +938,15 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
         # Remember info required for post processing of the whole panel
         # once we've made all the alignment graphs.
+        post = postProcessInfo[(row, col)]
         if hitInfo['zeroEValueFound']:
-            postProcessInfo[(row, col)]['maxE'] = hitInfo['maxE']
-
-        postProcessInfo[(row, col)]['maxX'] = hitInfo['maxX']
-        postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
+            post['maxE'] = hitInfo['maxE']
+        post['maxEIncludingRandoms'] = hitInfo['maxEIncludingRandoms']
+        post['maxX'] = hitInfo['maxX']
+        post['sequenceLen'] = hitInfo['sequenceLen']
         if logLinearXAxis:
-            postProcessInfo[(row, col)]['offsetAdjuster'] = hitInfo[
-                'offsetAdjuster']
+            post['offsetAdjuster'] = hitInfo['offsetAdjuster']
+            post['readIntervals'] = hitInfo['readIntervals']
 
         if summary[title]['eMean'] == 0:
             meanE = 0
@@ -1018,8 +1001,9 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
                               linewidth=1)
                 a.add_line(line)
-            # Add a vertical line at x=0 so we can see reads that match to
-            # the left of the sequence we're aligning against.
+            # Add a vertical line at x=0 so we can see the 'whiskers' of
+            # reads that extend to the left of the sequence we're aligning
+            # against.
             line = Line2D([0, 0], [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
@@ -1028,12 +1012,33 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             # we otherwise couldn't tell).
             sequenceLen = hitInfo['sequenceLen']
             if logLinearXAxis:
-                sequenceLen = hitInfo['offsetAdjuster'].adjustOffset(
-                    sequenceLen)
+                offsetAdjuster = hitInfo['offsetAdjuster'].adjustOffset
+                sequenceLen = offsetAdjuster(sequenceLen)
             line = Line2D([sequenceLen, sequenceLen],
                           [0, maxEIncludingRandoms + 1],
                           color='#cccccc', linewidth=1)
             a.add_line(line)
+
+            # Add light grey vertical rectangles to show the logarithmic
+            # gaps. Add these only in the region above the highest read in
+            # the individual plot. If we simply added the bar to the full
+            # height of the plot it would obscure the reads it overlapped.
+            if (logLinearXAxis and
+                    len(hitInfo['offsetAdjuster'].adjustments()) < 100):
+                thisMaxEIncludingRandoms = hitInfo['maxEIncludingRandoms']
+                for (intervalType, interval) in hitInfo[
+                        'readIntervals'].walk():
+                    if intervalType == ReadIntervals.EMPTY:
+                        adjustedStart = offsetAdjuster(interval[0])
+                        adjustedStop = offsetAdjuster(interval[1])
+                        width = adjustedStop - adjustedStart
+                        if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
+                            height = (maxEIncludingRandoms -
+                                      thisMaxEIncludingRandoms)
+                            rect = Rectangle(
+                                (adjustedStart, thisMaxEIncludingRandoms + 1),
+                                width, height, color='#f4f4f4')
+                            a.add_patch(rect)
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
