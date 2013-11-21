@@ -87,12 +87,14 @@ def printBlastRecord(record):
             printHSP(hsp, '        ')
 
 
-def summarizeAllRecords(filename):
+def summarizeAllRecords(filename, eCutoff=None):
     """
     Read a file of BLAST records and return a dictionary keyed by sequence
     title, with values containing information about the number of times the
     sequence was hit, the e value (from the best HSP), and the sequence
     length.
+    eCutoff: A float e value. Hits with e value greater than or equal to
+        this will be ignored.
     """
     start = time()
     result = {}
@@ -109,17 +111,24 @@ def summarizeAllRecords(filename):
                     'reads': set(),
                     'title': title,
                 }
-            item['count'] += 1
-            item['eValues'].append(alignment.hsps[0].expect)
-            # record.query is the name of the read in the FASTA file.
-            item['reads'].add(record.query)
 
-    # Compute mean and median e values and delete the eValues keys.
-    for key, item in result.iteritems():
-        item['eMean'] = sum(item['eValues']) / float(item['count'])
-        item['eMedian'] = np.median(item['eValues'])
-        item['reads'] = sorted(item['reads'])
-        del item['eValues']
+            if eCutoff is not None or alignment.hsps[0].expect >= eCutoff:
+                item['count'] += 1
+                item['eValues'].append(alignment.hsps[0].expect)
+                # record.query is the name of the read in the FASTA file.
+                item['reads'].add(record.query)
+
+    # remove subjects with no hits below the cutoff:
+    titles = result.keys()
+    for title in titles:
+        if result[title]['count'] == 0:
+            del result[title]
+    # compute mean and median evalues:
+    for title, value in result.iteritems():
+        value['eMean'] = sum(value['eValues']) / float(value['count'])
+        value['eMedian'] = np.median(value['eValues'])
+        value['reads'] = sorted(value['reads'])
+
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
     return result
@@ -390,7 +399,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             if eCutoff is not None and e >= eCutoff:
                 continue
             if e == 0.0:
-                e = None
+                convertedE = None
                 hitInfo['zeroEValueFound'] = True
             else:
                 convertedE = -1.0 * log10(e)
@@ -950,16 +959,20 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             post['offsetAdjuster'] = hitInfo['offsetAdjuster']
             post['readIntervals'] = hitInfo['readIntervals']
 
-        if summary[title]['eMean'] == 0:
-            meanE = 0
+        #calculate eMedian and eMean:
+        eValues = [item['convertedE'] for item in hitInfo['items']]
+
+        if rankEValues:
+            meanE = medianE = 'ranked'
+        elif len(eValues) == 0:
+            meanE = medianE = 'none'
         else:
-            meanE = int(-1.0 * log10(summary[title]['eMean']))
-        if summary[title]['eMedian'] == 0:
-            medianE = 0
-        else:
-            medianE = int(-1.0 * log10(summary[title]['eMedian']))
+            numberMeanE = sum(eValues) / float(len(eValues))
+            numberMedianE = np.median(eValues)
+            meanE = '1e-%d' % numberMeanE
+            medianE = '1e-%d' % numberMedianE
         ax[row][col].set_title(
-            '%d: %s\n%d reads, 1e-%d median, 1e-%d mean' % (
+            '%d: %s\n%d reads, %s median, %s mean' % (
                 i, title.split(' ', 1)[1][:40],
                 len(summary[title]['reads']), medianE, meanE), fontsize=10)
 
@@ -1048,7 +1061,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.pdf'
+        panelFilename = 'alignment-panel.png'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:
