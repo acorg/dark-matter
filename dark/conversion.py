@@ -91,5 +91,12 @@ def readJSONRecords(filename):
     instances and yield them.
     """
     with open(filename) as fp:
-        for line in fp.readlines():
-            yield convertDictToBlastRecord(loads(line[:-1]))
+        for lineNumber, line in enumerate(fp.readlines(), start=1):
+            try:
+                record = loads(line[:-1])
+            except ValueError as e:
+                raise ValueError(
+                    'Could not convert line %d of %r to JSON (%s). Line is '
+                    '%r.' % (lineNumber, filename, e, line[:-1]))
+            else:
+                yield convertDictToBlastRecord(record)
