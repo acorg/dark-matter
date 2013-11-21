@@ -9,7 +9,8 @@ class Frame(object):
 
 
 class HSP(object):
-    def __init__(self, subjectStart, subjectEnd, queryStart, queryEnd, frame):
+    def __init__(self, subjectStart, subjectEnd, queryStart, queryEnd, frame,
+                 subject='', query=''):
         """
         A fake HSP class (with 1-based offsets, as are used in BLAST).
         """
@@ -17,10 +18,16 @@ class HSP(object):
         self.sbjct_end = subjectEnd
         self.query_start = queryStart
         self.query_end = queryEnd
-        assert abs(subjectEnd - subjectStart) == abs(queryEnd - queryStart)
         self.frame = (frame.query, frame.subject)
-        # For now, just put an empty subject and query string into the object.
-        self.sbjct = self.query = ''
+        self.sbjct = subject
+        self.query = query
+
+        # The following assertion is not valid.
+        # assert abs(subjectEnd - subjectStart) == abs(queryEnd - queryStart)
+        # That's because BLAST might find a match that requires a gap in the
+        # query or subject. The indices that it reports do not include the gap
+        # and so the differences in the lengths of the sections of the query
+        # and subject may not be the same.
 
 
 class Template(object):
@@ -240,7 +247,12 @@ class SubjectPositiveQueryPositive(TestCase, TestNormalizeHSPMixin):
                   ''')
 
 
-class SubjectPositiveQueryNegative(TestCase, TestNormalizeHSPMixin):
+class SubjectPositiveQueryNegative(object):
+
+    """
+    This class appears to not be needed. As far as we have seen, the
+    query is always positive with ascending start, end offsets.
+    """
 
     def testIdentical1(self):
         self.check('''
@@ -352,29 +364,29 @@ class SubjectNegativeQueryPositive(TestCase, TestNormalizeHSPMixin):
 
     def testSubjectExtendsLeft1(self):
         self.check('''
-                                             ....>>>
-                                               ..<<<
+                                             ....<<<
+                                               ..>>>
                                                  >>>..
                    ''')
 
     def testSubjectExtendsLeft2(self):
         self.check('''
-                                             ....>>>...........
-                                               ..<<<...........
+                                             ....<<<...........
+                                               ..>>>...........
                                       ...........>>>..
                    ''')
 
     def testSubjectExtendsRight1(self):
         self.check('''
-                                             >>>.................
-                                             <<<...........
+                                             <<<.................
+                                             >>>...........
                                   ...........>>>
                    ''')
 
     def testSubjectExtendsRight2(self):
         self.check('''
-                                             ....>>>.................
-                                             ....<<<...........
+                                             ....<<<.................
+                                             ....>>>...........
                                       ...........>>>....
                    ''')
 
@@ -435,7 +447,12 @@ class SubjectNegativeQueryPositive(TestCase, TestNormalizeHSPMixin):
                   ''')
 
 
-class SubjectNegativeQueryNegative(TestCase, TestNormalizeHSPMixin):
+class SubjectNegativeQueryNegative(object):
+
+    """
+    This class appears to not be needed. As far as we have seen, the
+    query is always positive with ascending start, end offsets.
+    """
 
     def testIdentical1(self):
         self.check('''
@@ -642,9 +659,30 @@ class Old_QueryPositiveSubjectPositive(TestCase):
             'queryEnd': 5,
         }, normalized)
 
+    def test20131115Debugging(self):
+        """
+        This is an example I manually examined for Barbara on 2013-11-15.
+        """
+
+        query = 'TTCTTTTTGCATTTGATAGT-TTGCTACAAG'
+        subject = 'TTCTTTTTGCAATAGTCAGTCTTGCTAAAAG'
+        hsp = HSP(subjectStart=45, subjectEnd=75, queryStart=120,
+                  queryEnd=149, frame=self.frame, query=query, subject=subject)
+        normalized = normalizeHSP(hsp, 149)
+        self.assertEqual({
+            'subjectStart': 44,
+            'subjectEnd': 75,
+            'queryStart': -75,
+            'queryEnd': 75,
+        }, normalized)
+
 
 class Old_QueryNegativeSubjectPositive(object):
+
     """
+    This class appears to not be needed. As far as we have seen, the
+    query is always positive with ascending start, end offsets.
+
     Tests for normalizeHSP when the query end is less than the query start.
 
     NOTE: Please don't add any tests below. Use the Template based tests above.
@@ -766,7 +804,7 @@ class Old_QueryNegativeSubjectPositive(object):
         }, normalized)
 
 
-class Old_QueryPositiveSubjectNegative(object):
+class Old_QueryPositiveSubjectNegative(TestCase):
     """
     Tests for normalizeHSP when the subject start is greater than the subject
     end.
@@ -891,13 +929,82 @@ class Old_QueryPositiveSubjectNegative(object):
     def test20130721Debugging(self):
         """
         This is an example I manually examined on 2013-07-21.
+
+        I had to invent subject and query strings though on 2013-11-21 to
+        introduce 5 gaps in the query due to more rigorous checking in
+        normalizeHSP.
         """
+
+        subject = (
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'AAAAA')
+
+        query = (
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            '-----')
+
         hsp = HSP(subjectStart=9018, subjectEnd=8764, queryStart=66,
-                  queryEnd=315, frame=self.frame)
+                  queryEnd=315, frame=self.frame, subject=subject, query=query)
         normalized = normalizeHSP(hsp, 316)
         self.assertEqual({
             'subjectStart': 8763,
             'subjectEnd': 9018,
-            'queryStart': 8767,
+            'queryStart': 8762,
             'queryEnd': 9083,
+        }, normalized)
+
+    def test20131113Debugging(self):
+        """
+        This is an example I manually examined on 2013-11-13.
+        """
+        subject = (
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGTGTCCGGCA'
+            'AGGTTGCCAAGGAGCAGATCGACATCGATAACGCCAAGCACACCAAGTGATGCACTGA'
+            'CGACGGGTGAGGCCCAGATTCCTACGGCCTGGGCCTCTGTCTGCGTCGGGATGCCATT'
+            'AGGCCGGTAGGATCGGTCACATGATCGATCCCAAGCTCCTGCGAACGGATCCGGACGC'
+            'CGTTCGTCGCTCCCAGGCCGCCCGCGGCGAGGACTCCTCGGTTGTGGACGACGTTGTC'
+            'GCCGCAGATGAGGCTCGTCGTGAGGCTATTGCTGCCCATGAGAACCTGCGTGCAGAAC'
+            'AGAAGGGACTCGGCAAGCGAATCGCTAAAGCATCCGGTG')
+
+        query = (
+            'GTC-AGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGTGTCCGGCA'
+            'AGGTTGCCAAGGAGCAGATCGACATCGATAACGCCAAGCACACCAAGTGATGCACTGA'
+            'CGACGGGTGAGGCCCAGATTCCTACGGCCTGGGCCTCTGTCTGCGTCGGGATGCCATT'
+            'AGGCCGCTAGGATCGGTCACATGATCGATCCCAAGCTCCTGCGAACGGATCCGGACGC'
+            'CGTTCGTCGCTCCCAGGCCGCCCGCGGCGAGGACTCCTCGGTTGTGGACGACGTTGTC'
+            'GCCGCAGATGAGGCTCGTCGTGAGGCTATTGCTGCCCATGAGAACCTGCGTGCAGAAC'
+            'AGAAGGGACTCGGCAAGCGAATCGCTAAAGCATCCGGTG')
+
+        hsp = HSP(subjectStart=2339751, subjectEnd=2339365, queryStart=1,
+                  queryEnd=386, frame=self.frame, subject=subject, query=query)
+        normalized = normalizeHSP(hsp, 396)
+        self.assertEqual({
+            'subjectStart': 2339364,
+            'subjectEnd': 2339751,
+            'queryStart': 2339354,
+            'queryEnd': 2339751,
+        }, normalized)
+
+    def test20131115Debugging(self):
+        """
+        This is an example I manually examined for BM on 2013-11-15.
+        """
+        query = 'CTCTTGCA-CCTTAGGTACC'
+        subject = 'CTCTAGCAGCCTTAGGTACC'
+        hsp = HSP(subjectStart=1776, subjectEnd=1795, queryStart=131,
+                  queryEnd=149, frame=self.frame, query=query, subject=subject)
+        normalized = normalizeHSP(hsp, 149)
+        self.assertEqual({
+            'subjectStart': 1775,
+            'subjectEnd': 1795,
+            'queryStart': 1775,
+            'queryEnd': 1925,
         }, normalized)
