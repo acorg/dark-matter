@@ -119,8 +119,9 @@ def summarizeAllRecords(filename, eCutoff=None):
                 item['reads'].add(record.query)
 
     # remove subjects with no hits below the cutoff:
-    for title, value in result.iteritems():
-        if value['count'] == 0:
+    titles = result.keys()
+    for title in titles:
+        if result[title]['count'] == 0:
             del result[title]
     # compute mean and median evalues:
     for title, value in result.iteritems():
@@ -398,7 +399,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
             if eCutoff is not None and e >= eCutoff:
                 continue
             if e == 0.0:
-                e = None
+                convertedE = None
                 hitInfo['zeroEValueFound'] = True
             else:
                 convertedE = -1.0 * log10(e)
@@ -959,7 +960,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             post['readIntervals'] = hitInfo['readIntervals']
 
         #calculate eMedian and eMean:
-        eValues = [item['e'] for item in hitInfo['items']]
+        eValues = [item['convertedE'] for item in hitInfo['items']]
 
         if rankEValues:
             meanE = medianE = 'ranked'
