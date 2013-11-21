@@ -52,7 +52,10 @@ def normalizeHSP(hsp, queryLen):
 
     # As far as we know (blastn and tblastx), the query frame is always
     # positive and the query indices are always ascending.
-    assert queryPositive and query_start <= query_end
+    assert queryPositive and query_start <= query_end, (
+        'Assertion "queryPositive and query_start <= query_end" failed. '
+        'queryPositive = %s, query_start = %d, query_end = %d' % (
+            queryPositive, query_start, query_end))
 
     if subjectPositive:
         # Make sure indices are ascending.

@@ -247,7 +247,12 @@ class SubjectPositiveQueryPositive(TestCase, TestNormalizeHSPMixin):
                   ''')
 
 
-class SubjectPositiveQueryNegative(TestCase, TestNormalizeHSPMixin):
+class SubjectPositiveQueryNegative(object):
+
+    """
+    This class appears to not be needed. As far as we have seen, the
+    query is always positive with ascending start, end offsets.
+    """
 
     def testIdentical1(self):
         self.check('''
@@ -359,29 +364,29 @@ class SubjectNegativeQueryPositive(TestCase, TestNormalizeHSPMixin):
 
     def testSubjectExtendsLeft1(self):
         self.check('''
-                                             ....>>>
-                                               ..<<<
+                                             ....<<<
+                                               ..>>>
                                                  >>>..
                    ''')
 
     def testSubjectExtendsLeft2(self):
         self.check('''
-                                             ....>>>...........
-                                               ..<<<...........
+                                             ....<<<...........
+                                               ..>>>...........
                                       ...........>>>..
                    ''')
 
     def testSubjectExtendsRight1(self):
         self.check('''
-                                             >>>.................
-                                             <<<...........
+                                             <<<.................
+                                             >>>...........
                                   ...........>>>
                    ''')
 
     def testSubjectExtendsRight2(self):
         self.check('''
-                                             ....>>>.................
-                                             ....<<<...........
+                                             ....<<<.................
+                                             ....>>>...........
                                       ...........>>>....
                    ''')
 
@@ -442,7 +447,13 @@ class SubjectNegativeQueryPositive(TestCase, TestNormalizeHSPMixin):
                   ''')
 
 
-class SubjectNegativeQueryNegative(TestCase, TestNormalizeHSPMixin):
+class SubjectNegativeQueryNegative(object):
+
+    """
+    This class appears to not be needed. As far as we have seen, the
+    query is always positive with ascending start, end offsets.
+    """
+
 
     def testIdentical1(self):
         self.check('''
@@ -667,8 +678,12 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         }, normalized)
 
 
-class Old_QueryNegativeSubjectPositive(TestCase):
+class Old_QueryNegativeSubjectPositive(object):
+
     """
+    This class appears to not be needed. As far as we have seen, the
+    query is always positive with ascending start, end offsets.
+
     Tests for normalizeHSP when the query end is less than the query start.
 
     NOTE: Please don't add any tests below. Use the Template based tests above.
@@ -915,14 +930,35 @@ class Old_QueryPositiveSubjectNegative(TestCase):
     def test20130721Debugging(self):
         """
         This is an example I manually examined on 2013-07-21.
+
+        I had to invent subject and query strings though on 2013-11-21 to
+        introduce 5 gaps in the query due to more rigorous checking in
+        normalizeHSP.
         """
+
+        subject = (
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'AAAAA')
+
+        query = (
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
+            '-----')
+
         hsp = HSP(subjectStart=9018, subjectEnd=8764, queryStart=66,
-                  queryEnd=315, frame=self.frame)
+                  queryEnd=315, frame=self.frame, subject=subject, query=query)
         normalized = normalizeHSP(hsp, 316)
         self.assertEqual({
             'subjectStart': 8763,
             'subjectEnd': 9018,
-            'queryStart': 8767,
+            'queryStart': 8762,
             'queryEnd': 9083,
         }, normalized)
 
@@ -954,7 +990,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         self.assertEqual({
             'subjectStart': 2339364,
             'subjectEnd': 2339751,
-            'queryStart': 2339355,
+            'queryStart': 2339354,
             'queryEnd': 2339751,
         }, normalized)
 
