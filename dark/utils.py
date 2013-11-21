@@ -93,6 +93,8 @@ def summarizeAllRecords(filename, eCutoff=None):
     title, with values containing information about the number of times the
     sequence was hit, the e value (from the best HSP), and the sequence
     length.
+    eCutoff: only hits with evalues lower than eCutoff are added to the
+        result.
     """
     start = time()
     result = {}
@@ -109,31 +111,26 @@ def summarizeAllRecords(filename, eCutoff=None):
                     'reads': set(),
                     'title': title,
                 }
-            if eCutoff:
-                if alignment.hsps[0].expect < eCutoff:
-                    item['count'] += 1
-                    item['eValues'].append(alignment.hsps[0].expect)
-                    # record.query is the name of the read in the FASTA file.
-                    item['reads'].add(record.query)
+            if eCutoff is not None or alignment.hsps[0].expect < eCutoff:
+                item['count'] += 1
+                item['eValues'].append(alignment.hsps[0].expect)
+                # record.query is the name of the read in the FASTA file.
+                item['reads'].add(record.query)
             else:
                 item['count'] += 1
                 item['eValues'].append(alignment.hsps[0].expect)
                 # record.query is the name of the read in the FASTA file.
                 item['reads'].add(record.query)
-            item['remove'] = False
-    # Compute mean and median e values.
-    for key, item in result.iteritems():
+    # remove subjects with no hits below the cutoff:
+    for title, value in result.iteritems():
         count = item['count']
-        if count == 0:
-            count = 1
-            item['remove'] = True
+        if value['count'] == 0:
+            del result[title]
+    # compute mean and median evalues:
+    for key, item in result.iteritems():
         item['eMean'] = sum(item['eValues']) / float(count)
         item['eMedian'] = np.median(item['eValues'])
         item['reads'] = sorted(item['reads'])
-    # remove subjects with no hits below the cutoff
-    for title, value in result.items():
-        if value['remove']:
-            del result[title]
 
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
@@ -842,20 +839,17 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         postProcessInfo[(row, col)]['sequenceLen'] = hitInfo['sequenceLen']
 
         #calculate eMedian and eMean:
-        interestingEValues = []
-        for number in hitInfo['items']:
-            interestingEValues.append(number['e'])
+        eValues = [item['e'] for item in hitInfo['items']]
 
         if rankEValues:
             meanE = medianE = 'ranked'
-        elif len(interestingEValues) == 0:
-            meanE = medianE = '1e-0'
+        elif len(eValues) == 0:
+            meanE = medianE = 'none'
         else:
-            numberMeanE = sum(interestingEValues) / float(len(
-                interestingEValues))
-            numberMedianE = np.median(interestingEValues)
-            meanE = '1e-%d' % (numberMeanE)
-            medianE = '1e-%d' % (numberMedianE)
+            numberMeanE = sum(eValues) / float(len(eValues))
+            numberMedianE = np.median(eValues)
+            meanE = '1e-%d' % numberMeanE
+            medianE = '1e-%d' % numberMedianE
         ax[row][col].set_title(
             '%d: %s\n%d reads, %s median, %s mean' % (
                 i, title.split(' ', 1)[1][:40],
