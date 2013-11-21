@@ -100,8 +100,8 @@ def summarizeAllRecords(filename, eCutoff=None):
     title, with values containing information about the number of times the
     sequence was hit, the e value (from the best HSP), and the sequence
     length.
-    eCutoff: only hits with evalues lower than eCutoff are added to the
-        result.
+    eCutoff: A float e value. Hits with e value greater than or equal to
+        this will be ignored.
     """
     start = time()
     result = {}
@@ -118,26 +118,22 @@ def summarizeAllRecords(filename, eCutoff=None):
                     'reads': set(),
                     'title': title,
                 }
-            if eCutoff is not None or alignment.hsps[0].expect < eCutoff:
+
+            if eCutoff is not None or alignment.hsps[0].expect >= eCutoff:
                 item['count'] += 1
                 item['eValues'].append(alignment.hsps[0].expect)
                 # record.query is the name of the read in the FASTA file.
                 item['reads'].add(record.query)
-            else:
-                item['count'] += 1
-                item['eValues'].append(alignment.hsps[0].expect)
-                # record.query is the name of the read in the FASTA file.
-                item['reads'].add(record.query)
+
     # remove subjects with no hits below the cutoff:
     for title, value in result.iteritems():
-        count = item['count']
         if value['count'] == 0:
             del result[title]
     # compute mean and median evalues:
-    for key, item in result.iteritems():
-        item['eMean'] = sum(item['eValues']) / float(count)
-        item['eMedian'] = np.median(item['eValues'])
-        item['reads'] = sorted(item['reads'])
+    for title, value in result.iteritems():
+        value['eMean'] = sum(value['eValues']) / float(value['count'])
+        value['eMedian'] = np.median(value['eValues'])
+        value['reads'] = sorted(value['reads'])
 
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
@@ -1041,7 +1037,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.svg'
+        panelFilename = 'alignment-panel.png'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:
