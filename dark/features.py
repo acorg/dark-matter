@@ -62,24 +62,33 @@ def getFeatures(fig, record, minX, maxX):
         return toPlot, totalSubfeatures
 
 
-def addFeatures(fig, record, minX, maxX):
+def addFeatures(fig, record, minX, maxX, offsetAdjuster):
+    """
+    Add features to fig, as long as we don't have too many (>20).  If we have
+    too many, return the features as an array of descriptive strings.
+
+    fig is a matplotlib figure.
+    record is a Bio.Seq with features, or None (if offline).
+    minX: the smallest x coordinate.
+    maxX: the largest x coordinate.
+    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
+    """
 
     toPlot, totalSubfeatures = getFeatures(fig, record, minX, maxX)
     result = []
     if len(toPlot) > 20:
         for feature in toPlot:
             # featuretype line -> investigate
-            start = int(feature.location.start)
-            end = int(feature.location.end)
+            start = offsetAdjuster(int(feature.location.start))
+            end = offsetAdjuster(int(feature.location.end))
             gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
             product = feature.qualifiers.get('product', ['<no product>'])[0]
             result.append('%d-%d: %s (%s)' % (start, end, gene, product))
             for subfeature in feature.sub_features:
-                start = int(subfeature.location.start)
-                end = int(subfeature.location.end)
+                start = offsetAdjuster(int(subfeature.location.start))
+                end = offsetAdjuster(int(subfeature.location.end))
                 subfeatureFrame = start % 3
                 result.append('%d-%d: %s subfeature' % (start, end, gene))
-        return result
 
     else:
         colormap = plt.cm.coolwarm
@@ -132,7 +141,7 @@ def addFeatures(fig, record, minX, maxX):
     return result
 
 
-def addORFs(fig, seq, minX, maxX, featureEndpoints):
+def addORFs(fig, seq, minX, maxX, featureEndpoints, offsetAdjuster):
     """
     fig is a matplotlib figure.
     seq is a Bio.Seq.Seq.
@@ -140,18 +149,19 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints):
     maxX: the largest x coordinate.
     featureEndpoints: an array of features as returned by addFeatures (may be
         empty).
+    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
     """
     for frame in range(3):
         target = seq[frame:]
         for (codons, codonType, color) in (
                 (START_CODONS, 'start', 'green'),
                 (STOP_CODONS, 'stop', 'red')):
-            offsets = list(findCodons(target, codons))
+            offsets = map(offsetAdjuster, findCodons(target, codons))
             if offsets:
                 fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
                          markersize=4, color=color, linestyle='None')
 
-    # Add the feature endpoints.
+    # Add the feature endpoints if we don't have too many of them.
     if len(featureEndpoints) < 20:
         for fe in featureEndpoints:
             line = Line2D([fe['start'], fe['start']], [-1, 3],
@@ -168,20 +178,21 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints):
         fontsize=20)
 
 
-def addReversedORFs(fig, seq, minX, maxX):
+def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
     """
     fig is a matplotlib figure.
     seq is a Bio.Seq.Seq (the reverse complement of the sequence we're
         plotting against).
     minX: the smallest x coordinate.
     maxX: the largest x coordinate.
+    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
     """
     for frame in range(3):
         target = seq[frame:]
         for (codons, codonType, color) in (
                 (START_CODONS, 'start', 'green'),
                 (STOP_CODONS, 'stop', 'red')):
-            offsets = map(lambda offset: maxX - offset,
+            offsets = map(lambda offset: maxX - offsetAdjuster(offset),
                           findCodons(target, codons))
             if offsets:
                 fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
