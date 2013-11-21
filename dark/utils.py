@@ -276,13 +276,20 @@ def findHits(recordFilename, hitIds, limit=None):
 
 def getSeqFromGenbank(hitId):
     """
-    hitId: a hit from a BLAST record, in the form 'gi|63148399|gb|DQ011818.1|'
-        We use the 2nd field, as delimited by '|', to fetch from Genbank.
+    hitId: either a hit from a BLAST record, in the form
+        'gi|63148399|gb|DQ011818.1|' in which case we use the 2nd field, as
+        delimited by '|', to fetch from Genbank.  Or, a gi number (the 2nd
+        field just mentioned).
 
     NOTE: this uses the network!  Also, there is a 3 requests/second limit
     imposed by NCBI on these requests so be careful or your IP will be banned.
     """
-    gi = hitId.split('|')[1]
+    try:
+        gi = hitId.split('|')[1]
+    except IndexError:
+        # Assume we have a gi number directly, and make sure it's a string.
+        gi = str(hitId)
+
     try:
         client = Entrez.efetch(db='nucleotide', rettype='gb', retmode='text',
                                id=gi)
