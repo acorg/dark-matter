@@ -306,7 +306,8 @@ def getSeqFromGenbank(hitId):
 def summarizeHits(hits, fastaFilename, eCutoff=None,
                   maxHspsPerHit=None, minStart=None, maxStop=None,
                   logLinearXAxis=False,
-                  logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
+                  logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                  randomizeZeroEValues=False):
     """
     Summarize the information found in 'hits'.
 
@@ -421,14 +422,21 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         # were zero to a randomly high value (higher than the max e value
         # we just calculated).
         maxEIncludingRandoms = hitInfo['maxE']
+        if randomizeZeroEValues:
+            for item in hitInfo['items']:
+                if item['convertedE'] is None:
+                    item['convertedE'] = e = (
+                        hitInfo['maxE'] + 2 + uniform(
+                            0, zeroEValueUpperRandomIncrement))
+                    if e > maxEIncludingRandoms:
+                        maxEIncludingRandoms = e
 
-        for item in hitInfo['items']:
-            if item['convertedE'] is None:
-                item['convertedE'] = e = (
-                    hitInfo['maxE'] + 2 +
-                    uniform(0, zeroEValueUpperRandomIncrement))
-                if e > maxEIncludingRandoms:
-                    maxEIncludingRandoms = e
+        else:
+            for item in hitInfo['items']:
+                if item['convertedE'] is None:
+                    maxEIncludingRandoms += 1
+                    item['convertedE'] = maxEIncludingRandoms
+
         hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
 
         # Adjust all HSPs if we're doing a log/linear X axis.
@@ -494,7 +502,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    readsAx=None, rankEValues=False, imageFile=None,
                    quiet=False, idList=False, xRange='subject',
                    logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                   randomizeZeroEValues=False):
 
     """
     Align a set of BLAST hits against a sequence.
@@ -535,6 +544,9 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         plot we're preparing will only be as wide as their logged actual
         values.
     logBase: The base of the logarithm to use if logLinearXAxis is True.
+    randomizeZeroEValues: if true places all reads with EValues of 0.0 at
+        random positions above the highest read that is not zero. If false,
+        places them ranked.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -572,8 +584,8 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     fasta, summary = summarizeHits(
         allhits, fastaFilename, eCutoff=eCutoff,
         maxHspsPerHit=maxHspsPerHit, minStart=minStart, maxStop=maxStop,
-
-        logLinearXAxis=logLinearXAxis, logBase=logBase)
+        logLinearXAxis=logLinearXAxis, logBase=logBase,
+        randomizeZeroEValues=randomizeZeroEValues)
 
     if rankEValues:
         hitInfo = convertSummaryEValuesToRanks(summary[hitId])
@@ -748,7 +760,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # Add the horizontal divider between the highest e value and the randomly
     # higher ones (if any).
     if hitInfo['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxE + 0, maxE + 0], color='#cccccc',
+        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='#cccccc',
                       linewidth=1)
         readsAx.add_line(line)
 
@@ -808,7 +820,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
                    logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                   randomizeZeroEValues=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -844,6 +857,9 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         plot we're preparing will only be as wide as their logged actual
         values.
     logBase: The base of the logarithm to use if logLinearXAxis is True.
+    randomizeZeroEValues: if true places all reads with EValues of 0.0 at
+        random positions above the highest read that is not zero. If false,
+        places them ranked.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -923,7 +939,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 showFigure=False, readsAx=ax[row][col],
                 rankEValues=rankEValues, quiet=True, idList=idList,
                 xRange=xRange, logLinearXAxis=logLinearXAxis,
-                logBase=logBase)
+                logBase=logBase, randomizeZeroEValues=randomizeZeroEValues)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -935,7 +951,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
                 idList=idList, xRange=xRange, logLinearXAxis=logLinearXAxis,
-                logBase=logBase)
+                logBase=logBase, randomizeZeroEValues=randomizeZeroEValues)
 
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
@@ -1004,7 +1020,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                 # as the plots will be changing width, to all be as wide as
                 # the widest.
                 e = hitInfo['maxE']
-                line = Line2D([minX, maxX], [e + 0, e + 0], color='#cccccc',
+                line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
                               linewidth=1)
                 a.add_line(line)
 
