@@ -649,6 +649,23 @@ class Old_QueryPositiveSubjectPositive(TestCase):
             'queryEnd': 5,
         }, normalized)
 
+    def test20131115Debugging(self):
+        """
+        This is an example I manually examined for Barbara on 2013-11-15.
+        """
+
+        query =   'TTCTTTTTGCATTTGATAGT-TTGCTACAAG'
+        subject = 'TTCTTTTTGCAATAGTCAGTCTTGCTAAAAG'
+        hsp = HSP(subjectStart=45, subjectEnd=75, queryStart=120,
+                  queryEnd=149, frame=self.frame, query=query, subject=subject)
+        normalized = normalizeHSP(hsp, 149)
+        self.assertEqual({
+            'subjectStart': 44,
+            'subjectEnd': 75,
+            'queryStart': -75,
+            'queryEnd': 75,
+        }, normalized)
+
 
 class Old_QueryNegativeSubjectPositive(TestCase):
     """
@@ -939,4 +956,20 @@ class Old_QueryPositiveSubjectNegative(TestCase):
             'subjectEnd': 2339751,
             'queryStart': 2339355,
             'queryEnd': 2339751,
+        }, normalized)
+
+    def test20131115Debugging(self):
+        """
+        This is an example I manually examined for BM on 2013-11-15.
+        """
+        query =   'CTCTTGCA-CCTTAGGTACC'
+        subject = 'CTCTAGCAGCCTTAGGTACC'
+        hsp = HSP(subjectStart=1776, subjectEnd=1795, queryStart=131,
+                  queryEnd=149, frame=self.frame, query=query, subject=subject)
+        normalized = normalizeHSP(hsp, 149)
+        self.assertEqual({
+            'subjectStart': 1775,
+            'subjectEnd': 1795,
+            'queryStart': 1775,
+            'queryEnd': 1925,
         }, normalized)
