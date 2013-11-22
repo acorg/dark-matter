@@ -13,30 +13,29 @@ def printHSP(hsp, indent=''):
 def normalizeHSP(hsp, queryLen):
     """
     Examime the sense of an HSP and return information about where the
-    query and the alignment (match) begin and end.  BLAST always returns
-    query start and stop values that are increasing, but the reported
-    subject match may be reversed (start > stop).  Return a dict with keys
+    query and the alignment (match) begin and end.  Return a dict with keys
     that allow the query and the alignment to be displayed relative to the
     subject orientation (i.e., with start < stop for both the query and the
-    match).
+    match). The returned query indices are offsets into the subject. I.e.,
+    they indicate where on the subject the query lies.
 
     In the returned object, all indices are suitable for Python string
     slicing etc.  We must be careful to convert from the 1-based offsets
-    found in BLAST output properly.  The values in the returned dictionary
-    are ALL indices into the subject string.
+    found in BLAST output properly.
 
-    hsp.frame is a (query, subject) 2-tuple, with the query value coming
-    from {1, 2, 3} and the subject from {-3, -2, -1, 1, 2, 3}. The sign
-    indicates negative or positive sense (negative or positive sign). The
-    subject value is the starting nucleotide match offset modulo 3, plus
-    one (i.e., it tells us which of the 3 possible reading frames is used
-    in the match. It is redundant because that information can also be
-    obtained from the mod 3 value of the match offset.
+    hsp.frame is a (query, subject) 2-tuple, with both values coming from
+    {-3, -2, -1, 1, 2, 3}. The sign indicates negative or positive sense
+    (i.e., the direction of reading through the query or subject to get the
+    alignment). The value is the nucleotide match offset modulo 3, plus one
+    (i.e., it tells us which of the 3 possible reading frames is used in
+    the match). The value is redundant because that information could also
+    be obtained from the mod 3 value of the match offset.
 
-    NOTE: the returned queryStart value may be negative.  The subject
-    sequence is considered to start at offset 0.  So if the query string
-    has sufficient additional nucleotides before the start of the alignment
-    match, it may protrude to the left of the subject (i.e., have x < 0).
+    NOTE: the returned queryStart value may be negative.  We consider the
+    subject sequence to start at offset 0.  So if the query string has
+    sufficient additional nucleotides before the start of the alignment
+    match, it may protrude to the left of the subject. Similarly, the
+    returned queryEnd can be greater than the subjectEnd.
 
     hsp: a HSP from a BLAST record.  All passed hsp offsets are 1-based.
     queryLen: the length of the query sequence.
@@ -45,24 +44,33 @@ def normalizeHSP(hsp, queryLen):
     queryPositive = hsp.frame[0] > 0
     subjectPositive = hsp.frame[1] > 0
 
+    # The following variable names, with underscores, match the names of
+    # attributes BioPython uses and the values (1-based) match those
+    # reported by BLAST.
     query_start = hsp.query_start
     query_end = hsp.query_end
     sbjct_start = hsp.sbjct_start
     sbjct_end = hsp.sbjct_end
 
-    # As far as we know (blastn and tblastx), the query frame is always
-    # positive and the query indices are always ascending.
-    assert queryPositive and query_start <= query_end, (
-        'Assertion "queryPositive and query_start <= query_end" failed. '
-        'queryPositive = %s, query_start = %d, query_end = %d' % (
-            queryPositive, query_start, query_end))
+    # When the query is positive, BLASTN and TBLASTX give query offsets
+    # ascending.
+    #
+    # TBLASTX reports negative query sense with indices ascending.
+    # BLASTN does not report negative query sense.
+    #
+    # In all cases the query offsets should be ascending.
+    assert query_start <= query_end, (
+        'Assertion "query_start <= query_end" failed. Query positive is %s. '
+        'query_start = %d, query_end = %d' %
+        (queryPositive, query_start, query_end))
 
     if subjectPositive:
         # Make sure indices are ascending.
         assert sbjct_start <= sbjct_end
     else:
-        # Subject is negative. Its indices will be ascending for tblastx output
-        # but descending for blastn :-(  Make sure we have them ascending.
+        # Subject is negative. Its indices will be ascending for TBLASTX
+        # output but descending for BLASTN :-( Make sure we have them
+        # ascending.
         if sbjct_start > sbjct_end:
             sbjct_start, sbjct_end = sbjct_end, sbjct_start
 
