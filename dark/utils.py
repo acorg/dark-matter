@@ -112,7 +112,7 @@ def summarizeAllRecords(filename, eCutoff=None):
                     'title': title,
                 }
 
-            if eCutoff is not None or alignment.hsps[0].expect >= eCutoff:
+            if eCutoff is not None and alignment.hsps[0].expect <= eCutoff:
                 item['count'] += 1
                 item['eValues'].append(alignment.hsps[0].expect)
                 # record.query is the name of the read in the FASTA file.
@@ -755,16 +755,16 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     [fe['end'], fe['end']],
                     [0, maxEIncludingRandoms + 1], color='#cccccc')
                 readsAx.add_line(line)
-            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
-                             #offsetAdjuster)
+            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
+                             offsetAdjuster)
         else:
             features.addORFs(orfAx, sequence.seq, minX, maxX, [],
                              offsetAdjuster)
 
         features.addReversedORFs(orfReversedAx,
                                  sequence.reverse_complement().seq,
-                                 minX, maxX)
-                                 #offsetAdjuster)
+                                 minX, maxX, offsetAdjuster)
+
     hitInfo['features'] = featureEndpoints
 
     # Add the horizontal divider between the highest e value and the randomly
