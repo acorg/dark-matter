@@ -152,4 +152,4 @@ if __name__ == '__main__':
         interesting, allHits, fasta, db=args.db, eCutoff=args.eCutoff,
         maxHspsPerHit=args.maxHspsPerHit, minStart=args.minStart,
         maxStop=args.maxStop, sortOn=args.sortOn, rankEValues=args.rankEValues,
-        interactive=False, outputDir=args.outputDir, idList=args.idList)
+        interactive=True, outputDir=args.outputDir, idList=args.idList)

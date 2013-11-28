@@ -112,11 +112,16 @@ def summarizeAllRecords(filename, eCutoff=None):
                     'title': title,
                 }
 
-            if eCutoff is not None and alignment.hsps[0].expect <= eCutoff:
+            if eCutoff is not None:
+                if alignment.hsps[0].expect <= eCutoff:
+                    item['count'] += 1
+                    item['eValues'].append(alignment.hsps[0].expect)
+                    # record.query is the name of the read in the FASTA file.
+                    item['reads'].add(record.query)
+            else:
                 item['count'] += 1
                 item['eValues'].append(alignment.hsps[0].expect)
-                # record.query is the name of the read in the FASTA file.
-                item['reads'].add(record.query)
+                item['reads'].add(record.query)                
 
     # remove subjects with no hits below the cutoff:
     titles = result.keys()
@@ -956,7 +961,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                showFeatures=False, eCutoff=eCutoff,
+                showFeatures=True, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
