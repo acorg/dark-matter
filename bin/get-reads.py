@@ -3,12 +3,13 @@
 from dark import utils
 import sys
 from re import compile
+import argparse
 
 
-def main(recordFilename, fastaFilename, hitId, ranges):
+def main(recordFilename, fastaFilename, hitId, xRange, eRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
-    recordFilename: the result of a blastrun, using outfmt 5.
+    recordFilename: the result of a blast run, using outfmt 5.
     fastaFilename: the fasta file that was blasted.
     hitId: the hitId from the subject where the reads should be searched for.
         Must be of the format: 'gi|1234|abc|1234'
@@ -17,53 +18,65 @@ def main(recordFilename, fastaFilename, hitId, ranges):
         is optional and should be a converted value or an interval of
         converted evalues.
     """
-
     allhits = utils.findHits(recordFilename, set([hitId]))
 
     fasta, summary = utils.summarizeHits(allhits, fastaFilename)
 
     hitInfo = summary[hitId]['items']
-
-    if hitInfo is None:
-        print "files are empty"
+    if len(hitInfo) == 0:
+        print >> sys.stderr, "%s: files are empty" % sys.argv[0]
         sys.exit(3)
     else:
-        result = []
-        evalueResult = []
-        if ranges[0]:
-            for item in hitInfo:
-                if (ranges[0][0] <= item['hsp']['subjectEnd'] and
-                        ranges[0][1] >= item['hsp']['subjectStart']):
-                    result.append((item['query'], item['hsp']['subjectStart'],
-                                  item['hsp']['subjectEnd'],
-                                  item['convertedE']))
-
-        try:
-            if ranges[1]:
-                for item in result:
-                    if item[3] > ranges[1][0] and item[3] < ranges[1][1]:
-                        evalueResult.append(item)
-        except IndexError:
-            pass
-
-    if len(evalueResult) != 0:
-        for item in evalueResult:
-            print item
-    else:
-        for item in result:
-            print item
+        for item in hitInfo:
+            hsp = item['hsp']
+            if ((xRange is None or (xRange[0][0] <= hsp['subjectEnd'] and
+                                    xRange[0][1] >= hsp['subjectStart'])) and
+                    (eRange is None or
+                        (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
+                print 'query: ', item['query'], 'start: ', hsp['subjectStart'],
+                'end: ', hsp['subjectEnd'], 'E-value: ', item['convertedE']
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print >>sys.stderr, ('Usage: %s gi-number [offset1, offset2, ...]' %
-                             sys.argv[0])
+        print >>sys.stderr, ('Usage: %s recordFilename, fastaFilename, \
+            gi-number, xCoords, eCoords' % sys.argv[0])
         sys.exit(1)
 
-    rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
-    ranges = []
-    for arg in sys.argv[4:]:
-        match = rangeRegex.match(arg)
+    parser = argparse.ArgumentParser(
+        description='Print the reads that are \
+        at specified positions in an alignmentGraph',
+        epilog='Given a JSON BLAST output file, a FASTA sequence file, a hitId'
+        'and a an x and / or eRange, print the reads that \
+        are within the given Ranges.'
+    )
+
+    parser.add_argument(
+        'json', metavar='BLAST-JSON-file', type=str,
+        help='the JSON file of BLAST output.')
+
+    parser.add_argument(
+        'fasta', metavar='FASTA-file', type=str,
+        help='the FASTA file of sequences that were given to BLAST.')
+
+    parser.add_argument(
+        'hitId', metavar='gi|1234|db|1234', type=str,
+        help='The identifier of the subject.')
+
+    parser.add_argument(
+        '--xRange', default=None,
+        help='a range on the x-axis.')
+
+    parser.add_argument(
+        '--eRange', default=None,
+        help='a range on the y-axis.')
+
+    args = parser.parse_args()
+
+    def _getRange(inputRange):
+        rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
+        ranges = []
+        match = rangeRegex.match(inputRange)
         if match:
             start, end = match.groups()
             start = int(start)
@@ -74,11 +87,21 @@ if __name__ == '__main__':
             if start > end:
                 start, end = end, start
             ranges.append((start, end))
-
         else:
             print >>sys.stderr, (
                 'Illegal argument %r. Ranges must single numbers or '
                 'number-number.' % arg)
             sys.exit(2)
+        return ranges
 
-    main(sys.argv[1], sys.argv[2], sys.argv[3], ranges)
+    if args.xRange:
+        xRange = _getRange(args.xRange)
+    else:
+        xRange = None
+
+    if args.eRange:
+        eRange = _getRange(args.eRange)
+    else:
+        eRange = None
+
+    main(args.json, args.fasta, args.hitId, xRange, eRange)
