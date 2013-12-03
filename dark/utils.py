@@ -993,8 +993,8 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             meanE = '1e-%d' % numberMeanE
             medianE = '1e-%d' % numberMedianE
         ax[row][col].set_title(
-            '%d: %s\n%d reads, %s median, %s mean' % (
-                i, title.split(' ', 1)[1][:40],
+            '%d: %s\n%d HSPs shown (%d reads in total)\n%s median, %s mean' % (
+                i, title.split(' ', 1)[1][:40], len(hitInfo['items']),
                 len(summary[title]['reads']), medianE, meanE), fontsize=10)
 
         if hitInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
