@@ -1079,6 +1079,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
+    plt.subplots_adjust(hspace=0.4)
     figure.suptitle('X: %d to %d, Y: %d to %d' %
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
