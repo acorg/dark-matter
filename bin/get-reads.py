@@ -26,14 +26,16 @@ def main(recordFilename, fastaFilename, hitId, xRange, eRange):
     if len(hitInfo) == 0:
         print >> sys.stderr, "%s: files are empty" % sys.argv[0]
         sys.exit(3)
-    else:
-        for item in hitInfo:
-            hsp = item['hsp']
-            if ((xRange is None or (xRange[0][0] <= hsp['subjectEnd'] and
-                                    xRange[0][1] >= hsp['subjectStart'])) and
-                    (eRange is None or
-                        (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
-                print 'query: ', item['query'], 'start: ', hsp['subjectStart'], 'end: ', hsp['subjectEnd'], 'E-value: ', item['convertedE']
+
+    for item in hitInfo:
+        hsp = item['hsp']
+        if ((xRange is None or (xRange[0][0] <= hsp['subjectEnd'] and
+                                xRange[0][1] >= hsp['subjectStart'])) and
+                (eRange is None or
+                    (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
+            print ('query: ', item['query'], 'start: ', '\n'
+                   hsp['subjectStart'], 'end: ', hsp['subjectEnd'], '\n'
+                   'E-value: ', item['convertedE'])
 
 
 if __name__ == '__main__':
