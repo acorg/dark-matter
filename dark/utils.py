@@ -815,7 +815,6 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         hitInfo['queryMax'] = queryMax
 
     readsAx.set_ylim([0, maxEIncludingRandoms + 1])
-    #readsAx.set_ylim([0, 7])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -962,7 +961,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
             imageFile = '%s/%s' % (outputDir, imageBasename)
             hitInfo = alignmentGraph(
                 allhits, hitId, fasta, db=db, addQueryLines=True,
-                showFeatures=True, eCutoff=eCutoff,
+                showFeatures=False, eCutoff=eCutoff,
                 maxHspsPerHit=maxHspsPerHit, colorQueryBases=False,
                 minStart=minStart, maxStop=maxStop, showFigure=False,
                 rankEValues=rankEValues, imageFile=imageFile, quiet=True,
