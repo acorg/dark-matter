@@ -112,11 +112,11 @@ def summarizeAllRecords(filename, eCutoff=None):
                     'title': title,
                 }
 
-            if eCutoff is not None or alignment.hsps[0].expect >= eCutoff:
-                item['count'] += 1
-                item['eValues'].append(alignment.hsps[0].expect)
-                # record.query is the name of the read in the FASTA file.
-                item['reads'].add(record.query)
+            if eCutoff is None or alignment.hsps[0].expect <= eCutoff:
+                    item['count'] += 1
+                    item['eValues'].append(alignment.hsps[0].expect)
+                    # record.query is the name of the read in the FASTA file.
+                    item['reads'].add(record.query)
 
     # remove subjects with no hits below the cutoff:
     titles = result.keys()
@@ -698,6 +698,12 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
                 baseImage.set(xOffset + queryIndex, e, color)
 
+                # a gap in the subject was needed to match a different query
+                # than the one we're matching against.
+                # this throws off the indexing.
+                # if this happen, show a gap when coloring in the base of the
+                # query as gap.
+
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
                        extent=[minX, maxX, minE, maxEIncludingRandoms])
@@ -755,16 +761,16 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                     [fe['end'], fe['end']],
                     [0, maxEIncludingRandoms + 1], color='#cccccc')
                 readsAx.add_line(line)
-            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints)
-                             #offsetAdjuster)
+            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
+                             offsetAdjuster)
         else:
             features.addORFs(orfAx, sequence.seq, minX, maxX, [],
                              offsetAdjuster)
 
         features.addReversedORFs(orfReversedAx,
                                  sequence.reverse_complement().seq,
-                                 minX, maxX)
-                                 #offsetAdjuster)
+                                 minX, maxX, offsetAdjuster)
+
     hitInfo['features'] = featureEndpoints
 
     # Add the horizontal divider between the highest e value and the randomly
