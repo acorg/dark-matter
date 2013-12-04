@@ -782,7 +782,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # Titles, axis, etc.
     if createFigure:
         figure.suptitle('%s (length %d, %d hits)' % (
-            sequence.description, len(sequence), len(items)),
+            sequence.description, len(sequence), hitInfo['hitCount']),
             fontsize=20)
     if createdReadsAx:
         # Only add title and y-axis label if we made the reads axes.

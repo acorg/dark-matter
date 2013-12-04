@@ -139,8 +139,8 @@ def normalizeHSP(hsp, queryLen):
     #     debugPrint()
 
     # Final sanity checks.
-    #assert queryStart <= subjectStart
-    #assert queryEnd >= subjectEnd
+    assert queryStart <= subjectStart
+    assert queryEnd >= subjectEnd
 
     return {
         'queryEnd': queryEnd,
