@@ -782,7 +782,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     # Titles, axis, etc.
     if createFigure:
         figure.suptitle('%s (length %d, %d hits)' % (
-            sequence.description, len(sequence), hitInfo['hitCount']),
+            sequence.description, len(sequence), len(items)),
             fontsize=20)
     if createdReadsAx:
         # Only add title and y-axis label if we made the reads axes.
@@ -815,6 +815,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         hitInfo['queryMax'] = queryMax
 
     readsAx.set_ylim([0, maxEIncludingRandoms + 1])
+    #readsAx.set_ylim([0, 7])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -1088,7 +1089,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                     (minX, maxX, int(minE), int(maxE)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
-        panelFilename = 'alignment-panel.png'
+        panelFilename = 'alignment-panel.pdf'
         figure.savefig('%s/%s' % (outputDir, panelFilename))
         htmlOutput.close(panelFilename)
     if interactive:

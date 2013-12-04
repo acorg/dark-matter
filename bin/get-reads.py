@@ -33,8 +33,7 @@ def main(recordFilename, fastaFilename, hitId, xRange, eRange):
                                     xRange[0][1] >= hsp['subjectStart'])) and
                     (eRange is None or
                         (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
-                print 'query: ', item['query'], 'start: ', hsp['subjectStart'],
-                'end: ', hsp['subjectEnd'], 'E-value: ', item['convertedE']
+                print 'query: ', item['query'], 'start: ', hsp['subjectStart'], 'end: ', hsp['subjectEnd'], 'E-value: ', item['convertedE']
 
 
 if __name__ == '__main__':
