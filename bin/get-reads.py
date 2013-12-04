@@ -33,9 +33,9 @@ def main(recordFilename, fastaFilename, hitId, xRange, eRange):
                                 xRange[0][1] >= hsp['subjectStart'])) and
                 (eRange is None or
                     (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
-            print ('query: ', item['query'], 'start: ', '\n'
-                   hsp['subjectStart'], 'end: ', hsp['subjectEnd'], '\n'
-                   'E-value: ', item['convertedE'])
+            print 'query: ', item['query'], 'start: ', \
+                hsp['subjectStart'], 'end: ', hsp['subjectEnd'], \
+                'E-value: ', item['convertedE']
 
 
 if __name__ == '__main__':
@@ -75,6 +75,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def _getRange(inputRange):
+        if inputRange is None:
+            return None
         rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
         ranges = []
         match = rangeRegex.match(inputRange)
@@ -95,14 +97,5 @@ if __name__ == '__main__':
             sys.exit(2)
         return ranges
 
-    if args.xRange:
-        xRange = _getRange(args.xRange)
-    else:
-        xRange = None
-
-    if args.eRange:
-        eRange = _getRange(args.eRange)
-    else:
-        eRange = None
-
-    main(args.json, args.fasta, args.hitId, xRange, eRange)
+    main(args.json, args.fasta, args.hitId,
+         _getRange(args.xRange), _getRange(args.eRange))
