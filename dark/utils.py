@@ -113,10 +113,10 @@ def summarizeAllRecords(filename, eCutoff=None):
                 }
 
             if eCutoff is None or alignment.hsps[0].expect <= eCutoff:
-                    item['count'] += 1
-                    item['eValues'].append(alignment.hsps[0].expect)
-                    # record.query is the name of the read in the FASTA file.
-                    item['reads'].add(record.query)
+                item['count'] += 1
+                item['eValues'].append(alignment.hsps[0].expect)
+                # record.query is the name of the read in the FASTA file.
+                item['reads'].add(record.query)
 
     # remove subjects with no hits below the cutoff:
     titles = result.keys()
