@@ -93,7 +93,7 @@ if __name__ == '__main__':
         else:
             print >>sys.stderr, (
                 'Illegal argument %r. Ranges must single numbers or '
-                'number-number.' % args)
+                'number-number.' % inputRange)
             sys.exit(2)
         return ranges
 
