@@ -116,7 +116,7 @@ def summarizeAllRecords(filename, eCutoff=None):
                     item['count'] += 1
                     item['eValues'].append(alignment.hsps[0].expect)
                     # record.query is the name of the read in the FASTA file.
-                    item['reads'].add(record.query)             
+                    item['reads'].add(record.query)
 
     # remove subjects with no hits below the cutoff:
     titles = result.keys()
@@ -698,10 +698,11 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
                 baseImage.set(xOffset + queryIndex, e, color)
 
-                # a gap in the subject was needed to match a different query than the one we're matching against. 
+                # a gap in the subject was needed to match a different query
+                # than the one we're matching against.
                 # this throws off the indexing.
-                # if this happen, show a gap when coloring in the base of the query as gap.
-
+                # if this happen, show a gap when coloring in the base of the
+                # query as gap.
 
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
