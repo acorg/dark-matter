@@ -111,6 +111,10 @@ if __name__ == '__main__':
         '--summaryFile', type=str, default=None,
         help='A file to write the summary from summarizeAllRecords to.')
 
+    parser.add_argument(
+        '--eCutoff_for_summary', type=float, default=None,
+        help='eCutoff passed to summarizeAllRecords.')
+
     args = parser.parse_args()
     report('Reading FASTA from %r.' % args.fasta)
     fasta = list(SeqIO.parse(args.fasta, 'fasta'))
@@ -123,11 +127,11 @@ if __name__ == '__main__':
                 summaryString = f.read()
                 summary = loads(summaryString)
         else:
-            summary = summarizeAllRecords(args.json)
+            summary = summarizeAllRecords(args.json, args.eCutoff_for_summary)
             with open(args.summaryFile, 'w') as f:
                 f.write(dumps(summary))
     else:
-        summary = summarizeAllRecords(args.json)
+        summary = summarizeAllRecords(args.json, args.eCutoff_for_summary)
 
     interesting = interestingRecords(
         summary, titleRegex=args.titleRegex,
