@@ -31,6 +31,11 @@ if __name__ == '__main__':
         'fasta', metavar='FASTA-file', type=str,
         help='the FASTA file of sequences that were given to BLAST.')
 
+    # Args for summarizeReads.
+    parser.add_argument(
+        '--eCutoff_for_summary', type=float, default=None,
+        help='eCutoff passed to summarizeAllRecords.')
+
     # Args for the interesting selection.
     parser.add_argument(
         '--titleRegex', type=str, default=None,
@@ -110,10 +115,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--summaryFile', type=str, default=None,
         help='A file to write the summary from summarizeAllRecords to.')
-
-    parser.add_argument(
-        '--eCutoff_for_summary', type=float, default=None,
-        help='eCutoff passed to summarizeAllRecords.')
 
     args = parser.parse_args()
     report('Reading FASTA from %r.' % args.fasta)
