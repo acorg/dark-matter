@@ -31,6 +31,11 @@ if __name__ == '__main__':
         'fasta', metavar='FASTA-file', type=str,
         help='the FASTA file of sequences that were given to BLAST.')
 
+    # Args for summarizeReads.
+    parser.add_argument(
+        '--eCutoff_for_summary', type=float, default=None,
+        help='eCutoff passed to summarizeAllRecords.')
+
     # Args for the interesting selection.
     parser.add_argument(
         '--titleRegex', type=str, default=None,
@@ -123,11 +128,11 @@ if __name__ == '__main__':
                 summaryString = f.read()
                 summary = loads(summaryString)
         else:
-            summary = summarizeAllRecords(args.json)
+            summary = summarizeAllRecords(args.json, args.eCutoff_for_summary)
             with open(args.summaryFile, 'w') as f:
                 f.write(dumps(summary))
     else:
-        summary = summarizeAllRecords(args.json)
+        summary = summarizeAllRecords(args.json, args.eCutoff_for_summary)
 
     interesting = interestingRecords(
         summary, titleRegex=args.titleRegex,
