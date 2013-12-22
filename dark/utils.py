@@ -1,4 +1,6 @@
 import re
+import os
+from stat import S_ISDIR
 from math import ceil
 from IPython.display import HTML
 from collections import defaultdict
@@ -863,6 +865,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
     interactive: If True, we are interactive and should display the panel
         using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
+        If the directory does not exist it will be created.
     idList: a dictionary. The keys is a color and the values is a list of
         read identifiers that should be colored in the respective color.
     equalizeXAxes: if True, adjust the X axis on each alignment plot to be
@@ -938,6 +941,12 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         allhits = recordFilenameOrHits
 
     if outputDir:
+        if os.access(outputDir, os.F_OK):
+            # outputDir exists. Check it's a directory.
+            mode = os.stat(outputDir).st_mode
+            assert S_ISDIR(mode), "%r is not a directory." % outputDir
+        else:
+            os.mkdir(outputDir)
         htmlOutput = html.AlignmentPanelHTML(outputDir, fasta)
 
     coords = dimensionalIterator((rows, cols))
