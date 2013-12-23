@@ -254,7 +254,10 @@ def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
         if maxMinEValue is not None and item['eMin'] > maxMinEValue:
             continue
         if truncateTitlesAfter:
-            truncatedTitle = simplifyTitle(title, truncateTitlesAfter)
+            # Titles start with something like gi|525472786|emb|HG313807.1| that
+            # we need to skip.
+            titleSansId = title.split(' ', 1)[1]
+            truncatedTitle = simplifyTitle(titleSansId, truncateTitlesAfter)
             if truncatedTitle in truncatedTitles:
                 # We've seen this title (in truncated form) before. Skip it.
                 continue
