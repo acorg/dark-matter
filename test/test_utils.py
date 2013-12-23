@@ -180,6 +180,74 @@ class InterestingRecords(TestCase):
                 maxMeanEValue=6
             ))
 
+    def testFilterMaxMinEValueNoHitsMatch(self):
+        """
+        Filtering with a maximum minimum e-value should filter out hits
+        whose minimal me-values are greater than the passed value.
+        """
+        self.assertEqual(
+            {
+            },
+            interestingRecords(
+                {
+                    'a': {
+                        'eMin': 1e-12
+                    },
+                    'b': {
+                        'eMin': 1e-15
+                    },
+                    'c': {
+                        'eMin': 1e-5
+                    }
+                },
+                maxMinEValue=1e-20
+            ))
+
+    def testFilterMaxMinEValueAllHitsMatch(self):
+        """
+        Filtering with a maximum minimum e-value should filter out hits
+        whose minimal me-values are greater than the passed value.
+        """
+        data = {
+            'a': {
+                'eMin': 1e-12
+            },
+            'b': {
+                'eMin': 1e-15
+            },
+            'c': {
+                'eMin': 1e-5
+            }
+        }
+
+        self.assertEqual(data, interestingRecords(data, maxMinEValue=1e-3))
+
+    def testFilterMaxMinEValueSomeHitsMatch(self):
+        """
+        Filtering with a maximum minimum e-value should filter out hits
+        whose minimal me-values are greater than the passed value.
+        """
+        self.assertEqual(
+            {
+                'b': {
+                    'eMin': 1e-15
+                }
+            },
+            interestingRecords(
+                {
+                    'a': {
+                        'eMin': 1e-12
+                    },
+                    'b': {
+                        'eMin': 1e-15
+                    },
+                    'c': {
+                        'eMin': 1e-5
+                    }
+                },
+                maxMinEValue=1e-13
+            ))
+
 
 class TestFilterRecords(TestCase):
     """
