@@ -59,8 +59,18 @@ if __name__ == '__main__':
         'greater will be elided.')
 
     parser.add_argument(
+        '--maxMinEValue', type=float, default=None,
+        help='sequences that are matched with a minimum e-value that is '
+        'greater will be elided.')
+
+    parser.add_argument(
         '--negativeTitleRegex', type=str, default=None,
         help='a regex that sequence titles must not match.')
+
+    parser.add_argument(
+        '--truncateTitlesAfter', type=str, default=None,
+        help='a string that titles will be truncated beyond. If a truncated '
+        'title has already been seen, that title will be skipped.')
 
     # Args for the alignment panel
     parser.add_argument(
@@ -134,7 +144,9 @@ if __name__ == '__main__':
         minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
         minMatchingReads=args.minMatchingReads,
         maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
-        negativeTitleRegex=args.negativeTitleRegex)
+        maxMinEValue=args.maxMinEValue,
+        negativeTitleRegex=args.negativeTitleRegex,
+        truncateTitlesAfter=args.truncateTitlesAfter)
 
     nInteresting = len(interesting)
     if nInteresting == 0:
@@ -145,6 +157,8 @@ if __name__ == '__main__':
            (nInteresting, '' if nInteresting == 1 else 's'))
 
     if args.earlyExit:
+        print 'Hit titles:'
+        print '\n'.join(interesting.keys())
         sys.exit(0)
 
     allHits = getAllHitsForSummary(interesting, args.json)

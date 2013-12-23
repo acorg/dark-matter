@@ -101,6 +101,70 @@ class InterestingRecords(TestCase):
                 minSequenceLen=5
             ))
 
+    def testTruncateTitlesWhenAllMatch(self):
+        """
+        Truncate titles should give just one result when all sequence titles
+        get collapsed.
+
+        Note that 'len' is used in the test because we don't know which of the
+        titles will be selected (because iteration order over a dictionary is
+        undefined).
+        """
+        self.assertEqual(
+            1,
+            len(interestingRecords(
+                {
+                    'a long virus strain 29744': 23,
+                    'a long virus of unknown aetiology': 33,
+                    'a long virus cryptostrain 9202': 43
+                },
+                truncateTitlesAfter='virus'))
+        )
+
+    def testTruncateTitlesWhenSomeMatch(self):
+        """
+        Truncate titles should give the right results when several sequence
+        titles are collapsed and some do not.
+        """
+        result = interestingRecords(
+            {
+                'a long virus strain 29744': 23,
+                'a long virus of unknown aetiology': 33,
+                'a long virus cryptostrain 9202': 43,
+                'something else': 11,
+            },
+            truncateTitlesAfter='virus'
+        )
+        self.assertEqual(2, len(result))
+        self.assertTrue('something else' in result.keys())
+
+    def testTruncateTitlesWithOneMatch(self):
+        """
+        Truncate titles shouldn't change anything if only one title matches.
+        """
+        data = {
+            'a long virus strain 29744': 23,
+            'a long virus of unknown aetiology': 33,
+            'a long virus cryptostrain 9202': 43
+        }
+
+        self.assertEqual(
+            data,
+            interestingRecords(data, truncateTitlesAfter='unknown'))
+
+    def testTruncateTitlesWithNoMatches(self):
+        """
+        Truncate titles shouldn't do anything if the titles don't match at all.
+        """
+        data = {
+            'a long virus strain 29744': 23,
+            'a long virus of unknown aetiology': 33,
+            'a long virus cryptostrain 9202': 43
+        }
+
+        self.assertEqual(data,
+                         interestingRecords(data, truncateTitlesAfter='xxx'))
+
     def testFilterLengthMinMax(self):
         """
         Filtering with a minimum and maximum sequence length should work.
