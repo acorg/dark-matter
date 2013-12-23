@@ -120,15 +120,17 @@ def summarizeAllRecords(filename, eCutoff=None):
                 # record.query is the name of the read in the FASTA file.
                 item['reads'].add(record.query)
 
-    # remove subjects with no hits below the cutoff:
+    # Remove subjects with no hits below the cutoff.
     titles = result.keys()
     for title in titles:
         if result[title]['count'] == 0:
             del result[title]
-    # compute mean and median evalues:
+
+    # Compute mean and median evalues.
     for title, value in result.iteritems():
         value['eMean'] = sum(value['eValues']) / float(value['count'])
         value['eMedian'] = np.median(value['eValues'])
+        value['eMin'] = min(value['eValues'])
         value['reads'] = sorted(value['reads'])
 
     stop = time()
@@ -204,7 +206,7 @@ def filterRecords(summary, filterFunc):
 def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
                        maxSequenceLen=None, minMatchingReads=None,
                        maxMeanEValue=None, maxMedianEValue=None,
-                       negativeTitleRegex=None):
+                       negativeTitleRegex=None, maxMinEValue=None):
     """
     Given a summary of BLAST results, produced by summarizeAllRecords, return
     a dictionary consisting of just the interesting records.
@@ -220,6 +222,12 @@ def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
         that is greater will be elided.
     maxMedianEValue: sequences that are matched with a median e-value
         that is greater will be elided.
+    maxMinEValue: if the minimum e-value for a hit is higher than this
+        value, elide the hit. E.g., suppose we are passed a value of
+        1e-20, then we should reject any hit whose minimal (i.e., best)
+        e-value is bigger than 1e-20. So a hit with minimal e-value of 1e-10
+        would not be reported, whereas a hit with a minimal e-value of 1e-30
+        would be.
     """
     result = {}
     if titleRegex is not None:
@@ -240,6 +248,8 @@ def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
         if maxMeanEValue is not None and item['eMean'] > maxMeanEValue:
             continue
         if maxMedianEValue is not None and item['eMedian'] > maxMedianEValue:
+            continue
+        if maxMinEValue is not None and item['eMin'] > maxMinEValue:
             continue
         result[title] = item
     return result
