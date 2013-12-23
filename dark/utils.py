@@ -24,6 +24,7 @@ from dark.conversion import readJSONRecords
 from dark.dimension import dimensionalIterator
 from dark.hsp import normalizeHSP, printHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark.simplify import simplifyTitle
 from dark import features
 
 Entrez.email = 'tcj25@cam.ac.uk'
@@ -206,7 +207,8 @@ def filterRecords(summary, filterFunc):
 def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
                        maxSequenceLen=None, minMatchingReads=None,
                        maxMeanEValue=None, maxMedianEValue=None,
-                       negativeTitleRegex=None, maxMinEValue=None):
+                       negativeTitleRegex=None, maxMinEValue=None,
+                       truncateTitlesAfter=None):
     """
     Given a summary of BLAST results, produced by summarizeAllRecords, return
     a dictionary consisting of just the interesting records.
@@ -228,17 +230,17 @@ def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
         e-value is bigger than 1e-20. So a hit with minimal e-value of 1e-10
         would not be reported, whereas a hit with a minimal e-value of 1e-30
         would be.
+    truncateTitlesAfter: specify a string that titles will be truncated beyond.
+        If a truncated title has already been seen, that title will be elided.
     """
     result = {}
+    if truncateTitlesAfter:
+        truncatedTitles = set()
     if titleRegex is not None:
         titleRegex = re.compile(titleRegex, re.I)
     if negativeTitleRegex is not None:
         negativeTitleRegex = re.compile(negativeTitleRegex, re.I)
     for title, item in summary.iteritems():
-        if titleRegex and titleRegex.search(title) is None:
-            continue
-        if negativeTitleRegex and negativeTitleRegex.search(title) is not None:
-            continue
         if minSequenceLen is not None and item['length'] < minSequenceLen:
             continue
         if maxSequenceLen is not None and item['length'] > maxSequenceLen:
@@ -250,6 +252,17 @@ def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
         if maxMedianEValue is not None and item['eMedian'] > maxMedianEValue:
             continue
         if maxMinEValue is not None and item['eMin'] > maxMinEValue:
+            continue
+        if truncateTitlesAfter:
+            truncatedTitle = simplifyTitle(title, truncateTitlesAfter)
+            if truncatedTitle in truncatedTitles:
+                # We've seen this title (in truncated form) before. Skip it.
+                continue
+            truncatedTitles.add(truncatedTitle)
+        # Do the title regex tests last, since they are slowest.
+        if titleRegex and titleRegex.search(title) is None:
+            continue
+        if negativeTitleRegex and negativeTitleRegex.search(title) is not None:
             continue
         result[title] = item
     return result
