@@ -37,7 +37,7 @@ def getFeatures(fig, record, minX, maxX):
     totalSubfeatures = 0
     if record:
         for feature in record.features:
-            if feature.type in ('CDS', 'rRNA'):
+            if feature.type in ('CDS', 'mat_peptide', 'rRNA'):
                 toPlot.append(feature)
                 totalSubfeatures += len(feature.sub_features)
 
@@ -106,11 +106,16 @@ def addFeatures(fig, record, minX, maxX, offsetAdjuster):
                 'end': end,
                 'start': start,
             })
-            frame = start % 3
-            fig.plot([start, end], [frame, frame], color=colors[index],
-                     linewidth=2)
             gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
             product = feature.qualifiers.get('product', ['<no product>'])[0]
+            frame = start % 3
+            # If we have a polyprotein, shift it up slightly so we can see
+            # its components below it.
+            if product.lower().find('polyprotein') > -1:
+                y = frame + 0.2
+            else:
+                y = frame
+            fig.plot([start, end], [y, y], color=colors[index], linewidth=2)
             labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
             for subfeature in feature.sub_features:
                 index += 1
