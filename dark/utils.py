@@ -49,6 +49,8 @@ SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
+ECUTOFF_DEFAULT = 1e-2
+
 
 def readBlastRecords(filename, limit=None):
     """
@@ -136,6 +138,12 @@ def summarizeAllRecords(filename, eCutoff=None):
 
     stop = time()
     report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
+    if eCutoff is not None:
+        global ECUTOFF_FROM_SUMMARY
+        ECUTOFF_FROM_SUMMARY = eCutoff
+        print 'ECUTOFF_FROM_SUMMARY set to %e' % ECUTOFF_FROM_SUMMARY
+    else:
+        ECUTOFF_FROM_SUMMARY = None
     return result
 
 
@@ -374,7 +382,7 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
 
     def resultDict(sequenceLen):
         result = {
-            'hitCount': 0,
+            'readCount': 0,
             'items': [],
             'maxE': 0.0,
             'minE': 1000,  # Something ridiculously large.
@@ -397,8 +405,11 @@ def summarizeHits(hits, fastaFilename, eCutoff=None,
         if hitId not in result:
             result[hitId] = resultDict(hitLen)
         hitInfo = result[hitId]
-        # Manually count hits. 'hits' may be a generator so we can't use len().
-        hitInfo['hitCount'] += 1
+        # Manually count reads. 'hits' may be a generator so we can't use
+        # len(). Note that the number of reads might be smaller than the
+        # number of HSPs. 'readCount' includes all reads, even it the
+        # evalues of their HSPs are above the eCutoff.
+        hitInfo['readCount'] += 1
         queryLen = len(fasta[sequenceId])
 
         for hspCount, hsp in enumerate(hsps, start=1):
@@ -534,12 +545,12 @@ def convertSummaryEValuesToRanks(hitInfo):
 
 
 def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
-                   addQueryLines=True, showFeatures=True, eCutoff=1e-2,
-                   maxHspsPerHit=None, colorQueryBases=False, minStart=None,
-                   maxStop=None, createFigure=True, showFigure=True,
-                   readsAx=None, rankEValues=False, imageFile=None,
-                   quiet=False, idList=False, xRange='subject',
-                   logLinearXAxis=False,
+                   addQueryLines=True, showFeatures=True,
+                   eCutoff=ECUTOFF_DEFAULT, maxHspsPerHit=None,
+                   colorQueryBases=False, minStart=None, maxStop=None,
+                   createFigure=True, showFigure=True, readsAx=None,
+                   rankEValues=False, imageFile=None, quiet=False,
+                   idList=False, xRange='subject', logLinearXAxis=False,
                    logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
                    randomizeZeroEValues=False):
 
@@ -586,6 +597,13 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         random positions above the highest read that is not zero. If false,
         places them ranked.
     """
+    if not quiet:
+        if ECUTOFF_FROM_SUMMARY and ECUTOFF_FROM_SUMMARY != eCutoff:
+            print ('different eCutoff used in summarizeAllRecords\
+and alignmentGraph: %e vs. %e' % (eCutoff, ECUTOFF_FROM_SUMMARY))
+        if eCutoff != ECUTOFF_DEFAULT:
+            print ('eCutoff different from default: %e vs. %e' %
+                  (eCutoff, ECUTOFF_DEFAULT))
 
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
@@ -810,9 +828,15 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
     # Titles, axis, etc.
     if createFigure:
-        figure.suptitle('%s (length %d, %d hits)' % (
-            sequence.description, len(sequence), hitInfo['hitCount']),
-            fontsize=20)
+        figure.suptitle('%s \nlength %d, %d HSPs shown (%d reads in total)' % (
+            sequence.description, len(sequence), len(hitInfo['items']),
+            hitInfo['readCount']), fontsize=20)
+        # hitInfo['readCount'] corresponds to the number of reads that hit
+        # against the subject, even if the evalue of the HSP is above the
+        # eCutoff.
+        # len(hitInfo['items']) corresponds to the number of HSPs that hit
+        # against the subject with evalues below eCutoff. A read can generate
+        # multiple HSPs.
     if createdReadsAx:
         # Only add title and y-axis label if we made the reads axes.
         readsAx.set_title('Read alignments', fontsize=20)
@@ -859,7 +883,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
 
 
 def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
-                   eCutoff=1e-2, maxHspsPerHit=None, minStart=None,
+                   eCutoff=ECUTOFF_DEFAULT, maxHspsPerHit=None, minStart=None,
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
@@ -906,6 +930,12 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         random positions above the highest read that is not zero. If false,
         places them ranked.
     """
+    if ECUTOFF_FROM_SUMMARY and ECUTOFF_FROM_SUMMARY != eCutoff:
+        print ('different eCutoff used in summarizeAllRecords\
+        and alignmentGraph: %s vs. %s' % (eCutoff, ECUTOFF_FROM_SUMMARY))
+    if eCutoff != ECUTOFF_DEFAULT:
+        print ('eCutoff different from default: %s vs. %f' %
+              (eCutoff, ECUTOFF_DEFAULT))
 
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
