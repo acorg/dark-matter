@@ -184,9 +184,9 @@ span.reads {
         reads = []
         with open('%s/%d.fasta' % (self._outputDir, i), 'w') as fp:
             for item in image['hitInfo']['items']:
-                sequenceId = item['sequenceId']
-                reads.append(self._fasta[sequenceId])
-                ids.append(self._fasta[sequenceId].description)
+                readNum = item['readNum']
+                reads.append(self._fasta[readNum])
+                ids.append(self._fasta[readNum].description)
             SeqIO.write(reads, fp, 'fasta')
         return ids
 

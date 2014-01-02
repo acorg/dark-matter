@@ -1,33 +1,23 @@
-import re
 import os
 from stat import S_ISDIR
 from math import ceil
-from IPython.display import HTML
 from collections import defaultdict
-from random import uniform
 from time import ctime, time
-import subprocess
-from Bio.Blast import NCBIXML
-from Bio import Entrez, SeqIO
-from cStringIO import StringIO
+from Bio import SeqIO
 from math import log10
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
-from urllib2 import URLError
 
 from dark import html
 from dark.baseimage import BaseImage
-from dark.conversion import readJSONRecords
 from dark.dimension import dimensionalIterator
-from dark.hsp import normalizeHSP, printHSP
-from dark.intervals import OffsetAdjuster, ReadIntervals
-from dark.simplify import simplifyTitle
+from dark.intervals import ReadIntervals
+from dark import genbank
+from dark import ncbidb
 from dark import features
-
-Entrez.email = 'tcj25@cam.ac.uk'
 
 START_CODONS = set(['ATG'])
 STOP_CODONS = set(['TAA', 'TAG', 'TGA'])
@@ -46,473 +36,6 @@ QUERY_COLORS = {
 # background light grey rectangles for any gap whose (logged) width is less
 # than SMALLEST_LOGGED_GAP_TO_DISPLAY.
 SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
-
-DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
-
-
-def readBlastRecords(filename, limit=None):
-    """
-    Read BLAST records in either XML or JSON format.
-    """
-    if filename.endswith('.xml'):
-        fp = open(filename)
-        records = NCBIXML.parse(fp)
-    elif filename.endswith('.json'):
-        records = readJSONRecords(filename)
-        fp = None
-    else:
-        raise ValueError('Unknown BLAST record file type.')
-    for count, record in enumerate(records):
-        if limit is not None and count == limit:
-            break
-        else:
-            yield record
-    if fp:
-        fp.close()
-
-
-def printBlastRecord(record):
-    for key in sorted(record.__dict__.keys()):
-        if key not in ['alignments', 'descriptions', 'reference']:
-            print '%s: %r' % (key, record.__dict__[key])
-    print 'alignments: (%d in total):' % len(record.alignments)
-    for i, alignment in enumerate(record.alignments):
-        print '  description %d:' % (i + 1)
-        for attr in ['accession', 'bits', 'e', 'num_alignments', 'score',
-                     'title']:
-            print '    %s: %s' % (attr, getattr(record.descriptions[i], attr))
-        print '  alignment %d:' % (i + 1)
-        for attr in 'accession', 'hit_def', 'hit_id', 'length', 'title':
-            print '    %s: %s' % (attr, getattr(alignment, attr))
-        print '    HSPs (%d in total):' % len(alignment.hsps)
-        for hspIndex, hsp in enumerate(alignment.hsps, start=1):
-            print '      hsp %d:' % hspIndex
-            printHSP(hsp, '        ')
-
-
-def summarizeAllRecords(filename, eCutoff=None):
-    """
-    Read a file of BLAST records and return a dictionary keyed by sequence
-    title, with values containing information about the number of times the
-    sequence was hit, the e value (from the best HSP), and the sequence
-    length.
-    eCutoff: A float e value. Hits with e value greater than or equal to
-        this will be ignored.
-    """
-    start = time()
-    result = {}
-    for record in readBlastRecords(filename):
-        for index, alignment in enumerate(record.alignments):
-            title = record.descriptions[index].title
-            if title in result:
-                item = result[title]
-            else:
-                item = result[title] = {
-                    'count': 0,  # Should have been called 'readCount'.
-                    'eValues': [],
-                    'length': alignment.length,  # This is the subject length.
-                    'reads': set(),
-                    'title': title,
-                }
-
-            if eCutoff is None or alignment.hsps[0].expect <= eCutoff:
-                item['count'] += 1
-                item['eValues'].append(alignment.hsps[0].expect)
-                # record.query is the name of the read in the FASTA file.
-                item['reads'].add(record.query)
-
-    # Remove subjects with no hits below the cutoff.
-    titles = result.keys()
-    for title in titles:
-        if result[title]['count'] == 0:
-            del result[title]
-
-    # Compute mean and median evalues.
-    for title, value in result.iteritems():
-        value['eMean'] = sum(value['eValues']) / float(value['count'])
-        value['eMedian'] = np.median(value['eValues'])
-        value['eMin'] = min(value['eValues'])
-        value['reads'] = sorted(value['reads'])
-
-    stop = time()
-    report('Record summary generated in %.3f mins.' % ((stop - start) / 60.0))
-    return result
-
-
-def _sortSummary(filenameOrSummary, attr='count', reverse=False):
-    """
-    Given a filename of BLAST output or a dict that already summarizes
-    BLAST output, produce an HTML object with the records sorted by the
-    given attribute ('count', 'eMean', 'eMedian', or 'length').
-    """
-    if isinstance(filenameOrSummary, dict):
-        summary = filenameOrSummary
-    else:
-        summary = summarizeAllRecords(filenameOrSummary)
-    if attr not in ('count', 'eMean', 'eMedian', 'length'):
-        raise ValueError("attr must be one of 'count', 'eMean', "
-                         "'eMedian', or 'length'")
-    out = []
-    titles = sorted(summary.keys(), key=lambda title: summary[title][attr],
-                    reverse=reverse)
-    for i, title in enumerate(titles, start=1):
-        item = summary[title]
-        link = html.NCBISequenceLink(title, title)
-        out.append(
-            '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
-            (i, item['count'], item['length'], item['eMedian'], item['eMean'],
-             link))
-    return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
-
-
-def summarizeAllRecordsByMeanEValueHTML(filenameOrSummary):
-    return _sortSummary(filenameOrSummary, 'eMean')
-
-
-def summarizeAllRecordsByMedianEValueHTML(filenameOrSummary):
-    return _sortSummary(filenameOrSummary, 'eMedian')
-
-
-def summarizeAllRecordsByCountHTML(filenameOrSummary):
-    return _sortSummary(filenameOrSummary, 'count', reverse=True)
-
-
-def summarizeAllRecordsByLengthHTML(filenameOrSummary):
-    return _sortSummary(filenameOrSummary, 'length', reverse=True)
-
-
-def getAllHitsForSummary(summary, recordFilename):
-    """
-    For the keys of summary (these are sequence titles), pull out a list of
-    hit ids and find all those hits in recordFilename.
-    """
-    titles = sorted(summary.keys())
-    hitIds = set([title.split(' ')[0] for title in titles])
-    return list(findHits(recordFilename, hitIds))
-
-
-def filterRecords(summary, filterFunc):
-    """
-    Pass each of the items in summary (as produced by summarizeAllRecords)
-    to a filter function and return a dict subset of those for which the
-    filter returns True.
-    """
-    result = {}
-    for title, item in summary.iteritems():
-        if filterFunc(item):
-            result[title] = item
-    return result
-
-
-def interestingRecords(summary, titleRegex=None, minSequenceLen=None,
-                       maxSequenceLen=None, minMatchingReads=None,
-                       maxMeanEValue=None, maxMedianEValue=None,
-                       negativeTitleRegex=None, maxMinEValue=None,
-                       truncateTitlesAfter=None):
-    """
-    Given a summary of BLAST results, produced by summarizeAllRecords, return
-    a dictionary consisting of just the interesting records.
-
-    summary: the dict output of summarizeAllRecords
-    titleRegex: a regex that sequence titles must match.
-    negativeTitleRegex: a regex that sequence titles must not match.
-    minSequenceLen: sequences of lesser length will be elided.
-    maxSequenceLen: sequences of greater length will be elided.
-    minMatchingReads: sequences that are matched by fewer reads
-        will be elided.
-    maxMeanEValue: sequences that are matched with a mean e-value
-        that is greater will be elided.
-    maxMedianEValue: sequences that are matched with a median e-value
-        that is greater will be elided.
-    maxMinEValue: if the minimum e-value for a hit is higher than this
-        value, elide the hit. E.g., suppose we are passed a value of
-        1e-20, then we should reject any hit whose minimal (i.e., best)
-        e-value is bigger than 1e-20. So a hit with minimal e-value of 1e-10
-        would not be reported, whereas a hit with a minimal e-value of 1e-30
-        would be.
-    truncateTitlesAfter: specify a string that titles will be truncated beyond.
-        If a truncated title has already been seen, that title will be elided.
-    """
-    result = {}
-    if truncateTitlesAfter:
-        truncatedTitles = set()
-    if titleRegex is not None:
-        titleRegex = re.compile(titleRegex, re.I)
-    if negativeTitleRegex is not None:
-        negativeTitleRegex = re.compile(negativeTitleRegex, re.I)
-    for title, item in summary.iteritems():
-        if minSequenceLen is not None and item['length'] < minSequenceLen:
-            continue
-        if maxSequenceLen is not None and item['length'] > maxSequenceLen:
-            continue
-        if minMatchingReads is not None and item['count'] < minMatchingReads:
-            continue
-        if maxMeanEValue is not None and item['eMean'] > maxMeanEValue:
-            continue
-        if maxMedianEValue is not None and item['eMedian'] > maxMedianEValue:
-            continue
-        if maxMinEValue is not None and item['eMin'] > maxMinEValue:
-            continue
-        if truncateTitlesAfter:
-            # Titles start with something like gi|525472786|emb|HG313807.1|
-            # that we need to skip.
-            titleSansId = title.split(' ', 1)[1]
-            truncatedTitle = simplifyTitle(titleSansId, truncateTitlesAfter)
-            if truncatedTitle in truncatedTitles:
-                # We've seen this title (in truncated form) before. Skip it.
-                continue
-            truncatedTitles.add(truncatedTitle)
-        # Do the title regex tests last, since they are slowest.
-        if titleRegex and titleRegex.search(title) is None:
-            continue
-        if negativeTitleRegex and negativeTitleRegex.search(title) is not None:
-            continue
-        result[title] = item
-    return result
-
-
-def getSequence(hitId, db='nt'):
-    """
-    hitId: the hit_id field from a BLAST record hsp. Of the form
-        'gi|63148399|gb|DQ011818.1|' or anything recognized by the -entry param
-        of blastdbcmd.
-    db: the str name of the BLAST database to search.
-    """
-    fasta = subprocess.check_output(
-        ['blastdbcmd', '-entry', hitId, '-db', db])
-    return SeqIO.read(StringIO(fasta), 'fasta')
-
-
-def findHits(recordFilename, hitIds, limit=None):
-    """
-    Look in recordFilename (a BLAST XML output file) for hits with ids in the
-    set hitIds.
-
-    recordFilename: the str file name to read BLAST records from. Must have
-        contents produced via the "-outfmt 5" given on the blast command line.
-    hitIds: a set of hit_id field values from a BLAST record hsp. Each hitId is
-        of the form 'gi|63148399|gb|DQ011818.1|' or anything recognized by the
-        -entry param of blastdbcmd.
-    limit: the int number of records to read from recordFilename.
-
-    Return a generator that yields (read number, hit id, hit length, hsps)
-    tuples.
-    """
-    start = time()
-    report('Looking for hits on %d sequence ids in %s' %
-           (len(hitIds), recordFilename))
-    hitCount = 0
-    for readNum, record in enumerate(
-            readBlastRecords(recordFilename, limit=limit)):
-        for alignment in record.alignments:
-            if alignment.hit_id in hitIds:
-                hitCount += 1
-                yield (readNum, alignment.hit_id, alignment.length,
-                       alignment.hsps, record.query)
-    stop = time()
-    report('%d hits found in %.3f mins.' % (hitCount, (stop - start) / 60.0))
-
-
-def getSeqFromGenbank(hitId):
-    """
-    hitId: either a hit from a BLAST record, in the form
-        'gi|63148399|gb|DQ011818.1|' in which case we use the 2nd field, as
-        delimited by '|', to fetch from Genbank.  Or, a gi number (the 2nd
-        field just mentioned).
-
-    NOTE: this uses the network!  Also, there is a 3 requests/second limit
-    imposed by NCBI on these requests so be careful or your IP will be banned.
-    """
-    try:
-        gi = hitId.split('|')[1]
-    except IndexError:
-        # Assume we have a gi number directly, and make sure it's a string.
-        gi = str(hitId)
-
-    try:
-        client = Entrez.efetch(db='nucleotide', rettype='gb', retmode='text',
-                               id=gi)
-    except URLError:
-        return None
-    else:
-        record = SeqIO.read(client, 'gb')
-        client.close()
-        return record
-
-
-def summarizeHits(hits, fastaFilename, eCutoff=None,
-                  maxHspsPerHit=None, minStart=None, maxStop=None,
-                  logLinearXAxis=False,
-                  logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-                  randomizeZeroEValues=False):
-    """
-    Summarize the information found in 'hits'.
-
-    hits: The result of calling findHits (above).
-    fastaFilename: The name of the FASTA file containing query sequences,
-        or a list of fasta sequences from SeqIO.parse
-    eCutoff: A float e value. Hits with e value greater than or equal to
-        this will be ignored.
-    maxHspsPerHit: The maximum number of HSPs to examine for each hit.
-    minStart: Reads that start before this subject offset should not be
-        returned.
-    maxStop: Reads that end after this subject offset should not be returned.
-    logLinearXAxis: if True, convert read offsets so that empty regions in the
-        plot we're preparing will only be as wide as their logged actual
-        values.
-    logBase: The base of the logarithm to use if logLinearXAxis is True.
-
-    Return a 2-tuple: a list of the SeqIO parsed fasta file, and a dict whose
-        keys are sequence ids and whose values give hit summary information.
-    """
-
-    if isinstance(fastaFilename, str):
-        fasta = list(SeqIO.parse(fastaFilename, 'fasta'))
-    else:
-        fasta = fastaFilename
-    zeroEValueUpperRandomIncrement = 150
-
-    def resultDict(sequenceLen):
-        result = {
-            'hitCount': 0,
-            'items': [],
-            'maxE': 0.0,
-            'minE': 1000,  # Something ridiculously large.
-            'maxX': maxStop or sequenceLen,
-            'minX': minStart or 0,
-            'sequenceLen': sequenceLen,
-            'zeroEValueFound': False,
-        }
-
-        if logLinearXAxis:
-            result['readIntervals'] = ReadIntervals(sequenceLen)
-            result['offsetAdjuster'] = None  # Will be set below.
-
-        return result
-
-    result = {}
-
-    # Extract all e values.
-    for sequenceId, hitId, hitLen, hsps, query in hits:
-        if hitId not in result:
-            result[hitId] = resultDict(hitLen)
-        hitInfo = result[hitId]
-        # Manually count hits. 'hits' may be a generator so we can't use len().
-        hitInfo['hitCount'] += 1
-        queryLen = len(fasta[sequenceId])
-
-        for hspCount, hsp in enumerate(hsps, start=1):
-            if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
-                break
-            try:
-                normalized = normalizeHSP(hsp, queryLen)
-            except AssertionError:
-                # TODO: Remove these prints, and the surrounding try/except
-                # once we're sure we have HSP normalization right.
-                #
-                # print 'Assertion error in utils calling normalizeHSP'
-                # print 'sequenceId: %s' % sequenceId
-                # print 'hitId: %s' % hitId
-                # print 'hitLen: %s' % hitLen
-                # print 'query: %s' % query
-                # printHSP(hsp)
-                raise
-            if ((minStart is not None and normalized['queryStart'] < minStart)
-                    or (maxStop is not None and
-                        normalized['queryEnd'] > maxStop)):
-                continue
-            if logLinearXAxis:
-                hitInfo['readIntervals'].add(normalized['queryStart'],
-                                             normalized['queryEnd'])
-            e = hsp.expect
-            if eCutoff is not None and e >= eCutoff:
-                continue
-            if e == 0.0:
-                convertedE = None
-                hitInfo['zeroEValueFound'] = True
-            else:
-                convertedE = -1.0 * log10(e)
-                if convertedE > hitInfo['maxE']:
-                    hitInfo['maxE'] = convertedE
-                # Don't use elif for testing minE. Both conditions can be true.
-                if convertedE < hitInfo['minE']:
-                    hitInfo['minE'] = convertedE
-            if normalized['queryStart'] < hitInfo['minX']:
-                hitInfo['minX'] = normalized['queryStart']
-            if normalized['queryEnd'] > hitInfo['maxX']:
-                hitInfo['maxX'] = normalized['queryEnd']
-            hitInfo['items'].append({
-                'convertedE': convertedE,
-                'hsp': normalized,
-                'origHsp': hsp,
-                'queryLen': queryLen,
-                'sequenceId': sequenceId,
-                'frame': {
-                    'query': hsp.frame[0],
-                    'subject': hsp.frame[1],
-                },
-                'query': query
-            })
-
-    for hitInfo in result.itervalues():
-        # For each sequence we have hits on, set the expect values that
-        # were zero to a randomly high value (higher than the max e value
-        # we just calculated).
-        maxEIncludingRandoms = hitInfo['maxE']
-        if hitInfo['zeroEValueFound']:
-            if randomizeZeroEValues:
-                for item in hitInfo['items']:
-                    if item['convertedE'] is None:
-                        item['convertedE'] = e = (
-                            hitInfo['maxE'] + 2 + uniform(
-                                0, zeroEValueUpperRandomIncrement))
-                        if e > maxEIncludingRandoms:
-                            maxEIncludingRandoms = e
-
-            else:
-                for item in hitInfo['items']:
-                    if item['convertedE'] is None:
-                        maxEIncludingRandoms += 1
-                        item['convertedE'] = maxEIncludingRandoms
-
-        hitInfo['maxEIncludingRandoms'] = maxEIncludingRandoms
-
-        # Adjust all HSPs if we're doing a log/linear X axis.
-        if logLinearXAxis:
-            adjuster = OffsetAdjuster(hitInfo['readIntervals'], base=logBase)
-            minX = maxX = None
-            for item in hitInfo['items']:
-                adjusted = adjuster.adjustNormalizedHSP(item['hsp'])
-                item['hsp'] = adjusted
-                if minX is None or adjusted['queryStart'] < minX:
-                    minX = adjusted['queryStart']
-                if maxX is None or adjusted['queryEnd'] > maxX:
-                    maxX = adjusted['queryEnd']
-
-            # Adjust minX and maxX if we have gaps at the start or end of
-            # the subject.
-            gaps = list(hitInfo['readIntervals'].walk())
-            if gaps:
-                # Check start of first gap:
-                intervalType, (start, stop) = gaps[0]
-                if intervalType == ReadIntervals.EMPTY:
-                    adjustedStart = adjuster.adjustOffset(start)
-                    if adjustedStart < minX:
-                        minX = adjustedStart
-                # Check stop of last gap:
-                intervalType, (start, stop) = gaps[-1]
-                if intervalType == ReadIntervals.EMPTY:
-                    adjustedStop = adjuster.adjustOffset(stop)
-                    if adjustedStop > maxX:
-                        maxX = adjustedStop
-
-            hitInfo.update({
-                'minX': minX,
-                'maxX': maxX,
-                'offsetAdjuster': adjuster,
-            })
-
-    return fasta, result
 
 
 def convertSummaryEValuesToRanks(hitInfo):
@@ -539,8 +62,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
                    maxStop=None, createFigure=True, showFigure=True,
                    readsAx=None, rankEValues=False, imageFile=None,
                    quiet=False, idList=False, xRange='subject',
-                   logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                   logLinearXAxis=False, logBase=None,
                    randomizeZeroEValues=False):
 
     """
@@ -591,7 +113,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
         'xRange must be either "subject" or "reads".')
 
     start = time()
-    sequence = getSequence(hitId, db)
+    sequence = ncbidb.getSequence(hitId, db)
 
     if createFigure:
         dpi = 80
@@ -602,7 +124,7 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
     createdReadsAx = readsAx is None
 
     if showFeatures:
-        gbSeq = getSeqFromGenbank(hitId)
+        gbSeq = genbank.getSequence(hitId)
         gs = gridspec.GridSpec(4, 1, height_ratios=[2, 1, 1, 12])
         featureAx = plt.subplot(gs[0, 0])
         orfAx = plt.subplot(gs[1, 0])
@@ -670,10 +192,10 @@ def alignmentGraph(recordFilenameOrHits, hitId, fastaFilename, db='nt',
             # then they're either both +ve or both -ve, so we just use the
             # query as is. Otherwise, we need to reverse complement it.
             if item['frame']['subject'] * item['frame']['query'] > 0:
-                query = fasta[item['sequenceId']].seq
+                query = fasta[item['readNum']].seq
             else:
                 # One of the subject or query has negative sense.
-                query = fasta[item['sequenceId']].reverse_complement().seq
+                query = fasta[item['readNum']].reverse_complement().seq
             queryStart = hsp['queryStart']
             # There are 3 parts of the query string we need to display. 1)
             # the left part (if any) before the matched part of the
@@ -863,8 +385,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
                    maxStop=None, sortOn='eMedian', rankEValues=False,
                    interactive=True, outputDir=None, idList=False,
                    equalizeXAxes=True, xRange='subject',
-                   logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                   logLinearXAxis=False, logBase=None,
                    randomizeZeroEValues=False):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
@@ -1036,7 +557,7 @@ def alignmentPanel(summary, recordFilenameOrHits, fastaFilename, db='nt',
         ax[row][col].set_title(
             '%d: %s\n%d HSPs shown (%d reads in total)\n%s median, %s mean' % (
                 i, title.split(' ', 1)[1][:40], len(hitInfo['items']),
-                len(summary[title]['reads']), medianE, meanE), fontsize=10)
+                len(summary[title]['readNums']), medianE, meanE), fontsize=10)
 
         if hitInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
             maxEIncludingRandoms = hitInfo['maxEIncludingRandoms']
