@@ -50,37 +50,66 @@ class BlastRecords(object):
     @param blastDb: the BLAST database used.
     @param fastaFilename: the C{str} file name containing the sequences that
         were given to BLAST as queries.
+    @param limit: An C{int} limit on the number of records to read.
     """
 
-    def __init__(self, blastFilename, fastaFilename, blastDb):
-        self._blastFilename = blastFilename
-        self._fastaFilename = fastaFilename
+    def __init__(self, blastFilename, fastaFilename, blastDb, limit=None):
+        self.blastFilename = blastFilename
+        self.fastaFilename = fastaFilename
         self.blastDb = blastDb
+        self.limit = limit
+        self._length = 0
 
-    def records(self, limit=None):
+    def records(self):
         """
-        Extract all BLAST records.
-
-        @param limit: An C{int} limit on the number of records to return.
+        Extract all BLAST records (up to C{self.limit}, if not C{None}).
 
         @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
             instances.
         """
-        if self._blastFilename.endswith('.xml'):
-            fp = open(self._blastFilename)
+        if self.blastFilename.endswith('.xml'):
+            fp = open(self.blastFilename)
             records = NCBIXML.parse(fp)
-        elif self._blastFilename.endswith('.json'):
-            records = readJSONRecords(self._blastFilename)
+        elif self.blastFilename.endswith('.json'):
+            records = readJSONRecords(self.blastFilename)
             fp = None
         else:
             raise ValueError('Unknown BLAST record file type.')
-        for count, record in enumerate(records):
-            if limit is not None and count == limit:
-                break
-            else:
+
+        # Read the records, observing any given limit. There's a little code
+        # duplication here in the name of speed - we don't want to repeatedly
+        # test if self.limit is None in a loop.
+        if self.limit is None:
+            for count, record in enumerate(records, start=1):
                 yield record
+        else:
+            limit = self.limit
+            for count, record in enumerate(records, start=1):
+                if count > limit:
+                    count = limit
+                    break
+                else:
+                    yield record
+
+        try:
+            self._length = count
+        except NameError:
+            # If there were no records, count wont even be defined.
+            self._length = 0
+
         if fp:
             fp.close()
+
+    def __len__(self):
+        """
+        Return the number of BLAST records.
+
+        NOTE: this will return zero if called before C{records()} has been
+              called to read the records.
+
+        @return: an C{int}, the number of hits in this set.
+        """
+        return self._length
 
     def hits(self):
         """
@@ -98,7 +127,7 @@ class BlastRecords(object):
                     hitInfo = result[title] = {
                         'readCount': 0,
                         'eValues': [],
-                        'length': alignment.length,  # The subject length.
+                        'length': alignment.length,  # The hit sequence length.
                         'readNums': set(),
                         # 'title': title,  # Not needed, I don't think.
                     }
@@ -116,7 +145,6 @@ class BlastRecords(object):
             hitInfo['eMean'] = sum(eValues) / float(hitInfo['readCount'])
             hitInfo['eMedian'] = np.median(eValues)
             hitInfo['eMin'] = min(eValues)
-            hitInfo['reads'] = sorted(hitInfo['reads'])
             # Remove the e-values now that we've summarized them.
             del hitInfo['eValues']
 
@@ -137,6 +165,14 @@ class BlastHits(object):
         self.titles = {}
         self.fasta = None  # Computed (once) in summarizeHits.
         self.plotParams = None  # Set in computePlotInfo.
+
+    def __len__(self):
+        """
+        Return the number of hits.
+
+        @return: an C{int}, the number of hits in this set.
+        """
+        return len(self.titles)
 
     def addHit(self, title, hitInfo):
         """
@@ -340,6 +376,35 @@ class BlastHits(object):
         plotInfo['minE'] = 1
         plotInfo['zeroEValueFound'] = False
 
+    def _readFASTA(self):
+        """
+        Read the FASTA data and check its length is compatible with the
+        number of BLAST records.
+
+        @return: A C{list} of BioPython sequences.
+        """
+        fasta = list(SeqIO.parse(self.records.fastaFilename, 'fasta'))
+        # Sanity check that the number of reads in the FASTA file is
+        # compatible with the number of records in the BLAST file.
+        if self.records.limit is None:
+            assert len(fasta) == len(self.records), (
+                'Sanity check failed: mismatched BLAST and FASTA files. '
+                'BLAST file %r contains %d records, whereas FASTA file '
+                '%r contains %d sequences.' %
+                (self.records.blastFilename, len(self.records),
+                 self.records.fastaFilename, len(fasta)))
+        else:
+            assert len(fasta) >= len(self.records), (
+                'Sanity check failed: mismatched BLAST and FASTA files. '
+                'BLAST file %r contains at least %d records, whereas '
+                'FASTA file %r only contains %d sequences.' %
+                (self.records.blastFilename, self.records.limit,
+                 self.records.fastaFilename, len(fasta)))
+            # Truncate the FASTA to match the limit we have on the
+            # number of BLAST records.
+            fasta = fasta[:self.records.limit]
+        return fasta
+
     def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
                         minStart=None, maxStop=None, logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
@@ -378,25 +443,25 @@ class BlastHits(object):
         # data has been filtered and summarized etc.
         self.plotParams = {
             'eCutoff': eCutoff,
-            'maxHspsPerHit': maxHspsPerHit,
-            'minStart': minStart,
-            'maxStop': maxStop,
-            'logLinearXAxis': logLinearXAxis,
             'logBase': logBase,
+            'logLinearXAxis': logLinearXAxis,
+            'maxHspsPerHit': maxHspsPerHit,
+            'maxStop': maxStop,
+            'minStart': minStart,
             'randomizeZeroEValues': randomizeZeroEValues,
+            'rankEValues': rankEValues,
         }
 
         # Read in the read FASTA file if we haven't already.
-        if self._fasta is None:
-            self._fasta = list(SeqIO.parse(self.records._fastaFilename,
-                                           'fasta'))
+        if self.fasta is None:
+            self.fasta = self._readFASTA()
 
         zeroEValueUpperRandomIncrement = 150
 
         def plotInfoDict(sequenceLen):
             result = {
-                'hspCount': 0,
-                'items': [],
+                'hspTotal': 0,  # The total number of HSPs for this title.
+                'items': [],  # len() of this = the # of HSPs kept for display.
                 'maxE': 0.0,
                 'minE': 1000,  # Something ridiculously large.
                 'maxX': maxStop or sequenceLen,
@@ -410,11 +475,13 @@ class BlastHits(object):
 
             return result
 
-        for title, readNum, hsps in self._hitDetails():
+        for title, readNum, hsps in self._getHsps():
             if self.titles[title]['plotInfo'] is None:
-                self.titles[title]['plotInfo'] = plotInfoDict()
+                sequenceLen = self.titles[title]['length']
+                self.titles[title]['plotInfo'] = plotInfoDict(sequenceLen)
             plotInfo = self.titles[title]['plotInfo']
-            queryLen = len(self._fasta[readNum])
+            queryLen = len(self.fasta[readNum])
+            plotInfo['hspTotal'] += len(hsps)
 
             for hspCount, hsp in enumerate(hsps, start=1):
                 if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
@@ -444,7 +511,6 @@ class BlastHits(object):
                 if eCutoff is not None and e >= eCutoff:
                     continue
 
-                plotInfo['hspCount'] += 1
                 if e == 0.0:
                     convertedE = None
                     plotInfo['zeroEValueFound'] = True
@@ -530,20 +596,12 @@ class BlastHits(object):
                         if adjustedStop > maxX:
                             maxX = adjustedStop
 
-                plotInfo.update({
-                    'minX': minX,
-                    'maxX': maxX,
-                    'offsetAdjuster': adjuster,
-                })
+                # Update the plot info with the new min & max X values. We need
+                # to check that we actually have new values, as
+                # plotInfo['items'] might have been empty.
+                if minX is not None:
+                    assert maxX is not None  # Sanity check.
+                    plotInfo['minX'] = minX
+                    plotInfo['maxX'] = maxX
 
-
-class BlastHitsSummary(object):
-    """
-    Hold summary information about a set of BLAST hits against a set of
-    sequence titles.
-
-    @param hits: A L{BlastHits} instance.
-    """
-
-    def __init__(self, hits):
-        self._hits = hits
+                plotInfo['offsetAdjuster'] = adjuster

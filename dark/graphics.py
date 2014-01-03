@@ -103,7 +103,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     logLinearXAxis = params['logLinearXAxis']
     rankEValues = params['rankEValues']
 
-    plotInfo = blastHits.titles[title]['plotinfo']
+    plotInfo = blastHits.titles[title]['plotInfo']
     items = plotInfo['items']
     maxEIncludingRandoms = int(ceil(plotInfo['maxEIncludingRandoms']))
     maxE = int(ceil(plotInfo['maxE']))
@@ -253,7 +253,6 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
         featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
                                                 offsetAdjuster)
-        plotInfo['features'] = featureEndpoints
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
                 line = Line2D(
@@ -288,8 +287,16 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
     # Titles, axis, etc.
     if createFigure:
-        figure.suptitle('%s (length %d, %d hits)' % (
-            sequence.description, len(sequence), plotInfo['hitCount']),
+        readCount = blastHits.titles[title]['readCount']
+        hspTotal = plotInfo['hspTotal']
+        figure.suptitle(
+            '%s\nLength %d, %d read%s hit, %d HSP%s in total (%d shown).' %
+            (
+                sequence.description, len(sequence),
+                readCount, '' if readCount == 0 else 's',
+                hspTotal, '' if hspTotal == 0 else 's',
+                len(plotInfo['items'])
+            ),
             fontsize=20)
     if createdReadsAx:
         # Only add title and y-axis label if we made the reads axes.
