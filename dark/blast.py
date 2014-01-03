@@ -223,25 +223,6 @@ class BlastHits(object):
     def summarizeByLengthHTML(self):
         return self._sortHTML('length', reverse=True)
 
-    def filter(self, filterFunc):
-        """
-        Produce a new L{BlastHits} instance consisting of just the hits that
-        C{filterFunc} returns a true value for.
-
-        @param filterFunc: A C{function} that accepts two arguments, a string
-        sequence title and a hitInfo dict (see docstring for C{addHit} above).
-        The function should return a true value if the hit should appear in the
-        result.
-
-        NOTE: this function is not currently used (though there are tests for
-              it). We should probably remove it.
-        """
-        result = BlastHits(self.records)
-        for title, hitInfo in self.titles.iteritems():
-            if filterFunc(title, hitInfo):
-                result.addHit(title, hitInfo)
-        return result
-
     def interesting(self, titleRegex=None, minSequenceLen=None,
                     maxSequenceLen=None, minMatchingReads=None,
                     maxMeanEValue=None, maxMedianEValue=None,
@@ -296,7 +277,7 @@ class BlastHits(object):
                     hitInfo['length'] > maxSequenceLen):
                 continue
             if (minMatchingReads is not None and
-                    hitInfo['count'] < minMatchingReads):
+                    hitInfo['readCount'] < minMatchingReads):
                 continue
             if maxMeanEValue is not None and hitInfo['eMean'] > maxMeanEValue:
                 continue
