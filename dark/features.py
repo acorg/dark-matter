@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 
 START_CODONS = set(['ATG'])
 STOP_CODONS = set(['TAA', 'TAG', 'TGA'])
@@ -169,11 +168,8 @@ def addORFs(fig, seq, minX, maxX, featureEndpoints, offsetAdjuster):
     # Add the feature endpoints if we don't have too many of them.
     if len(featureEndpoints) < 20:
         for fe in featureEndpoints:
-            line = Line2D([fe['start'], fe['start']], [-1, 3],
-                          color=fe['color'], linewidth=1)
-            fig.add_line(line)
-            line = Line2D([fe['end'], fe['end']], [-1, 3], color='#cccccc')
-            fig.add_line(line)
+            fig.axvline(x=fe['start'], color=fe['color'])
+            fig.axvline(x=fe['end'], color='#cccccc')
 
     fig.axis([minX, maxX, -1, 3])
     fig.set_yticks(np.arange(3))

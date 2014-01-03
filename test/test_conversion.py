@@ -8,7 +8,7 @@ from mocking import mockOpen
 
 class TestBlastRecords(TestCase):
     """
-    Test the readBlastRecords function.
+    Test the reading of BLAST records.
     """
 
     def testEmptyJSONInput(self):
@@ -53,7 +53,8 @@ class TestBlastRecords(TestCase):
         }
         mockOpener = mockOpen(data=dumps(record) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
-            self.assertEqual([], list(readBlastRecords('file.json')))
+            blastRecords = BlastRecords('file.json', None, None)
+            self.assertEqual([], list(blastRecords.records()))
 
     def testXMLInput(self):
         """

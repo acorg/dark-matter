@@ -230,6 +230,8 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                           color='blue')
             readsAx.add_line(line)
 
+        # TODO: Barbara, add some kind of comment here please. I think this
+        # could be done more efficiently.
         if idList:
             for item in items:
                 for key in idList:
@@ -255,14 +257,8 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                                                 offsetAdjuster)
         if len(featureEndpoints) < 20:
             for fe in featureEndpoints:
-                line = Line2D(
-                    [fe['start'], fe['start']],
-                    [0, maxEIncludingRandoms + 1], color=fe['color'])
-                readsAx.add_line(line)
-                line = Line2D(
-                    [fe['end'], fe['end']],
-                    [0, maxEIncludingRandoms + 1], color='#cccccc')
-                readsAx.add_line(line)
+                readsAx.axvline(x=fe['start'], color=fe['color'])
+                readsAx.axvline(x=fe['end'], color='#cccccc')
             features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
                              offsetAdjuster)
         else:
@@ -278,12 +274,10 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         'features': featureEndpoints,
     }
 
-    # Add the horizontal divider between the highest e value and the randomly
+    # Add the horizontal divider between the highest e-value and the randomly
     # higher ones (if any).
     if plotInfo['zeroEValueFound']:
-        line = Line2D([minX, maxX], [maxE + 1, maxE + 1], color='#cccccc',
-                      linewidth=1)
-        readsAx.add_line(line)
+        readsAx.axhline(y=maxE + 1, color='#cccccc', linewidth=1)
 
     # Titles, axis, etc.
     if createFigure:
@@ -293,11 +287,12 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             '%s\nLength %d, %d read%s hit, %d HSP%s in total (%d shown).' %
             (
                 sequence.description, len(sequence),
-                readCount, '' if readCount == 0 else 's',
-                hspTotal, '' if hspTotal == 0 else 's',
+                readCount, '' if readCount == 1 else 's',
+                hspTotal, '' if hspTotal == 1 else 's',
                 len(plotInfo['items'])
             ),
             fontsize=20)
+
     if createdReadsAx:
         # Only add title and y-axis label if we made the reads axes.
         readsAx.set_title('Read alignments', fontsize=20)
@@ -422,23 +417,26 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
             plt.close()
             htmlOutput.addImage(imageBasename, title, alignmentInfo, plotInfo)
 
-        #calculate eMedian and eMean:
-        eValues = [item['convertedE'] for item in plotInfo['items']]
+        readCount = blastHits.titles[title]['readCount']
+        hspCount = len(plotInfo['items'])
+        plotTitle = ('%d: %s\nLength %d, %d read%s hit.\n%d HSP%s (of %d) '
+                     'shown.' % (
+                         i, title.split(' ', 1)[1][:40],
+                         blastHits.titles[title]['length'],
+                         readCount, '' if readCount == 1 else 's',
+                         hspCount, '' if hspCount == 1 else 's',
+                         plotInfo['hspTotal']))
 
-        if blastHits.plotParams['rankEValues']:
-            meanE = medianE = 'ranked'
-        elif len(eValues) == 0:
-            meanE = medianE = 'none'
-        else:
-            numberMeanE = sum(eValues) / float(len(eValues))
-            numberMedianE = np.median(eValues)
-            meanE = '1e-%d' % numberMeanE
-            medianE = '1e-%d' % numberMedianE
-        ax[row][col].set_title(
-            '%d: %s\n%d HSPs shown (%d reads in total)\n%s median, %s mean' %
-            (i, title.split(' ', 1)[1][:40], len(plotInfo['items']),
-             blastHits.titles[title]['readCount'], medianE, meanE),
-            fontsize=10)
+        if plotInfo['items']:
+            if blastHits.plotParams['rankEValues']:
+                plotTitle += '\ne-values are ranks'
+            else:
+                eValues = [item['convertedE'] for item in plotInfo['items']]
+                median = np.median(eValues)
+                mean = sum(eValues) / float(len(eValues))
+                plotTitle += '\nmedian 1e-%d, mean 1e-%d' % (median, mean)
+
+        ax[row][col].set_title(plotTitle, fontsize=10)
 
         if plotInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
             maxEIncludingRandoms = plotInfo['maxEIncludingRandoms']
@@ -457,36 +455,28 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
                 queryMax = alignmentInfo['queryMax']
 
     # Post-process graphs to adjust axes, etc.
+
+    if xRange == 'reads':
+        # We're showing the reads range on the X axis.
+        minX, maxX = queryMin, queryMax
+
     coords = dimensionalIterator((rows, cols))
     for title in titles:
         row, col = coords.next()
         a = ax[row][col]
         a.set_ylim([0, maxEIncludingRandoms + 1])
         if equalizeXAxes:
-            if xRange == 'subject':
-                a.set_xlim([minX, maxX])
-            else:
-                a.set_xlim([queryMin, queryMax])
+            a.set_xlim([minX, maxX])
         a.set_yticks([])
         a.set_xticks([])
         plotInfo = blastHits.titles[title]['plotInfo']
 
-        if equalizeXAxes:
-            # Overdraw the horizontal divider between the highest e value
-            # and the randomly higher ones (if any). We need to do this as
-            # the plots will be changing width, to all be as wide as the
-            # widest.
-            e = plotInfo['maxE']
-            line = Line2D([minX, maxX], [e + 1, e + 1], color='#cccccc',
-                          linewidth=1)
-            a.add_line(line)
+        if xRange == 'subject' and minX < 0:
+            # Add a vertical line at x=0 so we can see the 'whiskers' of
+            # reads that extend to the left of the sequence we're aligning
+            # against.
+            a.axvline(x=0, color='#cccccc')
 
-        # Add a vertical line at x=0 so we can see the 'whiskers' of
-        # reads that extend to the left of the sequence we're aligning
-        # against.
-        line = Line2D([0, 0], [0, maxEIncludingRandoms + 1],
-                      color='#cccccc', linewidth=1)
-        a.add_line(line)
         # Add a line on the right of each sub-plot so we can see where the
         # sequence ends (as all panel graphs have the same width and we
         # otherwise couldn't tell).
@@ -494,10 +484,7 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
         if blastHits.plotParams['logLinearXAxis']:
             offsetAdjuster = plotInfo['offsetAdjuster'].adjustOffset
             sequenceLen = offsetAdjuster(sequenceLen)
-        line = Line2D([sequenceLen, sequenceLen],
-                      [0, maxEIncludingRandoms + 1],
-                      color='#cccccc', linewidth=1)
-        a.add_line(line)
+        a.axvline(x=sequenceLen, color='#cccccc')
 
         # Add light grey vertical bars to show the logarithmic gaps. Add
         # these only in the region above the highest read in the individual
@@ -518,6 +505,12 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
                             (adjustedStart, thisMaxEIncludingRandoms + 1),
                             width, height, color='#f4f4f4')
                         a.add_patch(rect)
+
+    # Hide the final panel graphs (if any) that have no content. We do this
+    # because the panel is a rectangular grid and some of the plots at the
+    # end of the last row can be unused.
+    for row, col in coords:
+        ax[row][col].axis('off')
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
