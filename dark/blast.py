@@ -47,13 +47,15 @@ class BlastRecords(object):
         This can either be an XML (-outfmt 5) BLAST output file or our
         smaller converted JSON equivalent (produced by
         bin/convert-blast-xml-to-json.py from a BLAST XML file).
+    @param blastDb: the BLAST database used.
     @param fastaFilename: the C{str} file name containing the sequences that
         were given to BLAST as queries.
     """
 
-    def __init__(self, blastFilename, fastaFilename):
+    def __init__(self, blastFilename, fastaFilename, blastDb):
         self._blastFilename = blastFilename
         self._fastaFilename = fastaFilename
+        self.blastDb = blastDb
 
     def records(self, limit=None):
         """
@@ -131,9 +133,10 @@ class BlastHits(object):
     """
 
     def __init__(self, records):
-        self._records = records
-        self._titles = {}
-        self._fasta = None  # Computed (once) in summarizeHits.
+        self.records = records
+        self.titles = {}
+        self.fasta = None  # Computed (once) in summarizeHits.
+        self.plotParams = None  # Set in computePlotInfo.
 
     def addHit(self, title, hitInfo):
         """
@@ -155,36 +158,52 @@ class BlastHits(object):
                 sequence.
         """
 
-        if title in self._titles:
+        if title in self.titles:
             raise KeyError('Title %r already present' % (title,))
 
-        self._titles[title] = hitInfo
+        self.titles[title] = hitInfo
 
-    def titles(self):
+    def sortTitles(self, by):
         """
-        Get the sequence titles these BLAST hits are for.
+        Sort titles by a given attribute and then by title.
 
-        @return: a generator yielding all hit titles.
+        @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
+        @return: A sorted C{list} of titles.
         """
-        return self._titles.iterkeys()
+        if by == 'eMean':
+            titles = sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (self.titles[title]['eMean'], title))
+        elif by == 'eMedian':
+            titles = sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (self.titles[title]['eMedian'], title))
+        elif by == 'readCount':
+            titles = sorted(
+                self.titles.iterkeys(), reverse=True,
+                key=lambda title: (self.titles[title]['readCount'], title))
+        elif by == 'length':
+            titles = sorted(
+                self.titles.iterkeys(), reverse=True,
+                key=lambda title: (self.titles[title]['length'], title))
+        elif by == 'title':
+            titles = sorted(self.titles.iterkeys())
+        else:
+            raise ValueError('sort attribute must be one of "eMean", '
+                             '"eMedian", "title" or "reads".')
+        return titles
 
-    def _sortBy(self, attr='count', reverse=False):
+    def _sortHTML(self, by):
         """
         Return an HTML object with the hits sorted by the given attribute.
 
-        @param attr: A C{str}, one of 'readCount', 'eMean', 'eMedian', or
-            'length'. Raise C{ValueError} if C{attr} is not one of the above.
-        @param reverse: If C{True}, reverse the sort order.
+        @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
+        @return: An HTML instance with sorted titles and information about
+            hit read count, length, and e-values.
         """
-        if attr not in ('readCount', 'eMean', 'eMedian', 'length'):
-            raise ValueError("attr must be one of 'readCount', 'eMean', "
-                             "'eMedian', or 'length'")
-
         out = []
-        titles = sorted(self.titles(), reverse=reverse,
-                        key=lambda title: self._titles[title][attr])
-        for i, title in enumerate(titles, start=1):
-            hitInfo = self._titles[title]
+        for i, title in enumerate(self.sortTitles(by), start=1):
+            hitInfo = self.titles[title]
             link = NCBISequenceLink(title, title)
             out.append(
                 '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
@@ -193,16 +212,16 @@ class BlastHits(object):
         return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
     def summarizeByMeanEValueHTML(self):
-        return self._sortBy('eMean')
+        return self._sortHTML('eMean')
 
     def summarizeByMedianEValueHTML(self):
-        return self._sortBy('eMedian')
+        return self._sortHTML('eMedian')
 
     def summarizeByCountHTML(self):
-        return self._sortBy('readCount', reverse=True)
+        return self._sortHTML('readCount', reverse=True)
 
     def summarizeByLengthHTML(self):
-        return self._sortBy('length', reverse=True)
+        return self._sortHTML('length', reverse=True)
 
     def filter(self, filterFunc):
         """
@@ -217,8 +236,8 @@ class BlastHits(object):
         NOTE: this function is not currently used (though there are tests for
               it). We should probably remove it.
         """
-        result = BlastHits(self._records)
-        for title, hitInfo in self._titles.iteritems():
+        result = BlastHits(self.records)
+        for title, hitInfo in self.titles.iteritems():
             if filterFunc(title, hitInfo):
                 result.addHit(title, hitInfo)
         return result
@@ -233,7 +252,7 @@ class BlastHits(object):
         hits, as given by our parameters.
 
         IMPORTANT: the hitInfo entries in the new instance are the same objects
-        we have in self._titles. So if our caller changes the result we return,
+        we have in self.titles. So if our caller changes the result we return,
         they will be changing self too. This could be prevented by making a
         copy of each hitInfo element we have before passing it to result.addHit
         below.  Sharing the hitInfo is usually desirable because it's summary
@@ -260,7 +279,7 @@ class BlastHits(object):
             beyond. If a truncated title has already been seen, that title will
             be elided.
         """
-        result = BlastHits(self._records)
+        result = BlastHits(self.records)
 
         if truncateTitlesAfter:
             truncatedTitles = set()
@@ -269,7 +288,7 @@ class BlastHits(object):
         if negativeTitleRegex is not None:
             negativeTitleRegex = re.compile(negativeTitleRegex, re.I)
 
-        for title, hitInfo in self._titles.iteritems():
+        for title, hitInfo in self.titles.iteritems():
             if (minSequenceLen is not None and
                     hitInfo['length'] < minSequenceLen):
                 continue
@@ -318,17 +337,32 @@ class BlastHits(object):
                     in the original FASTA file).
                 hsps is the list of HSPs for the read matching against the hit.
         """
-        titles = self._titles
-        for readNum, record in enumerate(self._records.records()):
+        titles = self.titles
+        for readNum, record in enumerate(self.records.records()):
             for index, alignment in enumerate(record.alignments):
                 title = record.descriptions[index].title
                 if title in titles:
                     yield (title, readNum, alignment.hsps)
 
-    def summarizeForPlotting(self, eCutoff=None, maxHspsPerHit=None,
-                             minStart=None, maxStop=None, logLinearXAxis=False,
-                             logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-                             randomizeZeroEValues=False):
+    def _convertEValuesToRanks(self, plotInfo):
+        """
+        Change e-values for the reads that hit each sequence to be their ranks.
+
+        @param plotInfo: A C{dict} of plot information, as returned by
+            C{plotInfoDict} in C{computePlotInfo} and built up there.
+        """
+        items = plotInfo['items']
+        items.sort(key=lambda item: item['convertedE'])
+        for rank, item in enumerate(items, start=1):
+            item['convertedE'] = rank
+        plotInfo['maxE'] = plotInfo['maxEIncludingRandoms'] = len(items)
+        plotInfo['minE'] = 1
+        plotInfo['zeroEValueFound'] = False
+
+    def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
+                        minStart=None, maxStop=None, logLinearXAxis=False,
+                        logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                        randomizeZeroEValues=False, rankEValues=False):
         """
         Summarize the information found in 'hits'.
 
@@ -347,18 +381,33 @@ class BlastHits(object):
             C{True}.
         @param randomizeZeroEValues: If C{True}, e-values that are zero will
             be set to a random (extremely good) value.
+        @param: rankEValues: If C{True}, change the e-values for the reads
+            for each title to be their rank (sorted decreasingly).
 
         @return: A L{BlastHitsSummary} instance.
         """
 
         # Reset the plot info for each hit title because we may be called
         # multiple times, with different parameters.
-        for title, hitInfo in self._titles.iteritems():
+        for title, hitInfo in self.titles.iteritems():
             hitInfo['plotInfo'] = None
+
+        # Save the plotting parameters in use so that things we pass self
+        # to such as alignmentPlot or alignmentPanel can discover how the
+        # data has been filtered and summarized etc.
+        self.plotParams = {
+            'eCutoff': eCutoff,
+            'maxHspsPerHit': maxHspsPerHit,
+            'minStart': minStart,
+            'maxStop': maxStop,
+            'logLinearXAxis': logLinearXAxis,
+            'logBase': logBase,
+            'randomizeZeroEValues': randomizeZeroEValues,
+        }
 
         # Read in the read FASTA file if we haven't already.
         if self._fasta is None:
-            self._fasta = list(SeqIO.parse(self._records._fastaFilename,
+            self._fasta = list(SeqIO.parse(self.records._fastaFilename,
                                            'fasta'))
 
         zeroEValueUpperRandomIncrement = 150
@@ -381,9 +430,9 @@ class BlastHits(object):
             return result
 
         for title, readNum, hsps in self._hitDetails():
-            if self._titles[title]['plotInfo'] is None:
-                self._titles[title]['plotInfo'] = plotInfoDict()
-            plotInfo = self._titles[title]['plotInfo']
+            if self.titles[title]['plotInfo'] is None:
+                self.titles[title]['plotInfo'] = plotInfoDict()
+            plotInfo = self.titles[title]['plotInfo']
             queryLen = len(self._fasta[readNum])
 
             for hspCount, hsp in enumerate(hsps, start=1):
@@ -397,7 +446,7 @@ class BlastHits(object):
                     #
                     # print 'Assertion error in utils calling normalizeHSP'
                     # print 'readNum: %s' % readNum
-                    # print 'hitLen: %s' % self._titles[title]['length']
+                    # print 'hitLen: %s' % self.titles[title]['length']
                     # print 'query: %s' % query
                     # from dark.hsp import printHSP
                     # printHSP(hsp)
@@ -441,10 +490,13 @@ class BlastHits(object):
                     },
                 })
 
-        for title in self._titles.iterkeys():
-            plotInfo = self._titles[title]['plotInfo']
+        for title in self.titles.iterkeys():
+            plotInfo = self.titles[title]['plotInfo']
             if plotInfo is None:
                 continue
+
+            if rankEValues:
+                self._convertEValuesToRanks(plotInfo)
 
             # For each sequence we have hits on, set the expect values that
             # were zero to a randomly high value (higher than the max e value
@@ -459,7 +511,6 @@ class BlastHits(object):
                                     0, zeroEValueUpperRandomIncrement))
                             if e > maxEIncludingRandoms:
                                 maxEIncludingRandoms = e
-
                 else:
                     for item in plotInfo['items']:
                         if item['convertedE'] is None:

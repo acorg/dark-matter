@@ -48,9 +48,10 @@ class AlignmentPanelHTML(object):
         self._fasta = fasta
         self._images = []
 
-    def addImage(self, imageBasename, title, hitInfo):
+    def addImage(self, imageBasename, title, alignmentInfo, plotInfo):
         self._images.append({
-            'hitInfo': hitInfo,
+            'alignmentInfo': alignmentInfo,
+            'plotInfo': plotInfo,
             'imageBasename': imageBasename,
             'title': title
         })
@@ -88,9 +89,10 @@ class AlignmentPanelHTML(object):
         # Write out the summary images.
         for i, image in enumerate(self._images):
             title = image['title']
-            hitInfo = image['hitInfo']
+            alignmentInfo = image['alignmentInfo']
+            plotInfo = image['plotInfo']
             readIds = self._writeFASTA(i, image)
-            if len(hitInfo['features']):
+            if len(alignmentInfo['features']):
                 features = self._writeFeatures(i, image)
             fp.write("""
       <a id="small_%d"></a>
@@ -102,7 +104,7 @@ class AlignmentPanelHTML(object):
         <br/><a href="#big_%d">Full size image</a>.
 """
                      % (i, i, title, i, image['imageBasename'],
-                        hitInfo['hitCount'], len(hitInfo['items']), i))
+                        plotInfo['readCount'], len(plotInfo['items']), i))
 
             url = NCBISequenceLinkURL(title)
             if url:
@@ -111,7 +113,7 @@ class AlignmentPanelHTML(object):
 """
                          % url)
 
-            if len(hitInfo.get('features', [])):
+            if len(alignmentInfo.get('features', [])):
 
                 fp.write("""\
         <br/><a href="%s">Features</a>
@@ -121,7 +123,7 @@ class AlignmentPanelHTML(object):
                 fp.write('<br/>Feature lookup was False (or no features '
                          'were found).')
 
-            if len(hitInfo['items']):
+            if len(plotInfo['items']):
                 fp.write("""\
         <br/>Reads: <span class="reads">%s</span>
 """
@@ -183,7 +185,7 @@ span.reads {
         ids = []
         reads = []
         with open('%s/%d.fasta' % (self._outputDir, i), 'w') as fp:
-            for item in image['hitInfo']['items']:
+            for item in image['plotInfo']['items']:
                 readNum = item['readNum']
                 reads.append(self._fasta[readNum])
                 ids.append(self._fasta[readNum].description)
@@ -198,7 +200,7 @@ span.reads {
         image: A member of self._images.
         """
         filename = '%s/features-%d.txt' % (self._outputDir, i)
-        featureList = image['hitInfo']['features']
+        featureList = image['alignmentInfo']['features']
         with open(filename, 'w') as fp:
             for item in featureList:
                 items = str(item)
