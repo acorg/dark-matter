@@ -1,5 +1,4 @@
 from math import log10
-import re
 import numpy as np
 from random import uniform
 from IPython.display import HTML
@@ -7,10 +6,10 @@ from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 from dark.conversion import readJSONRecords
+from dark.filter import HitInfoFilter, TitleFilter
 from dark.hsp import printHSP, normalizeHSP
 from dark.html import NCBISequenceLink
 from dark.intervals import OffsetAdjuster, ReadIntervals
-from dark.simplify import simplifyTitle
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
@@ -53,7 +52,8 @@ class BlastRecords(object):
     @param limit: An C{int} limit on the number of records to read.
     """
 
-    def __init__(self, blastFilename, fastaFilename, blastDb, limit=None):
+    def __init__(self, blastFilename, fastaFilename=None, blastDb=None,
+                 limit=None):
         self.blastFilename = blastFilename
         self.fastaFilename = fastaFilename
         self.blastDb = blastDb
@@ -107,29 +107,77 @@ class BlastRecords(object):
         NOTE: this will return zero if called before C{records()} has been
               called to read the records.
 
-        @return: an C{int}, the number of hits in this set.
+        @return: an C{int}, the number of records in this BLAST output. This is
+            the number of reads that were present in the FASTA file given to
+            BLAST because BLAST outputs a record for each input (query)
+            sequence.
         """
         return self._length
 
-    def hits(self):
+    def hits(self, whitelist=None, blacklist=None,
+             minSequenceLen=None, maxSequenceLen=None,
+             minMatchingReads=None, maxMeanEValue=None, maxMedianEValue=None,
+             maxMinEValue=None, titleRegex=None, negativeTitleRegex=None,
+             truncateTitlesAfter=None):
         """
-        Read the BLAST records and return a L{BlastHits} instance.
+        Read the BLAST records and return a L{BlastHits} instance. Records are
+        only returned if they match the various optional restrictions described
+        below.
 
+        @param whitelist: If not C{None}, a set of exact titles that are always
+            acceptable (though the hit info for a whitelist title may rule it
+            out for other reasons).
+        @param blacklist: If not C{None}, a set of exact titles that are never
+            acceptable.
+        @param minSequenceLen: sequences of lesser length will be elided.
+        @param maxSequenceLen: sequences of greater length will be elided.
+        @param minMatchingReads: sequences that are matched by fewer reads
+            will be elided.
+        @param maxMeanEValue: sequences that are matched with a mean e-value
+            that is greater will be elided.
+        @param maxMedianEValue: sequences that are matched with a median
+            e-value that is greater will be elided.
+        @param maxMinEValue: if the minimum e-value for a hit is higher than
+            this value, elide the hit. E.g., suppose we are passed a value of
+            1e-20, then we should reject any hit whose minimal (i.e., best)
+            e-value is bigger than 1e-20. So a hit with minimal e-value of
+            1e-10 would not be reported, whereas a hit with a minimal e-value
+            of 1e-30 would be.
+        @param titleRegex: a regex that sequence titles must match.
+        @param negativeTitleRegex: a regex that sequence titles must not match.
+        @param truncateTitlesAfter: specify a string that titles will be
+            truncated beyond. If a truncated title has already been seen, that
+            title will be elided.
         @return: A L{BlastHits} instance.
         """
         result = {}
+        titleFilter = TitleFilter(positiveRegex=titleRegex,
+                                  negativeRegex=negativeTitleRegex,
+                                  truncateAfter=truncateTitlesAfter)
+
         for readNum, record in enumerate(self.records()):
             for index, alignment in enumerate(record.alignments):
+
+                # Test sequence length.
+                sequenceLen = alignment.length
+                if minSequenceLen is not None and sequenceLen < minSequenceLen:
+                    continue
+                if maxSequenceLen is not None and sequenceLen > maxSequenceLen:
+                    continue
+
+                # Test sequence title.
                 title = record.descriptions[index].title
+                if titleFilter.accept(title) is False:
+                    continue
+
                 if title in result:
                     hitInfo = result[title]
                 else:
                     hitInfo = result[title] = {
                         'readCount': 0,
                         'eValues': [],
-                        'length': alignment.length,  # The hit sequence length.
+                        'length': sequenceLen,
                         'readNums': set(),
-                        # 'title': title,  # Not needed, I don't think.
                     }
 
                 hitInfo['readCount'] += 1
@@ -138,17 +186,28 @@ class BlastRecords(object):
 
         blastHits = BlastHits(self)
 
-        # Compute summary stats on e-values and add the hit info to our
-        # final result.
-        for title, hitInfo in result.iteritems():
+        # Note that we don't pass minSequenceLen or maxSequenceLen to the
+        # hit info filter since we have already tested those.
+        hitInfoFilter = HitInfoFilter(minMatchingReads=minMatchingReads,
+                                      maxMeanEValue=maxMeanEValue,
+                                      maxMedianEValue=maxMedianEValue,
+                                      maxMinEValue=maxMinEValue)
+
+        # Compute summary stats on e-values and if the values are acceptable,
+        # add the hit info to our final result.
+        titles = result.keys()  # Don't change 'result' as we iterate over it.
+        for title in titles:
+            hitInfo = result[title]
             eValues = hitInfo['eValues']
             hitInfo['eMean'] = sum(eValues) / float(hitInfo['readCount'])
             hitInfo['eMedian'] = np.median(eValues)
             hitInfo['eMin'] = min(eValues)
-            # Remove the e-values now that we've summarized them.
-            del hitInfo['eValues']
-
-            blastHits.addHit(title, hitInfo)
+            if hitInfoFilter.accept(hitInfo):
+                # Remove the e-values now that we've summarized them.
+                del hitInfo['eValues']
+                blastHits.addHit(title, hitInfo)
+            # Reduce memory usage as quickly as we can.
+            del result[title]
 
         return blastHits
 
@@ -180,18 +239,20 @@ class BlastHits(object):
         the title has already been seen, raise C{KeyError}.
 
         @param title: A C{str} sequence title.
-        @param hitInfo: A C{dict} of information associated with hit against
-            the sequence with this title. The dict must contain:
+        @param hitInfo: A C{dict} of information associated with hits (i.e.,
+            matching reads) against the sequence with this title. The dict must
+            contain the following keys:
 
-            readCount: the number of reads that hit this sequence.
-            length: the length of the sequence.
-            reads: a sorted C{list} of read names (as found in e.g., a FASTA
-                file).
-            eMean: the mean of the e-values of all hits against this sequence.
-            eMedian: the median of the e-values of all hits against this
-                sequence.
-            eMin: the minimum of the e-values of all hits against this
-                sequence.
+                readCount: the number of reads that hit this sequence.
+                length:    the length of the sequence.
+                reads:     a sorted C{list} of read names (as found in e.g., a
+                           FASTA file).
+                eMean:     the mean of the e-values of all hits against this
+                           sequence.
+                eMedian:   the median of the e-values of all hits against this
+                           sequence.
+                eMin:      the minimum of the e-values of all hits against this
+                           sequence.
         """
 
         if title in self.titles:
@@ -231,7 +292,8 @@ class BlastHits(object):
 
     def _sortHTML(self, by):
         """
-        Return an HTML object with the hits sorted by the given attribute.
+        Return an C{IPython.display.HTML} object with the hits sorted by the
+        given attribute.
 
         @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
         @return: An HTML instance with sorted titles and information about
@@ -248,22 +310,26 @@ class BlastHits(object):
         return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
     def summarizeByMeanEValueHTML(self):
+        """Return an HTML object with hit titles sorted by mean e-value."""
         return self._sortHTML('eMean')
 
     def summarizeByMedianEValueHTML(self):
+        """Return an HTML object with hit titles sorted by median e-value."""
         return self._sortHTML('eMedian')
 
     def summarizeByCountHTML(self):
+        """Return an HTML object with hit titles sorted by read count."""
         return self._sortHTML('readCount', reverse=True)
 
     def summarizeByLengthHTML(self):
+        """Return an HTML object with hit titles sorted by sequence length."""
         return self._sortHTML('length', reverse=True)
 
-    def interesting(self, titleRegex=None, minSequenceLen=None,
-                    maxSequenceLen=None, minMatchingReads=None,
-                    maxMeanEValue=None, maxMedianEValue=None,
-                    negativeTitleRegex=None, maxMinEValue=None,
-                    truncateTitlesAfter=None):
+    def interesting(self, whitelist=None, blacklist=None,
+                    minSequenceLen=None, maxSequenceLen=None,
+                    minMatchingReads=None, maxMeanEValue=None,
+                    maxMedianEValue=None, maxMinEValue=None, titleRegex=None,
+                    negativeTitleRegex=None, truncateTitlesAfter=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -276,70 +342,47 @@ class BlastHits(object):
         information about a BLAST run and so should not be changing, and it
         saves memory.
 
-        titleRegex: a regex that sequence titles must match.
-        negativeTitleRegex: a regex that sequence titles must not match.
-        minSequenceLen: sequences of lesser length will be elided.
-        maxSequenceLen: sequences of greater length will be elided.
-        minMatchingReads: sequences that are matched by fewer reads
+        @param whitelist: If not C{None}, a set of exact titles that are always
+            acceptable (though the hit info for a whitelist title may rule it
+            out for other reasons).
+        @param blacklist: If not C{None}, a set of exact titles that are never
+            acceptable.
+        @param minSequenceLen: sequences of lesser length will be elided.
+        @param maxSequenceLen: sequences of greater length will be elided.
+        @param minMatchingReads: sequences that are matched by fewer reads
             will be elided.
-        maxMeanEValue: sequences that are matched with a mean e-value
+        @param maxMeanEValue: sequences that are matched with a mean e-value
             that is greater will be elided.
-        maxMedianEValue: sequences that are matched with a median e-value
-            that is greater will be elided.
-        maxMinEValue: if the minimum e-value for a hit is higher than this
-            value, elide the hit. E.g., suppose we are passed a value of
+        @param maxMedianEValue: sequences that are matched with a median
+            e-value that is greater will be elided.
+        @param maxMinEValue: if the minimum e-value for a hit is higher than
+            this value, elide the hit. E.g., suppose we are passed a value of
             1e-20, then we should reject any hit whose minimal (i.e., best)
             e-value is bigger than 1e-20. So a hit with minimal e-value of
             1e-10 would not be reported, whereas a hit with a minimal e-value
             of 1e-30 would be.
-        truncateTitlesAfter: specify a string that titles will be truncated
-            beyond. If a truncated title has already been seen, that title will
-            be elided.
+        @param titleRegex: a regex that sequence titles must match.
+        @param negativeTitleRegex: a regex that sequence titles must not match.
+        @param truncateTitlesAfter: specify a string that titles will be
+            truncated beyond. If a truncated title has already been seen, that
+            title will be elided.
+        @return: A new L{BlastHits} instance, with hits filtered as above.
         """
+        titleFilter = TitleFilter(positiveRegex=titleRegex,
+                                  negativeRegex=negativeTitleRegex,
+                                  truncateAfter=truncateTitlesAfter)
+
+        hitInfoFilter = HitInfoFilter(minSequenceLen=minSequenceLen,
+                                      maxSequenceLen=maxSequenceLen,
+                                      minMatchingReads=minMatchingReads,
+                                      maxMeanEValue=maxMeanEValue,
+                                      maxMedianEValue=maxMedianEValue,
+                                      maxMinEValue=maxMinEValue)
+
         result = BlastHits(self.records)
-
-        if truncateTitlesAfter:
-            truncatedTitles = set()
-        if titleRegex is not None:
-            titleRegex = re.compile(titleRegex, re.I)
-        if negativeTitleRegex is not None:
-            negativeTitleRegex = re.compile(negativeTitleRegex, re.I)
-
         for title, hitInfo in self.titles.iteritems():
-            if (minSequenceLen is not None and
-                    hitInfo['length'] < minSequenceLen):
-                continue
-            if (maxSequenceLen is not None and
-                    hitInfo['length'] > maxSequenceLen):
-                continue
-            if (minMatchingReads is not None and
-                    hitInfo['readCount'] < minMatchingReads):
-                continue
-            if maxMeanEValue is not None and hitInfo['eMean'] > maxMeanEValue:
-                continue
-            if (maxMedianEValue is not None and
-                    hitInfo['eMedian'] > maxMedianEValue):
-                continue
-            if maxMinEValue is not None and hitInfo['eMin'] > maxMinEValue:
-                continue
-            if truncateTitlesAfter:
-                # Titles start with something like gi|525472786|emb|HG313807.1|
-                # that we need to skip.
-                titleSansId = title.split(' ', 1)[1]
-                truncated = simplifyTitle(titleSansId, truncateTitlesAfter)
-                if truncated in truncatedTitles:
-                    # We've already seen this (truncated) title. Skip it.
-                    continue
-                truncatedTitles.add(truncated)
-            # Do the title regex tests last, since they are slowest.
-            if titleRegex and titleRegex.search(title) is None:
-                continue
-            if (negativeTitleRegex and
-                    negativeTitleRegex.search(title) is not None):
-                continue
-
-            result.addHit(title, hitInfo)
-
+            if hitInfoFilter.accept(hitInfo) and titleFilter.accept(title):
+                result.addHit(title, hitInfo)
         return result
 
     def _getHsps(self):
@@ -366,7 +409,7 @@ class BlastHits(object):
         Change e-values for the reads that hit each sequence to be their ranks.
 
         @param plotInfo: A C{dict} of plot information, as returned by
-            C{plotInfoDict} in C{computePlotInfo} and built up there.
+            C{plotInfoDict} in C{computePlotInfo}.
         """
         items = plotInfo['items']
         items.sort(key=lambda item: item['convertedE'])
@@ -429,7 +472,6 @@ class BlastHits(object):
             be set to a random (extremely good) value.
         @param: rankEValues: If C{True}, change the e-values for the reads
             for each title to be their rank (sorted decreasingly).
-
         @return: A L{BlastHitsSummary} instance.
         """
 
@@ -439,8 +481,8 @@ class BlastHits(object):
             hitInfo['plotInfo'] = None
 
         # Save the plotting parameters in use so that things we pass self
-        # to such as alignmentPlot or alignmentPanel can discover how the
-        # data has been filtered and summarized etc.
+        # to, such as alignmentPlot and alignmentPanel, can discover how
+        # the data was filtered and summarized etc.
         self.plotParams = {
             'eCutoff': eCutoff,
             'logBase': logBase,
@@ -459,6 +501,13 @@ class BlastHits(object):
         zeroEValueUpperRandomIncrement = 150
 
         def plotInfoDict(sequenceLen):
+            """
+            Retun a new C{dict} suitable for holding plot information
+            for a hit sequence title.
+
+            @param sequenceLen: The C{int} base pairs length of the sequence.
+            @return: A C{dict} to hold plot info for a title.
+            """
             result = {
                 'hspTotal': 0,  # The total number of HSPs for this title.
                 'items': [],  # len() of this = the # of HSPs kept for display.
@@ -546,8 +595,11 @@ class BlastHits(object):
                 self._convertEValuesToRanks(plotInfo)
 
             # For each sequence we have hits on, set the expect values that
-            # were zero to a randomly high value (higher than the max e value
-            # we just calculated).
+            # were zero. If randomizeZeroEValues is True, we set them to
+            # randomly high values (higher than the max e value we just
+            # calculated). Otherwise, we give them incrementally higher
+            # values (like ranking them) above the maximum e value found
+            # above.
             maxEIncludingRandoms = plotInfo['maxE']
             if plotInfo['zeroEValueFound']:
                 if randomizeZeroEValues:
