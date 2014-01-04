@@ -390,7 +390,7 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
             assert S_ISDIR(mode), "%r is not a directory." % outputDir
         else:
             os.mkdir(outputDir)
-        htmlOutput = html.AlignmentPanelHTML(outputDir, blastHits.fasta)
+        htmlOutput = html.AlignmentPanelHTML(outputDir, blastHits)
 
     coords = dimensionalIterator((rows, cols))
 

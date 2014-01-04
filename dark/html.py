@@ -38,14 +38,12 @@ class AlignmentPanelHTML(object):
     contain an alignment graph against a given sequence. This is
     supplementary output info for the AlignmentPanel class in utils.py.
 
-    fasta: A list of fasta sequences from SeqIO.parse
-    outputDir: The directory to write files into.
-
+    @param outputDir: The C{str} directory to write files into.
+    @param blastHits: A L{BlastHits} instance.
     """
-
-    def __init__(self, outputDir, fasta):
+    def __init__(self, outputDir, blastHits):
         self._outputDir = outputDir
-        self._fasta = fasta
+        self._blastHits = blastHits
         self._images = []
 
     def addImage(self, imageBasename, title, alignmentInfo, plotInfo):
@@ -99,12 +97,15 @@ class AlignmentPanelHTML(object):
       <h3>%d: %s</h3>
       <p>
         <a href="#big_%d"><img src="%s" class="thumbnail"/></a>
-        Number of reads that hit overall: %d.
-        Number of HSPs in this selection: %d.
-        <br/><a href="#big_%d">Full size image</a>.
+        Sequence length: %d base pairs.<br/>
+        Number of reads that hit overall: %d.<br/>
+        Number of HSPs in this selection: %d (of %d overall).<br/>
+        <a href="#big_%d">Full size image</a>.
 """
                      % (i, i, title, i, image['imageBasename'],
-                        plotInfo['readCount'], len(plotInfo['items']), i))
+                        self._blastHits.titles[title]['length'],
+                        self._blastHits.titles[title]['readCount'],
+                        len(plotInfo['items']), plotInfo['hspTotal'], i))
 
             url = NCBISequenceLinkURL(title)
             if url:
@@ -187,8 +188,8 @@ span.reads {
         with open('%s/%d.fasta' % (self._outputDir, i), 'w') as fp:
             for item in image['plotInfo']['items']:
                 readNum = item['readNum']
-                reads.append(self._fasta[readNum])
-                ids.append(self._fasta[readNum].description)
+                reads.append(self._blastHits.fasta[readNum])
+                ids.append(self._blastHits.fasta[readNum].description)
             SeqIO.write(reads, fp, 'fasta')
         return ids
 

@@ -5,7 +5,7 @@ from dark.blast import BlastHits
 
 class InterestingRecords(TestCase):
     """
-    Tests for the L{blast.BlastHits.interesting} function.
+    Tests for the L{blast.BlastHits.filterHits} function.
     """
 
     def testNoSequences(self):
@@ -13,7 +13,7 @@ class InterestingRecords(TestCase):
         If we give C{interesting} no records, we should get nothing back.
         """
         blastHits = BlastHits(None)
-        result = blastHits.interesting()
+        result = blastHits.filterHits()
         self.assertEqual({}, result.titles)
 
     def testOneSequenceWithNoFiltering(self):
@@ -25,7 +25,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('a', {
             'length': 23,
         })
-        result = blastHits.interesting()
+        result = blastHits.filterHits()
         self.assertEqual(
             {
                 'a': {
@@ -45,7 +45,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('b', {
             'length': 15,
         })
-        result = blastHits.interesting(titleRegex='a')
+        result = blastHits.filterHits(titleRegex='a')
         self.assertEqual(
             {
                 'a': {
@@ -65,7 +65,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('b', {
             'length': 15,
         })
-        result = blastHits.interesting(titleRegex='abc seq')
+        result = blastHits.filterHits(titleRegex='abc seq')
         self.assertEqual(
             {
                 'The ABC Sequence': {
@@ -85,7 +85,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('b', {
             'length': 20,
         })
-        result = blastHits.interesting(negativeTitleRegex='ABC Sequence')
+        result = blastHits.filterHits(negativeTitleRegex='ABC Sequence')
         self.assertEqual(
             {
                 'b': {
@@ -106,7 +106,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('b', {
             'length': 20,
         })
-        result = blastHits.interesting(negativeTitleRegex='abc seq')
+        result = blastHits.filterHits(negativeTitleRegex='abc seq')
         self.assertEqual(
             {
                 'b': {
@@ -134,7 +134,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('a long virus cryptostrain 9202', {
             'length': 43,
         })
-        result = blastHits.interesting(truncateTitlesAfter='virus')
+        result = blastHits.filterHits(truncateTitlesAfter='virus')
         self.assertEqual(1, len(result.titles))
 
     def testTruncateTitlesWhenSomeMatch(self):
@@ -155,7 +155,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('something else', {
             'length': 11,
         })
-        result = blastHits.interesting(truncateTitlesAfter='virus')
+        result = blastHits.filterHits(truncateTitlesAfter='virus')
         self.assertEqual(2, len(result.titles))
         self.assertTrue('something else' in result.titles.keys())
 
@@ -173,7 +173,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('a long virus cryptostrain 9202', {
             'length': 43,
         })
-        result = blastHits.interesting(truncateTitlesAfter='unknown')
+        result = blastHits.filterHits(truncateTitlesAfter='unknown')
         self.assertEqual(
             {
                 'a long virus strain 29744': {
@@ -202,7 +202,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('a long virus cryptostrain 9202', {
             'length': 43,
         })
-        result = blastHits.interesting(truncateTitlesAfter='xxx')
+        result = blastHits.filterHits(truncateTitlesAfter='xxx')
 
         self.assertEqual(
             {
@@ -232,7 +232,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'length': 30
         })
-        result = blastHits.interesting(minSequenceLen=15, maxSequenceLen=25)
+        result = blastHits.filterHits(minSequenceLen=15, maxSequenceLen=25)
         self.assertEqual(
             {
                 'b': {
@@ -255,7 +255,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'readCount': 30
         })
-        result = blastHits.interesting(minMatchingReads=15)
+        result = blastHits.filterHits(minMatchingReads=15)
         self.assertEqual(
             {
                 'b': {
@@ -281,7 +281,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMean': 30
         })
-        result = blastHits.interesting(maxMeanEValue=6)
+        result = blastHits.filterHits(maxMeanEValue=6)
         self.assertEqual(
             {
                 'b': {
@@ -305,7 +305,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.interesting(maxMinEValue=1e-20)
+        result = blastHits.filterHits(maxMinEValue=1e-20)
         self.assertEqual(
             {
             },
@@ -326,7 +326,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.interesting(maxMinEValue=1e-3)
+        result = blastHits.filterHits(maxMinEValue=1e-3)
         self.assertEqual(
             {
                 'a': {
@@ -356,7 +356,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.interesting(maxMinEValue=1e-13)
+        result = blastHits.filterHits(maxMinEValue=1e-13)
         self.assertEqual(
             {
                 'b': {

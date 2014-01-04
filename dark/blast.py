@@ -114,11 +114,11 @@ class BlastRecords(object):
         """
         return self._length
 
-    def hits(self, whitelist=None, blacklist=None,
-             minSequenceLen=None, maxSequenceLen=None,
-             minMatchingReads=None, maxMeanEValue=None, maxMedianEValue=None,
-             maxMinEValue=None, titleRegex=None, negativeTitleRegex=None,
-             truncateTitlesAfter=None):
+    def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
+                   maxSequenceLen=None, minMatchingReads=None,
+                   maxMeanEValue=None, maxMedianEValue=None, maxMinEValue=None,
+                   titleRegex=None, negativeTitleRegex=None,
+                   truncateTitlesAfter=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -155,7 +155,10 @@ class BlastRecords(object):
                                   negativeRegex=negativeTitleRegex,
                                   truncateAfter=truncateTitlesAfter)
 
+        # For each read...
         for readNum, record in enumerate(self.records()):
+
+            # For each sequence that read matches against...
             for index, alignment in enumerate(record.alignments):
 
                 # Test sequence length.
@@ -180,9 +183,11 @@ class BlastRecords(object):
                         'readNums': set(),
                     }
 
-                hitInfo['readCount'] += 1
+                # Record just the best e-value with which this read hit this
+                # sequence.
                 hitInfo['eValues'].append(alignment.hsps[0].expect)
                 hitInfo['readNums'].add(readNum)
+                hitInfo['readCount'] += 1
 
         blastHits = BlastHits(self)
 
@@ -325,11 +330,11 @@ class BlastHits(object):
         """Return an HTML object with hit titles sorted by sequence length."""
         return self._sortHTML('length', reverse=True)
 
-    def interesting(self, whitelist=None, blacklist=None,
-                    minSequenceLen=None, maxSequenceLen=None,
-                    minMatchingReads=None, maxMeanEValue=None,
-                    maxMedianEValue=None, maxMinEValue=None, titleRegex=None,
-                    negativeTitleRegex=None, truncateTitlesAfter=None):
+    def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
+                   maxSequenceLen=None, minMatchingReads=None,
+                   maxMeanEValue=None, maxMedianEValue=None, maxMinEValue=None,
+                   titleRegex=None, negativeTitleRegex=None,
+                   truncateTitlesAfter=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
