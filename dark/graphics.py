@@ -9,10 +9,12 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
+from IPython.display import HTML
 
 from dark import html
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
+from dark.html import NCBISequenceLink
 from dark.intervals import ReadIntervals
 from dark import genbank
 from dark import ncbidb
@@ -39,6 +41,71 @@ SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
 def report(msg):
     print '%s: %s' % (ctime(time()), msg)
+
+
+def _sortHTML(hits, by):
+    """
+    Return an C{IPython.display.HTML} object with the hits sorted by the
+    given attribute.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
+    @return: An HTML instance with sorted titles and information about
+        hit read count, length, and e-values.
+    """
+    out = []
+    for i, title in enumerate(hits.sortTitles(by), start=1):
+        hitInfo = hits.titles[title]
+        link = NCBISequenceLink(title, title)
+        out.append(
+            '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
+            (i, hitInfo['readCount'], hitInfo['length'],
+             hitInfo['eMedian'], hitInfo['eMean'], link))
+    return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
+
+
+def summarizeHitsByMeanEValue(hits):
+    """
+    Sort hit titles by mean e-value.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        mean e-value.
+    """
+    return _sortHTML(hits, 'eMean')
+
+
+def summarizeHitsByMedianEValue(hits):
+    """
+    Sort hit titles by median e-value.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        median e-value.
+    """
+    return _sortHTML(hits, 'eMedian')
+
+
+def summarizeHitsByCount(hits):
+    """
+    Sort hit titles by read count.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        read count.
+    """
+    return _sortHTML(hits, 'readCount')
+
+
+def summarizeHitsByLength(hits):
+    """
+    Sort hit titles by sequence length.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        mean sequence length.
+    """
+    return _sortHTML(hits, 'length')
 
 
 def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,

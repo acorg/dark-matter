@@ -1,14 +1,12 @@
 from math import log10
 import numpy as np
 from random import uniform
-from IPython.display import HTML
 from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 from dark.conversion import readJSONRecords
 from dark.filter import HitInfoFilter, TitleFilter
 from dark.hsp import printHSP, normalizeHSP
-from dark.html import NCBISequenceLink
 from dark.intervals import OffsetAdjuster, ReadIntervals
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
@@ -294,41 +292,6 @@ class BlastHits(object):
             raise ValueError('sort attribute must be one of "eMean", '
                              '"eMedian", "title" or "reads".')
         return titles
-
-    def _sortHTML(self, by):
-        """
-        Return an C{IPython.display.HTML} object with the hits sorted by the
-        given attribute.
-
-        @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
-        @return: An HTML instance with sorted titles and information about
-            hit read count, length, and e-values.
-        """
-        out = []
-        for i, title in enumerate(self.sortTitles(by), start=1):
-            hitInfo = self.titles[title]
-            link = NCBISequenceLink(title, title)
-            out.append(
-                '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
-                (i, hitInfo['readCount'], hitInfo['length'],
-                 hitInfo['eMedian'], hitInfo['eMean'], link))
-        return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
-
-    def summarizeByMeanEValueHTML(self):
-        """Return an HTML object with hit titles sorted by mean e-value."""
-        return self._sortHTML('eMean')
-
-    def summarizeByMedianEValueHTML(self):
-        """Return an HTML object with hit titles sorted by median e-value."""
-        return self._sortHTML('eMedian')
-
-    def summarizeByCountHTML(self):
-        """Return an HTML object with hit titles sorted by read count."""
-        return self._sortHTML('readCount', reverse=True)
-
-    def summarizeByLengthHTML(self):
-        """Return an HTML object with hit titles sorted by sequence length."""
-        return self._sortHTML('length', reverse=True)
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
