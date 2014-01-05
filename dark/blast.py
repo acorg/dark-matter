@@ -421,9 +421,11 @@ class BlastHits(object):
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
                         randomizeZeroEValues=False, rankEValues=False):
         """
-        Summarize the information found in 'hits'.
+        Read detailed HSP information about the hit titles in C{self.titles}
+        and compute summary statistics on it. The various parameters allow
+        us to restrict and transform the data that is read.
 
-        @param eCutoff: A float e value. Hits with e value greater than or
+        @param eCutoff: A float e-value. Hits with e-value greater than or
             equal to this will be ignored.
         @param maxHspsPerHit: The maximum number of HSPs to examine for each
             hit.
@@ -440,7 +442,6 @@ class BlastHits(object):
             be set to a random (extremely good) value.
         @param: rankEValues: If C{True}, change the e-values for the reads
             for each title to be their rank (sorted decreasingly).
-        @return: A L{BlastHitsSummary} instance.
         """
 
         # Reset the plot info for each hit title because we may be called
