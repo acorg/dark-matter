@@ -479,8 +479,8 @@ class BlastHits(object):
             result = {
                 'hspTotal': 0,  # The total number of HSPs for this title.
                 'items': [],  # len() of this = the # of HSPs kept for display.
-                'maxE': 0.0,
-                'minE': 1000,  # Something ridiculously large.
+                'maxE': None,
+                'minE': None,
                 'maxX': maxStop or sequenceLen,
                 'minX': minStart or 0,
                 'zeroEValueFound': False,
@@ -496,6 +496,9 @@ class BlastHits(object):
             if self.titles[title]['plotInfo'] is None:
                 sequenceLen = self.titles[title]['length']
                 self.titles[title]['plotInfo'] = plotInfoDict(sequenceLen)
+                firstItem = True  # This is the first item being added.
+            else:
+                firstItem = False
             plotInfo = self.titles[title]['plotInfo']
             queryLen = len(self.fasta[readNum])
             plotInfo['hspTotal'] += len(hsps)
@@ -533,10 +536,10 @@ class BlastHits(object):
                     plotInfo['zeroEValueFound'] = True
                 else:
                     convertedE = -1.0 * log10(e)
-                    if convertedE > plotInfo['maxE']:
+                    if firstItem or convertedE > plotInfo['maxE']:
                         plotInfo['maxE'] = convertedE
                     # Don't use elif for testing minE. Both can be true.
-                    if convertedE < plotInfo['minE']:
+                    if firstItem or convertedE < plotInfo['minE']:
                         plotInfo['minE'] = convertedE
                 if normalized['queryStart'] < plotInfo['minX']:
                     plotInfo['minX'] = normalized['queryStart']
