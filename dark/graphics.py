@@ -442,13 +442,8 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
     report('Plotting %d titles in %dx%d grid, sorted on %s' %
            (len(titles), rows, cols, sortOn))
 
-    maxEIncludingRandoms = -1
-    maxE = -1
-    minE = 1000  # Something improbably large.
-    maxX = -1
-    minX = 1e10  # Something improbably large.
-    queryMax = -1
-    queryMin = 1e10  # Something improbably large.
+    maxEIncludingRandoms = maxE = minE = maxX = minX = None
+    queryMax = queryMin = None
 
     if outputDir:
         if os.access(outputDir, os.F_OK):
@@ -505,21 +500,33 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
-        if plotInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
+        if i == 0:
+            # This is our first title. Unconditionally set our max/min values.
             maxEIncludingRandoms = plotInfo['maxEIncludingRandoms']
-        if plotInfo['maxE'] > maxE:
             maxE = plotInfo['maxE']
-        if plotInfo['minE'] < minE:
             minE = plotInfo['minE']
-        if plotInfo['maxX'] > maxX:
             maxX = plotInfo['maxX']
-        if plotInfo['minX'] < minX:
             minX = plotInfo['minX']
-        if xRange == 'reads':
-            if alignmentInfo['queryMin'] < queryMin:
+            if xRange == 'reads':
                 queryMin = alignmentInfo['queryMin']
-            if alignmentInfo['queryMax'] > queryMax:
                 queryMax = alignmentInfo['queryMax']
+        else:
+            # Conditionally adjust max/min values.
+            if plotInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
+                maxEIncludingRandoms = plotInfo['maxEIncludingRandoms']
+            if plotInfo['maxE'] > maxE:
+                maxE = plotInfo['maxE']
+            if plotInfo['minE'] < minE:
+                minE = plotInfo['minE']
+            if plotInfo['maxX'] > maxX:
+                maxX = plotInfo['maxX']
+            if plotInfo['minX'] < minX:
+                minX = plotInfo['minX']
+            if xRange == 'reads':
+                if alignmentInfo['queryMin'] < queryMin:
+                    queryMin = alignmentInfo['queryMin']
+                if alignmentInfo['queryMax'] > queryMax:
+                    queryMax = alignmentInfo['queryMax']
 
     # Post-process graphs to adjust axes, etc.
 
