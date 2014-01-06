@@ -2,24 +2,26 @@ from json import dumps
 from unittest import TestCase
 from mock import patch
 
-from dark.utils import readBlastRecords
+from dark.blast import BlastRecords
 from mocking import mockOpen
 
 
-class TestReadBlastRecords(TestCase):
+class TestBlastRecords(TestCase):
     """
-    Test the readBlastRecords function.
+    Test the reading of BLAST records.
     """
 
     def testEmptyJSONInput(self):
         mockOpener = mockOpen()
         with patch('__builtin__.open', mockOpener, create=True):
-            self.assertEqual([], list(readBlastRecords('file.json')))
+            blastRecords = BlastRecords('file.json', None, None)
+            self.assertEqual([], list(blastRecords.records()))
 
     def testEmptyXMLInput(self):
         mockOpener = mockOpen()
         with patch('__builtin__.open', mockOpener, create=True):
-            generator = readBlastRecords('file.xml')
+            blastRecords = BlastRecords('file.xml', None, None)
+            generator = blastRecords.records()
             self.assertRaises(ValueError, list, generator)
 
     def xxx_testOneJSONInput(self):
@@ -51,7 +53,8 @@ class TestReadBlastRecords(TestCase):
         }
         mockOpener = mockOpen(data=dumps(record) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
-            self.assertEqual([], list(readBlastRecords('file.json')))
+            blastRecords = BlastRecords('file.json', None, None)
+            self.assertEqual([], list(blastRecords.records()))
 
     def testXMLInput(self):
         """
@@ -180,6 +183,7 @@ class TestReadBlastRecords(TestCase):
         """
         mockOpener = mockOpen(data=record)
         with patch('__builtin__.open', mockOpener, create=True):
-            record1, record2 = list(readBlastRecords('file.xml'))
+            blastRecords = BlastRecords('file.xml', None, None)
+            record1, record2 = list(blastRecords.records())
             self.assertEqual(0, len(record1.alignments))
             self.assertEqual(2, len(record2.alignments))

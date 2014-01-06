@@ -38,19 +38,18 @@ class AlignmentPanelHTML(object):
     contain an alignment graph against a given sequence. This is
     supplementary output info for the AlignmentPanel class in utils.py.
 
-    fasta: A list of fasta sequences from SeqIO.parse
-    outputDir: The directory to write files into.
-
+    @param outputDir: The C{str} directory to write files into.
+    @param blastHits: A L{BlastHits} instance.
     """
-
-    def __init__(self, outputDir, fasta):
+    def __init__(self, outputDir, blastHits):
         self._outputDir = outputDir
-        self._fasta = fasta
+        self._blastHits = blastHits
         self._images = []
 
-    def addImage(self, imageBasename, title, hitInfo):
+    def addImage(self, imageBasename, title, alignmentInfo, plotInfo):
         self._images.append({
-            'hitInfo': hitInfo,
+            'alignmentInfo': alignmentInfo,
+            'plotInfo': plotInfo,
             'imageBasename': imageBasename,
             'title': title
         })
@@ -88,21 +87,25 @@ class AlignmentPanelHTML(object):
         # Write out the summary images.
         for i, image in enumerate(self._images):
             title = image['title']
-            hitInfo = image['hitInfo']
+            alignmentInfo = image['alignmentInfo']
+            plotInfo = image['plotInfo']
             readIds = self._writeFASTA(i, image)
-            if len(hitInfo['features']):
+            if len(alignmentInfo['features']):
                 features = self._writeFeatures(i, image)
             fp.write("""
       <a id="small_%d"></a>
       <h3>%d: %s</h3>
       <p>
         <a href="#big_%d"><img src="%s" class="thumbnail"/></a>
-        Number of reads that hit overall: %d.
-        Number of HSPs in this selection: %d.
-        <br/><a href="#big_%d">Full size image</a>.
+        Sequence length: %d base pairs.<br/>
+        Number of reads that hit overall: %d.<br/>
+        Number of HSPs in this selection: %d (of %d overall).<br/>
+        <a href="#big_%d">Full size image</a>.
 """
                      % (i, i, title, i, image['imageBasename'],
-                        hitInfo['hitCount'], len(hitInfo['items']), i))
+                        self._blastHits.titles[title]['length'],
+                        self._blastHits.titles[title]['readCount'],
+                        len(plotInfo['items']), plotInfo['hspTotal'], i))
 
             url = NCBISequenceLinkURL(title)
             if url:
@@ -111,7 +114,7 @@ class AlignmentPanelHTML(object):
 """
                          % url)
 
-            if len(hitInfo.get('features', [])):
+            if len(alignmentInfo.get('features', [])):
 
                 fp.write("""\
         <br/><a href="%s">Features</a>
@@ -121,7 +124,7 @@ class AlignmentPanelHTML(object):
                 fp.write('<br/>Feature lookup was False (or no features '
                          'were found).')
 
-            if len(hitInfo['items']):
+            if len(plotInfo['items']):
                 fp.write("""\
         <br/>Reads: <span class="reads">%s</span>
 """
@@ -183,10 +186,10 @@ span.reads {
         ids = []
         reads = []
         with open('%s/%d.fasta' % (self._outputDir, i), 'w') as fp:
-            for item in image['hitInfo']['items']:
-                sequenceId = item['sequenceId']
-                reads.append(self._fasta[sequenceId])
-                ids.append(self._fasta[sequenceId].description)
+            for item in image['plotInfo']['items']:
+                readNum = item['readNum']
+                reads.append(self._blastHits.fasta[readNum])
+                ids.append(self._blastHits.fasta[readNum].description)
             SeqIO.write(reads, fp, 'fasta')
         return ids
 
@@ -198,7 +201,7 @@ span.reads {
         image: A member of self._images.
         """
         filename = '%s/features-%d.txt' % (self._outputDir, i)
-        featureList = image['hitInfo']['features']
+        featureList = image['alignmentInfo']['features']
         with open(filename, 'w') as fp:
             for item in featureList:
                 items = str(item)

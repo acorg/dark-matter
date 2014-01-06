@@ -9,11 +9,8 @@ Run with --help for help.
 
 if __name__ == '__main__':
     import sys
-    from Bio import SeqIO
-    import os.path
-    from json import loads, dumps
-    from dark.utils import (alignmentPanel, getAllHitsForSummary,
-                            interestingRecords, report, summarizeAllRecords)
+    from dark.graphics import alignmentPanel, report
+    from dark.blast import BlastRecords
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -32,6 +29,14 @@ if __name__ == '__main__':
         help='the FASTA file of sequences that were given to BLAST.')
 
     # Args for the interesting selection.
+    parser.add_argument(
+        '--whitelist', type=str, nargs='+', default=None,
+        help='sequence titles that should be whitelisted')
+
+    parser.add_argument(
+        '--blacklist', type=str, nargs='+', default=None,
+        help='sequence titles that should be blacklisted')
+
     parser.add_argument(
         '--titleRegex', type=str, default=None,
         help='a regex that sequence titles must match.')
@@ -117,38 +122,36 @@ if __name__ == '__main__':
         help='If True, just print the number of interesting hits, but do not '
         'create the alignment panel.')
 
-    parser.add_argument(
-        '--summaryFile', type=str, default=None,
-        help='A file to write the summary from summarizeAllRecords to.')
-
     args = parser.parse_args()
-    report('Reading FASTA from %r.' % args.fasta)
-    fasta = list(SeqIO.parse(args.fasta, 'fasta'))
-    report('Read %d sequences.' % len(fasta))
-    report('Summarizing all records.')
 
-    if args.summaryFile:
-        if os.path.isfile(args.summaryFile):
-            with open(args.summaryFile, 'r') as f:
-                summaryString = f.read()
-                summary = loads(summaryString)
-        else:
-            summary = summarizeAllRecords(args.json)
-            with open(args.summaryFile, 'w') as f:
-                f.write(dumps(summary))
-    else:
-        summary = summarizeAllRecords(args.json)
+    blastRecords = BlastRecords(args.json, fastaFilename=args.fasta,
+                                blastDb=args.db)
 
-    interesting = interestingRecords(
-        summary, titleRegex=args.titleRegex,
-        minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
+    # Convert white/blacklists lists to sets.
+    if args.whitelist is not None:
+        args.whitelist = set(args.whitelist)
+    if args.blacklist is not None:
+        args.blacklist = set(args.blacklist)
+
+    hits = blastRecords.filterHits(
+        whitelist=args.whitelist,
+        blacklist=args.blacklist,
+        minSequenceLen=args.minSequenceLen,
+        maxSequenceLen=args.maxSequenceLen,
         minMatchingReads=args.minMatchingReads,
-        maxMeanEValue=args.maxMeanEValue, maxMedianEValue=args.maxMedianEValue,
+        maxMeanEValue=args.maxMeanEValue,
+        maxMedianEValue=args.maxMedianEValue,
         maxMinEValue=args.maxMinEValue,
+        titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter)
 
-    nInteresting = len(interesting)
+    hits.computePlotInfo(
+        eCutoff=args.eCutoff, maxHspsPerHit=args.maxHspsPerHit,
+        minStart=args.minStart, maxStop=args.maxStop,
+        rankEValues=args.rankEValues)
+
+    nInteresting = len(hits)
     if nInteresting == 0:
         print >>sys.stderr, 'No interesting hits found. Relax your search!'
         sys.exit(0)
@@ -158,12 +161,8 @@ if __name__ == '__main__':
 
     if args.earlyExit:
         print 'Hit titles:'
-        print '\n'.join(interesting.keys())
+        print '\n'.join(sorted(hits.titles.keys()))
         sys.exit(0)
 
-    allHits = getAllHitsForSummary(interesting, args.json)
-    alignmentPanel(
-        interesting, allHits, fasta, db=args.db, eCutoff=args.eCutoff,
-        maxHspsPerHit=args.maxHspsPerHit, minStart=args.minStart,
-        maxStop=args.maxStop, sortOn=args.sortOn, rankEValues=args.rankEValues,
-        interactive=True, outputDir=args.outputDir, idList=args.idList)
+    alignmentPanel(hits, idList=args.idList, interactive=True,
+                   outputDir=args.outputDir, sortOn=args.sortOn)

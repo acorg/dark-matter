@@ -2,7 +2,7 @@
 
 from re import compile
 import sys
-from dark.utils import getSeqFromGenbank
+from dark.genbank import getSequence
 
 
 def main(gi, ranges):
@@ -15,7 +15,7 @@ def main(gi, ranges):
     ranges: a possibly empty list of ranges to print information for. Each
         range is a non-descending (start, end) pair of integers.
     """
-    record = getSeqFromGenbank(gi)
+    record = getSequence(gi)
 
     if record is None:
         print "Looks like you're offline."

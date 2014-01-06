@@ -1,68 +1,63 @@
 #!/usr/bin/env python
 
-from dark import utils
 import sys
 from re import compile
 import argparse
 
+from dark.blast import BlastRecords
 
-def main(recordFilename, fastaFilename, hitId, xRange, eRange):
+
+def main(recordFilename, title, xRange, eRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
     recordFilename: the result of a blast run, using outfmt 5.
-    fastaFilename: the fasta file that was blasted.
-    hitId: the hitId from the subject where the reads should be searched for.
-        Must be of the format: 'gi|1234|abc|1234'
+    title: the title of the subject sequence, as output by BLAST.
     ranges: The first parameter must be a number of an interval on the
         x-axis from where the reads should be searched. The second parameter
         is optional and should be a converted value or an interval of
         converted evalues.
     """
-    allhits = utils.findHits(recordFilename, set([hitId]))
-
-    fasta, summary = utils.summarizeHits(allhits, fastaFilename)
-
-    hitInfo = summary[hitId]['items']
-    if len(hitInfo) == 0:
-        print >> sys.stderr, "%s: files are empty" % sys.argv[0]
+    blastRecords = BlastRecords(recordFilename)
+    hits = blastRecords.filterHits(whitelist=set([title]),
+                                   negativeTitleRegex='.')
+    if title not in hits.titles:
+        print '%s: Title %r not found in BLAST output' % (sys.argv[0], title)
         sys.exit(3)
 
-    for item in hitInfo:
+    hits.computePlotInfo()
+
+    items = hits.titles[title]['plotInfo']['items']
+
+    for item in items:
         hsp = item['hsp']
         if ((xRange is None or (xRange[0][0] <= hsp['subjectEnd'] and
                                 xRange[0][1] >= hsp['subjectStart'])) and
                 (eRange is None or
                     (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
-            print 'query: ', item['query'], 'start: ', \
-                hsp['subjectStart'], 'end: ', hsp['subjectEnd'], \
-                'E-value: ', item['convertedE']
+            print ('query: ', item['query'], 'start: ',
+                   hsp['subjectStart'], 'end: ', hsp['subjectEnd'],
+                   'E-value: ', item['convertedE'])
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print >>sys.stderr, ('Usage: %s recordFilename, fastaFilename, \
-            gi-number, xCoords, eCoords' % sys.argv[0])
+    if len(sys.argv) < 3:
+        print >>sys.stderr, (
+            'Usage: %s recordFilename, title, xCoords, eCoords' % sys.argv[0])
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
-        description='Print the reads that are \
-        at specified positions in an alignmentGraph',
-        epilog='Given a JSON BLAST output file, a FASTA sequence file, a hitId'
-        'and a an x and / or eRange, print the reads that \
-        are within the given Ranges.'
-    )
+        description=('Print the reads that are '
+                     'at specified positions in an alignmentGraph'),
+        epilog=('Given a JSON BLAST output file, a title and an x and / or '
+                'eRange, print the reads that are within the given Ranges.'))
 
     parser.add_argument(
         'json', metavar='BLAST-JSON-file', type=str,
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
-        'fasta', metavar='FASTA-file', type=str,
-        help='the FASTA file of sequences that were given to BLAST.')
-
-    parser.add_argument(
-        'hitId', metavar='gi|1234|db|1234', type=str,
-        help='The identifier of the subject.')
+        'title', metavar='SEQUENCE-TITLE', type=str,
+        help='The title of the subject sequence.')
 
     parser.add_argument(
         '--xRange', default=None,
@@ -97,5 +92,5 @@ if __name__ == '__main__':
             sys.exit(2)
         return ranges
 
-    main(args.json, args.fasta, args.hitId,
+    main(args.json, args.title,
          _getRange(args.xRange), _getRange(args.eRange))
