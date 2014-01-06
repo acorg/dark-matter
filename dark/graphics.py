@@ -344,7 +344,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     # Add the horizontal divider between the highest e-value and the randomly
     # higher ones (if any).
     if plotInfo['zeroEValueFound']:
-        readsAx.axhline(y=maxE + 1, color='#cccccc', linewidth=1)
+        readsAx.axhline(y=maxE + 0.5, color='#cccccc', linewidth=1)
 
     # Titles, axis, etc.
     if createFigure:
