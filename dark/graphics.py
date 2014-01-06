@@ -495,7 +495,7 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
             else:
                 eValues = [item['convertedE'] for item in plotInfo['items']]
                 median = np.median(eValues)
-                mean = sum(eValues) / float(len(eValues))
+                mean = np.mean(eValues)
                 plotTitle += '\nmedian 1e-%d, mean 1e-%d' % (median, mean)
 
         ax[row][col].set_title(plotTitle, fontsize=10)
