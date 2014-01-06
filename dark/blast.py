@@ -149,7 +149,8 @@ class BlastRecords(object):
         @return: A L{BlastHits} instance.
         """
         result = {}
-        titleFilter = TitleFilter(positiveRegex=titleRegex,
+        titleFilter = TitleFilter(whitelist=whitelist, blacklist=blacklist,
+                                  positiveRegex=titleRegex,
                                   negativeRegex=negativeTitleRegex,
                                   truncateAfter=truncateTitlesAfter)
 
@@ -336,7 +337,8 @@ class BlastHits(object):
             title will be elided.
         @return: A new L{BlastHits} instance, with hits filtered as above.
         """
-        titleFilter = TitleFilter(positiveRegex=titleRegex,
+        titleFilter = TitleFilter(whitelist=whitelist, blacklist=blacklist,
+                                  positiveRegex=titleRegex,
                                   negativeRegex=negativeTitleRegex,
                                   truncateAfter=truncateTitlesAfter)
 
