@@ -11,7 +11,8 @@ if len(sys.argv) != 3:
 else:
     recordFile, title = sys.argv[1:]
     blastRecords = BlastRecords(recordFile)
-    hits = blastRecords.hits(whitelist=set([title]), negativeTitleRegex='.')
+    hits = blastRecords.filterHits(whitelist=set([title]),
+                                   negativeTitleRegex='.')
     if title in hits.titles:
         print hits.titles[title]
     else:

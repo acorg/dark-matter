@@ -18,7 +18,8 @@ def main(recordFilename, title, xRange, eRange):
         converted evalues.
     """
     blastRecords = BlastRecords(recordFilename)
-    hits = blastRecords.hits(whitelist=set([title]), negativeTitleRegex='.')
+    hits = blastRecords.filterHits(whitelist=set([title]),
+                                   negativeTitleRegex='.')
     if title not in hits.titles:
         print '%s: Title %r not found in BLAST output' % (sys.argv[0], title)
         sys.exit(3)

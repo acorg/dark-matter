@@ -133,7 +133,7 @@ if __name__ == '__main__':
     if args.blacklist is not None:
         args.blacklist = set(args.blacklist)
 
-    hits = blastRecords.hits(
+    hits = blastRecords.filterHits(
         whitelist=args.whitelist,
         blacklist=args.blacklist,
         minSequenceLen=args.minSequenceLen,
