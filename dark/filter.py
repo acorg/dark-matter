@@ -20,6 +20,10 @@ class TitleFilter(object):
         be acceptable.
     """
 
+    REJECT = 0
+    WHITELIST_ACCEPT = 1
+    DEFAULT_ACCEPT = 2
+
     def __init__(self, whitelist=None, blacklist=None, positiveRegex=None,
                  negativeRegex=None, truncateAfter=None):
         self._whitelist = whitelist
@@ -42,16 +46,24 @@ class TitleFilter(object):
 
     def accept(self, title):
         """
-        Return C{True} if a title is acceptable.
+        Return a value (see below) to indicate if a title is acceptable (and,
+        if so, in what way).
 
         @param title: A C{str} sequence title.
-        @return: A C{bool} to indicate an acceptable title or not.
+        @return: An C{int} to indicate an acceptable title or not. This will be
+
+            C{self.REJECT} if the title is unacceptable.
+            C{self.WHITELIST_ACCEPT} if the title is whitelisted.
+            C{self.DEFAULT_ACCEPT} if the title is acceptable by default.
+
+            These three values are needed so our caller can distinguish between
+            the two reasons for acceptance.
         """
         if self._whitelist and title in self._whitelist:
-            return True
+            return self.WHITELIST_ACCEPT
 
         if self._blacklist and title in self._blacklist:
-            return False
+            return self.REJECT
 
         if self._truncated is not None:
             # Titles start with something like gi|525472786|emb|HG313807.1|
@@ -60,18 +72,18 @@ class TitleFilter(object):
             truncated = simplifyTitle(titleSansId, self._truncateAfter)
             if truncated in self._truncated:
                 # We've already seen this (truncated) title. Reject.
-                return False
+                return self.REJECT
             self._truncated.add(truncated)
 
         # Do the title regex tests last, since they are slowest.
         if self._positiveRegex and self._positiveRegex.search(title) is None:
-            return False
+            return self.REJECT
 
         if (self._negativeRegex and
                 self._negativeRegex.search(title) is not None):
-            return False
+            return self.REJECT
 
-        return True
+        return self.DEFAULT_ACCEPT
 
 
 class HitInfoFilter(object):

@@ -154,39 +154,43 @@ class BlastRecords(object):
                                   negativeRegex=negativeTitleRegex,
                                   truncateAfter=truncateTitlesAfter)
 
-        # For each read...
+        # For each read (that BLAST found in the FASTA file)...
         for readNum, record in enumerate(self.records()):
 
-            # For each sequence that read matches against...
+            # For each sequence that the read matched against...
             for index, alignment in enumerate(record.alignments):
-
-                # Test sequence length.
-                sequenceLen = alignment.length
-                if minSequenceLen is not None and sequenceLen < minSequenceLen:
-                    continue
-                if maxSequenceLen is not None and sequenceLen > maxSequenceLen:
-                    continue
 
                 # Test sequence title.
                 title = record.descriptions[index].title
-                if titleFilter.accept(title) is False:
+                titleFilterResult = titleFilter.accept(title)
+                if titleFilterResult == TitleFilter.REJECT:
                     continue
 
                 if title in result:
                     hitInfo = result[title]
                 else:
+                    # Test sequence length before adding it to result, to make
+                    # sure the length tests are only done once per title.
+                    sequenceLen = alignment.length
+                    if ((minSequenceLen is not None and
+                         sequenceLen < minSequenceLen) or
+                        (maxSequenceLen is not None and
+                         sequenceLen > maxSequenceLen)):
+                        continue
+
                     hitInfo = result[title] = {
-                        'readCount': 0,
                         'eValues': [],
                         'length': sequenceLen,
+                        'readCount': 0,
                         'readNums': set(),
+                        'titleFilterResult': titleFilterResult
                     }
 
                 # Record just the best e-value with which this read hit this
                 # sequence.
                 hitInfo['eValues'].append(alignment.hsps[0].expect)
-                hitInfo['readNums'].add(readNum)
                 hitInfo['readCount'] += 1
+                hitInfo['readNums'].add(readNum)
 
         blastHits = BlastHits(self)
 
@@ -197,19 +201,25 @@ class BlastRecords(object):
                                       maxMedianEValue=maxMedianEValue,
                                       maxMinEValue=maxMinEValue)
 
-        # Compute summary stats on e-values and if the values are acceptable,
-        # add the hit info to our final result.
-        titles = result.keys()  # Don't change 'result' as we iterate over it.
+        # Compute summary stats on e-values for all titles. If the title
+        # was whitelisted or if the statistical summary is acceptable, add
+        # the hit info to our final result.
+
+        titles = result.keys()  # Don't change 'result' while we iterate it.
         for title in titles:
             hitInfo = result[title]
             eValues = hitInfo['eValues']
-            hitInfo['eMean'] = sum(eValues) / float(hitInfo['readCount'])
+            hitInfo['eMean'] = np.mean(eValues)
             hitInfo['eMedian'] = np.median(eValues)
             hitInfo['eMin'] = min(eValues)
-            if hitInfoFilter.accept(hitInfo):
-                # Remove the e-values now that we've summarized them.
+            if (hitInfo['titleFilterResult'] == TitleFilter.WHITELIST_ACCEPT or
+                    hitInfoFilter.accept(hitInfo)):
+                # Remove the e-values (now that we've summarized them) and
+                # the title filter result (now that we've checked it).
                 del hitInfo['eValues']
+                del hitInfo['titleFilterResult']
                 blastHits.addHit(title, hitInfo)
+
             # Reduce memory usage as quickly as we can.
             del result[title]
 
@@ -351,7 +361,10 @@ class BlastHits(object):
 
         result = BlastHits(self.records)
         for title, hitInfo in self.titles.iteritems():
-            if hitInfoFilter.accept(hitInfo) and titleFilter.accept(title):
+            titleFilterResult = titleFilter.accept(title)
+            if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
+                    (titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
+                     hitInfoFilter.accept(hitInfo))):
                 result.addHit(title, hitInfo)
         return result
 

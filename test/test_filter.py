@@ -11,10 +11,10 @@ class TitleFilterTest(TestCase):
     def testNoRestriction(self):
         """
         Testing for acceptance against a title filter that has no
-        restrictions should return C{True}.
+        restrictions should return C{TitleFilter.DEFAULT_ACCEPT}.
         """
         tf = TitleFilter()
-        self.assertEqual(True, tf.accept('hey'))
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT, tf.accept('hey'))
 
     def testPositiveRegex(self):
         """
@@ -22,8 +22,8 @@ class TitleFilterTest(TestCase):
         must work.
         """
         tf = TitleFilter(positiveRegex=r'x+\s')
-        self.assertEqual(True, tf.accept('hey xxx you'))
-        self.assertEqual(False, tf.accept('hey xxyou'))
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT, tf.accept('hey xxx you'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('hey xxyou'))
 
     def testNegativeRegex(self):
         """
@@ -31,17 +31,36 @@ class TitleFilterTest(TestCase):
         must work.
         """
         tf = TitleFilter(negativeRegex=r'x+\s')
-        self.assertEqual(False, tf.accept('hey xxx you'))
-        self.assertEqual(True, tf.accept('hey xxyou'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('hey xxx you'))
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT, tf.accept('hey xxyou'))
 
-    def testTruncation(self):
+    def testFullWordTruncation(self):
         """
         Testing for acceptance against a title filter with title truncation
-        in effect must work.
+        in effect must work if the title contains the C{truncateAfter} string
+        as a distint word.
         """
         tf = TitleFilter(truncateAfter=r'virus')
-        self.assertEqual(True, tf.accept('polyoma virus one'))
-        self.assertEqual(False, tf.accept('polyoma virus two'))
+        # Note that the truncation code will chop off the first part of the
+        # title (the title ID).
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT,
+                         tf.accept('gi|400684|gb|AY421767.1| herpes virus 1'))
+        self.assertEqual(TitleFilter.REJECT,
+                         tf.accept('gi|400684|gb|AY421767.1| herpes virus 2'))
+
+    def testPartialWordTruncation(self):
+        """
+        Testing for acceptance against a title filter with title truncation
+        in effect must work if the title contains the C{truncateAfter} string
+        as a partial word.
+        """
+        tf = TitleFilter(truncateAfter=r'virus')
+        # Note that the truncation code will chop off the first part of the
+        # title (the title ID).
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT,
+                         tf.accept('gi|400684|gb|AY421767.1| rotavirus 1'))
+        self.assertEqual(TitleFilter.REJECT,
+                         tf.accept('gi|400684|gb|AY421767.1| rotavirus 2'))
 
     def testWhitelist(self):
         """
@@ -49,8 +68,8 @@ class TitleFilterTest(TestCase):
         must work even when a title is ruled out for other violations.
         """
         tf = TitleFilter(whitelist=['always ok'], negativeRegex='ok')
-        self.assertEqual(True, tf.accept('always ok'))
-        self.assertEqual(False, tf.accept('always ok not'))
+        self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('always ok'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('always ok not'))
 
     def testBlacklist(self):
         """
@@ -58,7 +77,7 @@ class TitleFilterTest(TestCase):
         must work.
         """
         tf = TitleFilter(blacklist=['never ok'], positiveRegex='ok')
-        self.assertEqual(False, tf.accept('never ok'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('never ok'))
 
     def testWhitelistTakesPrecedenceOverBlacklist(self):
         """
@@ -67,7 +86,7 @@ class TitleFilterTest(TestCase):
         takes precedence).
         """
         tf = TitleFilter(whitelist=['always ok'], blacklist=['always ok'])
-        self.assertEqual(True, tf.accept('always ok'))
+        self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('always ok'))
 
     def testWhitelistOnly(self):
         """
@@ -75,9 +94,9 @@ class TitleFilterTest(TestCase):
         and a negative regex that matches everything.
         """
         tf = TitleFilter(whitelist=['always ok'], negativeRegex='.')
-        self.assertEqual(True, tf.accept('always ok'))
-        self.assertEqual(False, tf.accept('always not ok'))
-        self.assertEqual(False, tf.accept('rubbish'))
+        self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('always ok'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('always not ok'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('rubbish'))
 
 
 class HitInfoTest(TestCase):
