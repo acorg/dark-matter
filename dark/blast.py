@@ -3,6 +3,7 @@ import numpy as np
 from random import uniform
 from Bio.Blast import NCBIXML
 from Bio import SeqIO
+import numpy as np
 
 from dark.conversion import readJSONRecords
 from dark.filter import HitInfoFilter, TitleFilter
@@ -496,10 +497,13 @@ class BlastHits(object):
                 'hspTotal': 0,  # The total number of HSPs for this title.
                 'items': [],  # len() of this = the # of HSPs kept for display.
                 'maxE': None,
-                'minE': None,
+                'minE': 1000,  # set to large number, so it can be reduced
                 'maxX': maxStop or sequenceLen,
                 'minX': minStart or 0,
                 'zeroEValueFound': False,
+                'originalEValues': [],
+                'eMean': None,
+                'eMedian': None,
             }
 
             if logLinearXAxis:
@@ -546,6 +550,10 @@ class BlastHits(object):
                 e = hsp.expect
                 if eCutoff is not None and e >= eCutoff:
                     continue
+
+                # retain original evalue below cutoff for eMean and eMedian
+                # calculation.
+                plotInfo['originalEValues'].append(e)
 
                 if e == 0.0:
                     convertedE = None
@@ -644,3 +652,8 @@ class BlastHits(object):
                     plotInfo['maxX'] = maxX
 
                 plotInfo['offsetAdjuster'] = adjuster
+
+            # calculate eMedian and eMean
+            plotInfo['eMean'] = np.mean(plotInfo['originalEValues'])
+            plotInfo['eMedian'] = np.median(plotInfo['originalEValues'])
+            del plotInfo['originalEValues']

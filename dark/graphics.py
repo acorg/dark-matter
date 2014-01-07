@@ -5,7 +5,6 @@ from collections import defaultdict
 from time import ctime, time
 from math import log10
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
@@ -297,19 +296,18 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                           color='blue')
             readsAx.add_line(line)
 
-        # TODO: Barbara, add some kind of comment here please. I think this
-        # could be done more efficiently.
+        # if an idList is given, color reads accordingly
         if idList:
             for item in items:
-                for key in idList:
-                    for ids in idList[key]:
-                        if ids == item['query']:
-                            e = item['convertedE']
-                            hsp = item['hsp']
-                            line = Line2D([hsp['subjectStart'],
-                                           hsp['subjectEnd']], [e, e],
-                                          color=key)
-                            readsAx.add_line(line)
+                queryId = blastHits.fasta[item['readNum']].id
+                for key, values in idList.iteritems():
+                    if queryId in values:
+                        e = item['convertedE']
+                        hsp = item['hsp']
+                        line = Line2D([hsp['subjectStart'],
+                                       hsp['subjectEnd']], [e, e],
+                                      color=key)
+                        readsAx.add_line(line)
 
     # Add to ORF figures and add vertical lines for the sequence features.
     # The feature and ORF display are linked and they shouldn't be. This
@@ -493,9 +491,8 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
             if blastHits.plotParams['rankEValues']:
                 plotTitle += '\ne-values are ranks'
             else:
-                eValues = [item['convertedE'] for item in plotInfo['items']]
-                median = np.median(eValues)
-                mean = np.mean(eValues)
+                median = plotInfo['eMedian']
+                mean = plotInfo['eMean']
                 plotTitle += '\nmedian 1e-%d, mean 1e-%d' % (median, mean)
 
         ax[row][col].set_title(plotTitle, fontsize=10)
