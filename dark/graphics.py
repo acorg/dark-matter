@@ -300,13 +300,13 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         if idList:
             for item in items:
                 queryId = blastHits.fasta[item['readNum']].id
-                for key, values in idList.iteritems():
-                    if queryId in values:
+                for colors, reads in idList.iteritems():
+                    if queryId in reads:
                         e = item['convertedE']
                         hsp = item['hsp']
                         line = Line2D([hsp['subjectStart'],
                                        hsp['subjectEnd']], [e, e],
-                                      color=key)
+                                      color=colors)
                         readsAx.add_line(line)
 
     # Add to ORF figures and add vertical lines for the sequence features.
