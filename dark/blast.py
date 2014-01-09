@@ -4,7 +4,7 @@ from random import uniform
 from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
-from dark.conversion import readJSONRecords
+from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
 from dark.filter import HitInfoFilter, TitleFilter
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
@@ -57,6 +57,7 @@ class BlastRecords(object):
         self.blastDb = blastDb
         self.limit = limit
         self._length = 0
+        self.blastParams = None  # Set in records(), below.
 
     def records(self):
         """
@@ -69,7 +70,9 @@ class BlastRecords(object):
             fp = open(self.blastFilename)
             records = NCBIXML.parse(fp)
         elif self.blastFilename.endswith('.json'):
-            records = readJSONRecords(self.blastFilename)
+            jsonReader = JSONRecordsReader(self.blastFilename)
+            records = jsonReader.records()
+            self.blastParams = jsonReader.params
             fp = None
         else:
             raise ValueError('Unknown BLAST record file type.')
@@ -79,10 +82,16 @@ class BlastRecords(object):
         # test if self.limit is None in a loop.
         if self.limit is None:
             for count, record in enumerate(records, start=1):
+                if self.blastParams is None:
+                    # TODO: Remove this when we drop support for reading XML.
+                    self.blastParams = convertBlastParamsToDict(record)
                 yield record
         else:
             limit = self.limit
             for count, record in enumerate(records, start=1):
+                if self.blastParams is None:
+                    # TODO: Remove this when we drop support for reading XML.
+                    self.blastParams = convertBlastParamsToDict(record)
                 if count > limit:
                     count = limit
                     break

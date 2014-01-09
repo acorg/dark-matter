@@ -169,20 +169,78 @@ def convertDictToBlastRecord(d):
     return record
 
 
-def readJSONRecords(filename):
+class JSONRecordsReader(object):
     """
-    Read lines of JSON from filename, convert them to Bio Blast class
-    instances and yield them.
+    Provide a method that yields JSON records from a file. Store, check, and
+    make accessible the global BLAST parameters.
 
+    @raise ValueError: If the input file is empty or does not contain a global
+        BLAST params section.
+
+    @ivar params: A C{dict} of global BLAST parameters.
     @param filename: A C{str} filename containing JSON BLAST records.
     """
-    with open(filename) as fp:
-        for lineNumber, line in enumerate(fp.readlines(), start=1):
+
+    def __init__(self, filename):
+        self._filename = filename
+        self._fp = open(filename)
+
+        # Read the first line of the file and look for the global BLAST
+        # params dict.
+        line = self._fp.readline()
+        import sys
+        print >>sys.stderr, "LINE IS %r" % (str(line),)
+        if not line:
+            raise ValueError('Input file %r was empty' % filename)
+
+        try:
+            self.params = loads(line[:-1])
+        except ValueError as e:
+            raise ValueError(
+                'Could not convert first line of %r to JSON (%s). Line is '
+                '%r.' % (filename, e, line[:-1]))
+        else:
+            if 'application' not in self.params:
+                raise ValueError(
+                    '%r appears to be an old JSON file with no BLAST global '
+                    'parameters. Please re-run convert-blast-xml-to-json.py '
+                    'to convert it to the newest format.' % filename)
+
+    def records(self):
+        """
+        Read lines of JSON from self._fp, convert them to Bio Blast class
+        instances and yield them.
+        """
+        for lineNumber, line in enumerate(self._fp.readlines(), start=2):
             try:
                 record = loads(line[:-1])
             except ValueError as e:
                 raise ValueError(
                     'Could not convert line %d of %r to JSON (%s). Line is '
-                    '%r.' % (lineNumber, filename, e, line[:-1]))
+                    '%r.' % (lineNumber, self._filename, e, line[:-1]))
             else:
-                yield convertDictToBlastRecord(record)
+                if 'application' in record:
+                    # This is another params section. Check it against the
+                    # already read params (from the first line of the
+                    # file).  The 'application' key is just one of the many
+                    # attributes we save into a JSON dict in
+                    # L{convertBlastParamsToDict} above.
+                    #
+                    # Note that although the params contains a 'date', its
+                    # value is empty (as far as I've seen). This could
+                    # become an issue one day if it becomes non-empty and
+                    # differs between JSON files that we cat together. In
+                    # that case we may need to be more specific in our
+                    # params compatible checking.
+                    #
+                    # TODO: We can be more helpful here by reporting the
+                    #       keys that differ between the params sections.
+                    assert self.params == record, (
+                        'BLAST parameters found on line %d of %r do not match '
+                        'those found on its first line.' %
+                        (lineNumber, self._filename))
+                else:
+                    # A regular BLAST record (as a dict).
+                    yield convertDictToBlastRecord(record)
+
+        self._fp.close()
