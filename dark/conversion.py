@@ -7,6 +7,10 @@ def convertBlastXMLToJSON(blastFilename, jsonFilename):
     """
     Read BLAST XML records from blastFilename and write them
     out as serialized JSON to jsonFilename.
+
+    @param blastFilename: A C{str} filename containing BLAST records.
+    @param jsonFilename: Either a C{str} filename to receive the JSON
+        records or an open file pointer to write records to.
     """
     def _write(infp, outfp):
         first = True
@@ -38,6 +42,7 @@ def convertBlastParamsToDict(record):
     @param record: An instance of C{Bio.Blast.Record.Blast}. The attributes
         on this don't seem to be documented. You'll need to look at the
         BioPython source to see everything it contains.
+    @return: A C{dict}, as described above.
     """
     result = {}
     for attr in (
@@ -100,6 +105,11 @@ def convertBlastRecordToDict(record):
     in a separated 'description' dict). When we undo this conversion (in
     convertDictToBlastRecord) we'll pull the title out of the alignment
     dict and put it into the right place in the BLAST record.
+
+    @param record: An instance of C{Bio.Blast.Record.Blast}. The attributes
+        on this don't seem to be documented. You'll need to look at the
+        BioPython source to see everything it contains.
+    @return: A C{dict} with 'alignments' and 'query' keys.
     """
     alignments = []
     for index, alignment in enumerate(record.alignments):
@@ -132,6 +142,9 @@ def convertDictToBlastRecord(d):
     """
     Take a dictionary (as produced by convertBlastRecordToDict) and
     convert it to a Bio Blast record.
+
+    @param d: A C{dict}, from convertBlastRecordToDict.
+    @return: A C{Bio.Blast.Record.Blast} instance.
     """
     record = Blast()
     record.query = d['query']
@@ -160,6 +173,8 @@ def readJSONRecords(filename):
     """
     Read lines of JSON from filename, convert them to Bio Blast class
     instances and yield them.
+
+    @param filename: A C{str} filename containing JSON BLAST records.
     """
     with open(filename) as fp:
         for lineNumber, line in enumerate(fp.readlines(), start=1):
