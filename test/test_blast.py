@@ -305,7 +305,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.filterHits(maxMinEValue=1e-20)
+        result = blastHits.filterHits(withEBetterThan=1e-20)
         self.assertEqual(
             {
             },
@@ -326,7 +326,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.filterHits(maxMinEValue=1e-3)
+        result = blastHits.filterHits(withEBetterThan=1e-3)
         self.assertEqual(
             {
                 'a': {
@@ -356,7 +356,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.filterHits(maxMinEValue=1e-13)
+        result = blastHits.filterHits(withEBetterThan=1e-13)
         self.assertEqual(
             {
                 'b': {
