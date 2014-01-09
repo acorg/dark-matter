@@ -287,31 +287,46 @@ class BlastHits(object):
         """
         Sort titles by a given attribute and then by title.
 
-        @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
+        @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
+            'title'.
         @return: A sorted C{list} of titles.
         """
-        if by == 'eMean':
-            titles = sorted(
+
+        def makeCmp(attr):
+            """
+            Create a sorting comparison function that sorts first in reverse
+            on the passed numeric attribute and then in ascending order on
+            title.
+            """
+            def compare(title1, title2):
+                result = cmp(self.titles[title2][attr],
+                             self.titles[title1][attr])
+                if result == 0:
+                    result = cmp(title1, title2)
+                return result
+            return compare
+
+        if by == 'eMin':
+            return sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (self.titles[title]['eMin'], title))
+        elif by == 'eMean':
+            return sorted(
                 self.titles.iterkeys(),
                 key=lambda title: (self.titles[title]['eMean'], title))
         elif by == 'eMedian':
-            titles = sorted(
+            return sorted(
                 self.titles.iterkeys(),
                 key=lambda title: (self.titles[title]['eMedian'], title))
         elif by == 'readCount':
-            titles = sorted(
-                self.titles.iterkeys(), reverse=True,
-                key=lambda title: (self.titles[title]['readCount'], title))
+            return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
         elif by == 'length':
-            titles = sorted(
-                self.titles.iterkeys(), reverse=True,
-                key=lambda title: (self.titles[title]['length'], title))
+            return sorted(self.titles.iterkeys(), cmp=makeCmp('length'))
         elif by == 'title':
-            titles = sorted(self.titles.iterkeys())
-        else:
-            raise ValueError('sort attribute must be one of "eMean", '
-                             '"eMedian", "title" or "reads".')
-        return titles
+            return sorted(self.titles.iterkeys())
+
+        raise ValueError('sort attribute must be one of "eMean", '
+                         '"eMedian", "eMin", "readCount", "title".')
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,

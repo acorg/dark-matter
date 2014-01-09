@@ -58,9 +58,9 @@ def _sortHTML(hits, by):
         hitInfo = hits.titles[title]
         link = NCBISequenceLink(title, title)
         out.append(
-            '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
+            '%3d: count=%4d, len=%7d, min(e)=%20s median(e)=%20s: %s' %
             (i, hitInfo['readCount'], hitInfo['length'],
-             hitInfo['eMedian'], hitInfo['eMean'], link))
+             hitInfo['eMin'], hitInfo['eMedian'], link))
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
@@ -82,6 +82,17 @@ def summarizeHitsByMedianEValue(hits):
     @param hits: An L{dark.blast.BlastHits} instance.
     @return: An C{IPython.display.HTML} instance with hit titles sorted by
         median e-value.
+    """
+    return _sortHTML(hits, 'eMedian')
+
+
+def summarizeHitsByMinEValue(hits):
+    """
+    Sort hit titles by minimum (i.e., best) e-value.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        minimum e-value.
     """
     return _sortHTML(hits, 'eMedian')
 
@@ -406,16 +417,15 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     return result
 
 
-def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
-                   outputDir=None, idList=False, equalizeXAxes=True,
-                   xRange='subject'):
+def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
+                   idList=False, equalizeXAxes=True, xRange='subject'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
     sortOn: The attribute to sort subplots on. Either "eMean", "eMedian",
-        "title" or "reads"
+        "eMin", "readCount", or "title".
     interactive: If C{True}, we are interactive and should display the panel
         using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
@@ -494,9 +504,8 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
                 plotTitle += '\ne-values are ranks'
             else:
                 eValues = [item['convertedE'] for item in plotInfo['items']]
-                median = np.median(eValues)
-                mean = np.mean(eValues)
-                plotTitle += '\nmedian 1e-%d, mean 1e-%d' % (median, mean)
+                plotTitle += '\nmin 1e-%d, median 1e-%d, mean 1e-%d' % (
+                    np.max(eValues), np.median(eValues), np.mean(eValues))
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
