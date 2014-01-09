@@ -12,11 +12,11 @@ Usage: check-fasta-json-blast-consistency.py file.fasta file.json
 
 import sys
 from Bio import SeqIO
-from dark.conversion import readJSONRecords
+from dark.conversion import JSONRecordsReader
 
 
 def check(fastaFile, jsonFile):
-    jsonRecords = readJSONRecords(jsonFile)
+    jsonRecords = JSONRecordsReader(jsonFile).records()
     with open(fastaFile) as fasta:
         for index, fastaRecord in enumerate(
                 SeqIO.parse(fasta, 'fasta'), start=1):
