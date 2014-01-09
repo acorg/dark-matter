@@ -123,9 +123,9 @@ class BlastRecords(object):
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
-                   maxMeanEValue=None, maxMedianEValue=None, maxMinEValue=None,
-                   titleRegex=None, negativeTitleRegex=None,
-                   truncateTitlesAfter=None):
+                   maxMeanEValue=None, maxMedianEValue=None,
+                   withEBetterThan=None, titleRegex=None,
+                   negativeTitleRegex=None, truncateTitlesAfter=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -144,12 +144,12 @@ class BlastRecords(object):
             that is greater will be elided.
         @param maxMedianEValue: sequences that are matched with a median
             e-value that is greater will be elided.
-        @param maxMinEValue: if the minimum e-value for a hit is higher than
-            this value, elide the hit. E.g., suppose we are passed a value of
-            1e-20, then we should reject any hit whose minimal (i.e., best)
-            e-value is bigger than 1e-20. So a hit with minimal e-value of
-            1e-10 would not be reported, whereas a hit with a minimal e-value
-            of 1e-30 would be.
+        @param withEBetterThan: if the best (minimum) e-value for a hit is not
+            as good as (i.e., is higher than) this value, elide the hit. E.g.,
+            suppose we are passed a value of 1e-20, then we should reject any
+            hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
+            So a hit with minimal e-value of 1e-10 would not be reported,
+            whereas a hit with a minimal e-value of 1e-30 would be.
         @param titleRegex: a regex that sequence titles must match.
         @param negativeTitleRegex: a regex that sequence titles must not match.
         @param truncateTitlesAfter: specify a string that titles will be
@@ -208,7 +208,7 @@ class BlastRecords(object):
         hitInfoFilter = HitInfoFilter(minMatchingReads=minMatchingReads,
                                       maxMeanEValue=maxMeanEValue,
                                       maxMedianEValue=maxMedianEValue,
-                                      maxMinEValue=maxMinEValue)
+                                      withEBetterThan=withEBetterThan)
 
         # Compute summary stats on e-values for all titles. If the title
         # was whitelisted or if the statistical summary is acceptable, add
@@ -315,9 +315,9 @@ class BlastHits(object):
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
-                   maxMeanEValue=None, maxMedianEValue=None, maxMinEValue=None,
-                   titleRegex=None, negativeTitleRegex=None,
-                   truncateTitlesAfter=None):
+                   maxMeanEValue=None, maxMedianEValue=None,
+                   withEBetterThan=None, titleRegex=None,
+                   negativeTitleRegex=None, truncateTitlesAfter=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -343,12 +343,12 @@ class BlastHits(object):
             that is greater will be elided.
         @param maxMedianEValue: sequences that are matched with a median
             e-value that is greater will be elided.
-        @param maxMinEValue: if the minimum e-value for a hit is higher than
-            this value, elide the hit. E.g., suppose we are passed a value of
-            1e-20, then we should reject any hit whose minimal (i.e., best)
-            e-value is bigger than 1e-20. So a hit with minimal e-value of
-            1e-10 would not be reported, whereas a hit with a minimal e-value
-            of 1e-30 would be.
+        @param withEBetterThan: if the best (minimum) e-value for a hit is not
+            as good as (i.e., is higher than) this value, elide the hit. E.g.,
+            suppose we are passed a value of 1e-20, then we should reject any
+            hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
+            So a hit with minimal e-value of 1e-10 would not be reported,
+            whereas a hit with a minimal e-value of 1e-30 would be.
         @param titleRegex: a regex that sequence titles must match.
         @param negativeTitleRegex: a regex that sequence titles must not match.
         @param truncateTitlesAfter: specify a string that titles will be
@@ -366,7 +366,7 @@ class BlastHits(object):
                                       minMatchingReads=minMatchingReads,
                                       maxMeanEValue=maxMeanEValue,
                                       maxMedianEValue=maxMedianEValue,
-                                      maxMinEValue=maxMinEValue)
+                                      withEBetterThan=withEBetterThan)
 
         result = BlastHits(self.records)
         for title, hitInfo in self.titles.iteritems():

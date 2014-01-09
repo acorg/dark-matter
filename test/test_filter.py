@@ -159,9 +159,9 @@ class HitInfoTest(TestCase):
 
     def testMaxMinEValue(self):
         """
-        Testing for acceptance against a hit info filter with a maxMinEValue
+        Testing for acceptance against a hit info filter with a withEBetterThan
         restriction must work.
         """
-        hif = HitInfoFilter(maxMinEValue=1e-3)
+        hif = HitInfoFilter(withEBetterThan=1e-3)
         self.assertEqual(True, hif.accept({'eMin': 1e-4}))
         self.assertEqual(False, hif.accept({'eMin': 1e-2}))

@@ -64,9 +64,9 @@ if __name__ == '__main__':
         'greater will be elided.')
 
     parser.add_argument(
-        '--maxMinEValue', type=float, default=None,
-        help='sequences that are matched with a minimum e-value that is '
-        'greater will be elided.')
+        '--withEBetterThan', type=float, default=None,
+        help='sequences that are matched without at least one e-value that '
+        'is at least this good will be elided.')
 
     parser.add_argument(
         '--negativeTitleRegex', type=str, default=None,
@@ -141,7 +141,7 @@ if __name__ == '__main__':
         minMatchingReads=args.minMatchingReads,
         maxMeanEValue=args.maxMeanEValue,
         maxMedianEValue=args.maxMedianEValue,
-        maxMinEValue=args.maxMinEValue,
+        withEBetterThan=args.withEBetterThan,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter)

@@ -98,23 +98,23 @@ class HitInfoFilter(object):
         that is greater are unacceptable.
     @param maxMedianEValue: sequences that are matched with a median
         e-value that is greater are unacceptable.
-    @param maxMinEValue: if the minimum e-value for a hit is higher than
-        this value, the hit is unacceptable. E.g., suppose we are passed a
-        value of 1e-20, then we should reject any hit whose minimal (i.e.,
-        best) e-value is bigger than 1e-20. So a hit with minimal e-value of
-        1e-10 would not be reported, whereas a hit with a minimal e-value
-        of 1e-30 would be.
+    @param withEBetterThan: if the best (minimum) e-value for a hit is not
+        as good as (i.e., is higher than) this value, elide the hit. E.g.,
+        suppose we are passed a value of 1e-20, then we should reject any
+        hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
+        So a hit with minimal e-value of 1e-10 would not be reported,
+        whereas a hit with a minimal e-value of 1e-30 would be.
     """
 
     def __init__(self, minSequenceLen=None, maxSequenceLen=None,
                  minMatchingReads=None, maxMeanEValue=None,
-                 maxMedianEValue=None, maxMinEValue=None):
+                 maxMedianEValue=None, withEBetterThan=None):
             self._minSequenceLen = minSequenceLen
             self._maxSequenceLen = maxSequenceLen
             self._minMatchingReads = minMatchingReads
             self._maxMeanEValue = maxMeanEValue
             self._maxMedianEValue = maxMedianEValue
-            self._maxMinEValue = maxMinEValue
+            self._withEBetterThan = withEBetterThan
 
     def accept(self, hitInfo):
         """
@@ -142,5 +142,5 @@ class HitInfoFilter(object):
              hitInfo['eMean'] > self._maxMeanEValue) or
             (self._maxMedianEValue is not None and
              hitInfo['eMedian'] > self._maxMedianEValue) or
-            (self._maxMinEValue is not None and
-             hitInfo['eMin'] > self._maxMinEValue))
+            (self._withEBetterThan is not None and
+             hitInfo['eMin'] > self._withEBetterThan))
