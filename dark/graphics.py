@@ -289,25 +289,21 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                 readsAx.add_line(line)
 
         # Add the horizontal BLAST alignment lines.
+
+        # If an idList is given set things up to look up read colors.
+        readColor = {}
+        if idList:
+            for color, reads in idList.iteritems():
+                for read in reads:
+                    readColor[read] = color
+
         for item in items:
+            queryId = blastHits.fasta[item['readNum']].id
             e = item['convertedE']
             hsp = item['hsp']
             line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
-                          color='blue')
+                          color=readColor.get(queryId, 'blue')
             readsAx.add_line(line)
-
-        # if an idList is given, color reads accordingly
-        if idList:
-            for item in items:
-                queryId = blastHits.fasta[item['readNum']].id
-                for colors, reads in idList.iteritems():
-                    if queryId in reads:
-                        e = item['convertedE']
-                        hsp = item['hsp']
-                        line = Line2D([hsp['subjectStart'],
-                                       hsp['subjectEnd']], [e, e],
-                                      color=colors)
-                        readsAx.add_line(line)
 
     # Add to ORF figures and add vertical lines for the sequence features.
     # The feature and ORF display are linked and they shouldn't be. This
