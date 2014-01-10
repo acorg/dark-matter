@@ -5,11 +5,11 @@ from collections import defaultdict
 from time import ctime, time
 from math import log10
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 from IPython.display import HTML
+import numpy as np
 
 from dark import html
 from dark.baseimage import BaseImage
@@ -301,26 +301,25 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                 readsAx.add_line(line)
 
         # Add the horizontal BLAST alignment lines.
+
+        # If an idList is given set things up to look up read colors.
+        readColor = {}
+        if idList:
+            for color, reads in idList.iteritems():
+                for read in reads:
+                    if read in readColor:
+                        raise ValueError('Read %s is specified multiple '
+                                         'times in idList' % read)
+                    else:
+                        readColor[read] = color
+
         for item in items:
+            queryId = blastHits.fasta[item['readNum']].id
             e = item['convertedE']
             hsp = item['hsp']
             line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
-                          color='blue')
+                          color=readColor.get(queryId, 'blue'))
             readsAx.add_line(line)
-
-        # TODO: Barbara, add some kind of comment here please. I think this
-        # could be done more efficiently.
-        if idList:
-            for item in items:
-                for key in idList:
-                    for ids in idList[key]:
-                        if ids == item['query']:
-                            e = item['convertedE']
-                            hsp = item['hsp']
-                            line = Line2D([hsp['subjectStart'],
-                                           hsp['subjectEnd']], [e, e],
-                                          color=key)
-                            readsAx.add_line(line)
 
     # Add to ORF figures and add vertical lines for the sequence features.
     # The feature and ORF display are linked and they shouldn't be. This
@@ -503,9 +502,11 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             if blastHits.plotParams['rankEValues']:
                 plotTitle += '\ne-values are ranks'
             else:
-                eValues = [item['convertedE'] for item in plotInfo['items']]
-                plotTitle += '\nmin 1e-%d, median 1e-%d, mean 1e-%d' % (
-                    np.max(eValues), np.median(eValues), np.mean(eValues))
+                median = plotInfo['eMedian']
+                mean = plotInfo['eMean']
+                mi = plotInfo['min']
+                plotTitle += '\nmin %d, median %d, mean %d' % (
+                    mi, median, mean)
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 

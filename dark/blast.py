@@ -524,6 +524,9 @@ class BlastHits(object):
                 'maxX': maxStop or sequenceLen,
                 'minX': minStart or 0,
                 'zeroEValueFound': False,
+                'originalEValues': [],
+                'eMean': None,
+                'eMedian': None,
             }
 
             if logLinearXAxis:
@@ -571,6 +574,10 @@ class BlastHits(object):
 
                 # We are committed to adding this item to plotInfo['items'].
                 # Don't add any 'continue' statements below this point.
+
+                # retain original evalue below cutoff for eMean and eMedian
+                # calculation.
+                plotInfo['originalEValues'].append(e)
 
                 if e == 0.0:
                     convertedE = None
@@ -690,3 +697,9 @@ class BlastHits(object):
                     plotInfo['maxX'] = maxX
 
                 plotInfo['offsetAdjuster'] = adjuster
+
+            # calculate eMedian and eMean
+            plotInfo['min'] = np.min(plotInfo['originalEValues'])
+            plotInfo['eMean'] = np.mean(plotInfo['originalEValues'])
+            plotInfo['eMedian'] = np.median(plotInfo['originalEValues'])
+            del plotInfo['originalEValues']
