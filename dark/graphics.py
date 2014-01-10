@@ -307,7 +307,10 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         if idList:
             for color, reads in idList.iteritems():
                 for read in reads:
-                    if read not in readColor:
+                    if read in readColor:
+                        raise ValueError('Read %s is specified multiple \
+                                         times in idList' % read)
+                    else:
                         readColor[read] = color
 
         for item in items:
