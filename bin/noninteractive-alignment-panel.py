@@ -82,8 +82,9 @@ if __name__ == '__main__':
         '--db', type=str, default='nt', help='the BLAST db that was used')
 
     parser.add_argument(
-        '--eCutoff', type=float, default=2.0,
-        help='converted e values less than this will be ignored.')
+        '--eCutoff', type=float, default=None,
+        help='Ignore hits with e-values greater (i.e., worse) than or equal '
+        'to this.')
 
     parser.add_argument(
         '--maxHspsPerHit', type=str, default=None,

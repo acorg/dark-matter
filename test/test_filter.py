@@ -62,6 +62,20 @@ class TitleFilterTest(TestCase):
         self.assertEqual(TitleFilter.REJECT,
                          tf.accept('gi|400684|gb|AY421767.1| rotavirus 2'))
 
+    def testWordTruncationRepeat(self):
+        """
+        Testing for acceptance against a title filter with title truncation
+        in effect must allow the exact same title twice, even if the title
+        is being truncated.
+        """
+        tf = TitleFilter(truncateAfter=r'virus')
+        # Note that the truncation code will chop off the first part of the
+        # title (the title ID).
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT,
+                         tf.accept('gi|400684|gb|AY421767.1| herpes virus 1'))
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT,
+                         tf.accept('gi|400684|gb|AY421767.1| herpes virus 1'))
+
     def testWhitelist(self):
         """
         Testing for acceptance against a title filter with a whitelist

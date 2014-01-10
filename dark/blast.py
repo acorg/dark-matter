@@ -408,7 +408,7 @@ class BlastHits(object):
         for readNum, record in enumerate(self.records.records()):
             for index, alignment in enumerate(record.alignments):
                 title = record.descriptions[index].title
-                if title in titles:
+                if title in titles and readNum in titles[title]['readNums']:
                     yield (title, readNum, alignment.hsps)
 
     def _convertEValuesToRanks(self, plotInfo):
@@ -536,16 +536,14 @@ class BlastHits(object):
             if self.titles[title]['plotInfo'] is None:
                 sequenceLen = self.titles[title]['length']
                 self.titles[title]['plotInfo'] = plotInfoDict(sequenceLen)
-                firstItem = True  # This is the first item being added.
-            else:
-                firstItem = False
             plotInfo = self.titles[title]['plotInfo']
             queryLen = len(self.fasta[readNum])
             plotInfo['hspTotal'] += len(hsps)
 
+            if maxHspsPerHit is not None and len(hsps) > maxHspsPerHit:
+                hsps = hsps[:maxHspsPerHit]
+
             for hspCount, hsp in enumerate(hsps, start=1):
-                if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
-                    break
                 try:
                     normalized = normalizeHSP(hsp, queryLen)
                 except AssertionError:
@@ -571,20 +569,30 @@ class BlastHits(object):
                 if eCutoff is not None and e >= eCutoff:
                     continue
 
+                # We are committed to adding this item to plotInfo['items'].
+                # Don't add any 'continue' statements below this point.
+
                 if e == 0.0:
                     convertedE = None
                     plotInfo['zeroEValueFound'] = True
                 else:
                     convertedE = -1.0 * log10(e)
-                    if firstItem or convertedE > plotInfo['maxE']:
-                        plotInfo['maxE'] = convertedE
-                    # Don't use elif for testing minE. Both can be true.
-                    if firstItem or convertedE < plotInfo['minE']:
-                        plotInfo['minE'] = convertedE
+                    if plotInfo['minE'] is None:
+                        # This is the first item being added. Set minE and
+                        # maxE unconditionally.
+                        # TODO: Delete the following sanity check.
+                        assert plotInfo['maxE'] is None
+                        plotInfo['minE'] = plotInfo['maxE'] = convertedE
+                    else:
+                        if convertedE < plotInfo['minE']:
+                            plotInfo['minE'] = convertedE
+                        elif convertedE > plotInfo['maxE']:
+                            plotInfo['maxE'] = convertedE
                 if normalized['queryStart'] < plotInfo['minX']:
                     plotInfo['minX'] = normalized['queryStart']
                 if normalized['queryEnd'] > plotInfo['maxX']:
                     plotInfo['maxX'] = normalized['queryEnd']
+
                 plotInfo['items'].append({
                     'convertedE': convertedE,
                     'hsp': normalized,
@@ -609,8 +617,11 @@ class BlastHits(object):
             # Because a zero e-value was found, maxEIncludingRandoms will be
             # set to a higher-than-zero value below and things will work.
             if plotInfo['minE'] is None:
-                assert plotInfo['maxE'] is None  # Sanity/logic check, for now.
-                assert plotInfo['zeroEValueFound']  # Sanity/logic check, for now.
+                # TODO: Remove the asserts once we're sure the logic is right.
+                # A couple of sanity checks, for now.
+                assert plotInfo['maxE'] is None, (
+                    "MaxE is %r" % (plotInfo['maxE'],))
+                assert plotInfo['zeroEValueFound']
                 plotInfo['minE'] = plotInfo['maxE'] = 0
 
             if rankEValues:
