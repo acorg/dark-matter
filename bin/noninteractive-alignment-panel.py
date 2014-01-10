@@ -82,8 +82,9 @@ if __name__ == '__main__':
         '--db', type=str, default='nt', help='the BLAST db that was used')
 
     parser.add_argument(
-        '--eCutoff', type=float, default=2.0,
-        help='converted e values less than this will be ignored.')
+        '--eCutoff', type=float, default=None,
+        help='Ignore hits with e-values greater (i.e., worse) than or equal '
+        'to this.')
 
     parser.add_argument(
         '--maxHspsPerHit', type=str, default=None,
@@ -122,6 +123,17 @@ if __name__ == '__main__':
         help='If True, just print the number of interesting hits, but do not '
         'create the alignment panel.')
 
+    parser.add_argument(
+        '--equalizeXAxes', type=bool, default=True, const=True, nargs='?',
+        help='If True, all alignment graphs will have their X axes drawn with '
+        'the same range.')
+
+    parser.add_argument(
+        '--xRange', type=str, default='subject',
+        choices=['reads', 'subject'],
+        help='Set the X axis range to show either the subject or the extent '
+        'of the reads that hit the subject.')
+
     args = parser.parse_args()
 
     blastRecords = BlastRecords(args.json, fastaFilename=args.fasta,
@@ -146,23 +158,23 @@ if __name__ == '__main__':
         negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter)
 
+    nHits = len(hits)
+    if nHits == 0:
+        print >>sys.stderr, 'No interesting hits found. Relax your search!'
+        sys.exit(0)
+
+    report('Found %d interesting hit%s.' % (nHits, '' if nHits == 1 else 's'))
+
+    if args.earlyExit:
+        print 'Hit titles (sorted by best e-value, descending):'
+        print '\n'.join(hits.sortTitles('eMin'))
+        sys.exit(0)
+
     hits.computePlotInfo(
         eCutoff=args.eCutoff, maxHspsPerHit=args.maxHspsPerHit,
         minStart=args.minStart, maxStop=args.maxStop,
         rankEValues=args.rankEValues)
 
-    nInteresting = len(hits)
-    if nInteresting == 0:
-        print >>sys.stderr, 'No interesting hits found. Relax your search!'
-        sys.exit(0)
-
-    report('Found %d interesting hit%s.' %
-           (nInteresting, '' if nInteresting == 1 else 's'))
-
-    if args.earlyExit:
-        print 'Hit titles:'
-        print '\n'.join(sorted(hits.titles.keys()))
-        sys.exit(0)
-
-    alignmentPanel(hits, idList=args.idList, interactive=True,
-                   outputDir=args.outputDir, sortOn=args.sortOn)
+    alignmentPanel(hits, sortOn=args.sortOn, interactive=True,
+                   outputDir=args.outputDir, idList=args.idList,
+                   equalizeXAxes=args.equalizeXAxes, xRange=args.xRange)

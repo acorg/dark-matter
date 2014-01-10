@@ -188,8 +188,6 @@ class JSONRecordsReader(object):
         # Read the first line of the file and look for the global BLAST
         # params dict.
         line = self._fp.readline()
-        import sys
-        print >>sys.stderr, "LINE IS %r" % (str(line),)
         if not line:
             raise ValueError('Input file %r was empty' % filename)
 

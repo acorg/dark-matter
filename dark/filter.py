@@ -32,7 +32,7 @@ class TitleFilter(object):
             self._truncated = None
         else:
             self._truncateAfter = truncateAfter
-            self._truncated = set()
+            self._truncated = {}
 
         if positiveRegex is None:
             self._positiveRegex = None
@@ -71,9 +71,15 @@ class TitleFilter(object):
             titleSansId = title.split(' ', 1)[1]
             truncated = simplifyTitle(titleSansId, self._truncateAfter)
             if truncated in self._truncated:
-                # We've already seen this (truncated) title. Reject.
-                return self.REJECT
-            self._truncated.add(truncated)
+                # We've already seen this (truncated) title. Reject unless
+                # this is the original title that we truncated to make this
+                # entry. That title must continue to be accepted.
+                if self._truncated[truncated] == title:
+                    return self.DEFAULT_ACCEPT
+                else:
+                    return self.REJECT
+            else:
+                self._truncated[truncated] = title
 
         # Do the title regex tests last, since they are slowest.
         if self._positiveRegex and self._positiveRegex.search(title) is None:
