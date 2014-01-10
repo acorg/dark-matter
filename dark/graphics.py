@@ -306,7 +306,8 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         if idList:
             for color, reads in idList.iteritems():
                 for read in reads:
-                    readColor[read] = color
+                    if read not in readColor:
+                        readColor[read] = color
 
         for item in items:
             queryId = blastHits.fasta[item['readNum']].id
