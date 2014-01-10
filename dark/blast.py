@@ -3,7 +3,6 @@ import numpy as np
 from random import uniform
 from Bio.Blast import NCBIXML
 from Bio import SeqIO
-import numpy as np
 
 from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
 from dark.filter import HitInfoFilter, TitleFilter
@@ -521,7 +520,7 @@ class BlastHits(object):
                 'hspTotal': 0,  # The total number of HSPs for this title.
                 'items': [],  # len() of this = the # of HSPs kept for display.
                 'maxE': None,
-                'minE': None,  # set to large number, so it can be reduced
+                'minE': None,
                 'maxX': maxStop or sequenceLen,
                 'minX': minStart or 0,
                 'zeroEValueFound': False,

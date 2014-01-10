@@ -9,6 +9,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 from IPython.display import HTML
+import numpy as np
 
 from dark import html
 from dark.baseimage import BaseImage
@@ -501,7 +502,8 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
                 median = plotInfo['eMedian']
                 mean = plotInfo['eMean']
                 mi = plotInfo['min']
-                plotTitle += '\nmin %d, median %d, mean %d' % (mi, median, mean)
+                plotTitle += '\nmin %d, median %d, mean %d' % (
+                    mi, median, mean)
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
