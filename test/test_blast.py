@@ -305,7 +305,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.filterHits(maxMinEValue=1e-20)
+        result = blastHits.filterHits(withEBetterThan=1e-20)
         self.assertEqual(
             {
             },
@@ -326,7 +326,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.filterHits(maxMinEValue=1e-3)
+        result = blastHits.filterHits(withEBetterThan=1e-3)
         self.assertEqual(
             {
                 'a': {
@@ -356,7 +356,7 @@ class InterestingRecords(TestCase):
         blastHits.addHit('c', {
             'eMin': 1e-5
         })
-        result = blastHits.filterHits(maxMinEValue=1e-13)
+        result = blastHits.filterHits(withEBetterThan=1e-13)
         self.assertEqual(
             {
                 'b': {
@@ -364,3 +364,140 @@ class InterestingRecords(TestCase):
                 }
             },
             result.titles)
+
+
+class TestTitleSorting(TestCase):
+    """
+    Tests for the L{blast.BlastHits.sortTtiles} function.
+    """
+
+    def testEmpty(self):
+        """
+        Sorting when there are no titles must return the empty list.
+        """
+        blastHits = BlastHits(None)
+        result = blastHits.sortTitles('eMean')
+        self.assertEqual([], result)
+
+    def testUnknown(self):
+        """
+        Sorting on an unknown attribute must raise C{ValueError}.
+        """
+        blastHits = BlastHits(None)
+        self.assertRaises(ValueError, blastHits.sortTitles, 'unknown')
+
+    def testEMean(self):
+        """
+        Sorting on mean e-values must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'eMean': 1e-2,
+        })
+        blastHits.addHit('ba', {
+            'eMean': 1e-4,
+        })
+        blastHits.addHit('bb', {
+            'eMean': 1e-4,
+        })
+        blastHits.addHit('c', {
+            'eMean': 1e-3,
+        })
+        result = blastHits.sortTitles('eMean')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testEMedian(self):
+        """
+        Sorting on median e-values must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'eMedian': 1e-2,
+        })
+        blastHits.addHit('ba', {
+            'eMedian': 1e-4,
+        })
+        blastHits.addHit('bb', {
+            'eMedian': 1e-4,
+        })
+        blastHits.addHit('c', {
+            'eMedian': 1e-3,
+        })
+        result = blastHits.sortTitles('eMedian')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testEMin(self):
+        """
+        Sorting on minimum e-values must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'eMin': 1e-2,
+        })
+        blastHits.addHit('ba', {
+            'eMin': 1e-4,
+        })
+        blastHits.addHit('bb', {
+            'eMin': 1e-4,
+        })
+        blastHits.addHit('c', {
+            'eMin': 1e-3,
+        })
+        result = blastHits.sortTitles('eMin')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testReadCount(self):
+        """
+        Sorting on read count must work, including a secondary sort on title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'readCount': 1,
+        })
+        blastHits.addHit('ba', {
+            'readCount': 5,
+        })
+        blastHits.addHit('bb', {
+            'readCount': 5,
+        })
+        blastHits.addHit('c', {
+            'readCount': 3,
+        })
+        result = blastHits.sortTitles('readCount')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testLength(self):
+        """
+        Sorting on sequence length must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'length': 100,
+        })
+        blastHits.addHit('ba', {
+            'length': 500,
+        })
+        blastHits.addHit('bb', {
+            'length': 500,
+        })
+        blastHits.addHit('c', {
+            'length': 300,
+        })
+        result = blastHits.sortTitles('length')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testTitle(self):
+        """
+        Sorting on title must work.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {})
+        blastHits.addHit('ba', {})
+        blastHits.addHit('bb', {})
+        blastHits.addHit('c', {})
+        result = blastHits.sortTitles('title')
+        self.assertEqual(['a', 'ba', 'bb', 'c'], result)

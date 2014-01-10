@@ -62,6 +62,20 @@ class TitleFilterTest(TestCase):
         self.assertEqual(TitleFilter.REJECT,
                          tf.accept('gi|400684|gb|AY421767.1| rotavirus 2'))
 
+    def testWordTruncationRepeat(self):
+        """
+        Testing for acceptance against a title filter with title truncation
+        in effect must allow the exact same title twice, even if the title
+        is being truncated.
+        """
+        tf = TitleFilter(truncateAfter=r'virus')
+        # Note that the truncation code will chop off the first part of the
+        # title (the title ID).
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT,
+                         tf.accept('gi|400684|gb|AY421767.1| herpes virus 1'))
+        self.assertEqual(TitleFilter.DEFAULT_ACCEPT,
+                         tf.accept('gi|400684|gb|AY421767.1| herpes virus 1'))
+
     def testWhitelist(self):
         """
         Testing for acceptance against a title filter with a whitelist
@@ -159,9 +173,9 @@ class HitInfoTest(TestCase):
 
     def testMaxMinEValue(self):
         """
-        Testing for acceptance against a hit info filter with a maxMinEValue
+        Testing for acceptance against a hit info filter with a withEBetterThan
         restriction must work.
         """
-        hif = HitInfoFilter(maxMinEValue=1e-3)
+        hif = HitInfoFilter(withEBetterThan=1e-3)
         self.assertEqual(True, hif.accept({'eMin': 1e-4}))
         self.assertEqual(False, hif.accept({'eMin': 1e-2}))

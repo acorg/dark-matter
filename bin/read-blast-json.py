@@ -4,7 +4,7 @@
 Read simplified JSON BLAST records and report the elapsed time.
 """
 
-from dark.conversion import readJSONRecords
+from dark.conversion import JSONRecordsReader
 from time import time
 import sys
 
@@ -15,7 +15,9 @@ if __name__ == '__main__':
         sys.exit(1)
     else:
         start = time()
-        for count, record in enumerate(readJSONRecords(sys.argv[1])):
+        jsonReader = JSONRecordsReader(sys.argv[1])
+        records = jsonReader.records()
+        for count, record in enumerate(records, start=1):
             pass
         elapsed = time() - start
         print 'Read %d JSON BLAST records in %.3f secs (%.0f records/sec)' % (

@@ -5,7 +5,7 @@ from Bio.Blast import NCBIXML
 from Bio import SeqIO
 import numpy as np
 
-from dark.conversion import readJSONRecords
+from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
 from dark.filter import HitInfoFilter, TitleFilter
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
@@ -58,6 +58,7 @@ class BlastRecords(object):
         self.blastDb = blastDb
         self.limit = limit
         self._length = 0
+        self.blastParams = None  # Set in records(), below.
 
     def records(self):
         """
@@ -70,7 +71,9 @@ class BlastRecords(object):
             fp = open(self.blastFilename)
             records = NCBIXML.parse(fp)
         elif self.blastFilename.endswith('.json'):
-            records = readJSONRecords(self.blastFilename)
+            jsonReader = JSONRecordsReader(self.blastFilename)
+            records = jsonReader.records()
+            self.blastParams = jsonReader.params
             fp = None
         else:
             raise ValueError('Unknown BLAST record file type.')
@@ -80,10 +83,16 @@ class BlastRecords(object):
         # test if self.limit is None in a loop.
         if self.limit is None:
             for count, record in enumerate(records, start=1):
+                if self.blastParams is None:
+                    # TODO: Remove this when we drop support for reading XML.
+                    self.blastParams = convertBlastParamsToDict(record)
                 yield record
         else:
             limit = self.limit
             for count, record in enumerate(records, start=1):
+                if self.blastParams is None:
+                    # TODO: Remove this when we drop support for reading XML.
+                    self.blastParams = convertBlastParamsToDict(record)
                 if count > limit:
                     count = limit
                     break
@@ -115,9 +124,9 @@ class BlastRecords(object):
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
-                   maxMeanEValue=None, maxMedianEValue=None, maxMinEValue=None,
-                   titleRegex=None, negativeTitleRegex=None,
-                   truncateTitlesAfter=None):
+                   maxMeanEValue=None, maxMedianEValue=None,
+                   withEBetterThan=None, titleRegex=None,
+                   negativeTitleRegex=None, truncateTitlesAfter=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -136,12 +145,12 @@ class BlastRecords(object):
             that is greater will be elided.
         @param maxMedianEValue: sequences that are matched with a median
             e-value that is greater will be elided.
-        @param maxMinEValue: if the minimum e-value for a hit is higher than
-            this value, elide the hit. E.g., suppose we are passed a value of
-            1e-20, then we should reject any hit whose minimal (i.e., best)
-            e-value is bigger than 1e-20. So a hit with minimal e-value of
-            1e-10 would not be reported, whereas a hit with a minimal e-value
-            of 1e-30 would be.
+        @param withEBetterThan: if the best (minimum) e-value for a hit is not
+            as good as (i.e., is higher than) this value, elide the hit. E.g.,
+            suppose we are passed a value of 1e-20, then we should reject any
+            hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
+            So a hit with minimal e-value of 1e-10 would not be reported,
+            whereas a hit with a minimal e-value of 1e-30 would be.
         @param titleRegex: a regex that sequence titles must match.
         @param negativeTitleRegex: a regex that sequence titles must not match.
         @param truncateTitlesAfter: specify a string that titles will be
@@ -200,7 +209,7 @@ class BlastRecords(object):
         hitInfoFilter = HitInfoFilter(minMatchingReads=minMatchingReads,
                                       maxMeanEValue=maxMeanEValue,
                                       maxMedianEValue=maxMedianEValue,
-                                      maxMinEValue=maxMinEValue)
+                                      withEBetterThan=withEBetterThan)
 
         # Compute summary stats on e-values for all titles. If the title
         # was whitelisted or if the statistical summary is acceptable, add
@@ -279,37 +288,52 @@ class BlastHits(object):
         """
         Sort titles by a given attribute and then by title.
 
-        @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
+        @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
+            'title'.
         @return: A sorted C{list} of titles.
         """
-        if by == 'eMean':
-            titles = sorted(
+
+        def makeCmp(attr):
+            """
+            Create a sorting comparison function that sorts first in reverse
+            on the passed numeric attribute and then in ascending order on
+            title.
+            """
+            def compare(title1, title2):
+                result = cmp(self.titles[title2][attr],
+                             self.titles[title1][attr])
+                if result == 0:
+                    result = cmp(title1, title2)
+                return result
+            return compare
+
+        if by == 'eMin':
+            return sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (self.titles[title]['eMin'], title))
+        elif by == 'eMean':
+            return sorted(
                 self.titles.iterkeys(),
                 key=lambda title: (self.titles[title]['eMean'], title))
         elif by == 'eMedian':
-            titles = sorted(
+            return sorted(
                 self.titles.iterkeys(),
                 key=lambda title: (self.titles[title]['eMedian'], title))
         elif by == 'readCount':
-            titles = sorted(
-                self.titles.iterkeys(), reverse=True,
-                key=lambda title: (self.titles[title]['readCount'], title))
+            return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
         elif by == 'length':
-            titles = sorted(
-                self.titles.iterkeys(), reverse=True,
-                key=lambda title: (self.titles[title]['length'], title))
+            return sorted(self.titles.iterkeys(), cmp=makeCmp('length'))
         elif by == 'title':
-            titles = sorted(self.titles.iterkeys())
-        else:
-            raise ValueError('sort attribute must be one of "eMean", '
-                             '"eMedian", "title" or "reads".')
-        return titles
+            return sorted(self.titles.iterkeys())
+
+        raise ValueError('sort attribute must be one of "eMean", '
+                         '"eMedian", "eMin", "readCount", "title".')
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
-                   maxMeanEValue=None, maxMedianEValue=None, maxMinEValue=None,
-                   titleRegex=None, negativeTitleRegex=None,
-                   truncateTitlesAfter=None):
+                   maxMeanEValue=None, maxMedianEValue=None,
+                   withEBetterThan=None, titleRegex=None,
+                   negativeTitleRegex=None, truncateTitlesAfter=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -335,12 +359,12 @@ class BlastHits(object):
             that is greater will be elided.
         @param maxMedianEValue: sequences that are matched with a median
             e-value that is greater will be elided.
-        @param maxMinEValue: if the minimum e-value for a hit is higher than
-            this value, elide the hit. E.g., suppose we are passed a value of
-            1e-20, then we should reject any hit whose minimal (i.e., best)
-            e-value is bigger than 1e-20. So a hit with minimal e-value of
-            1e-10 would not be reported, whereas a hit with a minimal e-value
-            of 1e-30 would be.
+        @param withEBetterThan: if the best (minimum) e-value for a hit is not
+            as good as (i.e., is higher than) this value, elide the hit. E.g.,
+            suppose we are passed a value of 1e-20, then we should reject any
+            hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
+            So a hit with minimal e-value of 1e-10 would not be reported,
+            whereas a hit with a minimal e-value of 1e-30 would be.
         @param titleRegex: a regex that sequence titles must match.
         @param negativeTitleRegex: a regex that sequence titles must not match.
         @param truncateTitlesAfter: specify a string that titles will be
@@ -358,7 +382,7 @@ class BlastHits(object):
                                       minMatchingReads=minMatchingReads,
                                       maxMeanEValue=maxMeanEValue,
                                       maxMedianEValue=maxMedianEValue,
-                                      maxMinEValue=maxMinEValue)
+                                      withEBetterThan=withEBetterThan)
 
         result = BlastHits(self.records)
         for title, hitInfo in self.titles.iteritems():
@@ -385,7 +409,7 @@ class BlastHits(object):
         for readNum, record in enumerate(self.records.records()):
             for index, alignment in enumerate(record.alignments):
                 title = record.descriptions[index].title
-                if title in titles:
+                if title in titles and readNum in titles[title]['readNums']:
                     yield (title, readNum, alignment.hsps)
 
     def _convertEValuesToRanks(self, plotInfo):
@@ -516,16 +540,14 @@ class BlastHits(object):
             if self.titles[title]['plotInfo'] is None:
                 sequenceLen = self.titles[title]['length']
                 self.titles[title]['plotInfo'] = plotInfoDict(sequenceLen)
-                firstItem = True  # This is the first item being added.
-            else:
-                firstItem = False
             plotInfo = self.titles[title]['plotInfo']
             queryLen = len(self.fasta[readNum])
             plotInfo['hspTotal'] += len(hsps)
 
+            if maxHspsPerHit is not None and len(hsps) > maxHspsPerHit:
+                hsps = hsps[:maxHspsPerHit]
+
             for hspCount, hsp in enumerate(hsps, start=1):
-                if maxHspsPerHit is not None and hspCount > maxHspsPerHit:
-                    break
                 try:
                     normalized = normalizeHSP(hsp, queryLen)
                 except AssertionError:
@@ -551,6 +573,9 @@ class BlastHits(object):
                 if eCutoff is not None and e >= eCutoff:
                     continue
 
+                # We are committed to adding this item to plotInfo['items'].
+                # Don't add any 'continue' statements below this point.
+
                 # retain original evalue below cutoff for eMean and eMedian
                 # calculation.
                 plotInfo['originalEValues'].append(e)
@@ -560,15 +585,22 @@ class BlastHits(object):
                     plotInfo['zeroEValueFound'] = True
                 else:
                     convertedE = -1.0 * log10(e)
-                    if firstItem or convertedE > plotInfo['maxE']:
-                        plotInfo['maxE'] = convertedE
-                    # Don't use elif for testing minE. Both can be true.
-                    if firstItem or convertedE < plotInfo['minE']:
-                        plotInfo['minE'] = convertedE
+                    if plotInfo['minE'] is None:
+                        # This is the first item being added. Set minE and
+                        # maxE unconditionally.
+                        # TODO: Delete the following sanity check.
+                        assert plotInfo['maxE'] is None
+                        plotInfo['minE'] = plotInfo['maxE'] = convertedE
+                    else:
+                        if convertedE < plotInfo['minE']:
+                            plotInfo['minE'] = convertedE
+                        elif convertedE > plotInfo['maxE']:
+                            plotInfo['maxE'] = convertedE
                 if normalized['queryStart'] < plotInfo['minX']:
                     plotInfo['minX'] = normalized['queryStart']
                 if normalized['queryEnd'] > plotInfo['maxX']:
                     plotInfo['maxX'] = normalized['queryEnd']
+
                 plotInfo['items'].append({
                     'convertedE': convertedE,
                     'hsp': normalized,
@@ -585,6 +617,20 @@ class BlastHits(object):
             plotInfo = self.titles[title]['plotInfo']
             if plotInfo is None:
                 continue
+
+            # If plotInfo['minE'] is None, plotInfo['maxE'] will be too. This
+            # indicates that all the qualifying e-values found above were zero.
+            # We must have found some values (because plotinfo is not None).
+            # We can safely set minE and maxE to harmless (zero) values here.
+            # Because a zero e-value was found, maxEIncludingRandoms will be
+            # set to a higher-than-zero value below and things will work.
+            if plotInfo['minE'] is None:
+                # TODO: Remove the asserts once we're sure the logic is right.
+                # A couple of sanity checks, for now.
+                assert plotInfo['maxE'] is None, (
+                    "MaxE is %r" % (plotInfo['maxE'],))
+                assert plotInfo['zeroEValueFound']
+                plotInfo['minE'] = plotInfo['maxE'] = 0
 
             if rankEValues:
                 self._convertEValuesToRanks(plotInfo)
@@ -654,6 +700,7 @@ class BlastHits(object):
                 plotInfo['offsetAdjuster'] = adjuster
 
             # calculate eMedian and eMean
+            plotInfo['min'] = np.min(plotInfo['originalEValues'])
             plotInfo['eMean'] = np.mean(plotInfo['originalEValues'])
             plotInfo['eMedian'] = np.median(plotInfo['originalEValues'])
             del plotInfo['originalEValues']

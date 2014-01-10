@@ -7,9 +7,17 @@ def convertBlastXMLToJSON(blastFilename, jsonFilename):
     """
     Read BLAST XML records from blastFilename and write them
     out as serialized JSON to jsonFilename.
+
+    @param blastFilename: A C{str} filename containing BLAST records.
+    @param jsonFilename: Either a C{str} filename to receive the JSON
+        records or an open file pointer to write records to.
     """
     def _write(infp, outfp):
+        first = True
         for record in NCBIXML.parse(infp):
+            if first:
+                print >>outfp, dumps(convertBlastParamsToDict(record))
+                first = False
             print >>outfp, dumps(convertBlastRecordToDict(record))
 
     with open(blastFilename) as infp:
@@ -21,6 +29,74 @@ def convertBlastXMLToJSON(blastFilename, jsonFilename):
             _write(infp, jsonFilename)
 
 
+def convertBlastParamsToDict(record):
+    """
+    Pull the global BLAST parameters out of a BLAST record and return
+    them as a C{dict}.
+
+    Some of these attributes are useless (not filled in), but we record them
+    all just in case we one day need them or they start to be used or they
+    disappear etc. Any of those changes might alert us that something has
+    changed in BLAST XML output or in BioPython.
+
+    @param record: An instance of C{Bio.Blast.Record.Blast}. The attributes
+        on this don't seem to be documented. You'll need to look at the
+        BioPython source to see everything it contains.
+    @return: A C{dict}, as described above.
+    """
+    result = {}
+    for attr in (
+            ## From Bio.Blast.Record.Header
+            'application',
+            'version',
+            'date',
+            'reference',
+            'query',
+            'query_letters',
+            'database',
+            'database_sequences',
+            'database_letters',
+            ## From Bio.Blast.Record.DatabaseReport
+            'database_name',
+            'posted_date',
+            'num_letters_in_database',
+            'num_sequences_in_database',
+            'ka_params',
+            'gapped',
+            'ka_params_gap',
+            ## From Bio.Blast.Record.Parameters
+            'matrix',
+            'gap_penalties',
+            'sc_match',
+            'sc_mismatch',
+            'num_hits',
+            'num_sequences',
+            'num_good_extends',
+            'num_seqs_better_e',
+            'hsps_no_gap',
+            'hsps_prelim_gapped',
+            'hsps_prelim_gapped_attemped',
+            'hsps_gapped',
+            'query_id',
+            'query_length',
+            'database_length',
+            'effective_hsp_length',
+            'effective_query_length',
+            'effective_database_length',
+            'effective_search_space',
+            'effective_search_space_used',
+            'frameshift',
+            'threshold',
+            'window_size',
+            'dropoff_1st_pass',
+            'gap_x_dropoff',
+            'gap_x_dropoff_final',
+            'gap_trigger',
+            'blast_cutoff'):
+        result[attr] = getattr(record, attr)
+    return result
+
+
 def convertBlastRecordToDict(record):
     """
     Pull (only) the fields we use out of the record and return them as a
@@ -29,6 +105,11 @@ def convertBlastRecordToDict(record):
     in a separated 'description' dict). When we undo this conversion (in
     convertDictToBlastRecord) we'll pull the title out of the alignment
     dict and put it into the right place in the BLAST record.
+
+    @param record: An instance of C{Bio.Blast.Record.Blast}. The attributes
+        on this don't seem to be documented. You'll need to look at the
+        BioPython source to see everything it contains.
+    @return: A C{dict} with 'alignments' and 'query' keys.
     """
     alignments = []
     for index, alignment in enumerate(record.alignments):
@@ -61,6 +142,9 @@ def convertDictToBlastRecord(d):
     """
     Take a dictionary (as produced by convertBlastRecordToDict) and
     convert it to a Bio Blast record.
+
+    @param d: A C{dict}, from convertBlastRecordToDict.
+    @return: A C{Bio.Blast.Record.Blast} instance.
     """
     record = Blast()
     record.query = d['query']
@@ -85,18 +169,76 @@ def convertDictToBlastRecord(d):
     return record
 
 
-def readJSONRecords(filename):
+class JSONRecordsReader(object):
     """
-    Read lines of JSON from filename, convert them to Bio Blast class
-    instances and yield them.
+    Provide a method that yields JSON records from a file. Store, check, and
+    make accessible the global BLAST parameters.
+
+    @raise ValueError: If the input file is empty or does not contain a global
+        BLAST params section.
+
+    @ivar params: A C{dict} of global BLAST parameters.
+    @param filename: A C{str} filename containing JSON BLAST records.
     """
-    with open(filename) as fp:
-        for lineNumber, line in enumerate(fp.readlines(), start=1):
+
+    def __init__(self, filename):
+        self._filename = filename
+        self._fp = open(filename)
+
+        # Read the first line of the file and look for the global BLAST
+        # params dict.
+        line = self._fp.readline()
+        if not line:
+            raise ValueError('Input file %r was empty' % filename)
+
+        try:
+            self.params = loads(line[:-1])
+        except ValueError as e:
+            raise ValueError(
+                'Could not convert first line of %r to JSON (%s). Line is '
+                '%r.' % (filename, e, line[:-1]))
+        else:
+            if 'application' not in self.params:
+                raise ValueError(
+                    '%r appears to be an old JSON file with no BLAST global '
+                    'parameters. Please re-run convert-blast-xml-to-json.py '
+                    'to convert it to the newest format.' % filename)
+
+    def records(self):
+        """
+        Read lines of JSON from self._fp, convert them to Bio Blast class
+        instances and yield them.
+        """
+        for lineNumber, line in enumerate(self._fp.readlines(), start=2):
             try:
                 record = loads(line[:-1])
             except ValueError as e:
                 raise ValueError(
                     'Could not convert line %d of %r to JSON (%s). Line is '
-                    '%r.' % (lineNumber, filename, e, line[:-1]))
+                    '%r.' % (lineNumber, self._filename, e, line[:-1]))
             else:
-                yield convertDictToBlastRecord(record)
+                if 'application' in record:
+                    # This is another params section. Check it against the
+                    # already read params (from the first line of the
+                    # file).  The 'application' key is just one of the many
+                    # attributes we save into a JSON dict in
+                    # L{convertBlastParamsToDict} above.
+                    #
+                    # Note that although the params contains a 'date', its
+                    # value is empty (as far as I've seen). This could
+                    # become an issue one day if it becomes non-empty and
+                    # differs between JSON files that we cat together. In
+                    # that case we may need to be more specific in our
+                    # params compatible checking.
+                    #
+                    # TODO: We can be more helpful here by reporting the
+                    #       keys that differ between the params sections.
+                    assert self.params == record, (
+                        'BLAST parameters found on line %d of %r do not match '
+                        'those found on its first line.' %
+                        (lineNumber, self._filename))
+                else:
+                    # A regular BLAST record (as a dict).
+                    yield convertDictToBlastRecord(record)
+
+        self._fp.close()

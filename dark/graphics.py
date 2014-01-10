@@ -57,9 +57,9 @@ def _sortHTML(hits, by):
         hitInfo = hits.titles[title]
         link = NCBISequenceLink(title, title)
         out.append(
-            '%3d: count=%4d, len=%7d, median(e)=%20s mean(e)=%20s: %s' %
+            '%3d: count=%4d, len=%7d, min(e)=%20s median(e)=%20s: %s' %
             (i, hitInfo['readCount'], hitInfo['length'],
-             hitInfo['eMedian'], hitInfo['eMean'], link))
+             hitInfo['eMin'], hitInfo['eMedian'], link))
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
@@ -81,6 +81,17 @@ def summarizeHitsByMedianEValue(hits):
     @param hits: An L{dark.blast.BlastHits} instance.
     @return: An C{IPython.display.HTML} instance with hit titles sorted by
         median e-value.
+    """
+    return _sortHTML(hits, 'eMedian')
+
+
+def summarizeHitsByMinEValue(hits):
+    """
+    Sort hit titles by minimum (i.e., best) e-value.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        minimum e-value.
     """
     return _sortHTML(hits, 'eMedian')
 
@@ -302,7 +313,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             e = item['convertedE']
             hsp = item['hsp']
             line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
-                          color=readColor.get(queryId, 'blue')
+                          color=readColor.get(queryId, 'blue'))
             readsAx.add_line(line)
 
     # Add to ORF figures and add vertical lines for the sequence features.
@@ -400,16 +411,15 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     return result
 
 
-def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
-                   outputDir=None, idList=False, equalizeXAxes=True,
-                   xRange='subject'):
+def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
+                   idList=False, equalizeXAxes=True, xRange='subject'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
     sortOn: The attribute to sort subplots on. Either "eMean", "eMedian",
-        "title" or "reads"
+        "eMin", "readCount", or "title".
     interactive: If C{True}, we are interactive and should display the panel
         using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
@@ -464,7 +474,7 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             alignmentInfo = alignmentGraph(
-                blastHits, title, addQueryLines=True, showFeatures=False,
+                blastHits, title, addQueryLines=True, showFeatures=True,
                 colorQueryBases=False, showFigure=False, imageFile=imageFile,
                 quiet=True, idList=idList, xRange=xRange)
 
@@ -489,7 +499,8 @@ def alignmentPanel(blastHits, sortOn='eMedian', interactive=True,
             else:
                 median = plotInfo['eMedian']
                 mean = plotInfo['eMean']
-                plotTitle += '\nmedian 1e-%d, mean 1e-%d' % (median, mean)
+                mi = plotInfo['min']
+                plotTitle += '\nmin %d, median %d, mean %d' % (mi, median, mean)
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
