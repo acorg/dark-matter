@@ -480,7 +480,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             alignmentInfo = alignmentGraph(
-                blastHits, title, addQueryLines=True, showFeatures=False,
+                blastHits, title, addQueryLines=True, showFeatures=True,
                 colorQueryBases=False, showFigure=False, imageFile=imageFile,
                 quiet=True, idList=idList, xRange=xRange)
 

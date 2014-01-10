@@ -602,6 +602,17 @@ class BlastHits(object):
             if plotInfo is None:
                 continue
 
+            # If plotInfo['minE'] is None, plotInfo['maxE'] will be too. This
+            # indicates that all the qualifying e-values found above were zero.
+            # We must have found some values (because plotinfo is not None).
+            # We can safely set minE and maxE to harmless (zero) values here.
+            # Because a zero e-value was found, maxEIncludingRandoms will be
+            # set to a higher-than-zero value below and things will work.
+            if plotInfo['minE'] is None:
+                assert plotInfo['maxE'] is None  # Sanity/logic check, for now.
+                assert plotInfo['zeroEValueFound']  # Sanity/logic check, for now.
+                plotInfo['minE'] = plotInfo['maxE'] = 0
+
             if rankEValues:
                 self._convertEValuesToRanks(plotInfo)
 
