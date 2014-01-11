@@ -1,11 +1,11 @@
 from unittest import TestCase
 
-from dark.filter import HitInfoFilter, TitleFilter
+from dark.filter import BitScoreFilter, HitInfoFilter, TitleFilter
 
 
 class TitleFilterTest(TestCase):
     """
-    Tests for the dark.filter.TitleFilter class.
+    Tests for the L{dark.filter.TitleFilter} class.
     """
 
     def testNoRestriction(self):
@@ -113,9 +113,9 @@ class TitleFilterTest(TestCase):
         self.assertEqual(TitleFilter.REJECT, tf.accept('rubbish'))
 
 
-class HitInfoTest(TestCase):
+class HitInfoFilterTest(TestCase):
     """
-    Tests for the dark.filter.HitInfoFilter class.
+    Tests for the L{dark.filter.HitInfoFilter} class.
     """
 
     def testNoRestriction(self):
@@ -179,3 +179,44 @@ class HitInfoTest(TestCase):
         hif = HitInfoFilter(withEBetterThan=1e-3)
         self.assertEqual(True, hif.accept({'eMin': 1e-4}))
         self.assertEqual(False, hif.accept({'eMin': 1e-2}))
+
+
+class BitScoreFilterTest(TestCase):
+    """
+    Tests for the L{dark.filter.BitScoreFilter} class.
+    """
+
+    def testNoRestriction(self):
+        """
+        Testing for acceptance against a bit score filter that has no
+        restrictions should return C{True}.
+        """
+        bsf = BitScoreFilter()
+        self.assertEqual(True, bsf.accept({}))
+
+    def testMinMeanBitScore(self):
+        """
+        Testing for acceptance against a bit score filter with a
+        minMeanBitScore restriction must work.
+        """
+        bsf = BitScoreFilter(minMeanBitScore=10)
+        self.assertEqual(True, bsf.accept({'bitScoreMean': 11}))
+        self.assertEqual(False, bsf.accept({'bitScoreMean': 9}))
+
+    def testMinMedianBitScore(self):
+        """
+        Testing for acceptance against a bit score filter with a
+        minMedianBitScore restriction must work.
+        """
+        bsf = BitScoreFilter(minMedianBitScore=10)
+        self.assertEqual(True, bsf.accept({'bitScoreMedian': 11}))
+        self.assertEqual(False, bsf.accept({'bitScoreMedian': 9}))
+
+    def testWithBitScoreBetterThan(self):
+        """
+        Testing for acceptance against a bit score filter with a
+        withBitScoreBetterThan restriction must work.
+        """
+        bsf = BitScoreFilter(withBitScoreBetterThan=10)
+        self.assertEqual(True, bsf.accept({'bitScoreMax': 11}))
+        self.assertEqual(False, bsf.accept({'bitScoreMax': 9}))
