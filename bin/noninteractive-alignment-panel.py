@@ -65,8 +65,23 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--withEBetterThan', type=float, default=None,
-        help='sequences that are matched without at least one e-value that '
-        'is at least this good will be elided.')
+        help='sequences that are matched without at least one e-value '
+        'at least this good will be elided.')
+
+    parser.add_argument(
+        '--minMeanBitScore', type=float, default=None,
+        help='sequences that are matched with a mean bit score that is '
+        'less will be elided.')
+
+    parser.add_argument(
+        '--minMedianBitScore', type=float, default=None,
+        help='sequences that are matched with a median bit score that is '
+        'less will be elided.')
+
+    parser.add_argument(
+        '--withBitScoreBetterThan', type=float, default=None,
+        help='sequences that are matched without at least one bit score '
+        'at least this good will be elided.')
 
     parser.add_argument(
         '--negativeTitleRegex', type=str, default=None,
@@ -134,6 +149,11 @@ if __name__ == '__main__':
         help='Set the X axis range to show either the subject or the extent '
         'of the reads that hit the subject.')
 
+    parser.add_argument(
+        '--plot', type=str, default='e values',
+        choices=['bit scores', 'e values'],
+        help='What to plot on the Y axis of alignment graphs.')
+
     args = parser.parse_args()
 
     blastRecords = BlastRecords(args.json, fastaFilename=args.fasta,
@@ -154,6 +174,9 @@ if __name__ == '__main__':
         maxMeanEValue=args.maxMeanEValue,
         maxMedianEValue=args.maxMedianEValue,
         withEBetterThan=args.withEBetterThan,
+        minMeanBitScore=args.minMeanBitScore,
+        minMedianBitScore=args.minMedianBitScore,
+        withBitScoreBetterThan=args.withBitScoreBetterThan,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter)
@@ -177,4 +200,5 @@ if __name__ == '__main__':
 
     alignmentPanel(hits, sortOn=args.sortOn, interactive=True,
                    outputDir=args.outputDir, idList=args.idList,
-                   equalizeXAxes=args.equalizeXAxes, xRange=args.xRange)
+                   equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
+                   plot=args.plot)

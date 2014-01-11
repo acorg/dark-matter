@@ -123,7 +123,7 @@ def summarizeHitsByLength(hits):
 def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                    colorQueryBases=False, createFigure=True, showFigure=True,
                    readsAx=None, imageFile=None, quiet=False, idList=False,
-                   xRange='subject', plot='bit scores'):
+                   xRange='subject', plot='e values'):
     """
     Align a set of matching reads against a BLAST hit.
 
@@ -433,7 +433,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
 def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
                    idList=False, equalizeXAxes=True, xRange='subject',
-                   plot='bit scores'):
+                   plot='e values'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
