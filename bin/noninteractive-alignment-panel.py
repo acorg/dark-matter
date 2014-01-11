@@ -87,16 +87,16 @@ if __name__ == '__main__':
         'to this.')
 
     parser.add_argument(
-        '--maxHspsPerHit', type=str, default=None,
+        '--maxHspsPerHit', type=int, default=None,
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
     parser.add_argument(
-        '--minStart', type=str, default=None,
+        '--minStart', type=int, default=None,
         help='Reads that start before this subject offset should not be '
         'shown.')
 
     parser.add_argument(
-        '--maxStop', type=str, default=None,
+        '--maxStop', type=int, default=None,
         help='Reads that end after this subject offset should not be shown.')
 
     parser.add_argument(
