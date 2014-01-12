@@ -157,8 +157,9 @@ class ReadSetFilter(object):
     """
     Provide an acceptance test based on sequence read set.
 
-    @param minNew: The C{float} fraction of reads that a read set must differ
-        from all previously seen read sets in order to be considered new.
+    @param minNew: The C{float} fraction of its reads by which a new read set
+        must differ from all previously seen read sets in order to be
+        considered acceptably different.
     """
 
     def __init__(self, minNew):
@@ -167,10 +168,11 @@ class ReadSetFilter(object):
 
     def accept(self, hitInfo):
         """
-        Return C{True} if the passed hit info is acceptable.
+        Return C{True} if the read set in the passed C{hitInfo} is sufficiently
+        different from all previously seen read sets.
 
         @param hitInfo: A C{dict} with a C{readNums} keys.
-        @return: A C{bool} to indicate acceptable hit info or not.
+        @return: A C{bool} to indicate an acceptable read set or not.
         """
         readNums = hitInfo['readNums']
         newReadsRequired = ceil(self._minNew * len(readNums))

@@ -5,7 +5,7 @@ from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
-from dark.filter import HitInfoFilter, TitleFilter
+from dark.filter import HitInfoFilter, ReadSetFilter, TitleFilter
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 
@@ -125,7 +125,8 @@ class BlastRecords(object):
                    maxSequenceLen=None, minMatchingReads=None,
                    maxMeanEValue=None, maxMedianEValue=None,
                    withEBetterThan=None, titleRegex=None,
-                   negativeTitleRegex=None, truncateTitlesAfter=None):
+                   negativeTitleRegex=None, truncateTitlesAfter=None,
+                   minNewReads=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -155,6 +156,9 @@ class BlastRecords(object):
         @param truncateTitlesAfter: specify a string that titles will be
             truncated beyond. If a truncated title has already been seen, that
             title will be elided.
+        @param minNewReads: The C{float} fraction of its reads by which a new
+            read set must differ from all previously seen read sets in order to
+            be considered acceptably different.
         @return: A L{BlastHits} instance.
         """
         result = {}
@@ -210,6 +214,11 @@ class BlastRecords(object):
                                       maxMedianEValue=maxMedianEValue,
                                       withEBetterThan=withEBetterThan)
 
+        # Use a ReadSetFilter only if we're checking that read sets are
+        # sufficiently new.
+        if minNewReads is not None:
+            readSetFilter = ReadSetFilter(minNewReads)
+
         # Compute summary stats on e-values for all titles. If the title
         # was whitelisted or if the statistical summary is acceptable, add
         # the hit info to our final result.
@@ -222,7 +231,8 @@ class BlastRecords(object):
             hitInfo['eMedian'] = np.median(eValues)
             hitInfo['eMin'] = min(eValues)
             if (hitInfo['titleFilterResult'] == TitleFilter.WHITELIST_ACCEPT or
-                    hitInfoFilter.accept(hitInfo)):
+                    hitInfoFilter.accept(hitInfo) and
+                    (minNewReads is None or readSetFilter.accept(hitInfo))):
                 # Remove the e-values (now that we've summarized them) and
                 # the title filter result (now that we've checked it).
                 del hitInfo['eValues']
@@ -332,7 +342,8 @@ class BlastHits(object):
                    maxSequenceLen=None, minMatchingReads=None,
                    maxMeanEValue=None, maxMedianEValue=None,
                    withEBetterThan=None, titleRegex=None,
-                   negativeTitleRegex=None, truncateTitlesAfter=None):
+                   negativeTitleRegex=None, truncateTitlesAfter=None,
+                   minNewReads=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -369,6 +380,9 @@ class BlastHits(object):
         @param truncateTitlesAfter: specify a string that titles will be
             truncated beyond. If a truncated title has already been seen, that
             title will be elided.
+        @param minNewReads: The C{float} fraction of its reads by which a new
+            read set must differ from all previously seen read sets in order to
+            be considered acceptably different.
         @return: A new L{BlastHits} instance, with hits filtered as above.
         """
         titleFilter = TitleFilter(whitelist=whitelist, blacklist=blacklist,
@@ -383,12 +397,18 @@ class BlastHits(object):
                                       maxMedianEValue=maxMedianEValue,
                                       withEBetterThan=withEBetterThan)
 
+        # Use a ReadSetFilter only if we're checking that read sets are
+        # sufficiently new.
+        if minNewReads is not None:
+            readSetFilter = ReadSetFilter(minNewReads)
+
         result = BlastHits(self.records)
         for title, hitInfo in self.titles.iteritems():
             titleFilterResult = titleFilter.accept(title)
             if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
-                    (titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
-                     hitInfoFilter.accept(hitInfo))):
+                    titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
+                    hitInfoFilter.accept(hitInfo) and
+                    (minNewReads is None or readSetFilter.accept(hitInfo))):
                 result.addHit(title, hitInfo)
         return result
 
