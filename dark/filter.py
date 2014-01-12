@@ -1,4 +1,5 @@
 import re
+from math import ceil
 
 from dark.simplify import simplifyTitle
 
@@ -150,3 +151,31 @@ class HitInfoFilter(object):
              hitInfo['eMedian'] > self._maxMedianEValue) or
             (self._withEBetterThan is not None and
              hitInfo['eMin'] > self._withEBetterThan))
+
+
+class ReadSetFilter(object):
+    """
+    Provide an acceptance test based on sequence read set.
+
+    @param minNew: The C{float} fraction of reads that a read set must differ
+        from all previously seen read sets in order to be considered new.
+    """
+
+    def __init__(self, minNew):
+        self._minNew = minNew
+        self._readSets = []
+
+    def accept(self, hitInfo):
+        """
+        Return C{True} if the passed hit info is acceptable.
+
+        @param hitInfo: A C{dict} with a C{readNums} keys.
+        @return: A C{bool} to indicate acceptable hit info or not.
+        """
+        readNums = hitInfo['readNums']
+        newReadsRequired = ceil(self._minNew * len(readNums))
+        for readSet in self._readSets:
+            if len(readNums - readSet) < newReadsRequired:
+                return False
+        self._readSets.append(readNums)
+        return True

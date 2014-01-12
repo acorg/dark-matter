@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.filter import HitInfoFilter, TitleFilter
+from dark.filter import HitInfoFilter, ReadSetFilter, TitleFilter
 
 
 class TitleFilterTest(TestCase):
@@ -179,3 +179,106 @@ class HitInfoTest(TestCase):
         hif = HitInfoFilter(withEBetterThan=1e-3)
         self.assertEqual(True, hif.accept({'eMin': 1e-4}))
         self.assertEqual(False, hif.accept({'eMin': 1e-2}))
+
+
+class ReadSetTest(TestCase):
+    """
+    Tests for the L{dark.filter.ReadSetFilter} class.
+    """
+
+    def testNoRestriction(self):
+        """
+        Testing for acceptance against a read set filter that has no
+        restrictions should return C{True}.
+        """
+        rsf = ReadSetFilter(0.9)
+        self.assertEqual(True, rsf.accept({
+            'readNums': set([0])
+        }))
+
+    def testDuplicateSingleRead(self):
+        """
+        Testing for acceptance against a read set filter that has already
+        seen the exact set should return C{False} if the C{minNew} threshold
+        is non-zero.
+        """
+        rsf = ReadSetFilter(0.9)
+        rsf.accept({
+            'readNums': set([0])
+        })
+        self.assertEqual(False, rsf.accept({
+            'readNums': set([0])
+        }))
+
+    def testDuplicateSingleReadZeroThreshold(self):
+        """
+        Testing for acceptance against a read set filter that has already
+        seen the exact set should return C{True} if the C{minNew} threshold
+        is zero.
+        """
+        rsf = ReadSetFilter(0.0)
+        rsf.accept({
+            'readNums': set([0])
+        })
+        self.assertEqual(True, rsf.accept({
+            'readNums': set([0])
+        }))
+
+    def testDifferentSet(self):
+        """
+        Testing for acceptance against a read set filter that has seen a set
+        should return C{True} if the new set is totally different.
+        """
+        rsf = ReadSetFilter(1.0)
+        rsf.accept({
+            'readNums': set([0])
+        })
+        self.assertEqual(True, rsf.accept({
+            'readNums': set([1])
+        }))
+
+    def testSufficientlyDifferent(self):
+        """
+        Testing for acceptance against a read set filter that has seen several
+        sets should return C{True} if the new set is sufficiently different.
+        """
+        rsf = ReadSetFilter(0.5)
+        rsf.accept({
+            'readNums': set([0, 1, 2, 3, 4])
+        })
+        rsf.accept({
+            'readNums': set([5, 6, 7, 8, 9])
+        })
+        self.assertEqual(True, rsf.accept({
+            'readNums': set([0, 1, 2, 5, 6, 7])
+        }))
+
+    def testInsufficientlyDifferent(self):
+        """
+        Testing for acceptance against a read set filter that has seen several
+        sets should return C{False} if the new set is insufficiently different.
+        """
+        rsf = ReadSetFilter(0.5)
+        rsf.accept({
+            'readNums': set([0, 1, 2, 3, 4])
+        })
+        rsf.accept({
+            'readNums': set([5, 6, 7, 8, 9])
+        })
+        self.assertEqual(False, rsf.accept({
+            'readNums': set([0, 1, 2, 11])
+        }))
+
+    def testThresholdRoundsUp(self):
+        """
+        Testing for acceptance should round up the needed number of new reads.
+        """
+        rsf = ReadSetFilter(0.5)
+        rsf.accept({
+            'readNums': set([0, 1, 2, 3, 4])
+        })
+        # If we pass a read set of size three, two of the reads will need to be
+        # different.
+        self.assertEqual(False, rsf.accept({
+            'readNums': set([0, 1, 6])
+        }))
