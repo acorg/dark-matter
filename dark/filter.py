@@ -1,5 +1,6 @@
 import re
 from math import ceil
+from collections import OrderedDict
 
 from dark.simplify import simplifyTitle
 
@@ -164,20 +165,49 @@ class ReadSetFilter(object):
 
     def __init__(self, minNew):
         self._minNew = minNew
-        self._readSets = []
+        # Use an OrderedDict so that each time we walk through it we go in
+        # the same order. This makes our runs deterministic / reproducible.
+        self._titles = OrderedDict()
 
-    def accept(self, hitInfo):
+    def accept(self, title, hitInfo):
         """
         Return C{True} if the read set in the passed C{hitInfo} is sufficiently
         different from all previously seen read sets.
 
+        @param title: A C{str} sequence title.
         @param hitInfo: A C{dict} with a C{readNums} keys.
         @return: A C{bool} to indicate an acceptable read set or not.
         """
+
+        # Sanity check: titles can only be passed once. This is not a
+        # bulletproof check, since not all titles end up in self._titles,
+        # just the ones corresponding to sufficiently new read sets.
+        assert title not in self._titles, (
+            'Title %r seen multiple times' % title)
+
         readNums = hitInfo['readNums']
         newReadsRequired = ceil(self._minNew * len(readNums))
-        for readSet in self._readSets:
+
+        for readSet, invalidatedTitles in self._titles.itervalues():
             if len(readNums - readSet) < newReadsRequired:
+                # Add this title to the set of titles invalidated by this
+                # previously seen read set.
+                invalidatedTitles.append(title)
                 return False
-        self._readSets.append(readNums)
+
+        # Remember the new read set and an empty list of invalidated titles.
+        self._titles[title] = (readNums, [])
+
         return True
+
+    def invalidates(self, title):
+        """
+        Report on which other titles were invalidated by a given title.
+
+        @param title: A C{str} sequence title.
+        @return: A C{list} of titles that the passed title invalidated.
+        """
+        try:
+            return self._titles[title][1]
+        except KeyError:
+            return []

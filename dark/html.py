@@ -124,6 +124,27 @@ class AlignmentPanelHTML(object):
                 fp.write('<br/>Feature lookup was False (or no features '
                          'were found).')
 
+            # Write out the titles that this title invalidated due to its
+            # read set.
+            if self._blastHits.readSetFilter:
+                invalidated = self._blastHits.readSetFilter.invalidates(title)
+                if invalidated:
+                    nInvalidated = len(invalidated)
+                    fp.write("""\
+        <br/>This title invalidated %d other%s due to its read set:
+        <ul>
+"""
+                             % (nInvalidated,
+                                '' if nInvalidated == 1 else 's'))
+                    for title in invalidated:
+                        fp.write("""\
+          <li>%s</li>
+"""
+                                 % title)
+                    fp.write("""
+        </ul>
+""")
+
             if len(plotInfo['items']):
                 fp.write("""\
         <br/>Reads: <span class="reads">%s</span>

@@ -192,7 +192,7 @@ class ReadSetTest(TestCase):
         restrictions should return C{True}.
         """
         rsf = ReadSetFilter(0.9)
-        self.assertEqual(True, rsf.accept({
+        self.assertEqual(True, rsf.accept('title1', {
             'readNums': set([0])
         }))
 
@@ -203,10 +203,10 @@ class ReadSetTest(TestCase):
         is non-zero.
         """
         rsf = ReadSetFilter(0.9)
-        rsf.accept({
+        rsf.accept('title1', {
             'readNums': set([0])
         })
-        self.assertEqual(False, rsf.accept({
+        self.assertEqual(False, rsf.accept('title2', {
             'readNums': set([0])
         }))
 
@@ -217,10 +217,10 @@ class ReadSetTest(TestCase):
         is zero.
         """
         rsf = ReadSetFilter(0.0)
-        rsf.accept({
+        rsf.accept('title1', {
             'readNums': set([0])
         })
-        self.assertEqual(True, rsf.accept({
+        self.assertEqual(True, rsf.accept('title2', {
             'readNums': set([0])
         }))
 
@@ -230,10 +230,10 @@ class ReadSetTest(TestCase):
         should return C{True} if the new set is totally different.
         """
         rsf = ReadSetFilter(1.0)
-        rsf.accept({
+        rsf.accept('title1', {
             'readNums': set([0])
         })
-        self.assertEqual(True, rsf.accept({
+        self.assertEqual(True, rsf.accept('title2', {
             'readNums': set([1])
         }))
 
@@ -243,13 +243,13 @@ class ReadSetTest(TestCase):
         sets should return C{True} if the new set is sufficiently different.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept({
+        rsf.accept('title1', {
             'readNums': set([0, 1, 2, 3, 4])
         })
-        rsf.accept({
+        rsf.accept('title2', {
             'readNums': set([5, 6, 7, 8, 9])
         })
-        self.assertEqual(True, rsf.accept({
+        self.assertEqual(True, rsf.accept('title3', {
             'readNums': set([0, 1, 2, 5, 6, 7])
         }))
 
@@ -259,13 +259,13 @@ class ReadSetTest(TestCase):
         sets should return C{False} if the new set is insufficiently different.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept({
+        rsf.accept('title1', {
             'readNums': set([0, 1, 2, 3, 4])
         })
-        rsf.accept({
+        rsf.accept('title2', {
             'readNums': set([5, 6, 7, 8, 9])
         })
-        self.assertEqual(False, rsf.accept({
+        self.assertEqual(False, rsf.accept('title3', {
             'readNums': set([0, 1, 2, 11])
         }))
 
@@ -274,11 +274,52 @@ class ReadSetTest(TestCase):
         Testing for acceptance should round up the needed number of new reads.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept({
+        rsf.accept('title1', {
             'readNums': set([0, 1, 2, 3, 4])
         })
         # If we pass a read set of size three, two of the reads will need to be
         # different.
-        self.assertEqual(False, rsf.accept({
+        self.assertEqual(False, rsf.accept('title2', {
             'readNums': set([0, 1, 6])
         }))
+
+    def testRepeatTitle(self):
+        """
+        Testing for acceptance on a title that has been seen before (in an
+        accepted read set) must raise C{AssertionError}.
+        """
+        rsf = ReadSetFilter(0.5)
+        rsf.accept('title1', {
+            'readNums': set([0, 1, 2, 3, 4])
+        })
+        self.assertRaises(AssertionError, rsf.accept, 'title1', {
+            'readNums': set([0, 1, 6])
+        })
+
+    def testInvalidates(self):
+        """
+        It must be possible to retrieve the list of titles that were
+        invalidated by an earlier title's read set.
+        """
+        rsf = ReadSetFilter(0.5)
+        rsf.accept('title1', {
+            'readNums': set([0])
+        })
+        rsf.accept('title2', {
+            'readNums': set([0])
+        })
+        rsf.accept('title3', {
+            'readNums': set([1])
+        })
+        rsf.accept('title4', {
+            'readNums': set([0])
+        })
+        self.assertEqual(['title2', 'title4'], rsf.invalidates('title1'))
+
+    def testInvalidatesEmpty(self):
+        """
+        The list of titles invalidated by an earlier title that didn't
+        invalidate anything must be empty.
+        """
+        rsf = ReadSetFilter(0.5)
+        self.assertEqual([], rsf.invalidates('title1'))
