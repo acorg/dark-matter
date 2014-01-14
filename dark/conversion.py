@@ -16,9 +16,11 @@ def convertBlastXMLToJSON(blastFilename, jsonFilename):
         first = True
         for record in NCBIXML.parse(infp):
             if first:
-                print >>outfp, dumps(convertBlastParamsToDict(record))
+                print >>outfp, dumps(convertBlastParamsToDict(record),
+                                     separators=(',', ':'))
                 first = False
-            print >>outfp, dumps(convertBlastRecordToDict(record))
+            print >>outfp, dumps(convertBlastRecordToDict(record),
+                                 separators=(',', ':'))
 
     with open(blastFilename) as infp:
         if isinstance(jsonFilename, str):
@@ -116,6 +118,7 @@ def convertBlastRecordToDict(record):
         hsps = []
         for hsp in alignment.hsps:
             hsps.append({
+                'bits': hsp.bits,
                 'expect': hsp.expect,
                 'frame': hsp.frame,
                 'query': hsp.query,
@@ -153,7 +156,7 @@ def convertDictToBlastRecord(d):
         alignmentInstance = Alignment()
         for hsp in alignment['hsps']:
             hspInstance = HSP()
-            for attr in ['expect', 'frame', 'query', 'query_start',
+            for attr in ['bits', 'expect', 'frame', 'query', 'query_start',
                          'query_end', 'sbjct', 'sbjct_start', 'sbjct_end']:
                 setattr(hspInstance, attr, hsp[attr])
             alignmentInstance.hsps.append(hspInstance)

@@ -4,12 +4,13 @@ from math import ceil
 from collections import defaultdict
 from time import ctime, time
 from math import log10
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 from IPython.display import HTML
 import numpy as np
+from operator import itemgetter
 
 from dark import html
 from dark.baseimage import BaseImage
@@ -122,7 +123,7 @@ def summarizeHitsByLength(hits):
 def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                    colorQueryBases=False, createFigure=True, showFigure=True,
                    readsAx=None, imageFile=None, quiet=False, idList=False,
-                   xRange='subject'):
+                   xRange='subject', plot='e values'):
     """
     Align a set of matching reads against a BLAST hit.
 
@@ -148,12 +149,21 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         of read identifiers that should be colored in the respective color.
     @param xRange: set to either 'subject' or 'reads' to indicate the range of
         the X axis.
+    @param plot: A C{str}, either 'bit scores' or 'e values', to indicate
+        which values should be plotted on the graph Y axis.
     """
+
+    start = time()
 
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
 
-    start = time()
+    assert plot in ('bit scores', 'e values'), (
+        'plot must be either "bit scores", or "e values".')
+
+    params = blastHits.plotParams
+    assert params is not None, ('Oops, it looks like you forgot to run '
+                                'computePlotInfo.')
 
     titleId = title.split(' ', 1)[0]
     sequence = ncbidb.getSequence(titleId, blastHits.records.blastDb)
@@ -177,23 +187,25 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         featureEndpoints = []
         readsAx = readsAx or plt.subplot(111)
 
-    params = blastHits.plotParams
     logLinearXAxis = params['logLinearXAxis']
-    rankEValues = params['rankEValues']
 
     plotInfo = blastHits.titles[title]['plotInfo']
     items = plotInfo['items']
-    maxEIncludingRandoms = int(ceil(plotInfo['maxEIncludingRandoms']))
-    maxE = int(ceil(plotInfo['maxE']))
-    minE = int(plotInfo['minE'])
+    if plot == 'bit scores':
+        maxYIncludingRandoms = maxY = int(ceil(plotInfo['bitScoreMax']))
+        minY = int(plotInfo['bitScoreMin'])
+    else:
+        maxYIncludingRandoms = int(ceil(plotInfo['maxYIncludingRandoms']))
+        maxY = int(ceil(plotInfo['maxE']))
+        minY = int(plotInfo['minE'])
     maxX = plotInfo['maxX']
     minX = plotInfo['minX']
 
     # Add light grey vertical rectangles to show the logarithmic gaps. Add
     # these first so that reads will be plotted on top of them. Only draw
-    # gaps that are more than 20 pixels wide as we could have millions of
-    # tiny gaps for a bacteria and drawing them all will be slow and only
-    # serves to make the entire background grey.
+    # gaps that are more than SMALLEST_LOGGED_GAP_TO_DISPLAY pixels wide as
+    # we could have millions of tiny gaps for a bacteria and drawing them
+    # all will be slow and only serves to make the entire background grey.
     if logLinearXAxis and len(plotInfo['offsetAdjuster'].adjustments()) < 100:
         offsetAdjuster = plotInfo['offsetAdjuster'].adjustOffset
         for (intervalType, interval) in plotInfo['readIntervals'].walk():
@@ -202,10 +214,11 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                 adjustedStop = offsetAdjuster(interval[1])
                 width = adjustedStop - adjustedStart
                 if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
-                    rect = Rectangle(
-                        (adjustedStart, 0), width,
-                        maxEIncludingRandoms + 1, color='#f4f4f4')
-                    readsAx.add_patch(rect)
+                    readsAx.axvspan(adjustedStart, adjustedStop,
+                                    color='#f4f4f4')
+
+    # A function to pull the Y value out of a plotInfo.
+    getY = itemgetter('bitScore' if plot == 'bit scores' else 'convertedE')
 
     if colorQueryBases:
         # Color each query by its bases.
@@ -213,11 +226,11 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         yScale = 2
         baseImage = BaseImage(
             maxX - minX,
-            maxEIncludingRandoms - minE + (1 if rankEValues else 0),
+            maxYIncludingRandoms - minY + (1 if params['rankValues'] else 0),
             xScale, yScale)
         for item in items:
             hsp = item['hsp']
-            e = item['convertedE'] - minE
+            y = getY(item) - minY
             # If the product of the subject and query frame values is +ve,
             # then they're either both +ve or both -ve, so we just use the
             # query as is. Otherwise, we need to reverse complement it.
@@ -239,7 +252,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             queryOffset = 0
             for queryIndex in xrange(hsp['subjectStart'] - queryStart):
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
-                baseImage.set(xOffset + queryIndex, e, color)
+                baseImage.set(xOffset + queryIndex, y, color)
 
             # 2. Match part.
             xOffset = hsp['subjectStart'] - minX
@@ -269,7 +282,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                         else:
                             # Query doesn't match subject (and is not a gap).
                             color = QUERY_COLORS[origQuery[matchIndex]]
-                    baseImage.set(xOffset + xIndex, e, color)
+                    baseImage.set(xOffset + xIndex, y, color)
                     xIndex += 1
 
             # 3. Right part.
@@ -277,7 +290,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             queryOffset = hsp['subjectEnd'] - hsp['queryStart']
             for queryIndex in xrange(hsp['queryEnd'] - hsp['subjectEnd']):
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
-                baseImage.set(xOffset + queryIndex, e, color)
+                baseImage.set(xOffset + queryIndex, y, color)
 
                 # a gap in the subject was needed to match a different query
                 # than the one we're matching against.
@@ -287,16 +300,16 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
-                       extent=[minX, maxX, minE, maxEIncludingRandoms])
+                       extent=[minX, maxX, minY, maxYIncludingRandoms])
     else:
         # Add horizontal lines for all the query sequences. These will be the
         # grey 'whiskers' in the plots once we (below) draw the matched part
         # on top of part of them.
         if addQueryLines:
             for item in items:
-                e = item['convertedE']
+                y = getY(item)
                 hsp = item['hsp']
-                line = Line2D([hsp['queryStart'], hsp['queryEnd']], [e, e],
+                line = Line2D([hsp['queryStart'], hsp['queryEnd']], [y, y],
                               color='#aaaaaa')
                 readsAx.add_line(line)
 
@@ -315,9 +328,9 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
         for item in items:
             queryId = blastHits.fasta[item['readNum']].id
-            e = item['convertedE']
+            y = getY(item)
             hsp = item['hsp']
-            line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [e, e],
+            line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [y, y],
                           color=readColor.get(queryId, 'blue'))
             readsAx.add_line(line)
 
@@ -351,10 +364,10 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         'features': featureEndpoints,
     }
 
-    # Add the horizontal divider between the highest e-value and the randomly
-    # higher ones (if any).
-    if plotInfo['zeroEValueFound']:
-        readsAx.axhline(y=maxE + 0.5, color='#cccccc', linewidth=1)
+    if plot == 'e values' and plotInfo['zeroEValueFound']:
+        # Add the horizontal divider between the highest e-value and the
+        # randomly higher ones (if any).
+        readsAx.axhline(y=maxY + 0.5, color='#cccccc', linewidth=1)
 
     # Titles, axis, etc.
     if createFigure:
@@ -373,10 +386,16 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     if createdReadsAx:
         # Only add title and y-axis label if we made the reads axes.
         readsAx.set_title('Read alignments', fontsize=20)
-        if rankEValues:
-            plt.ylabel('e value rank', fontsize=17)
+        if params['rankValues']:
+            if plot == 'bit scores':
+                plt.ylabel('bit score rank', fontsize=17)
+            else:
+                plt.ylabel('e-value rank', fontsize=17)
         else:
-            plt.ylabel('$- log_{10}(e)$', fontsize=17)
+            if plot == 'bit scores':
+                plt.ylabel('Bit score', fontsize=17)
+            else:
+                plt.ylabel('$- log_{10}(e)$', fontsize=17)
 
     # Set the x-axis limits.
     if xRange == 'subject':
@@ -401,7 +420,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         result['queryMin'] = queryMin
         result['queryMax'] = queryMax
 
-    readsAx.set_ylim([0, maxEIncludingRandoms + 1])
+    readsAx.set_ylim([0, maxYIncludingRandoms + 1])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -410,14 +429,14 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             figure.savefig(imageFile)
     stop = time()
     if not quiet:
-        report('Graph generated in %.3f mins. Read count: %d. HSP count: %d.' %
-               ((stop - start) / 60.0, len(blastHits.fasta), len(items)))
+        report('Graph generated in %.3f mins.' % ((stop - start) / 60.0))
 
     return result
 
 
 def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
-                   idList=False, equalizeXAxes=True, xRange='subject'):
+                   idList=False, equalizeXAxes=True, xRange='subject',
+                   plot='e values'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -435,10 +454,15 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
         the same.
     xRange: set to either 'subject' or 'reads' to indicate the range of the
         X axis.
+    @param plot: A C{str}, either 'bit scores' or 'e values', to indicate
+        which values should be plotted on the graph Y axis.
     """
 
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
+
+    assert plot in ('bit scores', 'e values'), (
+        'plot must be either "bit scores", or "e values".')
 
     if not (interactive or outputDir):
         raise ValueError('Either interactive or outputDir must be True')
@@ -451,7 +475,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
     report('Plotting %d titles in %dx%d grid, sorted on %s' %
            (len(titles), rows, cols, sortOn))
 
-    maxEIncludingRandoms = maxE = minE = maxX = minX = None
+    maxYIncludingRandoms = maxY = minY = maxX = minX = None
     queryMax = queryMin = None
 
     if outputDir:
@@ -473,7 +497,8 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             alignmentInfo = alignmentGraph(
                 blastHits, title, addQueryLines=True, showFeatures=False,
                 colorQueryBases=False, createFigure=False, showFigure=False,
-                readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange)
+                readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange,
+                plot=plot)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -481,7 +506,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             alignmentInfo = alignmentGraph(
                 blastHits, title, addQueryLines=True, showFeatures=True,
                 colorQueryBases=False, showFigure=False, imageFile=imageFile,
-                quiet=True, idList=idList, xRange=xRange)
+                quiet=True, idList=idList, xRange=xRange, plot=plot)
 
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
@@ -499,22 +524,36 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
                          plotInfo['hspTotal']))
 
         if plotInfo['items']:
-            if blastHits.plotParams['rankEValues']:
-                plotTitle += '\ne-values are ranks'
+            if plot == 'bit scores':
+                if blastHits.plotParams['rankValues']:
+                    plotTitle += '\nY axis is ranked bit score'
+                else:
+                    median = plotInfo['bitScoreMedian']
+                    mean = plotInfo['bitScoreMean']
+                    ma = plotInfo['bitScoreMax']
+                    plotTitle += '\nmax %.2f, median %.2f, mean %.2f' % (
+                        ma, median, mean)
             else:
-                median = plotInfo['eMedian']
-                mean = plotInfo['eMean']
-                mi = plotInfo['min']
-                plotTitle += '\nmin %d, median %d, mean %d' % (
-                    mi, median, mean)
+                if blastHits.plotParams['rankValues']:
+                    plotTitle += '\nY axis is ranked e-value'
+                else:
+                    median = plotInfo['originalEMedian']
+                    mean = plotInfo['originalEMean']
+                    mi = plotInfo['originalEMin']
+                    plotTitle += '\nmin %.2f, median %.2f, mean %.2f' % (
+                        mi, median, mean)
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
         if i == 0:
             # This is our first title. Unconditionally set our max/min values.
-            maxEIncludingRandoms = plotInfo['maxEIncludingRandoms']
-            maxE = plotInfo['maxE']
-            minE = plotInfo['minE']
+            if plot == 'bit scores':
+                maxYIncludingRandoms = maxY = plotInfo['bitScoreMax']
+                minY = plotInfo['bitScoreMin']
+            else:
+                maxYIncludingRandoms = plotInfo['maxEIncludingRandoms']
+                maxY = plotInfo['maxE']
+                minY = plotInfo['minE']
             maxX = plotInfo['maxX']
             minX = plotInfo['minX']
             if xRange == 'reads':
@@ -522,12 +561,18 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
                 queryMax = alignmentInfo['queryMax']
         else:
             # Conditionally adjust max/min values.
-            if plotInfo['maxEIncludingRandoms'] > maxEIncludingRandoms:
-                maxEIncludingRandoms = plotInfo['maxEIncludingRandoms']
-            if plotInfo['maxE'] > maxE:
-                maxE = plotInfo['maxE']
-            if plotInfo['minE'] < minE:
-                minE = plotInfo['minE']
+            if plot == 'bit scores':
+                if plotInfo['bitScoreMax'] > maxY:
+                    maxY = maxYIncludingRandoms = plotInfo['bitScoreMax']
+                if plotInfo['bitScoreMin'] < minY:
+                    minY = plotInfo['bitScoreMin']
+            else:
+                if plotInfo['maxEIncludingRandoms'] > maxYIncludingRandoms:
+                    maxYIncludingRandoms = plotInfo['maxEIncludingRandoms']
+                if plotInfo['maxE'] > maxY:
+                    maxY = plotInfo['maxE']
+                if plotInfo['minE'] < minY:
+                    minY = plotInfo['minE']
             if plotInfo['maxX'] > maxX:
                 maxX = plotInfo['maxX']
             if plotInfo['minX'] < minX:
@@ -548,7 +593,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
     for title in titles:
         row, col = coords.next()
         a = ax[row][col]
-        a.set_ylim([0, maxEIncludingRandoms + 1])
+        a.set_ylim([0, maxYIncludingRandoms + 1])
         if equalizeXAxes:
             a.set_xlim([minX, maxX])
         a.set_yticks([])
@@ -570,26 +615,6 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             sequenceLen = offsetAdjuster(sequenceLen)
         a.axvline(x=sequenceLen, color='#cccccc')
 
-        # Add light grey vertical bars to show the logarithmic gaps. Add
-        # these only in the region above the highest read in the individual
-        # plot. If we simply added the bar to the full height of the plot
-        # it would obscure the reads it overlapped.
-        if (blastHits.plotParams['logLinearXAxis'] and
-                len(plotInfo['offsetAdjuster'].adjustments()) < 100):
-            thisMaxEIncludingRandoms = plotInfo['maxEIncludingRandoms']
-            for (intervalType, interval) in plotInfo['readIntervals'].walk():
-                if intervalType == ReadIntervals.EMPTY:
-                    adjustedStart = offsetAdjuster(interval[0])
-                    adjustedStop = offsetAdjuster(interval[1])
-                    width = adjustedStop - adjustedStart
-                    if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
-                        height = (maxEIncludingRandoms -
-                                  thisMaxEIncludingRandoms)
-                        rect = Rectangle(
-                            (adjustedStart, thisMaxEIncludingRandoms + 1),
-                            width, height, color='#f4f4f4')
-                        a.add_patch(rect)
-
     # Hide the final panel graphs (if any) that have no content. We do this
     # because the panel is a rectangular grid and some of the plots at the
     # end of the last row can be unused.
@@ -599,8 +624,8 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
     plt.subplots_adjust(hspace=0.4)
-    figure.suptitle('X: %d to %d, Y: %d to %d' %
-                    (minX, maxX, int(minE), int(maxE)), fontsize=20)
+    figure.suptitle('X: %d to %d, Y (%s): %d to %d' %
+                    (minX, maxX, plot, int(minY), int(maxY)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
         panelFilename = 'alignment-panel.png'
@@ -610,6 +635,35 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
         figure.show()
     stop = time()
     report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
+
+
+def bitScoreAndEValueScatter(blastHits):
+    """
+    Show a scatter plot of bit scores against e-values for a set of hit
+    sequences.
+
+    @param blastHits: A L{dark.blast.BlastHits} instance.
+    """
+    bitScores = []
+    eValues = []
+
+    for title, hitInfo in blastHits.titles.iteritems():
+        if hitInfo['plotInfo'] is None:
+            continue
+        for item in hitInfo['plotInfo']['items']:
+            bitScores.append(item['bitScore'])
+            eValues.append(item['convertedE'])
+
+    savedFigsize = matplotlib.rcParams['figure.figsize']
+    matplotlib.rcParams['figure.figsize'] = [12, 12]
+    plt.gray()
+    plt.grid(True)
+    plt.scatter(bitScores, eValues, marker='.', s=10, color='red')
+    plt.xlabel('Bit score', fontsize=17)
+    plt.ylabel('$-log_{10}(evalue)$', fontsize=17)
+    plt.title('%d bit scores vs E-values' % len(bitScores), fontsize=20)
+    plt.show()
+    matplotlib.rcParams['figure.figsize'] = savedFigsize
 
 
 def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,

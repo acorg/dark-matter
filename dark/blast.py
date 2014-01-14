@@ -5,7 +5,8 @@ from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
-from dark.filter import HitInfoFilter, ReadSetFilter, TitleFilter
+from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
+                         TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 
@@ -126,7 +127,8 @@ class BlastRecords(object):
                    maxMeanEValue=None, maxMedianEValue=None,
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
-                   minNewReads=None):
+                   minMeanBitScore=None, minMedianBitScore=None,
+                   withBitScoreBetterThan=None, minNewReads=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -156,16 +158,22 @@ class BlastRecords(object):
         @param truncateTitlesAfter: specify a string that titles will be
             truncated beyond. If a truncated title has already been seen, that
             title will be elided.
+        @param minMeanBitScore: sequences that are matched with a mean score
+            that is less than this value will be elided.
+        @param minMedianBitScore: sequences that are matched with a median
+            score that is less than this value will be elided.
+        @param withBitScoreBetterThan: If no score for a sequence is higher
+            than this value, the hit will be elided.
         @param minNewReads: The C{float} fraction of its reads by which a new
             read set must differ from all previously seen read sets in order to
             be considered acceptably different.
         @return: A L{BlastHits} instance.
         """
         result = {}
-        titleFilter = TitleFilter(whitelist=whitelist, blacklist=blacklist,
-                                  positiveRegex=titleRegex,
-                                  negativeRegex=negativeTitleRegex,
-                                  truncateAfter=truncateTitlesAfter)
+        titleFilter = TitleFilter(
+            whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
+            negativeRegex=negativeTitleRegex,
+            truncateAfter=truncateTitlesAfter)
 
         # For each read (that BLAST found in the FASTA file)...
         for readNum, record in enumerate(self.records()):
@@ -196,21 +204,27 @@ class BlastRecords(object):
                         'length': sequenceLen,
                         'readCount': 0,
                         'readNums': set(),
+                        'bitScores': [],
                         'titleFilterResult': titleFilterResult
                     }
 
                 # Record just the best e-value with which this read hit this
                 # sequence.
                 hitInfo['eValues'].append(alignment.hsps[0].expect)
+                hitInfo['bitScores'].append(alignment.hsps[0].bits)
                 hitInfo['readCount'] += 1
                 hitInfo['readNums'].add(readNum)
 
         # Note that we don't pass minSequenceLen or maxSequenceLen to the
         # hit info filter since we have already tested those.
-        hitInfoFilter = HitInfoFilter(minMatchingReads=minMatchingReads,
-                                      maxMeanEValue=maxMeanEValue,
-                                      maxMedianEValue=maxMedianEValue,
-                                      withEBetterThan=withEBetterThan)
+        hitInfoFilter = HitInfoFilter(
+            minMatchingReads=minMatchingReads, maxMeanEValue=maxMeanEValue,
+            maxMedianEValue=maxMedianEValue, withEBetterThan=withEBetterThan)
+
+        bitScoreFilter = BitScoreFilter(
+            minMeanBitScore=minMeanBitScore,
+            minMedianBitScore=minMedianBitScore,
+            withBitScoreBetterThan=withBitScoreBetterThan)
 
         if minNewReads is None:
             readSetFilter = None
@@ -230,13 +244,19 @@ class BlastRecords(object):
             hitInfo['eMean'] = np.mean(eValues)
             hitInfo['eMedian'] = np.median(eValues)
             hitInfo['eMin'] = min(eValues)
+            bitScores = hitInfo['bitScores']
+            hitInfo['bitScoreMean'] = np.mean(bitScores)
+            hitInfo['bitScoreMedian'] = np.median(bitScores)
+            hitInfo['bitScoreMax'] = np.max(bitScores)
             if (hitInfo['titleFilterResult'] == TitleFilter.WHITELIST_ACCEPT or
                     hitInfoFilter.accept(hitInfo) and
+                    bitScoreFilter.accept(hitInfo) and
                     (minNewReads is None or
                      readSetFilter.accept(title, hitInfo))):
-                # Remove the e-values (now that we've summarized them) and
-                # the title filter result (now that we've checked it).
+                # Remove the e-values and bit scores (now that we've summarized
+                # them) and the title filter result (now that we've checked it.
                 del hitInfo['eValues']
+                del hitInfo['bitScores']
                 del hitInfo['titleFilterResult']
                 blastHits.addHit(title, hitInfo)
 
@@ -348,7 +368,8 @@ class BlastHits(object):
                    maxMeanEValue=None, maxMedianEValue=None,
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
-                   minNewReads=None):
+                   minMeanBitScore=None, minMedianBitScore=None,
+                   withBitScoreBetterThan=None, minNewReads=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -385,22 +406,31 @@ class BlastHits(object):
         @param truncateTitlesAfter: specify a string that titles will be
             truncated beyond. If a truncated title has already been seen, that
             title will be elided.
+        @param minMeanBitScore: sequences that are matched with a mean bit
+            score that is less than this value will be elided.
+        @param minMedianBitScore: sequences that are matched with a median
+            bit score that is less than this value will be elided.
+        @param withBitScoreBetterThan: If no bit score for a sequence is higher
+            than this value, the hit will be elided.
         @param minNewReads: The C{float} fraction of its reads by which a new
             read set must differ from all previously seen read sets in order to
             be considered acceptably different.
         @return: A new L{BlastHits} instance, with hits filtered as above.
         """
-        titleFilter = TitleFilter(whitelist=whitelist, blacklist=blacklist,
-                                  positiveRegex=titleRegex,
-                                  negativeRegex=negativeTitleRegex,
-                                  truncateAfter=truncateTitlesAfter)
+        titleFilter = TitleFilter(
+            whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
+            negativeRegex=negativeTitleRegex,
+            truncateAfter=truncateTitlesAfter)
 
-        hitInfoFilter = HitInfoFilter(minSequenceLen=minSequenceLen,
-                                      maxSequenceLen=maxSequenceLen,
-                                      minMatchingReads=minMatchingReads,
-                                      maxMeanEValue=maxMeanEValue,
-                                      maxMedianEValue=maxMedianEValue,
-                                      withEBetterThan=withEBetterThan)
+        hitInfoFilter = HitInfoFilter(
+            minSequenceLen=minSequenceLen, maxSequenceLen=maxSequenceLen,
+            minMatchingReads=minMatchingReads, maxMeanEValue=maxMeanEValue,
+            maxMedianEValue=maxMedianEValue, withEBetterThan=withEBetterThan)
+
+        bitScoreFilter = BitScoreFilter(
+            minMeanBitScore=minMeanBitScore,
+            minMedianBitScore=minMedianBitScore,
+            withBitScoreBetterThan=withBitScoreBetterThan)
 
         # Use a ReadSetFilter only if we're checking that read sets are
         # sufficiently new.
@@ -415,6 +445,7 @@ class BlastHits(object):
             if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
                     titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
                     hitInfoFilter.accept(hitInfo) and
+                    bitScoreFilter.accept(hitInfo) and
                     (minNewReads is None or
                      readSetFilter.accept(title, hitInfo))):
                 blastHits.addHit(title, hitInfo)
@@ -454,6 +485,21 @@ class BlastHits(object):
         plotInfo['minE'] = 1
         plotInfo['zeroEValueFound'] = False
 
+    def _convertBitScoresToRanks(self, plotInfo):
+        """
+        Change the bit scores for the reads that hit each sequence to be their
+        ranks.
+
+        @param plotInfo: A C{dict} of plot information, as returned by
+            C{plotInfoDict} in C{computePlotInfo}.
+        """
+        items = plotInfo['items']
+        items.sort(key=lambda item: item['bitScore'])
+        for rank, item in enumerate(items, start=1):
+            item['bitScore'] = rank
+        plotInfo['bitScoreMax'] = len(items)
+        plotInfo['bitScoreMin'] = 1
+
     def _readFASTA(self):
         """
         Read the FASTA data and check its length is compatible with the
@@ -486,7 +532,7 @@ class BlastHits(object):
     def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
                         minStart=None, maxStop=None, logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-                        randomizeZeroEValues=False, rankEValues=False):
+                        randomizeZeroEValues=False, rankValues=False):
         """
         Read detailed HSP information about the hit titles in C{self.titles}
         and compute summary statistics on it. The various parameters allow
@@ -507,8 +553,8 @@ class BlastHits(object):
             C{True}.
         @param randomizeZeroEValues: If C{True}, e-values that are zero will
             be set to a random (extremely good) value.
-        @param: rankEValues: If C{True}, change the e-values for the reads
-            for each title to be their rank (sorted decreasingly).
+        @param: rankValues: If C{True}, change the e-values and bit scores for
+            the reads for each title to be their rank (worst to best).
         """
 
         # Reset the plot info for each hit title because we may be called
@@ -527,7 +573,7 @@ class BlastHits(object):
             'maxStop': maxStop,
             'minStart': minStart,
             'randomizeZeroEValues': randomizeZeroEValues,
-            'rankEValues': rankEValues,
+            'rankValues': rankValues,
         }
 
         # Read in the read FASTA file if we haven't already.
@@ -545,6 +591,7 @@ class BlastHits(object):
             @return: A C{dict} to hold plot info for a title.
             """
             result = {
+                'bitScores': [],
                 'hspTotal': 0,  # The total number of HSPs for this title.
                 'items': [],  # len() of this = the # of HSPs kept for display.
                 'maxE': None,
@@ -623,12 +670,14 @@ class BlastHits(object):
                             plotInfo['minE'] = convertedE
                         elif convertedE > plotInfo['maxE']:
                             plotInfo['maxE'] = convertedE
+                plotInfo['bitScores'].append(hsp.bits)
                 if normalized['queryStart'] < plotInfo['minX']:
                     plotInfo['minX'] = normalized['queryStart']
                 if normalized['queryEnd'] > plotInfo['maxX']:
                     plotInfo['maxX'] = normalized['queryEnd']
 
                 plotInfo['items'].append({
+                    'bitScore': hsp.bits,
                     'convertedE': convertedE,
                     'hsp': normalized,
                     'origHsp': hsp,
@@ -645,6 +694,14 @@ class BlastHits(object):
             if plotInfo is None:
                 continue
 
+            # TODO: do something like the following for the e-values.
+            bitScores = plotInfo['bitScores']
+            plotInfo['bitScoreMin'] = np.min(bitScores)
+            plotInfo['bitScoreMax'] = np.max(bitScores)
+            plotInfo['bitScoreMean'] = np.mean(bitScores)
+            plotInfo['bitScoreMedian'] = np.median(bitScores)
+            del plotInfo['bitScores']
+
             # If plotInfo['minE'] is None, plotInfo['maxE'] will be too. This
             # indicates that all the qualifying e-values found above were zero.
             # We must have found some values (because plotinfo is not None).
@@ -659,8 +716,9 @@ class BlastHits(object):
                 assert plotInfo['zeroEValueFound']
                 plotInfo['minE'] = plotInfo['maxE'] = 0
 
-            if rankEValues:
+            if rankValues:
                 self._convertEValuesToRanks(plotInfo)
+                self._convertBitScoresToRanks(plotInfo)
 
             # For each sequence we have hits on, set the expect values that
             # were zero. If randomizeZeroEValues is True, we set them to
@@ -726,8 +784,9 @@ class BlastHits(object):
 
                 plotInfo['offsetAdjuster'] = adjuster
 
-            # calculate eMedian and eMean
-            plotInfo['min'] = np.min(plotInfo['originalEValues'])
-            plotInfo['eMean'] = np.mean(plotInfo['originalEValues'])
-            plotInfo['eMedian'] = np.median(plotInfo['originalEValues'])
+            # Calculate eMedian and eMean
+            originalEValues = plotInfo['originalEValues']
+            plotInfo['originalEMin'] = np.min(originalEValues)
+            plotInfo['originalEMean'] = np.mean(originalEValues)
+            plotInfo['originalEMedian'] = np.median(originalEValues)
             del plotInfo['originalEValues']

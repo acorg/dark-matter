@@ -154,6 +154,45 @@ class HitInfoFilter(object):
              hitInfo['eMin'] > self._withEBetterThan))
 
 
+class BitScoreFilter(object):
+    """
+    Provide an acceptance test for sequence hit bit scores.
+
+    @param minMeanBitScore: sequences that are matched with a mean bit score
+        that is greater are unacceptable.
+    @param minMedianBitScore: sequences that are matched with a median
+        bit score that is greater are unacceptable.
+    @param withBitScoreBetterThan: if the best bit score for a hit is not
+        as good as this value, elide the hit.
+    """
+
+    def __init__(self, minMeanBitScore=None, minMedianBitScore=None,
+                 withBitScoreBetterThan=None):
+            self._minMeanBitScore = minMeanBitScore
+            self._minMedianBitScore = minMedianBitScore
+            self._withBitScoreBetterThan = withBitScoreBetterThan
+
+    def accept(self, hitInfo):
+        """
+        Return C{True} if the bit scores in the passed hit info is acceptable.
+
+        @param hitInfo: A C{dict} with at least the following keys:
+            bitScores:
+            bitScoreMean:
+            bitScoreMedian:
+            bitScoreMax:
+
+        @return: A C{bool} to indicate acceptable hit info or not.
+        """
+        return not (
+            (self._minMeanBitScore is not None and
+             hitInfo['bitScoreMean'] < self._minMeanBitScore) or
+            (self._minMedianBitScore is not None and
+             hitInfo['bitScoreMedian'] < self._minMedianBitScore) or
+            (self._withBitScoreBetterThan is not None and
+             hitInfo['bitScoreMax'] < self._withBitScoreBetterThan))
+
+
 class ReadSetFilter(object):
     """
     Provide an acceptance test based on sequence read set.

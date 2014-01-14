@@ -10,3 +10,6 @@ pyflakes:
 	find . -name '*.py' -print0 | xargs -0 pyflakes
 
 lint: pep8 pyflakes
+
+wc:
+	find . -name '*.py' -print0 | xargs -0 wc -l
