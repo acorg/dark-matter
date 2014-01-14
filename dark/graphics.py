@@ -387,7 +387,10 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         # Only add title and y-axis label if we made the reads axes.
         readsAx.set_title('Read alignments', fontsize=20)
         if params['rankValues']:
-            plt.ylabel('e-value rank', fontsize=17)
+            if plot == 'bit scores':
+                plt.ylabel('bit score rank', fontsize=17)
+            else:
+                plt.ylabel('e-value rank', fontsize=17)
         else:
             if plot == 'bit scores':
                 plt.ylabel('Bit score', fontsize=17)
@@ -621,8 +624,8 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
     plt.subplots_adjust(hspace=0.4)
-    figure.suptitle('X: %d to %d, Y: %d to %d' %
-                    (minX, maxX, int(minY), int(maxY)), fontsize=20)
+    figure.suptitle('X: %d to %d, Y (%s): %d to %d' %
+                    (minX, maxX, plot, int(minY), int(maxY)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     if outputDir:
         panelFilename = 'alignment-panel.png'
