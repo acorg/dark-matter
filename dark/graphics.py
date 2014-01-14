@@ -195,7 +195,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         maxYIncludingRandoms = maxY = int(ceil(plotInfo['bitScoreMax']))
         minY = int(plotInfo['bitScoreMin'])
     else:
-        maxYIncludingRandoms = int(ceil(plotInfo['maxYIncludingRandoms']))
+        maxYIncludingRandoms = int(ceil(plotInfo['maxEIncludingRandoms']))
         maxY = int(ceil(plotInfo['maxE']))
         minY = int(plotInfo['minE'])
     maxX = plotInfo['maxX']
