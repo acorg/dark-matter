@@ -92,6 +92,12 @@ if __name__ == '__main__':
         help='a string that titles will be truncated beyond. If a truncated '
         'title has already been seen, that title will be skipped.')
 
+    parser.add_argument(
+        '--minNewReads', type=float, default=None,
+        help='The fraction of its reads by which a new read set must differ '
+        'from all previously seen read sets in order to be considered '
+        'acceptably different.')
+
     # Args for the alignment panel
     parser.add_argument(
         '--db', type=str, default='nt', help='the BLAST db that was used')
@@ -102,16 +108,16 @@ if __name__ == '__main__':
         'to this.')
 
     parser.add_argument(
-        '--maxHspsPerHit', type=str, default=None,
+        '--maxHspsPerHit', type=int, default=None,
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
     parser.add_argument(
-        '--minStart', type=str, default=None,
+        '--minStart', type=int, default=None,
         help='Reads that start before this subject offset should not be '
         'shown.')
 
     parser.add_argument(
-        '--maxStop', type=str, default=None,
+        '--maxStop', type=int, default=None,
         help='Reads that end after this subject offset should not be shown.')
 
     parser.add_argument(
@@ -179,7 +185,8 @@ if __name__ == '__main__':
         withBitScoreBetterThan=args.withBitScoreBetterThan,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
-        truncateTitlesAfter=args.truncateTitlesAfter)
+        truncateTitlesAfter=args.truncateTitlesAfter,
+        minNewReads=args.minNewReads)
 
     nHits = len(hits)
     if nHits == 0:
