@@ -378,7 +378,8 @@ class BlastHits(object):
 
     def sortTitlesOnPlotInfo(self, by):
         """
-        Sort titles by a given attribute in plotInfo and then by title.
+        Sort titles by a given attribute and then by title. To sort, use
+        information in plotInfo.
 
         @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
             'title', 'length', 'bitScoreMin', 'bitScoreMean', 'bitScoreMedian'.
