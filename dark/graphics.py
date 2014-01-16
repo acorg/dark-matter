@@ -476,7 +476,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
     sortOn: The attribute to sort subplots on. Either "eMean",
-        "eMedian", "eMin", "bitScoreMin", "bitScoreMean", "bitScoreMedian",
+        "eMedian", "eMin", "bitScoreMax", "bitScoreMean", "bitScoreMedian",
         "readCount", "length", "title".'.
     interactive: If C{True}, we are interactive and should display the panel
         using figure.show etc.

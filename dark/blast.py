@@ -355,17 +355,13 @@ class BlastHits(object):
                 key=lambda title: (self.titles[title]['eMedian'], title))
         elif by == 'bitScoreMax':
             return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (self.titles[title]['bitScoreMax'], title))
+                self.titles.iterkeys(), cmp=makeCmp('bitScoreMax'))
         elif by == 'bitScoreMean':
             return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (self.titles[title]['bitScoreMean'], title))
+                self.titles.iterkeys(), cmp=makeCmp('bitScoreMean'))
         elif by == 'bitScoreMedian':
             return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (self.titles[title]['bitScoreMedian'],
-                                   title))
+                self.titles.iterkeys(), cmp=makeCmp('bitScoreMedian'))
         elif by == 'readCount':
             return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
         elif by == 'length':
@@ -415,21 +411,18 @@ class BlastHits(object):
                 self.titles.iterkeys(),
                 key=lambda title: (
                     self.titles[title]['plotInfo']['originalEMedian'], title))
-        elif by == 'bitScoreMin':
+        elif by == 'bitScoreMax':
             return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['bitScoreMin'], title))
+                self.titles.iterkeys(), key=lambda title: makeCmp(
+                    self.titles[title]['plotInfo']['bitScoreMax']))
         elif by == 'bitScoreMean':
             return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['bitScoreMean'], title))
+                self.titles.iterkeys(), key=lambda title: makeCmp(
+                    self.titles[title]['plotInfo']['bitScoreMean']))
         elif by == 'bitScoreMedian':
             return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['bitScoreMedian'], title))
+                self.titles.iterkeys(), key=lambda title: makeCmp(
+                    self.titles[title]['plotInfo']['bitScoreMedian']))
         elif by == 'readCount':
             return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
         elif by == 'length':
@@ -438,7 +431,7 @@ class BlastHits(object):
             return sorted(self.titles.iterkeys())
 
         raise ValueError('sort attribute must be one of "eMean", '
-                         '"eMedian", "eMin", "bitScoreMin", "bitScoreMean", '
+                         '"eMedian", "eMin", "bitScoreMax", "bitScoreMean", '
                          '"bitScoreMedian", "readCount", "length", "title".')
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,

@@ -449,27 +449,6 @@ class TestTitleSorting(TestCase):
         result = blastHits.sortTitles('eMin')
         self.assertEqual(['ba', 'bb', 'c', 'a'], result)
 
-    def testBitScoreMax(self):
-        """
-        Sorting on max bitscore must work, including a secondary sort on
-        title.
-        """
-        blastHits = BlastHits(None)
-        blastHits.addHit('a', {
-            'bitScoreMax': 150,
-        })
-        blastHits.addHit('ba', {
-            'bitScoreMax': 50,
-        })
-        blastHits.addHit('bb', {
-            'bitScoreMax': 50,
-        })
-        blastHits.addHit('c', {
-            'bitScoreMax': 100,
-        })
-        result = blastHits.sortTitles('bitScoreMax')
-        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
-
     def testBitScoreMean(self):
         """
         Sorting on mean bitscore must work, including a secondary sort on
@@ -489,7 +468,28 @@ class TestTitleSorting(TestCase):
             'bitScoreMean': 100,
         })
         result = blastHits.sortTitles('bitScoreMean')
-        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
+    def testBitScoreMax(self):
+        """
+        Sorting on maximum bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'bitScoreMax': 150,
+        })
+        blastHits.addHit('ba', {
+            'bitScoreMax': 50,
+        })
+        blastHits.addHit('bb', {
+            'bitScoreMax': 50,
+        })
+        blastHits.addHit('c', {
+            'bitScoreMax': 100,
+        })
+        result = blastHits.sortTitles('bitScoreMax')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
 
     def testBitScoreMedian(self):
         """
@@ -510,7 +510,7 @@ class TestTitleSorting(TestCase):
             'bitScoreMedian': 100,
         })
         result = blastHits.sortTitles('bitScoreMedian')
-        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
 
     def testReadCount(self):
         """
@@ -673,34 +673,34 @@ class TestTitleSortingOnPlotInfo(TestCase):
         result = blastHits.sortTitlesOnPlotInfo('eMin')
         self.assertEqual(['ba', 'bb', 'c', 'a'], result)
 
-    def testPlotInfoBitScoreMin(self):
+    def testPlotInfoBitScoreMax(self):
         """
-        Sorting on minimum bitscore must work, including a secondary sort on
+        Sorting on maximum bitscore must work, including a secondary sort on
         title.
         """
         blastHits = BlastHits(None)
         blastHits.addHit('a', {
             'plotInfo': {
-                'bitScoreMin': 150,
+                'bitScoreMax': 150
                 }
         })
         blastHits.addHit('ba', {
             'plotInfo': {
-                'bitScoreMin': 50,
+                'bitScoreMax': 50,
                 }
         })
         blastHits.addHit('bb', {
             'plotInfo': {
-                'bitScoreMin': 50,
+                'bitScoreMax': 50,
                 }
         })
         blastHits.addHit('c', {
             'plotInfo': {
-                'bitScoreMin': 100,
+                'bitScoreMax': 100,
                 }
         })
-        result = blastHits.sortTitlesOnPlotInfo('bitScoreMin')
-        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+        result = blastHits.sortTitlesOnPlotInfo('bitScoreMax')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
 
     def testPlotInfoBitScoreMean(self):
         """
@@ -729,7 +729,7 @@ class TestTitleSortingOnPlotInfo(TestCase):
                 }
         })
         result = blastHits.sortTitlesOnPlotInfo('bitScoreMean')
-        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
 
     def testPlotInfoBitScoreMedian(self):
         """
@@ -758,7 +758,7 @@ class TestTitleSortingOnPlotInfo(TestCase):
                 }
         })
         result = blastHits.sortTitlesOnPlotInfo('bitScoreMedian')
-        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
 
     def testPlotInfoReadCount(self):
         """

@@ -7,17 +7,18 @@ import argparse
 from dark.blast import BlastRecords
 
 
-def main(recordFilename, title, xRange, eRange):
+def main(recordFilename, fastaFilename, title, xRange, eRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
     recordFilename: the result of a blast run, using outfmt 5.
+    fastaFilename: the fastafile that was originally blasted.
     title: the title of the subject sequence, as output by BLAST.
     ranges: The first parameter must be a number of an interval on the
         x-axis from where the reads should be searched. The second parameter
         is optional and should be a converted value or an interval of
         converted evalues.
     """
-    blastRecords = BlastRecords(recordFilename)
+    blastRecords = BlastRecords(recordFilename, fastaFilename)
     hits = blastRecords.filterHits(whitelist=set([title]),
                                    negativeTitleRegex='.')
     if title not in hits.titles:
@@ -34,15 +35,15 @@ def main(recordFilename, title, xRange, eRange):
                                 xRange[0][1] >= hsp['subjectStart'])) and
                 (eRange is None or
                     (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
-            print ('query: ', item['query'], 'start: ',
+            print ('query: ', hits.fasta[item['readNum']].id, 'start: ',
                    hsp['subjectStart'], 'end: ', hsp['subjectEnd'],
                    'E-value: ', item['convertedE'])
-
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print >>sys.stderr, (
-            'Usage: %s recordFilename, title, xCoords, eCoords' % sys.argv[0])
+            'Usage: %s recordFilename, fastaFilename, '
+            'title, xCoords, eCoords' % sys.argv[0])
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
@@ -54,6 +55,10 @@ if __name__ == '__main__':
     parser.add_argument(
         'json', metavar='BLAST-JSON-file', type=str,
         help='the JSON file of BLAST output.')
+
+    parser.add_argument(
+        'fasta', metavar='fastaFile', type=str,
+        help='the FASTA file of BLAST input.')
 
     parser.add_argument(
         'title', metavar='SEQUENCE-TITLE', type=str,
@@ -92,5 +97,5 @@ if __name__ == '__main__':
             sys.exit(2)
         return ranges
 
-    main(args.json, args.title,
+    main(args.json, args.fasta, args.title,
          _getRange(args.xRange), _getRange(args.eRange))
