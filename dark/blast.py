@@ -396,6 +396,20 @@ class BlastHits(object):
                 return result
             return compare
 
+        def makePlotInfoCmp(attr):
+            """
+            Create a sorting comparison function that sorts first in reverse
+            on the passed numeric attribute and then in ascending order on
+            title.
+            """
+            def compare(title1, title2):
+                result = cmp(self.titles[title2]['plotInfo'][attr],
+                             self.titles[title1]['plotInfo'][attr])
+                if result == 0:
+                    result = cmp(title1, title2)
+                return result
+            return compare
+
         if by == 'eMin':
             return sorted(
                 self.titles.iterkeys(),
@@ -413,16 +427,13 @@ class BlastHits(object):
                     self.titles[title]['plotInfo']['originalEMedian'], title))
         elif by == 'bitScoreMax':
             return sorted(
-                self.titles.iterkeys(), key=lambda title: makeCmp(
-                    self.titles[title]['plotInfo']['bitScoreMax']))
+                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMax'))
         elif by == 'bitScoreMean':
             return sorted(
-                self.titles.iterkeys(), key=lambda title: makeCmp(
-                    self.titles[title]['plotInfo']['bitScoreMean']))
+                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMean'))
         elif by == 'bitScoreMedian':
             return sorted(
-                self.titles.iterkeys(), key=lambda title: makeCmp(
-                    self.titles[title]['plotInfo']['bitScoreMedian']))
+                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMedian'))
         elif by == 'readCount':
             return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
         elif by == 'length':
