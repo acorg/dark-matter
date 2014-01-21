@@ -323,7 +323,7 @@ class BlastHits(object):
         Sort titles by a given attribute and then by title.
 
         @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
-            'title'.
+            'title', 'length', 'bitScoreMax', 'bitScoreMedian', 'bitScoreMean'.
         @return: A sorted C{list} of titles.
         """
 
@@ -353,6 +353,15 @@ class BlastHits(object):
             return sorted(
                 self.titles.iterkeys(),
                 key=lambda title: (self.titles[title]['eMedian'], title))
+        elif by == 'bitScoreMax':
+            return sorted(
+                self.titles.iterkeys(), cmp=makeCmp('bitScoreMax'))
+        elif by == 'bitScoreMean':
+            return sorted(
+                self.titles.iterkeys(), cmp=makeCmp('bitScoreMean'))
+        elif by == 'bitScoreMedian':
+            return sorted(
+                self.titles.iterkeys(), cmp=makeCmp('bitScoreMedian'))
         elif by == 'readCount':
             return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
         elif by == 'length':
@@ -362,6 +371,79 @@ class BlastHits(object):
 
         raise ValueError('sort attribute must be one of "eMean", '
                          '"eMedian", "eMin", "readCount", "title".')
+
+    def sortTitlesOnPlotInfo(self, by):
+        """
+        Sort titles by a given attribute and then by title. To sort, use
+        information in plotInfo.
+
+        @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
+            'title', 'length', 'bitScoreMin', 'bitScoreMean', 'bitScoreMedian'.
+        @return: A sorted C{list} of titles.
+        """
+
+        def makeCmp(attr):
+            """
+            Create a sorting comparison function that sorts first in reverse
+            on the passed numeric attribute and then in ascending order on
+            title.
+            """
+            def compare(title1, title2):
+                result = cmp(self.titles[title2][attr],
+                             self.titles[title1][attr])
+                if result == 0:
+                    result = cmp(title1, title2)
+                return result
+            return compare
+
+        def makePlotInfoCmp(attr):
+            """
+            Create a sorting comparison function that sorts first in reverse
+            on the passed numeric attribute and then in ascending order on
+            title.
+            """
+            def compare(title1, title2):
+                result = cmp(self.titles[title2]['plotInfo'][attr],
+                             self.titles[title1]['plotInfo'][attr])
+                if result == 0:
+                    result = cmp(title1, title2)
+                return result
+            return compare
+
+        if by == 'eMin':
+            return sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (
+                    self.titles[title]['plotInfo']['originalEMin'], title))
+        elif by == 'eMean':
+            return sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (
+                    self.titles[title]['plotInfo']['originalEMean'], title))
+        elif by == 'eMedian':
+            return sorted(
+                self.titles.iterkeys(),
+                key=lambda title: (
+                    self.titles[title]['plotInfo']['originalEMedian'], title))
+        elif by == 'bitScoreMax':
+            return sorted(
+                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMax'))
+        elif by == 'bitScoreMean':
+            return sorted(
+                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMean'))
+        elif by == 'bitScoreMedian':
+            return sorted(
+                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMedian'))
+        elif by == 'readCount':
+            return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
+        elif by == 'length':
+            return sorted(self.titles.iterkeys(), cmp=makeCmp('length'))
+        elif by == 'title':
+            return sorted(self.titles.iterkeys())
+
+        raise ValueError('sort attribute must be one of "eMean", '
+                         '"eMedian", "eMin", "bitScoreMax", "bitScoreMean", '
+                         '"bitScoreMedian", "readCount", "length", "title".')
 
     def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
@@ -600,6 +682,7 @@ class BlastHits(object):
                 'minX': minStart or 0,
                 'zeroEValueFound': False,
                 'originalEValues': [],
+                # these two below should go away
                 'eMean': None,
                 'eMedian': None,
             }
