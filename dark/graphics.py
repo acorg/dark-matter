@@ -12,17 +12,14 @@ from IPython.display import HTML
 import numpy as np
 from operator import itemgetter
 
-from dark import html
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
-from dark.html import NCBISequenceLink
+from dark.html import AlignmentPanelHTML, NCBISequenceLink, NCBISequenceLinkURL
 from dark.intervals import ReadIntervals
-from dark import genbank
+from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
 from dark import ncbidb
-from dark import features
+from dark import orfs
 
-START_CODONS = set(['ATG'])
-STOP_CODONS = set(['TAA', 'TAG', 'TGA'])
 
 QUERY_COLORS = {
     'A': (1.0, 0.0, 0.0),  # Red.
@@ -123,7 +120,7 @@ def summarizeHitsByLength(hits):
 def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                    colorQueryBases=False, createFigure=True, showFigure=True,
                    readsAx=None, imageFile=None, quiet=False, idList=False,
-                   xRange='subject', plot='e values'):
+                   xRange='subject', plot='e values', showOrfs=True):
     """
     Align a set of matching reads against a BLAST hit.
 
@@ -151,6 +148,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         the X axis.
     @param plot: A C{str}, either 'bit scores' or 'e values', to indicate
         which values should be plotted on the graph Y axis.
+    @param showOrfs: If C{True}, open reading frames will be displayed.
     """
 
     start = time()
@@ -165,31 +163,49 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     assert params is not None, ('Oops, it looks like you forgot to run '
                                 'computePlotInfo.')
 
-    titleId = title.split(' ', 1)[0]
-    sequence = ncbidb.getSequence(titleId, blastHits.records.blastDb)
+    application = blastHits.records.blastParams['application'].lower()
+
+    if application == 'blastx' and showOrfs:
+        # We cannot show ORFs when displaying protein plots.
+        showOrfs = False
+
+    sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
 
     if createFigure:
-        dpi = 80
-        # width = max(float(len(sequence)) / float(dpi), 25)
         width = 20
-        figure = plt.figure(figsize=(width, 20), dpi=dpi)
+        figure = plt.figure(figsize=(width, 20))
 
     createdReadsAx = readsAx is None
 
     if showFeatures:
-        gbSeq = genbank.getSequence(titleId)
-        gs = gridspec.GridSpec(4, 1, height_ratios=[2, 1, 1, 12])
-        featureAx = plt.subplot(gs[0, 0])
-        orfAx = plt.subplot(gs[1, 0])
-        orfReversedAx = plt.subplot(gs[2, 0])
-        readsAx = readsAx or plt.subplot(gs[3, 0])
+        if showOrfs:
+            gs = gridspec.GridSpec(4, 1, height_ratios=[2, 1, 1, 12])
+            featureAx = plt.subplot(gs[0, 0])
+            orfAx = plt.subplot(gs[1, 0])
+            orfReversedAx = plt.subplot(gs[2, 0])
+            readsAx = readsAx or plt.subplot(gs[3, 0])
+        else:
+            gs = gridspec.GridSpec(2, 1, height_ratios=[1, 1])
+            featureAx = plt.subplot(gs[0, 0])
+            readsAx = readsAx or plt.subplot(gs[1, 0])
     else:
-        featureEndpoints = []
-        readsAx = readsAx or plt.subplot(111)
+        if showOrfs:
+            gs = gridspec.GridSpec(3, 1, height_ratios=[1, 1, 12])
+            orfAx = plt.subplot(gs[0, 0])
+            orfReversedAx = plt.subplot(gs[1, 0])
+            readsAx = readsAx or plt.subplot(gs[2, 0])
+        else:
+            readsAx = readsAx or plt.subplot(111)
+
+    plotInfo = blastHits.titles[title]['plotInfo']
 
     logLinearXAxis = params['logLinearXAxis']
 
-    plotInfo = blastHits.titles[title]['plotInfo']
+    if logLinearXAxis:
+        offsetAdjuster = plotInfo['offsetAdjuster'].adjustOffset
+    else:
+        offsetAdjuster = lambda x: x
+
     items = plotInfo['items']
     if plot == 'bit scores':
         maxYIncludingRandoms = maxY = int(ceil(plotInfo['bitScoreMax']))
@@ -207,7 +223,6 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     # we could have millions of tiny gaps for a bacteria and drawing them
     # all will be slow and only serves to make the entire background grey.
     if logLinearXAxis and len(plotInfo['offsetAdjuster'].adjustments()) < 100:
-        offsetAdjuster = plotInfo['offsetAdjuster'].adjustOffset
         for (intervalType, interval) in plotInfo['readIntervals'].walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = offsetAdjuster(interval[0])
@@ -334,34 +349,41 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                           color=readColor.get(queryId, 'blue'))
             readsAx.add_line(line)
 
-    # Add to ORF figures and add vertical lines for the sequence features.
-    # The feature and ORF display are linked and they shouldn't be. This
-    # code is a horrible mess.
+    if showOrfs:
+        orfs.addORFs(orfAx, sequence.seq, minX, maxX, offsetAdjuster)
+        orfs.addReversedORFs(orfReversedAx,
+                             sequence.reverse_complement().seq,
+                             minX, maxX, offsetAdjuster)
+
     if showFeatures:
-        if logLinearXAxis:
-            offsetAdjuster = plotInfo['offsetAdjuster'].adjustOffset
+        if application == 'blastx':
+            featureAdder = ProteinFeatureAdder()
         else:
-            offsetAdjuster = lambda x: x
+            featureAdder = NucleotideFeatureAdder()
 
-        featureEndpoints = features.addFeatures(featureAx, gbSeq, minX, maxX,
-                                                offsetAdjuster)
-        if len(featureEndpoints) < 20:
-            for fe in featureEndpoints:
-                readsAx.axvline(x=fe['start'], color=fe['color'])
-                readsAx.axvline(x=fe['end'], color='#cccccc')
-            features.addORFs(orfAx, sequence.seq, minX, maxX, featureEndpoints,
-                             offsetAdjuster)
-        else:
-            features.addORFs(orfAx, sequence.seq, minX, maxX, [],
-                             offsetAdjuster)
+        features = featureAdder.add(featureAx, title, minX, maxX,
+                                    offsetAdjuster)
 
-        features.addReversedORFs(orfReversedAx,
-                                 sequence.reverse_complement().seq,
-                                 minX, maxX, offsetAdjuster)
+        # If there are features and there weren't too many of them, add
+        # vertical feature lines to the reads and ORF axes.
+        if features and not featureAdder.tooManyFeaturesToPlot:
+            for feature in features:
+                start = feature.start()
+                end = feature.end()
+                color = feature.color
+                readsAx.axvline(x=start, color=color)
+                readsAx.axvline(x=end, color='#cccccc')
+                if showOrfs:
+                    orfAx.axvline(x=start, color=color)
+                    orfAx.axvline(x=end, color='#cccccc')
+                    orfReversedAx.axvline(x=start, color=color)
+                    orfReversedAx.axvline(x=end, color='#cccccc')
+    else:
+        features = None
 
     # We'll return some information we've gathered.
     result = {
-        'features': featureEndpoints,
+        'features': features,
     }
 
     if plot == 'e values' and plotInfo['zeroEValueFound']:
@@ -374,17 +396,18 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         readCount = blastHits.titles[title]['readCount']
         hspTotal = plotInfo['hspTotal']
         figure.suptitle(
-            '%s\nLength %d, %d read%s hit, %d HSP%s in total (%d shown).' %
+            '%s\nLength %d %s, %d read%s hit, %d HSP%s in total (%d shown).' %
             (
-                sequence.description, len(sequence),
+                sequence.description,
+                len(sequence), 'aa' if application == 'blastx' else 'nt',
                 readCount, '' if readCount == 1 else 's',
                 hspTotal, '' if hspTotal == 1 else 's',
                 len(plotInfo['items'])
             ),
             fontsize=20)
 
+    # Add a title and y-axis label, but only if we made the reads axes.
     if createdReadsAx:
-        # Only add title and y-axis label if we made the reads axes.
         readsAx.set_title('Read alignments', fontsize=20)
         if params['rankValues']:
             if plot == 'bit scores':
@@ -485,20 +508,20 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             assert S_ISDIR(mode), "%r is not a directory." % outputDir
         else:
             os.mkdir(outputDir)
-        htmlOutput = html.AlignmentPanelHTML(outputDir, blastHits)
+        htmlOutput = AlignmentPanelHTML(outputDir, blastHits)
 
     coords = dimensionalIterator((rows, cols))
 
     for i, title in enumerate(titles):
         plotInfo = blastHits.titles[title]['plotInfo']
         row, col = coords.next()
-        print '%d: %s %s' % (i, title, html.NCBISequenceLinkURL(title, ''))
+        print '%d: %s %s' % (i, title, NCBISequenceLinkURL(title, ''))
         if interactive:
             alignmentInfo = alignmentGraph(
                 blastHits, title, addQueryLines=True, showFeatures=False,
                 colorQueryBases=False, createFigure=False, showFigure=False,
                 readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange,
-                plot=plot)
+                plot=plot, showOrfs=False)
 
         if outputDir:
             imageBasename = '%d.png' % i
@@ -506,7 +529,8 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
             alignmentInfo = alignmentGraph(
                 blastHits, title, addQueryLines=True, showFeatures=True,
                 colorQueryBases=False, showFigure=False, imageFile=imageFile,
-                quiet=True, idList=idList, xRange=xRange, plot=plot)
+                quiet=True, idList=idList, xRange=xRange, plot=plot,
+                showOrfs=True)
 
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.

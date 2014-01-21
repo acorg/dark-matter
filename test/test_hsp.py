@@ -141,7 +141,7 @@ class TestNormalizeHSPMixin(object):
 
     def check(self, templateStr):
         template = Template(templateStr)
-        normalized = normalizeHSP(template.hsp(), template.queryLen)
+        normalized = normalizeHSP(template.hsp(), template.queryLen, 'blastn')
         self.assertEqual({
             'subjectStart': template.subjectMatchStart,
             'subjectEnd': template.subjectMatchStart + template.matchLen,
@@ -573,7 +573,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -589,7 +589,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         """
         hsp = HSP(subjectStart=3, subjectEnd=6, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 2,
             'subjectEnd': 6,
@@ -606,7 +606,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=3, queryEnd=6,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -622,7 +622,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -638,7 +638,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=2, queryEnd=5,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -654,7 +654,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         """
         hsp = HSP(subjectStart=2, subjectEnd=5, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 1,
             'subjectEnd': 5,
@@ -671,7 +671,7 @@ class Old_QueryPositiveSubjectPositive(TestCase):
         subject = 'TTCTTTTTGCAATAGTCAGTCTTGCTAAAAG'
         hsp = HSP(subjectStart=45, subjectEnd=75, queryStart=120,
                   queryEnd=149, frame=self.frame, query=query, subject=subject)
-        normalized = normalizeHSP(hsp, 149)
+        normalized = normalizeHSP(hsp, 149, 'blastn')
         self.assertEqual({
             'subjectStart': 44,
             'subjectEnd': 75,
@@ -701,7 +701,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=4, queryEnd=1,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -717,7 +717,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=1, subjectEnd=6, queryStart=4, queryEnd=1,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 6,
@@ -733,7 +733,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=3, subjectEnd=6, queryStart=4, queryEnd=1,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 2,
             'subjectEnd': 6,
@@ -750,7 +750,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=6, queryEnd=3,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -766,7 +766,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=6, queryEnd=1,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -782,7 +782,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=1, subjectEnd=4, queryStart=5, queryEnd=2,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -798,7 +798,7 @@ class Old_QueryNegativeSubjectPositive(object):
         """
         hsp = HSP(subjectStart=2, subjectEnd=5, queryStart=4, queryEnd=1,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 1,
             'subjectEnd': 5,
@@ -825,7 +825,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=4, subjectEnd=1, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -841,7 +841,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=4, subjectEnd=1, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -857,7 +857,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=4, subjectEnd=1, queryStart=3, queryEnd=6,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -873,7 +873,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=4, subjectEnd=1, queryStart=3, queryEnd=6,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -889,7 +889,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=2, subjectEnd=1, queryStart=5, queryEnd=6,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 6)
+        normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 2,
@@ -905,7 +905,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=4, subjectEnd=1, queryStart=3, queryEnd=6,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 7)
+        normalized = normalizeHSP(hsp, 7, 'blastn')
         self.assertEqual({
             'subjectStart': 0,
             'subjectEnd': 4,
@@ -921,7 +921,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         """
         hsp = HSP(subjectStart=5, subjectEnd=2, queryStart=1, queryEnd=4,
                   frame=self.frame)
-        normalized = normalizeHSP(hsp, 4)
+        normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
             'subjectStart': 1,
             'subjectEnd': 5,
@@ -956,7 +956,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
 
         hsp = HSP(subjectStart=9018, subjectEnd=8764, queryStart=66,
                   queryEnd=315, frame=self.frame, subject=subject, query=query)
-        normalized = normalizeHSP(hsp, 316)
+        normalized = normalizeHSP(hsp, 316, 'blastn')
         self.assertEqual({
             'subjectStart': 8763,
             'subjectEnd': 9018,
@@ -988,7 +988,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
 
         hsp = HSP(subjectStart=2339751, subjectEnd=2339365, queryStart=1,
                   queryEnd=386, frame=self.frame, subject=subject, query=query)
-        normalized = normalizeHSP(hsp, 396)
+        normalized = normalizeHSP(hsp, 396, 'blastn')
         self.assertEqual({
             'subjectStart': 2339364,
             'subjectEnd': 2339751,
@@ -1004,7 +1004,7 @@ class Old_QueryPositiveSubjectNegative(TestCase):
         subject = 'CTCTAGCAGCCTTAGGTACC'
         hsp = HSP(subjectStart=1776, subjectEnd=1795, queryStart=131,
                   queryEnd=149, frame=self.frame, query=query, subject=subject)
-        normalized = normalizeHSP(hsp, 149)
+        normalized = normalizeHSP(hsp, 149, 'blastn')
         self.assertEqual({
             'subjectStart': 1775,
             'subjectEnd': 1795,

@@ -180,7 +180,6 @@ class BlastRecords(object):
 
             # For each sequence that the read matched against...
             for index, alignment in enumerate(record.alignments):
-
                 # Test sequence title.
                 title = record.descriptions[index].title
                 titleFilterResult = titleFilter.accept(title)
@@ -610,6 +609,9 @@ class BlastHits(object):
 
             return result
 
+        # The command-line program that was used to run Blast.
+        blastApplication = self.records.blastParams['application'].lower()
+
         for title, readNum, hsps in self._getHsps():
             if self.titles[title]['plotInfo'] is None:
                 sequenceLen = self.titles[title]['length']
@@ -623,7 +625,7 @@ class BlastHits(object):
 
             for hspCount, hsp in enumerate(hsps, start=1):
                 try:
-                    normalized = normalizeHSP(hsp, queryLen)
+                    normalized = normalizeHSP(hsp, queryLen, blastApplication)
                 except AssertionError:
                     # TODO: Remove these prints, and the surrounding try/except
                     # once we're sure we have HSP normalization right.

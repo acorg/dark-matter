@@ -2,7 +2,7 @@
 
 from re import compile
 import sys
-from dark.genbank import getSequence
+from dark.entrez import getSequence
 
 
 def main(gi, ranges):
@@ -15,6 +15,7 @@ def main(gi, ranges):
     ranges: a possibly empty list of ranges to print information for. Each
         range is a non-descending (start, end) pair of integers.
     """
+    # TODO: Make it so we can pass a 'db' argument to getSequence.
     record = getSequence(gi)
 
     if record is None:

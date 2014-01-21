@@ -1,138 +1,279 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-START_CODONS = set(['ATG'])
-STOP_CODONS = set(['TAA', 'TAG', 'TGA'])
+from dark.entrez import getSequence
 
 
-def findCodons(seq, codons):
+class _Feature(object):
     """
-    Find all instances of the codons in 'codons' in the given sequence.
+    An offset-adjusted feature, with methods to return a textual description
+    and a legend label.
 
-    seq: A Bio.Seq.Seq instance.
-    codons: A set of codon strings.
-
-    Return: a generator yielding matching codon offsets.
+    @param feature: A BioPython feature.
+    @param offsetAdjuster: a function for adjusting feature X axis offsets for
+        plotting.
+    @param subfeature: A C{bool} to indicate if a feature is actually a
+        subfeature.
     """
-    seqLen = len(seq)
-    start = 0
-    while start < seqLen:
-        triplet = str(seq[start:start + 3])
-        if triplet in codons:
-            yield start
-        start = start + 3
+
+    def __init__(self, feature, offsetAdjuster, subfeature=False):
+        self.feature = feature
+        self.color = None  # Should be set with setColor
+        self._offsetAdjuster = offsetAdjuster
+        self.subfeature = subfeature
+
+    def start(self):
+        """
+        Return the offset-adjusted start location of the feature.
+        """
+        return self._offsetAdjuster(int(self.feature.location.start))
+
+    def end(self):
+        """
+        Return the offset-adjusted end location of the feature.
+        """
+        return self._offsetAdjuster(int(self.feature.location.end))
+
+    def setColor(self, color):
+        """
+        An explicit method to set a feature's (plotting) color.
+
+        @param color: A C{str} color.
+        """
+        self.color = color
+
+    def description(self, excludedQualifiers=None, maxValueLength=None):
+        """
+        Provide a textual description of the feature and its qualifiers.
+
+        @param excludedQualifiers: A C{set} of qualifier names that should be
+            left out of the description. If C{None}, all feature qualifiers
+            will be included.
+        @param maxValueLength: An C{int} length, beyond which qualifier values
+            will be truncated.
+        @return: A C{str} description of the feature. The start and end offsets
+            in the description are not offset-adjusted because the offset-
+            adjusted values do not correspond to anything meaningful.
+        """
+        result = []
+        excludedQualifiers = excludedQualifiers or set()
+        for qualifier in sorted(self.feature.qualifiers.keys()):
+            if qualifier not in excludedQualifiers:
+                value = ', '.join(self.feature.qualifiers[qualifier])
+                if qualifier == 'site_type' and value == 'other':
+                    continue
+                if maxValueLength and len(value) > maxValueLength:
+                    value = value[:maxValueLength - 3] + '...'
+                result.append('%s: %s' % (qualifier, value))
+        return '%d-%d %s%s: %s' % (int(self.feature.location.start),
+                                   int(self.feature.location.end),
+                                   self.feature.type,
+                                   ' (subfeature)' if self.subfeature else '',
+                                   ', '.join(result))
+
+    def legendLabel(self):
+        return self.description(set(('db_xref', 'region_name')),
+                                maxValueLength=30)
 
 
-def getFeatures(fig, record, minX, maxX):
+class _FeatureList(list):
     """
-    fig is a matplotlib figure.
-    record is a Bio.Seq with features, or None (if offline).
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
+    Provide access to a list of L{Feature} objects.
+
+    @param title: A C{str} sequence title from a BLAST hit. Of the form
+        'gi|63148399|gb|DQ011818.1| Description...'.
+    @param database: The S{str} name of the Entrez database to search.
+    @param wantedTypes: A C{tuple} of feature types that are of interest.
+        Feature whose types are not in this list will be ignored.
+    @param offsetAdjuster: a function for adjusting feature X axis offsets for
+        plotting.
     """
-    fig.set_title('Target sequence features', fontsize=20)
 
-    toPlot = []
-    totalSubfeatures = 0
-    if record:
-        for feature in record.features:
-            if feature.type in ('CDS', 'mat_peptide', 'rRNA'):
-                toPlot.append(feature)
-                totalSubfeatures += len(feature.sub_features)
+    def __init__(self, title, database, wantedTypes, offsetAdjuster):
+        list.__init__(self)
+        record = getSequence(title, db=database)
+        if record is None:
+            self.offline = True
+        else:
+            self.offline = False
+            wantedTypes = set(wantedTypes)
+            for feature in record.features:
+                if feature.type in wantedTypes and feature.qualifiers:
+                    self.append(_Feature(feature, offsetAdjuster))
+                for subfeature in feature.sub_features:
+                    if (subfeature.type in wantedTypes and
+                            subfeature.qualifiers):
+                        self.append(_Feature(subfeature, offsetAdjuster,
+                                             subfeature=True))
 
-    if len(toPlot) > 20:
-        fig.text(minX + (maxX - minX) / 3.0, 0,
-                 ('Too many features to plot.'),
-                 fontsize=16)
-        fig.axis([minX, maxX, -1, 1])
+            # Assign colors to features.
+            colormap = plt.cm.coolwarm
+            colors = [colormap(i) for i in np.linspace(0.0, 0.99, len(self))]
+            for feature, color in zip(self, colors):
+                feature.setColor(color)
+
+
+class _FeatureAdder(object):
+    """
+    Look up features for a title, and provide a method to add them to a figure
+    as well as returning them.
+    """
+
+    TITLE_FONTSIZE = 16
+    FONTSIZE = 20
+    MAX_FEATURES_TO_DISPLAY = 50
+    DATABASE = None  # Set in subclasses.
+    WANTED_TYPES = None  # Set in subclasses.
+
+    def __init__(self):
+        self.tooManyFeaturesToPlot = False
+
+    def add(self, fig, title, minX, maxX, offsetAdjuster):
+        """
+        Find the features for a sequence title. If there aren't too many, add
+        the features to C{fig}. Return information about the features, as
+        described below.
+
+        @param fig: A matplotlib figure.
+        @param title: A C{str} sequence title from a BLAST hit. Of the form
+            'gi|63148399|gb|DQ011818.1| Description...'.
+        @param minX: The smallest x coordinate.
+        @param maxX: The largest x coordinate.
+        @param offsetAdjuster: a function for adjusting feature X axis offsets
+            for plotting.
+        @return: If we seem to be offline, return C{None}. Otherwise, return
+            a L{_FeatureList} instance.
+        """
+
+        fig.set_title('Target sequence features', fontsize=self.TITLE_FONTSIZE)
         fig.set_yticks([])
-        return toPlot, totalSubfeatures
 
-    elif record is None or not toPlot:
-        fig.text(minX + (maxX - minX) / 3.0, 0,
-                 ('No features found.' if record
-                  else 'You (or Genbank) appear to be offline.'),
-                 fontsize=16)
-        fig.axis([minX, maxX, -1, 1])
-        fig.set_yticks([])
-        return [], totalSubfeatures
+        features = _FeatureList(title, self.DATABASE, self.WANTED_TYPES,
+                                offsetAdjuster)
 
-    else:
-        return toPlot, totalSubfeatures
+        if features.offline:
+            fig.text(minX + (maxX - minX) / 3.0, 0,
+                     'You (or Genbank) appear to be offline.',
+                     fontsize=self.FONTSIZE)
+            fig.axis([minX, maxX, -1, 1])
+            return None
+
+        # If no interesting features were found, display a message saying
+        # so in the figure.  Otherwise, if we don't have too many features
+        # to plot, add the feature info to the figure.
+        nFeatures = len(features)
+        if nFeatures == 0:
+            # fig.text(minX + (maxX - minX) / 3.0, 0, 'No features found',
+            #          fontsize=self.FONTSIZE)
+            fig.text(0.5, 0.5, 'No features found',
+                     horizontalalignment='center', verticalalignment='center',
+                     transform=fig.transAxes, fontsize=self.FONTSIZE)
+            fig.axis([minX, maxX, -1, 1])
+        elif nFeatures <= self.MAX_FEATURES_TO_DISPLAY:
+            # Call the method in our subclass to do the figure display.
+            self._displayFeatures(fig, features, minX, maxX)
+        else:
+            self.tooManyFeaturesToPlot = True
+            # fig.text(minX + (maxX - minX) / 3.0, 0,
+            # 'Too many features to plot.', fontsize=self.FONTSIZE)
+            fig.text(0.5, 0.5, 'Too many features to plot',
+                     horizontalalignment='center', verticalalignment='center',
+                     fontsize=self.FONTSIZE, transform=fig.transAxes)
+            fig.axis([minX, maxX, -1, 1])
+
+        return features
+
+    def _displayFeatures(self, fig, features, minX, maxX):
+        """
+        Add the given C{features} to the figure in C{fig}.
+
+        @param fig: A matplotlib figure.
+        @param features: A C{_FeatureList} instance.
+        @param minX: The smallest x coordinate.
+        @param maxX: The largest x coordinate.
+        """
+        raise NotImplementedError('_displayFeatures must be implemented in '
+                                  'a subclass.')
 
 
-def addFeatures(fig, record, minX, maxX, offsetAdjuster):
+class ProteinFeatureAdder(_FeatureAdder):
     """
-    Add features to fig, as long as we don't have too many (>20).  If we have
-    too many, return the features as an array of descriptive strings.
-
-    fig is a matplotlib figure.
-    record is a Bio.Seq with features, or None (if offline).
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
-    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
+    Subclass L{_FeatureAdder} with a method to add protein features to a
+    figure.
     """
+    DATABASE = 'protein'
+    WANTED_TYPES = ('CDS', 'mat_peptide', 'rRNA', 'Site', 'Region')
 
-    toPlot, totalSubfeatures = getFeatures(fig, record, minX, maxX)
-    result = []
-    if len(toPlot) > 20:
-        for feature in toPlot:
-            # featuretype line -> investigate
-            start = offsetAdjuster(int(feature.location.start))
-            end = offsetAdjuster(int(feature.location.end))
-            gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
-            product = feature.qualifiers.get('product', ['<no product>'])[0]
-            result.append('%d-%d: %s (%s)' % (start, end, gene, product))
-            for subfeature in feature.sub_features:
-                start = offsetAdjuster(int(subfeature.location.start))
-                end = offsetAdjuster(int(subfeature.location.end))
-                subfeatureFrame = start % 3
-                result.append('%d-%d: %s subfeature' % (start, end, gene))
+    def _displayFeatures(self, fig, features, minX, maxX):
+        """
+        Add the given C{features} to the figure in C{fig}.
 
-    else:
-        colormap = plt.cm.coolwarm
-        colors = [colormap(i) for i in
-                  np.linspace(0.0, 0.99, len(toPlot) + totalSubfeatures)]
+        @param fig: A matplotlib figure.
+        @param features: A C{_FeatureList} instance.
+        @param minX: The smallest x coordinate.
+        @param maxX: The largest x coordinate.
+        """
         labels = []
+        for index, feature in enumerate(features):
+            fig.plot([feature.start(), feature.end()],
+                     [index * -0.2, index * -0.2], color=feature.color,
+                     linewidth=2)
+            labels.append(feature.legendLabel())
 
-        index = -1
-        for feature in toPlot:
-            index += 1
-            start = int(feature.location.start)
-            end = int(feature.location.end)
-            result.append({
-                'color': colors[index],
-                'end': end,
-                'start': start,
-            })
-            gene = feature.qualifiers.get('gene', ['<no gene>'])[0]
-            product = feature.qualifiers.get('product', ['<no product>'])[0]
-            frame = start % 3
-            # If we have a polyprotein, shift it up slightly so we can see
-            # its components below it.
-            if product.lower().find('polyprotein') > -1:
-                y = frame + 0.2
-            else:
-                y = frame
-            fig.plot([start, end], [y, y], color=colors[index], linewidth=2)
-            labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
-            for subfeature in feature.sub_features:
-                index += 1
-                start = int(subfeature.location.start)
-                end = int(subfeature.location.end)
-                result.append({
-                    'color': colors[index],
-                    'end': end,
-                    'start': start,
-                })
+        fig.axis([minX, maxX, (len(features) + 1) * -0.2, 0.2])
+
+        # Put a legend above the figure.
+        box = fig.get_position()
+        fig.set_position([box.x0, box.y0,
+                          box.width, box.height * 0.2])
+        fig.legend(labels, loc='lower center', bbox_to_anchor=(0.5, 1.4),
+                   fancybox=True, shadow=True, ncol=2)
+
+
+class NucleotideFeatureAdder(_FeatureAdder):
+    """
+    Subclass L{_FeatureAdder} with a method to add nucleotide features to a
+    figure.
+    """
+
+    DATABASE = 'nucleotide'
+    WANTED_TYPES = ('CDS', 'mat_peptide', 'rRNA')
+
+    def _displayFeatures(self, fig, features, minX, maxX):
+        """
+        Add the given C{features} to the figure in C{fig}.
+
+        @param fig: A matplotlib figure.
+        @param features: A C{_FeatureList} instance.
+        @param minX: The smallest x coordinate.
+        @param maxX: The largest x coordinate.
+        """
+        frame = None
+        labels = []
+        for feature in features:
+            start = feature.start()
+            end = feature.end()
+            gene = feature.feature.qualifiers.get('gene', ['<no gene>'])[0]
+            product = feature.feature.qualifiers.get(
+                'product', ['<no product>'])[0]
+            if feature.subfeature:
                 subfeatureFrame = start % 3
                 if subfeatureFrame == frame:
                     # Move overlapping subfeatures down a little to make them
                     # visible.
-                    subfeatureFrame -= 0.2
-                fig.plot([start, end], [subfeatureFrame, subfeatureFrame],
-                         color=colors[index])
-                labels.append('%d-%d: %s subfeature' % (start, end, gene))
+                    y = subfeatureFrame - 0.2
+                else:
+                    y = subfeatureFrame
+            else:
+                frame = start % 3
+                # If we have a polyprotein, shift it up slightly so we can see
+                # its components below it.
+                if product.lower().find('polyprotein') > -1:
+                    y = frame + 0.2
+                else:
+                    y = frame
+            fig.plot([start, end], [y, y], color=feature.color, linewidth=2)
+            labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
 
         fig.axis([minX, maxX, -1, 6])
         fig.set_yticks(np.arange(3))
@@ -141,67 +282,3 @@ def addFeatures(fig, record, minX, maxX, offsetAdjuster):
             # fig.legend(labels, bbox_to_anchor=(0.0, 1.1, 1.0, 0.102), loc=3,
             # ncol=3, mode='expand', borderaxespad=0.)
             fig.legend(labels, loc='upper left', ncol=3, shadow=True)
-
-    return result
-
-
-def addORFs(fig, seq, minX, maxX, featureEndpoints, offsetAdjuster):
-    """
-    fig is a matplotlib figure.
-    seq is a Bio.Seq.Seq.
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
-    featureEndpoints: an array of features as returned by addFeatures (may be
-        empty).
-    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
-    """
-    for frame in range(3):
-        target = seq[frame:]
-        for (codons, codonType, color) in (
-                (START_CODONS, 'start', 'green'),
-                (STOP_CODONS, 'stop', 'red')):
-            offsets = map(offsetAdjuster, findCodons(target, codons))
-            if offsets:
-                fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
-                         markersize=4, color=color, linestyle='None')
-
-    # Add the feature endpoints if we don't have too many of them.
-    if len(featureEndpoints) < 20:
-        for fe in featureEndpoints:
-            fig.axvline(x=fe['start'], color=fe['color'])
-            fig.axvline(x=fe['end'], color='#cccccc')
-
-    fig.axis([minX, maxX, -1, 3])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Target sequence start (%s) and stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)
-
-
-def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
-    """
-    fig is a matplotlib figure.
-    seq is a Bio.Seq.Seq (the reverse complement of the sequence we're
-        plotting against).
-    minX: the smallest x coordinate.
-    maxX: the largest x coordinate.
-    offsetAdjuster: a function to adjust feature X axis offsets for plotting.
-    """
-    for frame in range(3):
-        target = seq[frame:]
-        for (codons, codonType, color) in (
-                (START_CODONS, 'start', 'green'),
-                (STOP_CODONS, 'stop', 'red')):
-            offsets = map(lambda offset: maxX - offsetAdjuster(offset),
-                          findCodons(target, codons))
-            if offsets:
-                fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
-                         markersize=4, color=color, linestyle='None')
-
-    fig.axis([minX, maxX, -1, 3])
-    fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Reversed target sequence start (%s) & stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)

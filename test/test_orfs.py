@@ -1,7 +1,7 @@
 from unittest import TestCase
 from Bio.Seq import Seq
 
-from dark.features import findCodons
+from dark.orfs import findCodons
 
 
 class TestFindCodons(TestCase):

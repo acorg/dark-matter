@@ -3,13 +3,13 @@ from cStringIO import StringIO
 from Bio import SeqIO
 
 
-def getSequence(hitId, db='nt'):
+def getSequence(title, db='nt'):
     """
-    hitId: the hit_id field from a BLAST record hsp. Of the form
-        'gi|63148399|gb|DQ011818.1|' or anything recognized by the -entry param
-        of blastdbcmd.
-    db: the str name of the BLAST database to search.
+    @param title: A C{str} sequence title from a BLAST hit. Of the form
+        'gi|63148399|gb|DQ011818.1| Description...'.
+    @param db: the C{str} name of the BLAST database to search.
     """
+    titleId = title.split(' ', 1)[0]
     fasta = subprocess.check_output(
-        ['blastdbcmd', '-entry', hitId, '-db', db])
+        ['blastdbcmd', '-entry', titleId, '-db', db])
     return SeqIO.read(StringIO(fasta), 'fasta')
