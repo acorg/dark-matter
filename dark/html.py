@@ -209,5 +209,5 @@ span.reads {
         featureList = image['alignmentInfo']['features']
         with open(filename, 'w') as fp:
             for feature in featureList:
-                fp.write(feature.description() + '\n')
+                fp.write('%s\n\n' % feature.feature)
         return filename

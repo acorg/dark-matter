@@ -42,27 +42,24 @@ class _Feature(object):
         """
         self.color = color
 
-    def description(self, excludedQualifiers=None, maxValueLength=None):
+    def legendLabel(self):
         """
-        Provide a textual description of the feature and its qualifiers.
+        Provide a textual description of the feature and its qualifiers to be
+        used as a label in a plot legend.
 
-        @param excludedQualifiers: A C{set} of qualifier names that should be
-            left out of the description. If C{None}, all feature qualifiers
-            will be included.
-        @param maxValueLength: An C{int} length, beyond which qualifier values
-            will be truncated.
         @return: A C{str} description of the feature. The start and end offsets
             in the description are not offset-adjusted because the offset-
             adjusted values do not correspond to anything meaningful.
         """
+        excludedQualifiers = set(('db_xref', 'region_name'))
+        maxValueLength = 30
         result = []
-        excludedQualifiers = excludedQualifiers or set()
         for qualifier in sorted(self.feature.qualifiers.keys()):
             if qualifier not in excludedQualifiers:
                 value = ', '.join(self.feature.qualifiers[qualifier])
                 if qualifier == 'site_type' and value == 'other':
                     continue
-                if maxValueLength and len(value) > maxValueLength:
+                if len(value) > maxValueLength:
                     value = value[:maxValueLength - 3] + '...'
                 result.append('%s: %s' % (qualifier, value))
         return '%d-%d %s%s: %s' % (int(self.feature.location.start),
@@ -70,10 +67,6 @@ class _Feature(object):
                                    self.feature.type,
                                    ' (subfeature)' if self.subfeature else '',
                                    ', '.join(result))
-
-    def legendLabel(self):
-        return self.description(set(('db_xref', 'region_name')),
-                                maxValueLength=30)
 
 
 class _FeatureList(list):
@@ -85,13 +78,18 @@ class _FeatureList(list):
     @param database: The S{str} name of the Entrez database to search.
     @param wantedTypes: A C{tuple} of feature types that are of interest.
         Feature whose types are not in this list will be ignored.
-    @param offsetAdjuster: a function for adjusting feature X axis offsets for
+    @param offsetAdjuster: A function for adjusting feature X axis offsets for
         plotting.
+    @param sequenceFetcher: A function that takes a sequence title and a
+        database name and returns a C{Bio.SeqIO} instance. If C{None}, use
+        L{dark.entrez.getSequence}.
     """
 
-    def __init__(self, title, database, wantedTypes, offsetAdjuster):
+    def __init__(self, title, database, wantedTypes, offsetAdjuster,
+                 sequenceFetcher=None):
         list.__init__(self)
-        record = getSequence(title, db=database)
+        sequenceFetcher = sequenceFetcher or getSequence
+        record = sequenceFetcher(title, db=database)
         if record is None:
             self.offline = True
         else:
@@ -128,7 +126,8 @@ class _FeatureAdder(object):
     def __init__(self):
         self.tooManyFeaturesToPlot = False
 
-    def add(self, fig, title, minX, maxX, offsetAdjuster):
+    def add(self, fig, title, minX, maxX, offsetAdjuster,
+            sequenceFetcher=None):
         """
         Find the features for a sequence title. If there aren't too many, add
         the features to C{fig}. Return information about the features, as
@@ -141,6 +140,9 @@ class _FeatureAdder(object):
         @param maxX: The largest x coordinate.
         @param offsetAdjuster: a function for adjusting feature X axis offsets
             for plotting.
+        @param sequenceFetcher: A function that takes a sequence title and a
+            database name and returns a C{Bio.SeqIO} instance. If C{None}, use
+            L{dark.entrez.getSequence}.
         @return: If we seem to be offline, return C{None}. Otherwise, return
             a L{_FeatureList} instance.
         """
@@ -149,7 +151,8 @@ class _FeatureAdder(object):
         fig.set_yticks([])
 
         features = _FeatureList(title, self.DATABASE, self.WANTED_TYPES,
-                                offsetAdjuster)
+                                offsetAdjuster,
+                                sequenceFetcher=sequenceFetcher)
 
         if features.offline:
             fig.text(minX + (maxX - minX) / 3.0, 0,
@@ -220,6 +223,9 @@ class ProteinFeatureAdder(_FeatureAdder):
                      linewidth=2)
             labels.append(feature.legendLabel())
 
+        # Note that minX and maxX do not need to be adjustted by the offset
+        # adjuster. They are the already-adjusted min/max values as
+        # computed in computePlotInfo in blast.py
         fig.axis([minX, maxX, (len(features) + 1) * -0.2, 0.2])
 
         # Put a legend above the figure.
@@ -275,6 +281,9 @@ class NucleotideFeatureAdder(_FeatureAdder):
             fig.plot([start, end], [y, y], color=feature.color, linewidth=2)
             labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
 
+        # Note that minX and maxX do not need to be adjustted by the offset
+        # adjuster. They are the already-adjusted min/max values as
+        # computed in computePlotInfo in blast.py
         fig.axis([minX, maxX, -1, 6])
         fig.set_yticks(np.arange(3))
         fig.set_ylabel('Frame', fontsize=17)
