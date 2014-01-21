@@ -117,6 +117,39 @@ def summarizeHitsByLength(hits):
     return _sortHTML(hits, 'length')
 
 
+def summarizeHitsByMaxBitScore(hits):
+    """
+    Sort hit titles by sequence length.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        max bitscore.
+    """
+    return _sortHTML(hits, 'bitScoreMax')
+
+
+def summarizeHitsByMeanBitScore(hits):
+    """
+    Sort hit titles by sequence length.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        mean bitScore.
+    """
+    return _sortHTML(hits, 'bitScoreMean')
+
+
+def summarizeHitsByMedianBitScore(hits):
+    """
+    Sort hit titles by sequence length.
+
+    @param hits: An L{dark.blast.BlastHits} instance.
+    @return: An C{IPython.display.HTML} instance with hit titles sorted by
+        median bit score.
+    """
+    return _sortHTML(hits, 'bitScoreMedian')
+
+
 def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                    colorQueryBases=False, createFigure=True, showFigure=True,
                    readsAx=None, imageFile=None, quiet=False, idList=False,
@@ -465,8 +498,9 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
     against a given sequence.
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
-    sortOn: The attribute to sort subplots on. Either "eMean", "eMedian",
-        "eMin", "readCount", or "title".
+    sortOn: The attribute to sort subplots on. Either "eMean",
+        "eMedian", "eMin", "bitScoreMax", "bitScoreMean", "bitScoreMedian",
+        "readCount", "length", "title".'.
     interactive: If C{True}, we are interactive and should display the panel
         using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
@@ -491,7 +525,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
         raise ValueError('Either interactive or outputDir must be True')
 
     start = time()
-    titles = blastHits.sortTitles(sortOn)
+    titles = blastHits.sortTitlesOnPlotInfo(sortOn)
     cols = 5
     rows = int(len(titles) / cols) + (0 if len(titles) % cols == 0 else 1)
     figure, ax = plt.subplots(rows, cols, squeeze=False)

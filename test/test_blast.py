@@ -368,7 +368,7 @@ class InterestingRecords(TestCase):
 
 class TestTitleSorting(TestCase):
     """
-    Tests for the L{blast.BlastHits.sortTtiles} function.
+    Tests for the L{blast.BlastHits.sortTitles} function.
     """
 
     def testEmpty(self):
@@ -449,6 +449,69 @@ class TestTitleSorting(TestCase):
         result = blastHits.sortTitles('eMin')
         self.assertEqual(['ba', 'bb', 'c', 'a'], result)
 
+    def testBitScoreMean(self):
+        """
+        Sorting on mean bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'bitScoreMean': 150,
+        })
+        blastHits.addHit('ba', {
+            'bitScoreMean': 50,
+        })
+        blastHits.addHit('bb', {
+            'bitScoreMean': 50,
+        })
+        blastHits.addHit('c', {
+            'bitScoreMean': 100,
+        })
+        result = blastHits.sortTitles('bitScoreMean')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
+    def testBitScoreMax(self):
+        """
+        Sorting on maximum bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'bitScoreMax': 150,
+        })
+        blastHits.addHit('ba', {
+            'bitScoreMax': 50,
+        })
+        blastHits.addHit('bb', {
+            'bitScoreMax': 50,
+        })
+        blastHits.addHit('c', {
+            'bitScoreMax': 100,
+        })
+        result = blastHits.sortTitles('bitScoreMax')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
+    def testBitScoreMedian(self):
+        """
+        Sorting on median bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'bitScoreMedian': 150,
+        })
+        blastHits.addHit('ba', {
+            'bitScoreMedian': 50,
+        })
+        blastHits.addHit('bb', {
+            'bitScoreMedian': 50,
+        })
+        blastHits.addHit('c', {
+            'bitScoreMedian': 100,
+        })
+        result = blastHits.sortTitles('bitScoreMedian')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
     def testReadCount(self):
         """
         Sorting on read count must work, including a secondary sort on title.
@@ -500,4 +563,252 @@ class TestTitleSorting(TestCase):
         blastHits.addHit('bb', {})
         blastHits.addHit('c', {})
         result = blastHits.sortTitles('title')
+        self.assertEqual(['a', 'ba', 'bb', 'c'], result)
+
+
+class TestTitleSortingOnPlotInfo(TestCase):
+    """
+    Tests for the L{blast.BlastHits.sortTitlesOnPlotInfo} function.
+    """
+    def testPlotInfoEmpty(self):
+        """
+        Sorting when there are no titles must return the empty list.
+        """
+        blastHits = BlastHits(None)
+        result = blastHits.sortTitlesOnPlotInfo('eMean')
+        self.assertEqual([], result)
+
+    def testPlotInfoUnknown(self):
+        """
+        Sorting on an unknown attribute must raise C{ValueError}.
+        """
+        blastHits = BlastHits(None)
+        self.assertRaises(ValueError,
+                          blastHits.sortTitlesOnPlotInfo, 'unknown')
+
+    def testPlotInfoEMean(self):
+        """
+        Sorting on mean e-values must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'plotInfo': {
+                'originalEMean': 1e-2,
+                }
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {
+                'originalEMean': 1e-4,
+                }
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {
+                'originalEMean': 1e-4,
+                }
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {
+                'originalEMean': 1e-3,
+                }
+        })
+        result = blastHits.sortTitlesOnPlotInfo('eMean')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testPlotInfoEMedian(self):
+        """
+        Sorting on median e-values must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'plotInfo': {
+                'originalEMedian': 1e-2,
+                }
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {
+                'originalEMedian': 1e-4,
+                }
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {
+                'originalEMedian': 1e-4,
+                }
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {
+                'originalEMedian': 1e-3,
+                }
+        })
+        result = blastHits.sortTitlesOnPlotInfo('eMedian')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testPlotInfoEMin(self):
+        """
+        Sorting on minimum e-values must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'plotInfo': {
+                'originalEMin': 1e-2,
+                }
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {
+                'originalEMin': 1e-4,
+                }
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {
+                'originalEMin': 1e-4,
+                }
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {
+                'originalEMin': 1e-3,
+                }
+        })
+        result = blastHits.sortTitlesOnPlotInfo('eMin')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testPlotInfoBitScoreMax(self):
+        """
+        Sorting on maximum bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'plotInfo': {
+                'bitScoreMax': 150
+                }
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {
+                'bitScoreMax': 50,
+                }
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {
+                'bitScoreMax': 50,
+                }
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {
+                'bitScoreMax': 100,
+                }
+        })
+        result = blastHits.sortTitlesOnPlotInfo('bitScoreMax')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
+    def testPlotInfoBitScoreMean(self):
+        """
+        Sorting on mean bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'plotInfo': {
+                'bitScoreMean': 150,
+                }
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {
+                'bitScoreMean': 50,
+                }
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {
+                'bitScoreMean': 50,
+                }
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {
+                'bitScoreMean': 100,
+                }
+        })
+        result = blastHits.sortTitlesOnPlotInfo('bitScoreMean')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
+    def testPlotInfoBitScoreMedian(self):
+        """
+        Sorting on median bitscore must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'plotInfo': {
+                'bitScoreMedian': 150,
+                }
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {
+                'bitScoreMedian': 50,
+                }
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {
+                'bitScoreMedian': 50,
+                }
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {
+                'bitScoreMedian': 100,
+                }
+        })
+        result = blastHits.sortTitlesOnPlotInfo('bitScoreMedian')
+        self.assertEqual(['a', 'c', 'ba', 'bb'], result)
+
+    def testPlotInfoReadCount(self):
+        """
+        Sorting on read count must work, including a secondary sort on title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'readCount': 1,
+        })
+        blastHits.addHit('ba', {
+            'readCount': 5,
+        })
+        blastHits.addHit('bb', {
+            'readCount': 5,
+        })
+        blastHits.addHit('c', {
+            'readCount': 3,
+        })
+        result = blastHits.sortTitlesOnPlotInfo('readCount')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testPlotInfoLength(self):
+        """
+        Sorting on sequence length must work, including a secondary sort on
+        title.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {
+            'length': 100,
+        })
+        blastHits.addHit('ba', {
+            'length': 500,
+        })
+        blastHits.addHit('bb', {
+            'length': 500,
+        })
+        blastHits.addHit('c', {
+            'length': 300,
+        })
+        result = blastHits.sortTitlesOnPlotInfo('length')
+        self.assertEqual(['ba', 'bb', 'c', 'a'], result)
+
+    def testPlotInfoTitle(self):
+        """
+        Sorting on title must work.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('a', {})
+        blastHits.addHit('ba', {})
+        blastHits.addHit('bb', {})
+        blastHits.addHit('c', {})
+        result = blastHits.sortTitlesOnPlotInfo('title')
         self.assertEqual(['a', 'ba', 'bb', 'c'], result)
