@@ -294,11 +294,30 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             # subject. 2) the matched part (which can include gaps in the
             # query and/or subject). 3) the right part (if any) after the
             # matched part.
+            # For each part, calculate the ranges in which we have to make
+            # the comparison between subject and query.
+
+            # NOTE: never use item['origHsp'].gaps to calculate the number
+            # of gaps, as this number contains gaps in both subject and
+            # query.
+
+            # 1. Left part:
+            leftRange = hsp['subjectStart'] - queryStart
+
+            # 2. Match, middle part:
+            middleRange = len(item['origHsp'].query)
+
+            # 3. Right part:
+            # Using hsp['queryEnd'] - hsp['subjectEnd'] to calculate the length
+            # of the right part leads to the part being too long. The number of
+            # gaps needs to be subtracted to get the right length.
+            origQuery = item['origHsp'].query
+            rightRange = hsp['queryEnd']-hsp['subjectEnd']-origQuery.count('-')
 
             # 1. Left part.
             xOffset = queryStart - minX
             queryOffset = 0
-            for queryIndex in xrange(hsp['subjectStart'] - queryStart):
+            for queryIndex in xrange(leftRange):
                 color = QUERY_COLORS[query[queryOffset + queryIndex]]
                 baseImage.set(xOffset + queryIndex, y, color)
 
@@ -308,7 +327,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             queryOffset = hsp['subjectStart'] - hsp['queryStart']
             origSubject = item['origHsp'].sbjct
             origQuery = item['origHsp'].query
-            for matchIndex in xrange(len(origSubject)):
+            for matchIndex in xrange(middleRange):
                 if origSubject[matchIndex] == '-':
                     # A gap in the subject was needed to match the query.
                     # In our graph we keep the subject the same even in the
@@ -335,9 +354,9 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
             # 3. Right part.
             xOffset = hsp['subjectEnd'] - minX
-            queryOffset = hsp['subjectEnd'] - hsp['queryStart']
-            for queryIndex in xrange(hsp['queryEnd'] - hsp['subjectEnd']):
-                color = QUERY_COLORS[query[queryOffset + queryIndex]]
+            backQuery = query[-rightRange:]
+            for queryIndex in xrange(rightRange):
+                color = QUERY_COLORS[backQuery[queryIndex]]
                 baseImage.set(xOffset + queryIndex, y, color)
 
                 # a gap in the subject was needed to match a different query
