@@ -88,7 +88,7 @@ log                       = job.log
 arguments                 = -query $(Process).fasta -db %(db)s \
 -out $(Process).xml -outfmt 5 %(blastArgs)s
 input                     = $(Process).fasta
-output                    = $(Process).json
+output                    = $(Process).done
 error                     = $(Process).error
 dont_encrypt_input_files  = $(Process).fasta
 dont_encrypt_output_files = $(Process).xml,$(Process).json
@@ -136,7 +136,7 @@ do
 arguments                 = -query $jobid.fasta -db %(db)s -out $jobid.xml \
 -outfmt 5 %(blastArgs)s
 input                     = $jobid.fasta
-output                    = $jobid.json
+output                    = $jobid.done
 error                     = $jobid.error
 dont_encrypt_input_files  = $jobid.fasta
 dont_encrypt_output_files = $jobid.xml,$jobid.json
@@ -145,7 +145,7 @@ dont_encrypt_output_files = $jobid.xml,$jobid.json
 queue
 EOF
 
-    rm -f $jobid.json $jobid.xml $jobid.error
+    rm -f $jobid.json $jobid.xml $jobid.error $jobid.done
 done
 
 rm -f job.log
@@ -171,6 +171,7 @@ do
     /syn/terry/.virtualenvs/dm/bin/python \
     /syn/terry/dark-matter/dark-matter/bin/convert-blast-xml-to-json.py \
     $i.xml $i.json
+    date > $i.done
 done
 """ % params)
 
