@@ -233,13 +233,29 @@ class JSONRecordsReader(object):
                     # differs between JSON files that we cat together. In
                     # that case we may need to be more specific in our
                     # params compatible checking.
-                    #
-                    # TODO: We can be more helpful here by reporting the
-                    #       keys that differ between the params sections.
-                    assert self.params == record, (
-                        'BLAST parameters found on line %d of %r do not match '
-                        'those found on its first line.' %
-                        (lineNumber, self._filename))
+                    if self.params != record:
+                        err = [('BLAST parameters found on line %d of %r do '
+                               'not match those found on its first line. '
+                                'Summary of diffs:' %
+                               (lineNumber, self._filename))]
+                        for param in self.params:
+                            if param in record:
+                                if self.params[param] != record[param]:
+                                    err.append(
+                                        '\tParam %r initial value %r differs '
+                                        'from later value %r' % (
+                                            param, self.params[param],
+                                            record[param]))
+                            else:
+                                err.append('\t%r found in initial parameters, '
+                                           'not found in later parameters' %
+                                           param)
+                        for param in record:
+                            if param not in self.params:
+                                err.append('\t%r found in later parameters, '
+                                           'not seen in initial parameters' %
+                                           param)
+                        raise AssertionError('\n'.join(err))
                 else:
                     # A regular BLAST record (as a dict).
                     yield convertDictToBlastRecord(record)
