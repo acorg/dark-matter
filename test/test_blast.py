@@ -1,9 +1,302 @@
+from json import dumps
+from mock import patch
 from unittest import TestCase
 
-from dark.blast import BlastHits
+from dark.blast import BlastHits, BlastRecords
+from mocking import mockOpen
 
 
-class InterestingRecords(TestCase):
+class TestBlastRecords(TestCase):
+    """
+    Test the reading of BLAST records.
+
+    TODO: This class is highly incomplete.
+    """
+
+    def testEmptyJSONInput(self):
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.json', None, None)
+            self.assertEqual([], list(blastRecords.records()))
+
+    def testNonJSONInput(self):
+        """
+        When given a file whose contents are not JSON, attempting to
+        read the BLAST records from it must raise a C{ValueError}.
+        """
+        mockOpener = mockOpen(read_data='not JSON')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.json', None, None)
+            self.assertRaises(ValueError, list, blastRecords.records())
+
+    def testEmptyXMLInput(self):
+        """
+        When an XML input file is empty, BioPython's C{NCBIXML.parse}
+        raises a C{ValueError}.
+        """
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.xml', None, None)
+            generator = blastRecords.records()
+            self.assertRaises(ValueError, list, generator)
+
+    def testJSONParams(self):
+        """
+        BLAST parameters must be found in an input JSON file and stored
+        into the C{BlastRecords} instance.
+        """
+        params = {
+            'application': 'BLASTN',
+            'blast_cutoff': [
+                None,
+                None
+            ],
+            'database': 'manx-shearwater',
+            'database_length': 17465129,
+            'database_letters': None,
+            'database_name': [],
+            'database_sequences': 70016,
+            'date': '',
+            'dropoff_1st_pass': [
+                None,
+                None
+            ],
+            'effective_database_length': None,
+            'effective_hsp_length': 22,
+            'effective_query_length': None,
+            'effective_search_space': 382194648.0,
+            'effective_search_space_used': None,
+            'frameshift': [
+                None,
+                None
+            ],
+            'gap_penalties': [
+                5,
+                2
+            ],
+            'gap_trigger': [
+                None,
+                None
+            ],
+            'gap_x_dropoff': [
+                None,
+                None
+            ],
+            'gap_x_dropoff_final': [
+                None,
+                None
+            ],
+            'gapped': 0,
+            'hsps_gapped': None,
+            'hsps_no_gap': None,
+            'hsps_prelim_gapped': None,
+            'hsps_prelim_gapped_attemped': None,
+            'ka_params': [
+                0.625,
+                0.41,
+                0.78
+            ],
+            'ka_params_gap': [
+                None,
+                None,
+                None
+            ],
+            'matrix': '',
+            'num_good_extends': None,
+            'num_hits': None,
+            'num_letters_in_database': 17465129,
+            'num_seqs_better_e': None,
+            'num_sequences': None,
+            'num_sequences_in_database': 70016,
+            'posted_date': [],
+            'query': 'GZG3DGY01ASHXW',
+            'query_id': 'Query_1',
+            'query_length': 46,
+            'query_letters': 46,
+            'reference': 'Stephen F. Altschul, Thomas L. Madden, ...',
+            'sc_match': 2,
+            'sc_mismatch': -3,
+            'threshold': None,
+            'version': '2.2.28+',
+            'window_size': None
+        }
+        mockOpener = mockOpen(read_data=dumps(params) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.json', None, None)
+            records = blastRecords.records()
+            # There are no records, so calling records.next will raise.
+            self.assertRaises(StopIteration, records.next)
+            self.assertEqual(params, blastRecords.blastParams)
+
+    def testOneJSONInput(self):
+        """
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.json', None, None)
+            self.assertEqual(1, len(list(blastRecords.records())))
+
+    def testXMLInput(self):
+        """
+        Test conversion of a chunk of BLAST XML.  This is completely
+        minimal, it could assert dozens of other things. But it's not
+        really needed.
+        """
+        record = """<?xml version="1.0"?>
+<!DOCTYPE BlastOutput PUBLIC "-//NCBI//NCBI BlastOutput/EN" \
+"http://www.ncbi.nlm.nih.gov/dtd/NCBI_BlastOutput.dtd">
+<BlastOutput>
+  <BlastOutput_program>blastn</BlastOutput_program>
+  <BlastOutput_version>BLASTN 2.2.27+</BlastOutput_version>
+  <BlastOutput_reference>[Snip]</BlastOutput_reference>
+  <BlastOutput_db>virus-nt-20130719</BlastOutput_db>
+  <BlastOutput_query-ID>Query_1</BlastOutput_query-ID>
+  <BlastOutput_query-def>ICUR3MX01AGWKS</BlastOutput_query-def>
+  <BlastOutput_query-len>63</BlastOutput_query-len>
+  <BlastOutput_param>
+    <Parameters>
+      <Parameters_expect>10</Parameters_expect>
+      <Parameters_sc-match>2</Parameters_sc-match>
+      <Parameters_sc-mismatch>-3</Parameters_sc-mismatch>
+      <Parameters_gap-open>5</Parameters_gap-open>
+      <Parameters_gap-extend>2</Parameters_gap-extend>
+      <Parameters_filter>L;m;</Parameters_filter>
+    </Parameters>
+  </BlastOutput_param>
+  <BlastOutput_iterations>
+    <Iteration>
+      <Iteration_iter-num>1</Iteration_iter-num>
+      <Iteration_query-ID>Query_1</Iteration_query-ID>
+      <Iteration_query-def>ICUR3MX01AGWKS</Iteration_query-def>
+      <Iteration_query-len>63</Iteration_query-len>
+      <Iteration_hits></Iteration_hits>
+      <Iteration_stat>
+        <Statistics>
+          <Statistics_db-num>1331289</Statistics_db-num>
+          <Statistics_db-len>1634236772</Statistics_db-len>
+          <Statistics_hsp-len>28</Statistics_hsp-len>
+          <Statistics_eff-space>55893623800</Statistics_eff-space>
+          <Statistics_kappa>0.41</Statistics_kappa>
+          <Statistics_lambda>0.625</Statistics_lambda>
+          <Statistics_entropy>0.78</Statistics_entropy>
+        </Statistics>
+      </Iteration_stat>
+      <Iteration_message>No hits found</Iteration_message>
+    </Iteration>
+    <Iteration>
+      <Iteration_iter-num>2</Iteration_iter-num>
+      <Iteration_query-ID>Query_2</Iteration_query-ID>
+      <Iteration_query-def>ICUR3MX01C58U5</Iteration_query-def>
+      <Iteration_query-len>21</Iteration_query-len>
+      <Iteration_hits>
+        <Hit>
+          <Hit_num>1</Hit_num>
+          <Hit_id>gi|157694982|gb|EF990688.1|</Hit_id>
+          <Hit_def>Rotavirus A strain RVA/Pig-tc/VEN/A131/1988</Hit_def>
+          <Hit_accession>EF990688</Hit_accession>
+          <Hit_len>1059</Hit_len>
+          <Hit_hsps>
+            <Hsp>
+              <Hsp_num>1</Hsp_num>
+              <Hsp_bit-score>30.1402</Hsp_bit-score>
+              <Hsp_score>32</Hsp_score>
+              <Hsp_evalue>4.0824</Hsp_evalue>
+              <Hsp_query-from>6</Hsp_query-from>
+              <Hsp_query-to>21</Hsp_query-to>
+              <Hsp_hit-from>738</Hsp_hit-from>
+              <Hsp_hit-to>753</Hsp_hit-to>
+              <Hsp_query-frame>1</Hsp_query-frame>
+              <Hsp_hit-frame>1</Hsp_hit-frame>
+              <Hsp_identity>16</Hsp_identity>
+              <Hsp_positive>16</Hsp_positive>
+              <Hsp_gaps>0</Hsp_gaps>
+              <Hsp_align-len>16</Hsp_align-len>
+              <Hsp_qseq>ATTCATCAGTAGCAAT</Hsp_qseq>
+              <Hsp_hseq>ATTCATCAGTAGCAAT</Hsp_hseq>
+              <Hsp_midline>||||||||||||||||</Hsp_midline>
+            </Hsp>
+          </Hit_hsps>
+        </Hit>
+        <Hit>
+          <Hit_num>2</Hit_num>
+          <Hit_id>gi|157694972|gb|EF990692.1|</Hit_id>
+          <Hit_def>Rotavirus A strain RVA/Pig-tc/VEN/A411/1989</Hit_def>
+          <Hit_accession>EF990692</Hit_accession>
+          <Hit_len>1059</Hit_len>
+          <Hit_hsps>
+            <Hsp>
+              <Hsp_num>1</Hsp_num>
+              <Hsp_bit-score>30.1402</Hsp_bit-score>
+              <Hsp_score>32</Hsp_score>
+              <Hsp_evalue>4.0824</Hsp_evalue>
+              <Hsp_query-from>6</Hsp_query-from>
+              <Hsp_query-to>21</Hsp_query-to>
+              <Hsp_hit-from>738</Hsp_hit-from>
+              <Hsp_hit-to>753</Hsp_hit-to>
+              <Hsp_query-frame>1</Hsp_query-frame>
+              <Hsp_hit-frame>1</Hsp_hit-frame>
+              <Hsp_identity>16</Hsp_identity>
+              <Hsp_positive>16</Hsp_positive>
+              <Hsp_gaps>0</Hsp_gaps>
+              <Hsp_align-len>16</Hsp_align-len>
+              <Hsp_qseq>ATTCATCAGTAGCAAT</Hsp_qseq>
+              <Hsp_hseq>ATTCATCAGTAGCAAT</Hsp_hseq>
+              <Hsp_midline>||||||||||||||||</Hsp_midline>
+            </Hsp>
+          </Hit_hsps>
+        </Hit>
+      </Iteration_hits>
+      <Iteration_stat>
+        <Statistics>
+          <Statistics_db-num>1331289</Statistics_db-num>
+          <Statistics_db-len>1634236772</Statistics_db-len>
+          <Statistics_hsp-len>18</Statistics_hsp-len>
+          <Statistics_eff-space>4830820710</Statistics_eff-space>
+          <Statistics_kappa>0.41</Statistics_kappa>
+          <Statistics_lambda>0.625</Statistics_lambda>
+          <Statistics_entropy>0.78</Statistics_entropy>
+        </Statistics>
+      </Iteration_stat>
+    </Iteration>
+  </BlastOutput_iterations>
+</BlastOutput>
+        """
+        mockOpener = mockOpen(read_data=record)
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.xml', None, None)
+            record1, record2 = list(blastRecords.records())
+            self.assertEqual(0, len(record1.alignments))
+            self.assertEqual(2, len(record2.alignments))
+
+
+class TestFilterHits(TestCase):
     """
     Tests for the L{blast.BlastHits.filterHits} function.
     """
