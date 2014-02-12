@@ -165,6 +165,105 @@ class TestBlastRecords(TestCase):
             blastRecords = BlastRecords('file.json', None, None)
             self.assertEqual(1, len(list(blastRecords.records())))
 
+    def testLimitZero(self):
+        """
+        If the L{BlastRecords} is limited to reading zero records that limit
+        must be respected.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record = {
+            'query': 'a',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'title-a',
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json', limit=0).records())
+            self.assertEqual(0, len(records))
+
+    def testLimitOne(self):
+        """
+        If the L{BlastRecords} is limited to reading a certain number of
+        records that limit must be respected.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record1 = {
+            'query': 'a',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'title-a',
+                }
+            ]
+        }
+
+        record2 = {
+            'query': 'b',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'title-b',
+                }
+            ]
+        }
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n' +
+                              dumps(record2) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json', limit=1).records())
+            self.assertEqual(1, len(records))
+            self.assertEqual('title-a', records[0].descriptions[0].title)
+
     def testXMLInput(self):
         """
         Test conversion of a chunk of BLAST XML.  This is completely
