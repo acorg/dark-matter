@@ -235,11 +235,8 @@ class JSONRecordsReader(object):
         """
         with open(self._filename) as fp:
             for lineNumber, line in enumerate(fp, start=1):
-                import sys
-                print >>sys.stderr, 'READ: >>>>>>>>>>>>>>>>>>>>: %r' % line
                 if lineNumber == 1:
                     self.params = self._processFirstLine(line)
-                    print >>sys.stderr, 'SET: >>>>>>>>>>>>>>>>>>>>'
                 else:
                     try:
                         record = loads(line[:-1])
