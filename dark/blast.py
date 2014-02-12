@@ -612,36 +612,6 @@ class BlastHits(object):
             fasta = fasta[:self.records.limit]
         return fasta
 
-    def getTaxonomyId(self, ncbiTaxonomy):
-        """
-        for each title in C{self.titles}, read the taxonomy id from
-        the downloaded ncbi taxonomy database file and add it to
-        self.titles[title].
-
-        @param ncbiTaxonomy: the location of the ncbi Taxonomy database
-            file on your local machine. Taxonomy can be downloaded from
-            ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/.
-        """
-
-        giList = {}
-
-        for title in self.titles:
-            self.titles[title]['taxId'] = None
-            gi = int(title.split('|')[1])
-            subjectTitle = title
-            giList[gi] = {
-                'title': subjectTitle,
-            }
-        with gzip.open(ncbiTaxonomy, 'r') as dmp:
-                for line in dmp:
-                    line_split = line.split('\t')
-                    giTaxonomy = int(line_split[0])
-                    taxId = int(line_split[-1])
-                    if giTaxonomy in giList.keys():
-                        title = giList[giTaxonomy]['title']
-                        self.titles[title]['taxId'] = taxId
-
-        dmp.close()
 
     def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
                         minStart=None, maxStop=None, logLinearXAxis=False,
