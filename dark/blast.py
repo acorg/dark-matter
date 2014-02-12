@@ -756,9 +756,14 @@ class BlastHits(object):
                     },
                 })
 
-        for title in self.titles.iterkeys():
+        titles = self.titles.keys()
+        for title in titles:
             plotInfo = self.titles[title]['plotInfo']
             if plotInfo is None:
+                continue
+            if not plotInfo['items']:
+                # No items were added for this title. Get rid of it.
+                self.titles[title]['plotInfo'] = None
                 continue
 
             # TODO: do something like the following for the e-values.

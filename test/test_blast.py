@@ -1107,3 +1107,99 @@ class TestTitleSortingOnPlotInfo(TestCase):
         blastHits.addHit('c', {})
         result = blastHits.sortTitlesOnPlotInfo('title')
         self.assertEqual(['a', 'ba', 'bb', 'c'], result)
+
+
+class TestComputePlotInfo(TestCase):
+    """
+    Tests for the L{blast.BlastHits.computePlotInfo} function.
+    """
+
+    def testECutoffResultsInNoTitles(self):
+        """
+        Records should be excluded correctly due to e-values being too high.
+        """
+        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+        params = {
+            'application': 'BLASTN',
+        }
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 0.2,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': title,
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit(title, {
+                'length': 100,
+                'readNums': [0],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68]
+            blastHits.computePlotInfo(eCutoff=0.1)
+            plotInfo = blastHits.titles[title]['plotInfo']
+            self.assertEqual(None, plotInfo)
+
+    def testECutoffDoesntExcludeImproperly(self):
+        """
+        Records should not be excluded if e-values are acceptable.
+        """
+        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+        params = {
+            'application': 'BLASTN',
+        }
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 0.2,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': title,
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit(title, {
+                'length': 100,
+                'readNums': [0],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68]
+            blastHits.computePlotInfo(eCutoff=0.5)
+            plotInfo = blastHits.titles[title]['plotInfo']
+            self.assertEqual(1, len(plotInfo['items']))
