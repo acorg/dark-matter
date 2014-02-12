@@ -130,6 +130,8 @@ class TestBlastRecords(TestCase):
 
     def testOneJSONInput(self):
         """
+        If a JSON file contains a parameters section and one record, it must be
+        read correctly.
         """
         params = {
             'application': 'BLASTN',
