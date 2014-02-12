@@ -1160,15 +1160,19 @@ class TestTitleSortingOnPlotInfo(TestCase):
         """
         blastHits = BlastHits(None)
         blastHits.addHit('a', {
+            'plotInfo': {},
             'readCount': 1,
         })
         blastHits.addHit('ba', {
+            'plotInfo': {},
             'readCount': 5,
         })
         blastHits.addHit('bb', {
+            'plotInfo': {},
             'readCount': 5,
         })
         blastHits.addHit('c', {
+            'plotInfo': {},
             'readCount': 3,
         })
         result = blastHits.sortTitlesOnPlotInfo('readCount')
@@ -1182,15 +1186,19 @@ class TestTitleSortingOnPlotInfo(TestCase):
         blastHits = BlastHits(None)
         blastHits.addHit('a', {
             'length': 100,
+            'plotInfo': {},
         })
         blastHits.addHit('ba', {
             'length': 500,
+            'plotInfo': {},
         })
         blastHits.addHit('bb', {
             'length': 500,
+            'plotInfo': {},
         })
         blastHits.addHit('c', {
             'length': 300,
+            'plotInfo': {},
         })
         result = blastHits.sortTitlesOnPlotInfo('length')
         self.assertEqual(['ba', 'bb', 'c', 'a'], result)
@@ -1200,10 +1208,18 @@ class TestTitleSortingOnPlotInfo(TestCase):
         Sorting on title must work.
         """
         blastHits = BlastHits(None)
-        blastHits.addHit('a', {})
-        blastHits.addHit('ba', {})
-        blastHits.addHit('bb', {})
-        blastHits.addHit('c', {})
+        blastHits.addHit('a', {
+            'plotInfo': {},
+        })
+        blastHits.addHit('ba', {
+            'plotInfo': {},
+        })
+        blastHits.addHit('bb', {
+            'plotInfo': {},
+        })
+        blastHits.addHit('c', {
+            'plotInfo': {},
+        })
         result = blastHits.sortTitlesOnPlotInfo('title')
         self.assertEqual(['a', 'ba', 'bb', 'c'], result)
 
@@ -1215,7 +1231,8 @@ class TestComputePlotInfo(TestCase):
 
     def testECutoffResultsInNoTitles(self):
         """
-        Records should be excluded correctly due to e-values being too high.
+        Records should be excluded correctly (via having their plotInfo
+        attribute set to C{None}, due to e-values being too high.
         """
         title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
         params = {
@@ -1302,3 +1319,80 @@ class TestComputePlotInfo(TestCase):
             blastHits.computePlotInfo(eCutoff=0.5)
             plotInfo = blastHits.titles[title]['plotInfo']
             self.assertEqual(1, len(plotInfo['items']))
+
+    def testSortAfterComputePlotInfo(self):
+        """
+        If there is no plot info available for some titles after calling
+        computePlotInfo, we should still be able to call the various
+        plotInfo-based sort routines.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+        record1 = {
+            'query': 'a',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 1.0,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'title-a',
+                }
+            ]
+        }
+
+        record2 = {
+            'query': 'b',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.0,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'title-b',
+                }
+            ]
+        }
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n' +
+                              dumps(record2) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit('title-a', {
+                'length': 100,
+                'readNums': [0],
+            })
+            blastHits.addHit('title-b', {
+                'length': 100,
+                'readNums': [1],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68, 'a' * 68]
+            blastHits.computePlotInfo(eCutoff=2.0)
+            # title-b must have no plotInfo.
+            self.assertEqual(None, blastHits.titles['title-b']['plotInfo'])
+            # And we must be able to sort without error.
+            self.assertEqual(['title-a'],
+                             blastHits.sortTitlesOnPlotInfo('eMin'))
