@@ -756,8 +756,7 @@ class BlastHits(object):
                     },
                 })
 
-        titles = self.titles.keys()
-        for title in titles:
+        for title in self.titles.iterkeys():
             plotInfo = self.titles[title]['plotInfo']
             if plotInfo is None:
                 continue
