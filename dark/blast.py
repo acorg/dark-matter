@@ -762,7 +762,7 @@ class BlastHits(object):
             if plotInfo is None:
                 continue
             if not plotInfo['items']:
-                # No items were added for this title. Get rid of it.
+                # No items were added above for this title. Reset its plotInfo.
                 self.titles[title]['plotInfo'] = None
                 continue
 
