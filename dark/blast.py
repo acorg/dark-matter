@@ -1,10 +1,9 @@
 from math import log10
 import numpy as np
 from random import uniform
-from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
-from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
+from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
@@ -68,45 +67,30 @@ class BlastRecords(object):
             instances.
         """
         if self.blastFilename.endswith('.xml'):
-            fp = open(self.blastFilename)
-            records = NCBIXML.parse(fp)
+            reader = XMLRecordsReader(self.blastFilename)
         elif self.blastFilename.endswith('.json'):
-            jsonReader = JSONRecordsReader(self.blastFilename)
-            records = jsonReader.records()
-            self.blastParams = jsonReader.params
-            fp = None
+            reader = JSONRecordsReader(self.blastFilename)
         else:
             raise ValueError('Unknown BLAST record file type.')
 
         # Read the records, observing any given limit. There's a little code
         # duplication here in the name of speed - we don't want to repeatedly
         # test if self.limit is None in a loop.
+        count = 0
         if self.limit is None:
-            for count, record in enumerate(records, start=1):
-                if self.blastParams is None:
-                    # TODO: Remove this when we drop support for reading XML.
-                    self.blastParams = convertBlastParamsToDict(record)
+            for record in reader.records():
+                count += 1
                 yield record
         else:
             limit = self.limit
-            for count, record in enumerate(records, start=1):
-                if self.blastParams is None:
-                    # TODO: Remove this when we drop support for reading XML.
-                    self.blastParams = convertBlastParamsToDict(record)
-                if count > limit:
-                    count = limit
+            for record in reader.records():
+                if count == limit:
                     break
-                else:
-                    yield record
+                count += 1
+                yield record
 
-        try:
-            self._length = count
-        except NameError:
-            # If there were no records, count wont even be defined.
-            self._length = 0
-
-        if fp:
-            fp.close()
+        self.blastParams = reader.params
+        self._length = count
 
     def __len__(self):
         """
