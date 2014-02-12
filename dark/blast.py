@@ -394,36 +394,37 @@ class BlastHits(object):
                 return result
             return compare
 
+        def makePlotInfoKey(attr):
+            """
+            Create a function that returns a sorting key tuple consisting of
+            the passed plotinfo attribute and then the sequence title.
+            """
+            def key(title):
+                return (self.titles[title]['plotInfo'][attr], title)
+            return key
+
+        # Only return information about titles that have some plotinfo.
+        titles = (title for title in self.titles
+                  if self.titles[title]['plotInfo'] is not None)
+
         if by == 'eMin':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['originalEMin'], title))
+            return sorted(titles, key=makePlotInfoKey('originalEMin'))
         elif by == 'eMean':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['originalEMean'], title))
+            return sorted(titles, key=makePlotInfoKey('originalEMean'))
         elif by == 'eMedian':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['originalEMedian'], title))
+            return sorted(titles, key=makePlotInfoKey('originalEMedian'))
         elif by == 'bitScoreMax':
-            return sorted(
-                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMax'))
+            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMax'))
         elif by == 'bitScoreMean':
-            return sorted(
-                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMean'))
+            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMean'))
         elif by == 'bitScoreMedian':
-            return sorted(
-                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMedian'))
+            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMedian'))
         elif by == 'readCount':
-            return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
+            return sorted(titles, cmp=makeCmp('readCount'))
         elif by == 'length':
-            return sorted(self.titles.iterkeys(), cmp=makeCmp('length'))
+            return sorted(titles, cmp=makeCmp('length'))
         elif by == 'title':
-            return sorted(self.titles.iterkeys())
+            return sorted(titles)
 
         raise ValueError('sort attribute must be one of "eMean", '
                          '"eMedian", "eMin", "bitScoreMax", "bitScoreMean", '
@@ -759,6 +760,10 @@ class BlastHits(object):
         for title in self.titles.iterkeys():
             plotInfo = self.titles[title]['plotInfo']
             if plotInfo is None:
+                continue
+            if not plotInfo['items']:
+                # No items were added above for this title. Reset its plotInfo.
+                self.titles[title]['plotInfo'] = None
                 continue
 
             # TODO: do something like the following for the e-values.
