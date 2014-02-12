@@ -13,3 +13,4 @@ reportlab
 pep8
 pyflakes
 mock
+MySQL-python
