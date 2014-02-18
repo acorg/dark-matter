@@ -6,7 +6,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         reader = XMLRecordsReader(sys.argv[1])
         reader.saveAsJSON(sys.stdout)
-    if len(sys.argv) > 2:
+    elif len(sys.argv) == 3:
         reader = XMLRecordsReader(sys.argv[1])
         with open(sys.argv[2], 'w') as fp:
             reader.saveAsJSON(fp)
