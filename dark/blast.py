@@ -3,7 +3,7 @@ import numpy as np
 from random import uniform
 from Bio.Blast import NCBIXML
 from Bio import SeqIO
-import gzip
+import MySQLdb
 
 from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
@@ -612,7 +612,6 @@ class BlastHits(object):
             fasta = fasta[:self.records.limit]
         return fasta
 
-
     def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
                         minStart=None, maxStop=None, logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
@@ -875,3 +874,23 @@ class BlastHits(object):
             plotInfo['originalEMean'] = np.mean(originalEValues)
             plotInfo['originalEMedian'] = np.median(originalEValues)
             del plotInfo['originalEValues']
+
+    def getTaxIDFromMySql(self):
+        """
+        For each title in C{self.titles}, read the corresponding taxId from
+        the gi_taxid_nucl table in a MySQL database called ncbi_taxonomy.
+        """
+        # connect to database
+        # parameters should be changed accordingly
+        db = MySQLdb.connect(host='localhost', user='root',
+                             passwd='rootpassword', db='ncbi_taxonomy')
+        cursor = db.cursor()
+
+        # for each title (=gi number) get the taxId from the database
+        # and add it to self.titles.
+        for title in self.titles:
+            giNr = int(title.split('|')[1])
+            question = 'SELECT taxID from gi_taxid_nucl where gi = %d' % giNr
+            cursor.execute(question)
+            result = cursor.fetchone()[0]
+            self.titles[title]['taxID'] = result
