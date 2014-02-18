@@ -256,7 +256,7 @@ def printConcatScript(params):
     with open('concat.sh', 'w') as outfp:
         outfp.write("""\
 #!/bin/sh
-ls *.json | sort -n | xargs -n 500 cat
+ls [0-9]*.json | sort -n | xargs -n 500 cat
 """ % params)
 
     # Make the script executable so we can run it.

@@ -1,11 +1,10 @@
 from math import log10
 import numpy as np
 from random import uniform
-from Bio.Blast import NCBIXML
 from Bio import SeqIO
 import MySQLdb
 
-from dark.conversion import JSONRecordsReader, convertBlastParamsToDict
+from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
@@ -69,45 +68,30 @@ class BlastRecords(object):
             instances.
         """
         if self.blastFilename.endswith('.xml'):
-            fp = open(self.blastFilename)
-            records = NCBIXML.parse(fp)
+            reader = XMLRecordsReader(self.blastFilename)
         elif self.blastFilename.endswith('.json'):
-            jsonReader = JSONRecordsReader(self.blastFilename)
-            records = jsonReader.records()
-            self.blastParams = jsonReader.params
-            fp = None
+            reader = JSONRecordsReader(self.blastFilename)
         else:
             raise ValueError('Unknown BLAST record file type.')
 
         # Read the records, observing any given limit. There's a little code
         # duplication here in the name of speed - we don't want to repeatedly
         # test if self.limit is None in a loop.
+        count = 0
         if self.limit is None:
-            for count, record in enumerate(records, start=1):
-                if self.blastParams is None:
-                    # TODO: Remove this when we drop support for reading XML.
-                    self.blastParams = convertBlastParamsToDict(record)
+            for record in reader.records():
+                count += 1
                 yield record
         else:
             limit = self.limit
-            for count, record in enumerate(records, start=1):
-                if self.blastParams is None:
-                    # TODO: Remove this when we drop support for reading XML.
-                    self.blastParams = convertBlastParamsToDict(record)
-                if count > limit:
-                    count = limit
+            for record in reader.records():
+                if count == limit:
                     break
-                else:
-                    yield record
+                count += 1
+                yield record
 
-        try:
-            self._length = count
-        except NameError:
-            # If there were no records, count wont even be defined.
-            self._length = 0
-
-        if fp:
-            fp.close()
+        self.blastParams = reader.params
+        self._length = count
 
     def __len__(self):
         """
@@ -411,36 +395,37 @@ class BlastHits(object):
                 return result
             return compare
 
+        def makePlotInfoKey(attr):
+            """
+            Create a function that returns a sorting key tuple consisting of
+            the passed plotinfo attribute and then the sequence title.
+            """
+            def key(title):
+                return (self.titles[title]['plotInfo'][attr], title)
+            return key
+
+        # Only return information about titles that have some plotinfo.
+        titles = (title for title in self.titles
+                  if self.titles[title]['plotInfo'] is not None)
+
         if by == 'eMin':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['originalEMin'], title))
+            return sorted(titles, key=makePlotInfoKey('originalEMin'))
         elif by == 'eMean':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['originalEMean'], title))
+            return sorted(titles, key=makePlotInfoKey('originalEMean'))
         elif by == 'eMedian':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (
-                    self.titles[title]['plotInfo']['originalEMedian'], title))
+            return sorted(titles, key=makePlotInfoKey('originalEMedian'))
         elif by == 'bitScoreMax':
-            return sorted(
-                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMax'))
+            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMax'))
         elif by == 'bitScoreMean':
-            return sorted(
-                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMean'))
+            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMean'))
         elif by == 'bitScoreMedian':
-            return sorted(
-                self.titles.iterkeys(), cmp=makePlotInfoCmp('bitScoreMedian'))
+            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMedian'))
         elif by == 'readCount':
-            return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
+            return sorted(titles, cmp=makeCmp('readCount'))
         elif by == 'length':
-            return sorted(self.titles.iterkeys(), cmp=makeCmp('length'))
+            return sorted(titles, cmp=makeCmp('length'))
         elif by == 'title':
-            return sorted(self.titles.iterkeys())
+            return sorted(titles)
 
         raise ValueError('sort attribute must be one of "eMean", '
                          '"eMedian", "eMin", "bitScoreMax", "bitScoreMean", '
@@ -776,6 +761,10 @@ class BlastHits(object):
         for title in self.titles.iterkeys():
             plotInfo = self.titles[title]['plotInfo']
             if plotInfo is None:
+                continue
+            if not plotInfo['items']:
+                # No items were added above for this title. Reset its plotInfo.
+                self.titles[title]['plotInfo'] = None
                 continue
 
             # TODO: do something like the following for the e-values.
