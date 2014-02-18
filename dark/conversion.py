@@ -244,21 +244,25 @@ class JSONRecordsReader(object):
                 later parameters (in C{laterParams}) were found.
             @raise ValueError: if the two parameter sets differ.
             """
+            # Parameters whose values may vary.
+            variableParams = set([
+                'effective_search_space', 'effective_hsp_length', 'query',
+                'query_length', 'query_letters'])
+
             # Note that although the params contains a 'date', its value is
             # empty (as far as I've seen). This could become an issue one
             # day if it becomes non-empty and differs between JSON files
             # that we cat together. In that case we may need to be more
             # specific in our params compatible checking.
-            err = [('BLAST parameters found on line %d of %r do not match '
-                    'those found on its first line. Summary of diffs:' %
-                   (lineNumber, self._filename))]
+            err = []
             for param in self.params:
                 if param in laterParams:
-                    if self.params[param] != laterParams[param]:
+                    if (param not in variableParams
+                            and self.params[param] != laterParams[param]):
                         err.append(
-                            '\tParam %r initial value %r differs from later '
-                            'value %r' % (param, self.params[param],
-                                          laterParams[param]))
+                            '\tParam %r initial value %r differs from '
+                            'later value %r' % (param, self.params[param],
+                                                laterParams[param]))
                 else:
                     err.append('\t%r found in initial parameters, not found '
                                'in later parameters' % param)
@@ -266,7 +270,12 @@ class JSONRecordsReader(object):
                 if param not in self.params:
                     err.append('\t%r found in later parameters, not seen in '
                                'initial parameters' % param)
-            raise ValueError('\n'.join(err))
+
+            if err:
+                mesg = ('BLAST parameters found on line %d of %r do not match '
+                        'those on its first line. Summary of diffs:\n%s' %
+                        (lineNumber, self._filename, '\n'.join(err)))
+                raise ValueError(mesg)
 
         with open(self._filename) as fp:
             for lineNumber, line in enumerate(fp, start=1):
