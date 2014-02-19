@@ -35,6 +35,26 @@ class TitleFilterTest(TestCase):
         self.assertEqual(TitleFilter.REJECT, tf.accept('hey xxx you'))
         self.assertEqual(TitleFilter.DEFAULT_ACCEPT, tf.accept('hey xxyou'))
 
+    def testPositiveRegexHasPrecedenceOverRepeatedTruncatedTitle(self):
+        """
+        Testing for acceptance against a title filter with a positive regex
+        must have precedence over checking for truncated titles when the same
+        non-matching title (that will be truncated) is passed twice.
+        """
+        tf = TitleFilter(positiveRegex=r'xxxxx', truncateAfter='virus')
+        self.assertEqual(TitleFilter.REJECT, tf.accept('spotty virus 1'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('spotty virus 1'))
+
+    def testNegativeRegexHasPrecedenceOverRepeatedTruncatedTitle(self):
+        """
+        Testing for acceptance against a title filter with a negative regex
+        must have precedence over checking for truncated titles when the same
+        matching title (that will be truncated) is passed twice.
+        """
+        tf = TitleFilter(negativeRegex=r'spotty', truncateAfter='virus')
+        self.assertEqual(TitleFilter.REJECT, tf.accept('spotty virus 1'))
+        self.assertEqual(TitleFilter.REJECT, tf.accept('spotty virus 1'))
+
     def testFullWordTruncation(self):
         """
         Testing for acceptance against a title filter with title truncation
