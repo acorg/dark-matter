@@ -67,6 +67,13 @@ class TitleFilter(object):
         if self._blacklist and title in self._blacklist:
             return self.REJECT
 
+        if self._positiveRegex and self._positiveRegex.search(title) is None:
+            return self.REJECT
+
+        if (self._negativeRegex and
+                self._negativeRegex.search(title) is not None):
+            return self.REJECT
+
         if self._truncated is not None:
             # Titles start with something like gi|525472786|emb|HG313807.1|
             # that we need to skip.
@@ -82,14 +89,6 @@ class TitleFilter(object):
                     return self.REJECT
             else:
                 self._truncated[truncated] = title
-
-        # Do the title regex tests last, since they are slowest.
-        if self._positiveRegex and self._positiveRegex.search(title) is None:
-            return self.REJECT
-
-        if (self._negativeRegex and
-                self._negativeRegex.search(title) is not None):
-            return self.REJECT
 
         return self.DEFAULT_ACCEPT
 
