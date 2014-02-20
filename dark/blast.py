@@ -888,6 +888,4 @@ class BlastHits(object):
                 result = cursor.fetchone()[0]
             except TypeError:
                 result = 'No taxID found'
-            if result == 'No taxID found':
-                print title
             self.titles[title]['taxID'] = result
