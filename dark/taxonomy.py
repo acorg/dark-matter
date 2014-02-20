@@ -1,6 +1,7 @@
 import MySQLdb
 import matplotlib.pyplot as pyplot
 from collections import defaultdict
+from os import environ
 
 
 def _getLineageInfoPerTaxID(taxID):
@@ -10,33 +11,31 @@ def _getLineageInfoPerTaxID(taxID):
 
     @param taxID: a value assigned by NCBI taxonomy which stands
         for taxonomic information.
+    @return: a C{list} containing information about the taxonomic lineage
     """
     result = []
     # TODO: the arguments for connecting to the database should be
     # changed once the setup is finalized.
-    db = MySQLdb.connect(host='localhost', user='root',
-                         passwd='rootpassword', db='ncbi_taxonomy')
+    db = MySQLdb.connect(host='localhost', user=environ.get(
+                         'DBI_USER', environ['USER']),
+                         passwd=environ['DBI_PASSWORD'],
+                         db='ncbi_taxonomy')
     cursor = db.cursor()
-    n = 1
     while taxID != 1:
         questionToNodes = ('SELECT rank, parent_taxID from nodes '
                            'where taxID = %d' % taxID)
         cursor.execute(questionToNodes)
-        rankParent = cursor.fetchone()
-        thisResult = {
-            'index': n,
-            'taxID': taxID,
-            'parentTaxID': rankParent[1],
-            'rank': rankParent[0],
-            'scientificName': None,
-        }
+        rank, parentTaxID = cursor.fetchone()[0:2]
         questionToNames = 'SELECT name from names where taxId = %d' % taxID
         cursor.execute(questionToNames)
-        names = cursor.fetchone()
-        thisResult['scientificName'] = names[0]
-        result.append(thisResult)
-        taxID = thisResult['parentTaxID']
-        n += 1
+        scientificName = cursor.fetchone()[0]
+        result.append({
+            'taxID': taxID,
+            'parentTaxID': parentTaxID,
+            'rank': rank,
+            'scientificName': scientificName,
+        })
+        taxID = parentTaxID
     cursor.close()
     db.close()
     return result
@@ -49,13 +48,14 @@ def getLineageInfo(blastHits):
     about the node (rank, taxID, parent_taxID, scientificName).
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
+    @return: A C{dict} where each key is a taxID and the value is the
+        taxonomic information
     """
     taxIDLookUpDict = {}
     for title in blastHits.titles:
-        if blastHits.titles[title]['taxID'] not in taxIDLookUpDict:
-            taxID = blastHits.titles[title]['taxID']
-            lineage = _getLineageInfoPerTaxID(taxID)
-            taxIDLookUpDict[blastHits.titles[title]['taxID']] = lineage
+        taxID = blastHits.titles[title]['taxID']
+        if taxID not in taxIDLookUpDict:
+            taxIDLookUpDict[taxID] = _getLineageInfoPerTaxID(taxID)
     return taxIDLookUpDict
 
 
@@ -72,13 +72,16 @@ def taxIDsPerTaxonomicRank(taxIDLookUpDict, taxonomicRank):
         be one of superkingdom, kingdom, phylum, subphylum,
         superclass, class, superorder, order, suborder, infraorder,
         parvoorder, superfamily, family, subfamily, genus, species.
+    @return: A C{dict} where each key is the scientific Name at
+        the taxonomic rank specified and the value is the list
+        of taxIDs that correspond to that rank.
     """
-    taxIDsPerRank = defaultdict(list)
+    taxIDsPerRank = defaultdict(set)
     for daughterTaxID in taxIDLookUpDict:
         for rankItem in taxIDLookUpDict[daughterTaxID]:
             if rankItem['rank'] == taxonomicRank:
                 scientificName = rankItem['scientificName']
-                taxIDsPerRank[scientificName].append(daughterTaxID)
+                taxIDsPerRank[scientificName].add(daughterTaxID)
     return taxIDsPerRank
 
 
@@ -96,8 +99,11 @@ def readsPerTaxonomicRank(taxIDLookUpDict, blastHits, taxonomicRank):
         be one of superkingdom, kingdom, phylum, subphylum,
         superclass, class, superorder, order, suborder, infraorder,
         parvoorder, superfamily, family, subfamily, genus, species.
+    @return: A C{dict} where each key is the scientific Name at
+        the taxonomic rank specified and the value is the list
+        of reads that hit at that rank.
     """
-    result = defaultdict(list)
+    result = defaultdict(set)
     taxIDsPerRank = taxIDsPerTaxonomicRank(taxIDLookUpDict, taxonomicRank)
     for title in blastHits.titles:
         taxID = blastHits.titles[title]['taxID']
@@ -105,7 +111,7 @@ def readsPerTaxonomicRank(taxIDLookUpDict, blastHits, taxonomicRank):
             if taxID in taxIDs:
                 for item in blastHits.titles[title]['plotInfo']['items']:
                     if item['readNum'] not in result[rank]:
-                        result[rank].append(item['readNum'])
+                        result[rank].add(item['readNum'])
     return result
 
 
@@ -123,14 +129,17 @@ def subjectsPerTaxonomicRank(taxIDLookUpDict, blastHits, taxonomicRank):
         be one of superkingdom, kingdom, phylum, subphylum,
         superclass, class, superorder, order, suborder, infraorder,
         parvoorder, superfamily, family, subfamily, genus, species.
+    @return: A C{dict} where each key is the scientific Name at
+        the taxonomic rank specified and the value is the list
+        of subjects that correspond to that rank.
     """
-    result = defaultdict(list)
+    result = defaultdict(set)
     taxIDsPerRank = taxIDsPerTaxonomicRank(taxIDLookUpDict, taxonomicRank)
     for title in blastHits.titles:
         taxID = blastHits.titles[title]['taxID']
         for rank, taxIDs in taxIDsPerRank.iteritems():
             if taxID in taxIDs:
-                result[rank].append(title)
+                result[rank].add(title)
     return result
 
 
@@ -176,7 +185,6 @@ def pieChartPerSpecificRank(blastHits, taxonomicRank, what):
         toPlot.append(len(read))
         title = '%s, %s' % (len(read), rank)
         legend.append(title)
-    print legend
     plotTitle = 'Number of %s per %s' % (what, taxonomicRank)
     pyplot.axis('equal')
     pyplot.pie(toPlot)

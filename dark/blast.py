@@ -3,6 +3,7 @@ import numpy as np
 from random import uniform
 from Bio import SeqIO
 import MySQLdb
+from os import environ
 
 from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
@@ -871,8 +872,10 @@ class BlastHits(object):
         """
         # connect to database
         # parameters should be changed accordingly
-        db = MySQLdb.connect(host='localhost', user='root',
-                             passwd='rootpassword', db='ncbi_taxonomy')
+        db = MySQLdb.connect(host='localhost', user=environ.get(
+                             'DBI_USER', environ['USER']),
+                             passwd=environ['DBI_PASSWORD'],
+                             db='ncbi_taxonomy')
         cursor = db.cursor()
 
         # for each title (=gi number) get the taxId from the database
@@ -881,5 +884,10 @@ class BlastHits(object):
             giNr = int(title.split('|')[1])
             question = 'SELECT taxID from gi_taxid_nucl where gi = %d' % giNr
             cursor.execute(question)
-            result = cursor.fetchone()[0]
+            try:
+                result = cursor.fetchone()[0]
+            except TypeError:
+                result = 'No taxID found'
+            if result == 'No taxID found':
+                print title
             self.titles[title]['taxID'] = result
