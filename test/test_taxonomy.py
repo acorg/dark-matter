@@ -14,14 +14,14 @@ class FakeDbConnection(object):
         self._result = result
         self._index = -1
 
-    def cursor():
+    def cursor(self):
         return FakeCursor()
 
     def execute(self):
         self._index += 1
         return self._result[self._index]
 
-    def close():
+    def close(self):
         pass
 
 
