@@ -5,6 +5,10 @@ from dark import taxonomy
 
 
 class FakeCursor(object):
+    def execute(self):
+        self._index += 1
+        return self._result[self._index]
+        
     def close():
         pass
 
@@ -15,11 +19,7 @@ class FakeDbConnection(object):
         self._index = -1
 
     def cursor(self):
-        return FakeCursor()
-
-    def execute(self):
-        self._index += 1
-        return self._result[self._index]
+        return FakeCursor(self._result)
 
     def close(self):
         pass
