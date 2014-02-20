@@ -45,7 +45,7 @@ class TestTaxonomy(TestCase):
                               'Smileyus viriae',
                               ['genus', 4], 'Lucky viriae']
         db = FakeDbConnection(fakeDatabaseResult)
-        result = taxonomy.getLineageInfo(blastHits, dbs=db)
+        result = taxonomy.getLineageInfo(blastHits, db=db)
         self.assertEqual({1: [{
                               'taxID': 1,
                               'parentTaxID': 3,

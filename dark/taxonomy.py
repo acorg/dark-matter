@@ -35,7 +35,7 @@ def _getLineageInfoPerTaxID(taxID, db):
     return result
 
 
-def getLineageInfo(blastHits, dbs=None):
+def getLineageInfo(blastHits, db=None):
     """
     For each taxID present in blastHits, walk through the taxonomic tree,
     starting from that taxID, and for each node, store the information
@@ -45,7 +45,7 @@ def getLineageInfo(blastHits, dbs=None):
     @return: A C{dict} where each key is a taxID and the value is the
         taxonomic information
     """
-    db = mysql.getDatabaseConnection() or dbs
+    db = db or mysql.getDatabaseConnection()
     taxIDLookUpDict = {}
     for title in blastHits.titles:
         taxID = blastHits.titles[title]['taxID']
