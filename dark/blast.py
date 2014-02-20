@@ -2,14 +2,13 @@ from math import log10
 import numpy as np
 from random import uniform
 from Bio import SeqIO
-import MySQLdb
-from os import environ
 
 from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark import mysql
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
@@ -872,10 +871,7 @@ class BlastHits(object):
         """
         # connect to database
         # parameters should be changed accordingly
-        db = MySQLdb.connect(host='localhost', user=environ.get(
-                             'DBI_USER', environ['USER']),
-                             passwd=environ['DBI_PASSWORD'],
-                             db='ncbi_taxonomy')
+        db = mysql.getDatabaseConnection()
         cursor = db.cursor()
 
         # for each title (=gi number) get the taxId from the database

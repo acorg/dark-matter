@@ -4,6 +4,25 @@ from dark.blast import BlastHits
 from dark import taxonomy
 
 
+class FakeCursor(object):
+    def close():
+        pass
+
+
+class FakeDbConnection(object):
+    def __init__(self, result):
+        self._result = result
+
+    def cursor():
+        return FakeCursor()
+
+    def execute(self):
+        return self._result
+
+    def close():
+        pass
+
+
 class TestTaxonomy(TestCase):
     """
     Test the helper functions in taxonomy.py

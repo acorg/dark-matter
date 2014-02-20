@@ -1,7 +1,6 @@
-import MySQLdb
 import matplotlib.pyplot as pyplot
 from collections import defaultdict
-from os import environ
+from dark import mysql
 
 
 def _getLineageInfoPerTaxID(taxID):
@@ -16,10 +15,7 @@ def _getLineageInfoPerTaxID(taxID):
     result = []
     # TODO: the arguments for connecting to the database should be
     # changed once the setup is finalized.
-    db = MySQLdb.connect(host='localhost', user=environ.get(
-                         'DBI_USER', environ['USER']),
-                         passwd=environ['DBI_PASSWORD'],
-                         db='ncbi_taxonomy')
+    db = mysql.getDatabaseConnection()
     cursor = db.cursor()
     while taxID != 1:
         questionToNodes = ('SELECT rank, parent_taxID from nodes '
