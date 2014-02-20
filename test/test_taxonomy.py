@@ -5,21 +5,25 @@ from dark import taxonomy
 
 
 class FakeCursor(object):
+    result = [['species', 3],
+               'Smileyus viriae',
+              ['genus', 4], 'Lucky viriae']
+    def __init__(self, result):
+        self._result = result
+        self._index = -1
+
     def execute(self):
         self._index += 1
         return self._result[self._index]
-        
+
     def close():
         pass
 
 
 class FakeDbConnection(object):
-    def __init__(self, result):
-        self._result = result
-        self._index = -1
-
     def cursor(self):
-        return FakeCursor(self._result)
+        db = FakeCursor(object)
+        return db
 
     def close(self):
         pass
@@ -41,10 +45,7 @@ class TestTaxonomy(TestCase):
         blastHits.addHit('Pink Sheep Virus', {
             'taxID': 2,
         })
-        fakeDatabaseResult = [['species', 3],
-                              'Smileyus viriae',
-                              ['genus', 4], 'Lucky viriae']
-        db = FakeDbConnection(fakeDatabaseResult)
+        db = FakeDbConnection()
         result = taxonomy.getLineageInfo(blastHits, db=db)
         self.assertEqual({1: [{
                               'taxID': 1,

@@ -45,13 +45,16 @@ def getLineageInfo(blastHits, db=None):
     @return: A C{dict} where each key is a taxID and the value is the
         taxonomic information
     """
-    db = db or mysql.getDatabaseConnection()
+    if db is None:
+        openedDb = True
+        db = mysql.getDatabaseConnection()
     taxIDLookUpDict = {}
     for title in blastHits.titles:
         taxID = blastHits.titles[title]['taxID']
         if taxID not in taxIDLookUpDict:
             taxIDLookUpDict[taxID] = _getLineageInfoPerTaxID(taxID, db)
-    db.close()
+    if openedDb:
+        db.close()
     return taxIDLookUpDict
 
 
