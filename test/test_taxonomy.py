@@ -5,16 +5,17 @@ from dark import taxonomy
 
 
 class FakeCursor(object):
-    result = [['species', 3],
-               'Smileyus viriae',
-              ['genus', 4], 'Lucky viriae']
     def __init__(self, result):
-        self._result = result
+        self._result = [('species', 1), ('A')]
         self._index = -1
 
-    def execute(self):
+    def execute(self, p):
+        pass
+
+    def fetchone(self):
         self._index += 1
-        return self._result[self._index]
+        index = int(self._index)
+        return self._result[index]
 
     def close():
         pass
@@ -25,7 +26,7 @@ class FakeDbConnection(object):
         db = FakeCursor(object)
         return db
 
-    def close(self):
+    def close():
         pass
 
 
@@ -40,24 +41,16 @@ class TestTaxonomy(TestCase):
         """
         blastHits = BlastHits(None)
         blastHits.addHit('Smiley Cell Polyomavirus', {
-            'taxID': 1,
-        })
-        blastHits.addHit('Pink Sheep Virus', {
-            'taxID': 2,
+            'taxID': 4,
         })
         db = FakeDbConnection()
         result = taxonomy.getLineageInfo(blastHits, db=db)
-        self.assertEqual({1: [{
-                              'taxID': 1,
-                              'parentTaxID': 3,
+        self.assertEqual({4: [{
+                              'taxID': 4,
+                              'parentTaxID': 1,
                               'rank': 'species',
-                              'scientificName': 'Smileyus viriae',
-                              }],
-                          2: [{'taxID': 2,
-                               'parentTaxID': 4,
-                               'rank': 'genus',
-                               'scientificName': 'Lucky viriae'
-                               }]
+                              'scientificName': 'A',
+                              }]
                           }, result)
 
     def testTaxIDsPerTaxonomicRankAllTaxIDsPresent(self):

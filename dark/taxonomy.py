@@ -18,10 +18,10 @@ def _getLineageInfoPerTaxID(taxID, db):
     cursor = db.cursor()
     while taxID != 1:
         questionToNodes = ('SELECT rank, parent_taxID from nodes '
-                           'where taxID = %d' % taxID)
+                           'where taxID = %s' % taxID)
         cursor.execute(questionToNodes)
         rank, parentTaxID = cursor.fetchone()[0:2]
-        questionToNames = 'SELECT name from names where taxId = %d' % taxID
+        questionToNames = 'SELECT name from names where taxId = %s' % taxID
         cursor.execute(questionToNames)
         scientificName = cursor.fetchone()[0]
         result.append({
@@ -31,7 +31,6 @@ def _getLineageInfoPerTaxID(taxID, db):
             'scientificName': scientificName,
         })
         taxID = parentTaxID
-    cursor.close()
     return result
 
 
@@ -45,6 +44,7 @@ def getLineageInfo(blastHits, db=None):
     @return: A C{dict} where each key is a taxID and the value is the
         taxonomic information
     """
+    openedDb = False
     if db is None:
         openedDb = True
         db = mysql.getDatabaseConnection()
