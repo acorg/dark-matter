@@ -159,6 +159,19 @@ class Test_FeatureList(TestCase):
                                    sequenceFetcher=fetcher)
         self.assertEqual(0, len(featureList))
 
+    def testFetcherValueError(self):
+        """
+        If the sequence fetcher throws a C{ValueError}, the feature list
+        must have length zero and should not be marked as being offline.
+        """
+        def fetcher(title, db):
+            raise ValueError()
+
+        featureList = _FeatureList('title', 'database', set(), identity,
+                                   sequenceFetcher=fetcher)
+        self.assertEqual(0, len(featureList))
+        self.assertEqual(False, featureList.offline)
+
     def testNotOffline(self):
         """
         If the sequence fetcher does not return C{None} we must be marked as

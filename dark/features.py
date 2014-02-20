@@ -88,12 +88,16 @@ class _FeatureList(list):
     def __init__(self, title, database, wantedTypes, offsetAdjuster,
                  sequenceFetcher=None):
         list.__init__(self)
+        self.offline = False
         sequenceFetcher = sequenceFetcher or getSequence
-        record = sequenceFetcher(title, db=database)
+        try:
+            record = sequenceFetcher(title, db=database)
+        except ValueError:
+            # Ignore. See https://github.com/acorg/dark-matter/issues/124
+            return
         if record is None:
             self.offline = True
         else:
-            self.offline = False
             wantedTypes = set(wantedTypes)
             for feature in record.features:
                 if feature.type in wantedTypes and feature.qualifiers:

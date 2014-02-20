@@ -126,9 +126,9 @@ if __name__ == '__main__':
         help='The attribute to sort subplots on.')
 
     parser.add_argument(
-        '--rankEValues', type=bool, default=False,
+        '--rankValues', type=bool, default=False,
         help='If True, display reads with a Y axis coord that is the rank of '
-        'the e value (sorted decreasingly).')
+        'the e-value or bit score.')
 
     parser.add_argument(
         '--outputDir', type=str, default='.',
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     hits.computePlotInfo(
         eCutoff=args.eCutoff, maxHspsPerHit=args.maxHspsPerHit,
         minStart=args.minStart, maxStop=args.maxStop,
-        rankEValues=args.rankEValues)
+        rankValues=args.rankValues)
 
     alignmentPanel(hits, sortOn=args.sortOn, interactive=True,
                    outputDir=args.outputDir, idList=args.idList,
