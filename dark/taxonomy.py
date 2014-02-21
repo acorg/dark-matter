@@ -3,19 +3,17 @@ from collections import defaultdict
 from dark import mysql
 
 
-def _getLineageInfoPerTaxID(taxID, db):
+def _getLineageInfoPerTaxID(taxID, cursor):
     """
     For a given taxID, extract information about the lineage from
     a mySQL database.
 
     @param taxID: a value assigned by NCBI taxonomy which stands
         for taxonomic information.
+    @param cursor: A database cursor, with C{execute} and C{fetchone} methods.
     @return: a C{list} containing information about the taxonomic lineage
     """
     result = []
-    # TODO: the arguments for connecting to the database should be
-    # changed once the setup is finalized.
-    cursor = db.cursor()
     while taxID != 1:
         questionToNodes = ('SELECT rank, parent_taxID from nodes '
                            'where taxID = %s' % taxID)
@@ -41,18 +39,22 @@ def getLineageInfo(blastHits, db=None):
     about the node (rank, taxID, parent_taxID, scientificName).
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
+    @param db: A database connection, with C{cursor} and C{close} methods.
     @return: A C{dict} where each key is a taxID and the value is the
         taxonomic information
     """
-    openedDb = False
     if db is None:
         openedDb = True
         db = mysql.getDatabaseConnection()
+    else:
+        openedDb = False
+    cursor = db.cursor()
     taxIDLookUpDict = {}
     for title in blastHits.titles:
         taxID = blastHits.titles[title]['taxID']
         if taxID not in taxIDLookUpDict:
-            taxIDLookUpDict[taxID] = _getLineageInfoPerTaxID(taxID, db)
+            taxIDLookUpDict[taxID] = _getLineageInfoPerTaxID(taxID, cursor)
+    cursor.close()
     if openedDb:
         db.close()
     return taxIDLookUpDict
