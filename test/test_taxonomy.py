@@ -5,8 +5,8 @@ from dark import taxonomy
 
 
 class FakeCursor(object):
-    def __init__(self, result):
-        self._result = [('species', 1), ('A')]
+    def __init__(self, results):
+        self._results = results
         self._index = -1
 
     def execute(self, p):
@@ -14,20 +14,22 @@ class FakeCursor(object):
 
     def fetchone(self):
         self._index += 1
-        index = int(self._index)
-        return self._result[index]
+        return self._results[self._index]
 
-    def close():
+    def close(self):
         pass
 
 
 class FakeDbConnection(object):
-    def cursor(self):
-        db = FakeCursor(object)
-        return db
+    def __init__(self, results):
+        self._results = results
+        self.open = True
 
-    def close():
-        pass
+    def cursor(self):
+        return FakeCursor(self._results)
+
+    def close(self):
+        self.open = False
 
 
 class TestTaxonomy(TestCase):
@@ -43,7 +45,7 @@ class TestTaxonomy(TestCase):
         blastHits.addHit('Smiley Cell Polyomavirus', {
             'taxID': 4,
         })
-        db = FakeDbConnection()
+        db = FakeDbConnection([('species', 1), ('A')])
         result = taxonomy.getLineageInfo(blastHits, db=db)
         self.assertEqual({4: [{
                               'taxID': 4,
@@ -52,6 +54,26 @@ class TestTaxonomy(TestCase):
                               'scientificName': 'A',
                               }]
                           }, result)
+
+    def testGetLineageInfoDoesNotCloseOpenDatabase(self):
+        """
+        getLineageInfo should not close an open database it is passed.
+        """
+        blastHits = BlastHits(None)
+        blastHits.addHit('Smiley Cell Polyomavirus', {
+            'taxID': 4,
+        })
+        db = FakeDbConnection([('species', 1), ('A')])
+        taxonomy.getLineageInfo(blastHits, db=db)
+        self.assertEqual(True, db.open)
+
+    def testTaxIDsPerTaxonomicRankEmptyInput(self):
+        """
+        taxIDsPerTaxonomicRank should return an empty dictionary
+        when given an empty input.
+        """
+        result = taxonomy.taxIDsPerTaxonomicRank({}, 'species')
+        self.assertEqual({}, result)
 
     def testTaxIDsPerTaxonomicRankAllTaxIDsPresent(self):
         """
@@ -96,6 +118,15 @@ class TestTaxonomy(TestCase):
 
         result = taxonomy.taxIDsPerTaxonomicRank(taxIDLookUpDict, 'species')
         self.assertEqual({'mouse': set([1])}, result)
+
+    def testReadsPerTaxonomicRankEmptyInput(self):
+        """
+        readsPerTaxonomicRank should return an empty dictionary
+        when given an empty input.
+        """
+        blastHits = BlastHits(None)
+        result = taxonomy.readsPerTaxonomicRank({}, blastHits, 'species')
+        self.assertEqual({}, result)
 
     def testReadsPerTaxonomicRank(self):
         """
@@ -156,6 +187,15 @@ class TestTaxonomy(TestCase):
         result = taxonomy.readsPerTaxonomicRank(taxIDLookUpDict,
                                                 blastHits, 'species')
         self.assertEqual({'mouse': set([1234])}, result)
+
+    def testSubjectsPerTaxonomicRankEmptyInput(self):
+        """
+        subjectsPerTaxonomicRank should return an empty dictionary
+        when given an empty input.
+        """
+        blastHits = BlastHits(None)
+        result = taxonomy.subjectsPerTaxonomicRank({}, blastHits, 'species')
+        self.assertEqual({}, result)
 
     def testSubjectsPerTaxonomicRank(self):
         """

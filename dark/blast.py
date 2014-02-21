@@ -869,10 +869,11 @@ class BlastHits(object):
         For each title in C{self.titles}, read the corresponding taxId from
         the gi_taxid_nucl table in a MySQL database called ncbi_taxonomy.
         """
-        # connect to database
         if db is None:
             openedDb = True
             db = mysql.getDatabaseConnection()
+        else:
+            openedDb = False
         cursor = db.cursor()
 
         # for each title (=gi number) get the taxId from the database
@@ -886,6 +887,7 @@ class BlastHits(object):
             except TypeError:
                 result = 'No taxID found'
             self.titles[title]['taxID'] = result
+
+        cursor.close()
         if openedDb:
-            cursor.close()
             db.close()
