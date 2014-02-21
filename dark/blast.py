@@ -74,23 +74,23 @@ class BlastRecords(object):
         else:
             raise ValueError('Unknown BLAST record file type.')
 
-        # Read the records, observing any given limit. There's a little code
-        # duplication here in the name of speed - we don't want to repeatedly
-        # test if self.limit is None in a loop.
+        # Read the records, observing any given limit.
         count = 0
-        if self.limit is None:
-            for record in reader.records():
-                count += 1
-                yield record
-        else:
-            limit = self.limit
-            for record in reader.records():
-                if count == limit:
-                    break
-                count += 1
-                yield record
+        limit = self.limit
+        for record in reader.records():
+            if count == 0:
+                # Set our BLAST params as early as possible, so our caller
+                # has them accessible as soon as we've returned anything.
+                self.blastParams = reader.params
+            if limit is not None and count == limit:
+                break
+            count += 1
+            yield record
 
+        # If there were no records, we wont have set self.blastParams in
+        # the loop above. Set it here too, just in case :-(
         self.blastParams = reader.params
+
         self._length = count
 
     def __len__(self):
@@ -165,7 +165,6 @@ class BlastRecords(object):
 
             # For each sequence that the read matched against...
             for index, alignment in enumerate(record.alignments):
-
                 # Test sequence title.
                 title = record.descriptions[index].title
                 titleFilterResult = titleFilter.accept(title)
@@ -679,7 +678,14 @@ class BlastHits(object):
 
             return result
 
+        # The command-line program that was used to run Blast. Will be set
+        # below once we have started to read the BLAST records.
+        blastApplication = None
+
         for title, readNum, hsps in self._getHsps():
+            if blastApplication is None:
+                blastApplication = self.records.blastParams[
+                    'application'].lower()
             if self.titles[title]['plotInfo'] is None:
                 sequenceLen = self.titles[title]['length']
                 self.titles[title]['plotInfo'] = plotInfoDict(sequenceLen)
@@ -692,7 +698,7 @@ class BlastHits(object):
 
             for hspCount, hsp in enumerate(hsps, start=1):
                 try:
-                    normalized = normalizeHSP(hsp, queryLen)
+                    normalized = normalizeHSP(hsp, queryLen, blastApplication)
                 except AssertionError:
                     # TODO: Remove these prints, and the surrounding try/except
                     # once we're sure we have HSP normalization right.

@@ -128,6 +128,25 @@ class TestBlastRecords(TestCase):
             self.assertRaises(StopIteration, records.next)
             self.assertEqual(params, blastRecords.blastParams)
 
+    def testIncompatibleJSONParams(self):
+        """
+        BLAST parameters found more than once must be checked correctly
+        for compatibility.
+        """
+        params1 = {
+            'application': 'BLASTN',
+        }
+        params2 = {
+            'application': 'BLASTX',
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params1) + '\n' + dumps(params2) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('file.json', None, None).records()
+            error = ("Param u'application' initial value u'BLASTN' "
+                     "differs from later value u'BLASTX'")
+            self.assertRaisesRegexp(ValueError, error, list, blastRecords)
+
     def testOneJSONInput(self):
         """
         If a JSON file contains a parameters section and one record, it must be

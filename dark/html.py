@@ -90,8 +90,6 @@ class AlignmentPanelHTML(object):
             alignmentInfo = image['alignmentInfo']
             plotInfo = image['plotInfo']
             readIds = self._writeFASTA(i, image)
-            if len(alignmentInfo['features']):
-                features = self._writeFeatures(i, image)
             fp.write("""
       <a id="small_%d"></a>
       <h3>%d: %s</h3>
@@ -109,20 +107,17 @@ class AlignmentPanelHTML(object):
 
             url = NCBISequenceLinkURL(title)
             if url:
-                fp.write("""\
-        <br/><a href="%s" target="_blank">NCBI info on this target</a>.
-"""
-                         % url)
+                fp.write('<br/><a href="%s" target="_blank">NCBI info on this '
+                         'target</a>.' % url)
 
-            if len(alignmentInfo.get('features', [])):
-
-                fp.write("""\
-        <br/><a href="%s">Features</a>
-"""
-                         % features)
+            # Write out feature information.
+            if alignmentInfo['features'] is None:
+                fp.write('<br/>Feature lookup was False (or we were offline).')
+            elif len(alignmentInfo['features']) == 0:
+                fp.write('<br/>There were no features.')
             else:
-                fp.write('<br/>Feature lookup was False (or no features '
-                         'were found).')
+                fp.write('<br/><a href="%s">Features</a>' %
+                         self._writeFeatures(i, image))
 
             # Write out the titles that this title invalidated due to its
             # read set.
@@ -130,31 +125,19 @@ class AlignmentPanelHTML(object):
                 invalidated = self._blastHits.readSetFilter.invalidates(title)
                 if invalidated:
                     nInvalidated = len(invalidated)
-                    fp.write("""\
-        <br/>This title invalidated %d other%s due to its read set:
-        <ul>
-"""
+                    fp.write('<br/>This title invalidated %d other%s due to '
+                             'its read set:<ul>'
                              % (nInvalidated,
                                 '' if nInvalidated == 1 else 's'))
                     for title in invalidated:
-                        fp.write("""\
-          <li>%s</li>
-"""
-                                 % title)
-                    fp.write("""
-        </ul>
-""")
+                        fp.write('<li>%s</li>' % title)
+                    fp.write('</ul>')
 
             if len(plotInfo['items']):
-                fp.write("""\
-        <br/>Reads: <span class="reads">%s</span>
-"""
+                fp.write('<br/>Reads: <span class="reads">%s</span>'
                          % ', '.join(readIds))
 
-            fp.write("""
-        <br clear="all"/>
-      </p>
-""")
+            fp.write('<br clear="all"/></p>')
 
         # Write out the large images.
         for i, image in enumerate(self._images):
@@ -218,13 +201,13 @@ span.reads {
         """
         Write a txt file containing the features as a table.
 
-        i: The number of the image in self._images.
-        image: A member of self._images.
+        @param i: The number of the image in self._images.
+        @param image: A member of self._images.
+        @return: The C{str} features file name.
         """
         filename = '%s/features-%d.txt' % (self._outputDir, i)
         featureList = image['alignmentInfo']['features']
         with open(filename, 'w') as fp:
-            for item in featureList:
-                items = str(item)
-                fp.write(items + '\n')
+            for feature in featureList:
+                fp.write('%s\n\n' % feature.feature)
         return filename

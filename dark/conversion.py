@@ -233,6 +233,50 @@ class JSONRecordsReader(object):
         @raise ValueError: If the input file is empty or does not contain a
             global BLAST params section.
         """
+
+        def _reportIncompatibleParams(laterParams, lineNumber):
+            """
+            Check a later set of parameters against the one originally found
+            (and stored in self.params).
+
+            @param laterParams: A C{dict} with BLAST parameter settings.
+            @param lineNumber: The line number of the input file on which the
+                later parameters (in C{laterParams}) were found.
+            @raise ValueError: if the two parameter sets differ.
+            """
+            # Parameters whose values may vary.
+            variableParams = set([
+                'effective_search_space', 'effective_hsp_length', 'query',
+                'query_length', 'query_letters'])
+
+            # Note that although the params contains a 'date', its value is
+            # empty (as far as I've seen). This could become an issue one
+            # day if it becomes non-empty and differs between JSON files
+            # that we cat together. In that case we may need to be more
+            # specific in our params compatible checking.
+            err = []
+            for param in self.params:
+                if param in laterParams:
+                    if (param not in variableParams
+                            and self.params[param] != laterParams[param]):
+                        err.append(
+                            '\tParam %r initial value %r differs from '
+                            'later value %r' % (param, self.params[param],
+                                                laterParams[param]))
+                else:
+                    err.append('\t%r found in initial parameters, not found '
+                               'in later parameters' % param)
+            for param in laterParams:
+                if param not in self.params:
+                    err.append('\t%r found in later parameters, not seen in '
+                               'initial parameters' % param)
+
+            if err:
+                mesg = ('BLAST parameters found on line %d of %r do not match '
+                        'those on its first line. Summary of diffs:\n%s' %
+                        (lineNumber, self._filename, '\n'.join(err)))
+                raise ValueError(mesg)
+
         with open(self._filename) as fp:
             for lineNumber, line in enumerate(fp, start=1):
                 if lineNumber == 1:
@@ -246,30 +290,14 @@ class JSONRecordsReader(object):
                             'Line is %r.' %
                             (lineNumber, self._filename, e, line[:-1]))
                     else:
-                        if 'application' in record:
-                            # This is another params section. Check it
-                            # against the already read params (from the
-                            # first line of the file).  The 'application'
-                            # key is just one of the many attributes we
-                            # save into a JSON dict in
+                        if 'application' in record and self.params != record:
+                            # This is another params section. Check it against
+                            # the already read params (from the first line of
+                            # the file).  The 'application' key is just one of
+                            # the many attributes we save into a JSON dict in
                             # L{XMLRecordsReader.convertBlastParamsToDict}
                             # above.
-                            #
-                            # Note that although the params contains a
-                            # 'date', its value is empty (as far as I've
-                            # seen). This could become an issue one day if
-                            # it becomes non-empty and differs between JSON
-                            # files that we cat together. In that case we
-                            # may need to be more specific in our params
-                            # compatible checking.
-                            #
-                            # TODO: We can be more helpful here by
-                            #       reporting the keys that differ between
-                            #       the params sections.
-                            assert self.params == record, (
-                                'BLAST parameters found on line %d of %r do '
-                                'not match those found on its first line.' %
-                                (lineNumber, self._filename))
+                            _reportIncompatibleParams(record, lineNumber)
                         else:
                             # A regular BLAST record (as a dict).
                             yield self._convertDictToBlastRecord(record)
