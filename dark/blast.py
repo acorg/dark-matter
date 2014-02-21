@@ -8,6 +8,7 @@ from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark import mysql
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
@@ -862,3 +863,31 @@ class BlastHits(object):
             plotInfo['originalEMean'] = np.mean(originalEValues)
             plotInfo['originalEMedian'] = np.median(originalEValues)
             del plotInfo['originalEValues']
+
+    def getTaxIDFromMySql(self, db=None):
+        """
+        For each title in C{self.titles}, read the corresponding taxId from
+        the gi_taxid_nucl table in a MySQL database called ncbi_taxonomy.
+        """
+        if db is None:
+            openedDb = True
+            db = mysql.getDatabaseConnection()
+        else:
+            openedDb = False
+        cursor = db.cursor()
+
+        # for each title (=gi number) get the taxId from the database
+        # and add it to self.titles.
+        for title in self.titles:
+            giNr = int(title.split('|')[1])
+            question = 'SELECT taxID from gi_taxid_nucl where gi = %d' % giNr
+            cursor.execute(question)
+            try:
+                result = cursor.fetchone()[0]
+            except TypeError:
+                result = 'No taxID found'
+            self.titles[title]['taxID'] = result
+
+        cursor.close()
+        if openedDb:
+            db.close()
