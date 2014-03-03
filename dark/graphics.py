@@ -29,7 +29,10 @@ QUERY_COLORS = {
     'T': (1.0, 0.8, 0.0),  # Orange.
     'gap': (0.2, 0.2, 0.2),  # Almost black.
     'match': (0.9, 0.9, 0.9),  # Almost white.
+    '*': (0.9, 0.9, 0.9),  # Almost white.
 }
+
+DEFAULT_BASE_COLOR = (0.5, 0.5, 0.5)  # Grey
 
 # If we're making a plot that has a log-linear X axis, don't show
 # background light grey rectangles for any gap whose (logged) width is less
@@ -288,6 +291,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                 # One of the subject or query has negative sense.
                 query = blastHits.fasta[
                     item['readNum']].reverse_complement().seq
+            query = query.upper()
             queryStart = hsp['queryStart']
             # There are 3 parts of the query string we need to display. 1)
             # the left part (if any) before the matched part of the
@@ -318,7 +322,8 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             xOffset = queryStart - minX
             queryOffset = 0
             for queryIndex in xrange(leftRange):
-                color = QUERY_COLORS[query[queryOffset + queryIndex]]
+                color = QUERY_COLORS.get(query[queryOffset + queryIndex],
+                                         DEFAULT_BASE_COLOR)
                 baseImage.set(xOffset + queryIndex, y, color)
 
             # 2. Match part.
@@ -326,7 +331,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             xIndex = 0
             queryOffset = hsp['subjectStart'] - hsp['queryStart']
             origSubject = item['origHsp'].sbjct
-            origQuery = item['origHsp'].query
+            origQuery = item['origHsp'].query.upper()
             for matchIndex in xrange(middleRange):
                 if origSubject[matchIndex] == '-':
                     # A gap in the subject was needed to match the query.
@@ -348,15 +353,17 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                             color = QUERY_COLORS['gap']
                         else:
                             # Query doesn't match subject (and is not a gap).
-                            color = QUERY_COLORS[origQuery[matchIndex]]
+                            color = QUERY_COLORS.get(origQuery[matchIndex],
+                                                     DEFAULT_BASE_COLOR)
                     baseImage.set(xOffset + xIndex, y, color)
                     xIndex += 1
 
             # 3. Right part.
             xOffset = hsp['subjectEnd'] - minX
-            backQuery = query[-rightRange:]
+            backQuery = query[-rightRange:].upper()
             for queryIndex in xrange(rightRange):
-                color = QUERY_COLORS[backQuery[queryIndex]]
+                color = QUERY_COLORS.get(backQuery[queryIndex],
+                                         DEFAULT_BASE_COLOR)
                 baseImage.set(xOffset + queryIndex, y, color)
 
                 # a gap in the subject was needed to match a different query
