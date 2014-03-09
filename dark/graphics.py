@@ -510,9 +510,9 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     return result
 
 
-def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
-                   idList=False, equalizeXAxes=True, xRange='subject',
-                   plot='e values'):
+def alignmentPanel(blastHits, sortOn='bitScoreMax', interactive=True,
+                   outputDir=None, idList=False, equalizeXAxes=True,
+                   xRange='subject', plot='e values'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -520,7 +520,7 @@ def alignmentPanel(blastHits, sortOn='eMin', interactive=True, outputDir=None,
     @param blastHits: A L{dark.blast.BlastHits} instance.
     sortOn: The attribute to sort subplots on. Either "eMean",
         "eMedian", "eMin", "bitScoreMax", "bitScoreMean", "bitScoreMedian",
-        "readCount", "length", "title".'.
+        "readCount", "length", or "title".
     interactive: If C{True}, we are interactive and should display the panel
         using figure.show etc.
     outputDir: If not None, specifies a directory to write an HTML summary to.
