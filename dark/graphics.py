@@ -366,12 +366,6 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                                          DEFAULT_BASE_COLOR)
                 baseImage.set(xOffset + queryIndex, y, color)
 
-                # a gap in the subject was needed to match a different query
-                # than the one we're matching against.
-                # this throws off the indexing.
-                # if this happen, show a gap when coloring in the base of the
-                # query as gap.
-
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
                        extent=[minX, maxX, minY, maxYIncludingRandoms])
