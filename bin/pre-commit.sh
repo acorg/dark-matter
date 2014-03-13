@@ -7,6 +7,12 @@
 #   $ cd .git/hooks
 #   $ ln -s ../../bin/pre-commit.sh pre-commit
 
+# Add our virtualenv bin to PATH. Git commit seems to muck with PATH :-(
+if [ -n "$VIRTUAL_ENV" ]
+then
+    PATH="$VIRTUAL_ENV/bin:$PATH"
+fi
+
 tmp=/tmp/git-pre-commit-$$
 trap "rm -f $tmp" 0 1 2 3 15
 

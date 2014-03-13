@@ -194,6 +194,9 @@ def printFinalizeScript(params):
 
 shopt -s nullglob
 
+# redo will hold the numbers of jobs that need re-running, if any.
+redo=
+
 for i in *.fasta
 do
     n=`echo $i | cut -f1 -d.`
@@ -211,7 +214,6 @@ do
         fi
     fi
 
-    redo=
     if [ -f $json ]
     then
         if [ ! -s $json ]
