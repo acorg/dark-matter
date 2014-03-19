@@ -215,7 +215,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
     if showFeatures:
         if showOrfs:
-            gs = gridspec.GridSpec(4, 1, height_ratios=[2, 1, 1, 12])
+            gs = gridspec.GridSpec(4, 1, height_ratios=[3, 1, 1, 12])
             featureAx = plt.subplot(gs[0, 0])
             orfAx = plt.subplot(gs[1, 0])
             orfReversedAx = plt.subplot(gs[2, 0])
