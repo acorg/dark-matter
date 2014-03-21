@@ -264,6 +264,7 @@ ls [0-9]*.json | sort -n | xargs -n 500 cat
     # Make the script executable so we can run it.
     os.chmod('concat.sh', 0755)
 
+
 if __name__ == '__main__':
     import argparse
 
