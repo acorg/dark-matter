@@ -52,7 +52,7 @@ def normalizeHSP(hsp, queryLen, blastApplication):
         @param msg: A C{str} message to raise C{AssertionError} with.
         """
         print 'normalizeHSP error:'
-        print '  queryLen: %d', queryLen
+        print '  queryLen: %d' % queryLen
         for var in sorted(locals.keys()):
             if var in ('debugPrint', 'hsp'):
                 continue
