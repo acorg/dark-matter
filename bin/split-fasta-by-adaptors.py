@@ -6,25 +6,28 @@ import sys
 from dark.distance import levenshtein
 from math import log10, ceil
 
+# The name of the unknown adaptor.
+UNKNOWN = 'UNKNOWN'
+
 
 def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
                         maximumDistance, outputPrefix, dryRun, verbose):
     """
     @param knownAdaptors: A C{set} of expected adaptor sequences.
+    @param adaptorLen: The C{int} length of each adaptor sequence.
     @param adaptorOffset: The zero-based C{int} offset of the adaptor in
         each sequence.
-    @param adaptorLen: The C{int} length of each adaptor sequence.
     @param maximumDistance: The maximum distance an unknown adaptor will be
         mapped to in an attempt to find its nearest known adaptor.
     @param outputPrefix: A C{str} prefix that should be used in the file names
         that are written out.
-    @param dryRun:  A C{bool}, if C{True} only print what would be done, don't
+    @param dryRun: A C{bool}, if C{True} only print what would be done, don't
         create any new FASTA files.
     @param verbose: A C{bool}, if C{True} output additional information about
         adaptor classes found and assigned.
     """
     adaptors = defaultdict(int)
-    discards = 0
+    unknowns = 0
     classes = dict(zip(knownAdaptors, knownAdaptors))
     reads = []
 
@@ -43,14 +46,15 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
         else:
             distances = sorted((levenshtein(adaptor, known), known) for
                                known in knownAdaptors)
-            # Discard the read if it's too far from its nearest neighbor or
-            # if it's nearest neighbor isn't unambiguous.
+            # Treat the read as unclassifiable if it's too far from its
+            # nearest neighbor or if its nearest neighbor is ambiguous.
             nearest = distances[0][0]
             if nearest > maximumDistance or (len(knownAdaptors) > 1 and
                                              nearest == distances[1][0]):
-                discards += 1
+                unknowns += 1
+                classes[adaptor] = UNKNOWN
                 if verbose:
-                    print '%s: %s. Discarded, distances %r' % (
+                    print '%s: %s. Unknown, distances %r' % (
                         adaptor, adaptors[adaptor], [d[0] for d in distances])
             else:
                 correctedAdaptor = distances[0][1]
@@ -65,32 +69,32 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
     # Collect reads into classes.
     for read in reads:
         adaptor = str(read.seq)[adaptorOffset:][:adaptorLen].upper()
-        if adaptor in classes:
-            readGroups[classes[adaptor]].append(
-                read[adaptorOffset + adaptorLen:])
+        readGroups[classes[adaptor]].append(read[adaptorOffset + adaptorLen:])
 
     # Calculate the number of digits in the size of the biggest read group
     # so we can nicely align the output.
     width = int(ceil(log10(max(len(group) for group in readGroups.values()))))
 
-    # Write out the FASTA files for each adaptor class.
-    for adaptor, reads in readGroups.iteritems():
-        filename = outputPrefix + adaptor + '.fasta'
+    # The width of the count of files we'll write, so file names have zero
+    # padded numeric prefixes.
+    filesWidth = int(ceil(log10(len(readGroups))))
+
+    # Write out the FASTA files for each adaptor class (this includes the
+    # unclassifiable reads if any unknown adaptors were found).
+    for count, adaptor in enumerate(sorted(readGroups), start=1):
+        reads = readGroups[adaptor]
+        filename = '%s%0*d-%s.fasta' % (outputPrefix, filesWidth, count,
+                                        adaptor)
+        description = ('unrecognized adaptors' if adaptor == UNKNOWN
+                       else 'adaptor %s' % adaptor)
         if dryRun:
-            print 'Would write %*d sequences for adaptor %s to %s' % (
-                width, len(reads), adaptor, filename)
+            print 'Would write %*d sequences for %s to %s' % (
+                width, len(reads), description, filename)
         else:
             with open(filename, 'w') as fp:
                 SeqIO.write(reads, fp, 'fasta')
-            print 'Wrote %*d sequences for adaptor %s to %s' % (
-                width, len(reads), adaptor, filename)
-
-    discardPercent = float(discards) / count * 100.0
-    print '%d reads were found in total.' % count
-    print '%d of them (%.2f%%) were written to %d FASTA files.' % (
-        count - discards, 100.0 - discardPercent, len(readGroups))
-    print '%d reads (%.2f%%) were uncategorized and discarded.' % (
-        discards, discardPercent)
+            print 'Wrote %*d sequences for %s to %s' % (
+                width, len(reads), description, filename)
 
 
 if __name__ == '__main__':

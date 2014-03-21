@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+"""
+Print a (Levenshtein) distance matrix for a set of known adaptors
+given on the command line.
+
+For an example of usage,
+see https://notebooks.antigenic-cartography.org/terry/emc-adaptors.html
+"""
+
 from dark.distance import levenshtein
 
 if __name__ == '__main__':
