@@ -69,7 +69,8 @@ class BlastRecords(object):
         """
         if self.blastFilename.endswith('.xml'):
             reader = XMLRecordsReader(self.blastFilename)
-        elif self.blastFilename.endswith('.json'):
+        elif (self.blastFilename.endswith('.json') or
+              self.blastFilename.endswith('.json.bz2')):
             reader = JSONRecordsReader(self.blastFilename)
         else:
             raise ValueError('Unknown BLAST record file type.')

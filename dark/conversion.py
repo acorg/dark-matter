@@ -1,6 +1,8 @@
+import bz2
+from json import dumps, loads
+
 from Bio.Blast import NCBIXML
 from Bio.Blast.Record import Alignment, Blast, Description, HSP
-from json import dumps, loads
 
 
 class XMLRecordsReader(object):
@@ -277,7 +279,12 @@ class JSONRecordsReader(object):
                         (lineNumber, self._filename, '\n'.join(err)))
                 raise ValueError(mesg)
 
-        with open(self._filename) as fp:
+        if self._filename.endswith('.bz2'):
+            fp = bz2.BZ2File(self._filename)
+        else:
+            fp = open(self._filename)
+
+        try:
             for lineNumber, line in enumerate(fp, start=1):
                 if lineNumber == 1:
                     self.params = self._processFirstLine(line)
@@ -301,3 +308,5 @@ class JSONRecordsReader(object):
                         else:
                             # A regular BLAST record (as a dict).
                             yield self._convertDictToBlastRecord(record)
+        finally:
+            fp.close()

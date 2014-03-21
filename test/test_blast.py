@@ -1,3 +1,4 @@
+import bz2
 from json import dumps
 from mock import patch
 from unittest import TestCase
@@ -182,6 +183,58 @@ class TestBlastRecords(TestCase):
             read_data=dumps(params) + '\n' + dumps(record) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
             blastRecords = BlastRecords('file.json', None, None)
+            self.assertEqual(1, len(list(blastRecords.records())))
+
+    def testOneCompressedJSONInput(self):
+        """
+        If a compressed (bz2) JSON file contains a parameters section and one
+        record, it must be read correctly.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        class BZ2(object):
+            """
+            A BZ2File mock.
+            """
+            def __init__(self, data):
+                self._data = data
+
+            def close(self):
+                pass
+
+            def __iter__(self):
+                return iter(self._data)
+
+        result = BZ2([dumps(params) + '\n', dumps(record) + '\n'])
+
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.return_value = result
+            blastRecords = BlastRecords('file.json.bz2', None, None)
             self.assertEqual(1, len(list(blastRecords.records())))
 
     def testLimitZero(self):
