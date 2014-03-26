@@ -30,7 +30,7 @@ def basePlotter(blastHits, title):
 
     plotInfo = blastHits.titles[title]['plotInfo']
     assert plotInfo is not None, ('Oops, it looks like you forgot to run '
-                                'computePlotInfo.')
+                                  'computePlotInfo.')
 
     items = plotInfo['items']
     count = 0
@@ -46,7 +46,6 @@ def basePlotter(blastHits, title):
             reverse = False
         else:
             # One of the subject or query has negative sense.
-            #print 'reversing query'
             query = blastHits.fasta[
                 item['readNum']].reverse_complement().seq
             reverse = True
@@ -65,30 +64,30 @@ def basePlotter(blastHits, title):
         # The query consists of 3 parts: left, middle (control for gaps)
         # 3) the right offset
 
-        # do part 1) and 2).
+        # Do part 1) and 2).
         if queryStart < 0:
-            # The query is sticking out to the left
+            # The query is sticking out to the left.
             leftQuery = ''
             if subjectStart == 0:
-                # The match starts at the first base of the subject
+                # The match starts at the first base of the subject.
                 middleLeftQuery = ''
             else:
                 # The match starts into the subject.
                 # Determine the length of the not matching query
-                # part to the left
+                # part to the left.
                 leftOffset = -1 * queryStart
                 rightOffset = subjectStart + leftOffset
                 middleLeftQuery = query[leftOffset:rightOffset]
         else:
             # The query is not sticking out to the left
-            # make the left offset
+            # make the left offset.
             leftQuery = queryStart * ' '
 
             leftQueryOffset = subjectStart - queryStart
             middleLeftQuery = query[:leftQueryOffset]
 
-        # do part 3)
-        # disregard gaps in subject while adding
+        # Do part 3).
+        # Disregard gaps in subject while adding.
         matchQuery = item['origHsp'].query
         matchSubject = item['origHsp'].sbjct
         index = 0
@@ -151,8 +150,8 @@ def basePlotter(blastHits, title):
             index += 1
         else:
             start = index - 1
-            assert (start == queryStart or start == -1),
-                   ('%s != %s or %s != -1' % (start, queryStart, start)
+            assert (start == queryStart or start == -1), (
+                '%s != %s or %s != -1' % (start, queryStart, start))
 
     return result
 
@@ -237,8 +236,10 @@ def getCompleteFreqs(blastHits):
                 pattern = 'tPattern'
             freqs = getAPOBECFrequencies(basesPlotted, orig, new, pattern)
             allFreqs[title][mutation] = freqs
-        allFreqs[title]['numberOfReads'] = len(blastHits.titles[title]['plotInfo']['items'])
-        allFreqs[title]['bitScoreMax'] = blastHits.titles[title]['plotInfo']['bitScoreMax']
+        numberOfReads = len(blastHits.titles[title]['plotInfo']['items'])
+        allFreqs[title]['numberOfReads'] = numberOfReads
+        allFreqs[title]['bitScoreMax'] = blastHits.titles[
+            title]['plotInfo']['bitScoreMax']
     return allFreqs
 
 
@@ -287,7 +288,7 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
         data.append(newData)
         index += 1
     # create the bars
-    rects1 = ax.bar(ind, data, width, color=color)
+    ax.bar(ind, data, width, color=color)
     maxY = np.max(data) + 5
     # axes and labels
     if createFigure:
@@ -296,10 +297,10 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
         ax.set_ylim(0, maxY)
         ax.set_ylabel('Absolute Number of Mutations', fontsize=16)
         ax.set_xticks(ind+width)
-        xTickNames = ax.set_xticklabels(patterns, rotation=45, fontsize=8)
-    if createFigure == False:
+        ax.set_xticklabels(patterns, rotation=45, fontsize=8)
+    if createFigure is False:
         ax.set_xticks(ind+width)
-        xTickNames = ax.set_xticklabels(patterns, rotation=45, fontsize=0)
+        ax.set_xticklabels(patterns, rotation=45, fontsize=0)
     else:
         if showFigure:
             plt.show()
@@ -352,8 +353,8 @@ def makeFrequencyPanel(allFreqs, patientName):
                 else:
                     typeNumber = titles[typeIndex + 1]
 
-                ax[i][index].set_ylabel(('Type %s \n maxBitScore: %s' %
-                    (typeNumber, allFreqs[title]['bitScoreMax'])), fontsize=10)
+                ax[i][index].set_ylabel(('Type %s \n maxBitScore: %s' % (
+                    typeNumber, allFreqs[title]['bitScoreMax'])), fontsize=10)
             # add xAxis tick labels
             if i == 0:
                 ax[i][index].set_title(substitution, fontsize=13)
@@ -370,7 +371,7 @@ def makeFrequencyPanel(allFreqs, patientName):
 
     # make Y-axis equal
     for i, title in enumerate(allFreqs):
-        for index in range(6)
+        for index in range(6):
             a = ax[i][index]
             a.set_ylim([0, origMaxY])
     # add title of whole panel
