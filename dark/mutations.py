@@ -25,10 +25,13 @@ def basePlotter(blastHits, title):
     sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
     subject = sequence.seq
     gi = title.split('|')[1]
-    sub = '%s \t \t \t %s' % (gi, subject)
+    sub = '%s\t \t \t%s' % (gi, subject)
     result.append(sub)
 
     plotInfo = blastHits.titles[title]['plotInfo']
+    assert plotInfo is not None, ('Oops, it looks like you forgot to run '
+                                'computePlotInfo.')
+
     items = plotInfo['items']
     count = 0
     for item in items:
@@ -55,7 +58,7 @@ def basePlotter(blastHits, title):
 
         # Before comparing the read to the subject, make a string of the
         # same length as the subject, which contains the read and
-        # has ' ' at the offsets.
+        # has ' ' where the read does not match.
         # 3 parts need to be taken into account:
         # 1) the left offset (if the query doesn't stick out to the left)
         # 2) the query. if the frame is -1, it has to be reversed.
@@ -69,7 +72,6 @@ def basePlotter(blastHits, title):
             if subjectStart == 0:
                 # The match starts at the first base of the subject
                 middleLeftQuery = ''
-                pass
             else:
                 # The match starts into the subject.
                 # Determine the length of the not matching query
@@ -93,11 +95,9 @@ def basePlotter(blastHits, title):
         mid = ''
         for item in range(len(matchQuery)):
             if matchSubject[index] != ' ':
-                mid = mid + matchQuery[index]
-                index += 1
-            else:
-                index += 1
-        # if the query has been reversed, turn it around
+                mid += matchQuery[index]
+            index += 1
+        # if the query has been reversed, turn the matched part around
         if reverse:
             rev = ''
             toReverse = mid
@@ -105,7 +105,7 @@ def basePlotter(blastHits, title):
                            'C': 'G', 'G': 'C', '.': '.', 'N': 'N'}
             for item in toReverse:
                 newItem = reverseDict[item]
-                rev = rev + newItem
+                rev += newItem
             mid = rev[::-1]
 
         middleQuery = middleLeftQuery + mid
@@ -118,25 +118,20 @@ def basePlotter(blastHits, title):
         read = leftQuery + middleQuery
 
         # do part 3)
-        sbLen = len(subject)
-        offset = sbLen - len(read)
+        offset = len(subject) - len(read)
         # if the read is sticking out to the right
         # chop it off
         if offset < 0:
             read = read[:offset]
         # if it's not sticking out, fill the space with ' '
         elif offset > 0:
-            addOn = offset * ' '
-            read = read + addOn
+            read += offset * ' '
 
         # compare the subject and the read, make a string
         # called 'comparison', which contains a '.' if the bases
         # are equal and the letter of the read if they are not.
-        index = 0
         comparison = ''
-        for base in range(len(read)):
-            subjectBase = subject[index]
-            readBase = read[index]
+        for readBase, subjectBase in zip(read, subject):
             if readBase == ' ':
                 comparison += ' '
             elif readBase == subjectBase:
@@ -149,14 +144,15 @@ def basePlotter(blastHits, title):
 
         # sanity checks
         assert (len(comparison) == len(subject)), (
-            '%d "!=" %d' % (len(comparison), len(subject)))
+            '%d != %d' % (len(comparison), len(subject)))
 
         index = 0
         if comparison[index] == ' ':
             index += 1
         else:
             start = index - 1
-            assert (start == queryStart or start == -1), (start, queryStart)
+            assert (start == queryStart or start == -1),
+                   ('%s != %s or %s != -1' % (start, queryStart, start)
 
     return result
 
@@ -183,7 +179,7 @@ def getAPOBECFrequencies(dotAlignment, orig, new, pattern):
         patterns = tPattern
         middleBase = 'T'
     # generate the freqs dict with the right pattern
-    freqs = {}
+    freqs = defaultdict(int)
     for pattern in patterns:
         freqs[pattern] = 0
     # get the subject sequence from dotAlignment
@@ -204,7 +200,7 @@ def getAPOBECFrequencies(dotAlignment, orig, new, pattern):
                 except IndexError:
                     plusSb = 'end'
                 motif = '%s%s%s' % (minusSb, middleBase, plusSb)
-                if motif in freqs.keys():
+                if motif in freqs:
                     freqs[motif] += 1
             index += 1
 
@@ -260,6 +256,9 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     @param pattern: A C{str}, which pattern we're looking for ( must be
         one of 'cPattern', 'tPattern')
     @param color: A C{str}, color of bars.
+    @param createFigure: If C{True}, create a figure.
+    @param showFigure: If C{True}, show the created figure.
+    @param readsAx: If not None, use this as the subplot for displaying reads.
     """
     cPattern = ['ACA', 'ACC', 'ACG', 'ACT', 'CCA', 'CCC', 'CCG', 'CCT',
                 'GCA', 'GCC', 'GCG', 'GCT', 'TCA', 'TCC', 'TCG', 'TCT']
@@ -285,7 +284,6 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     data = []
     for item in patterns:
         newData = toPlot[patterns[index]]/divisor
-        #newData = toPlot[patterns[index]]
         data.append(newData)
         index += 1
     # create the bars
@@ -299,10 +297,10 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
         ax.set_ylabel('Absolute Number of Mutations', fontsize=16)
         ax.set_xticks(ind+width)
         xTickNames = ax.set_xticklabels(patterns, rotation=45, fontsize=8)
-    if not createFigure:
+    if createFigure == False:
         ax.set_xticks(ind+width)
         xTickNames = ax.set_xticklabels(patterns, rotation=45, fontsize=0)
-    if createFigure:
+    else:
         if showFigure:
             plt.show()
     return maxY
@@ -327,8 +325,7 @@ def makeFrequencyPanel(allFreqs, patientName):
     colors = ['blue', 'black', 'red', 'yellow', 'green', 'orange']
 
     for i, title in enumerate(titles):
-        index = 0
-        while index < 6:
+        for index in range(6):
             for subst in allFreqs[str(title)]:
                 substitution = substitutions[index]
                 print i, index, title, 'substitution', substitutions[index]
@@ -351,14 +348,12 @@ def makeFrequencyPanel(allFreqs, patientName):
                 try:
                     typeIndex = titles.index('type')
                 except ValueError:
-                    typeIndex = -1
-                if typeIndex > -1:
-                    typeNumber = titles[typeIndex+1]
-                else:
                     typeNumber = 'gi: %s' % gi
+                else:
+                    typeNumber = titles[typeIndex + 1]
 
-                ax[i][index].set_ylabel(('Type %s \n maxBitScore: %s' % (typeNumber, allFreqs[title]['bitScoreMax'])),
-                                        fontsize=10)
+                ax[i][index].set_ylabel(('Type %s \n maxBitScore: %s' %
+                    (typeNumber, allFreqs[title]['bitScoreMax'])), fontsize=10)
             # add xAxis tick labels
             if i == 0:
                 ax[i][index].set_title(substitution, fontsize=13)
@@ -372,15 +367,12 @@ def makeFrequencyPanel(allFreqs, patientName):
                            'CTT', 'GTA', 'GTC', 'GTG', 'GTT', 'TTA', 'TTC',
                            'TTG', 'TTT']
                 ax[i][index].set_xticklabels(pat, rotation=45, fontsize=8)
-            index += 1
 
     # make Y-axis equal
     for i, title in enumerate(allFreqs):
-        index = 0
-        while index < 6:
+        for index in range(6)
             a = ax[i][index]
             a.set_ylim([0, origMaxY])
-            index += 1
     # add title of whole panel
     figure.suptitle('Mutation Signatures in %s' % patientName, fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
