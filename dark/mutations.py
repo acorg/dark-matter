@@ -30,7 +30,6 @@ def basePlotter(blastHits, title):
 
     plotInfo = blastHits.titles[title]['plotInfo']
     items = plotInfo['items']
-    print 'items', len(items)
     count = 0
     for item in items:
         count += 1
@@ -156,7 +155,6 @@ def basePlotter(blastHits, title):
         if comparison[index] == ' ':
             index += 1
         else:
-            print index
             start = index - 1
             assert (start == queryStart or start == -1), (start, queryStart)
 
@@ -243,6 +241,8 @@ def getCompleteFreqs(blastHits):
                 pattern = 'tPattern'
             freqs = getAPOBECFrequencies(basesPlotted, orig, new, pattern)
             allFreqs[title][mutation] = freqs
+        allFreqs[title]['numberOfReads'] = len(blastHits.titles[title]['plotInfo']['items'])
+        allFreqs[title]['bitScoreMax'] = blastHits.titles[title]['plotInfo']['bitScoreMax']
     return allFreqs
 
 
@@ -279,11 +279,13 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     ind = np.arange(N)
     width = 0.4
     # make a list in the right order, so that it can be plotted easily
+    divisor = allFreqs[title]['numberOfReads']
     toPlot = allFreqs[title][substitution]
     index = 0
     data = []
     for item in patterns:
-        newData = toPlot[patterns[index]]
+        newData = toPlot[patterns[index]]/divisor
+        #newData = toPlot[patterns[index]]
         data.append(newData)
         index += 1
     # create the bars
@@ -313,6 +315,10 @@ def makeFrequencyPanel(allFreqs, patientName):
     @param allFreqs: result from getCompleteFreqs
     @param patientName: A C{str}, title for the panel
     """
+    titles = sorted(
+        allFreqs.iterkeys(),
+        key=lambda title: (allFreqs[title]['bitScoreMax'], title))
+
     origMaxY = 0
     cols = 6
     rows = len(allFreqs)
@@ -320,21 +326,22 @@ def makeFrequencyPanel(allFreqs, patientName):
     substitutions = ['C>A', 'C>G', 'C>T', 'T>A', 'T>C', 'T>G']
     colors = ['blue', 'black', 'red', 'yellow', 'green', 'orange']
 
-    for i, title in enumerate(allFreqs):
+    for i, title in enumerate(titles):
         index = 0
-        for subst in allFreqs[title]:
-            substitution = substitutions[index]
-            print i, index, title, 'substitution', substitutions[index]
-            if substitution[0] == 'C':
-                pattern = 'cPattern'
-            else:
-                pattern = 'tPattern'
-            maxY = makeFrequencyGraph(allFreqs, title, substitution,
-                                      pattern, color=colors[index],
-                                      createFigure=False, showFigure=False,
-                                      readsAx=ax[i][index])
-            if maxY > origMaxY:
-                origMaxY = maxY
+        while index < 6:
+            for subst in allFreqs[str(title)]:
+                substitution = substitutions[index]
+                print i, index, title, 'substitution', substitutions[index]
+                if substitution[0] == 'C':
+                    pattern = 'cPattern'
+                else:
+                    pattern = 'tPattern'
+                maxY = makeFrequencyGraph(allFreqs, title, substitution,
+                                          pattern, color=colors[index],
+                                          createFigure=False, showFigure=False,
+                                          readsAx=ax[i][index])
+                if maxY > origMaxY:
+                    origMaxY = maxY
 
             # add title for individual plot.
             # if used for other viruses, this will have to be adapted.
@@ -350,7 +357,7 @@ def makeFrequencyPanel(allFreqs, patientName):
                 else:
                     typeNumber = 'gi: %s' % gi
 
-                ax[i][index].set_ylabel(('Type %s' % (typeNumber)),
+                ax[i][index].set_ylabel(('Type %s \n maxBitScore: %s' % (typeNumber, allFreqs[title]['bitScoreMax'])),
                                         fontsize=10)
             # add xAxis tick labels
             if i == 0:
@@ -370,7 +377,7 @@ def makeFrequencyPanel(allFreqs, patientName):
     # make Y-axis equal
     for i, title in enumerate(allFreqs):
         index = 0
-        for substitution in allFreqs[title]:
+        while index < 6:
             a = ax[i][index]
             a.set_ylim([0, origMaxY])
             index += 1
