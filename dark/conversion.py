@@ -298,6 +298,8 @@ class JSONRecordsReader(object):
                             # L{XMLRecordsReader.convertBlastParamsToDict}
                             # above.
                             _reportIncompatibleParams(record, lineNumber)
+                        elif 'application' in record:
+                            pass
                         else:
                             # A regular BLAST record (as a dict).
                             yield self._convertDictToBlastRecord(record)

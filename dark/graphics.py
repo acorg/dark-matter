@@ -59,9 +59,9 @@ def _sortHTML(hits, by):
         hitInfo = hits.titles[title]
         link = NCBISequenceLink(title, title)
         out.append(
-            '%3d: count=%4d, len=%7d, min(e)=%20s median(e)=%20s: %s' %
+            '%3d: count=%4d, len=%7d, min(bit)=%20s median(bit)=%20s: %s' %
             (i, hitInfo['readCount'], hitInfo['length'],
-             hitInfo['eMin'], hitInfo['eMedian'], link))
+             hitInfo['minBitScore'], hitInfo['medianBitScore'], link))
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
@@ -442,7 +442,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     if plot == 'e values' and plotInfo['zeroEValueFound']:
         # Add the horizontal divider between the highest e-value and the
         # randomly higher ones (if any).
-        readsAx.axhline(y=maxY + 0.5, color='#cccccc', linewidth=1)
+        readsAx.axhline(y=maxY + 0.5, color='#cccccc', linewidth=0.5)
 
     # Titles, axis, etc.
     if createFigure:
