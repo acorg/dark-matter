@@ -6,7 +6,6 @@ pyzmq
 matplotlib
 pandas
 simplejson
-pygame
 pytagcloud
 discover
 reportlab
