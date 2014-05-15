@@ -123,7 +123,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--sortOn', type=str, default='bitScoreMax',
         choices=['eMean', 'eMedian', 'eMin', 'bitScoreMax', 'bitScoreMean',
-                 'bitScoreMedian', 'readCount', 'length', 'title']
+                 'bitScoreMedian', 'readCount', 'length', 'title'],
         help='The attribute to sort subplots on.')
 
     parser.add_argument(
