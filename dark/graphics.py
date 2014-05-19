@@ -59,9 +59,9 @@ def _sortHTML(hits, by):
         hitInfo = hits.titles[title]
         link = NCBISequenceLink(title, title)
         out.append(
-            '%3d: count=%4d, len=%7d, min(bit)=%20s median(bit)=%20s: %s' %
+            '%3d: count=%4d, len=%7d, max(bit)=%20s median(bit)=%20s: %s' %
             (i, hitInfo['readCount'], hitInfo['length'],
-             hitInfo['minBitScore'], hitInfo['medianBitScore'], link))
+             hitInfo['bitScoreMax'], hitInfo['bitScoreMedian'], link))
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
