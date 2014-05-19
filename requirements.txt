@@ -6,7 +6,6 @@ pyzmq
 matplotlib
 pandas
 simplejson
-pygame
 pytagcloud
 discover
 reportlab
@@ -14,4 +13,3 @@ pep8
 pyflakes
 mock
 MySQL-python
-MySQLdb

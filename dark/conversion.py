@@ -297,14 +297,17 @@ class JSONRecordsReader(object):
                             'Line is %r.' %
                             (lineNumber, self._filename, e, line[:-1]))
                     else:
-                        if 'application' in record and self.params != record:
+                        if 'application' in record:
                             # This is another params section. Check it against
                             # the already read params (from the first line of
                             # the file).  The 'application' key is just one of
                             # the many attributes we save into a JSON dict in
                             # L{XMLRecordsReader.convertBlastParamsToDict}
                             # above.
-                            _reportIncompatibleParams(record, lineNumber)
+                            if self.params != record:
+                                _reportIncompatibleParams(record, lineNumber)
+                            else:
+                                pass
                         else:
                             # A regular BLAST record (as a dict).
                             yield self._convertDictToBlastRecord(record)
