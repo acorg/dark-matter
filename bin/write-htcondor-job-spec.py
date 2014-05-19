@@ -170,7 +170,7 @@ for i in "$@"
 do
     /syn/terry/.virtualenvs/dm/bin/python \
     /syn/terry/dark-matter/dark-matter/bin/convert-blast-xml-to-json.py \
-    $i.xml $i.json
+        $i.xml | bzip2 > $i.json.bz2
     date > $i.done
 done
 """ % params)
@@ -220,8 +220,8 @@ do
         then
             if [ -s $xml ]
             then
-                echo convert-blast-xml-to-json.py $xml $json
-                convert-blast-xml-to-json.py $xml $json
+                echo "convert-blast-xml-to-json.py $xml | bzip > $json.bz2"
+                convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2
             else
                 echo "WARNING: $xml is empty. Job $n should be re-run." >&2
                 redo="$redo $n"
@@ -230,8 +230,8 @@ do
     else
         if [ -s $xml ]
         then
-            echo convert-blast-xml-to-json.py $xml $json
-            convert-blast-xml-to-json.py $xml $json
+            echo "convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2"
+            convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2
         else
             echo "WARNING: $json does not exist. Job $n should be re-run." >&2
             redo="$redo $n"
