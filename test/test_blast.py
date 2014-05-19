@@ -327,6 +327,131 @@ class TestBlastRecords(TestCase):
             self.assertEqual('QUERY-1', records[0].query)
             self.assertEqual('QUERY-2', records[1].query)
 
+    def testThreeCompressedJSONInputs(self):
+        """
+        If three compressed (bz2) JSON files are passed to L{BlastRecords} with
+        names that have a numeric prefix and each with a parameters section and
+        one record, all records must be read correctly and the result should
+        have 3 records in the correct order.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record1 = {
+            'query': 'QUERY-1',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        record2 = {
+            'query': 'QUERY-2',
+            'alignments': [
+                {
+                    'length': 35000,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        record3 = {
+            'query': 'QUERY-3',
+            'alignments': [
+                {
+                    'length': 35000,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        class BZ2(object):
+            """
+            A BZ2File mock.
+            """
+            def __init__(self, data):
+                self._data = data
+
+            def close(self):
+                pass
+
+            def __iter__(self):
+                return iter(self._data)
+
+        class SideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename):
+                if self.count == 0:
+                    self.test.assertEqual('1.json.bz2', filename)
+                    self.count += 1
+                    return BZ2([dumps(params) + '\n', dumps(record1) + '\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('2.json.bz2', filename)
+                    self.count += 1
+                    return BZ2([dumps(params) + '\n', dumps(record2) + '\n'])
+                else:
+                    self.test.assertEqual('3.json.bz2', filename)
+                    return BZ2([dumps(params) + '\n', dumps(record3) + '\n'])
+
+        sideEffect = SideEffect(self)
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            blastRecords = BlastRecords(
+                # Note the files are passed out of order. Their names will
+                # be sorted before they are opened. The sorting of the names
+                # is verified in the SideEffect class, above.
+                ['3.json.bz2', '1.json.bz2', '2.json.bz2'], None, None)
+            records = list(blastRecords.records())
+            self.assertEqual(3, len(records))
+            self.assertEqual('QUERY-1', records[0].query)
+            self.assertEqual('QUERY-2', records[1].query)
+            self.assertEqual('QUERY-3', records[2].query)
+
     def testLimitZero(self):
         """
         If the L{BlastRecords} is limited to reading zero records that limit
