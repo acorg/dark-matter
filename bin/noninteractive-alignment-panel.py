@@ -25,7 +25,7 @@ if __name__ == '__main__':
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
-        'fasta', metavar='FASTA-file', type=str,
+        '--fasta', metavar='FASTA-file', type=str,
         help='the FASTA file of sequences that were given to BLAST.')
 
     # Args for the interesting selection.
