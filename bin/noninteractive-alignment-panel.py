@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', type=str,
+        'json', metavar='BLAST-JSON-file', type=str, nargs='+',
         help='the JSON file of BLAST output.')
 
     parser.add_argument(

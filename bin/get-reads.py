@@ -7,7 +7,7 @@ import argparse
 from dark.blast import BlastRecords
 
 
-def main(recordFilename, fastaFilename, title, xRange, eRange):
+def main(recordFilenames, fastaFilename, title, xRange, eRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
     recordFilename: the result of a blast run, using outfmt 5.
@@ -18,7 +18,7 @@ def main(recordFilename, fastaFilename, title, xRange, eRange):
         is optional and should be a converted value or an interval of
         converted evalues.
     """
-    blastRecords = BlastRecords(recordFilename, fastaFilename)
+    blastRecords = BlastRecords(recordFilenames, fastaFilename)
     hits = blastRecords.filterHits(whitelist=set([title]),
                                    negativeTitleRegex='.')
     if title not in hits.titles:
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                 'eRange, print the reads that are within the given Ranges.'))
 
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', type=str,
+        'json', metavar='BLAST-JSON-file', type=str, nargs='+',
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
