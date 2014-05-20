@@ -631,16 +631,16 @@ class BlastHits(object):
         if self.records.limit is None:
             assert len(fasta) == len(self.records), (
                 'Sanity check failed: mismatched BLAST and FASTA files. '
-                'BLAST file %r contains %d records, whereas FASTA file '
+                'BLAST files %r contain %d records, whereas FASTA file '
                 '%r contains %d sequences.' %
-                (self.records.blastFilename, len(self.records),
+                (self.records.blastFilenames, len(self.records),
                  self.records.fastaFilename, len(fasta)))
         else:
             assert len(fasta) >= len(self.records), (
                 'Sanity check failed: mismatched BLAST and FASTA files. '
-                'BLAST file %r contains at least %d records, whereas '
+                'BLAST files %r contain at least %d records, whereas '
                 'FASTA file %r only contains %d sequences.' %
-                (self.records.blastFilename, self.records.limit,
+                (self.records.blastFilenames, self.records.limit,
                  self.records.fastaFilename, len(fasta)))
             # Truncate the FASTA to match the limit we have on the
             # number of BLAST records.
