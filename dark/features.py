@@ -51,7 +51,11 @@ class _Feature(object):
             in the description are not offset-adjusted because the offset-
             adjusted values do not correspond to anything meaningful.
         """
-        excludedQualifiers = set(('db_xref', 'region_name'))
+        excludedQualifiers = set((
+            'codon_start', 'db_xref', 'protein_id', 'region_name',
+            'ribosomal_slippage', 'rpt_type', 'translation', 'transl_except',
+            'transl_table')
+        )
         maxValueLength = 30
         result = []
         for qualifier in sorted(self.feature.qualifiers.keys()):
@@ -62,7 +66,7 @@ class _Feature(object):
                 if len(value) > maxValueLength:
                     value = value[:maxValueLength - 3] + '...'
                 result.append('%s: %s' % (qualifier, value))
-        return '%d-%d %s%s: %s' % (int(self.feature.location.start),
+        return '%d-%d %s%s. %s' % (int(self.feature.location.start),
                                    int(self.feature.location.end),
                                    self.feature.type,
                                    ' (subfeature)' if self.subfeature else '',
@@ -227,17 +231,18 @@ class ProteinFeatureAdder(_FeatureAdder):
                      linewidth=2)
             labels.append(feature.legendLabel())
 
-        # Note that minX and maxX do not need to be adjustted by the offset
+        # Note that minX and maxX do not need to be adjusted by the offset
         # adjuster. They are the already-adjusted min/max values as
         # computed in computePlotInfo in blast.py
         fig.axis([minX, maxX, (len(features) + 1) * -0.2, 0.2])
 
-        # Put a legend above the figure.
-        box = fig.get_position()
-        fig.set_position([box.x0, box.y0,
-                          box.width, box.height * 0.2])
-        fig.legend(labels, loc='lower center', bbox_to_anchor=(0.5, 1.4),
-                   fancybox=True, shadow=True, ncol=2)
+        if labels:
+            # Put a legend above the figure.
+            box = fig.get_position()
+            fig.set_position([box.x0, box.y0,
+                              box.width, box.height * 0.2])
+            fig.legend(labels, loc='lower center', bbox_to_anchor=(0.5, 1.4),
+                       fancybox=True, shadow=True, ncol=2)
 
 
 class NucleotideFeatureAdder(_FeatureAdder):
@@ -247,7 +252,7 @@ class NucleotideFeatureAdder(_FeatureAdder):
     """
 
     DATABASE = 'nucleotide'
-    WANTED_TYPES = ('CDS', 'mat_peptide', 'rRNA')
+    WANTED_TYPES = ('CDS', 'mat_peptide', 'repeat_region', 'rRNA')
 
     def _displayFeatures(self, fig, features, minX, maxX):
         """
@@ -263,9 +268,6 @@ class NucleotideFeatureAdder(_FeatureAdder):
         for feature in features:
             start = feature.start()
             end = feature.end()
-            gene = feature.feature.qualifiers.get('gene', ['<no gene>'])[0]
-            product = feature.feature.qualifiers.get(
-                'product', ['<no product>'])[0]
             if feature.subfeature:
                 subfeatureFrame = start % 3
                 if subfeatureFrame == frame:
@@ -278,20 +280,25 @@ class NucleotideFeatureAdder(_FeatureAdder):
                 frame = start % 3
                 # If we have a polyprotein, shift it up slightly so we can see
                 # its components below it.
+                product = feature.feature.qualifiers.get('product', [''])[0]
                 if product.lower().find('polyprotein') > -1:
                     y = frame + 0.2
                 else:
                     y = frame
             fig.plot([start, end], [y, y], color=feature.color, linewidth=2)
-            labels.append('%d-%d: %s (%s)' % (start, end, gene, product))
+            labels.append(feature.legendLabel())
 
-        # Note that minX and maxX do not need to be adjustted by the offset
+        # Note that minX and maxX do not need to be adjusted by the offset
         # adjuster. They are the already-adjusted min/max values as
         # computed in computePlotInfo in blast.py
-        fig.axis([minX, maxX, -1, 6])
+        fig.axis([minX, maxX, -0.5, 2.5])
         fig.set_yticks(np.arange(3))
-        fig.set_ylabel('Frame', fontsize=17)
+        fig.set_ylabel('Frame')
+
         if labels:
-            # fig.legend(labels, bbox_to_anchor=(0.0, 1.1, 1.0, 0.102), loc=3,
-            # ncol=3, mode='expand', borderaxespad=0.)
-            fig.legend(labels, loc='upper left', ncol=3, shadow=True)
+            # Put a legend above the figure.
+            box = fig.get_position()
+            fig.set_position([box.x0, box.y0,
+                              box.width, box.height * 0.3])
+            fig.legend(labels, loc='lower center', bbox_to_anchor=(0.5, 2.5),
+                       fancybox=True, shadow=True, ncol=2)

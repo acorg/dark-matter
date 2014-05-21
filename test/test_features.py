@@ -98,7 +98,7 @@ class Test_Feature(TestCase):
         seqFeature = SeqFeature(location=location, type='site',
                                 qualifiers=qualifiers)
         feature = _Feature(seqFeature, identity)
-        self.assertEqual('100-200 site: note: Capsid protein',
+        self.assertEqual('100-200 site. note: Capsid protein',
                          feature.legendLabel())
 
     def testLegendLabelQualifiersSorted(self):
@@ -114,7 +114,7 @@ class Test_Feature(TestCase):
         seqFeature = SeqFeature(location=location, type='site',
                                 qualifiers=qualifiers)
         feature = _Feature(seqFeature, identity)
-        self.assertEqual('100-200 site: note: Capsid protein, product: CP1',
+        self.assertEqual('100-200 site. note: Capsid protein, product: CP1',
                          feature.legendLabel())
 
     def testLegendLabelTruncatesValues(self):
@@ -130,7 +130,7 @@ class Test_Feature(TestCase):
                                 qualifiers=qualifiers)
         feature = _Feature(seqFeature, identity)
         xs = 'x' * 27 + '...'
-        self.assertEqual('100-200 site: note: %s' % xs,
+        self.assertEqual('100-200 site. note: %s' % xs,
                          feature.legendLabel())
 
 
@@ -460,7 +460,7 @@ class TestProteinFeatureAdder(TestCase):
             linewidth=2)
         fig.axis.assert_called_with([0, 300, -0.4, 0.2])
         fig.legend.assert_called_with(
-            ['100-200 Site: a: b'], loc='lower center', shadow=True,
+            ['100-200 Site. a: b'], loc='lower center', shadow=True,
             bbox_to_anchor=(0.5, 1.4), ncol=2, fancybox=True)
         self.assertTrue(isinstance(result, _FeatureList))
         self.assertEqual(1, len(result))
@@ -491,7 +491,7 @@ class TestProteinFeatureAdder(TestCase):
             linewidth=2)
         fig.axis.assert_called_with([0, 300, -0.4, 0.2])
         fig.legend.assert_called_with(
-            ['100-200 Site: a: b'], loc='lower center', shadow=True,
+            ['100-200 Site. a: b'], loc='lower center', shadow=True,
             bbox_to_anchor=(0.5, 1.4), ncol=2, fancybox=True)
         self.assertTrue(isinstance(result, _FeatureList))
         self.assertEqual(1, len(result))
@@ -545,10 +545,11 @@ class TestNucleotideFeatureAdder(TestCase):
             [100, 200], [1, 1],
             color=(0.2298057, 0.298717966, 0.75368315299999999, 1.0),
             linewidth=2)
-        fig.axis.assert_called_with([0, 300, -1, 6])
+        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
         fig.legend.assert_called_with(
-            ['100-200: <no gene> (<no product>)'], loc='upper left',
-            shadow=True, ncol=3)
+            ['100-200 CDS. a: b'], loc='lower center',
+            shadow=True, ncol=2, fancybox=True,
+            bbox_to_anchor=(0.5, 2.5))
         self.assertTrue(isinstance(result, _FeatureList))
         self.assertEqual(1, len(result))
 
@@ -579,10 +580,11 @@ class TestNucleotideFeatureAdder(TestCase):
             [300, 600], [0, 0],
             color=(0.2298057, 0.298717966, 0.75368315299999999, 1.0),
             linewidth=2)
-        fig.axis.assert_called_with([0, 300, -1, 6])
+        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
         fig.legend.assert_called_with(
-            ['300-600: <no gene> (<no product>)'], loc='upper left',
-            shadow=True, ncol=3)
+            ['100-200 CDS. a: b'], loc='lower center',
+            shadow=True, ncol=2, fancybox=True,
+            bbox_to_anchor=(0.5, 2.5))
         self.assertTrue(isinstance(result, _FeatureList))
         self.assertEqual(1, len(result))
 
@@ -613,11 +615,12 @@ class TestNucleotideFeatureAdder(TestCase):
                 call([100, 200], [1, 1], color=ANY, linewidth=2),
                 call([130, 150], [0.8, 0.8], color=ANY, linewidth=2),
             ])
-        fig.axis.assert_called_with([0, 300, -1, 6])
+        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
         fig.legend.assert_called_with(
-            ['100-200: <no gene> (<no product>)',
-             '130-150: <no gene> (<no product>)'],
-            loc='upper left', shadow=True, ncol=3)
+            ['100-200 CDS. a: b',
+             '130-150 CDS (subfeature). a: b'],
+            loc='lower center', shadow=True, ncol=2, fancybox=True,
+            bbox_to_anchor=(0.5, 2.5))
         self.assertTrue(isinstance(result, _FeatureList))
         self.assertEqual(2, len(result))
 
@@ -649,10 +652,11 @@ class TestNucleotideFeatureAdder(TestCase):
                 call([100, 200], [1.2, 1.2], color=ANY, linewidth=2),
                 call([130, 150], [1.0, 1.0], color=ANY, linewidth=2),
             ])
-        fig.axis.assert_called_with([0, 300, -1, 6])
+        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
         fig.legend.assert_called_with(
-            ['100-200: <no gene> (a polyprotein)',
-             '130-150: <no gene> (<no product>)'],
-            loc='upper left', shadow=True, ncol=3)
+            ['100-200 CDS. product: a polyprotein',
+             '130-150 CDS. a: b'],
+            loc='lower center', shadow=True, ncol=2, fancybox=True,
+            bbox_to_anchor=(0.5, 2.5))
         self.assertTrue(isinstance(result, _FeatureList))
         self.assertEqual(2, len(result))
