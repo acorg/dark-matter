@@ -3,7 +3,7 @@ from json import dumps
 from mock import patch
 from unittest import TestCase
 
-from dark.blast import BlastHits, BlastRecords
+from dark.blast import BlastHits, BlastRecords, numericallySortFilenames
 from mocking import mockOpen
 
 
@@ -236,6 +236,221 @@ class TestBlastRecords(TestCase):
             mockMethod.return_value = result
             blastRecords = BlastRecords('file.json.bz2', None, None)
             self.assertEqual(1, len(list(blastRecords.records())))
+
+    def testTwoCompressedJSONInputs(self):
+        """
+        If two compressed (bz2) JSON files are passed to L{BlastRecords} each
+        with a parameters section and one record, both records must be read
+        correctly and the result should have 2 records.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record1 = {
+            'query': 'QUERY-1',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        record2 = {
+            'query': 'QUERY-2',
+            'alignments': [
+                {
+                    'length': 35000,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        class BZ2(object):
+            """
+            A BZ2File mock.
+            """
+            def __init__(self, data):
+                self._data = data
+
+            def close(self):
+                pass
+
+            def __iter__(self):
+                return iter(self._data)
+
+        class SideEffect(object):
+            def __init__(self):
+                self.first = True
+
+            def sideEffect(self, _ignoredFilename):
+                if self.first:
+                    self.first = False
+                    return BZ2([dumps(params) + '\n', dumps(record1) + '\n'])
+                else:
+                    return BZ2([dumps(params) + '\n', dumps(record2) + '\n'])
+
+        sideEffect = SideEffect()
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            blastRecords = BlastRecords(
+                ['file1.json.bz2', 'file2.json.bz2'], None, None)
+            records = list(blastRecords.records())
+            self.assertEqual(2, len(records))
+            self.assertEqual('QUERY-1', records[0].query)
+            self.assertEqual('QUERY-2', records[1].query)
+
+    def testThreeCompressedJSONInputs(self):
+        """
+        If three compressed (bz2) JSON files are passed to L{BlastRecords} with
+        names that have a numeric prefix and each with a parameters section and
+        one record, all records must be read correctly and the result should
+        have 3 records in the correct order.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+
+        record1 = {
+            'query': 'QUERY-1',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        record2 = {
+            'query': 'QUERY-2',
+            'alignments': [
+                {
+                    'length': 35000,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        record3 = {
+            'query': 'QUERY-3',
+            'alignments': [
+                {
+                    'length': 35000,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 3.29804,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                }
+            ]
+        }
+
+        class BZ2(object):
+            """
+            A BZ2File mock.
+            """
+            def __init__(self, data):
+                self._data = data
+
+            def close(self):
+                pass
+
+            def __iter__(self):
+                return iter(self._data)
+
+        class SideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename):
+                if self.count == 0:
+                    self.test.assertEqual('1.json.bz2', filename)
+                    self.count += 1
+                    return BZ2([dumps(params) + '\n', dumps(record1) + '\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('2.json.bz2', filename)
+                    self.count += 1
+                    return BZ2([dumps(params) + '\n', dumps(record2) + '\n'])
+                else:
+                    self.test.assertEqual('3.json.bz2', filename)
+                    return BZ2([dumps(params) + '\n', dumps(record3) + '\n'])
+
+        sideEffect = SideEffect(self)
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            blastRecords = BlastRecords(
+                # Note the files are passed out of order. Their names will
+                # be sorted before they are opened. The sorting of the names
+                # is verified in the SideEffect class, above.
+                ['3.json.bz2', '1.json.bz2', '2.json.bz2'], None, None)
+            records = list(blastRecords.records())
+            self.assertEqual(3, len(records))
+            self.assertEqual('QUERY-1', records[0].query)
+            self.assertEqual('QUERY-2', records[1].query)
+            self.assertEqual('QUERY-3', records[2].query)
 
     def testLimitZero(self):
         """
@@ -1468,3 +1683,49 @@ class TestComputePlotInfo(TestCase):
             # And we must be able to sort without error.
             self.assertEqual(['title-a'],
                              blastHits.sortTitlesOnPlotInfo('eMin'))
+
+
+class TestNumericallySortFilenames(TestCase):
+    """
+    Test the numericallySortFilenames function.
+    """
+
+    def testNoNames(self):
+        """
+        An empty list must be returned when an empty list is given.
+        """
+        self.assertEqual([], numericallySortFilenames([]))
+
+    def testOneNonNumericName(self):
+        """
+        A list with a single non-numeric name should result in that same
+        name being returned.
+        """
+        self.assertEqual(['hey'], numericallySortFilenames(['hey']))
+
+    def testOneNumericName(self):
+        """
+        A list with a single numeric name should result in that same
+        name being returned.
+        """
+        self.assertEqual(['3.json'], numericallySortFilenames(['3.json']))
+
+    def testSeveralNames(self):
+        """
+        A list with several numeric names should result in a correctly
+        sorted list of names being returned.
+        """
+        self.assertEqual(
+            ['1.json', '2.json', '3.json'],
+            numericallySortFilenames(['3.json', '1.json', '2.json']))
+
+    def testSeveralNamesWithUnequalPrefixLengths(self):
+        """
+        A list with several numeric names whose numeric prefixes differ
+        in length should result in a correctly sorted list of names being
+        returned.
+        """
+        self.assertEqual(
+            ['2.json', '3.json', '21.json', '35.json', '250.json'],
+            numericallySortFilenames(
+                ['3.json', '21.json', '35.json', '250.json', '2.json']))

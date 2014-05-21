@@ -9,9 +9,9 @@ from dark.blast import BlastRecords
 
 if __name__ == '__main__':
     import sys
-    if len(sys.argv) != 2:
-        print >>sys.stderr, 'Usage: %s BLAST-file.{json,xml}' % sys.argv[0]
+    if len(sys.argv) < 2:
+        print >>sys.stderr, 'Usage: %s BLAST-file.{json,xml}...' % sys.argv[0]
     else:
-        blastRecords = BlastRecords(sys.argv[1])
+        blastRecords = BlastRecords(sys.argv[1:])
         for record in blastRecords.records():
             print len(record.alignments), record.query

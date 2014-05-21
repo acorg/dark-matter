@@ -1,3 +1,4 @@
+import string
 from math import log10
 import numpy as np
 from random import uniform
@@ -37,23 +38,65 @@ def printBlastRecord(record):
             printHSP(hsp, '        ')
 
 
+def numericallySortFilenames(names):
+    """
+    Sort (ascending) a list of file names by their numerical prefixes.
+
+    @param: A C{list} of file names, each of which starts with a string of
+        digits.
+
+    @return: The sorted C{list}.
+    """
+
+    def extractNumericPrefix(name):
+        """
+        Find any numeric prefix at the start of C{name} and return it as an
+        C{int}.
+
+        @param: A C{str} file name, possibly starting with some digits.
+        @return: The C{int} number at the start of the name, else 0 if there
+            are no leading digits.
+        """
+        count = 0
+        for ch in name:
+            if ch in string.digits:
+                count += 1
+            else:
+                break
+        return 0 if count == 0 else int(name[0:count])
+
+    return sorted(names, key=lambda name: extractNumericPrefix(name))
+
+
 class BlastRecords(object):
     """
     Hold information about a set of BLAST records.
 
-    @param blastFilename: the C{str} file name containing the BLAST output.
-        This can either be an XML (-outfmt 5) BLAST output file or our
-        smaller converted JSON equivalent (produced by
-        bin/convert-blast-xml-to-json.py from a BLAST XML file).
-    @param blastDb: the BLAST database used.
+    @param blastFilenames: Either a single C{str} filename or a C{list} of
+        C{str} file names containing BLAST output. Files can either be XML
+        (-outfmt 5) BLAST output file or our smaller (possibly bzip2
+        compressed) converted JSON equivalent produced by
+        C{bin/convert-blast-xml-to-json.py} from a BLAST XML file.
     @param fastaFilename: the C{str} file name containing the sequences that
-        were given to BLAST as queries.
+        were given to BLAST as queries. Note that the order of the sequences
+        in the FASTA file *MUST* match the order of the records in the BLAST
+        output files.
+    @param blastDb: the BLAST database used.
     @param limit: An C{int} limit on the number of records to read.
+    @param sortBlastFilenames: A C{bool}. If C{True}, C{blastFilenames} will be
+        sorted by numeric prefix (using L{numericallySortFilenames}) before
+        being read. This can be used to conveniently sort the files produced
+        by our HTCondor jobs.
     """
 
-    def __init__(self, blastFilename, fastaFilename=None, blastDb=None,
-                 limit=None):
-        self.blastFilename = blastFilename
+    def __init__(self, blastFilenames, fastaFilename=None, blastDb=None,
+                 limit=None, sortBlastFilenames=True):
+        if type(blastFilenames) == str:
+            blastFilenames = [blastFilenames]
+        if sortBlastFilenames:
+            self.blastFilenames = numericallySortFilenames(blastFilenames)
+        else:
+            self.blastFilenames = blastFilenames
         self.fastaFilename = fastaFilename
         self.blastDb = blastDb
         self.limit = limit
@@ -67,26 +110,33 @@ class BlastRecords(object):
         @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
             instances.
         """
-        if self.blastFilename.endswith('.xml'):
-            reader = XMLRecordsReader(self.blastFilename)
-        elif (self.blastFilename.endswith('.json') or
-              self.blastFilename.endswith('.json.bz2')):
-            reader = JSONRecordsReader(self.blastFilename)
-        else:
-            raise ValueError('Unknown BLAST record file type.')
 
         # Read the records, observing any given limit.
         count = 0
         limit = self.limit
-        for record in reader.records():
-            if count == 0:
-                # Set our BLAST params as early as possible, so our caller
-                # has them accessible as soon as we've returned anything.
-                self.blastParams = reader.params
-            if limit is not None and count == limit:
+        done = False
+        for blastFilename in self.blastFilenames:
+            if done:
                 break
-            count += 1
-            yield record
+            if blastFilename.endswith('.xml'):
+                reader = XMLRecordsReader(blastFilename)
+            elif (blastFilename.endswith('.json') or
+                  blastFilename.endswith('.json.bz2')):
+                reader = JSONRecordsReader(blastFilename)
+            else:
+                raise ValueError('Unknown BLAST file suffix for file %r.' %
+                                 blastFilename)
+
+            for record in reader.records():
+                if count == 0:
+                    # Set our BLAST params as early as possible, so our caller
+                    # has them accessible as soon as we've returned anything.
+                    self.blastParams = reader.params
+                if limit is not None and count == limit:
+                    done = True
+                    break
+                count += 1
+                yield record
 
         # If there were no records, we wont have set self.blastParams in
         # the loop above. Set it here too, just in case :-(
@@ -581,16 +631,16 @@ class BlastHits(object):
         if self.records.limit is None:
             assert len(fasta) == len(self.records), (
                 'Sanity check failed: mismatched BLAST and FASTA files. '
-                'BLAST file %r contains %d records, whereas FASTA file '
+                'BLAST files %r contain %d records, whereas FASTA file '
                 '%r contains %d sequences.' %
-                (self.records.blastFilename, len(self.records),
+                (self.records.blastFilenames, len(self.records),
                  self.records.fastaFilename, len(fasta)))
         else:
             assert len(fasta) >= len(self.records), (
                 'Sanity check failed: mismatched BLAST and FASTA files. '
-                'BLAST file %r contains at least %d records, whereas '
+                'BLAST files %r contain at least %d records, whereas '
                 'FASTA file %r only contains %d sequences.' %
-                (self.records.blastFilename, self.records.limit,
+                (self.records.blastFilenames, self.records.limit,
                  self.records.fastaFilename, len(fasta)))
             # Truncate the FASTA to match the limit we have on the
             # number of BLAST records.

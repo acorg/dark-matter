@@ -4,13 +4,13 @@ import sys
 
 from dark.blast import BlastRecords
 
-if len(sys.argv) != 3:
+if len(sys.argv) < 3:
     print >>sys.stderr, (
-        'Usage: %s record-file.(xml|json) title' % sys.argv[0])
+        'Usage: %s title record-file.(xml|json)...' % sys.argv[0])
     sys.exit(1)
 else:
-    recordFile, title = sys.argv[1:]
-    blastRecords = BlastRecords(recordFile)
+    title = sys.argv[1]
+    blastRecords = BlastRecords(sys.argv[2:])
     hits = blastRecords.filterHits(whitelist=set([title]),
                                    negativeTitleRegex='.')
     if title in hits.titles:
