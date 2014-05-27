@@ -650,7 +650,7 @@ class BlastHits(object):
     def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
                         minStart=None, maxStop=None, logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-                        randomizeZeroEValues=False, rankValues=False):
+                        randomizeZeroEValues=True, rankValues=False):
         """
         Read detailed HSP information about the hit titles in C{self.titles}
         and compute summary statistics on it. The various parameters allow
