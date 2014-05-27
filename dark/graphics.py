@@ -511,7 +511,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
 
 
 def alignmentPanel(blastHits, sortOn='bitScoreMax', interactive=True,
-                   outputDir=None, idList=False, equalizeXAxes=True,
+                   outputDir=None, idList=False, equalizeXAxes=False,
                    xRange='subject', plot='e values'):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
