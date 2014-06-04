@@ -45,7 +45,7 @@ def fastaSubset(inFile, readIds, present=True):
                 wanted.remove(read.id)
         else:
             if read.id not in wanted:
-                found.append(read.id)
+                found.append(read)
             if read.id in wanted:
                 wanted.remove(read.id)
 
@@ -57,7 +57,6 @@ def fastaSubset(inFile, readIds, present=True):
         print >>sys.stderr, 'WARNING: %d sequence%s not found: %s' % (
             len(wanted), '' if len(wanted) == 1 else 's were',
             ' '.join(wanted))
-        sys.exit(1)
 
 
 def fastaSubtract(fastaFiles):
@@ -81,7 +80,8 @@ def fastaSubtract(fastaFiles):
         if allReadIds.count(readId) == total:
             commonReadIds.append(readId)
 
-    fastaSubset(fastaFiles[0], commonReadIds, present=True)
+    found = fastaSubset(fastaFiles[0], commonReadIds, present=True)
+    return found
 
 
 def getReadsIdsFromBlast(blastFilenames, eCutoff=None, bitCutoff=None):
@@ -102,35 +102,35 @@ def getReadsIdsFromBlast(blastFilenames, eCutoff=None, bitCutoff=None):
             equal to this will be ignored.
     """
 
-    def records(blastFile):
+    def records(blastFilenames):
         """
         Extract all BLAST records (up to C{self.limit}, if not C{None}).
 
         @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
             instances.
         """
-        if blastFile.endswith('.xml'):
-            reader = XMLRecordsReader(blastFile)
-        elif (blastFile.endswith('.json') or
-              blastFile.endswith('.json.bz2')):
-            reader = JSONRecordsReader(blastFile)
-        else:
-            raise ValueError('Unknown BLAST file suffix for file %r.' %
-                             blastFile)
+        for blastFile in blastFilenames:
+            if blastFile.endswith('.xml'):
+                reader = XMLRecordsReader(blastFile)
+            elif (blastFile.endswith('.json') or
+                  blastFile.endswith('.json.bz2')):
+                reader = JSONRecordsReader(blastFile)
+            else:
+                raise ValueError('Unknown BLAST file suffix for file %r.' %
+                                 blastFile)
 
-        for record in reader.records():
-            yield record
+            for record in reader.records():
+                yield record
 
     readIds = []
-    for blastFile in blastFilenames:
-        for readNum, record in records(blastFile):
-            for index, alignment in enumerate(record.alignments):
-                if eCutoff:
-                    if alignment.hsps[0].expect <= eCutoff:
-                        readIds.append(record.query)
-                elif bitCutoff:
-                    if alignment.hsps[0].bits >= bitCutoff:
-                        readIds.append(record.query)
+    for readNum, record in records(blastFilenames):
+        for index, alignment in enumerate(record.alignments):
+            if eCutoff:
+                if alignment.hsps[0].expect <= eCutoff:
+                    readIds.append(record.query)
+            elif bitCutoff:
+                if alignment.hsps[0].bits >= bitCutoff:
+                    readIds.append(record.query)
 
     return readIds
 

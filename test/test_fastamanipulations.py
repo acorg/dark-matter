@@ -3,7 +3,7 @@ from cStringIO import StringIO
 from mocking import mockOpen
 from json import dumps
 from mock import patch
-
+from Bio import SeqIO, SeqRecord, Seq
 from dark import fastamanipulations
 
 
@@ -18,7 +18,7 @@ class TestFastaSubset(TestCase):
         readIds = []
         result = fastamanipulations.fastaSubset(StringIO(fasta),
                                                 readIds, present=True)
-        self.assertEqual(result, 1)
+        self.assertEqual(result, None)
 
     def testNoReadIdsPresentFalse(self):
         fasta = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
@@ -26,7 +26,7 @@ class TestFastaSubset(TestCase):
         readIds = []
         result = fastamanipulations.fastaSubset(StringIO(fasta),
                                                 readIds, present=False)
-        self.assertEqual(result, [])
+        self.assertEqual(result, '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\natggctattgaactgtatct')
 
     def testNoReadIdsInFasta(self):
         fasta = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
@@ -34,23 +34,25 @@ class TestFastaSubset(TestCase):
         readIds = ['hola', 'there']
         result = fastamanipulations.fastaSubset(StringIO(fasta),
                                                 readIds, present=True)
-        self.assertEqual(result, 1)
+        self.assertEqual(result, None)
 
     def testReadIdsPresentTrue(self):
         fasta = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
             atggctattgaactgtatct'
-        readIds = ['hey', 'you']
+        fakeResult = SeqIO.read(StringIO('>are\natggctattgaactgtatct'), 'fasta')
+        readIds = ['hey', 'you', 'how']
         result = fastamanipulations.fastaSubset(StringIO(fasta),
                                                 readIds, present=True)
-        self.assertEqual(result, '>hey\nagtcagtcagtc\n>you\nacctg')
+        self.assertEqual(result, [fakeResult])
 
     def testReadIdsPresentFalse(self):
         fasta = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
             atggctattgaactgtatct'
-        readIds = ['hey', 'you']
+        fakeResult = SeqIO.read(StringIO('>hey\nagtcagtcagtc'), 'fasta')
+        readIds = ['hey']
         result = fastamanipulations.fastaSubset(StringIO(fasta),
                                                 readIds, present=True)
-        self.assertEqual(result, 'how\natgggtc\n>are\natggctattgaactgtatct')
+        self.assertEqual(result, [fakeResult])
 
 
 class TestFastaSubtract(TestCase):
@@ -66,7 +68,7 @@ class TestFastaSubtract(TestCase):
 
         result = fastamanipulations.fastaSubtract([StringIO(fasta1),
                                                   StringIO(fasta3)])
-        self.assertEqual(result, ['hey', 'you'])
+        self.assertEqual(result, [])
 
     def testThreeFastaFiles(self):
         fasta1 = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
@@ -79,7 +81,7 @@ class TestFastaSubtract(TestCase):
         result = fastamanipulations.fastaSubtract([StringIO(fasta1),
                                                   StringIO(fasta3),
                                                   StringIO(fasta4)])
-        self.assertEqual(result, ['hey', 'you'])
+        self.assertEqual(result, '>hey\nagtcagtcagtc\n>you\nacctg')
 
     def testTwoFastaFilesNoCommons(self):
         fasta1 = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
@@ -89,7 +91,7 @@ class TestFastaSubtract(TestCase):
 
         result = fastamanipulations.fastaSubtract([StringIO(fasta1),
                                                   StringIO(fasta2)])
-        self.assertEqual(result, [])
+        self.assertEqual(result, '>hey\nagtcagtcagtc\n>you\nacctg')
 
     def testThreeFastaFilesNoCommons(self):
         fasta1 = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc\n>are\n\
@@ -102,7 +104,7 @@ class TestFastaSubtract(TestCase):
         result = fastamanipulations.fastaSubtract([StringIO(fasta1),
                                                   StringIO(fasta2),
                                                   StringIO(fasta5)])
-        self.assertEqual(result, [])
+        self.assertEqual(result, None)
 
 
 class TestGetReadsIdsFromBlast(TestCase):
@@ -161,7 +163,7 @@ class TestGetReadsIdsFromBlast(TestCase):
         mockOpener = mockOpen(
             read_data=dumps(params) + '\n' + dumps(record) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
-            readIds = fastamanipulations.getReadsIdsFromBlast('file.json',
+            readIds = fastamanipulations.getReadsIdsFromBlast(['file.json'],
                                                               eCutoff=1e-2,
                                                               bitCutoff=None)
             self.assertEqual(readIds, ['readEValue'])
@@ -218,7 +220,7 @@ class TestGetReadsIdsFromBlast(TestCase):
         mockOpener = mockOpen(
             read_data=dumps(params) + '\n' + dumps(record) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
-            readIds = fastamanipulations.getReadsIdsFromBlast('file.json',
+            readIds = fastamanipulations.getReadsIdsFromBlast(['file.json'],
                                                               eCutoff=None,
                                                               bitCutoff=50)
             self.assertEqual(readIds, ['readBit'])
