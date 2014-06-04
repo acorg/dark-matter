@@ -1,11 +1,5 @@
-"""
-Contains functions for the manipulations and generation of fasta files.
-- write TEST.
-- a new bin script, to call those functions.
-
-"""
 import sys
-
+from Bio import SeqIO
 from dark.conversion import JSONRecordsReader, XMLRecordsReader
 
 
@@ -32,11 +26,12 @@ def fastaSubset(inFile, readIds, present=True):
 
     @param inFile: a C{str} fastafile, from which reads should be subtracted.
     @param readIds: a C{list} of read identifiers
-    @param present: a C{bool}. If True, the reads present in readIds will be written to outFile.
-        If False, the reads NOT present in readIds will be written to outFile
+    @param present: a C{bool}. If True, the reads present in readIds will be
+        written to outFile. If False, the reads NOT present in readIds will
+        be written to outFile
     """
-    # Test if readIds is a list, in which case it can be used directly, or if a file has to 
-    # be opened and transformed into a list.
+    # Test if readIds is a list, in which case it can be used directly, or if
+    # a file has to be opened and transformed into a list.
     if type(readIds) == str:
         wanted = _getReadIds(readIds)
     else:
@@ -83,7 +78,7 @@ def fastaSubtract(fastaFiles):
     commonReadIds = []
     total = len(fastaFiles)
     for readId in individualReadIds:
-        if count.allReadIds(readId) == total:
+        if allReadIds.count(readId) == total:
             commonReadIds.append(readId)
 
     fastaSubset(fastaFiles[0], commonReadIds, present=True)
@@ -91,7 +86,8 @@ def fastaSubtract(fastaFiles):
 
 def getReadsIdsFromBlast(blastFilenames, eCutoff=None, bitCutoff=None):
     """
-    Given files with BLAST output, get the readIds which hit above an eCutoff or bitCutoff.
+    Given files with BLAST output, get the readIds which hit above an
+    eCutoff or bitCutoff.
 
     @param blastFilenames: Either a single C{str} filename or a C{list} of
         C{str} file names containing BLAST output. Files can either be XML
@@ -106,37 +102,35 @@ def getReadsIdsFromBlast(blastFilenames, eCutoff=None, bitCutoff=None):
             equal to this will be ignored.
     """
 
-    def records(blastFilenames):
+    def records(blastFile):
         """
         Extract all BLAST records (up to C{self.limit}, if not C{None}).
 
         @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
             instances.
         """
-        for blastFilename in blastFilenames:
-            if done:
-                break
-            if blastFilename.endswith('.xml'):
-                reader = XMLRecordsReader(blastFilename)
-            elif (blastFilename.endswith('.json') or
-                  blastFilename.endswith('.json.bz2')):
-                reader = JSONRecordsReader(blastFilename)
-            else:
-                raise ValueError('Unknown BLAST file suffix for file %r.' %
-                                 blastFilename)
+        if blastFile.endswith('.xml'):
+            reader = XMLRecordsReader(blastFile)
+        elif (blastFile.endswith('.json') or
+              blastFile.endswith('.json.bz2')):
+            reader = JSONRecordsReader(blastFile)
+        else:
+            raise ValueError('Unknown BLAST file suffix for file %r.' %
+                             blastFile)
 
-            for record in reader.records():
-                yield record
+        for record in reader.records():
+            yield record
 
     readIds = []
-    for readNum, record in records(bastFilenames):
-        for index, alignment in enumerate(record.alignments):
-            if eCutoff:
-                if alignment.hsps[0].expect <= eCutoff:
-                    readIds.append(record.query)
-            elif bitCutoff:
-                if alignment.hsps[0].bits >= bitCutoff:
-                    readIds.append(record.query)
+    for blastFile in blastFilenames:
+        for readNum, record in records(blastFile):
+            for index, alignment in enumerate(record.alignments):
+                if eCutoff:
+                    if alignment.hsps[0].expect <= eCutoff:
+                        readIds.append(record.query)
+                elif bitCutoff:
+                    if alignment.hsps[0].bits >= bitCutoff:
+                        readIds.append(record.query)
 
     return readIds
 
@@ -152,4 +146,3 @@ def writeReadIds(readIds, outFile):
         fp.write('\n'.join(readIds))
 
     print >>sys.stderr, 'Wrote %d readIds to %s.' % (len(readIds), outFile)
-

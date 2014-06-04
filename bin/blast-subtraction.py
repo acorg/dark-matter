@@ -5,7 +5,6 @@ import argparse
 from Bio import SeqIO
 from dark import fastamanipulations
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Non-interactively generate an alignment panel',
@@ -29,14 +28,16 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--out', type=str, default=None,
-        help='Where the output should be written to. If None, write to stdout.')
+        help='Where the output should be written to. If None, '
+        'write to stdout.')
 
     args = parser.parse_args()
 
-    readIds = fastamanipulations.getReadsIdsFromBlast(args.json, eCutoff=args.eCutoff, bitCutoff=args.bitCutoff)
+    readIds = fastamanipulations.getReadsIdsFromBlast(args.json,
+                                                      eCutoff=args.eCutoff,
+                                                      bitCutoff=args.bitCutoff)
 
     if not args.out:
-        SeqIO.write(reads, sys.stdout, 'fasta')
+        SeqIO.write(readIds, sys.stdout, 'fasta')
     else:
         fastamanipulations.writeReadIds(readIds, args.out)
-
