@@ -7,6 +7,40 @@ criteria, produce an alignment panel.
 Run with --help for help.
 """
 
+
+def parseStringToIdList(idList):
+    """
+    Parses the string given in --idList to a dict.
+
+    @param idList: what is specified by the --idList parameter
+    """
+    idDict = {}
+    index = 0
+    splittedIdList = idList.split('|')
+    if len(splittedIdList) % 2 != 0:
+        print >>sys.stderr, 'idList contains %d elements' % len(splittedIdList)
+    else:
+        while index < len(splittedIdList) - 1:
+            color = splittedIdList[index]
+            index += 1
+            values = splittedIdList[index]
+            index += 1
+            value = values.split(' ')
+            reads = []
+            for read in value:
+                reads.append(read)
+            idDict[color] = reads
+    for color, reads in idDict.iteritems():
+        if os.path.isfile(reads[0]):
+            readIds = []
+            with open(reads[0], 'r') as fp:
+                for line in fp:
+                    readId = line.rstrip()
+                    readIds.append(readId)
+            idDict[color] = readIds
+    return idDict
+
+
 if __name__ == '__main__':
     import sys
     from dark.graphics import alignmentPanel, report
@@ -137,8 +171,10 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--idList', type=str, default=False,
-        help='a dictionary. The keys is a color and the values is a list of '
-        'read identifiers that should be colored in the respective color.')
+        help='string of the format "green|readId1 readId2|red|filename.txt". '
+        'Allows reading readIds specified directly on the command line, '
+        'as well as in a file. If a file is used, each readId must be '
+        'followed by a new line.')
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
@@ -205,6 +241,10 @@ if __name__ == '__main__':
         eCutoff=args.eCutoff, maxHspsPerHit=args.maxHspsPerHit,
         minStart=args.minStart, maxStop=args.maxStop,
         rankValues=args.rankValues)
+
+    if args.idList:
+        import os
+        args.idList = parseStringToIdList(args.idList)
 
     alignmentPanel(hits, sortOn=args.sortOn, interactive=True,
                    outputDir=args.outputDir, idList=args.idList,
