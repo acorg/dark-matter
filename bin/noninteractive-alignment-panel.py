@@ -141,12 +141,12 @@ if __name__ == '__main__':
         'read identifiers that should be colored in the respective color.')
 
     parser.add_argument(
-        '--earlyExit', type=bool, default=False, const=True, nargs='?',
+        '--earlyExit', default=False, action='store_true',
         help='If True, just print the number of interesting hits, but do not '
         'create the alignment panel.')
 
     parser.add_argument(
-        '--equalizeXAxes', type=bool, default=True, const=True, nargs='?',
+        '--equalizeXAxes', default=False, action='store_true',
         help='If True, all alignment graphs will have their X axes drawn with '
         'the same range.')
 
