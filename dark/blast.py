@@ -243,8 +243,8 @@ class BlastRecords(object):
                         'titleFilterResult': titleFilterResult
                     }
 
-                # Record just the best e-value with which this read hit this
-                # sequence.
+                # Record just the best e-value and bit score with which
+                # this read hit the sequence with the current title.
                 hitInfo['eValues'].append(alignment.hsps[0].expect)
                 hitInfo['bitScores'].append(alignment.hsps[0].bits)
                 hitInfo['readCount'] += 1
@@ -718,6 +718,7 @@ class BlastHits(object):
                 'minX': minStart or 0,
                 'zeroEValueFound': False,
                 'originalEValues': [],
+                'readNums': set(),
                 # these two below should go away
                 'eMean': None,
                 'eMedian': None,
@@ -776,9 +777,16 @@ class BlastHits(object):
                 # We are committed to adding this item to plotInfo['items'].
                 # Don't add any 'continue' statements below this point.
 
-                # retain original evalue below cutoff for eMean and eMedian
+                # Retain original evalue below cutoff for eMean and eMedian
                 # calculation.
                 plotInfo['originalEValues'].append(e)
+
+                # Keep track of the read numbers that are still valid for
+                # the plot. This will be a subset of the set of all read
+                # numbers that matched the hit; here we're collecting the
+                # read numbers that are still valid once we've done further
+                # filtering (as just above).
+                plotInfo['readNums'].add(readNum)
 
                 if e == 0.0:
                     convertedE = None
