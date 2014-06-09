@@ -7,38 +7,33 @@ criteria, produce an alignment panel.
 Run with --help for help.
 """
 
-
-def parseStringToIdList(idList):
+import os
+from collections import defaultdict
+ 
+ 
+def parseColors(colors):
     """
-    Parses the string given in --idList to a dict.
-
-    @param idList: what is specified by the --idList parameter
+    Parse read id color specification.
+ 
+    @param colors: A C{list}, each of whose elements is a C{str} such as
+        'green id1 id2', where each of id1, id2 etc. is either a read
+        identifier or the name of a file containing read identifiers one
+        per line.
+    @return: A C{dict} whose keys are colors and whose values are sets of
+        read identifiers.
     """
-    idDict = {}
-    index = 0
-    splittedIdList = idList.split('|')
-    if len(splittedIdList) % 2 != 0:
-        print >>sys.stderr, 'idList contains %d elements' % len(splittedIdList)
-    else:
-        while index < len(splittedIdList) - 1:
-            color = splittedIdList[index]
-            index += 1
-            values = splittedIdList[index]
-            index += 1
-            value = values.split(' ')
-            reads = []
-            for read in value:
-                reads.append(read)
-            idDict[color] = reads
-    for color, reads in idDict.iteritems():
-        if os.path.isfile(reads[0]):
-            readIds = []
-            with open(reads[0], 'r') as fp:
-                for line in fp:
-                    readId = line.rstrip()
-                    readIds.append(readId)
-            idDict[color] = readIds
-    return idDict
+    result = defaultdict(set)
+    for colorInfo in colors:
+        readIds = colorInfo.split()
+        color = readIds.pop(0)
+        for readId in readIds:
+            if os.path.isfile(readId):
+                for record in SeqIO.parse(readId, 'fasta'):
+                    read = record.id
+                    result[color].add(read)
+            else:
+                result[color].add(readId)
+    return result
 
 
 if __name__ == '__main__':
@@ -170,11 +165,9 @@ if __name__ == '__main__':
         help='Specifies a directory to write the HTML summary to.')
 
     parser.add_argument(
-        '--idList', type=str, default=False,
-        help='string of the format "green|readId1 readId2|red|filename.txt". '
-        'Allows reading readIds specified directly on the command line, '
-        'as well as in a file. If a file is used, each readId must be '
-        'followed by a new line.')
+        '--color', type=str, action='append',
+        help='a string which has a color as the first element and readIds '
+        'or a fastafile as the following element(s), seperated by spaces.')
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
@@ -242,11 +235,14 @@ if __name__ == '__main__':
         minStart=args.minStart, maxStop=args.maxStop,
         rankValues=args.rankValues)
 
-    if args.idList:
+    if args.color:
         import os
-        args.idList = parseStringToIdList(args.idList)
+        from Bio import SeqIO
+        idList = parseColors(args.color)
+    else:
+        idList = None
 
     alignmentPanel(hits, sortOn=args.sortOn, interactive=True,
-                   outputDir=args.outputDir, idList=args.idList,
+                   outputDir=args.outputDir, idList=idList,
                    equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
                    plot=args.plot)
