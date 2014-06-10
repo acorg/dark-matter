@@ -18,16 +18,11 @@ if __name__ == '__main__':
         help='a string of names of fastafiles which should be '
         'subtracted, deliminited by commas.')
 
-    parser.add_argument(
-        '--invert', default=False, action='store_true',
-        help='If True, all reads in readIds will be returned, else, '
-        'all reads not in readIds will be returned.')
-
     args = parser.parse_args()
 
     files = args.fasta
     fileList = files.split(', ')
-    reads = subtract.fastaSubtract(fileList, invert=args.invert)
+    reads = subtract.fastaSubtract(fileList)
 
     SeqIO.write(reads, sys.stdout, 'fasta')
     print >>sys.stderr, 'Found %d sequences.' % len(reads)
