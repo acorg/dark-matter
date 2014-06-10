@@ -7,6 +7,36 @@ criteria, produce an alignment panel.
 Run with --help for help.
 """
 
+import os
+from collections import defaultdict
+from Bio import SeqIO
+
+
+def parseColors(colors):
+    """
+    Parse read id color specification.
+
+    @param colors: A C{list}, each of whose elements is a C{str} such as
+        'green id1 id2', where each of id1, id2 etc. is either a read
+        identifier or the name of a file containing read identifiers one
+        per line.
+    @return: A C{dict} whose keys are colors and whose values are sets of
+        read identifiers.
+    """
+    result = defaultdict(set)
+    for colorInfo in colors:
+        readIds = colorInfo.split()
+        color = readIds.pop(0)
+        for readId in readIds:
+            if os.path.isfile(readId):
+                for record in SeqIO.parse(readId, 'fasta'):
+                    read = record.id
+                    result[color].add(read)
+            else:
+                result[color].add(readId)
+    return result
+
+
 if __name__ == '__main__':
     import sys
     from dark.graphics import alignmentPanel, report
@@ -136,9 +166,9 @@ if __name__ == '__main__':
         help='Specifies a directory to write the HTML summary to.')
 
     parser.add_argument(
-        '--idList', type=str, default=False,
-        help='a dictionary. The keys is a color and the values is a list of '
-        'read identifiers that should be colored in the respective color.')
+        '--color', type=str, action='append',
+        help='a string which has a color as the first element and readIds '
+        'or a fastafile as the following element(s), separated by spaces.')
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
@@ -206,7 +236,12 @@ if __name__ == '__main__':
         minStart=args.minStart, maxStop=args.maxStop,
         rankValues=args.rankValues)
 
+    if args.color:
+        idList = parseColors(args.color)
+    else:
+        idList = None
+
     alignmentPanel(hits, sortOn=args.sortOn, interactive=True,
-                   outputDir=args.outputDir, idList=args.idList,
+                   outputDir=args.outputDir, idList=idList,
                    equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
                    plot=args.plot)
