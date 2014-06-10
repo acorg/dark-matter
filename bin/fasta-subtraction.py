@@ -24,10 +24,11 @@ if __name__ == '__main__':
         'readId per line.')
 
     parser.add_argument(
-        '--present', default=True, type=bool,
+        '--invert', default=True, type=bool,
         help='If True, all reads in readIds will be returned, else, '
         'all reads not in readIds will be returned.')
 
+    # get rid of this
     parser.add_argument(
         '--out', type=str, default=None,
         help='Where the output should be written to. If None, write '
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     reads = fastamanipulations.fastaSubset(args.fasta, args.readIds,
-                                           present=args.present)
+                                           invert=args.invert)
 
     if not args.out:
         SeqIO.write(reads, sys.stdout, 'fasta')

@@ -5,28 +5,28 @@ from dark.conversion import JSONRecordsReader, XMLRecordsReader
 
 def _getReadIds(readIdFile):
     """
-    Given a file with readIds, outputs a list with all readIds, which can be
+    Given a fasta file, outputs a list with all readIds, which can be
     read by fastaSubset().
 
-    @param readIdFile: a C{str} of a filename with readIds.
+    @param readIdFile: a C{str} of a fasta file.
     """
     readIds = []
-    with open(readIdFile, 'r') as fp:
-        for line in fp:
-            readId = line.rstrip()
-            readIds.append(readId)
+    for record in SeqIO.parse(readIdFile, 'fasta'):
+        readId = record.id
+        readIds.append(readId)
 
     return readIds
 
 
-def fastaSubset(inFile, readIds, present=True):
+def fastaSubset(inFile, readIds, invert=False):
     """
-    Given a set of reads and a fastafile, write reads to a new
-    fastafile.
+    Given a set of reads and a fastafile, return a list of sequences. If
+    invert=False, return sequences specified in readIds, else return
+    sequences not present in readIds.
 
     @param inFile: a C{str} fastafile, from which reads should be subtracted.
     @param readIds: a C{list} of read identifiers
-    @param present: a C{bool}. If True, the reads present in readIds will be
+    @param invert: a C{bool}. If True, the reads present in readIds will be
         written to outFile. If False, the reads NOT present in readIds will
         be written to outFile
     """
@@ -39,7 +39,7 @@ def fastaSubset(inFile, readIds, present=True):
 
     found = []
     for read in SeqIO.parse(inFile, 'fasta'):
-        if present:
+        if not invert:
             if read.id in wanted:
                 found.append(read)
                 wanted.remove(read.id)
@@ -80,59 +80,8 @@ def fastaSubtract(fastaFiles):
         if allReadIds.count(readId) == total:
             commonReadIds.append(readId)
 
-    found = fastaSubset(fastaFiles[0], commonReadIds, present=True)
+    found = fastaSubset(fastaFiles[0], commonReadIds, invert=True)
     return found
-
-
-def getReadsIdsFromBlast(blastFilenames, eCutoff=None, bitCutoff=None):
-    """
-    Given files with BLAST output, get the readIds which hit above an
-    eCutoff or bitCutoff.
-
-    @param blastFilenames: Either a single C{str} filename or a C{list} of
-        C{str} file names containing BLAST output. Files can either be XML
-        (-outfmt 5) BLAST output file or our smaller (possibly bzip2
-        compressed) converted JSON equivalent produced by
-        C{bin/convert-blast-xml-to-json.py} from a BLAST XML file.
-    @param fastaFilename: the C{str} file name containing the sequences that
-        were given to BLAST as queries.
-    @param eCutoff: A C{float} e-value. Hits with e-value greater than or
-            equal to this will be ignored.
-    @param bitCutoff: A C{int} bitScore. Hits with a bitscore smaller than or
-            equal to this will be ignored.
-    """
-
-    def records(blastFilenames):
-        """
-        Extract all BLAST records (up to C{self.limit}, if not C{None}).
-
-        @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
-            instances.
-        """
-        for blastFile in blastFilenames:
-            if blastFile.endswith('.xml'):
-                reader = XMLRecordsReader(blastFile)
-            elif (blastFile.endswith('.json') or
-                  blastFile.endswith('.json.bz2')):
-                reader = JSONRecordsReader(blastFile)
-            else:
-                raise ValueError('Unknown BLAST file suffix for file %r.' %
-                                 blastFile)
-
-            for record in reader.records():
-                yield record
-
-    readIds = []
-    for readNum, record in records(blastFilenames):
-        for index, alignment in enumerate(record.alignments):
-            if eCutoff:
-                if alignment.hsps[0].expect <= eCutoff:
-                    readIds.append(record.query)
-            elif bitCutoff:
-                if alignment.hsps[0].bits >= bitCutoff:
-                    readIds.append(record.query)
-
-    return readIds
 
 
 def writeReadIds(readIds, outFile):
