@@ -1,13 +1,15 @@
 from unittest import TestCase
 from cStringIO import StringIO
 from Bio import SeqIO
-from dark import subtract
+from dark import fasta
 
 
 class TestFastaSubtract(TestCase):
     """
     Test the fastaSubtract() function.
     """
+    def testZeroFiles(self):
+        self.assertRaises(IndexError, fasta.fastaSubtract, [])
 
     def testTwoFastaFiles(self):
         fasta1 = '>hey\nagtcagtcagtc\n>how\natgggtc\n>are\n\
@@ -17,8 +19,8 @@ class TestFastaSubtract(TestCase):
         testResult = []
         testResult.append(SeqIO.read(StringIO('>hey\nagtcagtcagtc'), 'fasta'))
 
-        result = subtract.fastaSubtract([StringIO(fasta1),
-                                        StringIO(fasta3)], invert=False)
+        result = fasta.fastaSubtract([StringIO(fasta1),
+                                      StringIO(fasta3)])
 
         self.assertEqual(result, testResult)
 
@@ -34,9 +36,9 @@ class TestFastaSubtract(TestCase):
         testResult.append(SeqIO.read(StringIO('>hey\nagtcagtcagtc'), 'fasta'))
         testResult.append(SeqIO.read(StringIO('>you\nacctg'), 'fasta'))
 
-        result = subtract.fastaSubtract([StringIO(fasta1),
-                                        StringIO(fasta3),
-                                        StringIO(fasta4)], invert=False)
+        result = fasta.fastaSubtract([StringIO(fasta1),
+                                      StringIO(fasta3),
+                                      StringIO(fasta4)])
         self.assertEqual(result, testResult)
 
     def testTwoFastaFilesNoCommons(self):
@@ -45,8 +47,8 @@ class TestFastaSubtract(TestCase):
         fasta2 = '>all\nagtcagtcagtc\n>good\nacctg\n>over\natgggtc\n>here\n\
             atggctattgaactgtatct'
 
-        result = subtract.fastaSubtract([StringIO(fasta1),
-                                        StringIO(fasta2)])
+        result = fasta.fastaSubtract([StringIO(fasta1),
+                                      StringIO(fasta2)])
         self.assertEqual(result, [])
 
     def testThreeFastaFilesNoCommons(self):
@@ -57,7 +59,7 @@ class TestFastaSubtract(TestCase):
         fasta5 = '>this\nagtcagtcagtc\n>has\nacctg\n>many\natgggtc\n>rabbits\n\
             atggctattgaactgtatct'
 
-        result = subtract.fastaSubtract([StringIO(fasta1),
-                                        StringIO(fasta2),
-                                        StringIO(fasta5)])
+        result = fasta.fastaSubtract([StringIO(fasta1),
+                                      StringIO(fasta2),
+                                      StringIO(fasta5)])
         self.assertEqual(result, [])
