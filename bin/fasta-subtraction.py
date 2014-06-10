@@ -3,8 +3,7 @@
 import sys
 import argparse
 from Bio import SeqIO
-from dark import fastamanipulations
-
+from dark import subtract
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -15,32 +14,20 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--fasta1', metavar='FASTA-files', type=str,
-        help='the FASTA file of sequences from which we wish to subtract.')
+        '--fasta', metavar='FASTA-files', type=str,
+        help='a string of names of fastafiles which should be '
+        'subtracted, deliminited by commas.')
 
     parser.add_argument(
-        '--readIds', metavar='readId-list',
-        help='either a list with readIds or a file containing one '
-        'readId per line.')
-
-    parser.add_argument(
-        '--invert', default=True, type=bool,
+        '--invert', default=False, action='store_true',
         help='If True, all reads in readIds will be returned, else, '
         'all reads not in readIds will be returned.')
 
-    # get rid of this
-    parser.add_argument(
-        '--out', type=str, default=None,
-        help='Where the output should be written to. If None, write '
-        'to stdout.')
-
     args = parser.parse_args()
 
-    reads = fastamanipulations.fastaSubset(args.fasta, args.readIds,
-                                           invert=args.invert)
+    files = args.fasta
+    fileList = files.split(', ')
+    reads = subtract.fastaSubtract(fileList, invert=args.invert)
 
-    if not args.out:
-        SeqIO.write(reads, sys.stdout, 'fasta')
-    else:
-        with open(args.out, 'w') as fp:
-            SeqIO.write(reads, fp, 'fasta')
+    SeqIO.write(reads, sys.stdout, 'fasta')
+    print >>sys.stderr, 'Found %d sequences.' % len(reads)
