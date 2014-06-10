@@ -9,12 +9,13 @@ Run with --help for help.
 
 import os
 from collections import defaultdict
- 
- 
+from Bio import SeqIO
+
+
 def parseColors(colors):
     """
     Parse read id color specification.
- 
+
     @param colors: A C{list}, each of whose elements is a C{str} such as
         'green id1 id2', where each of id1, id2 etc. is either a read
         identifier or the name of a file containing read identifiers one
@@ -167,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--color', type=str, action='append',
         help='a string which has a color as the first element and readIds '
-        'or a fastafile as the following element(s), seperated by spaces.')
+        'or a fastafile as the following element(s), separated by spaces.')
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
@@ -236,8 +237,6 @@ if __name__ == '__main__':
         rankValues=args.rankValues)
 
     if args.color:
-        import os
-        from Bio import SeqIO
         idList = parseColors(args.color)
     else:
         idList = None
