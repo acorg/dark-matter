@@ -2,6 +2,7 @@ from dark.fasta import dedupFasta, dePrefixAndSuffixFasta
 from cStringIO import StringIO
 from unittest import TestCase
 from Bio import SeqIO
+from dark import fasta
 
 
 class FastaDeDup(TestCase):
@@ -78,3 +79,142 @@ class Unused(TestCase):
         s1 = SeqIO.read(StringIO('>s1\nagtcag'), 'fasta')
         s2 = SeqIO.read(StringIO('>s2\nagtcagtcagtc'), 'fasta')
         self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s2])
+
+
+class TestFastaSubtract(TestCase):
+    """
+    Test the fastaSubtract() function.
+    """
+    def testZeroFiles(self):
+        self.assertRaises(IndexError, fasta.fastaSubtract, [])
+
+    def testOneFile(self):
+        """
+        When just one file is passed we should get a result that has as many
+        reads as was in the single input file.
+        """
+        fasta1 = '\n'.join([
+            '>one',
+            'agtcagtcagtc',
+            '>two',
+            'acctg',
+            '>three',
+            'atgggtc',
+            '>four',
+            'atggctattgaactgtatct',
+            ])
+
+        result = list(fasta.fastaSubtract([StringIO(fasta1)]))
+        self.assertEqual(len(result), 4)
+
+    def testSubtractEverything(self):
+        """
+        When two input files have the same reads, subtraction must result in an
+        empty (no reads) output.
+        """
+        fasta1 = '\n'.join([
+            '>one',
+            'agtcagtcagtc',
+            '>two',
+            'acctg',
+            '>three',
+            'atgggtc',
+            '>four',
+            'atggctattgaactgtatct',
+            ])
+
+        result = list(fasta.fastaSubtract([StringIO(fasta1),
+                                           StringIO(fasta1)]))
+        self.assertEqual([], result)
+
+    def testSubtractFromNothing(self):
+        """
+        When the first file is empty, the result shoud be too.
+        """
+        fasta1 = ''
+        fasta2 = '\n'.join([
+            '>five',
+            'agtcagtcagtc',
+            '>six',
+            'acctg',
+            ])
+
+        result = list(fasta.fastaSubtract([StringIO(fasta1),
+                                           StringIO(fasta2)]))
+        self.assertEqual([], result)
+
+    def testSubtractNothing(self):
+        """
+        When two input files have no overlap, subtraction must result in the
+        same reads as are in the first input.
+        """
+        fasta1 = '\n'.join([
+            '>one',
+            'agtcagtcagtc',
+            '>two',
+            'acctg',
+            '>three',
+            'atgggtc',
+            '>four',
+            'atggctattgaactgtatct',
+            ])
+        fasta2 = '\n'.join([
+            '>five',
+            'agtcagtcagtc',
+            '>six',
+            'acctg',
+            ])
+
+        result = list(fasta.fastaSubtract([StringIO(fasta1),
+                                           StringIO(fasta2)]))
+        self.assertEqual(['four', 'one', 'three', 'two'],
+                         sorted([seq.id for seq in result]))
+
+    def testThreeFiles(self):
+        """
+        Subtraction of three files must work correctly.
+        """
+        fasta1 = '\n'.join([
+            '>one',
+            'agtcagtcagtc',
+            '>two',
+            'acctg',
+            '>three',
+            'atgggtc',
+            '>four',
+            'atggctattgaactgtatct',
+            ])
+        fasta2 = '\n'.join([
+            '>one',
+            'agtcagtcagtc',
+            ])
+        fasta3 = '\n'.join([
+            '>two',
+            'acctg',
+            '>three',
+            'atgggtc',
+            ])
+
+        result = list(fasta.fastaSubtract([StringIO(fasta1),
+                                           StringIO(fasta2),
+                                           StringIO(fasta3)]))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(str(result[0].seq), 'atggctattgaactgtatct')
+        self.assertEqual(str(result[0].id), 'four')
+
+    def testSequencesAreChecked(self):
+        """
+        If a two reads with the same id do not have the same sequence,
+        an assertion error must be raised.
+        """
+        fasta1 = '\n'.join([
+            '>one',
+            'ag',
+            ])
+        fasta2 = '\n'.join([
+            '>one',
+            'at',
+            ])
+
+        self.assertRaises(AssertionError, fasta.fastaSubtract,
+                          [StringIO(fasta1), StringIO(fasta2)])
