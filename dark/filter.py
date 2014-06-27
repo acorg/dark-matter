@@ -1,6 +1,7 @@
 import re
 from math import ceil
 from collections import OrderedDict
+from dark import mysql
 
 from dark.simplify import simplifyTitle
 
@@ -249,3 +250,77 @@ class ReadSetFilter(object):
             return self._titles[title][1]
         except KeyError:
             return []
+
+class TaxonomyFilter(object):
+    """
+    Provide an acceptance test based on taxonomy.
+
+    @param taxonomy: the scientific name of the taxonomic level on
+        which we should filter.
+    """
+    def __init__(self, gi, taxonomy):
+        self._taxonomy = taxonomy
+        self._gi = gi
+
+
+    def _getTaxIDFromMySql(self, cursor, db=None):
+        """
+        For each title in C{self.titles}, read the corresponding taxId from
+        the gi_taxid_nucl table in a MySQL database called ncbi_taxonomy.
+        """
+        question = 'SELECT taxID from gi_taxid_nucl where gi = %d' % self._gi
+        cursor.execute(question)
+        #try:
+        taxID = cursor.fetchone()[0]
+        print 'taxID', taxID
+
+        lineage = []
+        print 'lineage', lineage
+        while taxID != 1:
+            questionToNodes = ('SELECT parent_taxID from nodes '
+                               'where taxID = %s' % taxID)
+            cursor.execute(questionToNodes)
+            parentTaxID = cursor.fetchone()[0]
+            print 'parent', parentTaxID, type(parentTaxID)
+            questionToNames = 'SELECT name from names where taxId = %s' % taxID
+            cursor.execute(questionToNames)
+            scientificName = cursor.fetchone()[0]
+            print 'name', scientificName
+            lineage.append(scientificName)
+            taxID = parentTaxID
+
+        return lineage
+
+        #except TypeError:
+        #    result = ['No taxID found']
+        #    return result
+
+
+    def accept(self):
+        db = mysql.getDatabaseConnection()
+        cursor = db.cursor()
+
+        lineage = self._getTaxIDFromMySql(cursor)
+
+        cursor.close()
+        db.close()
+
+        if self._taxonomy in lineage:
+            return True, lineage
+        elif self._taxonomy == None:
+            return True, lineage
+        else:
+            lineage = []
+            return False, lineage
+
+
+
+
+
+
+
+
+
+
+
+

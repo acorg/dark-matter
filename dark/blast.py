@@ -6,7 +6,7 @@ from Bio import SeqIO
 
 from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter)
+                         TitleFilter, TaxonomyFilter)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark import mysql
@@ -164,7 +164,7 @@ class BlastRecords(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None):
+                   withBitScoreBetterThan=None, minNewReads=None, taxonomy=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -222,6 +222,13 @@ class BlastRecords(object):
                 if titleFilterResult == TitleFilter.REJECT:
                     continue
 
+                gi = int(title.split('|')[1])
+                taxonomyFilter = TaxonomyFilter(gi, taxonomy=taxonomy)
+                
+                taxonomyFilterResult, lineage = taxonomyFilter.accept()
+                if taxonomyFilterResult == False:
+                    continue
+
                 if title in result:
                     hitInfo = result[title]
                 else:
@@ -240,7 +247,8 @@ class BlastRecords(object):
                         'readCount': 0,
                         'readNums': set(),
                         'bitScores': [],
-                        'titleFilterResult': titleFilterResult
+                        'titleFilterResult': titleFilterResult,
+                        'taxonomy': lineage
                     }
 
                 # Record just the best e-value and bit score with which
@@ -487,7 +495,7 @@ class BlastHits(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None):
+                   withBitScoreBetterThan=None, minNewReads=None, taxonomy=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -560,13 +568,16 @@ class BlastHits(object):
         blastHits = BlastHits(self.records, readSetFilter=readSetFilter)
         for title, hitInfo in self.titles.iteritems():
             titleFilterResult = titleFilter.accept(title)
-            if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
-                    titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
-                    hitInfoFilter.accept(hitInfo) and
-                    bitScoreFilter.accept(hitInfo) and
-                    (minNewReads is None or
-                     readSetFilter.accept(title, hitInfo))):
-                blastHits.addHit(title, hitInfo)
+            if taxonomy and taxonomy not in hitInfo['taxonomy']:
+                continue
+            else:
+                if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
+                        titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
+                        hitInfoFilter.accept(hitInfo) and
+                        bitScoreFilter.accept(hitInfo) and
+                        (minNewReads is None or
+                         readSetFilter.accept(title, hitInfo))):
+                    blastHits.addHit(title, hitInfo)
         return blastHits
 
     def _getHsps(self):

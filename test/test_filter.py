@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter)
+                         TitleFilter, TaxonomyFilter)
 
 
 class TitleFilterTest(TestCase):
@@ -385,3 +385,56 @@ class ReadSetTest(TestCase):
         """
         rsf = ReadSetFilter(0.5)
         self.assertEqual([], rsf.invalidates('title1'))
+
+
+class FakeCursor(object):
+    def __init__(self, results):
+        self._results = results
+        self._index = -1
+
+    def execute(self, p):
+        pass
+
+    def fetchone(self):
+        self._index += 1
+        return self._results[self._index]
+
+    def close(self):
+        pass
+
+
+class FakeDbConnection(object):
+    def __init__(self, results):
+        self._results = results
+        self.open = True
+
+    def cursor(self):
+        return FakeCursor(self._results)
+
+    def close(self):
+        self.open = False
+
+
+
+class TaxonomyFilterTest(TestCase):
+    """
+    Tests for L{dark.filter.TaxonomyFilter} class.
+    """
+
+    def testNoTaxonomy(self):
+        pass
+
+    def testGivenTaxonomyNotPresent(self):
+        pass
+
+    def testGivenTaxonomyPresent(self):
+        pass
+
+    def test_getTaxIDFromMySql(self):
+        gi = 5
+        taxonomy = 'Vira'
+        db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus', 'Polyomavirus', 'dsDNA viruses', 'Vira'], [1]])
+        cursor = db.cursor()
+        taxonomyFilter = TaxonomyFilter(gi, taxonomy=taxonomy)
+        lineage = taxonomyFilter._getTaxIDFromMySql(cursor, db=db)
+        self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus', 'dsDNA viruses', 'Vira'], lineage)
