@@ -251,6 +251,7 @@ class ReadSetFilter(object):
         except KeyError:
             return []
 
+
 class TaxonomyFilter(object):
     """
     Provide an acceptance test based on taxonomy.
@@ -262,39 +263,39 @@ class TaxonomyFilter(object):
         self._taxonomy = taxonomy
         self._gi = gi
 
-
     def _getTaxIDFromMySql(self, cursor, db=None):
         """
-        For each title in C{self.titles}, read the corresponding taxId from
-        the gi_taxid_nucl table in a MySQL database called ncbi_taxonomy.
+        For each title in C{self.titles}, read the corresponding taxId
+        from the gi_taxid_nucl table in a MySQL database called
+        ncbi_taxonomy.
         """
         question = 'SELECT taxID from gi_taxid_nucl where gi = %d' % self._gi
         cursor.execute(question)
-        #try:
-        taxID = cursor.fetchone()[0]
-        print 'taxID', taxID
+        try:
+            taxID = cursor.fetchone()[0]
+            print 'taxID', taxID
 
-        lineage = []
-        print 'lineage', lineage
-        while taxID != 1:
-            questionToNodes = ('SELECT parent_taxID from nodes '
-                               'where taxID = %s' % taxID)
-            cursor.execute(questionToNodes)
-            parentTaxID = cursor.fetchone()[0]
-            print 'parent', parentTaxID, type(parentTaxID)
-            questionToNames = 'SELECT name from names where taxId = %s' % taxID
-            cursor.execute(questionToNames)
-            scientificName = cursor.fetchone()[0]
-            print 'name', scientificName
-            lineage.append(scientificName)
-            taxID = parentTaxID
+            lineage = []
+            print 'lineage', lineage
+            while taxID != 1:
+                questionToNodes = ('SELECT parent_taxID from nodes '
+                                   'where taxID = %s' % taxID)
+                cursor.execute(questionToNodes)
+                parentTaxID = cursor.fetchone()[0]
+                print 'parent', parentTaxID, type(parentTaxID)
+                questionToNames = ('SELECT name from names '
+                                   'where taxId = %s' % taxID)
+                cursor.execute(questionToNames)
+                scientificName = cursor.fetchone()[0]
+                print 'name', scientificName
+                lineage.append(scientificName)
+                taxID = parentTaxID
 
-        return lineage
+            return lineage
 
-        #except TypeError:
-        #    result = ['No taxID found']
-        #    return result
-
+        except TypeError:
+            result = ['No taxID found']
+            return result
 
     def accept(self):
         db = mysql.getDatabaseConnection()
@@ -307,20 +308,8 @@ class TaxonomyFilter(object):
 
         if self._taxonomy in lineage:
             return True, lineage
-        elif self._taxonomy == None:
+        elif self._taxonomy is None:
             return True, lineage
         else:
             lineage = []
             return False, lineage
-
-
-
-
-
-
-
-
-
-
-
-

@@ -164,7 +164,8 @@ class BlastRecords(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None, taxonomy=None):
+                   withBitScoreBetterThan=None, minNewReads=None,
+                   taxonomy=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -224,9 +225,9 @@ class BlastRecords(object):
 
                 gi = int(title.split('|')[1])
                 taxonomyFilter = TaxonomyFilter(gi, taxonomy=taxonomy)
-                
+
                 taxonomyFilterResult, lineage = taxonomyFilter.accept()
-                if taxonomyFilterResult == False:
+                if taxonomyFilterResult is False:
                     continue
 
                 if title in result:
@@ -495,7 +496,8 @@ class BlastHits(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None, taxonomy=None):
+                   withBitScoreBetterThan=None, minNewReads=None,
+                   taxonomy=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.

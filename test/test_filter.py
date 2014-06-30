@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter, TaxonomyFilter)
+from dark.blast import BlastHits
 
 
 class TitleFilterTest(TestCase):
@@ -404,6 +405,10 @@ class FakeCursor(object):
 
 
 class FakeDbConnection(object):
+    """
+    FakeDbConnection and FakeCursor fake results
+    for database calls.
+    """
     def __init__(self, results):
         self._results = results
         self.open = True
@@ -415,6 +420,22 @@ class FakeDbConnection(object):
         self.open = False
 
 
+class FakeTaxonomyFilter(object):
+    """
+    A class which fakes results from TaxonomyFilter.
+    """
+    def __init__(self, gi, taxonomy):
+        self._gi = gi
+        self._taxonomy = taxonomy
+        self._lineage = ['Merkel cell polyomavirus', 'Polyomavirus',
+                         'dsDNA viruses', 'Vira']
+
+    def getRightResult():
+        pass
+
+    def getWrongResult():
+        pass
+
 
 class TaxonomyFilterTest(TestCase):
     """
@@ -422,19 +443,67 @@ class TaxonomyFilterTest(TestCase):
     """
 
     def testNoTaxonomy(self):
-        pass
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage', 'Vira']
+        })
+        result = blastHits.filterHits(taxonomy=None)
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']}})
 
     def testGivenTaxonomyNotPresent(self):
-        pass
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='fiction')
+        self.assertEqual(result.titles, {})
 
     def testGivenTaxonomyPresent(self):
-        pass
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='Vira')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+                                         'eMin': 0.01,
+                                         'taxonomy': ['Merkel cell '
+                                                      'polyomavirus',
+                                                      'unclassified '
+                                                      'Polyomavirus',
+                                                      'Polyomavirus',
+                                                      'Polyomaviridae',
+                                                      'dsDNA viruses, '
+                                                      'no RNA stage',
+                                                      'Vira']}})
 
     def test_getTaxIDFromMySql(self):
         gi = 5
         taxonomy = 'Vira'
-        db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus', 'Polyomavirus', 'dsDNA viruses', 'Vira'], [1]])
+        db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus'],
+                              [3], ['Polyomavirus'], [2],
+                              ['dsDNA viruses'], [1], ['Vira']])
         cursor = db.cursor()
         taxonomyFilter = TaxonomyFilter(gi, taxonomy=taxonomy)
         lineage = taxonomyFilter._getTaxIDFromMySql(cursor, db=db)
-        self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus', 'dsDNA viruses', 'Vira'], lineage)
+        self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus',
+                          'dsDNA viruses', 'Vira'], lineage)
