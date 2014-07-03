@@ -420,23 +420,6 @@ class FakeDbConnection(object):
         self.open = False
 
 
-class FakeTaxonomyFilter(object):
-    """
-    A class which fakes results from TaxonomyFilter.
-    """
-    def __init__(self, gi, taxonomy):
-        self._gi = gi
-        self._taxonomy = taxonomy
-        self._lineage = ['Merkel cell polyomavirus', 'Polyomavirus',
-                         'dsDNA viruses', 'Vira']
-
-    def getRightResult():
-        pass
-
-    def getWrongResult():
-        pass
-
-
 class TaxonomyFilterTest(TestCase):
     """
     Tests for L{dark.filter.TaxonomyFilter} class.
