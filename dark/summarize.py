@@ -4,7 +4,7 @@ from collections import defaultdict
 
 def summarize_reads(file_handle, returnSequences=False):
     """
-    open a .fasta file, prints number of of reads, average length of read,
+    open a fasta or fastq file, prints number of of reads, average length of read,
     total number of bases, longest, shortest and median read, total number
     and average of individual base (A, T, G, C, N)
     """
@@ -14,7 +14,12 @@ def summarize_reads(file_handle, returnSequences=False):
     length_list = []
     sequenceList = []
 
-    for record in SeqIO.parse(file_handle, "fasta"):
+    if file_handle.endswith('a'):
+        records = SeqIO.parse(file_handle, "fasta")
+    else:
+        records = SeqIO.parse(file_handle, "fastq")
+
+    for record in records:
         total_length += len(record)
         read_number += 1
         length_list.append(len(record))
