@@ -4,9 +4,10 @@ from collections import defaultdict
 
 def summarize_reads(file_handle, returnSequences=False):
     """
-    open a fasta or fastq file, prints number of of reads, average length of read,
-    total number of bases, longest, shortest and median read, total number
-    and average of individual base (A, T, G, C, N)
+    open a fasta or fastq file, prints number of of reads,
+    average length of read, total number of bases, longest,
+    shortest and median read, total number and average of
+    individual base (A, T, G, C, N)
     """
     base_counts = defaultdict(int)
     read_number = 0
