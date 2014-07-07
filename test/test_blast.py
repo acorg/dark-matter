@@ -1607,6 +1607,97 @@ class TestComputePlotInfo(TestCase):
             plotInfo = blastHits.titles[title]['plotInfo']
             self.assertEqual(1, len(plotInfo['items']))
 
+    def testbitScoreCutoffResultsInNoTitles(self):
+        """
+        Records should be excluded correctly (via having their plotInfo
+        attribute set to C{None}, due to bit scores being too low.
+        """
+        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+        params = {
+            'application': 'BLASTN',
+        }
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 0.2,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': title,
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit(title, {
+                'length': 100,
+                'readNums': [0],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68]
+            blastHits.computePlotInfo(bitScoreCutoff=200)
+            plotInfo = blastHits.titles[title]['plotInfo']
+            self.assertEqual(None, plotInfo)
+
+    def testBitScoreCutoffDoesntExcludeImproperly(self):
+        """
+        Records should not be excluded if bit scores are acceptable.
+        """
+        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+        params = {
+            'application': 'BLASTN',
+        }
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 200,
+                            'sbjct_end': 15400,
+                            'expect': 0.2,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': title,
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit(title, {
+                'length': 100,
+                'readNums': [0],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68]
+            blastHits.computePlotInfo(bitScoreCutoff=20)
+            plotInfo = blastHits.titles[title]['plotInfo']
+            self.assertEqual(1, len(plotInfo['items']))
+
     def testSortAfterComputePlotInfo(self):
         """
         If there is no plot info available for some titles after calling
