@@ -87,10 +87,13 @@ class BlastRecords(object):
         sorted by numeric prefix (using L{numericallySortFilenames}) before
         being read. This can be used to conveniently sort the files produced
         by our HTCondor jobs.
+    @param oneAlignmentPerRead: if not C{False}, only return the best
+        alignment for each read.
     """
 
     def __init__(self, blastFilenames, fastaFilename=None, blastDb=None,
-                 limit=None, sortBlastFilenames=True):
+                 limit=None, sortBlastFilenames=True,
+                 oneAlignmentPerRead=False):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
         if sortBlastFilenames:
@@ -102,6 +105,7 @@ class BlastRecords(object):
         self.limit = limit
         self._length = 0
         self.blastParams = None  # Set in records(), below.
+        self.oneAlignmentPerRead = oneAlignmentPerRead
 
     def records(self):
         """
@@ -110,6 +114,24 @@ class BlastRecords(object):
         @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
             instances.
         """
+
+        def _bestAlignmentPerRead(record):
+            """
+            Takes a C{Bio.Blast.Record.Blast} record, yields a
+            C{Bio.Blast.Record.Blast} record which only contains the best
+            alignment for that record.
+
+            @param record: a C{Bio.Blast.Record.Blast} instance from records().
+            """
+            bestBitScore = 0
+            bestAlignment = None
+            for index, alignment in enumerate(record.alignments):
+                if alignment.hsps[0].bits > bestBitScore:
+                    bestBitScore = alignment.hsps[0].bits
+                    bestAlignment = alignment
+
+            record.alignments = bestAlignment
+            return record
 
         # Read the records, observing any given limit.
         count = 0
@@ -136,7 +158,10 @@ class BlastRecords(object):
                     done = True
                     break
                 count += 1
-                yield record
+                if oneAlignmentPerRead:
+                    yield _bestAlignmentPerRead(record)
+                else:
+                    yield record
 
         # If there were no records, we wont have set self.blastParams in
         # the loop above. Set it here too, just in case :-(
@@ -216,6 +241,7 @@ class BlastRecords(object):
 
             # For each sequence that the read matched against...
             for index, alignment in enumerate(record.alignments):
+
                 # Test sequence title.
                 title = record.descriptions[index].title
                 titleFilterResult = titleFilter.accept(title)
