@@ -647,8 +647,9 @@ class BlastHits(object):
             fasta = fasta[:self.records.limit]
         return fasta
 
-    def computePlotInfo(self, eCutoff=None, maxHspsPerHit=None,
-                        minStart=None, maxStop=None, logLinearXAxis=False,
+    def computePlotInfo(self, eCutoff=None, bitScoreCutoff=None,
+                        maxHspsPerHit=None, minStart=None, maxStop=None,
+                        logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
                         randomizeZeroEValues=True, rankValues=False):
         """
@@ -771,7 +772,10 @@ class BlastHits(object):
                     plotInfo['readIntervals'].add(normalized['queryStart'],
                                                   normalized['queryEnd'])
                 e = hsp.expect
+                bits = hsp.bits
                 if eCutoff is not None and e >= eCutoff:
+                    continue
+                elif bitScoreCutoff is not None and bits <= bitScoreCutoff:
                     continue
 
                 # We are committed to adding this item to plotInfo['items'].
