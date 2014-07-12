@@ -125,13 +125,14 @@ class BlastRecords(object):
             """
             bestBitScore = 0
             bestAlignment = None
-            for index, alignment in enumerate(record.alignments):
+            for alignment in record.alignments:
                 if alignment.hsps[0].bits > bestBitScore:
                     bestBitScore = alignment.hsps[0].bits
                     bestAlignment = alignment
 
-            record.alignments = bestAlignment
-            return record
+            # check if it's always a list
+            record.alignments = ([bestAlignment] if bestAlignment
+                                 is not None else [])
 
         # Read the records, observing any given limit.
         count = 0
@@ -158,10 +159,11 @@ class BlastRecords(object):
                     done = True
                     break
                 count += 1
-                if oneAlignmentPerRead:
-                    yield _bestAlignmentPerRead(record)
-                else:
-                    yield record
+                if self.oneAlignmentPerRead:
+                    # only read out the best alignment per read
+                    _bestAlignmentPerRead(record)
+
+                yield record
 
         # If there were no records, we wont have set self.blastParams in
         # the loop above. Set it here too, just in case :-(

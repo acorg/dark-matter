@@ -3,7 +3,7 @@ from cStringIO import StringIO
 from Bio import SeqIO
 from dark.summarize import summarize_reads
 
-'''
+
 class FakeStringIO(StringIO):
     """
     A class which adds a faked .endswith() method
@@ -21,10 +21,9 @@ class FakeStringIO(StringIO):
     def endswith(self, x):
         return False
 
-class StringIO(object):
-    def endswith(self, x):
-        pass
-'''
+#class StringIO(object):
+#    def endswith(self, x):
+#        pass
 
 
 class TestSummarizeReads(TestCase):
