@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter, getTaxonomy)
+                         TitleFilter)
 
 
 class TitleFilterTest(TestCase):
@@ -417,18 +417,3 @@ class FakeDbConnection(object):
 
     def close(self):
         self.open = False
-
-
-class TestGetTaxonomy(TestCase):
-    """
-    Tests getLineage function.
-    """
-    def testGetTaxonomy(self):
-        title = 'gi|5|gb|EU375804.1| Merkel cell polyomavirus'
-        db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus'],
-                              [3], ['Polyomavirus'], [2],
-                              ['dsDNA viruses'], [1], ['Vira']])
-        cursor = db.cursor()
-        lineage = getTaxonomy(title, cursor)
-        self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus',
-                          'dsDNA viruses', 'Vira'], lineage)

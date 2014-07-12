@@ -192,3 +192,48 @@ def pieChartPerSpecificRank(blastHits, taxonomicRank, what):
     pyplot.title(plotTitle, fontsize=20)
     pyplot.legend(legend, bbox_to_anchor=(2, 1.05))
     pyplot.show()
+
+
+class LineageFetcher(object):
+    """
+    Provide access to the NCBI taxonomy database so we can retrieve the lineage
+    of title sequences hit by BLAST.
+    """
+    def __init__(self):
+        self._db = mysql.getDatabaseConnection()
+        self._cursor = self._db.cursor()
+
+    def lineage(self, title):
+        """
+        For a give title, gets the lineage information from taxonomy
+        database.
+
+        @param title: the C{str} title of a sequence hit by BLAST.
+
+        @return: A C{list} of the taxonomic categories of the title. If
+            no taxonomy is found, the list will be empty.
+        """
+        lineage = []
+        gi = int(title.split('|')[1])
+        query = 'SELECT taxID from gi_taxid_nucl where gi = %d' % gi
+        self._cursor.execute(query)
+
+        try:
+            taxID = self._cursor.fetchone()[0]
+            while taxID != 1:
+                query = ('SELECT parent_taxID from nodes where taxID = %s' %
+                         taxID)
+                self._cursor.execute(query)
+                parentTaxID = self._cursor.fetchone()[0]
+                query = 'SELECT name from names where taxId = %s' % taxID
+                self._cursor.execute(query)
+                scientificName = self._cursor.fetchone()[0]
+                lineage.append(scientificName)
+                taxID = parentTaxID
+            return lineage
+        except TypeError:
+            return []
+
+    def close(self):
+        self._cursor.close()
+        self._db.close()

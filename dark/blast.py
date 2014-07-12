@@ -6,9 +6,10 @@ from Bio import SeqIO
 
 from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter, getTaxonomy)
+                         TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark.taxonomy import LineageFetcher
 from dark import mysql
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
@@ -165,7 +166,7 @@ class BlastRecords(object):
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
                    withBitScoreBetterThan=None, minNewReads=None,
-                   taxonomy='all'):
+                   taxonomy=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -205,12 +206,8 @@ class BlastRecords(object):
             read set must differ from all previously seen read sets in order to
             be considered acceptably different.
         @param taxonomy: a C{str} of the taxonomic group on which should be
-            filtered. eg 'Vira' will filter on viruses. Calls a mySQL
-            database to get the taxonomic information. If no database is
-            installed, use with None, and no filtering on taxonomy will occur.
-            If one wants to filter on taxonomy at a later stage, use with
-            'all', and the taxonomy will be read out, but no filtering will
-            occur.
+            filtered. eg 'Vira' will filter on viruses. Use C{None} to skip
+            taxonomic filtering.
 
         @return: A L{BlastHits} instance.
         """
@@ -220,11 +217,8 @@ class BlastRecords(object):
             negativeRegex=negativeTitleRegex,
             truncateAfter=truncateTitlesAfter)
 
-        openedDb = False
         if taxonomy:
-            db = mysql.getDatabaseConnection()
-            cursor = db.cursor()
-            openedDb = True
+            lineageFetcher = LineageFetcher()
 
         # For each read (that BLAST found in the FASTA file)...
         for readNum, record in enumerate(self.records()):
@@ -238,12 +232,9 @@ class BlastRecords(object):
                     continue
 
                 if taxonomy:
-                    lineage = getTaxonomy(title, cursor)
-                    if (taxonomy not in lineage or taxonomy != 'all' and
-                            lineage != ['No taxID found']):
+                    lineage = lineageFetcher.lineage(title)
+                    if lineage and taxonomy not in lineage:
                         continue
-                else:
-                    lineage = None
 
                 if title in result:
                     hitInfo = result[title]
@@ -264,7 +255,7 @@ class BlastRecords(object):
                         'readNums': set(),
                         'bitScores': [],
                         'titleFilterResult': titleFilterResult,
-                        'taxonomy': lineage
+                        'taxonomy': lineage if taxonomy else None
                     }
 
                 # Record just the best e-value and bit score with which
@@ -322,9 +313,8 @@ class BlastRecords(object):
             # Reduce memory usage as quickly as we can.
             del result[title]
 
-        if openedDb:
-            cursor.close()
-            db.close()
+        if taxonomy:
+            lineageFetcher.close()
 
         return blastHits
 
@@ -586,21 +576,30 @@ class BlastHits(object):
         else:
             readSetFilter = ReadSetFilter(minNewReads)
 
+        if taxonomy:
+            lineageFetcher = LineageFetcher()
+
         blastHits = BlastHits(self.records, readSetFilter=readSetFilter)
         for title, hitInfo in self.titles.iteritems():
             titleFilterResult = titleFilter.accept(title)
-            if (taxonomy and taxonomy != 'all' and taxonomy not in
-                    hitInfo['taxonomy'] and
-                    hitInfo['taxonomy'] != ['No taxID found']):
-                continue
-            else:
-                if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
-                        titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
-                        hitInfoFilter.accept(hitInfo) and
-                        bitScoreFilter.accept(hitInfo) and
-                        (minNewReads is None or
-                         readSetFilter.accept(title, hitInfo))):
-                    blastHits.addHit(title, hitInfo)
+            if taxonomy:
+                if hitInfo['taxonomy'] is None:
+                    # Taxonomy information not yet been fetched for this title.
+                    hitInfo['taxonomy'] = lineageFetcher.lineage(title)
+                if taxonomy not in hitInfo['taxonomy']:
+                    continue
+
+            if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
+                    titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
+                    hitInfoFilter.accept(hitInfo) and
+                    bitScoreFilter.accept(hitInfo) and
+                    (minNewReads is None or
+                     readSetFilter.accept(title, hitInfo))):
+                blastHits.addHit(title, hitInfo)
+
+        if taxonomy:
+            lineageFetcher.close()
+
         return blastHits
 
     def _getHsps(self):
