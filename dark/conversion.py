@@ -198,9 +198,6 @@ class JSONRecordsReader(object):
             descriptionInstance.title = title
             record.descriptions.append(descriptionInstance)
 
-            if highestRead:
-
-
         return record
 
     def _processFirstLine(self, line):
