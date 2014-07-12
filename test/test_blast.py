@@ -1820,3 +1820,59 @@ class TestNumericallySortFilenames(TestCase):
             ['2.json', '3.json', '21.json', '35.json', '250.json'],
             numericallySortFilenames(
                 ['3.json', '21.json', '35.json', '250.json', '2.json']))
+
+
+class TestTaxonomyFiltering:
+    def testAllTaxonomy(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage', 'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='all')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']}})
+
+    def testGivenTaxonomyNotPresent(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='fiction')
+        self.assertEqual(result.titles, {})
+
+    def testGivenTaxonomyPresent(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='Vira')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+                                         'eMin': 0.01,
+                                         'taxonomy': ['Merkel cell '
+                                                      'polyomavirus',
+                                                      'unclassified '
+                                                      'Polyomavirus',
+                                                      'Polyomavirus',
+                                                      'Polyomaviridae',
+                                                      'dsDNA viruses, '
+                                                      'no RNA stage',
+                                                      'Vira']}})

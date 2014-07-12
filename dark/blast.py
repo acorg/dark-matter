@@ -6,7 +6,7 @@ from Bio import SeqIO
 
 from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter)
+                         TitleFilter, getTaxonomy)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark import mysql
@@ -164,7 +164,8 @@ class BlastRecords(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None):
+                   withBitScoreBetterThan=None, minNewReads=None,
+                   taxonomy='all'):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -203,6 +204,14 @@ class BlastRecords(object):
         @param minNewReads: The C{float} fraction of its reads by which a new
             read set must differ from all previously seen read sets in order to
             be considered acceptably different.
+        @param taxonomy: a C{str} of the taxonomic group on which should be
+            filtered. eg 'Vira' will filter on viruses. Calls a mySQL
+            database to get the taxonomic information. If no database is
+            installed, use with None, and no filtering on taxonomy will occur.
+            If one wants to filter on taxonomy at a later stage, use with
+            'all', and the taxonomy will be read out, but no filtering will
+            occur.
+
         @return: A L{BlastHits} instance.
         """
         result = {}
@@ -210,6 +219,12 @@ class BlastRecords(object):
             whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
             negativeRegex=negativeTitleRegex,
             truncateAfter=truncateTitlesAfter)
+
+        openedDb = False
+        if taxonomy:
+            db = mysql.getDatabaseConnection()
+            cursor = db.cursor()
+            openedDb = True
 
         # For each read (that BLAST found in the FASTA file)...
         for readNum, record in enumerate(self.records()):
@@ -221,6 +236,14 @@ class BlastRecords(object):
                 titleFilterResult = titleFilter.accept(title)
                 if titleFilterResult == TitleFilter.REJECT:
                     continue
+
+                if taxonomy:
+                    lineage = getTaxonomy(title, cursor)
+                    if (taxonomy not in lineage or taxonomy != 'all' and
+                            lineage != ['No taxID found']):
+                        continue
+                else:
+                    lineage = None
 
                 if title in result:
                     hitInfo = result[title]
@@ -240,7 +263,8 @@ class BlastRecords(object):
                         'readCount': 0,
                         'readNums': set(),
                         'bitScores': [],
-                        'titleFilterResult': titleFilterResult
+                        'titleFilterResult': titleFilterResult,
+                        'taxonomy': lineage
                     }
 
                 # Record just the best e-value and bit score with which
@@ -297,6 +321,10 @@ class BlastRecords(object):
 
             # Reduce memory usage as quickly as we can.
             del result[title]
+
+        if openedDb:
+            cursor.close()
+            db.close()
 
         return blastHits
 
@@ -487,7 +515,8 @@ class BlastHits(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None):
+                   withBitScoreBetterThan=None, minNewReads=None,
+                   taxonomy=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -560,13 +589,18 @@ class BlastHits(object):
         blastHits = BlastHits(self.records, readSetFilter=readSetFilter)
         for title, hitInfo in self.titles.iteritems():
             titleFilterResult = titleFilter.accept(title)
-            if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
-                    titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
-                    hitInfoFilter.accept(hitInfo) and
-                    bitScoreFilter.accept(hitInfo) and
-                    (minNewReads is None or
-                     readSetFilter.accept(title, hitInfo))):
-                blastHits.addHit(title, hitInfo)
+            if (taxonomy and taxonomy != 'all' and taxonomy not in
+                    hitInfo['taxonomy'] and
+                    hitInfo['taxonomy'] != ['No taxID found']):
+                continue
+            else:
+                if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
+                        titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
+                        hitInfoFilter.accept(hitInfo) and
+                        bitScoreFilter.accept(hitInfo) and
+                        (minNewReads is None or
+                         readSetFilter.accept(title, hitInfo))):
+                    blastHits.addHit(title, hitInfo)
         return blastHits
 
     def _getHsps(self):

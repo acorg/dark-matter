@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter)
+                         TitleFilter, getTaxonomy)
 
 
 class TitleFilterTest(TestCase):
@@ -385,3 +385,50 @@ class ReadSetTest(TestCase):
         """
         rsf = ReadSetFilter(0.5)
         self.assertEqual([], rsf.invalidates('title1'))
+
+
+class FakeCursor(object):
+    def __init__(self, results):
+        self._results = results
+        self._index = -1
+
+    def execute(self, p):
+        pass
+
+    def fetchone(self):
+        self._index += 1
+        return self._results[self._index]
+
+    def close(self):
+        pass
+
+
+class FakeDbConnection(object):
+    """
+    FakeDbConnection and FakeCursor fake results
+    for database calls.
+    """
+    def __init__(self, results):
+        self._results = results
+        self.open = True
+
+    def cursor(self):
+        return FakeCursor(self._results)
+
+    def close(self):
+        self.open = False
+
+
+class TestGetTaxonomy(TestCase):
+    """
+    Tests getLineage function.
+    """
+    def testGetTaxonomy(self):
+        title = 'gi|5|gb|EU375804.1| Merkel cell polyomavirus'
+        db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus'],
+                              [3], ['Polyomavirus'], [2],
+                              ['dsDNA viruses'], [1], ['Vira']])
+        cursor = db.cursor()
+        lineage = getTaxonomy(title, cursor)
+        self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus',
+                          'dsDNA viruses', 'Vira'], lineage)
