@@ -549,7 +549,7 @@ class TestBlastRecords(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             records = list(BlastRecords('file.json', limit=1).records())
             self.assertEqual(1, len(records))
-            self.assertEqual('title-a', records[0].descriptions[0].title)
+            self.assertEqual('title-a', records[0].alignments[0].title)
 
     def testXMLInput(self):
         """

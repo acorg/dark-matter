@@ -8,6 +8,6 @@ line) from stdin and pretty print it to stdout.
 from json import dumps, loads
 import sys
 
-for line in sys.stdin.readlines():
+for line in sys.stdin:
     s = dumps(loads(line[:-1]), sort_keys=True, indent=2)
     print '\n'.join([l.rstrip() for l in s.splitlines()])

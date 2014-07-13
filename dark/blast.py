@@ -26,8 +26,7 @@ def printBlastRecord(record):
     print 'alignments: (%d in total):' % len(record.alignments)
     for i, alignment in enumerate(record.alignments):
         print '  description %d:' % (i + 1)
-        for attr in ['accession', 'bits', 'e', 'num_alignments', 'score',
-                     'title']:
+        for attr in ['accession', 'bits', 'e', 'num_alignments', 'score']:
             print '    %s: %s' % (attr, getattr(record.descriptions[i], attr))
         print '  alignment %d:' % (i + 1)
         for attr in 'accession', 'hit_def', 'hit_id', 'length', 'title':
@@ -215,9 +214,9 @@ class BlastRecords(object):
         for readNum, record in enumerate(self.records()):
 
             # For each sequence that the read matched against...
-            for index, alignment in enumerate(record.alignments):
+            for alignment in record.alignments:
                 # Test sequence title.
-                title = record.descriptions[index].title
+                title = alignment.title
                 titleFilterResult = titleFilter.accept(title)
                 if titleFilterResult == TitleFilter.REJECT:
                     continue
@@ -583,8 +582,8 @@ class BlastHits(object):
         """
         titles = self.titles
         for readNum, record in enumerate(self.records.records()):
-            for index, alignment in enumerate(record.alignments):
-                title = record.descriptions[index].title
+            for alignment in record.alignments:
+                title = alignment.title
                 if title in titles and readNum in titles[title]['readNums']:
                     yield (title, readNum, alignment.hsps)
 
