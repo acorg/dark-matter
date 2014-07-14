@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+
+"""
+
 from dark.smith_waterman import smith_waterman
 import sys
 from Bio import SeqIO
