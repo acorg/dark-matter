@@ -551,6 +551,62 @@ class TestBlastRecords(TestCase):
             self.assertEqual(1, len(records))
             self.assertEqual('title-a', records[0].alignments[0].title)
 
+    def testOneAlignmentPerRead(self):
+        """
+        If the L{BlastRecords} is only supposed to read out the best alignment
+        for each read, that must be respected.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+        record1 = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 2220,
+                    "hsps": [
+                        {
+                            "sbjct_end": 1841,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
+                        }
+                    ],
+                    "title":"Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json',
+                                        oneAlignmentPerRead=False).records())
+            self.assertEqual(1, len(records))
+            self.assertEqual('Merkel1', records[0].alignments[0].title)
+
     def testXMLInput(self):
         """
         Test conversion of a chunk of BLAST XML.  This is completely
