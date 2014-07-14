@@ -10,7 +10,12 @@ if len(sys.argv) > 2:
 
 else:
     filename = sys.argv[1]
-    result = summarize_reads(filename)
+    if filename.endswith('a'):
+        filetype = 'fasta'
+    else:
+        filetype = 'fastq'
+
+    result = summarize_reads(filename, filetype)
 
     print "Number of reads:", result["read_number"]
     print "Total length: %s bases" % result["total_length"]

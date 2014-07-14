@@ -549,7 +549,7 @@ class TestBlastRecords(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             records = list(BlastRecords('file.json', limit=1).records())
             self.assertEqual(1, len(records))
-            self.assertEqual('title-a', records[0].descriptions[0].title)
+            self.assertEqual('title-a', records[0].alignments[0].title)
 
     def testXMLInput(self):
         """
@@ -1820,3 +1820,59 @@ class TestNumericallySortFilenames(TestCase):
             ['2.json', '3.json', '21.json', '35.json', '250.json'],
             numericallySortFilenames(
                 ['3.json', '21.json', '35.json', '250.json', '2.json']))
+
+
+class TestTaxonomyFiltering:
+    def testAllTaxonomy(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage', 'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='all')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']}})
+
+    def testGivenTaxonomyNotPresent(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='fiction')
+        self.assertEqual(result.titles, {})
+
+    def testGivenTaxonomyPresent(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='Vira')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+                                         'eMin': 0.01,
+                                         'taxonomy': ['Merkel cell '
+                                                      'polyomavirus',
+                                                      'unclassified '
+                                                      'Polyomavirus',
+                                                      'Polyomavirus',
+                                                      'Polyomaviridae',
+                                                      'dsDNA viruses, '
+                                                      'no RNA stage',
+                                                      'Vira']}})

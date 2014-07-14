@@ -790,7 +790,7 @@ def evalueGraph(records, rows, cols, find=None, titles=True, minHits=1,
                     if e < 0:
                         break
                     evalues.append(e)
-                    if find and find(desc.title):
+                    if find and find(record.alignments[i].title):
                         foundx.append(i)
                         foundy.append(e)
                 a = ax[row][col]
