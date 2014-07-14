@@ -4,28 +4,6 @@ from Bio import SeqIO
 from dark.summarize import summarize_reads
 
 
-class FakeStringIO(StringIO):
-    """
-    A class which adds a faked .endswith() method
-    to StringIO.
-    """
-    def __init__(self, seq):
-        self._seq = seq
-
-    def fakeStringIO(self):
-        if self._seq != None:
-            return StringIO(self._seq)
-        else:
-            return 0
-
-    def endswith(self, x):
-        return False
-
-#class StringIO(object):
-#    def endswith(self, x):
-#        pass
-
-
 class TestSummarizeReads(TestCase):
     """
     Test the summarize_reads function.

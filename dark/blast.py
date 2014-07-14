@@ -87,7 +87,7 @@ class BlastRecords(object):
         sorted by numeric prefix (using L{numericallySortFilenames}) before
         being read. This can be used to conveniently sort the files produced
         by our HTCondor jobs.
-    @param oneAlignmentPerRead: if not C{False}, only return the best
+    @param oneAlignmentPerRead: if C{True}, only return the best
         alignment for each read.
     """
 
@@ -105,7 +105,7 @@ class BlastRecords(object):
         self.limit = limit
         self._length = 0
         self.blastParams = None  # Set in records(), below.
-        self.oneAlignmentPerRead = oneAlignmentPerRead
+        self._oneAlignmentPerRead = oneAlignmentPerRead
 
     def records(self):
         """
@@ -117,9 +117,8 @@ class BlastRecords(object):
 
         def _bestAlignmentPerRead(record):
             """
-            Takes a C{Bio.Blast.Record.Blast} record, yields a
-            C{Bio.Blast.Record.Blast} record which only contains the best
-            alignment for that record.
+            Takes a C{Bio.Blast.Record.Blast} record, and alters it, so
+            it only contains the best alignment for that record.
 
             @param record: a C{Bio.Blast.Record.Blast} instance from records().
             """
@@ -159,8 +158,7 @@ class BlastRecords(object):
                     done = True
                     break
                 count += 1
-                if self.oneAlignmentPerRead:
-                    # only read out the best alignment per read
+                if self._oneAlignmentPerRead:
                     _bestAlignmentPerRead(record)
 
                 yield record
