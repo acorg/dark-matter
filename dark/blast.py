@@ -87,13 +87,10 @@ class BlastRecords(object):
         sorted by numeric prefix (using L{numericallySortFilenames}) before
         being read. This can be used to conveniently sort the files produced
         by our HTCondor jobs.
-    @param oneAlignmentPerRead: if C{True}, only return the best
-        alignment for each read.
     """
 
     def __init__(self, blastFilenames, fastaFilename=None, blastDb=None,
-                 limit=None, sortBlastFilenames=True,
-                 oneAlignmentPerRead=False):
+                 limit=None, sortBlastFilenames=True):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
         if sortBlastFilenames:
@@ -105,12 +102,21 @@ class BlastRecords(object):
         self.limit = limit
         self._length = 0
         self.blastParams = None  # Set in records(), below.
-        self._oneAlignmentPerRead = oneAlignmentPerRead
 
-    def records(self):
+    def records(self, oneAlignmentPerRead=False, maxHspsPerHit=None,
+                bitScoreCutoff=None, eCutoff=None):
         """
-        Extract all BLAST records (up to C{self.limit}, if not C{None}).
+        Extract BLAST records (up to C{self.limit}, if not C{None}), with
+            some filtering based just on reads and their alignments.
 
+        @param oneAlignmentPerRead: if C{True}, only keep the best
+            alignment for each read.
+        @param maxHspsPerHit: The maximum number of HSPs to keep for each
+            alignment for each read.
+        @param bitScoreCutoff: A float bit score. Hits with bit scores less
+            than this will be ignored.
+        @param eCutoff: A float e-value. Hits with e-value greater than or
+            equal to this will be ignored.
         @return: A generator that yields BioPython C{Bio.Blast.Record.Blast}
             instances.
         """
@@ -129,7 +135,6 @@ class BlastRecords(object):
                     bestBitScore = alignment.hsps[0].bits
                     bestAlignment = alignment
 
-            # check if it's always a list
             record.alignments = ([bestAlignment] if bestAlignment
                                  is not None else [])
 
@@ -157,11 +162,52 @@ class BlastRecords(object):
                 if limit is not None and count == limit:
                     done = True
                     break
-                count += 1
-                if self._oneAlignmentPerRead:
+
+                # Throw out any unwanted HSPs due to maxHspsPerHit.
+                for alignment in record.alignments:
+                    hsps = alignment.hsps
+                    if maxHspsPerHit is not None and len(hsps) > maxHspsPerHit:
+                        alignment.hsps = hsps[:maxHspsPerHit]
+
+                if oneAlignmentPerRead:
                     _bestAlignmentPerRead(record)
 
+                if bitScoreCutoff is not None:
+                    wantedAlignments = []
+                    for alignment in record.alignments:
+                        hsps = alignment.hsps
+                        wantedHsps = []
+                        for hsp in hsps:
+                            if hsp.bits >= bitScoreCutoff:
+                                wantedHsps.append(hsp)
+                        if wantedHsps:
+                            alignment.hsps = wantedHsps
+                            wantedAlignments.append(alignment)
+
+                    if wantedAlignments:
+                        record.alignments = wantedAlignments
+                    else:
+                        continue
+
+                if eCutoff is not None:
+                    wantedAlignments = []
+                    for alignment in record.alignments:
+                        hsps = alignment.hsps
+                        wantedHsps = []
+                        for hsp in hsps:
+                            if hsp.expect <= eCutoff:
+                                wantedHsps.append(hsp)
+                        if wantedHsps:
+                            alignment.hsps = wantedHsps
+                            wantedAlignments.append(alignment)
+
+                    if wantedAlignments:
+                        record.alignments = wantedAlignments
+                    else:
+                        continue
+
                 yield record
+                count += 1
 
         # If there were no records, we wont have set self.blastParams in
         # the loop above. Set it here too, just in case :-(
@@ -183,7 +229,8 @@ class BlastRecords(object):
         """
         return self._length
 
-    def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
+    def filterHits(self, records=None, whitelist=None, blacklist=None,
+                   minSequenceLen=None,
                    maxSequenceLen=None, minMatchingReads=None,
                    maxMeanEValue=None, maxMedianEValue=None,
                    withEBetterThan=None, titleRegex=None,
@@ -235,6 +282,8 @@ class BlastRecords(object):
 
         @return: A L{BlastHits} instance.
         """
+        records = records or self.records()
+
         result = {}
         titleFilter = TitleFilter(
             whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
@@ -245,7 +294,7 @@ class BlastRecords(object):
             lineageFetcher = LineageFetcher()
 
         # For each read (that BLAST found in the FASTA file)...
-        for readNum, record in enumerate(self.records()):
+        for readNum, record in enumerate(records):
 
             # For each sequence that the read matched against...
             for alignment in record.alignments:
@@ -704,8 +753,7 @@ class BlastHits(object):
             fasta = fasta[:self.records.limit]
         return fasta
 
-    def computePlotInfo(self, eCutoff=None, bitScoreCutoff=None,
-                        maxHspsPerHit=None, minStart=None, maxStop=None,
+    def computePlotInfo(self, minStart=None, maxStop=None,
                         logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
                         randomizeZeroEValues=True, rankValues=False):
@@ -714,10 +762,6 @@ class BlastHits(object):
         and compute summary statistics on it. The various parameters allow
         us to restrict and transform the data that is read.
 
-        @param eCutoff: A float e-value. Hits with e-value greater than or
-            equal to this will be ignored.
-        @param maxHspsPerHit: The maximum number of HSPs to examine for each
-            hit.
         @param minStart: Reads that start before this subject offset should
             not be returned.
         @param maxStop: Reads that end after this subject offset should not
@@ -742,10 +786,8 @@ class BlastHits(object):
         # to, such as alignmentPlot and alignmentPanel, can discover how
         # the data was filtered and summarized etc.
         self.plotParams = {
-            'eCutoff': eCutoff,
             'logBase': logBase,
             'logLinearXAxis': logLinearXAxis,
-            'maxHspsPerHit': maxHspsPerHit,
             'maxStop': maxStop,
             'minStart': minStart,
             'randomizeZeroEValues': randomizeZeroEValues,
@@ -803,9 +845,6 @@ class BlastHits(object):
             queryLen = len(self.fasta[readNum])
             plotInfo['hspTotal'] += len(hsps)
 
-            if maxHspsPerHit is not None and len(hsps) > maxHspsPerHit:
-                hsps = hsps[:maxHspsPerHit]
-
             for hspCount, hsp in enumerate(hsps, start=1):
                 try:
                     normalized = normalizeHSP(hsp, queryLen, blastApplication)
@@ -828,15 +867,11 @@ class BlastHits(object):
                 if logLinearXAxis:
                     plotInfo['readIntervals'].add(normalized['queryStart'],
                                                   normalized['queryEnd'])
-                e = hsp.expect
-                bits = hsp.bits
-                if eCutoff is not None and e >= eCutoff:
-                    continue
-                elif bitScoreCutoff is not None and bits <= bitScoreCutoff:
-                    continue
 
                 # We are committed to adding this item to plotInfo['items'].
                 # Don't add any 'continue' statements below this point.
+
+                e = hsp.expect
 
                 # Retain original evalue below cutoff for eMean and eMedian
                 # calculation.
