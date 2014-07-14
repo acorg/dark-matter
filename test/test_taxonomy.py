@@ -247,9 +247,10 @@ class TestLineageFetcher(TestCase):
     Test LineageFetcher class.
     """
     def testGetTaxonomy(self):
-        title = 'gi|5|gb|EU375804.1| Merkel cell polyomavirus'
-        lineageFetcher = taxonomy.LineageFetcher()
-
+        pass
+        # title = 'gi|5|gb|EU375804.1| Merkel cell polyomavirus'
+        # lineageFetcher = taxonomy.LineageFetcher()
+        #
         # db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus'],
         #                       [3], ['Polyomavirus'], [2],
         #                       ['dsDNA viruses'], [1], ['Vira']])

@@ -12,4 +12,3 @@ if __name__ == '__main__':
     else:
         reads = fasta.fastaSubtract(map(open, sys.argv[1:]))
         SeqIO.write(reads, sys.stdout, 'fasta')
-        #print >>sys.stderr, 'Wrote %d sequences.' % len(reads)
