@@ -9,6 +9,7 @@ from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
 from dark.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark.taxonomy import LineageFetcher
 from dark import mysql
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
@@ -163,7 +164,8 @@ class BlastRecords(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None):
+                   withBitScoreBetterThan=None, minNewReads=None,
+                   taxonomy=None):
         """
         Read the BLAST records and return a L{BlastHits} instance. Records are
         only returned if they match the various optional restrictions described
@@ -202,6 +204,10 @@ class BlastRecords(object):
         @param minNewReads: The C{float} fraction of its reads by which a new
             read set must differ from all previously seen read sets in order to
             be considered acceptably different.
+        @param taxonomy: a C{str} of the taxonomic group on which should be
+            filtered. eg 'Vira' will filter on viruses. Use C{None} to skip
+            taxonomic filtering.
+
         @return: A L{BlastHits} instance.
         """
         result = {}
@@ -209,6 +215,9 @@ class BlastRecords(object):
             whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
             negativeRegex=negativeTitleRegex,
             truncateAfter=truncateTitlesAfter)
+
+        if taxonomy:
+            lineageFetcher = LineageFetcher()
 
         # For each read (that BLAST found in the FASTA file)...
         for readNum, record in enumerate(self.records()):
@@ -220,6 +229,11 @@ class BlastRecords(object):
                 titleFilterResult = titleFilter.accept(title)
                 if titleFilterResult == TitleFilter.REJECT:
                     continue
+
+                if taxonomy:
+                    lineage = lineageFetcher.lineage(title)
+                    if lineage and taxonomy not in lineage:
+                        continue
 
                 if title in result:
                     hitInfo = result[title]
@@ -239,7 +253,8 @@ class BlastRecords(object):
                         'readCount': 0,
                         'readNums': set(),
                         'bitScores': [],
-                        'titleFilterResult': titleFilterResult
+                        'titleFilterResult': titleFilterResult,
+                        'taxonomy': lineage if taxonomy else None
                     }
 
                 # Record just the best e-value and bit score with which
@@ -296,6 +311,9 @@ class BlastRecords(object):
 
             # Reduce memory usage as quickly as we can.
             del result[title]
+
+        if taxonomy:
+            lineageFetcher.close()
 
         return blastHits
 
@@ -486,7 +504,8 @@ class BlastHits(object):
                    withEBetterThan=None, titleRegex=None,
                    negativeTitleRegex=None, truncateTitlesAfter=None,
                    minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None):
+                   withBitScoreBetterThan=None, minNewReads=None,
+                   taxonomy=None):
         """
         Produce a new L{BlastHits} instance consisting of just the interesting
         hits, as given by our parameters.
@@ -556,9 +575,19 @@ class BlastHits(object):
         else:
             readSetFilter = ReadSetFilter(minNewReads)
 
+        if taxonomy:
+            lineageFetcher = LineageFetcher()
+
         blastHits = BlastHits(self.records, readSetFilter=readSetFilter)
         for title, hitInfo in self.titles.iteritems():
             titleFilterResult = titleFilter.accept(title)
+            if taxonomy:
+                if hitInfo['taxonomy'] is None:
+                    # Taxonomy information not yet been fetched for this title.
+                    hitInfo['taxonomy'] = lineageFetcher.lineage(title)
+                if taxonomy not in hitInfo['taxonomy']:
+                    continue
+
             if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
                     titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
                     hitInfoFilter.accept(hitInfo) and
@@ -566,6 +595,10 @@ class BlastHits(object):
                     (minNewReads is None or
                      readSetFilter.accept(title, hitInfo))):
                 blastHits.addHit(title, hitInfo)
+
+        if taxonomy:
+            lineageFetcher.close()
+
         return blastHits
 
     def _getHsps(self):
