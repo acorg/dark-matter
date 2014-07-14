@@ -549,7 +549,7 @@ class TestBlastRecords(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             records = list(BlastRecords('file.json', limit=1).records())
             self.assertEqual(1, len(records))
-            self.assertEqual('title-a', records[0].descriptions[0].title)
+            self.assertEqual('title-a', records[0].alignments[0].title)
 
     def testOneAlignmentPerRead(self):
         """
@@ -560,38 +560,38 @@ class TestBlastRecords(TestCase):
             'application': 'BLASTN',
         }
         record1 = {
-            "query":"H6E8I1T01BFUH9",
-            "alignments":[
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
                 {
-                    "length":2885,
-                    "hsps":[
+                    "length": 2885,
+                    "hsps": [
                         {
-                            "sbjct_end":2506,
-                            "expect":1.25854e-43,
-                            "sbjct":"AATCCAGGGAATCTCTTAGATTTGCCTTTGGGGAAAAGTGTAAAGTATAACTAAATCTTGCTATTAATGTTTTGGGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start":2607,
-                            "query":"AATCCAGGGAATCTCTTAGATTTGCCTTTGGGGAAAAGTGTAAAGTATAACTAAATCTTGCTATTAATGTTTTGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame":[1,-1],
-                            "query_end":462,
-                            "bits":182.092,
-                            "query_start":362
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 362
                         }
                     ],
-                    "title":"Merkel1"
+                    "title": "Merkel1"
                 },
                 {
-                    "length":2220,
-                    "hsps":[
+                    "length": 2220,
+                    "hsps": [
                         {
-                            "sbjct_end":1841,
-                            "expect":1.25854e-43,
-                            "sbjct":"AATCCAGGGAATCTCTTAGATTTGCCTTTGGGGAAAAGTGTAAAGTATAACTAAATCTTGCTATTAATGTTTTGGGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start":1942,
-                            "query":"AATCCAGGGAATCTCTTAGATTTGCCTTTGGGGAAAAGTGTAAAGTATAACTAAATCTTGCTATTAATGTTTTGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame":[1,-1],
-                            "query_end":462,
-                            "bits":180,
-                            "query_start":362
+                            "sbjct_end": 1841,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
                         }
                     ],
                     "title":"Merkel2"
@@ -602,9 +602,10 @@ class TestBlastRecords(TestCase):
         mockOpener = mockOpen(read_data=dumps(params) + '\n' +
                               dumps(record1) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
-            records = list(BlastRecords('file.json', oneAlignmentPerRead=False).records())
+            records = list(BlastRecords('file.json',
+                                        oneAlignmentPerRead=False).records())
             self.assertEqual(1, len(records))
-            self.assertEqual('Merkel1', records[0].descriptions[0].title)
+            self.assertEqual('Merkel1', records[0].alignments[0].title)
 
     def testXMLInput(self):
         """
@@ -1662,6 +1663,97 @@ class TestComputePlotInfo(TestCase):
             plotInfo = blastHits.titles[title]['plotInfo']
             self.assertEqual(1, len(plotInfo['items']))
 
+    def testbitScoreCutoffResultsInNoTitles(self):
+        """
+        Records should be excluded correctly (via having their plotInfo
+        attribute set to C{None}, due to bit scores being too low.
+        """
+        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+        params = {
+            'application': 'BLASTN',
+        }
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 20,
+                            'sbjct_end': 15400,
+                            'expect': 0.2,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': title,
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit(title, {
+                'length': 100,
+                'readNums': [0],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68]
+            blastHits.computePlotInfo(bitScoreCutoff=200)
+            plotInfo = blastHits.titles[title]['plotInfo']
+            self.assertEqual(None, plotInfo)
+
+    def testBitScoreCutoffDoesntExcludeImproperly(self):
+        """
+        Records should not be excluded if bit scores are acceptable.
+        """
+        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+        params = {
+            'application': 'BLASTN',
+        }
+        record = {
+            'query': 'ICUR3MX01C6VDK',
+            'alignments': [
+                {
+                    'length': 37108,
+                    'hsps': [
+                        {
+                            'bits': 200,
+                            'sbjct_end': 15400,
+                            'expect': 0.2,
+                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                            'sbjct_start': 15362,
+                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                            'frame': [1, 1],
+                            'query_end': 68,
+                            'query_start': 28
+                        }
+                    ],
+                    'title': title,
+                }
+            ]
+        }
+        mockOpener = mockOpen(
+            read_data=dumps(params) + '\n' + dumps(record) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            blastRecords = BlastRecords('a.json')
+            blastHits = BlastHits(blastRecords)
+            blastHits.addHit(title, {
+                'length': 100,
+                'readNums': [0],
+            })
+            # Fake out the reading of the FASTA file.
+            blastHits.fasta = ['a' * 68]
+            blastHits.computePlotInfo(bitScoreCutoff=20)
+            plotInfo = blastHits.titles[title]['plotInfo']
+            self.assertEqual(1, len(plotInfo['items']))
+
     def testSortAfterComputePlotInfo(self):
         """
         If there is no plot info available for some titles after calling
@@ -1784,3 +1876,59 @@ class TestNumericallySortFilenames(TestCase):
             ['2.json', '3.json', '21.json', '35.json', '250.json'],
             numericallySortFilenames(
                 ['3.json', '21.json', '35.json', '250.json', '2.json']))
+
+
+class TestTaxonomyFiltering:
+    def testAllTaxonomy(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage', 'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='all')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']}})
+
+    def testGivenTaxonomyNotPresent(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='fiction')
+        self.assertEqual(result.titles, {})
+
+    def testGivenTaxonomyPresent(self):
+        blastHits = BlastHits(None)
+        blastHits.addHit('gi|293595919|gb|HM011539.1|', {
+            'eMin': 0.01,
+            'taxonomy': ['Merkel cell polyomavirus',
+                         'unclassified Polyomavirus',
+                         'Polyomavirus', 'Polyomaviridae',
+                         'dsDNA viruses, no RNA stage',
+                         'Vira']
+        })
+        result = blastHits.filterHits(taxonomy='Vira')
+        self.assertEqual(result.titles, {'gi|293595919|gb|HM011539.1|': {
+                                         'eMin': 0.01,
+                                         'taxonomy': ['Merkel cell '
+                                                      'polyomavirus',
+                                                      'unclassified '
+                                                      'Polyomavirus',
+                                                      'Polyomavirus',
+                                                      'Polyomaviridae',
+                                                      'dsDNA viruses, '
+                                                      'no RNA stage',
+                                                      'Vira']}})

@@ -240,3 +240,20 @@ class TestTaxonomy(TestCase):
         result = taxonomy.subjectsPerTaxonomicRank(taxIDLookUpDict,
                                                    blastHits, 'species')
         self.assertEqual({'mouse': set(['Smiley Cell Polyomavirus'])}, result)
+
+
+class TestLineageFetcher(TestCase):
+    """
+    Test LineageFetcher class.
+    """
+    def testGetTaxonomy(self):
+        title = 'gi|5|gb|EU375804.1| Merkel cell polyomavirus'
+        lineageFetcher = taxonomy.LineageFetcher()
+
+        # db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus'],
+        #                       [3], ['Polyomavirus'], [2],
+        #                       ['dsDNA viruses'], [1], ['Vira']])
+        # cursor = db.cursor()
+        # lineage = getTaxonomy(title, cursor)
+        # self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus',
+        #                   'dsDNA viruses', 'Vira'], lineage)

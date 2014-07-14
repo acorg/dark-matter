@@ -2,7 +2,7 @@ import bz2
 from json import dumps, loads
 
 from Bio.Blast import NCBIXML
-from Bio.Blast.Record import Alignment, Blast, Description, HSP
+from Bio.Blast.Record import Alignment, Blast, HSP
 
 
 class XMLRecordsReader(object):
@@ -34,7 +34,7 @@ class XMLRecordsReader(object):
         @return: A C{dict} with 'alignments' and 'query' keys.
         """
         alignments = []
-        for index, alignment in enumerate(record.alignments):
+        for alignment in record.alignments:
             hsps = []
             for hsp in alignment.hsps:
                 hsps.append({
@@ -52,7 +52,7 @@ class XMLRecordsReader(object):
             alignments.append({
                 'hsps': hsps,
                 'length': alignment.length,
-                'title': record.descriptions[index].title,
+                'title': alignment.title,
             })
 
         return {
@@ -77,7 +77,7 @@ class XMLRecordsReader(object):
         """
         result = {}
         for attr in (
-                ## From Bio.Blast.Record.Header
+                # From Bio.Blast.Record.Header
                 'application',
                 'version',
                 'date',
@@ -87,7 +87,7 @@ class XMLRecordsReader(object):
                 'database',
                 'database_sequences',
                 'database_letters',
-                ## From Bio.Blast.Record.DatabaseReport
+                # From Bio.Blast.Record.DatabaseReport
                 'database_name',
                 'posted_date',
                 'num_letters_in_database',
@@ -95,7 +95,7 @@ class XMLRecordsReader(object):
                 'ka_params',
                 'gapped',
                 'ka_params_gap',
-                ## From Bio.Blast.Record.Parameters
+                # From Bio.Blast.Record.Parameters
                 'matrix',
                 'gap_penalties',
                 'sc_match',
@@ -189,14 +189,10 @@ class JSONRecordsReader(object):
                              'query_end', 'sbjct', 'sbjct_start', 'sbjct_end']:
                     setattr(hspInstance, attr, hsp[attr])
                 alignmentInstance.hsps.append(hspInstance)
-            title = alignment['title']
+            alignmentInstance.title = title = alignment['title']
             alignmentInstance.hit_id = title.split(' ', 1)[0]
             alignmentInstance.length = alignment['length']
             record.alignments.append(alignmentInstance)
-
-            descriptionInstance = Description()
-            descriptionInstance.title = title
-            record.descriptions.append(descriptionInstance)
 
         return record
 
