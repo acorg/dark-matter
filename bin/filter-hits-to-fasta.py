@@ -33,7 +33,25 @@ if __name__ == '__main__':
     parser.add_argument(
         '--db', type=str, default='nt', help='the BLAST db that was used')
 
-    # Args for the interesting selection.
+    # Args for filtering reads and titles.
+    parser.add_argument(
+        '--oneAlignmentPerRead', default=False, action='store_true',
+        help='If C{True}, only keep the best alignment for each read.')
+
+    parser.add_argument(
+        '--bitScoreCutoff', type=float, default=None,
+        help=('A float bit score. Hits with bit scores less than '
+              'this will be ignored.'))
+
+    parser.add_argument(
+        '--eCutoff', type=float, default=None,
+        help='Ignore hits with e-values greater (i.e., worse) than or equal '
+        'to this.')
+
+    parser.add_argument(
+        '--maxHspsPerHit', type=int, default=None,
+        help='A numeric max number of HSPs to show for each hit on hitId.')
+
     parser.add_argument(
         '--whitelist', type=str, nargs='+', default=None,
         help='sequence titles that should be whitelisted')
@@ -105,15 +123,6 @@ if __name__ == '__main__':
 
     # Args for computePlotInfo
     parser.add_argument(
-        '--eCutoff', type=float, default=None,
-        help='Ignore hits with e-values greater (i.e., worse) than or equal '
-        'to this.')
-
-    parser.add_argument(
-        '--maxHspsPerHit', type=int, default=None,
-        help='A numeric max number of HSPs to show for each hit on hitId.')
-
-    parser.add_argument(
         '--minStart', type=int, default=None,
         help='Reads that start before this subject offset should not be '
         'shown.')
@@ -127,6 +136,11 @@ if __name__ == '__main__':
     blastRecords = BlastRecords(args.json, fastaFilename=args.fasta,
                                 blastDb=args.db)
 
+    records = blastRecords.records(
+        oneAlignmentPerRead=args.oneAlignmentPerRead,
+        maxHspsPerHit=args.maxHspsPerHit, bitScoreCutoff=args.bitScoreCutoff,
+        eCutoff=args.eCutoff)
+
     # Convert white/blacklists lists to sets.
     if args.whitelist is not None:
         args.whitelist = set(args.whitelist)
@@ -134,6 +148,7 @@ if __name__ == '__main__':
         args.blacklist = set(args.blacklist)
 
     hits = blastRecords.filterHits(
+        records=records,
         whitelist=args.whitelist,
         blacklist=args.blacklist,
         minSequenceLen=args.minSequenceLen,
@@ -158,15 +173,13 @@ if __name__ == '__main__':
         # the hitInfo or the plotInfo (depending on whether computePlotInfo
         # was called).  This is a speed-up to avoid calling computePlotInfo
         # unless we need to (as it re-reads all records).
-        if (args.eCutoff is None and args.maxHspsPerHit is None and
-                args.minStart is None and args.maxStop is None):
+        if (args.minStart is None and args.maxStop is None):
             # No need to call computePlotInfo, all read numbers are already in
             # the hitInfo for each title.
             for hitInfo in hits.titles.itervalues():
                 readNums.update(hitInfo['readNums'])
         else:
             hits.computePlotInfo(
-                eCutoff=args.eCutoff, maxHspsPerHit=args.maxHspsPerHit,
                 minStart=args.minStart, maxStop=args.maxStop)
             for hitInfo in hits.titles.itervalues():
                 plotInfo = hitInfo['plotInfo']

@@ -602,10 +602,276 @@ class TestBlastRecords(TestCase):
         mockOpener = mockOpen(read_data=dumps(params) + '\n' +
                               dumps(record1) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
-            records = list(BlastRecords('file.json',
-                                        oneAlignmentPerRead=False).records())
+            records = list(BlastRecords('file.json').records(
+                oneAlignmentPerRead=False))
             self.assertEqual(1, len(records))
             self.assertEqual('Merkel1', records[0].alignments[0].title)
+
+    def testECutoffRemovesEntireAlignment(self):
+        """
+        If the L{BlastRecords} records function is supposed to filter on
+        eCutoff and the cut-off value results in an alignment with no HSPs,
+        then the alignment must be removed entirely.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+        record1 = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 2220,
+                    "hsps": [
+                        {
+                            "sbjct_end": 1841,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json').records(
+                eCutoff=1e-15))
+            self.assertEqual(1, len(records))
+            self.assertEqual(1, len(records[0].alignments))
+            self.assertEqual('Merkel2', records[0].alignments[0].title)
+
+    def testECutoffRemovesHsps(self):
+        """
+        If the L{BlastRecords} records function is supposed to filter on
+        eCutoff and the cut-off value results in some HSPs being invalid,
+        then those HSPs must be removed entirely.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+        record1 = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 362
+                        },
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25e-20,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 0
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 2220,
+                    "hsps": [
+                        {
+                            "sbjct_end": 1841,
+                            "expect": 1.25e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json').records(
+                eCutoff=1e-15))
+            self.assertEqual(1, len(records))
+            self.assertEqual(2, len(records[0].alignments))
+            # There should only be one HSP left in the alignments for the
+            # first read, and it should have the right expect value.
+            self.assertEqual(1, len(records[0].alignments[0].hsps))
+            self.assertEqual(1.25e-20, records[0].alignments[0].hsps[0].expect)
+            # The second alignment should also be present.
+            self.assertEqual(1, len(records[0].alignments[1].hsps))
+            self.assertEqual(1.25e-43, records[0].alignments[1].hsps[0].expect)
+
+    def testBitScoreCutoffRemovesEntireAlignment(self):
+        """
+        If the L{BlastRecords} records function is supposed to filter on
+        bitScoreCutoff and the cut-off value results in an alignment with
+        no HSPs, then the alignment must be removed entirely.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+        record1 = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 150,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 2220,
+                    "hsps": [
+                        {
+                            "sbjct_end": 1841,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json').records(
+                bitScoreCutoff=160))
+            self.assertEqual(1, len(records))
+            self.assertEqual(1, len(records[0].alignments))
+            self.assertEqual('Merkel2', records[0].alignments[0].title)
+
+    def testBitScoreCutoffRemovesHsps(self):
+        """
+        If the L{BlastRecords} records function is supposed to filter on
+        bitScoreCutoff and the cut-off value results in some HSPs being
+        invalid, then those HSPs must be removed entirely.
+        """
+        params = {
+            'application': 'BLASTN',
+        }
+        record1 = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 150,
+                            "query_start": 362
+                        },
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25e-20,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 170,
+                            "query_start": 0
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 2220,
+                    "hsps": [
+                        {
+                            "sbjct_end": 1841,
+                            "expect": 1.25e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(params) + '\n' +
+                              dumps(record1) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            records = list(BlastRecords('file.json').records(
+                bitScoreCutoff=160))
+            self.assertEqual(1, len(records))
+            self.assertEqual(2, len(records[0].alignments))
+            # There should only be one HSP left in the alignments for the
+            # first read, and it should have the right expect value.
+            self.assertEqual(1, len(records[0].alignments[0].hsps))
+            self.assertEqual(170, records[0].alignments[0].hsps[0].bits)
+            # The second alignment should also be present.
+            self.assertEqual(1, len(records[0].alignments[1].hsps))
+            self.assertEqual(180, records[0].alignments[1].hsps[0].bits)
 
     def testXMLInput(self):
         """
@@ -1572,188 +1838,6 @@ class TestComputePlotInfo(TestCase):
     Tests for the L{blast.BlastHits.computePlotInfo} function.
     """
 
-    def testECutoffResultsInNoTitles(self):
-        """
-        Records should be excluded correctly (via having their plotInfo
-        attribute set to C{None}, due to e-values being too high.
-        """
-        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
-        params = {
-            'application': 'BLASTN',
-        }
-        record = {
-            'query': 'ICUR3MX01C6VDK',
-            'alignments': [
-                {
-                    'length': 37108,
-                    'hsps': [
-                        {
-                            'bits': 20,
-                            'sbjct_end': 15400,
-                            'expect': 0.2,
-                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                            'sbjct_start': 15362,
-                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                            'frame': [1, 1],
-                            'query_end': 68,
-                            'query_start': 28
-                        }
-                    ],
-                    'title': title,
-                }
-            ]
-        }
-        mockOpener = mockOpen(
-            read_data=dumps(params) + '\n' + dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
-            blastRecords = BlastRecords('a.json')
-            blastHits = BlastHits(blastRecords)
-            blastHits.addHit(title, {
-                'length': 100,
-                'readNums': [0],
-            })
-            # Fake out the reading of the FASTA file.
-            blastHits.fasta = ['a' * 68]
-            blastHits.computePlotInfo(eCutoff=0.1)
-            plotInfo = blastHits.titles[title]['plotInfo']
-            self.assertEqual(None, plotInfo)
-
-    def testECutoffDoesntExcludeImproperly(self):
-        """
-        Records should not be excluded if e-values are acceptable.
-        """
-        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
-        params = {
-            'application': 'BLASTN',
-        }
-        record = {
-            'query': 'ICUR3MX01C6VDK',
-            'alignments': [
-                {
-                    'length': 37108,
-                    'hsps': [
-                        {
-                            'bits': 20,
-                            'sbjct_end': 15400,
-                            'expect': 0.2,
-                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                            'sbjct_start': 15362,
-                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                            'frame': [1, 1],
-                            'query_end': 68,
-                            'query_start': 28
-                        }
-                    ],
-                    'title': title,
-                }
-            ]
-        }
-        mockOpener = mockOpen(
-            read_data=dumps(params) + '\n' + dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
-            blastRecords = BlastRecords('a.json')
-            blastHits = BlastHits(blastRecords)
-            blastHits.addHit(title, {
-                'length': 100,
-                'readNums': [0],
-            })
-            # Fake out the reading of the FASTA file.
-            blastHits.fasta = ['a' * 68]
-            blastHits.computePlotInfo(eCutoff=0.5)
-            plotInfo = blastHits.titles[title]['plotInfo']
-            self.assertEqual(1, len(plotInfo['items']))
-
-    def testbitScoreCutoffResultsInNoTitles(self):
-        """
-        Records should be excluded correctly (via having their plotInfo
-        attribute set to C{None}, due to bit scores being too low.
-        """
-        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
-        params = {
-            'application': 'BLASTN',
-        }
-        record = {
-            'query': 'ICUR3MX01C6VDK',
-            'alignments': [
-                {
-                    'length': 37108,
-                    'hsps': [
-                        {
-                            'bits': 20,
-                            'sbjct_end': 15400,
-                            'expect': 0.2,
-                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                            'sbjct_start': 15362,
-                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                            'frame': [1, 1],
-                            'query_end': 68,
-                            'query_start': 28
-                        }
-                    ],
-                    'title': title,
-                }
-            ]
-        }
-        mockOpener = mockOpen(
-            read_data=dumps(params) + '\n' + dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
-            blastRecords = BlastRecords('a.json')
-            blastHits = BlastHits(blastRecords)
-            blastHits.addHit(title, {
-                'length': 100,
-                'readNums': [0],
-            })
-            # Fake out the reading of the FASTA file.
-            blastHits.fasta = ['a' * 68]
-            blastHits.computePlotInfo(bitScoreCutoff=200)
-            plotInfo = blastHits.titles[title]['plotInfo']
-            self.assertEqual(None, plotInfo)
-
-    def testBitScoreCutoffDoesntExcludeImproperly(self):
-        """
-        Records should not be excluded if bit scores are acceptable.
-        """
-        title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
-        params = {
-            'application': 'BLASTN',
-        }
-        record = {
-            'query': 'ICUR3MX01C6VDK',
-            'alignments': [
-                {
-                    'length': 37108,
-                    'hsps': [
-                        {
-                            'bits': 200,
-                            'sbjct_end': 15400,
-                            'expect': 0.2,
-                            'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                            'sbjct_start': 15362,
-                            'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                            'frame': [1, 1],
-                            'query_end': 68,
-                            'query_start': 28
-                        }
-                    ],
-                    'title': title,
-                }
-            ]
-        }
-        mockOpener = mockOpen(
-            read_data=dumps(params) + '\n' + dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
-            blastRecords = BlastRecords('a.json')
-            blastHits = BlastHits(blastRecords)
-            blastHits.addHit(title, {
-                'length': 100,
-                'readNums': [0],
-            })
-            # Fake out the reading of the FASTA file.
-            blastHits.fasta = ['a' * 68]
-            blastHits.computePlotInfo(bitScoreCutoff=20)
-            plotInfo = blastHits.titles[title]['plotInfo']
-            self.assertEqual(1, len(plotInfo['items']))
-
     def testSortAfterComputePlotInfo(self):
         """
         If there is no plot info available for some titles after calling
@@ -1824,11 +1908,9 @@ class TestComputePlotInfo(TestCase):
             })
             # Fake out the reading of the FASTA file.
             blastHits.fasta = ['a' * 68, 'a' * 68]
-            blastHits.computePlotInfo(eCutoff=2.0)
-            # title-b must have no plotInfo.
-            self.assertEqual(None, blastHits.titles['title-b']['plotInfo'])
+            blastHits.computePlotInfo()
             # And we must be able to sort without error.
-            self.assertEqual(['title-a'],
+            self.assertEqual(['title-a', 'title-b'],
                              blastHits.sortTitlesOnPlotInfo('eMin'))
 
 
