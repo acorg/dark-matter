@@ -243,6 +243,11 @@ class BlastRecords(object):
         only returned if they match the various optional restrictions described
         below.
 
+        @param records: A list or generator of BLAST records. If C{None},
+            self.records will be called with no filtering arguments to
+            read records from self.blastFilenames. If you want initial
+            filtering on reads (see the various arguments to self.records),
+            call self.records yourself and pass the result as C{records}.
         @param whitelist: If not C{None}, a set of exact titles that are always
             acceptable (though the hit info for a whitelist title may rule it
             out for other reasons).
