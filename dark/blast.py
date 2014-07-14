@@ -359,9 +359,9 @@ class BlastRecords(object):
         else:
             readSetFilter = ReadSetFilter(minNewReads)
 
-        # Compute summary stats on e-values for all titles. If the title
-        # was whitelisted or if the statistical summary is acceptable, add
-        # the hit info to our final result.
+        # Compute summary stats on e-values and bit scores for all titles.
+        # If the title was whitelisted or if the statistical summary is
+        # acceptable, add the hit info to our final result.
 
         blastHits = BlastHits(self, readSetFilter=readSetFilter)
 
@@ -381,8 +381,9 @@ class BlastRecords(object):
                     bitScoreFilter.accept(hitInfo) and
                     (minNewReads is None or
                      readSetFilter.accept(title, hitInfo))):
-                # Remove the e-values and bit scores (now that we've summarized
-                # them) and the title filter result (now that we've checked it.
+                # Remove the e-values and bit scores (now that we've
+                # summarized them) and the title filter result (now that
+                # we've checked it).
                 del hitInfo['eValues']
                 del hitInfo['bitScores']
                 del hitInfo['titleFilterResult']
