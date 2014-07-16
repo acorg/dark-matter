@@ -18,9 +18,10 @@ def smith_waterman(seq1, seq2, match=1, mismatch=-1, gap=-1):
     seq1 = seq1.upper()
     seq2 = seq2.upper()
 
-    if mismatch >= 0 or gap >= 0:
-        raise ValueError('Mismatch and gap must both be negative')
-
+    if mismatch >= 0:
+        raise ValueError('Mismatch must be negative')
+    if gap >= 0:
+        raise ValueError('Gap must be negative')
     # Get sequences
     if len(seq1) == 0 or len(seq2) == 0:
         return ['', '', '']
@@ -32,7 +33,7 @@ def smith_waterman(seq1, seq2, match=1, mismatch=-1, gap=-1):
             raise ValueError('Invalid DNA nucleotide: "%s"' % y)
     # Initialisation
     d = {'score': 0, 'pointer': None}
-    mymatrix = [[d for _ in range(len(seq1)+1)] for _ in range(len(seq2)+1)]
+    table = [[d for _ in range(len(seq1)+1)] for _ in range(len(seq2)+1)]
     # Fill
     max_score = 0
     max_x = 0
@@ -44,35 +45,35 @@ def smith_waterman(seq1, seq2, match=1, mismatch=-1, gap=-1):
             letter1 = seq1[y-1]
             letter2 = seq2[x-1]
             if letter1 == letter2:
-                diagonal_score = mymatrix[x-1][y-1]['score'] + match
+                diagonal_score = table[x-1][y-1]['score'] + match
             else:
-                diagonal_score = mymatrix[x-1][y-1]['score'] + mismatch
+                diagonal_score = table[x-1][y-1]['score'] + mismatch
             # Calculate gap scores
-            up_score = mymatrix[x-1][y]['score'] + gap
-            left_score = mymatrix[x][y-1]['score'] + gap
+            up_score = table[x-1][y]['score'] + gap
+            left_score = table[x][y-1]['score'] + gap
             # Choose best score
             if diagonal_score <= 0 and up_score <= 0 and left_score <= 0:
-                mymatrix[x][y] = {'score': 0, 'pointer': None}
+                table[x][y] = {'score': 0, 'pointer': None}
             else:
                 if diagonal_score >= up_score:
                     if diagonal_score >= left_score:
                         dia = {'score': diagonal_score, 'pointer': 'diagonal'}
-                        mymatrix[x][y] = dia
+                        table[x][y] = dia
                     else:
                         lef = {'score': left_score, 'pointer': 'left'}
-                        mymatrix[x][y] = lef
+                        table[x][y] = lef
                 else:
                     if up_score >= left_score:
-                        mymatrix[x][y] = {'score': up_score, 'pointer': 'up'}
+                        table[x][y] = {'score': up_score, 'pointer': 'up'}
                     else:
                         lef = {'score': left_score, 'pointer': 'left'}
-                        mymatrix[x][y] = lef
+                        table[x][y] = lef
             # Set max score - is this the best way of getting max score
             # considering how the for loop is iterating through the matrix?
-            if mymatrix[x][y]['score'] >= max_score:
+            if table[x][y]['score'] >= max_score:
                 max_x = x
                 max_y = y
-                max_score = mymatrix[x][y]['score']
+                max_score = table[x][y]['score']
 
     # Trace-back
     align1 = ''
@@ -125,7 +126,7 @@ def smith_waterman(seq1, seq2, match=1, mismatch=-1, gap=-1):
                 break
     # traceback
     while True:
-        arrow = mymatrix[max_x][max_y]['pointer']
+        arrow = table[max_x][max_y]['pointer']
         if arrow is None:
             break
         elif arrow == 'diagonal':
@@ -201,5 +202,5 @@ def smith_waterman(seq1, seq2, match=1, mismatch=-1, gap=-1):
 
 
 if __name__ == '__main__':
-    test = smith_waterman('CAGGGCAGGCTATAGGTTCGTATACCGGCTTCGTACC', 'TATATATAC')
+    test = smith_waterman('AGGCTATAGGTTCGTATACCGG', 'TATATATAC', match=5, mismatch=-4)
     print '\n'.join(test)
