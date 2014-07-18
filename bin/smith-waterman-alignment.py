@@ -10,7 +10,8 @@ import sys
 from Bio import SeqIO
 
 if len(sys.argv) < 3 or len(sys.argv) > 6:
-    print >>sys.stderr, "Usage: %s filename1, filename2, (matchScore, mismatchScore, gapScore)" % sys.argv[0]
+    print >>sys.stderr, ("Usage: %s filename1, filename2, ("
+                         "matchScore, mismatchScore, gapScore)" % sys.argv[0])
     sys.exit(1)
 
 else:
@@ -28,5 +29,6 @@ else:
         input1 = record.seq
         for record in SeqIO.parse(fileHandle2, "fasta"):
             input2 = record.seq
-            result = smith_waterman(input1, input2, match=matchScore, mismatch=mismatchScore, gap=gapScore)
+            result = smith_waterman(input1, input2, match=matchScore,
+                                    mismatch=mismatchScore, gap=gapScore)
             print "\n".join(result)
