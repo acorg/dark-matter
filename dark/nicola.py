@@ -2,6 +2,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import re
 from scipy.cluster.vq import kmeans, vq
+from scipy import stats
 from Bio import SeqIO
 import sys
 
@@ -64,7 +65,7 @@ def makeListOfHitTitles(blastName):
     @param blastName: File with blast output
     """
     blastRecords = blast.BlastRecords(blastName)
-    interesting = blastRecords.filterHits(withBitBetterThan=50)
+    interesting = blastRecords.filterHits(withBitScoreBetterThan=50)
     titlesList = interesting.titles.keys()
 
     return titlesList
@@ -212,9 +213,80 @@ def distancePanel(blastName, matrix, distance='bit'):
     plt.subplots_adjust(hspace=0.4)
     figure.suptitle('X: 0 to %d, Y (%s): 0 to %d' %
                     (maxReads, ('Bit scores' if distance == 'bit'
-                                else '%\ id'),
+                                else '% id'),
                      maxDistance), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
+
+
+def heatMapFromPanel(blastName, matrix):
+    """
+    Each plot in the panel above is assigned a value, based on a
+    metric to count inversions. Plot those values as a heatmap.
+
+    @param blastName: File with blast output
+    @param matrix: A matrix of strings corresponding to record.queries
+        at the position where the plot of a given record should be.
+    """
+    cols = 8
+    rows = 53
+    array = ([[0 for _ in range(cols)] for _ in range(rows)])
+
+    blastRecords = blast.BlastRecords(blastName)
+    records = blastRecords.records()
+
+    for record in records:
+        query = record.query
+        queryType = _getBird(query)
+        if queryType == NEITHER:
+            continue
+        try:
+            row, col = getPositionInMatrix(matrix, query)
+        except TypeError:
+            # if that record is not present in matrix, leave it out.
+            continue
+        alignments = record.alignments
+        sortedAlignments = sorted(alignments,
+                                  key=lambda k: k.hsps[0].bits,
+                                  reverse=True)
+
+        for i, alignment in enumerate(sortedAlignments):
+            titleType = _getBird(alignment.title)
+            if queryType == titleType or titleType == NEITHER:
+                continue
+            elif titleType != queryType:
+                #array[row][col] = (i if queryType == GULL else -1*i)
+                array[row][col] = i
+
+    # plot the generated matrix:
+    fig = plt.figure(1, figsize=(10, 20))
+    ax = fig.add_subplot(111)
+    ax.get_yaxis().set_visible(False)
+    ax.get_xaxis().set_visible(False)
+    # other color scheme that may be useful: PiYG, Spectral
+    heatMap = ax.imshow(array, interpolation='nearest', cmap='hot')
+    for i, segment in enumerate(['HA', 'NA', 'PB2', 'PB1',
+                                 'PA', 'NP', 'MP', 'NS']):
+        ax.text(i, -1.5, segment, horizontalalignment='center',
+                size='medium', color='k', rotation=45)
+
+    for i, row in enumerate(matrix):
+        title = row[2]
+        try:
+            splittedTitle = title.split('(')
+            tick = splittedTitle[1] + '(' + splittedTitle[2][:-1]
+        except IndexError:
+            try:
+                title = row[4]
+                splittedTitle = title.split('(')
+                tick = splittedTitle[1] + '(' + splittedTitle[2][:-1]
+            except IndexError:
+                tick = 'A/Anas platyrhynchos/Belgium/12827/2007(H3N8)'
+        ax.text(18, i, tick, horizontalalignment='center', size='medium',
+                color='k')
+
+    fig.colorbar(heatMap, shrink=0.25, orientation='vertical')
+
+    return array
 
 
 # Functions for working with distance matrix
@@ -380,14 +452,17 @@ def _annotateTitles(titlesList):
     return annotatedTitlesList
 
 
-def distancesBoxPlot(blastName, fastaName, plotTitle, distance='bit'):
+def distancesBoxPlot(blastName, fastaName, plotTitle, distance='bit',
+                     stat=True):
     """
     Draws a boxplot of the distances between ducks and gulls.
 
-    @param blastName: file with blast output
+    @param blastName: File with blast output
     @param fastaName: A fastafile with the titles that was blasted,
         in the order that it should be in the matrix.
-    @param plotTitle: a C{str} title of the plot
+    @param plotTitle: A C{str} title of the plot
+    @param stat: If C{True}, print a legend with the results of an
+        unpaired t-test.
     """
     matrix, titlesList, fastaList = makeDistanceMatrix(blastName, fastaName,
                                                        missingValue=0,
@@ -408,29 +483,60 @@ def distancesBoxPlot(blastName, fastaName, plotTitle, distance='bit'):
             # skip if no bird was assigned
             if annotatedFastaList[row][1] == 0:
                 continue
-            if matrix[row][col] != 0:
-                if (annotatedFastaList[row][1] == 1 and
-                        annotatedTitlesList[col][1] == 1):
-                    gullgullDistances.append(matrix[row][col])
-                elif (annotatedFastaList[row][1] == 1 and
-                      annotatedTitlesList[col][1] == 2):
-                    gullduckDistances.append(matrix[row][col])
-                elif (annotatedFastaList[row][1] == 2 and
-                      annotatedTitlesList[col][1] == 2):
-                    duckduckDistances.append(matrix[row][col])
-                elif (annotatedFastaList[row][1] == 2 and
-                      annotatedTitlesList[col][1] == 1):
-                    duckgullDistances.append(matrix[row][col])
+            #if matrix[row][col] != 0:
+            if (annotatedFastaList[row][1] == 1 and
+                    annotatedTitlesList[col][1] == 1):
+                gullgullDistances.append(matrix[row][col])
+            elif (annotatedFastaList[row][1] == 1 and
+                  annotatedTitlesList[col][1] == 2):
+                gullduckDistances.append(matrix[row][col])
+            elif (annotatedFastaList[row][1] == 2 and
+                  annotatedTitlesList[col][1] == 2):
+                duckduckDistances.append(matrix[row][col])
+            elif (annotatedFastaList[row][1] == 2 and
+                  annotatedTitlesList[col][1] == 1):
+                duckgullDistances.append(matrix[row][col])
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
     distances = [gullgullDistances, duckduckDistances,
                  duckgullDistances, gullduckDistances]
+    numBoxes = len(distances)
+    medians = range(numBoxes)
+    bp = ax.boxplot(distances)
 
-    ax.boxplot(distances)
+    for i in range(numBoxes):
+        med = bp['medians'][i]
+
+        medianY = []
+        for j in range(2):
+            medianY.append(med.get_ydata()[j])
+            medians[i] = medianY[0]
+
     ax.set_xticklabels(['Gull-Gull', 'Duck-Duck', 'Duck-Gull', 'Gull-Duck'])
     ax.set_title(plotTitle)
-    ax.set_ylabel('Bit score' if distance == 'bit' else '%\ id')
+    ax.set_ylabel('Bit score' if distance == 'bit' else '% id')
+    ax.set_ylim(0, 110)
+    top = 105
+    pos = np.arange(numBoxes)+1
+    upperLabels = [str(np.round(s, 2)) for s in medians]
+    for tick, label in zip(range(numBoxes), ax.get_xticklabels()):
+        ax.text(pos[tick], top, upperLabels[tick],
+                horizontalalignment='center', size='small', weight='semibold',
+                color='k')
+
+    if stat:
+        tggdd = stats.ttest_ind(gullgullDistances, duckduckDistances)
+        tggdg = stats.ttest_ind(gullgullDistances, duckgullDistances)
+        tgggd = stats.ttest_ind(gullgullDistances, gullduckDistances)
+        tdddg = stats.ttest_ind(duckduckDistances, duckgullDistances)
+        tddgd = stats.ttest_ind(duckduckDistances, gullduckDistances)
+        tdggd = stats.ttest_ind(duckgullDistances, gullduckDistances)
+        statistics = ('Unpaired t-test (p-values): \n gg-dd: %f \n '
+                      'gg-dg: %f \n gg-gd: %f \n dd-dg: %f \n dd-gd: %f \n'
+                      ' dg gd: %f \n' % (tggdd[1], tggdg[1], tgggd[1],
+                                         tdddg[1], tddgd[1], tdggd[1]))
+        plt.figtext(0.95, 0.1, statistics, color='black', size='medium')
 
     return (gullgullDistances, duckduckDistances,
             duckgullDistances, gullduckDistances)
