@@ -28,6 +28,8 @@ def _getBird(title):
     Finds out whether a title of a sequence belongs to a bird or a gull.
 
     @param title: The title of a blastHit.
+
+    @return: A C{int} denoting DUCK, GULL or NEITHER
     """
     gull = GULLREGEX.search(title)
     duck = DUCKREGEX.search(title)
@@ -45,6 +47,8 @@ def computePercentId(alignment):
     Calculates the percent sequence identity of an alignment.
 
     @param alignment: An instance of C{Bio.Blast.Record.Blast.Alignment}
+
+    @return: A C{float} with the percent identity
     """
     query = alignment.hsps[0].query
     sbjct = alignment.hsps[0].sbjct
@@ -62,7 +66,9 @@ def makeListOfHitTitles(blastName):
     """
     Makes a list of titles that are hit.
 
-    @param blastName: File with blast output
+    @param blastName: File with blast output.
+
+    @return: A list of titles.
     """
     blastRecords = blast.BlastRecords(blastName)
     interesting = blastRecords.filterHits(withBitScoreBetterThan=50)
@@ -81,6 +87,8 @@ def getPositionInMatrix(matrix, title):
     @matrix: A distance matrix with borders, as returned by
         makeDistanceMatrix().
     @title: A C{str} of a sequence title.
+
+    @return: Two C{int} denoting x and y coordinates in the matrix.
     """
     y = range(len(matrix[0]))
     x = range(len(matrix))
@@ -226,6 +234,8 @@ def heatMapFromPanel(blastName, matrix):
     @param blastName: File with blast output
     @param matrix: A matrix of strings corresponding to record.queries
         at the position where the plot of a given record should be.
+
+    @return: The array that was plotted
     """
     cols = 8
     rows = 53
@@ -237,38 +247,35 @@ def heatMapFromPanel(blastName, matrix):
     for record in records:
         query = record.query
         queryType = _getBird(query)
-        if queryType == NEITHER:
-            continue
-        try:
-            row, col = getPositionInMatrix(matrix, query)
-        except TypeError:
-            # if that record is not present in matrix, leave it out.
-            continue
-        alignments = record.alignments
-        sortedAlignments = sorted(alignments,
-                                  key=lambda k: k.hsps[0].bits,
-                                  reverse=True)
-
-        for i, alignment in enumerate(sortedAlignments):
-            titleType = _getBird(alignment.title)
-            if queryType == titleType or titleType == NEITHER:
+        if queryType != NEITHER:
+            try:
+                row, col = getPositionInMatrix(matrix, query)
+            except TypeError:
+                # if that record is not present in matrix, leave it out.
                 continue
-            elif titleType != queryType:
-                #array[row][col] = (i if queryType == GULL else -1*i)
-                array[row][col] = i
+            alignments = record.alignments
+            sortedAlignments = sorted(alignments,
+                                      key=lambda k: k.hsps[0].bits,
+                                      reverse=True)
+
+            for i, alignment in enumerate(sortedAlignments):
+                titleType = _getBird(alignment.title)
+                if titleType != NEITHER and queryType != titleType:
+                    array[row][col] = i
 
     # plot the generated matrix:
     fig = plt.figure(1, figsize=(10, 20))
     ax = fig.add_subplot(111)
     ax.get_yaxis().set_visible(False)
     ax.get_xaxis().set_visible(False)
-    # other color scheme that may be useful: PiYG, Spectral
+    # other color schemes that may be useful: PiYG, Spectral
     heatMap = ax.imshow(array, interpolation='nearest', cmap='hot')
     for i, segment in enumerate(['HA', 'NA', 'PB2', 'PB1',
                                  'PA', 'NP', 'MP', 'NS']):
         ax.text(i, -1.5, segment, horizontalalignment='center',
                 size='medium', color='k', rotation=45)
 
+    # plot the labels and colorbar
     for i, row in enumerate(matrix):
         title = row[2]
         try:
@@ -283,7 +290,6 @@ def heatMapFromPanel(blastName, matrix):
                 tick = 'A/Anas platyrhynchos/Belgium/12827/2007(H3N8)'
         ax.text(18, i, tick, horizontalalignment='center', size='medium',
                 color='k')
-
     fig.colorbar(heatMap, shrink=0.25, orientation='vertical')
 
     return array
@@ -313,6 +319,9 @@ def makeDistanceMatrix(blastName, fastaName, titlesList=False,
     @param missingValue: The value used in the matrix if no distance is given.
     @param distance: The measure of distance read out from the blastFile,
         either 'bit' or 'percentId'.
+
+    @return: the distance matrix that was made, the titlesList, and a C{list}
+        of sequence titles.
 
     NOTE: masked = True and missingValue != 0 does not work!
     """
@@ -385,6 +394,8 @@ def distanceMatrixWithBorders(matrix, titlesList, fastaList):
         should be in the matrix
     @param fastaList: List of titles that were blasted,
         in the order that they should be in the matrix
+
+    @return: The altered distance matrix
     """
     for matrixElement, fastaElement in zip(matrix, fastaList):
         matrixElement.insert(0, fastaElement)
@@ -446,6 +457,10 @@ def _annotateTitles(titlesList):
     on whether the title is a gull or a duck.
 
     @param titlesList: A list of titles.
+
+    @return: A C{list} of tuples, each tuple containing a title
+        and a number indicating whether the title is a GULL, DUCK
+        or NEITHER.
     """
     annotatedTitlesList = [(title, _getBird(title)) for title in titlesList]
 
@@ -463,6 +478,9 @@ def distancesBoxPlot(blastName, fastaName, plotTitle, distance='bit',
     @param plotTitle: A C{str} title of the plot
     @param stat: If C{True}, print a legend with the results of an
         unpaired t-test.
+
+    @return: Four C{lists} of distances between ducks, gulls, duck-gulls
+        and gull-ducks.
     """
     matrix, titlesList, fastaList = makeDistanceMatrix(blastName, fastaName,
                                                        missingValue=0,
@@ -532,10 +550,10 @@ def distancesBoxPlot(blastName, fastaName, plotTitle, distance='bit',
         tdddg = stats.ttest_ind(duckduckDistances, duckgullDistances)
         tddgd = stats.ttest_ind(duckduckDistances, gullduckDistances)
         tdggd = stats.ttest_ind(duckgullDistances, gullduckDistances)
-        statistics = ('Unpaired t-test (p-values): \n gg-dd: %f \n '
-                      'gg-dg: %f \n gg-gd: %f \n dd-dg: %f \n dd-gd: %f \n'
-                      ' dg gd: %f \n' % (tggdd[1], tggdg[1], tgggd[1],
-                                         tdddg[1], tddgd[1], tdggd[1]))
+        statistics = (('Unpaired t-test (p-values): \n gg-dd: %f \n gg-dg: %f '
+                       '\n gg-gd: %f \n dd-dg: %f \n dd-gd: %f \n '
+                       'dg-gd: %f \n') % (
+            tggdd[1], tggdg[1], tgggd[1], tdddg[1], tddgd[1], tdggd[1]))
         plt.figtext(0.95, 0.1, statistics, color='black', size='medium')
 
     return (gullgullDistances, duckduckDistances,
