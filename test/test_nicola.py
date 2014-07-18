@@ -16,17 +16,22 @@ class TestUtilitiesFunctions(TestCase):
     def test_getBirdNoBird(self):
         title = "I'm a random title and don't contain a bird"
         result = nicola._getBird(title)
-        self.assertEqual(result, None)
+        self.assertEqual(result, 0)
 
     def test_getBirdGull(self):
         title = "I'm a gull"
         result = nicola._getBird(title)
-        self.assertEqual(result, 'gull')
+        self.assertEqual(result, 1)
 
     def test_getBirdDuck(self):
         title = "I'm a duck"
         result = nicola._getBird(title)
-        self.assertEqual(result, 'duck')
+        self.assertEqual(result, 2)
+
+    def test_getBirdGullOverDuck(self):
+        title = "I'm a duck or a gull"
+        result = nicola._getBird(title)
+        self.assertEqual(result, 1)
 
     def testComputePercentIdIdentical(self):
         params = {
@@ -60,9 +65,8 @@ class TestUtilitiesFunctions(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             records = list(BlastRecords('file.json').records(
                 oneAlignmentPerRead=False))
-            for alignment in records[0].alignments:
-                result = nicola.computePercentId(alignment)
-            self.assertEqual(result, 1.0)
+            result = nicola.computePercentId(records[0].alignments[0])
+            self.assertEqual(result, 100.0)
 
     def testComputePercentIdDifferent(self):
         params = {
@@ -96,8 +100,7 @@ class TestUtilitiesFunctions(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             records = list(BlastRecords('file.json').records(
                 oneAlignmentPerRead=False))
-            for alignment in records[0].alignments:
-                result = nicola.computePercentId(alignment)
+            result = nicola.computePercentId(records[0].alignments[0])
             self.assertEqual(result, 0.0)
 
     def testComputePercentIdRealistic(self):
@@ -132,13 +135,14 @@ class TestUtilitiesFunctions(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             records = list(BlastRecords('file.json').records(
                 oneAlignmentPerRead=False))
-            for alignment in records[0].alignments:
-                result = nicola.computePercentId(alignment)
-            self.assertEqual(result, 0.9583333333333334)
+            result = nicola.computePercentId(records[0].alignments[0])
+            self.assertEqual(result, 95.83333333333334)
 
     def testGetPositionInMatrix(self):
         title = 'hi'
-        matrix = [[0, 0, 0], [0, 'hi', 0], [0, 0, 0]]
+        matrix = [[0, 0, 0],
+                  [0, title, 0],
+                  [0, 0, 0]]
         x, y = nicola.getPositionInMatrix(matrix, title)
         self.assertEqual([x, y], [1, 1])
 

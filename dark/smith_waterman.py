@@ -202,5 +202,6 @@ def smith_waterman(seq1, seq2, match=1, mismatch=-1, gap=-1):
 
 
 if __name__ == '__main__':
-    test = smith_waterman('AGGCTATAGGTTCGTATACCGG', 'TATATATAC', match=5, mismatch=-4)
+    test = smith_waterman('AGGCTATAGGTTCGTATACCGG',
+                          'TATATATAC', match=5, mismatch=-4)
     print '\n'.join(test)

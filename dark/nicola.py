@@ -3,54 +3,57 @@ import numpy as np
 import re
 from scipy.cluster.vq import kmeans, vq
 from Bio import SeqIO
+import sys
 
 from dark import blast
 from dark.dimension import dimensionalIterator
 
 
-# General utilities functions
+GULLREGEX = re.compile('gull|kittiwake', re.I)
+DUCKREGEX = re.compile('duck|mallard|teal|garganey|gadwall|shoveler|'
+                       'pochard|wigeon|merganser|nene|scaup|screamer|'
+                       'goose|swan|pintail|smew|scoter|eider|bufflehead|'
+                       'goldeneye', re.I)
+
+NEITHER = 0
+GULL = 1
+DUCK = 2
+
+
+# General utility functions
 
 def _getBird(title):
     """
-    Finds out whether a title belongs to a bird or a gull.
+    Finds out whether a title of a sequence belongs to a bird or a gull.
 
-    @param title: the title of a blastHit.
+    @param title: The title of a blastHit.
     """
-    gullRegex = re.compile('gull|kittiwake', re.I)
-    duckRegex = re.compile('duck|mallard|teal|garganey|gadwall|shoveler|'
-                           'pochard|wigeon|merganser|nene|scaup|screamer|'
-                           'goose|swan|pintail|smew|scoter|eider|bufflehead|'
-                           'goldeneye', re.I)
+    gull = GULLREGEX.search(title)
+    duck = DUCKREGEX.search(title)
 
-    gull = gullRegex.search(title)
-    duck = duckRegex.search(title)
-
-    if not gull and not duck:
-        return None
     if gull:
-        return 'gull'
-    if duck:
-        return 'duck'
+        return GULL
+    elif duck:
+        return DUCK
+    else:
+        return NEITHER
 
 
 def computePercentId(alignment):
     """
     Calculates the percent sequence identity of an alignment.
 
-    @param alignment: an element in C{Bio.Blast.Record.Blast.Alignment}
+    @param alignment: An instance of C{Bio.Blast.Record.Blast.Alignment}
     """
     query = alignment.hsps[0].query
     sbjct = alignment.hsps[0].sbjct
     length = len(query)
-    assert (len(query) == len(sbjct)), ("Query and subject don't "
-                                        "have the same length")
 
     identical = 0
-    for i, base in enumerate(query):
-        if sbjct[i] == base:
-            identical += 1
+    for queryBase, subjectBase in zip(query, sbjct):
+        identical += int(queryBase == subjectBase)
 
-    identity = identical / float(length)
+    identity = identical / float(length) * 100
     return identity
 
 
@@ -58,13 +61,11 @@ def makeListOfHitTitles(blastName):
     """
     Makes a list of titles that are hit.
 
-    @param blastName: file with blast output
+    @param blastName: File with blast output
     """
     blastRecords = blast.BlastRecords(blastName)
-    interesting = blastRecords.filterHits(withEBetterThan=1e-2)
-    titlesList = []
-    for title in interesting.titles:
-        titlesList.append(title)
+    interesting = blastRecords.filterHits(withBitBetterThan=50)
+    titlesList = interesting.titles.keys()
 
     return titlesList
 
@@ -75,6 +76,10 @@ def getPositionInMatrix(matrix, title):
     """
     Given a matrix with titles, return possible coordinates of
     the matrix.
+
+    @matrix: A distance matrix with borders, as returned by
+        makeDistanceMatrix().
+    @title: A C{str} of a sequence title.
     """
     y = range(len(matrix[0]))
     x = range(len(matrix))
@@ -83,7 +88,7 @@ def getPositionInMatrix(matrix, title):
         for ys in y:
             if matrix[xs][ys] == title:
                 return xs, ys
-    print title, 'could not be found.'
+    print >>sys.stderr, '%s could not be found.' % title
     return False, False
 
 
@@ -93,10 +98,13 @@ def distancePlot(record, readsAx=False, distance='bit'):
     a read. Read hits against a certain strain (see find, below) are
     highlighted.
 
-    @param record: a C{Bio.Blast.Record.Blast} instance
+    @param record: A C{Bio.Blast.Record.Blast} instance.
     @param readsAx: If not None, use this as the subplot for displaying reads.
-    @param distance: the measure of distance read out from the blastFile,
+    @param distance: The measure of distance read out from the blastFile,
         either 'bit' of 'percentId'.
+
+    @return: Returns the largest distance, and the number of distances that
+        were plotted.
     """
     alignments = record.alignments
     title = str(record.query)
@@ -111,13 +119,13 @@ def distancePlot(record, readsAx=False, distance='bit'):
     distances = []
     titles = []
 
-    for sortedAlignment in sortedAlignments:
+    for alignment in sortedAlignments:
         if distance == 'bit':
-            distances.append(sortedAlignment.hsps[0].bits)
+            distances.append(alignment.hsps[0].bits)
         else:
-            dist = computePercentId(sortedAlignment)
+            dist = computePercentId(alignment)
             distances.append(dist)
-        titles.append(sortedAlignment.title)
+        titles.append(alignment.title)
 
     x = np.arange(0, len(distances))
 
@@ -142,11 +150,11 @@ def distancePanel(blastName, matrix, distance='bit'):
     Make a panel of distance plots generated with the distancePlot
     function above.
 
-    @param blastName: file with blast output
-    @param matrix: a matrix of strings corresponding to record.queries
+    @param blastName: File with blast output
+    @param matrix: A matrix of strings corresponding to record.queries
         at the position where the plot of a given record should be.
-    @param distance: the measure of distance read out from the blastFile,
-        either 'bit' of 'percentId'.
+    @param distance: The measure of distance read out from the blastFile,
+        either 'bit' or 'percentId'.
     """
     cols = 8
     rows = 53
@@ -157,31 +165,30 @@ def distancePanel(blastName, matrix, distance='bit'):
     records = blastRecords.records()
 
     for record in records:
-        t = record.query
+        query = record.query
         try:
-            row, col = getPositionInMatrix(matrix, t)
-            localMaxDistance, numberOfReads = distancePlot(
-                record, readsAx=ax[row][col])
-            try:
-                # try and get subtype in here too.
-                title = t.split('(')[1]
-                subtype = t.split('(')[2][:-2]
-                segment = t.split(' ')[0]
-            except IndexError:
-                # this is for one title which doesn't fit the usual format
-                segment = 'Segment 2'
-                subtype = 'H3N8'
-                title = t
-            ax[row][col].set_title('%s, %d, %s \n %s' % (
-                                   segment, numberOfReads,
-                                   subtype, title), fontsize=10)
-            if localMaxDistance > maxDistance:
-                maxDistance = localMaxDistance
-            if numberOfReads > maxReads:
-                maxReads = numberOfReads
+            row, col = getPositionInMatrix(matrix, query)
         except TypeError:
             # if that record is not present in matrix, leave it out.
             continue
+        localMaxDistance, numberOfReads = distancePlot(
+            record, readsAx=ax[row][col])
+        try:
+            title = query.split('(')[1]
+            subtype = query.split('(')[2][:-2]
+            segment = query.split(' ')[0]
+        except IndexError:
+            # this is for one title which doesn't fit the usual format
+            segment = 'Segment 2'
+            subtype = 'H3N8'
+            title = query
+        ax[row][col].set_title('%s, %d, %s \n %s' % (
+                               segment, numberOfReads,
+                               subtype, title), fontsize=10)
+        if localMaxDistance > maxDistance:
+            maxDistance = localMaxDistance
+        if numberOfReads > maxReads:
+            maxReads = numberOfReads
 
     coords = dimensionalIterator((rows, cols))
 
@@ -203,8 +210,10 @@ def distancePanel(blastName, matrix, distance='bit'):
         ax[row][col].axis('off')
 
     plt.subplots_adjust(hspace=0.4)
-    figure.suptitle('X: 0 to %d, Y (Bit scores): 0 to %d' %
-                    (maxReads, maxDistance), fontsize=20)
+    figure.suptitle('X: 0 to %d, Y (%s): 0 to %d' %
+                    (maxReads, ('Bit scores' if distance == 'bit'
+                                else '%\ id'),
+                     maxDistance), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
 
 
@@ -216,43 +225,44 @@ def makeDistanceMatrix(blastName, fastaName, titlesList=False,
     """
     Takes a blast output file, returns a distance matrix.
 
-    @param blastName: file with blast output
-    @param fastaName: A fastafile with the titles that was blasted,
+    @param blastName: File with blast output
+    @param fastaName: A fastafile with the titles that were blasted,
         in the order that it should be in the matrix. Or a list of
         titles that were blasted, in the order that they should be
         in the matrix.
-    @param titlesList: if not C{False}, a list of titles, in the order
+    @param titlesList: If not C{False}, a list of titles, in the order
         that they should be in the matrix.
-    @param masked: if C{True}, the matrix returned will have hits that did
-        not hit masked out.
-    @param toFile: if not C{False}, a C{str} fileName where matrix should be
-        written to.
-    @param addTitles: if C{True} the titles of hits and fasta sequences will be
+    @param masked: If C{True}, the matrix returned will have cells with no hits
+        masked out.
+    @param toFile: If not C{False}, a C{str} file name where thematrix should
+        be written to.
+    @param addTitles: If C{True} the titles of hits and fasta sequences will be
         added to the matrix.
-    @param missingValue: the value used in the matrix if no distance is given.
-    @param distance: the measure of distance read out from the blastFile,
-        either 'bit' of 'percentId'.
+    @param missingValue: The value used in the matrix if no distance is given.
+    @param distance: The measure of distance read out from the blastFile,
+        either 'bit' or 'percentId'.
 
     NOTE: masked = True and missingValue != 0 does not work!
     """
     if not titlesList:
         titlesList = makeListOfHitTitles(blastName)
+    titlesDict = {item: index for (index, item) in enumerate(titlesList)}
 
     if type(fastaName) == list:
         fastaList = fastaName
     else:
-        fastaList = []
-        for read in SeqIO.parse(fastaName, 'fasta'):
-            fastaList.append(read.description)
+        fastaList = list(record.description for record
+                         in SeqIO.parse(fastaName, 'fasta'))
+    fastaDict = {item: index for (index, item) in enumerate(fastaList)}
 
     if not masked:
         initMatrix = np.array(
-            [[missingValue for x in range(
-                len(titlesList))] for x in range(len(fastaList))])
+            [[missingValue for _ in range(
+                len(titlesList))] for _ in range(len(fastaList))])
     else:
         initMatrix = np.mp.masked_array(
-            [[missingValue for x in range(
-                len(titlesList))] for x in range(len(fastaList))])
+            [[missingValue for _ in range(
+                len(titlesList))] for _ in range(len(fastaList))])
 
     BlastRecords = blast.BlastRecords(blastName)
     records = BlastRecords.records(bitScoreCutoff=50)
@@ -261,20 +271,24 @@ def makeDistanceMatrix(blastName, fastaName, titlesList=False,
         query = record.query
         # get position of query in queryList
         try:
-            queryIndex = fastaList.index(query)
-            for alignment in record.alignments:
-                title = alignment.title
-                if distance == 'bit':
-                    dist = alignment.hsps[0].bits
-                else:
-                    dist = computePercentId(alignment)
-                # get position of title in titlesList
-                subjectIndex = titlesList.index(title)
-                # add distance to matrix
-                initMatrix[queryIndex][subjectIndex] = dist
+            queryIndex = fastaDict[query]
         except ValueError:
-            # if query not present in fastaList, continue
+            # if query not present in fastaDict, continue
             continue
+        for alignment in record.alignments:
+            title = alignment.title
+            if distance == 'bit':
+                dist = alignment.hsps[0].bits
+            else:
+                dist = computePercentId(alignment)
+            # get position of title in titlesList
+            try:
+                subjectIndex = titlesDict[title]
+            except ValueError:
+                # if query not present in titlesDict, continue
+                continue
+            # add distance to matrix
+            initMatrix[queryIndex][subjectIndex] = dist
 
     # mask values that are 0 (those that were not hit)
     if masked:
@@ -285,7 +299,6 @@ def makeDistanceMatrix(blastName, fastaName, titlesList=False,
                                                titlesList, fastaList)
 
     if toFile:
-        print 'TODO: correct new lines!'
         matrixToFile(toFile, initMatrix)
 
     return initMatrix, titlesList, fastaList
@@ -295,16 +308,14 @@ def distanceMatrixWithBorders(matrix, titlesList, fastaList):
     """
     Add titles to distance matrix.
 
-    @param matrix: matrix as returned from makeDistanceMatrix.
-    @param titlesList: a list of titles, in the order that they
+    @param matrix: Matrix as returned from makeDistanceMatrix.
+    @param titlesList: A list of titles, in the order that they
         should be in the matrix
-    @param fastaList: list of titles that were blasted,
+    @param fastaList: List of titles that were blasted,
         in the order that they should be in the matrix
     """
-    count = 0
-    for item in matrix:
-        item.insert(0, fastaList[count])
-        count += 1
+    for matrixElement, fastaElement in zip(matrix, fastaList):
+        matrixElement.insert(0, fastaElement)
 
     # add an empty element to the beginning of titlesList.
     titlesList.insert(0, '')
@@ -318,14 +329,18 @@ def matrixToFile(fileName, matrix):
     """
     Writes a matrix to a tab delimited file.
 
-    @param fileName: the name of the file where the distance matrix
+    @param fileName: The name of the file where the distance matrix
         should be written to.
-    @param matrix: a distance matrix, as returned from makeDistanceMatrix.
+    @param matrix: A distance matrix, as returned from makeDistanceMatrix.
     """
-    print 'TODO: correct new lines!'
+    first = True
     with open(fileName, 'w') as fp:
         for item in matrix:
-            fp.write('\n')
+            if first:
+                first = False
+                continue
+            else:
+                fp.write('\n')
             for nr in item:
                 fp.write(str(nr) + '\t')
 
@@ -336,8 +351,8 @@ def kMeansCluster(matrix, k):
     Adapted from http://glowingpython.blogspot.co.uk/
     2012/04/k-means-clustering-with-scipy.html
 
-    @param matrix: a matrix (numpy array) for clustering
-    @param k: number of clusters
+    @param matrix: A matrix (numpy array) for clustering.
+    @param k: Number of clusters.
     """
     # computing k-means
     centroids, distortion = kmeans(matrix, 2)
@@ -358,17 +373,9 @@ def _annotateTitles(titlesList):
     where each tuple is a title and 0, 1, 2, depending
     on whether the title is a gull or a duck.
 
-    @param titlesList: a list of titles.
+    @param titlesList: A list of titles.
     """
-    annotatedTitlesList = []
-    for title in titlesList:
-        bird = _getBird(title)
-        if bird is None:
-            annotatedTitlesList.append((title, 0))
-        elif bird == 'gull':
-            annotatedTitlesList.append((title, 1))
-        elif bird == 'duck':
-            annotatedTitlesList.append((title, 2))
+    annotatedTitlesList = [(title, _getBird(title)) for title in titlesList]
 
     return annotatedTitlesList
 
@@ -423,7 +430,7 @@ def distancesBoxPlot(blastName, fastaName, plotTitle, distance='bit'):
     ax.boxplot(distances)
     ax.set_xticklabels(['Gull-Gull', 'Duck-Duck', 'Duck-Gull', 'Gull-Duck'])
     ax.set_title(plotTitle)
-    ax.set_ylabel('Bit score')
+    ax.set_ylabel('Bit score' if distance == 'bit' else '%\ id')
 
     return (gullgullDistances, duckduckDistances,
             duckgullDistances, gullduckDistances)
