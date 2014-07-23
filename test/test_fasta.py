@@ -1,8 +1,12 @@
-from dark.fasta import dedupFasta, dePrefixAndSuffixFasta
+from dark.reads import Read
+from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
+                        FastaReads)
+
 from cStringIO import StringIO
 from unittest import TestCase
 from Bio import SeqIO
-from dark import fasta
+from mock import patch
+from mocking import mockOpen
 
 
 class FastaDeDup(TestCase):
@@ -86,7 +90,7 @@ class TestFastaSubtract(TestCase):
     Test the fastaSubtract() function.
     """
     def testZeroFiles(self):
-        self.assertRaises(IndexError, fasta.fastaSubtract, [])
+        self.assertRaises(IndexError, fastaSubtract, [])
 
     def testOneFile(self):
         """
@@ -104,7 +108,7 @@ class TestFastaSubtract(TestCase):
             'atggctattgaactgtatct',
             ])
 
-        result = list(fasta.fastaSubtract([StringIO(fasta1)]))
+        result = list(fastaSubtract([StringIO(fasta1)]))
         self.assertEqual(len(result), 4)
 
     def testSubtractEverything(self):
@@ -123,8 +127,7 @@ class TestFastaSubtract(TestCase):
             'atggctattgaactgtatct',
             ])
 
-        result = list(fasta.fastaSubtract([StringIO(fasta1),
-                                           StringIO(fasta1)]))
+        result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta1)]))
         self.assertEqual([], result)
 
     def testSubtractFromNothing(self):
@@ -139,8 +142,7 @@ class TestFastaSubtract(TestCase):
             'acctg',
             ])
 
-        result = list(fasta.fastaSubtract([StringIO(fasta1),
-                                           StringIO(fasta2)]))
+        result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta2)]))
         self.assertEqual([], result)
 
     def testSubtractNothing(self):
@@ -165,8 +167,7 @@ class TestFastaSubtract(TestCase):
             'acctg',
             ])
 
-        result = list(fasta.fastaSubtract([StringIO(fasta1),
-                                           StringIO(fasta2)]))
+        result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta2)]))
         self.assertEqual(['four', 'one', 'three', 'two'],
                          sorted([seq.id for seq in result]))
 
@@ -195,9 +196,9 @@ class TestFastaSubtract(TestCase):
             'atgggtc',
             ])
 
-        result = list(fasta.fastaSubtract([StringIO(fasta1),
-                                           StringIO(fasta2),
-                                           StringIO(fasta3)]))
+        result = list(fastaSubtract([StringIO(fasta1),
+                                     StringIO(fasta2),
+                                     StringIO(fasta3)]))
         self.assertEqual(len(result), 1)
         self.assertEqual(str(result[0].seq), 'atggctattgaactgtatct')
         self.assertEqual(str(result[0].id), 'four')
@@ -216,5 +217,47 @@ class TestFastaSubtract(TestCase):
             'at',
             ])
 
-        self.assertRaises(AssertionError, fasta.fastaSubtract,
+        self.assertRaises(AssertionError, fastaSubtract,
                           [StringIO(fasta1), StringIO(fasta2)])
+
+
+class TestFastaReads(TestCase):
+    """Tests for the L{dark.fasta.FastaReads} class."""
+
+    def testEmpty(self):
+        """An empty FASTA file results in an empty iterator."""
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = FastaReads('filename.fasta')
+            self.assertEqual([], list(reads))
+
+    def testOneRead(self):
+        """
+        A FASTA file with one read must be read properly.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta'))
+            self.assertEqual([Read('id1', 'ACGT')], reads)
+
+    def testNoQuality(self):
+        """
+        A FASTA file read must not have any quality information.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta'))
+            self.assertEqual(None, reads[0].quality)
+
+    def testTwoReads(self):
+        """
+        A FASTA file with two reads must be read properly and its
+        sequences must be returned in the correct order.
+        """
+        data = '\n'.join(['>id1', 'ACGT', '>id2', 'TGCA'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta'))
+            self.assertEqual([Read('id1', 'ACGT'), Read('id2', 'TGCA')], reads)

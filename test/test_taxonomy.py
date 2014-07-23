@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.blast import BlastHits
+from dark.blast.blast import BlastHits
 from dark import taxonomy
 
 

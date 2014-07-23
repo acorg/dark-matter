@@ -1,6 +1,8 @@
 from Bio import SeqIO
 from hashlib import md5
 
+from dark.reads import Read, Reads
+
 
 def fastaToList(fastaFilename):
     return list(SeqIO.parse(fastaFilename, 'fasta'))
@@ -71,3 +73,22 @@ def fastaSubtract(fastaFiles):
             reads.pop(seq.id, None)
 
     return reads.itervalues()
+
+
+class FastaReads(Reads):
+    """
+    Subclass of L{dark.reads.Reads} providing access to FASTA reads.
+
+    @param filename: A C{str} file name containing sequences in FASTA format.
+    """
+    def __init__(self, filename):
+        self.filename = filename
+        Reads.__init__(self)
+
+    def iter(self):
+        """
+        Iterate over the sequences in self.filename, yielding each as a Read
+        instance.
+        """
+        for seq in SeqIO.parse(self.filename, 'fasta'):
+            yield Read(seq.id, str(seq.seq))

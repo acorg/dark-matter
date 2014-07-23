@@ -30,6 +30,37 @@ def _iterate_read_data(read_data):
         yield line
 
 
+class NoStopIterationReadline(object):
+    """
+    A class providing a readline method whose calling does not result
+    in C{StopIteration} being raised.
+    """
+    def __init__(self, handle, data):
+        self.handle = handle
+        self.data = list(data)
+        self.index = 0
+
+    def readline(self):
+        if self.handle.readline.return_value is not None:
+            return handle.readline.return_value
+        elif self.index < len(self.data):
+            self.index += 1
+            return self.data[self.index - 1]
+        else:
+            # Ran out of data.
+            return ''
+
+    def next(self):
+        line = self.readline()
+        if line:
+            return line
+        else:
+            raise StopIteration
+
+    def __iter__(self):
+        return self
+
+
 def mockOpen(mock=None, read_data=''):
     """
     A helper function to create a mock to replace the use of `open`. It works
@@ -73,14 +104,17 @@ def mockOpen(mock=None, read_data=''):
 
     _data = _iterate_read_data(read_data)
 
+    noStopIterationReadline = NoStopIterationReadline(
+        handle, _iterate_read_data(read_data))
+
     handle.write.return_value = None
     handle.read.return_value = None
     handle.readline.return_value = None
     handle.readlines.return_value = None
-    handle.__iter__.return_value = _data
+    handle.__iter__.return_value = noStopIterationReadline
 
     handle.read.side_effect = _read_side_effect
-    handle.readline.side_effect = _readline_side_effect()
+    handle.readline.side_effect = noStopIterationReadline.readline
     handle.readlines.side_effect = _readlines_side_effect
 
     mock.return_value = handle

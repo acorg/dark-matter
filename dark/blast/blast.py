@@ -1,13 +1,11 @@
-import string
 from math import log10
 import numpy as np
 from random import uniform
 from Bio import SeqIO
 
-from dark.conversion import JSONRecordsReader, XMLRecordsReader
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
-from dark.hsp import printHSP, normalizeHSP
+from dark.blast.hsp import printHSP, normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark.taxonomy import LineageFetcher
 from dark import mysql
@@ -36,36 +34,6 @@ def printBlastRecord(record):
         for hspIndex, hsp in enumerate(alignment.hsps, start=1):
             print '      hsp %d:' % hspIndex
             printHSP(hsp, '        ')
-
-
-def numericallySortFilenames(names):
-    """
-    Sort (ascending) a list of file names by their numerical prefixes.
-
-    @param: A C{list} of file names, each of which starts with a string of
-        digits.
-
-    @return: The sorted C{list}.
-    """
-
-    def extractNumericPrefix(name):
-        """
-        Find any numeric prefix at the start of C{name} and return it as an
-        C{int}.
-
-        @param: A C{str} file name, possibly starting with some digits.
-        @return: The C{int} number at the start of the name, else 0 if there
-            are no leading digits.
-        """
-        count = 0
-        for ch in name:
-            if ch in string.digits:
-                count += 1
-            else:
-                break
-        return 0 if count == 0 else int(name[0:count])
-
-    return sorted(names, key=lambda name: extractNumericPrefix(name))
 
 
 class BlastRecords(object):

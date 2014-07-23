@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 if __name__ == '__main__':
-    from dark.conversion import XMLRecordsReader
+    from dark.blast.conversion import XMLRecordsReader
     import sys
     if len(sys.argv) == 2:
         reader = XMLRecordsReader(sys.argv[1])

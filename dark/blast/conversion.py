@@ -2,7 +2,11 @@ import bz2
 from json import dumps, loads
 
 from Bio.Blast import NCBIXML
-from Bio.Blast.Record import Alignment, Blast, HSP
+from Bio.Blast.Record import Blast
+
+from dark.hsp import HSP
+from dark.alignment import Alignment
+from dark.blast.hsp import normalizeHSP, EValueHSP
 
 
 class XMLRecordsReader(object):
@@ -161,60 +165,45 @@ class JSONRecordsReader(object):
     Provide a method that yields JSON records from a file. Store, check, and
     make accessible the global BLAST parameters.
 
-    @ivar params: A C{dict} of global BLAST parameters.
     @param filename: A C{str} filename containing JSON BLAST records.
     """
 
+    # Note that self._fp is opened in self.__init__, accessed in
+    # self._params and in self.records, and closed in self.close.
+
     def __init__(self, filename):
         self._filename = filename
-        self.params = None  # Set below, in records.
+        if filename.endswith('.bz2'):
+            self._fp = bz2.BZ2File(filename)
+        else:
+            self._fp = open(filename)
+        self.params = self._params()
 
-    def _convertDictToBlastRecord(self, d):
+    def close(self):
         """
-        Take a dictionary (as produced by
-        XMLRecordsReader._convertBlastRecordToDict) and convert it to a Bio
-        Blast record.
-
-        @param d: A C{dict}, from convertBlastRecordToDict.
-        @return: A C{Bio.Blast.Record.Blast} instance.
+        Close the open file descriptor for these records.
         """
-        record = Blast()
-        record.query = d['query']
+        self._fp.close()
+        self._fp = None
 
-        for alignment in d['alignments']:
-            alignmentInstance = Alignment()
-            for hsp in alignment['hsps']:
-                hspInstance = HSP()
-                for attr in ['bits', 'expect', 'frame', 'query', 'query_start',
-                             'query_end', 'sbjct', 'sbjct_start', 'sbjct_end']:
-                    setattr(hspInstance, attr, hsp[attr])
-                alignmentInstance.hsps.append(hspInstance)
-            alignmentInstance.title = title = alignment['title']
-            alignmentInstance.hit_id = title.split(' ', 1)[0]
-            alignmentInstance.length = alignment['length']
-            record.alignments.append(alignmentInstance)
-
-        return record
-
-    def _processFirstLine(self, line):
+    def _params(self):
         """
-        Look for BLAST parameters in the first line of an input file.
+        Extract the BLAST parameters from the first line of the JSON file.
 
-        @param line: A C{str} line of input, with a trailing '\n'. The
-            line is expected to encode a JSON object.
-        @raise ValueError: If the input file is empty or does not contain a
-            valid JSON BLAST params section.
-        @return: a C{dict} corresponding to the parsed JSON input line.
+        @return: A C{dict} containing the BLAST parameters.
+        @raise ValueError: if the first line of the file isn't valid JSON
+            or if the JSON does not contain an 'application' key.
         """
+        line = self._fp.readline()
         if not line:
-            raise ValueError('Input file %r was empty' % self._filename)
+            raise ValueError('JSON file %r was empty.' % self._filename)
 
         try:
             params = loads(line[:-1])
         except ValueError as e:
             raise ValueError(
-                'Could not convert first line of %r to JSON (%s). Line is '
-                '%r.' % (self._filename, e, line[:-1]))
+                'Could not convert first line of %r to JSON (%s). '
+                'Line is %r.' % (self._filename, e, line[:-1]))
         else:
             if 'application' not in params:
                 raise ValueError(
@@ -223,89 +212,88 @@ class JSONRecordsReader(object):
                     'to convert it to the newest format.' % self._filename)
             return params
 
-    def records(self):
+    def _convertDictToAlignments(self, blastDict, read, scoreType,
+                                 application, hspClass):
         """
-        Read lines of JSON from self._filename, convert them to Bio Blast class
+        Take a dict (made by XMLRecordsReader._convertBlastRecordToDict)
+        and convert it to a list of alignments.
+
+        @param blastDict: A C{dict}, from convertBlastRecordToDict.
+        @param read: A C{Read} instance, containing the read that BLAST used
+            to create this record.
+        @param scoreType: A C{str}, either 'bits' or 'e values'.
+        @param application: The C{str} name of the blast program used (e.g.,
+            'blastn').
+        @param hspClass: The class that should be used to create HSPs.
+        @raise ValueError: If the query id in the BLAST dictionary does not
+            match the id of the read.
+        @return: A C{list} of L{dark.alignment.Alignment} instances.
+        """
+        if blastDict['query'] != read.id:
+            raise ValueError(
+                'The reads you have provided do not match the BLAST output: '
+                'BLAST record query id (%s) does not match the id of the '
+                'supposedly corresponding read (%s).' %
+                (blastDict['query'], read.id))
+
+        alignments = []
+
+        for blastAlignment in blastDict['alignments']:
+            alignment = Alignment(blastAlignment['length'],
+                                  blastAlignment['title'])
+            alignments.append(alignment)
+            for blastHsp in blastAlignment['hsps']:
+                normalized = normalizeHSP(blastHsp, len(read), application)
+                score = blastHsp['bits' if scoreType == 'bits' else 'expect']
+                hsp = hspClass(
+                    readStart=normalized['readStart'],
+                    readEnd=normalized['readEnd'],
+                    readStartInHit=normalized['readStartInHit'],
+                    readEndInHit=normalized['readEndInHit'],
+                    hitStart=normalized['hitStart'],
+                    hitEnd=normalized['hitEnd'],
+                    readMatchedSequence=blastHsp['query'],
+                    hitMatchedSequence=blastHsp['sbjct'],
+                    score=score)
+
+                alignment.addHsp(hsp)
+
+        return alignments
+
+    def records(self, reads, scoreType, application):
+        """
+        Read lines of JSON from self._filename, convert them to ReadHit
         instances and yield them.
 
-        @raise ValueError: If the input file is empty or does not contain a
-            global BLAST params section.
+        @param reads: A generator yielding L{Read} instances, corresponding to
+            the reads that were given to BLAST.
+        @param scoreType: A C{str}, either 'bits' or 'e values'.
+        @param application: The C{str} name of the blast program used (e.g.,
+            'blastn').
+        @raise ValueError: If any of the lines in the file cannot be converted
+            to JSON.
         """
-
-        def _reportIncompatibleParams(laterParams, lineNumber):
-            """
-            Check a later set of parameters against the one originally found
-            (and stored in self.params).
-
-            @param laterParams: A C{dict} with BLAST parameter settings.
-            @param lineNumber: The line number of the input file on which the
-                later parameters (in C{laterParams}) were found.
-            @raise ValueError: if the two parameter sets differ.
-            """
-            # Parameters whose values may vary.
-            variableParams = set([
-                'effective_search_space', 'effective_hsp_length', 'query',
-                'query_length', 'query_letters'])
-
-            # Note that although the params contains a 'date', its value is
-            # empty (as far as I've seen). This could become an issue one
-            # day if it becomes non-empty and differs between JSON files
-            # that we cat together. In that case we may need to be more
-            # specific in our params compatible checking.
-            err = []
-            for param in self.params:
-                if param in laterParams:
-                    if (param not in variableParams
-                            and self.params[param] != laterParams[param]):
-                        err.append(
-                            '\tParam %r initial value %r differs from '
-                            'later value %r' % (param, self.params[param],
-                                                laterParams[param]))
-                else:
-                    err.append('\t%r found in initial parameters, not found '
-                               'in later parameters' % param)
-            for param in laterParams:
-                if param not in self.params:
-                    err.append('\t%r found in later parameters, not seen in '
-                               'initial parameters' % param)
-
-            if err:
-                mesg = ('BLAST parameters found on line %d of %r do not match '
-                        'those on its first line. Summary of diffs:\n%s' %
-                        (lineNumber, self._filename, '\n'.join(err)))
-                raise ValueError(mesg)
-
-        if self._filename.endswith('.bz2'):
-            fp = bz2.BZ2File(self._filename)
+        if scoreType == 'bits':
+            hspClass = HSP
         else:
-            fp = open(self._filename)
+            hspClass = EValueHSP
 
-        try:
-            for lineNumber, line in enumerate(fp, start=1):
-                if lineNumber == 1:
-                    self.params = self._processFirstLine(line)
+        for lineNumber, line in enumerate(self._fp, start=2):
+            try:
+                record = loads(line[:-1])
+            except ValueError as e:
+                raise ValueError(
+                    'Could not convert line %d of %r to JSON (%s). '
+                    'Line is %r.' %
+                    (lineNumber, self._filename, e, line[:-1]))
+            else:
+                try:
+                    read = reads.next()
+                except StopIteration:
+                    raise ValueError(
+                        'Read generator failed to yield read number %d '
+                        'during parsing of BLAST file %r.' %
+                        (lineNumber - 1, self._filename))
                 else:
-                    try:
-                        record = loads(line[:-1])
-                    except ValueError as e:
-                        raise ValueError(
-                            'Could not convert line %d of %r to JSON (%s). '
-                            'Line is %r.' %
-                            (lineNumber, self._filename, e, line[:-1]))
-                    else:
-                        if 'application' in record:
-                            # This is another params section. Check it against
-                            # the already read params (from the first line of
-                            # the file).  The 'application' key is just one of
-                            # the many attributes we save into a JSON dict in
-                            # L{XMLRecordsReader.convertBlastParamsToDict}
-                            # above.
-                            if self.params != record:
-                                _reportIncompatibleParams(record, lineNumber)
-                            else:
-                                pass
-                        else:
-                            # A regular BLAST record (as a dict).
-                            yield self._convertDictToBlastRecord(record)
-        finally:
-            fp.close()
+                    yield read, self._convertDictToAlignments(
+                        record, read, scoreType, application, hspClass)
