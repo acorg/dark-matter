@@ -262,8 +262,8 @@ class JSONRecordsReader(object):
 
     def records(self, reads, scoreType, application):
         """
-        Read lines of JSON from self._filename, convert them to ReadHit
-        instances and yield them.
+        Read lines of JSON from self._filename, convert them to alignments
+        and yield them.
 
         @param reads: A generator yielding L{Read} instances, corresponding to
             the reads that were given to BLAST.
@@ -272,6 +272,9 @@ class JSONRecordsReader(object):
             'blastn').
         @raise ValueError: If any of the lines in the file cannot be converted
             to JSON.
+        @return: A generator that yields (read, alignments) tuples, where read
+            is an instance of dark.reads.Read and alignments is a C{list} of
+            dark.alignment.Alignment instances.
         """
         if scoreType == 'bits':
             hspClass = HSP

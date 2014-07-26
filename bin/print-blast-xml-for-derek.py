@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from dark.blast import BlastRecords
-from dark.hacks import printBlastRecordForDerek
+from dark.blast.records import printBlastRecordForDerek
 
 if __name__ == '__main__':
     import sys

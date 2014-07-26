@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-from dark.blast import BlastRecords, printBlastRecord
+from dark.blast import BlastRecords
+from dark.blast.records import printBlastRecord
+
 
 if __name__ == '__main__':
     import sys

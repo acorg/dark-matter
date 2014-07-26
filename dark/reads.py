@@ -25,6 +25,9 @@ class Read(object):
                 self.sequence == other.sequence and
                 self.quality == other.quality)
 
+    def __ne__(self, other):
+        return not self == other
+
     def __len__(self):
         return len(self.sequence)
 

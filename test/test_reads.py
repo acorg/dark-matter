@@ -60,7 +60,7 @@ class TestRead(TestCase):
         If two Read instances have different sequences, they should not be
         considered equal.
         """
-        self.assertNotEqual(Read('id1', 'AC'), Read('id1', 'AC'))
+        self.assertNotEqual(Read('id1', 'AA'), Read('id1', 'CC'))
 
     def testEqualityWithDifferingQuality(self):
         """
@@ -162,23 +162,6 @@ class TestReads(TestCase):
 
         reads = FastaReads()
         self.assertEqual(2, len(list(reads)))
-
-    def testSubclassPlusManuallyAddedLength(self):
-        """
-        A Reads subclass with an iter method and some manually added reads
-        should have a correct length.
-        """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
-
-        class FastaReads(Reads):
-            def iter(self):
-                yield read1
-                yield read2
-
-        reads = FastaReads()
-        reads.add(Read('id3', 'GG'))
-        self.assertEqual(3, len(list(reads)))
 
     def testRepeatedIter(self):
         """

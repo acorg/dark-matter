@@ -4,7 +4,8 @@ from functools import total_ordering
 @total_ordering
 class HSP(object):
     """
-    Holds information about a high-scoring pair from a read alignment.
+    Holds information about a high-scoring pair from a read alignment. Scores
+    that are numerically bigger are considered better.
 
     All offsets are zero-based and follow the Python convention that
     the 'end' positions are not included in the string.

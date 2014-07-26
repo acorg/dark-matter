@@ -1,3 +1,6 @@
+from dark.filter import TitleFilter
+
+
 def bestAlignment(hit):
     """
     Find the best alignment for a read hit. This is the one whose
@@ -19,29 +22,7 @@ class Hit(object):
     Holds information about a single read hit.
 
     @param read: A C{Read} instance.
-    @param alignments: A C{list} of alignments. Each alignment is a C{dict} of
-        the following form:
-
-        {
-          "hsps": [
-            {
-              "score": 293.432,
-              "frame": [ 1, 1 ],  # Optional, used if nucleotides are involved.
-              "readMatchedSequence": "CGCC",
-              "readEnd": 492,
-              "readStart": 31,
-              "readEndInHit": 2926446,
-              "readStartInHit": 2925990,
-              "hitMatchedSequence": "CGCC",
-              "hitEnd": 2926446,
-              "hitStart": 2925990
-            },
-            # Optionally, additional hsp dicts.
-          ],
-          "hitLength": 5371077,
-          "hitTitle": "gi|2577609|dbj|AP01960.1| Escherichia coli DNA"
-        }
-
+    @param alignments: A C{list} of L{dark.alignment.Alignment} instances.
     """
     def __init__(self, read, alignments):
         self.read = read
@@ -65,44 +46,143 @@ class Hits(object):
         self.application = application
         self.params = params
 
-    def compareScores(self, score1, score2):
-        """
-        Compare two HSP scores.
-
-        @param score1: A numeric score.
-        @param score2: A numeric score.
-        @return: An C{int} that is negative, zero, or positive according to
-            whether score1 is less than, equal to, or greater than score2.
-        """
-        return cmp(score1, score2)
-
-    def filter(self, limit=None, oneAlignmentPerRead=False, maxHspsPerHit=None,
-               scoreCutoff=None):
+    def filter(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
+               minStart=None, maxStop=None,
+               oneAlignmentPerRead=False, maxHspsPerHit=None,
+               scoreCutoff=None, whitelist=None, blacklist=None,
+               titleRegex=None, negativeTitleRegex=None,
+               truncateTitlesAfter=None, taxonomy=None):
         """
         @param limit: An C{int} limit on the number of records to read.
+        @param minSequenceLen: sequences of lesser length will be elided.
+        @param maxSequenceLen: sequences of greater length will be elided.
+        @param minStart: HSPs that start before this offset in the hit sequence
+            should not be returned.
+        @param maxStop: HSPs that end after this offset in the hit sequence
+            should not be returned.
         @param oneAlignmentPerRead: if C{True}, only keep the best
             alignment for each read.
         @param maxHspsPerHit: The maximum number of HSPs to keep for each
             alignment for each read.
         @param scoreCutoff: A C{float} score. Hits with scores that are not
             better than this score will be ignored.
+        @param whitelist: If not C{None}, a set of exact titles that are always
+            acceptable (though the hit info for a whitelist title may rule it
+            out for other reasons).
+        @param blacklist: If not C{None}, a set of exact titles that are never
+            acceptable.
+        @param titleRegex: a regex that sequence titles must match.
+        @param negativeTitleRegex: a regex that sequence titles must not match.
+        @param truncateTitlesAfter: specify a string that titles will be
+            truncated beyond. If a truncated title has already been seen, that
+            title will be elided.
+        @param taxonomy: a C{str} of the taxonomic group on which should be
+            filtered. eg 'Vira' will filter on viruses.
         @return: A generator that yields L{Hit} instances.
         """
+
+        # Implementation notes:
+        #
+        # 1. The order in which we carry out the filtering actions can make
+        #    a big difference in the result of this function. The current
+        #    ordering is based on what seems reasonable - it may not be the
+        #    best way to do things. E.g., if maxHspsPerHit is 1 and there
+        #    is a title regex, which should we perform first?
+        #
+        #    We perform filtering based on alignment before that based on
+        #    HSPs. That's because there's no point filtering all HSPs for
+        #    an alignment that we end up throwing away anyhow.
+        #
+        # 2. This function could be made faster if it first looked at its
+        #    arguments and dynamically created an acceptance function
+        #    (taking a hit as an argument). The acceptance function would
+        #    run without examining the above arguments for each hit the way
+        #    the current code does.
+
+        #
+        # Alignment-only (i.e., non-HSP based) filtering.
+        #
+
+        # If we've been asked to filter on hit sequence titles in any way,
+        # build a title filter.
+        if (whitelist or blacklist or titleRegex or negativeTitleRegex or
+                truncateTitlesAfter):
+            titleFilter = TitleFilter(
+                whitelist=whitelist, blacklist=blacklist,
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
+                truncateAfter=truncateTitlesAfter)
+        else:
+            titleFilter = None
+
+        if taxonomy:
+            lineageFetcher = LineageFetcher()
 
         count = 0
         for hit in self:
             if limit is not None and count == limit:
                 return
 
-            # Throw out any unwanted HSPs due to maxHspsPerHit.
-            for alignment in hit.alignments:
-                hsps = alignment.hsps
-                if maxHspsPerHit is not None and len(hsps) > maxHspsPerHit:
-                    alignment.hsps = hsps[:maxHspsPerHit]
+            if titleFilter:
+                # Remove alignments against sequences whose titles are
+                # unacceptable.
+                wantedAlignments = []
+                for alignment in hit.alignments:
+                    if (titleFilter.accept(alignment.hitTitle) !=
+                            TitleFilter.REJECT):
+                        wantedAlignments.append(alignment)
+                if wantedAlignments:
+                    hit.alignments = wantedAlignments
+                else:
+                    continue
+
+            # Only return alignments that are against sequences of the
+            # desired length.
+            if minSequenceLen is not None or maxSequenceLen is not None:
+                wantedAlignments = []
+                for alignment in hit.alignments:
+                    length = alignment.hitLength
+                    if not ((minSequenceLen is not None and
+                             length < minSequenceLen) or
+                            (maxSequenceLen is not None and
+                             length > maxSequenceLen)):
+                        wantedAlignments.append(alignment)
+                if wantedAlignments:
+                    hit.alignments = wantedAlignments
+                else:
+                    continue
+
+            if taxonomy:
+                wantedAlignments = []
+                for alignment in hit.alignments:
+                    lineage = lineageFetcher.lineage(alignment.hitTitle)
+                    if lineage:
+                        if taxonomy in lineage:
+                            wantedAlignments.append(alignment)
+                    else:
+                        # No lineage info was found. Keep the alignment
+                        # since we can't rule it out.  We could add another
+                        # option to control this.
+                        wantedAlignments.append(alignment)
+                if wantedAlignments:
+                    hit.alignments = wantedAlignments
+                else:
+                    continue
 
             if oneAlignmentPerRead and hit.alignments:
                 hit.alignments = [bestAlignment(hit)]
 
+            #
+            # From here on we do only HSP-based filtering.
+            #
+
+            # Throw out any unwanted HSPs due to maxHspsPerHit.
+            if maxHspsPerHit is not None:
+                for alignment in hit.alignments:
+                    hsps = hsps
+                    if len(hsps) > maxHspsPerHit:
+                        alignment.hsps = hsps[:maxHspsPerHit]
+
+            # Throw out HSPs whose scores are not good enough.
             if scoreCutoff is not None:
                 wantedAlignments = []
                 for alignment in hit.alignments:
@@ -114,7 +194,27 @@ class Hits(object):
                     if wantedHsps:
                         alignment.hsps = wantedHsps
                         wantedAlignments.append(alignment)
+                if wantedAlignments:
+                    hit.alignments = wantedAlignments
+                else:
+                    continue
 
+            # Throw out HSPs that don't match in the desired place on the
+            # hit sequence.
+            if minStart is not None or maxStop is not None:
+                wantedAlignments = []
+                for alignment in hit.alignments:
+                    hsps = alignment.hsps
+                    wantedHsps = []
+                    for hsp in hsps:
+                        if not ((minStart is not None and
+                                 hsp.readStartInHit < minStart)
+                                or (maxStop is not None and
+                                    hsp.readEndInHit > maxStop)):
+                            wantedHsps.append(hsp)
+                    if wantedHsps:
+                        alignment.hsps = wantedHsps
+                        wantedAlignments.append(alignment)
                 if wantedAlignments:
                     hit.alignments = wantedAlignments
                 else:

@@ -260,4 +260,5 @@ class TestFastaReads(TestCase):
         mockOpener = mockOpen(read_data=data)
         with patch('__builtin__.open', mockOpener, create=True):
             reads = list(FastaReads('filename.fasta'))
+            self.assertEqual(2, len(reads))
             self.assertEqual([Read('id1', 'ACGT'), Read('id2', 'TGCA')], reads)
