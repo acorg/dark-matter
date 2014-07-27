@@ -8,10 +8,10 @@ from ..mocking import mockOpen
 from mock import patch
 
 from dark.reads import Read, Reads
-from dark.alignment import Alignment
-from dark.hits import Hit, bestAlignment
+from dark.alignments import Alignment, ReadAlignments, bestAlignment
 from dark.blast.hsp import EValueHSP
-from dark.blast.hits import BlastHits, numericallySortFilenames
+from dark.blast.alignments import (
+    BlastReadsAlignments, numericallySortFilenames)
 
 
 # Sample BLAST parameters.
@@ -262,9 +262,9 @@ class TestNumericallySortFilenames(TestCase):
                 ['3.json', '21.json', '35.json', '250.json', '2.json']))
 
 
-class TestBlastHits(TestCase):
+class TestBlastReadsAlignments(TestCase):
     """
-    Test the BlastHits class.
+    Test the BlastReadsAlignments class.
     """
 
     def testEmptyJSONInput(self):
@@ -277,7 +277,7 @@ class TestBlastHits(TestCase):
             reads = Reads()
             error = "JSON file 'file.json' was empty."
             self.assertRaisesRegexp(
-                ValueError, error, BlastHits, reads, 'file.json')
+                ValueError, error, BlastReadsAlignments, reads, 'file.json')
 
     def testNonJSONInput(self):
         """
@@ -291,7 +291,7 @@ class TestBlastHits(TestCase):
                      "\(No JSON object could be decoded\). "
                      "Line is 'not JSON'.")
             self.assertRaisesRegexp(
-                ValueError, error, BlastHits, reads, 'file.json')
+                ValueError, error, BlastReadsAlignments, reads, 'file.json')
 
     def testJSONParams(self):
         """
@@ -301,19 +301,19 @@ class TestBlastHits(TestCase):
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            blastHits = BlastHits(reads, 'file.json')
-            self.assertEqual(PARAMS, blastHits.params)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual(PARAMS, readsAlignments.params)
 
     def testJSONParamsButNoHits(self):
         """
         BLAST parameters are present but there are no hits, the __iter__
-        method of a L{BlastHits} instance must not yield anything.
+        method of a L{BlastReadsAlignments} instance must not yield anything.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            blastHits = BlastHits(reads, 'file.json')
-            self.assertEqual([], list(blastHits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual([], list(readsAlignments))
 
     def testNotEnoughReads(self):
         """
@@ -326,8 +326,8 @@ class TestBlastHits(TestCase):
             reads = Reads()
             error = ("Read generator failed to yield read number 1 during "
                      "parsing of BLAST file 'file\.json'\.")
-            blastHits = BlastHits(reads, 'file.json')
-            self.assertRaisesRegexp(ValueError, error, list, blastHits)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
 
     def testTooManyReads(self):
         """
@@ -343,8 +343,8 @@ class TestBlastHits(TestCase):
             error = ("Reads iterator contained more reads than the number of "
                      "BLAST records found \(1\)\. First unknown read id is "
                      "'id1'\.")
-            blastHits = BlastHits(reads, 'file.json')
-            self.assertRaisesRegexp(ValueError, error, list, blastHits)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
 
     def testIncorrectReadId(self):
         """
@@ -360,8 +360,8 @@ class TestBlastHits(TestCase):
                      "output: BLAST record query id \(id0\) does "
                      "not match the id of the supposedly corresponding read "
                      "\(not id0\)\.")
-            blastHits = BlastHits(reads, 'file.json')
-            self.assertRaisesRegexp(ValueError, error, list, blastHits)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
 
     def testOneCompressedJSONInput(self):
         """
@@ -374,14 +374,15 @@ class TestBlastHits(TestCase):
             mockMethod.return_value = result
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json.bz2')
-            self.assertEqual(1, len(list(blastHits)))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json.bz2')
+            self.assertEqual(1, len(list(readsAlignments)))
 
     def testTwoCompressedJSONInputs(self):
         """
-        If two compressed (bz2) JSON files are passed to L{BlastHits} each
-        with a parameters section and one record, both records must be read
-        correctly and the result should have 2 records.
+        If two compressed (bz2) JSON files are passed to
+        L{BlastReadsAlignments} each with a parameters section and one
+        record, both records must be read correctly and the result should
+        have 2 records.
         """
 
         class SideEffect(object):
@@ -401,18 +402,20 @@ class TestBlastHits(TestCase):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
-            blastHits = BlastHits(reads, ['file1.json.bz2', 'file2.json.bz2'])
-            hits = list(blastHits)
-            self.assertEqual(2, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual('id1', hits[1].read.id)
+            readsAlignments = BlastReadsAlignments(
+                reads, ['file1.json.bz2', 'file2.json.bz2'])
+            result = list(readsAlignments)
+            self.assertEqual(2, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual('id1', result[1].read.id)
 
     def testThreeCompressedJSONInputs(self):
         """
-        If three compressed (bz2) JSON files are passed to L{BlastHits} with
-        names that have a numeric prefix and each with a parameters section and
-        one record, all records must be read correctly and the result should
-        have 3 records in the correct order.
+        If three compressed (bz2) JSON files are passed to
+        L{BlastReadsAlignments} with names that have a numeric prefix and
+        each with a parameters section and one record, all records must be
+        read correctly and the result should have 3 records in the correct
+        order.
         """
         class SideEffect(object):
             def __init__(self, test):
@@ -443,19 +446,19 @@ class TestBlastHits(TestCase):
             # Note the files are given out of order. Their names will be
             # sorted before they are opened. The sorting of the names is
             # verified in the SideEffect class, above.
-            blastHits = BlastHits(reads,
-                                  ['3.json.bz2', '1.json.bz2', '2.json.bz2'])
-            hits = list(blastHits)
-            self.assertEqual(3, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual('id1', hits[1].read.id)
-            self.assertEqual('id2', hits[2].read.id)
+            readsAlignments = BlastReadsAlignments(
+                reads, ['3.json.bz2', '1.json.bz2', '2.json.bz2'])
+            result = list(readsAlignments)
+            self.assertEqual(3, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual('id1', result[1].read.id)
+            self.assertEqual('id2', result[2].read.id)
 
     def testIncompatibleParameters(self):
         """
-        If two compressed (bz2) JSON files with incompatible parameters are
-        given to L{BlastHits}, a C{ValueError} must be raised when the files
-        are read.
+        If two compressed (bz2) JSON files with incompatible parameters
+        are given to L{BlastReadsAlignments}, a C{ValueError} must be
+        raised when the files are read.
         """
 
         class SideEffect(object):
@@ -482,60 +485,63 @@ class TestBlastHits(TestCase):
                      "file1.json.bz2. Summary of differences:\n\tParam "
                      "u'application' initial value u'BLASTN' differs from "
                      "later value u'Skype'")
-            blastHits = BlastHits(reads, ['file1.json.bz2', 'file2.json.bz2'])
-            self.assertRaisesRegexp(ValueError, error, list, blastHits)
+            readsAlignments = BlastReadsAlignments(
+                reads, ['file1.json.bz2', 'file2.json.bz2'])
+            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
 
 
-class TestBlastHitsFiltering(TestCase):
+class TestBlastReadsAlignmentsFiltering(TestCase):
     """
-    Test the BlastHits class filter function.
+    Test the BlastReadsAlignments class filter function.
     """
 
-    def testNoHitsNoFilteringArgs(self):
+    def testNoResultNoFilteringArgs(self):
         """
-        If the L{BlastHits} filter function is called with no arguments,
-        and there are no hits, it should produce a generator that yields
-        no hits.
+        If the L{BlastReadsAlignments} filter function is called with no
+        arguments, and there are no hits, it should produce a generator
+        that yields no result.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter())
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter())
+            self.assertEqual(0, len(result))
 
     def testOneHitNoFilteringArgs(self):
         """
-        If the L{BlastHits} filter function is called with no arguments,
-        and there is one hit, it should produce a generator that yields
-        that hit.
+        If the L{BlastReadsAlignments} filter function is called with no
+        arguments, and there is one hit, it should produce a generator that
+        yields that hit.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(RECORD0) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter())
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter())
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
 
     def testLimitZero(self):
         """
-        If L{BlastHits} is limited to zero hits, that limit must be respected.
+        If L{BlastReadsAlignments} is limited to zero result, that limit must
+        be respected.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(RECORD0) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(limit=0))
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(limit=0))
+            self.assertEqual(0, len(result))
 
     def testLimitOne(self):
         """
-        If L{BlastHits} is limited to one hit, that limit must be respected.
+        If L{BlastReadsAlignments} is limited to one hit, that limit must
+        be respected.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(RECORD0) + '\n' +
@@ -544,15 +550,15 @@ class TestBlastHitsFiltering(TestCase):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(limit=1))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(limit=1))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
 
     def testOneAlignmentPerRead(self):
         """
-        If L{BlastHits} is asked to deliver only the best alignment for each
-        read, that must be respected.
+        If L{BlastReadsAlignments} is asked to deliver only the best alignment
+        for each read, that must be respected.
         """
         record = {
             "query": "H6E8I1T01BFUH9",
@@ -599,15 +605,15 @@ class TestBlastHitsFiltering(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(oneAlignmentPerRead=True))
-            self.assertEqual(1, len(hits))
-            self.assertEqual(1, len(hits[0].alignments))
-            self.assertEqual('Merkel1', hits[0].alignments[0].hitTitle)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(oneAlignmentPerRead=True))
+            self.assertEqual(1, len(result))
+            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual('Merkel1', result[0].alignments[0].hitTitle)
 
     def testScoreCutoffRemovesEntireAlignment_Bits(self):
         """
-        If the L{BlastHits} filter function is supposed to filter on
+        If the L{BlastReadsAlignments} filter function is supposed to filter on
         a scoreCutoff (bit score) and the cut-off value results in an
         alignment with no HSPs, then the alignment must be removed entirely.
         """
@@ -656,15 +662,15 @@ class TestBlastHitsFiltering(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(scoreCutoff=160))
-            self.assertEqual(1, len(hits))
-            self.assertEqual(1, len(hits[0].alignments))
-            self.assertEqual('Merkel2', hits[0].alignments[0].hitTitle)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(scoreCutoff=160))
+            self.assertEqual(1, len(result))
+            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual('Merkel2', result[0].alignments[0].hitTitle)
 
     def testScoreCutoffRemovesEntireAlignment_EValue(self):
         """
-        If the L{BlastHits} filter function is supposed to filter on
+        If the L{BlastReadsAlignments} filter function is supposed to filter on
         a scoreCutoff (bit score) and the cut-off value results in an
         alignment with no HSPs, then the alignment must be removed entirely.
         """
@@ -713,11 +719,12 @@ class TestBlastHitsFiltering(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
-            blastHits = BlastHits(reads, 'file.json', scoreType='e values')
-            hits = list(blastHits.filter(scoreCutoff=1e-20))
-            self.assertEqual(1, len(hits))
-            self.assertEqual(1, len(hits[0].alignments))
-            self.assertEqual('Merkel2', hits[0].alignments[0].hitTitle)
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json', scoreType='e values')
+            result = list(readsAlignments.filter(scoreCutoff=1e-20))
+            self.assertEqual(1, len(result))
+            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual('Merkel2', result[0].alignments[0].hitTitle)
 
     def testScoreCutoffRemovesHsps_Bits(self):
         """
@@ -781,17 +788,17 @@ class TestBlastHitsFiltering(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(scoreCutoff=160))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(scoreCutoff=160))
 
             # There should only be one HSP left in the alignments for the
             # first read, and it should have the right score (bit score).
-            self.assertEqual(1, len(hits[0].alignments[0].hsps))
-            self.assertEqual(170, hits[0].alignments[0].hsps[0].score)
+            self.assertEqual(1, len(result[0].alignments[0].hsps))
+            self.assertEqual(170, result[0].alignments[0].hsps[0].score)
 
             # The second alignment should also be present.
-            self.assertEqual(1, len(hits[0].alignments[1].hsps))
-            self.assertEqual(180, hits[0].alignments[1].hsps[0].score)
+            self.assertEqual(1, len(result[0].alignments[1].hsps))
+            self.assertEqual(180, result[0].alignments[1].hsps[0].score)
 
     def testScoreCutoffRemovesHsps_EValue(self):
         """
@@ -855,17 +862,18 @@ class TestBlastHitsFiltering(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
-            blastHits = BlastHits(reads, 'file.json', scoreType='e values')
-            hits = list(blastHits.filter(scoreCutoff=1e-15))
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json', scoreType='e values')
+            result = list(readsAlignments.filter(scoreCutoff=1e-15))
 
             # There should only be one HSP left in the alignments for the
             # first read, and it should have the right score (e-value).
-            self.assertEqual(1, len(hits[0].alignments[0].hsps))
-            self.assertEqual(1.25e-20, hits[0].alignments[0].hsps[0].score)
+            self.assertEqual(1, len(result[0].alignments[0].hsps))
+            self.assertEqual(1.25e-20, result[0].alignments[0].hsps[0].score)
 
             # The second alignment should also be present.
-            self.assertEqual(1, len(hits[0].alignments[1].hsps))
-            self.assertEqual(1.25e-30, hits[0].alignments[1].hsps[0].score)
+            self.assertEqual(1, len(result[0].alignments[1].hsps))
+            self.assertEqual(1.25e-30, result[0].alignments[1].hsps[0].score)
 
     def testTitleByRegexCaseInvariant(self):
         """
@@ -879,12 +887,12 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(titleRegex='sqUIRRel'))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(titleRegex='sqUIRRel'))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testTitleByRegexAllAlignments(self):
         """
@@ -899,12 +907,12 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(titleRegex='squirrel'))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(titleRegex='squirrel'))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testTitleByRegexOneAlignments(self):
         """
@@ -919,12 +927,12 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(titleRegex='Mummy'))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id1', hits[0].read.id)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(titleRegex='Mummy'))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id1', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testTitleByNegativeRegexAllAlignments(self):
         """
@@ -940,15 +948,16 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(negativeTitleRegex='squirrel'))
-            self.assertEqual(2, len(hits))
-            self.assertEqual('id1', hits[0].read.id)
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(
+                negativeTitleRegex='squirrel'))
+            self.assertEqual(2, len(result))
+            self.assertEqual('id1', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             hits[0].alignments[0].hitTitle)
-            self.assertEqual('id2', hits[1].read.id)
+                             result[0].alignments[0].hitTitle)
+            self.assertEqual('id2', result[1].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             hits[1].alignments[0].hitTitle)
+                             result[1].alignments[0].hitTitle)
 
     def testTitleByNegativeRegexOneAlignment(self):
         """
@@ -964,13 +973,13 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(negativeTitleRegex='Mummy'))
-            self.assertEqual(3, len(hits))
-            self.assertEqual('id1', hits[1].read.id)
-            self.assertEqual(1, len(hits[1].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(negativeTitleRegex='Mummy'))
+            self.assertEqual(3, len(result))
+            self.assertEqual('id1', result[1].read.id)
+            self.assertEqual(1, len(result[1].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             hits[1].alignments[0].hitTitle)
+                             result[1].alignments[0].hitTitle)
 
     def testTitleByNegativeRegexOneAlignment(self):
         """
@@ -986,18 +995,18 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(negativeTitleRegex='Mummy'))
-            self.assertEqual(3, len(hits))
-            self.assertEqual('id1', hits[1].read.id)
-            self.assertEqual(1, len(hits[1].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(negativeTitleRegex='Mummy'))
+            self.assertEqual(3, len(result))
+            self.assertEqual('id1', result[1].read.id)
+            self.assertEqual(1, len(result[1].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             hits[1].alignments[0].hitTitle)
+                             result[1].alignments[0].hitTitle)
 
     def testTitleByNegativeRegexMatchesAll(self):
         """
         Filtering with a negative title regex that matches all alignments
-        must remove everything and result in no hits.
+        must remove everything and return an empty result.
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
@@ -1007,9 +1016,9 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(negativeTitleRegex='pox'))
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(negativeTitleRegex='pox'))
+            self.assertEqual(0, len(result))
 
     def testTitleByNegativeRegexMatchingAllWithWhitelist(self):
         """
@@ -1025,14 +1034,14 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
             title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
-            hits = list(blastHits.filter(negativeTitleRegex='pox',
-                                         whitelist=[title]))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual(1, len(hits[0].alignments))
-            self.assertEqual(title, hits[0].alignments[0].hitTitle)
+            result = list(readsAlignments.filter(negativeTitleRegex='pox',
+                                                 whitelist=[title]))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual(title, result[0].alignments[0].hitTitle)
 
     def testTitleByRegexMatchingAllWithBlacklist(self):
         """
@@ -1047,19 +1056,20 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
             blacklist = ['gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                          'gi|887699|gb|DQ37780 Squirrelpox virus 55']
-            hits = list(blastHits.filter(titleRegex='pox',
-                                         blacklist=blacklist))
-            self.assertEqual(2, len(hits))
-            self.assertEqual('id1', hits[0].read.id)
-            self.assertEqual('id2', hits[1].read.id)
+            result = list(readsAlignments.filter(titleRegex='pox',
+                                                 blacklist=blacklist))
+            self.assertEqual(2, len(result))
+            self.assertEqual('id1', result[0].read.id)
+            self.assertEqual('id2', result[1].read.id)
 
     def testTitleTruncation(self):
         """
-        When truncating titles, if a set of hits has titles that are identical
-        up to the truncation word, only the first found is returned.
+        When truncating titles, if a set of matched sequences has titles that
+        are identical up to the truncation word, only the first found is
+        returned.
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
@@ -1069,18 +1079,18 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(truncateTitlesAfter='virus'))
-            self.assertEqual(3, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual(1, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(truncateTitlesAfter='virus'))
+            self.assertEqual(3, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual(1, len(result[0].alignments))
             # The Squirrelpox virus 55 hit in RECORD0 is not returned.
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testMinTitleSequenceLength(self):
         """
-        It must be possible to filter hits based on minimum hit sequence
+        It must be possible to filter alignments based on minimum hit sequence
         length.
         """
         mockOpener = mockOpen(read_data=(
@@ -1091,19 +1101,19 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(minSequenceLen=37500))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual(1, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(minSequenceLen=37500))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 55',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testMinTitleSequenceLengthNoHits(self):
         """
-        It must be possible to filter hits based on minimum hit sequence
-        length and if no hits match sufficiently long sequences, an empty
-        list of hits must be returned.
+        It must be possible to filter alignments based on minimum hit sequence
+        length and if nothing sufficiently long matches, an empty list of
+        alignments must be returned.
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
@@ -1113,13 +1123,13 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(minSequenceLen=1000000))
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(minSequenceLen=1000000))
+            self.assertEqual(0, len(result))
 
     def testMaxTitleSequenceLength(self):
         """
-        It must be possible to filter hits based on maximum hit sequence
+        It must be possible to filter alignments based on maximum hit sequence
         length.
         """
         mockOpener = mockOpen(read_data=(
@@ -1130,19 +1140,19 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(maxSequenceLen=31000))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id2', hits[0].read.id)
-            self.assertEqual(1, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(maxSequenceLen=31000))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id2', result[0].read.id)
+            self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testMaxTitleSequenceLengthNoHits(self):
         """
-        It must be possible to filter hits based on maximum hit sequence
-        length and if no hits match sufficiently short sequences, an empty
-        list of hits must be returned.
+        It must be possible to filter alignments based on maximum hit sequence
+        length and if no sufficiently short sequences match, an empty
+        list of alignments must be returned.
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
@@ -1152,13 +1162,13 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(maxSequenceLen=10000))
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(maxSequenceLen=10000))
+            self.assertEqual(0, len(result))
 
     def testMinAndMaxTitleSequenceLength(self):
         """
-        It must be possible to filter hits simultaneously on minimum and
+        It must be possible to filter alignments simultaneously on minimum and
         maximum hit sequence length.
         """
         mockOpener = mockOpen(read_data=(
@@ -1169,20 +1179,20 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(minSequenceLen=37000,
-                                         maxSequenceLen=38000))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual(2, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(minSequenceLen=37000,
+                                                 maxSequenceLen=38000))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual(2, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 55',
-                             hits[0].alignments[1].hitTitle)
+                             result[0].alignments[1].hitTitle)
 
     def testMinStart(self):
         """
-        It must be possible to filter hits based on minimum offset in
+        It must be possible to filter alignments based on minimum offset in
         the hit sequence.
         """
         mockOpener = mockOpen(read_data=(
@@ -1193,17 +1203,17 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(minStart=15300))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id0', hits[0].read.id)
-            self.assertEqual(1, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(minStart=15300))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
     def testMinStartNoHits(self):
         """
-        It must be possible to filter hits based on minimum offset in
+        It must be possible to filter alignments based on minimum offset in
         the hit sequence, and if no hsps match then an empty result set
         must be returned.
         """
@@ -1215,13 +1225,13 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(minStart=100000))
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(minStart=100000))
+            self.assertEqual(0, len(result))
 
-    def testMaxstop(self):
+    def testMaxStop(self):
         """
-        It must be possible to filter hits based on maximum offset in
+        It must be possible to filter alignments based on maximum offset in
         the hit sequence.
         """
         mockOpener = mockOpen(read_data=(
@@ -1232,19 +1242,19 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(maxStop=1500))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id2', hits[0].read.id)
-            self.assertEqual(1, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(maxStop=1500))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id2', result[0].read.id)
+            self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             hits[0].alignments[0].hitTitle)
+                             result[0].alignments[0].hitTitle)
 
-    def testMaxstopNoHits(self):
+    def testMaxStopNoHits(self):
         """
-        It must be possible to filter hits based on maximum offset in the hit
-        sequence, and if no hsps match then an empty result set must be
-        returned.
+        It must be possible to filter alignments based on maximum offset in
+        the hit sequence, and if no hsps match then an empty result set must
+        be returned.
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
@@ -1254,14 +1264,14 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(maxStop=100))
-            self.assertEqual(0, len(hits))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(maxStop=100))
+            self.assertEqual(0, len(result))
 
     def testMinStartAndMaxstop(self):
         """
-        It must be possible to filter hits based simultaneously on mininum and
-        maximum offset in the hit sequence.
+        It must be possible to filter alignments based simultaneously on
+        mininum and maximum offset in the hit sequence.
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
@@ -1271,11 +1281,11 @@ class TestBlastHitsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            blastHits = BlastHits(reads, 'file.json')
-            hits = list(blastHits.filter(minStart=9000, maxStop=12000))
-            self.assertEqual(1, len(hits))
-            self.assertEqual('id1', hits[0].read.id)
-            self.assertEqual(2, len(hits[0].alignments))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(minStart=9000, maxStop=12000))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id1', result[0].read.id)
+            self.assertEqual(2, len(result[0].alignments))
 
 
 class TestBestAlignment(TestCase):
@@ -1294,8 +1304,8 @@ class TestBestAlignment(TestCase):
         alignment.addHsp(EValueHSP(score=9))
 
         alignments = [alignment]
-        hit = Hit(Read('id0', 'aaa'), alignments)
-        best = bestAlignment(hit)
+        readAlignments = ReadAlignments(Read('id0', 'aaa'), alignments)
+        best = bestAlignment(readAlignments)
         self.assertEqual('Seq 1', best.hitTitle)
         self.assertEqual(44, best.hitLength)
 
@@ -1317,7 +1327,7 @@ class TestBestAlignment(TestCase):
         alignment3.addHsp(EValueHSP(score=19))
 
         alignments = [alignment1, alignment2, alignment3]
-        hit = Hit(Read('id0', 'aaa'), alignments)
-        best = bestAlignment(hit)
+        readAlignments = ReadAlignments(Read('id0', 'aaa'), alignments)
+        best = bestAlignment(readAlignments)
         self.assertEqual('Seq 2', best.hitTitle)
         self.assertEqual(44, best.hitLength)

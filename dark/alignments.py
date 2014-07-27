@@ -1,25 +1,48 @@
 from dark.filter import TitleFilter
 
 
-def bestAlignment(hit):
+def bestAlignment(readAlignments):
     """
-    Find the best alignment for a read hit. This is the one whose
-    first HSP has the best score.
+    Find the best alignment for a read. This is the one whose first HSP
+    has the best score.
 
     Note that the comparison of HSP score values is taken care of by
     the HSP class. This works whether higher or lower scores are
     considered better.
 
-    @param hit: a C{Hit} instance.
+    @param readAlignments: a C{ReadAlignments} instance.
     @return: The alignment with the best first HSP score.
+
     """
-    return max(hit.alignments,
+    return max(readAlignments.alignments,
                key=lambda alignment: alignment.hsps[0])
 
 
-class Hit(object):
+class Alignment(object):
     """
-    Holds information about a single read hit.
+    Hold information about a read alignment.
+
+    @param hitLength: The C{int} length of the sequence the read hit against.
+    @param hitTitle: The C{str} title of the sequence the read hit against.
+    """
+
+    def __init__(self, hitLength, hitTitle):
+        self.hitLength = hitLength
+        self.hitTitle = hitTitle
+        self.hsps = []
+
+    def addHsp(self, hsp):
+        """
+        Add an HSP to the list of HSPs for this alignment.
+
+        @param hsp: A L{dark.hsp} (or subclass) instance.
+        """
+        self.hsps.append(hsp)
+
+
+class ReadAlignments(object):
+    """
+    Holds information about the alignments for a read.
 
     @param read: A C{Read} instance.
     @param alignments: A C{list} of L{dark.alignment.Alignment} instances.
@@ -29,9 +52,13 @@ class Hit(object):
         self.alignments = alignments
 
 
-class Hits(object):
+class ReadsAlignments(object):
     """
-    Maintain a collection of read hits.
+    Provide for filtering for a collection of reads and their alignments.
+
+    You probably will not use this class directly. Instead, write a
+    subclass that implements __iter__.
+    See L{blast.alignments.BlastReadsAlignments} for an example.
 
     @param reads: A L{Reads} instance, containing the reads (sequences)
         given to the application to create these hits.
@@ -45,6 +72,13 @@ class Hits(object):
         self.reads = reads
         self.application = application
         self.params = params
+
+    def __iter__(self):
+        """
+        Must be implemented by a subclass, e.g.,
+        L{blast.alignments.BlastReadsAlignments}.
+        """
+        raise NotImplementedError('__iter__ must be implemented by a subclass')
 
     def filter(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
                minStart=None, maxStop=None,
@@ -222,3 +256,6 @@ class Hits(object):
 
             yield hit
             count += 1
+
+        if taxonomy:
+            lineageFetcher.close()

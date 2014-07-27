@@ -1,7 +1,7 @@
 import copy
 import string
 
-from dark.hits import Hit, Hits
+from dark.alignments import ReadAlignments, ReadsAlignments
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
 
@@ -36,7 +36,7 @@ def numericallySortFilenames(names):
     return sorted(names, key=lambda name: extractNumericPrefix(name))
 
 
-class BlastHits(Hits):
+class BlastReadsAlignments(ReadsAlignments):
     """
     Hold information about a set of BLAST records.
 
@@ -76,8 +76,8 @@ class BlastHits(Hits):
         # Read and copy the BLAST parameters and initialize self.
         self._reader = self._getReader(self.blastFilenames[0])
         application = self._reader.params['application'].lower()
-        Hits.__init__(self, reads, application,
-                      copy.deepcopy(self._reader.params))
+        ReadsAlignments.__init__(self, reads, application,
+                                 copy.deepcopy(self._reader.params))
 
     def _getReader(self, filename):
         if filename.endswith('.json') or filename.endswith('.json.bz2'):
@@ -88,7 +88,7 @@ class BlastHits(Hits):
 
     def __iter__(self):
         """
-        Extract BLAST records and yield hits.
+        Extract BLAST records and yield C{ReadAlignments} instances.
 
         For each file except the first, check that the BLAST parameters are
         compatible with those found (above, in __init__) in the first file.
@@ -118,7 +118,7 @@ class BlastHits(Hits):
             for read, alignments in reader.records(
                     reads, self.scoreType, self.application):
                 count += 1
-                yield Hit(read, alignments)
+                yield ReadAlignments(read, alignments)
 
             reader.close()
 

@@ -54,6 +54,8 @@ class Reads(object):
         # Reset self._length because __iter__ may be called more than once
         # and we don't want to increment _length each time we iterate.
         self._length = len(self.additionalReads)
+
+        # Look for an 'iter' method in a possible subclass.
         try:
             iter = self.iter()
         except AttributeError:
@@ -67,7 +69,7 @@ class Reads(object):
             yield read
 
     def __len__(self):
-        # Note that len reflects the number of reads that are currently
-        # known. If self.__iter__ has not been exhausted, we will not know
-        # the true number of reads.
+        # Note that len reflects the number of reads that are currently known.
+        # If self.__iter__ has not been exhausted, we will not know the true
+        # number of reads.
         return self._length
