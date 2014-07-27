@@ -1,4 +1,3 @@
-from math import exp
 from functools import total_ordering
 
 from dark.hsp import HSP

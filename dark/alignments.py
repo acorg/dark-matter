@@ -1,3 +1,4 @@
+from dark.taxonomy import LineageFetcher
 from dark.filter import TitleFilter
 
 
@@ -22,13 +23,14 @@ class Alignment(object):
     """
     Hold information about a read alignment.
 
-    @param hitLength: The C{int} length of the sequence the read hit against.
-    @param hitTitle: The C{str} title of the sequence the read hit against.
+    @param subjectLength: The C{int} length of the sequence the read hit
+        against.
+    @param subjectTitle: The C{str} title of the sequence the read hit against.
     """
 
-    def __init__(self, hitLength, hitTitle):
-        self.hitLength = hitLength
-        self.hitTitle = hitTitle
+    def __init__(self, subjectLength, subjectTitle):
+        self.subjectLength = subjectLength
+        self.subjectTitle = subjectTitle
         self.hsps = []
 
     def addHsp(self, hsp):
@@ -161,7 +163,7 @@ class ReadsAlignments(object):
                 # unacceptable.
                 wantedAlignments = []
                 for alignment in hit.alignments:
-                    if (titleFilter.accept(alignment.hitTitle) !=
+                    if (titleFilter.accept(alignment.subjectTitle) !=
                             TitleFilter.REJECT):
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
@@ -174,7 +176,7 @@ class ReadsAlignments(object):
             if minSequenceLen is not None or maxSequenceLen is not None:
                 wantedAlignments = []
                 for alignment in hit.alignments:
-                    length = alignment.hitLength
+                    length = alignment.subjectLength
                     if not ((minSequenceLen is not None and
                              length < minSequenceLen) or
                             (maxSequenceLen is not None and
@@ -188,7 +190,7 @@ class ReadsAlignments(object):
             if taxonomy:
                 wantedAlignments = []
                 for alignment in hit.alignments:
-                    lineage = lineageFetcher.lineage(alignment.hitTitle)
+                    lineage = lineageFetcher.lineage(alignment.subjectTitle)
                     if lineage:
                         if taxonomy in lineage:
                             wantedAlignments.append(alignment)
@@ -212,7 +214,7 @@ class ReadsAlignments(object):
             # Throw out any unwanted HSPs due to maxHspsPerHit.
             if maxHspsPerHit is not None:
                 for alignment in hit.alignments:
-                    hsps = hsps
+                    hsps = alignment.hsps
                     if len(hsps) > maxHspsPerHit:
                         alignment.hsps = hsps[:maxHspsPerHit]
 

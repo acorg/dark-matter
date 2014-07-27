@@ -1,4 +1,8 @@
+from json import dumps
+
 from dark.blast.blast import BlastHits, BlastRecords
+from ..mocking import mockOpen
+from mock import patch
 
 
 class TestFilterHits(object):

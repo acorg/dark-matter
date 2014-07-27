@@ -4,195 +4,16 @@ from copy import deepcopy
 import bz2
 from json import dumps
 from unittest import TestCase
-from ..mocking import mockOpen
 from mock import patch
+
+from ..mocking import mockOpen
+from sample_data import PARAMS, RECORD0, RECORD1, RECORD2
 
 from dark.reads import Read, Reads
 from dark.alignments import Alignment, ReadAlignments, bestAlignment
 from dark.blast.hsp import EValueHSP
 from dark.blast.alignments import (
     BlastReadsAlignments, numericallySortFilenames)
-
-
-# Sample BLAST parameters.
-PARAMS = {
-    'application': 'BLASTN',
-    'blast_cutoff': [
-        None,
-        None
-    ],
-    'database': 'manx-shearwater',
-    'database_length': 17465129,
-    'database_letters': None,
-    'database_name': [],
-    'database_sequences': 70016,
-    'date': '',
-    'dropoff_1st_pass': [
-        None,
-        None
-    ],
-    'effective_database_length': None,
-    'effective_hsp_length': 22,
-    'effective_query_length': None,
-    'effective_search_space': 382194648.0,
-    'effective_search_space_used': None,
-    'frameshift': [
-        None,
-        None
-    ],
-    'gap_penalties': [
-        5,
-        2
-    ],
-    'gap_trigger': [
-        None,
-        None
-    ],
-    'gap_x_dropoff': [
-        None,
-        None
-    ],
-    'gap_x_dropoff_final': [
-        None,
-        None
-    ],
-    'gapped': 0,
-    'hsps_gapped': None,
-    'hsps_no_gap': None,
-    'hsps_prelim_gapped': None,
-    'hsps_prelim_gapped_attemped': None,
-    'ka_params': [
-        0.625,
-        0.41,
-        0.78
-    ],
-    'ka_params_gap': [
-        None,
-        None,
-        None
-    ],
-    'matrix': '',
-    'num_good_extends': None,
-    'num_hits': None,
-    'num_letters_in_database': 17465129,
-    'num_seqs_better_e': None,
-    'num_sequences': None,
-    'num_sequences_in_database': 70016,
-    'posted_date': [],
-    'query': 'GZG3DGY01ASHXW',
-    'query_id': 'Query_1',
-    'query_length': 46,
-    'query_letters': 46,
-    'reference': 'Stephen F. Altschul, Thomas L. Madden, ...',
-    'sc_match': 2,
-    'sc_mismatch': -3,
-    'threshold': None,
-    'version': '2.2.28+',
-    'window_size': None
-}
-
-RECORD0 = {
-    'query': 'id0',
-    'alignments': [
-        {
-            'length': 37000,
-            'hsps': [
-                {
-                    'bits': 20,
-                    'sbjct_end': 15400,
-                    'expect': 3.29804,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 15362,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
-                    'query_end': 68,
-                    'query_start': 28
-                }
-            ],
-            'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-        },
-        {
-            'length': 38000,
-            'hsps': [
-                {
-                    'bits': 20,
-                    'sbjct_end': 12400,
-                    'expect': 3.29804,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 12362,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
-                    'query_end': 68,
-                    'query_start': 28
-                }
-            ],
-            'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 55',
-        }
-    ]
-}
-
-RECORD1 = {
-    'query': 'id1',
-    'alignments': [
-        {
-            'length': 35000,
-            'hsps': [
-                {
-                    'bits': 20,
-                    'sbjct_end': 11400,
-                    'expect': 3.29804,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 11362,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
-                    'query_end': 68,
-                    'query_start': 28
-                }
-            ],
-            'title': 'gi|887699|gb|DQ37780 Monkeypox virus 456',
-        },
-        {
-            'length': 35000,
-            'hsps': [
-                {
-                    'bits': 20,
-                    'sbjct_end': 10400,
-                    'expect': 3.29804,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 10362,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
-                    'query_end': 68,
-                    'query_start': 28
-                }
-            ],
-            'title': 'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
-        }
-    ]
-}
-
-RECORD2 = {
-    'query': 'id2',
-    'alignments': [
-        {
-            'length': 30000,
-            'hsps': [
-                {
-                    'bits': 20,
-                    'sbjct_end': 1400,
-                    'expect': 3.29804,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 1362,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
-                    'query_end': 68,
-                    'query_start': 28
-                }
-            ],
-            'title': 'gi|887699|gb|DQ37780 Cowpox virus 15',
-        }
-    ]
-}
 
 
 class BZ2(object):
@@ -609,7 +430,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(oneAlignmentPerRead=True))
             self.assertEqual(1, len(result))
             self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual('Merkel1', result[0].alignments[0].hitTitle)
+            self.assertEqual('Merkel1', result[0].alignments[0].subjectTitle)
 
     def testScoreCutoffRemovesEntireAlignment_Bits(self):
         """
@@ -666,7 +487,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(scoreCutoff=160))
             self.assertEqual(1, len(result))
             self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual('Merkel2', result[0].alignments[0].hitTitle)
+            self.assertEqual('Merkel2', result[0].alignments[0].subjectTitle)
 
     def testScoreCutoffRemovesEntireAlignment_EValue(self):
         """
@@ -724,7 +545,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(scoreCutoff=1e-20))
             self.assertEqual(1, len(result))
             self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual('Merkel2', result[0].alignments[0].hitTitle)
+            self.assertEqual('Merkel2', result[0].alignments[0].subjectTitle)
 
     def testScoreCutoffRemovesHsps_Bits(self):
         """
@@ -892,7 +713,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testTitleByRegexAllAlignments(self):
         """
@@ -912,7 +733,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testTitleByRegexOneAlignments(self):
         """
@@ -932,32 +753,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id1', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
-                             result[0].alignments[0].hitTitle)
-
-    def testTitleByNegativeRegexAllAlignments(self):
-        """
-        Filtering with a negative title regex must work in the case that
-        all alignments for a hit are ruled out (in which case the whole hit,
-        for read id0 hitting Squirrelpox in this case, must be skipped).
-        """
-        mockOpener = mockOpen(read_data=(
-            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
-            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
-            reads = Reads()
-            reads.add(Read('id0', 'A' * 70))
-            reads.add(Read('id1', 'A' * 70))
-            reads.add(Read('id2', 'A' * 70))
-            readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            result = list(readsAlignments.filter(
-                negativeTitleRegex='squirrel'))
-            self.assertEqual(2, len(result))
-            self.assertEqual('id1', result[0].read.id)
-            self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             result[0].alignments[0].hitTitle)
-            self.assertEqual('id2', result[1].read.id)
-            self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             result[1].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testTitleByNegativeRegexOneAlignment(self):
         """
@@ -979,29 +775,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id1', result[1].read.id)
             self.assertEqual(1, len(result[1].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             result[1].alignments[0].hitTitle)
-
-    def testTitleByNegativeRegexOneAlignment(self):
-        """
-        Filtering with a negative title regex must work in the case that only
-        some alignments for a hit are ruled out (in which case only those
-        alignments must be removed but the hit is still valid).
-        """
-        mockOpener = mockOpen(read_data=(
-            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
-            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
-            reads = Reads()
-            reads.add(Read('id0', 'A' * 70))
-            reads.add(Read('id1', 'A' * 70))
-            reads.add(Read('id2', 'A' * 70))
-            readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            result = list(readsAlignments.filter(negativeTitleRegex='Mummy'))
-            self.assertEqual(3, len(result))
-            self.assertEqual('id1', result[1].read.id)
-            self.assertEqual(1, len(result[1].alignments))
-            self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             result[1].alignments[0].hitTitle)
+                             result[1].alignments[0].subjectTitle)
 
     def testTitleByNegativeRegexMatchesAll(self):
         """
@@ -1041,7 +815,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual(title, result[0].alignments[0].hitTitle)
+            self.assertEqual(title, result[0].alignments[0].subjectTitle)
 
     def testTitleByRegexMatchingAllWithBlacklist(self):
         """
@@ -1086,7 +860,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result[0].alignments))
             # The Squirrelpox virus 55 hit in RECORD0 is not returned.
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testMinTitleSequenceLength(self):
         """
@@ -1107,7 +881,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 55',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testMinTitleSequenceLengthNoHits(self):
         """
@@ -1146,7 +920,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id2', result[0].read.id)
             self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testMaxTitleSequenceLengthNoHits(self):
         """
@@ -1186,9 +960,9 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual(2, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 55',
-                             result[0].alignments[1].hitTitle)
+                             result[0].alignments[1].subjectTitle)
 
     def testMinStart(self):
         """
@@ -1209,7 +983,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testMinStartNoHits(self):
         """
@@ -1248,7 +1022,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id2', result[0].read.id)
             self.assertEqual(1, len(result[0].alignments))
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             result[0].alignments[0].hitTitle)
+                             result[0].alignments[0].subjectTitle)
 
     def testMaxStopNoHits(self):
         """
@@ -1306,8 +1080,8 @@ class TestBestAlignment(TestCase):
         alignments = [alignment]
         readAlignments = ReadAlignments(Read('id0', 'aaa'), alignments)
         best = bestAlignment(readAlignments)
-        self.assertEqual('Seq 1', best.hitTitle)
-        self.assertEqual(44, best.hitLength)
+        self.assertEqual('Seq 1', best.subjectTitle)
+        self.assertEqual(44, best.subjectLength)
 
     def testThreeAlignments(self):
         """
@@ -1329,5 +1103,5 @@ class TestBestAlignment(TestCase):
         alignments = [alignment1, alignment2, alignment3]
         readAlignments = ReadAlignments(Read('id0', 'aaa'), alignments)
         best = bestAlignment(readAlignments)
-        self.assertEqual('Seq 2', best.hitTitle)
-        self.assertEqual(44, best.hitLength)
+        self.assertEqual('Seq 2', best.subjectTitle)
+        self.assertEqual(44, best.subjectLength)

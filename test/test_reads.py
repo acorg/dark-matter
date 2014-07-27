@@ -191,9 +191,9 @@ class TestReads(TestCase):
                 yield Read('id2', 'AC')
 
         reads = FastaReads()
-        _ = list(reads)
+        list(reads)
         self.assertEqual(2, len(reads))
-        _ = list(reads)
+        list(reads)
         self.assertEqual(2, len(reads))
 
     def testSubclassWithAdditionalReads(self):

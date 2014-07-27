@@ -42,7 +42,7 @@ class NoStopIterationReadline(object):
 
     def readline(self):
         if self.handle.readline.return_value is not None:
-            return handle.readline.return_value
+            return self.handle.readline.return_value
         elif self.index < len(self.data):
             self.index += 1
             return self.data[self.index - 1]

@@ -2,10 +2,9 @@ import bz2
 from json import dumps, loads
 
 from Bio.Blast import NCBIXML
-from Bio.Blast.Record import Blast
 
 from dark.hsp import HSP
-from dark.alignment import Alignment
+from dark.alignments import Alignment
 from dark.blast.hsp import normalizeHSP, EValueHSP
 
 

@@ -16,8 +16,8 @@ class TestAlignment(TestCase):
         An alignment must have the expected attributes.
         """
         alignment = Alignment(45, 'title')
-        self.assertEqual('title', alignment.hitTitle)
-        self.assertEqual(45, alignment.hitLength)
+        self.assertEqual('title', alignment.subjectTitle)
+        self.assertEqual(45, alignment.subjectLength)
 
     def testNoHspsWhenCreated(self):
         """
@@ -53,8 +53,8 @@ class TestBestAlignment(TestCase):
         alignments = [alignment]
         hit = ReadAlignments(Read('id1', 'aaa'), alignments)
         best = bestAlignment(hit)
-        self.assertEqual('Seq 1', best.hitTitle)
-        self.assertEqual(44, best.hitLength)
+        self.assertEqual('Seq 1', best.subjectTitle)
+        self.assertEqual(44, best.subjectLength)
 
     def testThreeAlignments(self):
         """
@@ -76,8 +76,8 @@ class TestBestAlignment(TestCase):
         alignments = [alignment1, alignment2, alignment3]
         hit = ReadAlignments(Read('id1', 'aaa'), alignments)
         best = bestAlignment(hit)
-        self.assertEqual('Seq 2', best.hitTitle)
-        self.assertEqual(44, best.hitLength)
+        self.assertEqual('Seq 2', best.subjectTitle)
+        self.assertEqual(44, best.subjectLength)
 
 
 class TestReadsAlignments(TestCase):

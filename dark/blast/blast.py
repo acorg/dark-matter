@@ -5,7 +5,7 @@ from Bio import SeqIO
 
 from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
                          TitleFilter)
-from dark.blast.hsp import printHSP, normalizeHSP
+from dark.blast.hsp import normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark.taxonomy import LineageFetcher
 from dark import mysql

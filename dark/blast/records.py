@@ -1,3 +1,6 @@
+from dark.blast.hsp import printHSP
+
+
 def printBlastRecord(record):
     """
     Print a BLAST record.
