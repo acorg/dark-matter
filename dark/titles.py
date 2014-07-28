@@ -55,6 +55,14 @@ class TitleAlignments(object):
         """
         self.alignments.append(alignment)
 
+    def hsps(self):
+        """
+        Get all HSPs for the alignments to a title.
+
+        @return: A genertaor that yields L{dark.hsp.HSP} instances.
+        """
+        return (hsp for alignment in self.alignments for hsp in alignment.hsps)
+
 
 class TitlesAlignments(dict):
     """
