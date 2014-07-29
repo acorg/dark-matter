@@ -10,8 +10,8 @@ from ..mocking import mockOpen
 from sample_data import PARAMS, RECORD0, RECORD1, RECORD2
 
 from dark.reads import Read, Reads
-from dark.alignments import Alignment, ReadAlignments, bestAlignment
-from dark.blast.hsp import EValueHSP
+from dark.hsp import HSP, LSP
+from dark.score import LowerIsBetterScore
 from dark.blast.alignments import (
     BlastReadsAlignments, numericallySortFilenames)
 
@@ -541,7 +541,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(
-                reads, 'file.json', scoreType='e values')
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             result = list(readsAlignments.filter(scoreCutoff=1e-20))
             self.assertEqual(1, len(result))
             self.assertEqual(1, len(result[0].alignments))
@@ -615,11 +615,11 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             # There should only be one HSP left in the alignments for the
             # first read, and it should have the right score (bit score).
             self.assertEqual(1, len(result[0].alignments[0].hsps))
-            self.assertEqual(170, result[0].alignments[0].hsps[0].score)
+            self.assertEqual(HSP(170), result[0].alignments[0].hsps[0])
 
             # The second alignment should also be present.
             self.assertEqual(1, len(result[0].alignments[1].hsps))
-            self.assertEqual(180, result[0].alignments[1].hsps[0].score)
+            self.assertEqual(HSP(180), result[0].alignments[1].hsps[0])
 
     def testScoreCutoffRemovesHsps_EValue(self):
         """
@@ -684,17 +684,17 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(
-                reads, 'file.json', scoreType='e values')
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             result = list(readsAlignments.filter(scoreCutoff=1e-15))
 
             # There should only be one HSP left in the alignments for the
             # first read, and it should have the right score (e-value).
             self.assertEqual(1, len(result[0].alignments[0].hsps))
-            self.assertEqual(1.25e-20, result[0].alignments[0].hsps[0].score)
+            self.assertEqual(LSP(1.25e-20), result[0].alignments[0].hsps[0])
 
             # The second alignment should also be present.
             self.assertEqual(1, len(result[0].alignments[1].hsps))
-            self.assertEqual(1.25e-30, result[0].alignments[1].hsps[0].score)
+            self.assertEqual(LSP(1.25e-30), result[0].alignments[1].hsps[0])
 
     def testTitleByRegexCaseInvariant(self):
         """
@@ -1060,48 +1060,3 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id1', result[0].read.id)
             self.assertEqual(2, len(result[0].alignments))
-
-
-class TestBestAlignment(TestCase):
-    """
-    Test the bestAlignment function using EValueHSPs (i.e., where lower scores
-    are better).
-    """
-
-    def testOneAlignment(self):
-        """
-        When one alignment is present that alignment must be returned by
-        bestAlignment.
-        """
-        alignment = Alignment(44, 'Seq 1')
-        alignment.addHsp(EValueHSP(score=10))
-        alignment.addHsp(EValueHSP(score=9))
-
-        alignments = [alignment]
-        readAlignments = ReadAlignments(Read('id0', 'aaa'), alignments)
-        best = bestAlignment(readAlignments)
-        self.assertEqual('Seq 1', best.subjectTitle)
-        self.assertEqual(44, best.subjectLength)
-
-    def testThreeAlignments(self):
-        """
-        When three alignments are present, the one with the lowest first HSP
-        must be returned by bestAlignment.
-        """
-        alignment1 = Alignment(33, 'Seq 1')
-        alignment1.addHsp(EValueHSP(score=10))
-        alignment1.addHsp(EValueHSP(score=9))
-
-        alignment2 = Alignment(44, 'Seq 2')
-        alignment2.addHsp(EValueHSP(score=3))
-        alignment2.addHsp(EValueHSP(score=2))
-
-        alignment3 = Alignment(55, 'Seq 3')
-        alignment3.addHsp(EValueHSP(score=20))
-        alignment3.addHsp(EValueHSP(score=19))
-
-        alignments = [alignment1, alignment2, alignment3]
-        readAlignments = ReadAlignments(Read('id0', 'aaa'), alignments)
-        best = bestAlignment(readAlignments)
-        self.assertEqual('Seq 2', best.subjectTitle)
-        self.assertEqual(44, best.subjectLength)

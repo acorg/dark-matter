@@ -1,7 +1,8 @@
 import copy
 import string
 
-from dark.alignments import ReadAlignments, ReadsAlignments
+from dark.score import HigherIsBetterScore
+from dark.alignments import ReadsAlignments
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
 
@@ -48,18 +49,19 @@ class BlastReadsAlignments(ReadsAlignments):
         (-outfmt 5) BLAST output file or our smaller (possibly bzip2
         compressed) converted JSON equivalent produced by
         C{bin/convert-blast-xml-to-json.py} from a BLAST XML file.
-    @param scoreType: A C{str}, either 'bits' or 'e values'.
+    @param scoreClass: A class to hold and compare scores (see scores.py).
+        Default is C{HigherIsBetterScore}, for comparing bit scores. If you
+        are using e-values, pass LowerIsBetterScore instead.
     @param sortBlastFilenames: A C{bool}. If C{True}, C{blastFilenames} will be
         sorted by numeric prefix (using L{numericallySortFilenames}) before
         being read. This can be used to conveniently sort the files produced
         by our HTCondor jobs.
-    @raises ValueError: If an invalid C{scoreType} is passed, if a file type
-        is not recognized, if the number of reads does not match the number
-        of records found in the BLAST result files, or if BLAST parameters
-        in all files do not match.
+    @raises ValueError: if a file type is not recognized, if the number of
+        reads does not match the number of records found in the BLAST result
+        files, or if BLAST parameters in all files do not match.
     """
 
-    def __init__(self, reads, blastFilenames, scoreType='bits',
+    def __init__(self, reads, blastFilenames, scoreClass=HigherIsBetterScore,
                  sortBlastFilenames=True):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
@@ -68,20 +70,21 @@ class BlastReadsAlignments(ReadsAlignments):
         else:
             self.blastFilenames = blastFilenames
 
-        if scoreType not in ('bits', 'e values'):
-            raise ValueError("ScoreType parameter %r is invalid. Valid "
-                             "options are 'bits' and 'e values'." % scoreType)
-        self.scoreType = scoreType
-
         # Read and copy the BLAST parameters and initialize self.
-        self._reader = self._getReader(self.blastFilenames[0])
-        application = self._reader.params['application'].lower()
-        ReadsAlignments.__init__(self, reads, application,
-                                 copy.deepcopy(self._reader.params))
+        self._reader = self._getReader(self.blastFilenames[0], scoreClass)
+        ReadsAlignments.__init__(self, reads, self._reader.application,
+                                 copy.deepcopy(self._reader.params),
+                                 scoreClass=scoreClass)
 
-    def _getReader(self, filename):
+    def _getReader(self, filename, scoreClass):
+        """
+        Obtain a JSON record reader for BLAST records.
+
+        @param filename: The C{str} file name holding the JSON.
+        @param scoreClass: A class to hold and compare scores (see scores.py).
+        """
         if filename.endswith('.json') or filename.endswith('.json.bz2'):
-            return JSONRecordsReader(filename)
+            return JSONRecordsReader(filename, scoreClass)
         else:
             raise ValueError(
                 'Unknown BLAST record file suffix for file %r.' % filename)
@@ -107,7 +110,7 @@ class BlastReadsAlignments(ReadsAlignments):
             if first:
                 first = False
             else:
-                reader = self._getReader(blastFilename)
+                reader = self._getReader(blastFilename, self.scoreClass)
                 differences = checkCompatibleParams(self.params, reader.params)
                 if differences:
                     raise ValueError(
@@ -115,10 +118,9 @@ class BlastReadsAlignments(ReadsAlignments):
                         'in %s differ from those originally found in %s. %s' %
                         (blastFilename, self.blastFilenames[0], differences))
 
-            for read, alignments in reader.records(
-                    reads, self.scoreType, self.application):
+            for readAlignments in reader.readAlignments(reads):
                 count += 1
-                yield ReadAlignments(read, alignments)
+                yield readAlignments
 
             reader.close()
 

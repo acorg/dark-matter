@@ -1,11 +1,13 @@
 import bz2
 from json import dumps, loads
+from operator import itemgetter
 
 from Bio.Blast import NCBIXML
 
-from dark.hsp import HSP
-from dark.alignments import Alignment
-from dark.blast.hsp import normalizeHSP, EValueHSP
+from dark.hsp import HSP, LSP
+from dark.score import HigherIsBetterScore
+from dark.alignments import Alignment, ReadAlignments
+from dark.blast.hsp import normalizeHSP
 
 
 class XMLRecordsReader(object):
@@ -165,18 +167,32 @@ class JSONRecordsReader(object):
     make accessible the global BLAST parameters.
 
     @param filename: A C{str} filename containing JSON BLAST records.
+    @param application: The C{str} name of the blast program used (e.g.,
+        'blastn').
+    @param scoreClass: A class to hold and compare scores (see scores.py).
+        Default is C{HigherIsBetterScore}, for comparing bit scores. If you
+        are using e-values, pass LowerIsBetterScore instead.
     """
 
     # Note that self._fp is opened in self.__init__, accessed in
     # self._params and in self.records, and closed in self.close.
 
-    def __init__(self, filename):
+    def __init__(self, filename, scoreClass=HigherIsBetterScore):
         self._filename = filename
+        self._scoreClass = scoreClass
+        if scoreClass is HigherIsBetterScore:
+            self._hspClass = HSP
+            self._hspScore = itemgetter('bits')
+        else:
+            self._hspClass = LSP
+            self._hspScore = itemgetter('expect')
+
         if filename.endswith('.bz2'):
             self._fp = bz2.BZ2File(filename)
         else:
             self._fp = open(filename)
         self.params = self._params()
+        self.application = self.params['application'].lower()
 
     def close(self):
         """
@@ -211,8 +227,7 @@ class JSONRecordsReader(object):
                     'to convert it to the newest format.' % self._filename)
             return params
 
-    def _convertDictToAlignments(self, blastDict, read, scoreType,
-                                 application, hspClass):
+    def _convertDictToAlignments(self, blastDict, read):
         """
         Take a dict (made by XMLRecordsReader._convertBlastRecordToDict)
         and convert it to a list of alignments.
@@ -220,10 +235,6 @@ class JSONRecordsReader(object):
         @param blastDict: A C{dict}, from convertBlastRecordToDict.
         @param read: A C{Read} instance, containing the read that BLAST used
             to create this record.
-        @param scoreType: A C{str}, either 'bits' or 'e values'.
-        @param application: The C{str} name of the blast program used (e.g.,
-            'blastn').
-        @param hspClass: The class that should be used to create HSPs.
         @raise ValueError: If the query id in the BLAST dictionary does not
             match the id of the read.
         @return: A C{list} of L{dark.alignment.Alignment} instances.
@@ -242,9 +253,11 @@ class JSONRecordsReader(object):
                                   blastAlignment['title'])
             alignments.append(alignment)
             for blastHsp in blastAlignment['hsps']:
-                normalized = normalizeHSP(blastHsp, len(read), application)
-                score = blastHsp['bits' if scoreType == 'bits' else 'expect']
-                hsp = hspClass(
+                score = self._hspScore(blastHsp)
+                normalized = normalizeHSP(blastHsp, len(read),
+                                          self.application)
+                hsp = self._hspClass(
+                    score,
                     readStart=normalized['readStart'],
                     readEnd=normalized['readEnd'],
                     readStartInHit=normalized['readStartInHit'],
@@ -252,33 +265,24 @@ class JSONRecordsReader(object):
                     hitStart=normalized['hitStart'],
                     hitEnd=normalized['hitEnd'],
                     readMatchedSequence=blastHsp['query'],
-                    hitMatchedSequence=blastHsp['sbjct'],
-                    score=score)
+                    hitMatchedSequence=blastHsp['sbjct'])
 
                 alignment.addHsp(hsp)
 
         return alignments
 
-    def records(self, reads, scoreType, application):
+    def readAlignments(self, reads):
         """
-        Read lines of JSON from self._filename, convert them to alignments
+        Read lines of JSON from self._filename, convert them to read alignments
         and yield them.
 
         @param reads: A generator yielding L{Read} instances, corresponding to
             the reads that were given to BLAST.
-        @param scoreType: A C{str}, either 'bits' or 'e values'.
-        @param application: The C{str} name of the blast program used (e.g.,
-            'blastn').
         @raise ValueError: If any of the lines in the file cannot be converted
             to JSON.
-        @return: A generator that yields (read, alignments) tuples, where read
-            is an instance of dark.reads.Read and alignments is a C{list} of
-            dark.alignment.Alignment instances.
+        @return: A generator that yields C{dark.alignments.ReadAlignments}
+            instances.
         """
-        if scoreType == 'bits':
-            hspClass = HSP
-        else:
-            hspClass = EValueHSP
 
         for lineNumber, line in enumerate(self._fp, start=2):
             try:
@@ -297,5 +301,5 @@ class JSONRecordsReader(object):
                         'during parsing of BLAST file %r.' %
                         (lineNumber - 1, self._filename))
                 else:
-                    yield read, self._convertDictToAlignments(
-                        record, read, scoreType, application, hspClass)
+                    alignments = self._convertDictToAlignments(record, read)
+                    yield ReadAlignments(read, alignments)

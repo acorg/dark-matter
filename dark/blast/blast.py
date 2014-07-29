@@ -3,185 +3,13 @@ import numpy as np
 from random import uniform
 from Bio import SeqIO
 
-from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter)
+from dark.filter import ReadSetFilter, TitleFilter
 from dark.blast.hsp import normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark.taxonomy import LineageFetcher
 from dark import mysql
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
-
-
-class BlastRecords(object):
-
-    def filterHits(self, records=None, whitelist=None, blacklist=None,
-                   minSequenceLen=None,
-                   maxSequenceLen=None, minMatchingReads=None,
-                   maxMeanEValue=None, maxMedianEValue=None,
-                   withEBetterThan=None, titleRegex=None,
-                   negativeTitleRegex=None, truncateTitlesAfter=None,
-                   minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None,
-                   taxonomy=None):
-        """
-        Read the BLAST records and return a L{BlastHits} instance. Records are
-        only returned if they match the various optional restrictions described
-        below.
-
-        @param records: A list or generator of BLAST records. If C{None},
-            self.records will be called with no filtering arguments to
-            read records from self.blastFilenames. If you want initial
-            filtering on reads (see the various arguments to self.records),
-            call self.records yourself and pass the result as C{records}.
-        @param whitelist: If not C{None}, a set of exact titles that are always
-            acceptable (though the hit info for a whitelist title may rule it
-            out for other reasons).
-        @param blacklist: If not C{None}, a set of exact titles that are never
-            acceptable.
-        @param minSequenceLen: sequences of lesser length will be elided.
-        @param maxSequenceLen: sequences of greater length will be elided.
-        @param minMatchingReads: sequences that are matched by fewer reads
-            will be elided.
-        @param maxMeanEValue: sequences that are matched with a mean e-value
-            that is greater will be elided.
-        @param maxMedianEValue: sequences that are matched with a median
-            e-value that is greater will be elided.
-        @param withEBetterThan: if the best (minimum) e-value for a hit is not
-            as good as (i.e., is higher than) this value, elide the hit. E.g.,
-            suppose we are passed a value of 1e-20, then we should reject any
-            hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
-            So a hit with minimal e-value of 1e-10 would not be reported,
-            whereas a hit with a minimal e-value of 1e-30 would be.
-        @param titleRegex: a regex that sequence titles must match.
-        @param negativeTitleRegex: a regex that sequence titles must not match.
-        @param truncateTitlesAfter: specify a string that titles will be
-            truncated beyond. If a truncated title has already been seen, that
-            title will be elided.
-        @param minMeanBitScore: sequences that are matched with a mean score
-            that is less than this value will be elided.
-        @param minMedianBitScore: sequences that are matched with a median
-            score that is less than this value will be elided.
-        @param withBitScoreBetterThan: If no score for a sequence is higher
-            than this value, the hit will be elided.
-        @param minNewReads: The C{float} fraction of its reads by which a new
-            read set must differ from all previously seen read sets in order to
-            be considered acceptably different.
-        @param taxonomy: a C{str} of the taxonomic group on which should be
-            filtered. eg 'Vira' will filter on viruses. Use C{None} to skip
-            taxonomic filtering.
-
-        @return: A L{BlastHits} instance.
-        """
-        records = records or self.records()
-
-        result = {}
-        titleFilter = TitleFilter(
-            whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
-            negativeRegex=negativeTitleRegex,
-            truncateAfter=truncateTitlesAfter)
-
-        if taxonomy:
-            lineageFetcher = LineageFetcher()
-
-        # For each read (that BLAST found in the FASTA file)...
-        for readNum, record in enumerate(records):
-
-            # For each sequence that the read matched against...
-            for alignment in record.alignments:
-                # Test sequence title.
-                title = alignment.title
-                titleFilterResult = titleFilter.accept(title)
-                if titleFilterResult == TitleFilter.REJECT:
-                    continue
-
-                if taxonomy:
-                    lineage = lineageFetcher.lineage(title)
-                    if lineage and taxonomy not in lineage:
-                        continue
-
-                if title in result:
-                    hitInfo = result[title]
-                else:
-                    # Test sequence length before adding it to result, to make
-                    # sure the length tests are only done once per title.
-                    sequenceLen = alignment.length
-                    if ((minSequenceLen is not None and
-                         sequenceLen < minSequenceLen) or
-                        (maxSequenceLen is not None and
-                         sequenceLen > maxSequenceLen)):
-                        continue
-
-                    hitInfo = result[title] = {
-                        'eValues': [],
-                        'length': sequenceLen,
-                        'readCount': 0,
-                        'readNums': set(),
-                        'bitScores': [],
-                        'titleFilterResult': titleFilterResult,
-                        'taxonomy': lineage if taxonomy else None
-                    }
-
-                # Record just the best e-value and bit score with which
-                # this read hit the sequence with the current title.
-                hitInfo['eValues'].append(alignment.hsps[0].expect)
-                hitInfo['bitScores'].append(alignment.hsps[0].bits)
-                hitInfo['readCount'] += 1
-                hitInfo['readNums'].add(readNum)
-
-        # Note that we don't pass minSequenceLen or maxSequenceLen to the
-        # hit info filter since we have already tested those.
-        hitInfoFilter = HitInfoFilter(
-            minMatchingReads=minMatchingReads, maxMeanEValue=maxMeanEValue,
-            maxMedianEValue=maxMedianEValue, withEBetterThan=withEBetterThan)
-
-        bitScoreFilter = BitScoreFilter(
-            minMeanBitScore=minMeanBitScore,
-            minMedianBitScore=minMedianBitScore,
-            withBitScoreBetterThan=withBitScoreBetterThan)
-
-        if minNewReads is None:
-            readSetFilter = None
-        else:
-            readSetFilter = ReadSetFilter(minNewReads)
-
-        # Compute summary stats on e-values and bit scores for all titles.
-        # If the title was whitelisted or if the statistical summary is
-        # acceptable, add the hit info to our final result.
-
-        blastHits = BlastHits(self, readSetFilter=readSetFilter)
-
-        titles = result.keys()  # Don't change 'result' while we iterate it.
-        for title in titles:
-            hitInfo = result[title]
-            eValues = hitInfo['eValues']
-            hitInfo['eMean'] = np.mean(eValues)
-            hitInfo['eMedian'] = np.median(eValues)
-            hitInfo['eMin'] = min(eValues)
-            bitScores = hitInfo['bitScores']
-            hitInfo['bitScoreMean'] = np.mean(bitScores)
-            hitInfo['bitScoreMedian'] = np.median(bitScores)
-            hitInfo['bitScoreMax'] = np.max(bitScores)
-            if (hitInfo['titleFilterResult'] == TitleFilter.WHITELIST_ACCEPT or
-                    hitInfoFilter.accept(hitInfo) and
-                    bitScoreFilter.accept(hitInfo) and
-                    (minNewReads is None or
-                     readSetFilter.accept(title, hitInfo))):
-                # Remove the e-values and bit scores (now that we've
-                # summarized them) and the title filter result (now that
-                # we've checked it).
-                del hitInfo['eValues']
-                del hitInfo['bitScores']
-                del hitInfo['titleFilterResult']
-                blastHits.addHit(title, hitInfo)
-
-            # Reduce memory usage as quickly as we can.
-            del result[title]
-
-        if taxonomy:
-            lineageFetcher.close()
-
-        return blastHits
 
 
 class BlastHits(object):
@@ -424,16 +252,6 @@ class BlastHits(object):
             negativeRegex=negativeTitleRegex,
             truncateAfter=truncateTitlesAfter)
 
-        hitInfoFilter = HitInfoFilter(
-            minSequenceLen=minSequenceLen, maxSequenceLen=maxSequenceLen,
-            minMatchingReads=minMatchingReads, maxMeanEValue=maxMeanEValue,
-            maxMedianEValue=maxMedianEValue, withEBetterThan=withEBetterThan)
-
-        bitScoreFilter = BitScoreFilter(
-            minMeanBitScore=minMeanBitScore,
-            minMedianBitScore=minMedianBitScore,
-            withBitScoreBetterThan=withBitScoreBetterThan)
-
         # Use a ReadSetFilter only if we're checking that read sets are
         # sufficiently new.
         if minNewReads is None:
@@ -456,8 +274,6 @@ class BlastHits(object):
 
             if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
                     titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
-                    hitInfoFilter.accept(hitInfo) and
-                    bitScoreFilter.accept(hitInfo) and
                     (minNewReads is None or
                      readSetFilter.accept(title, hitInfo))):
                 blastHits.addHit(title, hitInfo)

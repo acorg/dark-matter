@@ -93,105 +93,6 @@ class TitleFilter(object):
         return self.DEFAULT_ACCEPT
 
 
-class HitInfoFilter(object):
-    """
-    Provide an acceptance test for sequence hit info.
-
-    @param minSequenceLen: sequences of lesser length are unacceptable.
-    @param maxSequenceLen: sequences of greater length are unacceptable.
-    @param minMatchingReads: sequences that are matched by fewer reads
-        are unacceptable.
-    @param maxMeanEValue: sequences that are matched with a mean e-value
-        that is greater are unacceptable.
-    @param maxMedianEValue: sequences that are matched with a median
-        e-value that is greater are unacceptable.
-    @param withEBetterThan: if the best (minimum) e-value for a hit is not
-        as good as (i.e., is higher than) this value, elide the hit. E.g.,
-        suppose we are passed a value of 1e-20, then we should reject any
-        hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
-        So a hit with minimal e-value of 1e-10 would not be reported,
-        whereas a hit with a minimal e-value of 1e-30 would be.
-    """
-
-    def __init__(self, minSequenceLen=None, maxSequenceLen=None,
-                 minMatchingReads=None, maxMeanEValue=None,
-                 maxMedianEValue=None, withEBetterThan=None):
-            self._minSequenceLen = minSequenceLen
-            self._maxSequenceLen = maxSequenceLen
-            self._minMatchingReads = minMatchingReads
-            self._maxMeanEValue = maxMeanEValue
-            self._maxMedianEValue = maxMedianEValue
-            self._withEBetterThan = withEBetterThan
-
-    def accept(self, hitInfo):
-        """
-        Return C{True} if the passed hit info is acceptable.
-
-        @param hitInfo: A C{dict} with keys:
-            readCount:
-            eValues:
-            length:
-            readNums:
-            eMean:
-            eMedian:
-            eMin:
-
-        @return: A C{bool} to indicate acceptable hit info or not.
-        """
-        return not (
-            (self._minSequenceLen is not None and
-             hitInfo['length'] < self._minSequenceLen) or
-            (self._maxSequenceLen is not None and
-             hitInfo['length'] > self._maxSequenceLen) or
-            (self._minMatchingReads is not None and
-             hitInfo['readCount'] < self._minMatchingReads) or
-            (self._maxMeanEValue is not None and
-             hitInfo['eMean'] > self._maxMeanEValue) or
-            (self._maxMedianEValue is not None and
-             hitInfo['eMedian'] > self._maxMedianEValue) or
-            (self._withEBetterThan is not None and
-             hitInfo['eMin'] > self._withEBetterThan))
-
-
-class BitScoreFilter(object):
-    """
-    Provide an acceptance test for sequence hit bit scores.
-
-    @param minMeanBitScore: sequences that are matched with a mean bit score
-        that is greater are unacceptable.
-    @param minMedianBitScore: sequences that are matched with a median
-        bit score that is greater are unacceptable.
-    @param withBitScoreBetterThan: if the best bit score for a hit is not
-        as good as this value, elide the hit.
-    """
-
-    def __init__(self, minMeanBitScore=None, minMedianBitScore=None,
-                 withBitScoreBetterThan=None):
-            self._minMeanBitScore = minMeanBitScore
-            self._minMedianBitScore = minMedianBitScore
-            self._withBitScoreBetterThan = withBitScoreBetterThan
-
-    def accept(self, hitInfo):
-        """
-        Return C{True} if the bit scores in the passed hit info is acceptable.
-
-        @param hitInfo: A C{dict} with at least the following keys:
-            bitScores:
-            bitScoreMean:
-            bitScoreMedian:
-            bitScoreMax:
-
-        @return: A C{bool} to indicate acceptable hit info or not.
-        """
-        return not (
-            (self._minMeanBitScore is not None and
-             hitInfo['bitScoreMean'] < self._minMeanBitScore) or
-            (self._minMedianBitScore is not None and
-             hitInfo['bitScoreMedian'] < self._minMedianBitScore) or
-            (self._withBitScoreBetterThan is not None and
-             hitInfo['bitScoreMax'] < self._withBitScoreBetterThan))
-
-
 class ReadSetFilter(object):
     """
     Provide an acceptance test based on sequence read set.
@@ -203,38 +104,38 @@ class ReadSetFilter(object):
 
     def __init__(self, minNew):
         self._minNew = minNew
-        # Use an OrderedDict so that each time we walk through it we go in
-        # the same order. This makes our runs deterministic / reproducible.
+        # Use an OrderedDict so that each time we walk through self._titles
+        # we do it in the same order. This makes our runs deterministic /
+        # reproducible.
         self._titles = OrderedDict()
 
-    def accept(self, title, hitInfo):
+    def accept(self, title, titleAlignments):
         """
-        Return C{True} if the read set in the passed C{hitInfo} is sufficiently
+        Return C{True} if the read id set in C{titleAlignments} is sufficiently
         different from all previously seen read sets.
 
         @param title: A C{str} sequence title.
-        @param hitInfo: A C{dict} with a C{readNums} keys.
-        @return: A C{bool} to indicate an acceptable read set or not.
+        @param titleAlignments: An instance of L{TitleAlignment}.
+        @return: A C{bool} indicating whether a title has an acceptably novel
+            read set or not.
         """
 
-        # Sanity check: titles can only be passed once. This is not a
-        # bulletproof check, since not all titles end up in self._titles,
-        # just the ones corresponding to sufficiently new read sets.
+        # Sanity check: titles can only be passed once.
         assert title not in self._titles, (
-            'Title %r seen multiple times' % title)
+            'Title %r seen multiple times.' % title)
 
-        readNums = hitInfo['readNums']
-        newReadsRequired = ceil(self._minNew * len(readNums))
+        readIds = titleAlignments.readIds()
+        newReadsRequired = ceil(self._minNew * len(readIds))
 
         for readSet, invalidatedTitles in self._titles.itervalues():
-            if len(readNums - readSet) < newReadsRequired:
+            if len(readIds - readSet) < newReadsRequired:
                 # Add this title to the set of titles invalidated by this
                 # previously seen read set.
                 invalidatedTitles.append(title)
                 return False
 
         # Remember the new read set and an empty list of invalidated titles.
-        self._titles[title] = (readNums, [])
+        self._titles[title] = (readIds, [])
 
         return True
 

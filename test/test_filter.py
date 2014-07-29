@@ -1,7 +1,8 @@
 from unittest import TestCase
 
-from dark.filter import (BitScoreFilter, HitInfoFilter, ReadSetFilter,
-                         TitleFilter)
+from dark.filter import ReadSetFilter, TitleFilter
+from dark.reads import Read
+from dark.titles import TitleAlignment, TitleAlignments
 
 
 class TitleFilterTest(TestCase):
@@ -134,129 +135,33 @@ class TitleFilterTest(TestCase):
         self.assertEqual(TitleFilter.REJECT, tf.accept('rubbish'))
 
 
-class HitInfoFilterTest(TestCase):
-    """
-    Tests for the L{dark.filter.HitInfoFilter} class.
-    """
-
-    def testNoRestriction(self):
-        """
-        Testing for acceptance against a hit info filter that has no
-        restrictions should return C{True}.
-        """
-        hif = HitInfoFilter()
-        self.assertEqual(True, hif.accept({}))
-
-    def testMinSequenceLen(self):
-        """
-        Testing for acceptance against a hit info filter with a minSequenceLen
-        restriction must work.
-        """
-        hif = HitInfoFilter(minSequenceLen=10)
-        self.assertEqual(True, hif.accept({'length': 12}))
-        self.assertEqual(False, hif.accept({'length': 8}))
-
-    def testMaxSequenceLen(self):
-        """
-        Testing for acceptance against a hit info filter with a maxSequenceLen
-        restriction must work.
-        """
-        hif = HitInfoFilter(maxSequenceLen=100)
-        self.assertEqual(True, hif.accept({'length': 90}))
-        self.assertEqual(False, hif.accept({'length': 101}))
-
-    def testMinMatchingReads(self):
-        """
-        Testing for acceptance against a hit info filter with a
-        minMatchingReads restriction must work.
-        """
-        hif = HitInfoFilter(minMatchingReads=5)
-        self.assertEqual(True, hif.accept({'readCount': 10}))
-        self.assertEqual(False, hif.accept({'readCount': 2}))
-
-    def testMaxMeanEValue(self):
-        """
-        Testing for acceptance against a hit info filter with a maxMeanEValue
-        restriction must work.
-        """
-        hif = HitInfoFilter(maxMeanEValue=1e-3)
-        self.assertEqual(True, hif.accept({'eMean': 1e-4}))
-        self.assertEqual(False, hif.accept({'eMean': 1e-2}))
-
-    def testMaxMedianEValue(self):
-        """
-        Testing for acceptance against a hit info filter with a maxMedianEValue
-        restriction must work.
-        """
-        hif = HitInfoFilter(maxMedianEValue=1e-3)
-        self.assertEqual(True, hif.accept({'eMedian': 1e-4}))
-        self.assertEqual(False, hif.accept({'eMedian': 1e-2}))
-
-    def testMaxMinEValue(self):
-        """
-        Testing for acceptance against a hit info filter with a withEBetterThan
-        restriction must work.
-        """
-        hif = HitInfoFilter(withEBetterThan=1e-3)
-        self.assertEqual(True, hif.accept({'eMin': 1e-4}))
-        self.assertEqual(False, hif.accept({'eMin': 1e-2}))
-
-
-class BitScoreFilterTest(TestCase):
-    """
-    Tests for the L{dark.filter.BitScoreFilter} class.
-    """
-
-    def testNoRestriction(self):
-        """
-        Testing for acceptance against a bit score filter that has no
-        restrictions should return C{True}.
-        """
-        bsf = BitScoreFilter()
-        self.assertEqual(True, bsf.accept({}))
-
-    def testMinMeanBitScore(self):
-        """
-        Testing for acceptance against a bit score filter with a
-        minMeanBitScore restriction must work.
-        """
-        bsf = BitScoreFilter(minMeanBitScore=10)
-        self.assertEqual(True, bsf.accept({'bitScoreMean': 11}))
-        self.assertEqual(False, bsf.accept({'bitScoreMean': 9}))
-
-    def testMinMedianBitScore(self):
-        """
-        Testing for acceptance against a bit score filter with a
-        minMedianBitScore restriction must work.
-        """
-        bsf = BitScoreFilter(minMedianBitScore=10)
-        self.assertEqual(True, bsf.accept({'bitScoreMedian': 11}))
-        self.assertEqual(False, bsf.accept({'bitScoreMedian': 9}))
-
-    def testWithBitScoreBetterThan(self):
-        """
-        Testing for acceptance against a bit score filter with a
-        withBitScoreBetterThan restriction must work.
-        """
-        bsf = BitScoreFilter(withBitScoreBetterThan=10)
-        self.assertEqual(True, bsf.accept({'bitScoreMax': 11}))
-        self.assertEqual(False, bsf.accept({'bitScoreMax': 9}))
-
-
 class ReadSetTest(TestCase):
     """
     Tests for the L{dark.filter.ReadSetFilter} class.
     """
 
-    def testNoRestriction(self):
+    def makeTitleAlignments(self, *readIds):
         """
-        Testing for acceptance against a read set filter that has no
-        restrictions should return C{True}.
+        Create a TitleAlignments instance containing reads with the
+        ids given by C{ids}.
+
+        param readIds: A C{list} of integer ids for reads.
+        @return: A C{TitleAlignments} instance with reads with the given ids.
         """
+        titleAlignments = TitleAlignments('subject title', 55)
+        for readId in readIds:
+            titleAlignment = TitleAlignment(Read('id' + str(readId), 'A'), [])
+            titleAlignments.addAlignment(titleAlignment)
+        return titleAlignments
+
+    def testFirstUse(self):
+        """
+        Testing for acceptance against a read set filter that has not been
+        used should return C{True}.
+        """
+        titleAlignments = self.makeTitleAlignments()
         rsf = ReadSetFilter(0.9)
-        self.assertEqual(True, rsf.accept('title1', {
-            'readNums': set([0])
-        }))
+        self.assertTrue(rsf.accept('title1', titleAlignments))
 
     def testDuplicateSingleRead(self):
         """
@@ -265,12 +170,8 @@ class ReadSetTest(TestCase):
         is non-zero.
         """
         rsf = ReadSetFilter(0.9)
-        rsf.accept('title1', {
-            'readNums': set([0])
-        })
-        self.assertEqual(False, rsf.accept('title2', {
-            'readNums': set([0])
-        }))
+        rsf.accept('title1', self.makeTitleAlignments(0))
+        self.assertFalse(rsf.accept('title2', self.makeTitleAlignments(0)))
 
     def testDuplicateSingleReadZeroThreshold(self):
         """
@@ -279,12 +180,8 @@ class ReadSetTest(TestCase):
         is zero.
         """
         rsf = ReadSetFilter(0.0)
-        rsf.accept('title1', {
-            'readNums': set([0])
-        })
-        self.assertEqual(True, rsf.accept('title2', {
-            'readNums': set([0])
-        }))
+        rsf.accept('title1', self.makeTitleAlignments(0))
+        self.assertTrue(rsf.accept('title2', self.makeTitleAlignments(0)))
 
     def testDifferentSet(self):
         """
@@ -292,12 +189,8 @@ class ReadSetTest(TestCase):
         should return C{True} if the new set is totally different.
         """
         rsf = ReadSetFilter(1.0)
-        rsf.accept('title1', {
-            'readNums': set([0])
-        })
-        self.assertEqual(True, rsf.accept('title2', {
-            'readNums': set([1])
-        }))
+        rsf.accept('title1', self.makeTitleAlignments(0))
+        self.assertTrue(rsf.accept('title2', self.makeTitleAlignments(1)))
 
     def testSufficientlyDifferent(self):
         """
@@ -305,15 +198,10 @@ class ReadSetTest(TestCase):
         sets should return C{True} if the new set is sufficiently different.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept('title1', {
-            'readNums': set([0, 1, 2, 3, 4])
-        })
-        rsf.accept('title2', {
-            'readNums': set([5, 6, 7, 8, 9])
-        })
-        self.assertEqual(True, rsf.accept('title3', {
-            'readNums': set([0, 1, 2, 5, 6, 7])
-        }))
+        rsf.accept('title1', self.makeTitleAlignments(0, 1, 2, 3, 4))
+        rsf.accept('title2', self.makeTitleAlignments(5, 6, 7, 8, 9))
+        self.assertTrue(rsf.accept('title3',
+                                   self.makeTitleAlignments(0, 1, 2, 5, 6, 7)))
 
     def testInsufficientlyDifferent(self):
         """
@@ -321,29 +209,21 @@ class ReadSetTest(TestCase):
         sets should return C{False} if the new set is insufficiently different.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept('title1', {
-            'readNums': set([0, 1, 2, 3, 4])
-        })
-        rsf.accept('title2', {
-            'readNums': set([5, 6, 7, 8, 9])
-        })
-        self.assertEqual(False, rsf.accept('title3', {
-            'readNums': set([0, 1, 2, 11])
-        }))
+        rsf.accept('title1', self.makeTitleAlignments(0, 1, 2, 3, 4))
+        rsf.accept('title2', self.makeTitleAlignments(5, 6, 7, 8, 9))
+        self.assertFalse(rsf.accept('title3',
+                                    self.makeTitleAlignments(0, 1, 2, 11)))
 
     def testThresholdRoundsUp(self):
         """
         Testing for acceptance should round up the needed number of new reads.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept('title1', {
-            'readNums': set([0, 1, 2, 3, 4])
-        })
+        rsf.accept('title1', self.makeTitleAlignments(0, 1, 2, 3, 4))
         # If we pass a read set of size three, two of the reads will need to be
         # different.
-        self.assertEqual(False, rsf.accept('title2', {
-            'readNums': set([0, 1, 6])
-        }))
+        self.assertFalse(rsf.accept('title2',
+                                    self.makeTitleAlignments(0, 1, 6)))
 
     def testRepeatTitle(self):
         """
@@ -351,12 +231,9 @@ class ReadSetTest(TestCase):
         accepted read set) must raise C{AssertionError}.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept('title1', {
-            'readNums': set([0, 1, 2, 3, 4])
-        })
-        self.assertRaises(AssertionError, rsf.accept, 'title1', {
-            'readNums': set([0, 1, 6])
-        })
+        rsf.accept('title1', self.makeTitleAlignments(0, 1, 2, 3, 4))
+        self.assertRaises(AssertionError, rsf.accept, 'title1',
+                          self.makeTitleAlignments())
 
     def testInvalidates(self):
         """
@@ -364,18 +241,10 @@ class ReadSetTest(TestCase):
         invalidated by an earlier title's read set.
         """
         rsf = ReadSetFilter(0.5)
-        rsf.accept('title1', {
-            'readNums': set([0])
-        })
-        rsf.accept('title2', {
-            'readNums': set([0])
-        })
-        rsf.accept('title3', {
-            'readNums': set([1])
-        })
-        rsf.accept('title4', {
-            'readNums': set([0])
-        })
+        rsf.accept('title1', self.makeTitleAlignments(0))
+        rsf.accept('title2', self.makeTitleAlignments(0))
+        rsf.accept('title3', self.makeTitleAlignments(1))
+        rsf.accept('title4', self.makeTitleAlignments(0))
         self.assertEqual(['title2', 'title4'], rsf.invalidates('title1'))
 
     def testInvalidatesEmpty(self):

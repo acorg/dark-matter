@@ -1,61 +1,6 @@
 from unittest import TestCase
 
-from dark.blast.hsp import normalizeHSP, EValueHSP
-
-
-class TestEValueHSP(TestCase):
-    """
-    Tests of the L{dark.hsp.blast.EValueHSP} class.
-    """
-
-    def testExpectedAttributes(self):
-        """
-        An EValueHSP must have the expected attributes.
-        """
-        hsp = EValueHSP(readStart=1, readEnd=2,
-                        readStartInHit=3, readEndInHit=4,
-                        hitStart=5, hitEnd=6,
-                        readMatchedSequence='aaa', hitMatchedSequence='ccc',
-                        score=7)
-        self.assertEqual(1, hsp.readStart)
-        self.assertEqual(2, hsp.readEnd)
-        self.assertEqual(3, hsp.readStartInHit)
-        self.assertEqual(4, hsp.readEndInHit)
-        self.assertEqual(5, hsp.hitStart)
-        self.assertEqual(6, hsp.hitEnd)
-        self.assertEqual('aaa', hsp.readMatchedSequence)
-        self.assertEqual('ccc', hsp.hitMatchedSequence)
-        self.assertEqual(7, hsp.score)
-
-    def testEq(self):
-        """
-        Two HSPs must compare properly with ==
-        """
-        hsp1 = EValueHSP(score=7)
-        hsp2 = EValueHSP(score=7)
-        self.assertEqual(hsp1, hsp2)
-
-    def testLt(self):
-        """
-        Two HSPs must compare properly with <
-        """
-        hsp1 = EValueHSP(score=8)
-        hsp2 = EValueHSP(score=7)
-        self.assertTrue(hsp1 < hsp2)
-
-    def testBetterThanTrue(self):
-        """
-        Two HSP scores must compare properly with betterThan if the passed
-        score is worse than the score of the HSP.
-        """
-        self.assertTrue(EValueHSP(score=5).betterThan(7))
-
-    def testBetterThanFalse(self):
-        """
-        Two HSP scores must compare properly with betterThan if the passed
-        score is better than the score of the HSP.
-        """
-        self.assertFalse(EValueHSP(score=7).betterThan(5))
+from dark.blast.hsp import normalizeHSP
 
 
 class Frame(object):

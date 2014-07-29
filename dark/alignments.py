@@ -1,5 +1,6 @@
 from dark.taxonomy import LineageFetcher
 from dark.filter import TitleFilter
+from dark.score import HigherIsBetterScore
 
 
 def bestAlignment(readAlignments):
@@ -68,12 +69,17 @@ class ReadsAlignments(object):
         these read hits.
     @param params: A C{dict} of the parameters that were given to the
         application to create these hits.
+    @param scoreClass: A class to hold and compare scores (see scores.py).
+        Default is C{HigherIsBetterScore}, for comparing bit scores. If you
+        are using e.g., BLAST e-values, pass LowerIsBetterScore instead.
     """
 
-    def __init__(self, reads, application, params):
+    def __init__(self, reads, application, params,
+                 scoreClass=HigherIsBetterScore):
         self.reads = reads
         self.application = application
         self.params = params
+        self.scoreClass = scoreClass
 
     def __iter__(self):
         """

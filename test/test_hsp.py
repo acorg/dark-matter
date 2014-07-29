@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.hsp import HSP
+from dark.hsp import HSP, LSP
 
 
 class TestHSP(TestCase):
@@ -12,11 +12,10 @@ class TestHSP(TestCase):
         """
         An HSP must have the expected attributes.
         """
-        hsp = HSP(readStart=1, readEnd=2,
+        hsp = HSP(7, readStart=1, readEnd=2,
                   readStartInHit=3, readEndInHit=4,
                   hitStart=5, hitEnd=6,
-                  readMatchedSequence='aaa', hitMatchedSequence='ccc',
-                  score=7)
+                  readMatchedSequence='aaa', hitMatchedSequence='ccc')
         self.assertEqual(1, hsp.readStart)
         self.assertEqual(2, hsp.readEnd)
         self.assertEqual(3, hsp.readStartInHit)
@@ -25,34 +24,80 @@ class TestHSP(TestCase):
         self.assertEqual(6, hsp.hitEnd)
         self.assertEqual('aaa', hsp.readMatchedSequence)
         self.assertEqual('ccc', hsp.hitMatchedSequence)
-        self.assertEqual(7, hsp.score)
+        self.assertEqual(7, hsp.score.score)
 
-    def testEq(self):
+    def testEqual(self):
         """
         Two HSPs must compare properly with ==
         """
-        hsp1 = HSP(score=7)
-        hsp2 = HSP(score=7)
-        self.assertEqual(hsp1, hsp2)
+        self.assertEqual(HSP(7), HSP(7))
 
     def testLt(self):
         """
         Two HSPs must compare properly with <
         """
-        hsp1 = HSP(score=7)
-        hsp2 = HSP(score=8)
-        self.assertTrue(hsp1 < hsp2)
+        self.assertTrue(HSP(7) < HSP(8))
 
     def testBetterThanTrue(self):
         """
         Two HSP scores must compare properly with betterThan if the passed
         score is worse than the score of the HSP.
         """
-        self.assertTrue(HSP(score=7).betterThan(5))
+        self.assertTrue(HSP(7).betterThan(5))
 
     def testBetterThanFalse(self):
         """
         Two HSP scores must compare properly with betterThan if the passed
         score is better than the score of the HSP.
         """
-        self.assertFalse(HSP(score=5).betterThan(7))
+        self.assertFalse(HSP(5).betterThan(7))
+
+
+class TestLSP(TestCase):
+    """
+    Tests of the L{dark.hsp.blast.LSP} class.
+    """
+
+    def testExpectedAttributes(self):
+        """
+        An LSP must have the expected attributes.
+        """
+        hsp = LSP(7, readStart=1, readEnd=2,
+                  readStartInHit=3, readEndInHit=4,
+                  hitStart=5, hitEnd=6,
+                  readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        self.assertEqual(1, hsp.readStart)
+        self.assertEqual(2, hsp.readEnd)
+        self.assertEqual(3, hsp.readStartInHit)
+        self.assertEqual(4, hsp.readEndInHit)
+        self.assertEqual(5, hsp.hitStart)
+        self.assertEqual(6, hsp.hitEnd)
+        self.assertEqual('aaa', hsp.readMatchedSequence)
+        self.assertEqual('ccc', hsp.hitMatchedSequence)
+        self.assertEqual(7, hsp.score.score)
+
+    def testEqual(self):
+        """
+        Two LSPs must compare properly with ==
+        """
+        self.assertEqual(LSP(7), LSP(7))
+
+    def testLt(self):
+        """
+        Two LSPs must compare properly with <
+        """
+        self.assertTrue(LSP(8) < LSP(7))
+
+    def testBetterThanTrue(self):
+        """
+        Two LSP scores must compare properly with betterThan if the passed
+        score is worse than the score of the LSP.
+        """
+        self.assertTrue(LSP(5).betterThan(7))
+
+    def testBetterThanFalse(self):
+        """
+        Two LSP scores must compare properly with betterThan if the passed
+        score is better than the score of the LSP.
+        """
+        self.assertFalse(LSP(7).betterThan(5))
