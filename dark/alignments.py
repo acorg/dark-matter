@@ -283,9 +283,9 @@ class ReadsAlignments(object):
                     wantedHsps = []
                     for hsp in hsps:
                         if not ((minStart is not None and
-                                 hsp.readStartInHit < minStart)
+                                 hsp.readStartInSubject < minStart)
                                 or (maxStop is not None and
-                                    hsp.readEndInHit > maxStop)):
+                                    hsp.readEndInSubject > maxStop)):
                             wantedHsps.append(hsp)
                     if wantedHsps:
                         alignment.hsps = wantedHsps

@@ -384,27 +384,27 @@ class TestOffsetAdjuster(TestCase):
 
         # Test an HSP at the beginning is unchanged.
         hsp = adjuster.adjustHSP(HSP(
-            10, readEndInHit=10, readStartInHit=0,
-            hitEnd=10, hitStart=0))
-        self.assertEqual(10, hsp.readEndInHit)
-        self.assertEqual(0, hsp.readStartInHit)
-        self.assertEqual(10, hsp.hitEnd)
-        self.assertEqual(0, hsp.hitStart)
+            10, readEndInSubject=10, readStartInSubject=0,
+            subjectEnd=10, subjectStart=0))
+        self.assertEqual(10, hsp.readEndInSubject)
+        self.assertEqual(0, hsp.readStartInSubject)
+        self.assertEqual(10, hsp.subjectEnd)
+        self.assertEqual(0, hsp.subjectStart)
 
         # Test an HSP in the first read region.
         hsp = adjuster.adjustHSP(HSP(
-            10, readEndInHit=42, readStartInHit=32,
-            hitEnd=40, hitStart=35))
-        self.assertEqual(15, hsp.readEndInHit)
-        self.assertEqual(5, hsp.readStartInHit)
-        self.assertEqual(13, hsp.hitEnd)
-        self.assertEqual(8, hsp.hitStart)
+            10, readEndInSubject=42, readStartInSubject=32,
+            subjectEnd=40, subjectStart=35))
+        self.assertEqual(15, hsp.readEndInSubject)
+        self.assertEqual(5, hsp.readStartInSubject)
+        self.assertEqual(13, hsp.subjectEnd)
+        self.assertEqual(8, hsp.subjectStart)
 
         # Test an HSP in the second read region.
         hsp = adjuster.adjustHSP(HSP(
-            10, readEndInHit=68, readStartInHit=58,
-            hitEnd=66, hitStart=60))
-        self.assertEqual(29, hsp.readEndInHit)
-        self.assertEqual(19, hsp.readStartInHit)
-        self.assertEqual(27, hsp.hitEnd)
-        self.assertEqual(21, hsp.hitStart)
+            10, readEndInSubject=68, readStartInSubject=58,
+            subjectEnd=66, subjectStart=60))
+        self.assertEqual(29, hsp.readEndInSubject)
+        self.assertEqual(19, hsp.readStartInSubject)
+        self.assertEqual(27, hsp.subjectEnd)
+        self.assertEqual(21, hsp.subjectStart)

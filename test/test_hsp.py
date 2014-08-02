@@ -13,17 +13,17 @@ class TestHSP(TestCase):
         An HSP must have the expected attributes.
         """
         hsp = HSP(7, readStart=1, readEnd=2,
-                  readStartInHit=3, readEndInHit=4,
-                  hitStart=5, hitEnd=6,
-                  readMatchedSequence='aaa', hitMatchedSequence='ccc')
+                  readStartInSubject=3, readEndInSubject=4,
+                  subjectStart=5, subjectEnd=6,
+                  readMatchedSequence='aaa', subjectMatchedSequence='ccc')
         self.assertEqual(1, hsp.readStart)
         self.assertEqual(2, hsp.readEnd)
-        self.assertEqual(3, hsp.readStartInHit)
-        self.assertEqual(4, hsp.readEndInHit)
-        self.assertEqual(5, hsp.hitStart)
-        self.assertEqual(6, hsp.hitEnd)
+        self.assertEqual(3, hsp.readStartInSubject)
+        self.assertEqual(4, hsp.readEndInSubject)
+        self.assertEqual(5, hsp.subjectStart)
+        self.assertEqual(6, hsp.subjectEnd)
         self.assertEqual('aaa', hsp.readMatchedSequence)
-        self.assertEqual('ccc', hsp.hitMatchedSequence)
+        self.assertEqual('ccc', hsp.subjectMatchedSequence)
         self.assertEqual(7, hsp.score.score)
 
     def testEqual(self):
@@ -63,17 +63,17 @@ class TestLSP(TestCase):
         An LSP must have the expected attributes.
         """
         hsp = LSP(7, readStart=1, readEnd=2,
-                  readStartInHit=3, readEndInHit=4,
-                  hitStart=5, hitEnd=6,
-                  readMatchedSequence='aaa', hitMatchedSequence='ccc')
+                  readStartInSubject=3, readEndInSubject=4,
+                  subjectStart=5, subjectEnd=6,
+                  readMatchedSequence='aaa', subjectMatchedSequence='ccc')
         self.assertEqual(1, hsp.readStart)
         self.assertEqual(2, hsp.readEnd)
-        self.assertEqual(3, hsp.readStartInHit)
-        self.assertEqual(4, hsp.readEndInHit)
-        self.assertEqual(5, hsp.hitStart)
-        self.assertEqual(6, hsp.hitEnd)
+        self.assertEqual(3, hsp.readStartInSubject)
+        self.assertEqual(4, hsp.readEndInSubject)
+        self.assertEqual(5, hsp.subjectStart)
+        self.assertEqual(6, hsp.subjectEnd)
         self.assertEqual('aaa', hsp.readMatchedSequence)
-        self.assertEqual('ccc', hsp.hitMatchedSequence)
+        self.assertEqual('ccc', hsp.subjectMatchedSequence)
         self.assertEqual(7, hsp.score.score)
 
     def testEqual(self):

@@ -25,11 +25,11 @@ def normalizeHSP(hsp, readLen, blastApplication):
     the match). The value is redundant because that information could also
     be obtained from the mod 3 value of the match offset.
 
-    NOTE: the returned readStartInHit value may be negative.  We consider
+    NOTE: the returned readStartInSubject value may be negative.  We consider
     the hit sequence to start at offset 0.  So if the read string has
     sufficient additional nucleotides before the start of the alignment
     match, it may protrude to the left of the hit. Similarly, the returned
-    readEndInHit can be greater than the hitEnd.
+    readEndInSubject can be greater than the subjectEnd.
 
     @param hsp: an HSP in the form of a C{dict}, built from a BLAST record.
         All passed hsp offsets are 1-based.
@@ -97,10 +97,10 @@ def normalizeHSP(hsp, readLen, blastApplication):
 
     # Now that we have asserted what we can about the original HSP values
     # and gotten them into ascending order, make some sane 0-based offsets.
-    readStartInHit = read_start - 1
-    readEndInHit = read_end
-    hitStart = sbjct_start - 1
-    hitEnd = sbjct_end
+    readStartInSubject = read_start - 1
+    readEndInSubject = read_end
+    subjectStart = sbjct_start - 1
+    subjectEnd = sbjct_end
 
     if blastApplication == 'blastx':
         # In Blastx output, hit offsets are based on protein sequence
@@ -108,17 +108,17 @@ def normalizeHSP(hsp, readLen, blastApplication):
         # Convert the read offsets to protein because we will plot against
         # the hit (protein).
         #
-        # Note that readStartInHit and readEndInHit may not be 0 mod
+        # Note that readStartInSubject and readEndInSubject may not be 0 mod
         # 3. They are offsets into the read string giving the position of
         # the AA, which depends on the translation frame.
-        readStartInHit = int(readStartInHit / 3)
-        readEndInHit = int(readEndInHit / 3)
+        readStartInSubject = int(readStartInSubject / 3)
+        readEndInSubject = int(readEndInSubject / 3)
 
     # No operations on original 1-based HSP variables (with underscores)
     # should appear beyond this point.
 
-    hitLength = hitEnd - hitStart
-    readLength = readEndInHit - readStartInHit
+    subjectLength = subjectEnd - subjectStart
+    readLength = readEndInSubject - readStartInSubject
 
     hitGaps = hsp['sbjct'].count('-')
     readGaps = hsp['query'].count('-')
@@ -126,12 +126,12 @@ def normalizeHSP(hsp, readLen, blastApplication):
     # Sanity check that the length of the matches in the hit and read
     # are identical, taking into account gaps in either (indicated by '-'
     # characters in the match sequences, as returned by BLAST).
-    hitLengthWithGaps = hitLength + hitGaps
+    subjectLengthWithGaps = subjectLength + hitGaps
     readLengthWithGaps = readLength + readGaps
-    if hitLengthWithGaps != readLengthWithGaps:
+    if subjectLengthWithGaps != readLengthWithGaps:
         debugPrint(locals(),
                    'Including gaps, hit match length (%d) != Read match '
-                   'length (%d)' % (hitLengthWithGaps,
+                   'length (%d)' % (subjectLengthWithGaps,
                                     readLengthWithGaps))
 
     # TODO: check the mod 3 value of the start offsets.
@@ -141,31 +141,31 @@ def normalizeHSP(hsp, readLen, blastApplication):
     # unmatchedReadLeft is the number of read bases that will be sticking
     # out to the left of the start of the hit in our plots.
     if readPositive:
-        unmatchedReadLeft = readStartInHit
+        unmatchedReadLeft = readStartInSubject
     else:
-        unmatchedReadLeft = readLen - readEndInHit
+        unmatchedReadLeft = readLen - readEndInSubject
 
     # Set the read offsets based on the direction the match with the
     # hit takes.
     if hitPositive:
-        readStartInHit = hitStart - unmatchedReadLeft
-        readEndInHit = readStartInHit + readLen + readGaps
+        readStartInSubject = subjectStart - unmatchedReadLeft
+        readEndInSubject = readStartInSubject + readLen + readGaps
     else:
-        readEndInHit = hitEnd + unmatchedReadLeft
+        readEndInSubject = subjectEnd + unmatchedReadLeft
 
-        readStartInHit = readEndInHit - readLen - readGaps
+        readStartInSubject = readEndInSubject - readLen - readGaps
 
     # Final sanity checks.
-    if readStartInHit > hitStart:
-        debugPrint(locals(), 'readStartInHit > hitStart')
-    if readEndInHit < hitEnd:
-        debugPrint(locals(), 'readEndInHit < hitEnd')
+    if readStartInSubject > subjectStart:
+        debugPrint(locals(), 'readStartInSubject > subjectStart')
+    if readEndInSubject < subjectEnd:
+        debugPrint(locals(), 'readEndInSubject < subjectEnd')
 
     return {
         'readStart': read_start - 1,
         'readEnd': read_end,
-        'readStartInHit': readStartInHit,
-        'readEndInHit': readEndInHit,
-        'hitStart': hitStart,
-        'hitEnd': hitEnd,
+        'readStartInSubject': readStartInSubject,
+        'readEndInSubject': readEndInSubject,
+        'subjectStart': subjectStart,
+        'subjectEnd': subjectEnd,
     }

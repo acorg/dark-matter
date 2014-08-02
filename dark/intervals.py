@@ -107,12 +107,12 @@ class OffsetAdjuster(object):
         @return: A new L{dark.hsp.HSP} or L{dark.hsp.LSP} instance.
         """
         reduction = self._reductionForOffset(
-            min(hsp.readStartInHit, hsp.hitStart))
+            min(hsp.readStartInSubject, hsp.subjectStart))
 
         result = deepcopy(hsp)
-        result.readEndInHit = hsp.readEndInHit - reduction
-        result.readStartInHit = hsp.readStartInHit - reduction
-        result.hitEnd = hsp.hitEnd - reduction
-        result.hitStart = hsp.hitStart - reduction
+        result.readEndInSubject = hsp.readEndInSubject - reduction
+        result.readStartInSubject = hsp.readStartInSubject - reduction
+        result.subjectEnd = hsp.subjectEnd - reduction
+        result.subjectStart = hsp.subjectStart - reduction
 
         return result

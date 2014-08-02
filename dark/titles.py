@@ -39,8 +39,9 @@ class TitleAlignments(object):
     """
     Holds information about a set of alignments against a sequence.
 
-    @param subjectTitle: The C{str} title of the sequence the read hit against.
-    @param subjectLength: The C{int} length of the sequence the read hit
+    @param subjectTitle: The C{str} title of the sequence the read matched
+        against.
+    @param subjectLength: The C{int} length of the sequence the read matched
         against.
     """
 
@@ -91,6 +92,15 @@ class TitleAlignments(object):
         """
         return max(hsp for hsp in self.hsps())
 
+    def worstHsp(self):
+        """
+        Find the HSP with the worst score.
+
+        @return: The C{dark.hsp.HSP} instance (or a subclass) with the worst
+        score.
+        """
+        return min(hsp for hsp in self.hsps())
+
     def hasScoreBetterThan(self, score):
         """
         Is there an HSP with a score better than a given value?
@@ -128,6 +138,7 @@ class TitlesAlignments(dict):
 
     def __init__(self, readsAlignments, scoreClass=None, readSetFilter=None):
         dict.__init__(self)
+        self.readsAlignments = readsAlignments
         self.scoreClass = scoreClass or readsAlignments.scoreClass
         self.readSetFilter = readSetFilter
         for readAlignments in readsAlignments:

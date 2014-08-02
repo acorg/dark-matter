@@ -79,8 +79,8 @@ class BlastReadsAlignments(ReadsAlignments):
         application = self._reader.application
         blastParams = copy.deepcopy(self._reader.params)
         subjectIsNucleotides = application != 'blastx'
-        scoreTitle = (
-            'Bit score' if scoreClass is HigherIsBetterScore else 'E Value')
+        scoreTitle = ('Bit score' if scoreClass is HigherIsBetterScore
+                      else '$- log_{10}(e)')
 
         applicationParams = ReadsAlignmentsParams(
             application, blastParams,

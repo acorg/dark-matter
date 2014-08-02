@@ -260,12 +260,12 @@ class JSONRecordsReader(object):
                     score,
                     readStart=normalized['readStart'],
                     readEnd=normalized['readEnd'],
-                    readStartInHit=normalized['readStartInHit'],
-                    readEndInHit=normalized['readEndInHit'],
-                    hitStart=normalized['hitStart'],
-                    hitEnd=normalized['hitEnd'],
+                    readStartInSubject=normalized['readStartInSubject'],
+                    readEndInSubject=normalized['readEndInSubject'],
+                    subjectStart=normalized['subjectStart'],
+                    subjectEnd=normalized['subjectEnd'],
                     readMatchedSequence=blastHsp['query'],
-                    hitMatchedSequence=blastHsp['sbjct'])
+                    subjectMatchedSequence=blastHsp['sbjct'])
 
                 alignment.addHsp(hsp)
 

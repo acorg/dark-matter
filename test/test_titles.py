@@ -74,18 +74,9 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         The hsps function must produce a list of all HSPs.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(14, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = HSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(14)
+        hsp3 = HSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -107,18 +98,9 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         The readCount function must indicate how many reads matched a title.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(14, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = HSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(14)
+        hsp3 = HSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -141,14 +123,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         The medianScore function must return the median score for the HSPs in
         all the alignments matching a title when given 2 scores.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(15)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -160,18 +136,9 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         The medianScore function must return the median score for the HSPs in
         all the alignments matching a title when given 3 scores.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = HSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(15)
+        hsp3 = HSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -183,21 +150,12 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
 
     def testBestHsp(self):
         """
-        The bestHsp function must return the HSP with the best score for the
-        HSPs all the alignments matching a title.
+        The bestHsp function must return the HSP with the best score for all
+        the HSPs for all the alignments matching a title.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = HSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(15)
+        hsp3 = HSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -207,23 +165,31 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp3, titleAlignments.bestHsp())
 
+    def testWorstHsp(self):
+        """
+        The worstHsp function must return the HSP with the worst score for all
+        the HSPs for all the alignments matching a title.
+        """
+        hsp1 = HSP(7)
+        hsp2 = HSP(15)
+        hsp3 = HSP(21)
+        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(hsp1, titleAlignments.worstHsp())
+
     def testBetterThanFalse(self):
         """
         The hasScoreBetterThan function must return False if there is no HSP
         with a score better than the passed value.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = HSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(15)
+        hsp3 = HSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -238,18 +204,9 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         The hasScoreBetterThan function must return True if there is an HSP
         with a score better than the passed value.
         """
-        hsp1 = HSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = HSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = HSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = HSP(7)
+        hsp2 = HSP(15)
+        hsp3 = HSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -271,18 +228,9 @@ class TestTitleAlignmentsLSP(TestCase):
         The bestHsp function must return the HSP with the best score for the
         HSPs all the alignments matching a title.
         """
-        hsp1 = LSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = LSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = LSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = LSP(7)
+        hsp2 = LSP(15)
+        hsp3 = LSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -292,23 +240,31 @@ class TestTitleAlignmentsLSP(TestCase):
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp1, titleAlignments.bestHsp())
 
+    def testWorstHsp(self):
+        """
+        The worstHsp function must return the HSP with the worst score for all
+        the HSPs for all the alignments matching a title.
+        """
+        hsp1 = LSP(7)
+        hsp2 = LSP(15)
+        hsp3 = LSP(21)
+        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(hsp3, titleAlignments.worstHsp())
+
     def testBetterThanFalse(self):
         """
         The hasScoreBetterThan function must return False if there is no HSP
         with a score better than the passed value.
         """
-        hsp1 = LSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = LSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = LSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = LSP(7)
+        hsp2 = LSP(15)
+        hsp3 = LSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -323,18 +279,9 @@ class TestTitleAlignmentsLSP(TestCase):
         The hasScoreBetterThan function must return True if there is an HSP
         with a score better than the passed value.
         """
-        hsp1 = LSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = LSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = LSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = LSP(7)
+        hsp2 = LSP(15)
+        hsp3 = LSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
@@ -357,18 +304,9 @@ class TestTitleAlignmentsLSP(TestCase):
         The readIds function must return the set of read ids for the alignments
         matching a title.
         """
-        hsp1 = LSP(7, readStart=1, readEnd=2,
-                   readStartInHit=3, readEndInHit=4,
-                   hitStart=5, hitEnd=6,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp2 = LSP(15, readStart=8, readEnd=9,
-                   readStartInHit=10, readEndInHit=11,
-                   hitStart=12, hitEnd=13,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
-        hsp3 = LSP(21, readStart=15, readEnd=16,
-                   readStartInHit=17, readEndInHit=18,
-                   hitStart=19, hitEnd=20,
-                   readMatchedSequence='aaa', hitMatchedSequence='ccc')
+        hsp1 = LSP(7)
+        hsp2 = LSP(15)
+        hsp3 = LSP(21)
         titleAlignments = TitleAlignments('subject title', 55)
         read = Read('id1', 'AAA')
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])

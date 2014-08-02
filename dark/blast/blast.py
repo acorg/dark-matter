@@ -136,7 +136,7 @@ class BlastHits(object):
                     #
                     # print 'Assertion error in utils calling normalizeHSP'
                     # print 'readNum: %s' % readNum
-                    # print 'hitLen: %s' % self.titles[title]['length']
+                    # print 'subjectLength: %s' % self.titles[title]['length']
                     # print 'query: %s' % query
                     # from dark.hsp import printHSP
                     # printHSP(hsp)

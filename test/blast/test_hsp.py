@@ -10,13 +10,13 @@ class Frame(object):
 
 
 class FakeHSP(dict):
-    def __init__(self, hitStart, hitEnd, readStart, readEnd, frame,
+    def __init__(self, subjectStart, subjectEnd, readStart, readEnd, frame,
                  hit='', read=''):
         """
         A fake HSP class (with 1-based offsets, as are used in BLAST).
         """
-        self['sbjct_start'] = hitStart
-        self['sbjct_end'] = hitEnd
+        self['sbjct_start'] = subjectStart
+        self['sbjct_end'] = subjectEnd
         self['query_start'] = readStart
         self['query_end'] = readEnd
         self['frame'] = (frame.read, frame.hit)
@@ -26,7 +26,7 @@ class FakeHSP(dict):
         # In case you're thinking of adding it, the following assertion is
         # not valid:
         #
-        #   assert abs(hitEnd - hitStart) == abs(readEnd - readStart)
+        #   assert abs(subjectEnd - subjectStart) == abs(readEnd - readStart)
         #
         # That's because BLAST might find a match that requires a gap in
         # the read or in the hit. The indices that it reports do not
@@ -47,7 +47,7 @@ class Template(object):
             self._analyze(self.hit)
         origin = spacesLen
         self.matchLen = matchLen
-        self.hitLen = len(self.hit) - spacesLen
+        self.subjectLength = len(self.hit) - spacesLen
         self.hitMatchStart = leadingDotsLen
         self.hitPositive = positive
 
@@ -88,8 +88,8 @@ class Template(object):
         """
         Make an HSP. Use 1-based offsets.
         """
-        return FakeHSP(hitStart=self.hitMatchStart + 1,
-                       hitEnd=self.hitMatchStart + self.matchLen,
+        return FakeHSP(subjectStart=self.hitMatchStart + 1,
+                       subjectEnd=self.hitMatchStart + self.matchLen,
                        readStart=self.readMatchStart + 1,
                        readEnd=self.readMatchStart + self.matchLen,
                        frame=Frame(
@@ -115,7 +115,7 @@ class TestTemplate(TestCase):
         self.assertEqual(3, template.matchLen)
 
         self.assertTrue(template.hitPositive)
-        self.assertEqual(18, template.hitLen)
+        self.assertEqual(18, template.subjectLength)
         self.assertEqual(4, template.hitMatchStart)
 
         self.assertFalse(template.readPositive)
@@ -143,12 +143,12 @@ class TestNormalizeHSPMixin(object):
         template = Template(templateStr)
         normalized = normalizeHSP(template.hsp(), template.readLen, 'blastn')
         self.assertEqual({
-            'hitStart': template.hitMatchStart,
-            'hitEnd': template.hitMatchStart + template.matchLen,
+            'subjectStart': template.hitMatchStart,
+            'subjectEnd': template.hitMatchStart + template.matchLen,
             'readStart': template.readMatchStart,
             'readEnd': template.readMatchStart + template.matchLen,
-            'readStartInHit': template.readResultStart,
-            'readEndInHit': template.readResultStart + template.readLen,
+            'readStartInSubject': template.readResultStart,
+            'readEndInSubject': template.readResultStart + template.readLen,
         }, normalized)
 
 
@@ -573,16 +573,16 @@ class Old_ReadPositiveHitPositive(TestCase):
              ssss
              qqqq
         """
-        hsp = FakeHSP(hitStart=1, hitEnd=4, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=1, subjectEnd=4, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': 0,
-            'readEndInHit': 4,
+            'readStartInSubject': 0,
+            'readEndInSubject': 4,
         }, normalized)
 
     def testHitExtendsLeft(self):
@@ -591,16 +591,16 @@ class Old_ReadPositiveHitPositive(TestCase):
               ssssss
                 qqqq
         """
-        hsp = FakeHSP(hitStart=3, hitEnd=6, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=3, subjectEnd=6, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
-            'hitStart': 2,
-            'hitEnd': 6,
+            'subjectStart': 2,
+            'subjectEnd': 6,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': 2,
-            'readEndInHit': 6,
+            'readStartInSubject': 2,
+            'readEndInSubject': 6,
         }, normalized)
 
     def testReadExtendsLeft(self):
@@ -610,16 +610,16 @@ class Old_ReadPositiveHitPositive(TestCase):
                ssss
              qqqqqq
         """
-        hsp = FakeHSP(hitStart=1, hitEnd=4, readStart=3, readEnd=6,
+        hsp = FakeHSP(subjectStart=1, subjectEnd=4, readStart=3, readEnd=6,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 2,
             'readEnd': 6,
-            'readStartInHit': -2,
-            'readEndInHit': 4,
+            'readStartInSubject': -2,
+            'readEndInSubject': 4,
         }, normalized)
 
     def testReadExtendsRight(self):
@@ -628,16 +628,16 @@ class Old_ReadPositiveHitPositive(TestCase):
                ssss
                qqqqqq
         """
-        hsp = FakeHSP(hitStart=1, hitEnd=4, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=1, subjectEnd=4, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': 0,
-            'readEndInHit': 6,
+            'readStartInSubject': 0,
+            'readEndInSubject': 6,
         }, normalized)
 
     def testReadExtendsRightAndLeft(self):
@@ -646,16 +646,16 @@ class Old_ReadPositiveHitPositive(TestCase):
                 ssss
                qqqqqq
         """
-        hsp = FakeHSP(hitStart=1, hitEnd=4, readStart=2, readEnd=5,
+        hsp = FakeHSP(subjectStart=1, subjectEnd=4, readStart=2, readEnd=5,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 1,
             'readEnd': 5,
-            'readStartInHit': -1,
-            'readEndInHit': 5,
+            'readStartInSubject': -1,
+            'readEndInSubject': 5,
         }, normalized)
 
     def testHitExtendsRightAndLeft(self):
@@ -664,16 +664,16 @@ class Old_ReadPositiveHitPositive(TestCase):
                sssssss
                 qqqq
         """
-        hsp = FakeHSP(hitStart=2, hitEnd=5, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=2, subjectEnd=5, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
-            'hitStart': 1,
-            'hitEnd': 5,
+            'subjectStart': 1,
+            'subjectEnd': 5,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': 1,
-            'readEndInHit': 5,
+            'readStartInSubject': 1,
+            'readEndInSubject': 5,
         }, normalized)
 
     def test20131115Debugging(self):
@@ -683,16 +683,16 @@ class Old_ReadPositiveHitPositive(TestCase):
 
         read = 'TTCTTTTTGCATTTGATAGT-TTGCTACAAG'
         hit = 'TTCTTTTTGCAATAGTCAGTCTTGCTAAAAG'
-        hsp = FakeHSP(hitStart=45, hitEnd=75, readStart=120,
+        hsp = FakeHSP(subjectStart=45, subjectEnd=75, readStart=120,
                       readEnd=149, frame=self.frame, read=read, hit=hit)
         normalized = normalizeHSP(hsp, 149, 'blastn')
         self.assertEqual({
-            'hitStart': 44,
-            'hitEnd': 75,
+            'subjectStart': 44,
+            'subjectEnd': 75,
             'readStart': 119,
             'readEnd': 149,
-            'readStartInHit': -75,
-            'readEndInHit': 75,
+            'readStartInSubject': -75,
+            'readEndInSubject': 75,
         }, normalized)
 
 
@@ -712,16 +712,16 @@ class Old_ReadPositiveHitNegative(TestCase):
               ssss
               qqqq
         """
-        hsp = FakeHSP(hitStart=4, hitEnd=1, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=4, subjectEnd=1, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': 0,
-            'readEndInHit': 4,
+            'readStartInSubject': 0,
+            'readEndInSubject': 4,
         }, normalized)
 
     def testReadExtendsLeft(self):
@@ -730,16 +730,16 @@ class Old_ReadPositiveHitNegative(TestCase):
                 ssss
                 qqqqqq
         """
-        hsp = FakeHSP(hitStart=4, hitEnd=1, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=4, subjectEnd=1, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': -2,
-            'readEndInHit': 4,
+            'readStartInSubject': -2,
+            'readEndInSubject': 4,
         }, normalized)
 
     def testReadExtendsLeft2(self):
@@ -748,16 +748,16 @@ class Old_ReadPositiveHitNegative(TestCase):
               ssss
                 qqqqqq
         """
-        hsp = FakeHSP(hitStart=4, hitEnd=1, readStart=3, readEnd=6,
+        hsp = FakeHSP(subjectStart=4, subjectEnd=1, readStart=3, readEnd=6,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 2,
             'readEnd': 6,
-            'readStartInHit': 0,
-            'readEndInHit': 6,
+            'readStartInSubject': 0,
+            'readEndInSubject': 6,
         }, normalized)
 
     def testReadExtendsRight(self):
@@ -766,16 +766,16 @@ class Old_ReadPositiveHitNegative(TestCase):
                   ssss
                 qqqqqq
         """
-        hsp = FakeHSP(hitStart=4, hitEnd=1, readStart=3, readEnd=6,
+        hsp = FakeHSP(subjectStart=4, subjectEnd=1, readStart=3, readEnd=6,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 2,
             'readEnd': 6,
-            'readStartInHit': 0,
-            'readEndInHit': 6,
+            'readStartInSubject': 0,
+            'readEndInSubject': 6,
         }, normalized)
 
     def testReadExtendsRight2(self):
@@ -784,16 +784,16 @@ class Old_ReadPositiveHitNegative(TestCase):
                 ssss
             qqqqqq
         """
-        hsp = FakeHSP(hitStart=2, hitEnd=1, readStart=5, readEnd=6,
+        hsp = FakeHSP(subjectStart=2, subjectEnd=1, readStart=5, readEnd=6,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 6, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 2,
+            'subjectStart': 0,
+            'subjectEnd': 2,
             'readStart': 4,
             'readEnd': 6,
-            'readStartInHit': 0,
-            'readEndInHit': 6,
+            'readStartInSubject': 0,
+            'readEndInSubject': 6,
         }, normalized)
 
     def testReadExtendsRightAndLeft(self):
@@ -802,16 +802,16 @@ class Old_ReadPositiveHitNegative(TestCase):
                   ssss
                 qqqqqqq
         """
-        hsp = FakeHSP(hitStart=4, hitEnd=1, readStart=3, readEnd=6,
+        hsp = FakeHSP(subjectStart=4, subjectEnd=1, readStart=3, readEnd=6,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 7, 'blastn')
         self.assertEqual({
-            'hitStart': 0,
-            'hitEnd': 4,
+            'subjectStart': 0,
+            'subjectEnd': 4,
             'readStart': 2,
             'readEnd': 6,
-            'readStartInHit': -1,
-            'readEndInHit': 6,
+            'readStartInSubject': -1,
+            'readEndInSubject': 6,
         }, normalized)
 
     def testHitExtendsRightAndLeft(self):
@@ -820,16 +820,16 @@ class Old_ReadPositiveHitNegative(TestCase):
                 sssssss
                  qqqq
         """
-        hsp = FakeHSP(hitStart=5, hitEnd=2, readStart=1, readEnd=4,
+        hsp = FakeHSP(subjectStart=5, subjectEnd=2, readStart=1, readEnd=4,
                       frame=self.frame)
         normalized = normalizeHSP(hsp, 4, 'blastn')
         self.assertEqual({
-            'hitStart': 1,
-            'hitEnd': 5,
+            'subjectStart': 1,
+            'subjectEnd': 5,
             'readStart': 0,
             'readEnd': 4,
-            'readStartInHit': 1,
-            'readEndInHit': 5,
+            'readStartInSubject': 1,
+            'readEndInSubject': 5,
         }, normalized)
 
     def test20130721Debugging(self):
@@ -857,16 +857,16 @@ class Old_ReadPositiveHitNegative(TestCase):
             'GTCGAGAAGATCAAGATTGGTAAGGAGGCCGTGCAGGACACCGAGACCGT'
             '-----')
 
-        hsp = FakeHSP(hitStart=9018, hitEnd=8764, readStart=66,
+        hsp = FakeHSP(subjectStart=9018, subjectEnd=8764, readStart=66,
                       readEnd=315, frame=self.frame, hit=hit, read=read)
         normalized = normalizeHSP(hsp, 316, 'blastn')
         self.assertEqual({
-            'hitStart': 8763,
-            'hitEnd': 9018,
+            'subjectStart': 8763,
+            'subjectEnd': 9018,
             'readStart': 65,
             'readEnd': 315,
-            'readStartInHit': 8762,
-            'readEndInHit': 9083,
+            'readStartInSubject': 8762,
+            'readEndInSubject': 9083,
         }, normalized)
 
     def test20131113Debugging(self):
@@ -891,16 +891,16 @@ class Old_ReadPositiveHitNegative(TestCase):
             'GCCGCAGATGAGGCTCGTCGTGAGGCTATTGCTGCCCATGAGAACCTGCGTGCAGAAC'
             'AGAAGGGACTCGGCAAGCGAATCGCTAAAGCATCCGGTG')
 
-        hsp = FakeHSP(hitStart=2339751, hitEnd=2339365, readStart=1,
+        hsp = FakeHSP(subjectStart=2339751, subjectEnd=2339365, readStart=1,
                       readEnd=386, frame=self.frame, hit=hit, read=read)
         normalized = normalizeHSP(hsp, 396, 'blastn')
         self.assertEqual({
-            'hitStart': 2339364,
-            'hitEnd': 2339751,
+            'subjectStart': 2339364,
+            'subjectEnd': 2339751,
             'readStart': 0,
             'readEnd': 386,
-            'readStartInHit': 2339354,
-            'readEndInHit': 2339751,
+            'readStartInSubject': 2339354,
+            'readEndInSubject': 2339751,
         }, normalized)
 
     def test20131115Debugging(self):
@@ -909,14 +909,14 @@ class Old_ReadPositiveHitNegative(TestCase):
         """
         read = 'CTCTTGCA-CCTTAGGTACC'
         hit = 'CTCTAGCAGCCTTAGGTACC'
-        hsp = FakeHSP(hitStart=1776, hitEnd=1795, readStart=131,
+        hsp = FakeHSP(subjectStart=1776, subjectEnd=1795, readStart=131,
                       readEnd=149, frame=self.frame, read=read, hit=hit)
         normalized = normalizeHSP(hsp, 149, 'blastn')
         self.assertEqual({
-            'hitStart': 1775,
-            'hitEnd': 1795,
+            'subjectStart': 1775,
+            'subjectEnd': 1795,
             'readStart': 130,
             'readEnd': 149,
-            'readStartInHit': 1775,
-            'readEndInHit': 1925,
+            'readStartInSubject': 1775,
+            'readEndInSubject': 1925,
         }, normalized)

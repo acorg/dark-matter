@@ -136,7 +136,8 @@ class TestBlastReadsAlignments(TestCase):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(
                 reads, 'file.json', scoreClass=LowerIsBetterScore)
-            self.assertEqual('E Value', readsAlignments.params.scoreTitle)
+            self.assertEqual('$- log_{10}(e)',
+                             readsAlignments.params.scoreTitle)
 
     def testNucleotidesBlastn(self):
         """

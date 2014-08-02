@@ -17,28 +17,28 @@ class _Base(object):
 
     @param readStart: The offset in the read where the match begins.
     @param readEnd: The offset in the read where the match ends.
-    @param readStartInHit: The offset in the hit where the match of
+    @param readStartInSubject: The offset in the subject where the match of
         the read starts.
-    @param readEndInHit: The offset in the hit where the match of
+    @param readEndInSubject: The offset in the subject where the match of
         the read ends.
-    @param hitStart: The offset in the hit where the match begins.
-    @param hitEnd: The offset in the hit where the match ends.
+    @param subjectStart: The offset in the subject where the match begins.
+    @param subjectEnd: The offset in the subject where the match ends.
     @param readMatchedSequence: The matched part of the read. Note that
         this may contain gaps (marked with '-').
-    @param hitMatchedSequence: The matched part of the hit. Note that
+    @param subjectMatchedSequence: The matched part of the subject. Note that
         this may contain gaps (marked with '-').
     """
-    def __init__(self, readStart=None, readEnd=None, readStartInHit=None,
-                 readEndInHit=None, hitStart=None, hitEnd=None,
-                 readMatchedSequence=None, hitMatchedSequence=None):
+    def __init__(self, readStart=None, readEnd=None, readStartInSubject=None,
+                 readEndInSubject=None, subjectStart=None, subjectEnd=None,
+                 readMatchedSequence=None, subjectMatchedSequence=None):
         self.readStart = readStart
         self.readEnd = readEnd
-        self.readStartInHit = readStartInHit
-        self.readEndInHit = readEndInHit
-        self.hitStart = hitStart
-        self.hitEnd = hitEnd
+        self.readStartInSubject = readStartInSubject
+        self.readEndInSubject = readEndInSubject
+        self.subjectStart = subjectStart
+        self.subjectEnd = subjectEnd
         self.readMatchedSequence = readMatchedSequence
-        self.hitMatchedSequence = hitMatchedSequence
+        self.subjectMatchedSequence = subjectMatchedSequence
 
     def __lt__(self, other):
         return self.score < other.score

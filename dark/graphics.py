@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 from stat import S_ISDIR
 from math import ceil
 from collections import defaultdict
@@ -10,7 +11,6 @@ from matplotlib.lines import Line2D
 from matplotlib import gridspec
 from IPython.display import HTML
 import numpy as np
-from operator import itemgetter
 
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
@@ -18,6 +18,7 @@ from dark.html import AlignmentPanelHTML, NCBISequenceLink, NCBISequenceLinkURL
 from dark.intervals import ReadIntervals
 from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
 from dark import orfs
+from dark.intervals import OffsetAdjuster
 
 
 QUERY_COLORS = {
@@ -49,7 +50,7 @@ def _sortHTML(hits, by):
     given attribute.
 
     @param hits: An L{dark.blast.BlastHits} instance.
-    @param by: A C{str}, one of 'eMean', 'eMedian', 'readCount', 'title'.
+    @param by: A C{str}, one of 'scoreMedian', 'readCount', 'title'.
     @return: An HTML instance with sorted titles and information about
         hit read count, length, and e-values.
     """
@@ -60,7 +61,7 @@ def _sortHTML(hits, by):
         out.append(
             '%3d: count=%4d, len=%7d, max(bit)=%20s median(bit)=%20s: %s' %
             (i, hitInfo['readCount'], hitInfo['length'],
-             hitInfo['bitScoreMax'], hitInfo['bitScoreMedian'], link))
+             hitInfo['scoreMax'], hitInfo['scoreMedian'], link))
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
@@ -155,7 +156,7 @@ def summarizeHitsByMedianBitScore(hits):
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
 
-def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
+def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                    showFeatures=True, logLinearXAxis=False,
                    logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankValues=False,
                    colorQueryBases=False, createFigure=True, showFigure=True,
@@ -167,7 +168,6 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
     @param title: A C{str} sequence title that was hit by BLAST. We plot the
         reads that hit this title.
-    @param plotInfo: A C{dict} containing information for plotting this title.
     @param addQueryLines: if C{True}, draw query lines in full (these will then
         be partly overdrawn by the HSP match against the subject). These are
         the 'whiskers' that potentially protrude from each side of a query.
@@ -202,21 +202,6 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
 
-    titleAlignments = titlesAlignments[title]
-    subjectIsNucleotides = titlesAlignments.params['subjectIsNucleotides']
-
-    if not subjectIsNucleotides and showOrfs:
-        # We cannot show ORFs when displaying protein plots.
-        showOrfs = False
-
-    # TODO: this will not work if the subject is not in NCBI or if its
-    # title doesn't have a form that NCBI can recognize.
-    #
-    # The subject sequence is only really used to show ORFs. We also get
-    # its length, but we already have that info in titlesAlignments.
-    sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
-    titlesAlignments
-
     if createFigure:
         width = 20
         figure = plt.figure(figsize=(width, 20))
@@ -243,27 +228,38 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
         else:
             readsAx = readsAx or plt.subplot(111)
 
+    titleAlignments = titlesAlignments[title]
+
+    # Set copiedTitleAlignments to True if we deepcopy titleAlignments, in
+    # order to prevent copying it multiple times.
+    copiedTitleAlignments = False
+
+    subjectIsNucleotides = titlesAlignments.params['subjectIsNucleotides']
+
+    if showOrfs and not subjectIsNucleotides:
+        # We cannot show ORFs when displaying protein plots.
+        showOrfs = False
+
+    sequence = titlesAlignments.getSequence(title)
+
     if logLinearXAxis:
+        if not copiedTitleAlignments:
+            titleAlignments = deepcopy(titleAlignments)
+            copiedTitleAlignments = True
         readIntervals = ReadIntervals(titleAlignments.subjectLength)
-        offsetAdjuster = offsetAdjuster.adjustOffset
-        adjuster = OffsetAdjuster(readIntervals, base=logBase)
-
         for hsp in titleAlignments.hsps():
-            readIntervals.add(hsp.readStartInHit, hsp.readEndInHit)
-
+            readIntervals.add(hsp.readStartInSubject, hsp.readEndInSubject)
+        offsetAdjuster = OffsetAdjuster(readIntervals, base=logBase)
+        adjustOffset = adjuster.adjustOffset
     else:
-        offsetAdjuster = lambda x: x
+        adjustOffset = lambda x: x
 
-    items = plotInfo['items']
-    if plot == 'bit scores':
-        maxYIncludingRandoms = maxY = int(ceil(plotInfo['bitScoreMax']))
-        minY = int(plotInfo['bitScoreMin'])
-    else:
-        maxYIncludingRandoms = int(ceil(plotInfo['maxEIncludingRandoms']))
-        maxY = int(ceil(plotInfo['maxE']))
-        minY = int(plotInfo['minE'])
-    maxX = plotInfo['maxX']
-    minX = plotInfo['minX']
+    # It might be more efficient to only walk through all HSPs once and
+    # compute these values all at once, but for now this is simple & clear.
+    maxY = int(ceil(titleAlignments.bestHsp().score.score))
+    minY = int(titleAlignments.worstHsp().score.score)
+    maxX = max(hsp.readEnd for hsp in titleAlignments.hsps())
+    minX = min(hsp.readStart for hsp in titleAlignments.hsps())
 
     # Add light grey vertical rectangles to show the logarithmic gaps. Add
     # these first so that reads will be plotted on top of them. Only draw
@@ -273,68 +269,63 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
     if logLinearXAxis and len(offsetAdjuster.adjustments()) < 100:
         for (intervalType, interval) in readIntervals.walk():
             if intervalType == ReadIntervals.EMPTY:
-                adjustedStart = offsetAdjuster(interval[0])
-                adjustedStop = offsetAdjuster(interval[1])
+                adjustedStart = adjustOffset(interval[0])
+                adjustedStop = adjustOffset(interval[1])
                 width = adjustedStop - adjustedStart
                 if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
                     readsAx.axvspan(adjustedStart, adjustedStop,
                                     color='#f4f4f4')
 
-    # A function to pull the Y value out of a plotInfo.
-    getY = itemgetter('bitScore' if plot == 'bit scores' else 'convertedE')
-
-    if logLinearXAxis:
-        plotInfo['readIntervals'].add(normalized['readStartInHit'],
-                                      normalized['readEndInHit'])
+    # Call here to adjust the scores in case of e-values?
 
     if colorQueryBases:
         # Color each query by its bases.
         xScale = 3
         yScale = 2
         baseImage = BaseImage(
-            maxX - minX,
-            maxYIncludingRandoms - minY + (1 if rankValues else 0),
+            maxX - minX, maxY - minY + (1 if rankValues else 0),
             xScale, yScale)
         for hsp in titleAlignments.hsps():
-            y = getY(item) - minY
-            # If the product of the subject and query frame values is +ve,
+            y = hsp.score.score - minY
+            # If the product of the subject and read frame values is +ve,
             # then they're either both +ve or both -ve, so we just use the
-            # query as is. Otherwise, we need to reverse complement it.
-            if item['frame']['subject'] * item['frame']['query'] > 0:
-                query = blastHits.fasta[item['readNum']].seq
+            # read as is. Otherwise, we need to reverse complement it.
+            if hsp.frame['subject'] * hsp.frame['query'] > 0:
+                query = blastHits.fasta[hsp['readNum']].seq
             else:
                 # One of the subject or query has negative sense.
                 query = blastHits.fasta[
-                    item['readNum']].reverse_complement().seq
+                    hsp['readNum']].reverse_complement().seq
             query = query.upper()
-            readStartInHit = hsp.readStartInHit
+            readStartInSubject = hsp.readStartInSubject
             # There are 3 parts of the query string we need to display. 1)
-            # the left part (if any) before the matched part of the
-            # subject. 2) the matched part (which can include gaps in the
-            # query and/or subject). 3) the right part (if any) after the
-            # matched part.
-            # For each part, calculate the ranges in which we have to make
-            # the comparison between subject and query.
+            # the left part (if any) before the matched part of the subject.
+            # 2) the matched part (which can include gaps in the query
+            # and/or subject). 3) the right part (if any) after the matched
+            # part.  For each part, calculate the ranges in which we have
+            # to make the comparison between subject and query.
 
-            # NOTE: never use item['origHsp'].gaps to calculate the number
+            # NOTE: never use hsp['origHsp'].gaps to calculate the number
             # of gaps, as this number contains gaps in both subject and
             # query.
 
             # 1. Left part:
-            leftRange = hsp.hitStart - readStartInHit
+            leftRange = hsp.subjectStart - readStartInSubject
 
             # 2. Match, middle part:
-            middleRange = len(item['origHsp'].query)
+            middleRange = len(hsp['origHsp'].query)
 
             # 3. Right part:
-            # Using hsp.readEndInHit - hsp.hitEnd to calculate the length
-            # of the right part leads to the part being too long. The number of
-            # gaps needs to be subtracted to get the right length.
-            origQuery = item['origHsp'].query
-            rightRange = hsp.readEndInHit - hsp.hitEnd - origQuery.count('-')
+            # Using hsp.readEndInSubject - hsp.subjectEnd to calculate the
+            # length of the right part leads to the part being too long.
+            # The number of gaps needs to be subtracted to get the right
+            # length.
+            origQuery = hsp['origHsp'].query
+            rightRange = (hsp.readEndInSubject - hsp.subjectEnd -
+                          origQuery.count('-'))
 
             # 1. Left part.
-            xOffset = readStartInHit - minX
+            xOffset = readStartInSubject - minX
             queryOffset = 0
             for queryIndex in xrange(leftRange):
                 color = QUERY_COLORS.get(query[queryOffset + queryIndex],
@@ -342,11 +333,11 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
                 baseImage.set(xOffset + queryIndex, y, color)
 
             # 2. Match part.
-            xOffset = hsp.hitStart - minX
+            xOffset = hsp.subjectStart - minX
             xIndex = 0
-            queryOffset = hsp.hitStart - hsp.readStartInHit
-            origSubject = item['origHsp'].sbjct
-            origQuery = item['origHsp'].query.upper()
+            queryOffset = hsp.subjectStart - hsp.readStartInSubject
+            origSubject = hsp['origHsp'].sbjct
+            origQuery = hsp['origHsp'].query.upper()
             for matchIndex in xrange(middleRange):
                 if origSubject[matchIndex] == '-':
                     # A gap in the subject was needed to match the query.
@@ -374,7 +365,7 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
                     xIndex += 1
 
             # 3. Right part.
-            xOffset = hsp.hitEnd - minX
+            xOffset = hsp.subjectEnd - minX
             backQuery = query[-rightRange:].upper()
             for queryIndex in xrange(rightRange):
                 color = QUERY_COLORS.get(backQuery[queryIndex],
@@ -391,8 +382,8 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
         if addQueryLines:
             for hsp in titleAlignments.hsps():
                 y = hsp.score.score
-                line = Line2D([hsp.readStartInHit, hsp.readEndInHit], [y, y],
-                              color='#aaaaaa')
+                line = Line2D([hsp.readStartInSubject, hsp.readEndInSubject],
+                              [y, y], color='#aaaaaa')
                 readsAx.add_line(line)
 
         # Add the horizontal BLAST alignment lines.
@@ -408,19 +399,19 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
                     else:
                         readColor[read] = color
 
-        for hsp in titleAlignments.hsps():
-            queryId = blastHits.fasta[item['readNum']].id
-            y = getY(item)
-            hsp = item['hsp']
-            line = Line2D([hsp.hitStart, hsp.hitEnd], [y, y],
-                          color=readColor.get(queryId, 'blue'))
-            readsAx.add_line(line)
+        for titleAlignment in titleAlignments.alignments:
+            readId = titleAlignment.read.id
+            for hsp in titleAlignment.hsps():
+                y = hsp.score.score
+                line = Line2D([hsp.subjectStart, hsp.subjectEnd], [y, y],
+                              color=readColor.get(readId, 'blue'))
+                readsAx.add_line(line)
 
     if showOrfs:
-        orfs.addORFs(orfAx, sequence.seq, minX, maxX, offsetAdjuster)
+        orfs.addORFs(orfAx, sequence.seq, minX, maxX, adjustOffset)
         orfs.addReversedORFs(orfReversedAx,
                              sequence.reverse_complement().seq,
-                             minX, maxX, offsetAdjuster)
+                             minX, maxX, adjustOffset)
 
     if showFeatures:
         if subjectIsNucleotides:
@@ -429,7 +420,7 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
             featureAdder = ProteinFeatureAdder()
 
         features = featureAdder.add(featureAx, title, minX, maxX,
-                                    offsetAdjuster)
+                                    adjustOffset)
 
         # If there are features and there weren't too many of them, add
         # vertical feature lines to the reads and ORF axes.
@@ -451,8 +442,11 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
     # We'll return some information we've gathered.
     result = {
         'features': features,
+        # TODO: add the thing that's needed by alignmentPanel.
     }
 
+
+    # TODO: Call the plot-adjuster function in titlesAlignments
     if plot == 'e values' and plotInfo['zeroEValueFound']:
         # Add the horizontal divider between the highest e-value and the
         # randomly higher ones (if any).
@@ -476,16 +470,10 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
     # Add a title and y-axis label, but only if we made the reads axes.
     if createdReadsAx:
         readsAx.set_title('Read alignments', fontsize=20)
+        ylabel = titlesAlignments.readsAlignments.params.scoreTitle
         if rankValues:
-            if plot == 'bit scores':
-                plt.ylabel('bit score rank', fontsize=17)
-            else:
-                plt.ylabel('e-value rank', fontsize=17)
-        else:
-            if plot == 'bit scores':
-                plt.ylabel('Bit score', fontsize=17)
-            else:
-                plt.ylabel('$- log_{10}(e)$', fontsize=17)
+            ylabel += ' rank'
+        plt.ylabel('bit score rank', fontsize=17)
 
     # Set the x-axis limits.
     if xRange == 'subject':
@@ -496,14 +484,14 @@ def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
         first = True
         for hsp in titleAlignments.hsps():
             if first:
-                queryMin = hsp.readStartInHit
-                queryMax = hsp.readEndInHit
+                queryMin = hsp.readStartInSubject
+                queryMax = hsp.readEndInSubject
                 first = False
             else:
-                if hsp.readStartInHit < queryMin:
-                    queryMin = hsp.readStartInHit
-                if hsp.readEndInHit > queryMax:
-                    queryMax = hsp.readEndInHit
+                if hsp.readStartInSubject < queryMin:
+                    queryMin = hsp.readStartInSubject
+                if hsp.readEndInSubject > queryMax:
+                    queryMax = hsp.readEndInSubject
 
         readsAx.set_xlim([queryMin, queryMax])
         result['queryMin'] = queryMin
