@@ -1,3 +1,4 @@
+from copy import deepcopy
 from math import log
 
 
@@ -97,19 +98,21 @@ class OffsetAdjuster(object):
         """Adjust a single X offset."""
         return offset - self._reductionForOffset(offset)
 
-    def adjustNormalizedHSP(self, hsp):
+    def adjustHSP(self, hsp):
         """
-        Adjust the query and subject start and end offsets in a normalized HSP,
-        returning a new normalized HSP.
+        Adjust the read and subject start and end offsets in an HSP,
+        returning a new HSP.
 
-        hsp: a normalized HSP, as produced by normalizeHSP in hsps.py
+        @param hsp: a L{dark.hsp.HSP} or L{dark.hsp.LSP} instance.
+        @return: A new L{dark.hsp.HSP} or L{dark.hsp.LSP} instance.
         """
         reduction = self._reductionForOffset(
-            min(hsp['queryStart'], hsp['subjectStart']))
+            min(hsp.readStartInHit, hsp.hitStart))
 
-        return {
-            'queryEnd': hsp['queryEnd'] - reduction,
-            'queryStart': hsp['queryStart'] - reduction,
-            'subjectEnd': hsp['subjectEnd'] - reduction,
-            'subjectStart': hsp['subjectStart'] - reduction,
-        }
+        result = deepcopy(hsp)
+        result.readEndInHit = hsp.readEndInHit - reduction
+        result.readStartInHit = hsp.readStartInHit - reduction
+        result.hitEnd = hsp.hitEnd - reduction
+        result.hitStart = hsp.hitStart - reduction
+
+        return result

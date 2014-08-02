@@ -5,6 +5,8 @@ import bz2
 from json import dumps
 from unittest import TestCase
 from mock import patch
+from cStringIO import StringIO
+from Bio import SeqIO
 
 from ..mocking import mockOpen
 from sample_data import PARAMS, RECORD0, RECORD1, RECORD2
@@ -14,6 +16,7 @@ from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import (
     BlastReadsAlignments, numericallySortFilenames)
+from dark import ncbidb
 
 
 class BZ2(object):
@@ -114,7 +117,68 @@ class TestBlastReadsAlignments(TestCase):
             self.assertRaisesRegexp(
                 ValueError, error, BlastReadsAlignments, reads, 'file.json')
 
-    def testJSONParams(self):
+    def testScoreTitle_Bits(self):
+        """
+        The score title must be correct when we are using bit scores.
+        """
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual('Bit score', readsAlignments.params.scoreTitle)
+
+    def testScoreTitle_EValue(self):
+        """
+        The score title must be correct when we are using e values.
+        """
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
+            self.assertEqual('E Value', readsAlignments.params.scoreTitle)
+
+    def testNucleotidesBlastn(self):
+        """
+        The nucleotide type of the subject must be correct when we are using
+        blastn.
+        """
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual('blastn', readsAlignments.params.application)
+            self.assertTrue(readsAlignments.params.subjectIsNucleotides)
+
+    def testNucleotidesTblastx(self):
+        """
+        The nucleotide type of the subject must be correct when we are using
+        tblastx.
+        """
+        params = deepcopy(PARAMS)
+        params['application'] = 'tblastx'
+        mockOpener = mockOpen(read_data=dumps(params) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual('tblastx', readsAlignments.params.application)
+            self.assertTrue(readsAlignments.params.subjectIsNucleotides)
+
+    def testNucleotidesBlastx(self):
+        """
+        The nucleotide type of the subject must be correct when we are using
+        blastx.
+        """
+        params = deepcopy(PARAMS)
+        params['application'] = 'blastx'
+        mockOpener = mockOpen(read_data=dumps(params) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual('blastx', readsAlignments.params.application)
+            self.assertFalse(readsAlignments.params.subjectIsNucleotides)
+
+    def testApplicationParams(self):
         """
         BLAST parameters must be extracted from the input JSON file and stored
         correctly.
@@ -123,12 +187,13 @@ class TestBlastReadsAlignments(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            self.assertEqual(PARAMS, readsAlignments.params)
+            self.assertEqual(PARAMS, readsAlignments.params.applicationParams)
 
     def testJSONParamsButNoHits(self):
         """
-        BLAST parameters are present but there are no hits, the __iter__
-        method of a L{BlastReadsAlignments} instance must not yield anything.
+        When BLAST parameters are present in the input but there are no
+        records, the __iter__ method of a L{BlastReadsAlignments} instance must
+        not yield anything.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
@@ -309,6 +374,21 @@ class TestBlastReadsAlignments(TestCase):
             readsAlignments = BlastReadsAlignments(
                 reads, ['file1.json.bz2', 'file2.json.bz2'])
             self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
+
+    def testGetSequence(self):
+        """
+        The getSequence function must return a correct C{SeqIO.read} instance.
+        """
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            with patch.object(ncbidb, 'getSequence') as mockMethod:
+                mockMethod.return_value = SeqIO.read(
+                    StringIO('>id1 Description\nAA\n'), 'fasta')
+                sequence = readsAlignments.getSequence('title')
+                self.assertEqual('AA', str(sequence.seq))
+                self.assertEqual('id1 Description', sequence.description)
 
 
 class TestBlastReadsAlignmentsFiltering(TestCase):

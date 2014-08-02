@@ -2,9 +2,10 @@ import copy
 import string
 
 from dark.score import HigherIsBetterScore
-from dark.alignments import ReadsAlignments
+from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
+from dark import ncbidb
 
 
 def numericallySortFilenames(names):
@@ -56,24 +57,36 @@ class BlastReadsAlignments(ReadsAlignments):
         sorted by numeric prefix (using L{numericallySortFilenames}) before
         being read. This can be used to conveniently sort the files produced
         by our HTCondor jobs.
+    @param randomizeZeroEValues: If C{True}, e-values that are zero will be set
+        to a random (very good) value.
     @raises ValueError: if a file type is not recognized, if the number of
         reads does not match the number of records found in the BLAST result
         files, or if BLAST parameters in all files do not match.
     """
 
     def __init__(self, reads, blastFilenames, scoreClass=HigherIsBetterScore,
-                 sortBlastFilenames=True):
+                 sortBlastFilenames=True, randomizeZeroEValues=True):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
         if sortBlastFilenames:
             self.blastFilenames = numericallySortFilenames(blastFilenames)
         else:
             self.blastFilenames = blastFilenames
+        self.randomizeZeroEValues = randomizeZeroEValues
 
-        # Read and copy the BLAST parameters and initialize self.
+        # Prepare application parameters in order to initialize self.
         self._reader = self._getReader(self.blastFilenames[0], scoreClass)
-        ReadsAlignments.__init__(self, reads, self._reader.application,
-                                 copy.deepcopy(self._reader.params),
+        application = self._reader.application
+        blastParams = copy.deepcopy(self._reader.params)
+        subjectIsNucleotides = application != 'blastx'
+        scoreTitle = (
+            'Bit score' if scoreClass is HigherIsBetterScore else 'E Value')
+
+        applicationParams = ReadsAlignmentsParams(
+            application, blastParams,
+            subjectIsNucleotides=subjectIsNucleotides, scoreTitle=scoreTitle)
+
+        ReadsAlignments.__init__(self, reads, applicationParams,
                                  scoreClass=scoreClass)
 
     def _getReader(self, filename, scoreClass):
@@ -108,10 +121,13 @@ class BlastReadsAlignments(ReadsAlignments):
 
         for blastFilename in self.blastFilenames:
             if first:
+                # No need to check params in the first file. We already read
+                # them in and stored them in __init__.
                 first = False
             else:
                 reader = self._getReader(blastFilename, self.scoreClass)
-                differences = checkCompatibleParams(self.params, reader.params)
+                differences = checkCompatibleParams(
+                    self.params.applicationParams, reader.params)
                 if differences:
                     raise ValueError(
                         'Incompatible BLAST parameters found. The parameters '
@@ -134,3 +150,16 @@ class BlastReadsAlignments(ReadsAlignments):
                 'Reads iterator contained more reads than the number of BLAST '
                 'records found (%d). First unknown read id is %r.' %
                 (count, read.id))
+
+    def getSequence(self, title):
+        """
+        Obtain information about a sequence, given its title.
+
+        @param title: A C{str} sequence title from a BLAST hit. Of the form
+            'gi|63148399|gb|DQ011818.1| Description...'.
+        @return: A C{SeqIO.read} instance.
+        """
+        # Look up the title in the database that was given to BLAST on the
+        # command line.
+        return ncbidb.getSequence(
+            title, self.params.applicationParams['database'])

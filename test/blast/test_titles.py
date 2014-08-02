@@ -209,6 +209,32 @@ class TestTitlesAlignments(TestCase):
             titlesAlignments.addTitle(title, titleAlignments)
             self.assertTrue(title in titlesAlignments)
 
+    def testHsps(self):
+        """
+        The hsps function must yield all the hsps for all titles in a
+        TitlesAlignments instance.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = list(titlesAlignments.hsps())
+            self.assertEqual(
+                sorted([HSP(20), HSP(25), HSP(20), HSP(20), HSP(20)]),
+                sorted(result))
+
+
+class TestTitlesAlignmentsFiltering(TestCase):
+    """
+    Test the TitlesAlignments class filter function.
+    """
+
     def testFilterWithNoArguments(self):
         """
         The filter function must return a TitlesAlignments instance with all

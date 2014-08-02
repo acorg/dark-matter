@@ -4,7 +4,8 @@ from dark.reads import Read, Reads
 from dark.score import HigherIsBetterScore
 from dark.hsp import HSP, LSP
 from dark.alignments import (
-    Alignment, bestAlignment, ReadAlignments, ReadsAlignments)
+    Alignment, bestAlignment, ReadAlignments, ReadsAlignmentsParams,
+    ReadsAlignments)
 
 
 class TestAlignment(TestCase):
@@ -124,6 +125,24 @@ class TestBestAlignmentLSP(TestCase):
         self.assertEqual(44, best.subjectLength)
 
 
+class TestReadsAlignmentsParams(TestCase):
+    """
+    Test the L{dark.alignments.ReadsAlignmentsParams} class.
+    """
+
+    def testExpectedAttrs(self):
+        """
+        A ReadsAlignmentsParams instance must have the expected attributes.
+        """
+        applicationParams = {}
+        params = ReadsAlignmentsParams('application name', applicationParams,
+                                       False, 'Bit score')
+        self.assertEqual('application name', params.application)
+        self.assertIs(applicationParams, params.applicationParams)
+        self.assertFalse(params.subjectIsNucleotides)
+        self.assertEqual('Bit score', params.scoreTitle)
+
+
 class TestReadsAlignments(TestCase):
     """
     Test the L{dark.alignments.ReadsAlignments} class.
@@ -134,10 +153,12 @@ class TestReadsAlignments(TestCase):
         A ReadsAlignments instance must have the expected attributes.
         """
         reads = Reads()
-        params = {}
-        readsAlignments = ReadsAlignments(reads, 'applicationName', params)
+        params = {
+            'application': 'app name'
+        }
+        readsAlignments = ReadsAlignments(reads, params)
         self.assertIs(readsAlignments.reads, reads)
-        self.assertEqual('applicationName', readsAlignments.application)
+        self.assertEqual('app name', readsAlignments.params['application'])
         self.assertIs(params, readsAlignments.params)
         self.assertIs(HigherIsBetterScore, readsAlignments.scoreClass)
 
@@ -151,3 +172,14 @@ class TestReadsAlignments(TestCase):
         error = '__iter__ must be implemented by a subclass'
         self.assertRaisesRegexp(NotImplementedError, error, list,
                                 readsAlignments.filter())
+
+    def testGetSequence(self):
+        """
+        A ReadsAlignments instance will not implement getSequence. Subclasses
+        are expected to implement it.
+        """
+        reads = Reads()
+        readsAlignments = ReadsAlignments(reads, 'applicationName', None)
+        error = 'getSequence must be implemented by a subclass'
+        self.assertRaisesRegexp(NotImplementedError, error,
+                                readsAlignments.getSequence, 'title')

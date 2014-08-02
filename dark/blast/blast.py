@@ -1,12 +1,9 @@
 from math import log10
 import numpy as np
 from random import uniform
-from Bio import SeqIO
 
-from dark.filter import ReadSetFilter, TitleFilter
 from dark.blast.hsp import normalizeHSP
 from dark.intervals import OffsetAdjuster, ReadIntervals
-from dark.taxonomy import LineageFetcher
 from dark import mysql
 
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
@@ -29,294 +26,6 @@ class BlastHits(object):
         self.fasta = None  # Computed (once) in summarizeHits.
         self.plotParams = None  # Set in computePlotInfo.
 
-    def __len__(self):
-        """
-        Return the number of hits.
-
-        @return: an C{int}, the number of hits in this set.
-        """
-        return len(self.titles)
-
-    def addHit(self, title, hitInfo):
-        """
-        Add information about a hit against a sequence with title C{title}. If
-        the title has already been seen, raise C{KeyError}.
-
-        @param title: A C{str} sequence title.
-        @param hitInfo: A C{dict} of information associated with hits (i.e.,
-            matching reads) against the sequence with this title. The dict must
-            contain the following keys:
-
-                readCount: the number of reads that hit this sequence.
-                length:    the length of the sequence.
-                reads:     a sorted C{list} of read names (as found in e.g., a
-                           FASTA file).
-                eMean:     the mean of the e-values of all hits against this
-                           sequence.
-                eMedian:   the median of the e-values of all hits against this
-                           sequence.
-                eMin:      the minimum of the e-values of all hits against this
-                           sequence.
-        """
-
-        if title in self.titles:
-            raise KeyError('Title %r already present' % (title,))
-
-        self.titles[title] = hitInfo
-
-    def sortTitles(self, by):
-        """
-        Sort titles by a given attribute and then by title.
-
-        @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
-            'title', 'length', 'bitScoreMax', 'bitScoreMedian', 'bitScoreMean'.
-        @return: A sorted C{list} of titles.
-        """
-
-        def makeCmp(attr):
-            """
-            Create a sorting comparison function that sorts first in reverse
-            on the passed numeric attribute and then in ascending order on
-            title.
-            """
-            def compare(title1, title2):
-                result = cmp(self.titles[title2][attr],
-                             self.titles[title1][attr])
-                if result == 0:
-                    result = cmp(title1, title2)
-                return result
-            return compare
-
-        if by == 'eMin':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (self.titles[title]['eMin'], title))
-        elif by == 'eMean':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (self.titles[title]['eMean'], title))
-        elif by == 'eMedian':
-            return sorted(
-                self.titles.iterkeys(),
-                key=lambda title: (self.titles[title]['eMedian'], title))
-        elif by == 'bitScoreMax':
-            return sorted(
-                self.titles.iterkeys(), cmp=makeCmp('bitScoreMax'))
-        elif by == 'bitScoreMean':
-            return sorted(
-                self.titles.iterkeys(), cmp=makeCmp('bitScoreMean'))
-        elif by == 'bitScoreMedian':
-            return sorted(
-                self.titles.iterkeys(), cmp=makeCmp('bitScoreMedian'))
-        elif by == 'readCount':
-            return sorted(self.titles.iterkeys(), cmp=makeCmp('readCount'))
-        elif by == 'length':
-            return sorted(self.titles.iterkeys(), cmp=makeCmp('length'))
-        elif by == 'title':
-            return sorted(self.titles.iterkeys())
-
-        raise ValueError('sort attribute must be one of "eMean", '
-                         '"eMedian", "eMin", "readCount", "title".')
-
-    def sortTitlesOnPlotInfo(self, by):
-        """
-        Sort titles by a given attribute and then by title. To sort, use
-        information in plotInfo.
-
-        @param by: A C{str}, one of 'eMean', 'eMedian', 'eMin', 'readCount',
-            'title', 'length', 'bitScoreMin', 'bitScoreMean', 'bitScoreMedian'.
-        @return: A sorted C{list} of titles.
-        """
-
-        def makeCmp(attr):
-            """
-            Create a sorting comparison function that sorts first in reverse
-            on the passed numeric attribute and then in ascending order on
-            title.
-            """
-            def compare(title1, title2):
-                result = cmp(self.titles[title2][attr],
-                             self.titles[title1][attr])
-                if result == 0:
-                    result = cmp(title1, title2)
-                return result
-            return compare
-
-        def makePlotInfoCmp(attr):
-            """
-            Create a sorting comparison function that sorts first in reverse
-            on the passed numeric attribute and then in ascending order on
-            title.
-            """
-            def compare(title1, title2):
-                result = cmp(self.titles[title2]['plotInfo'][attr],
-                             self.titles[title1]['plotInfo'][attr])
-                if result == 0:
-                    result = cmp(title1, title2)
-                return result
-            return compare
-
-        def makePlotInfoKey(attr):
-            """
-            Create a function that returns a sorting key tuple consisting of
-            the passed plotinfo attribute and then the sequence title.
-            """
-            def key(title):
-                return (self.titles[title]['plotInfo'][attr], title)
-            return key
-
-        # Only return information about titles that have some plotinfo.
-        titles = (title for title in self.titles
-                  if self.titles[title]['plotInfo'] is not None)
-
-        if by == 'eMin':
-            return sorted(titles, key=makePlotInfoKey('originalEMin'))
-        elif by == 'eMean':
-            return sorted(titles, key=makePlotInfoKey('originalEMean'))
-        elif by == 'eMedian':
-            return sorted(titles, key=makePlotInfoKey('originalEMedian'))
-        elif by == 'bitScoreMax':
-            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMax'))
-        elif by == 'bitScoreMean':
-            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMean'))
-        elif by == 'bitScoreMedian':
-            return sorted(titles, cmp=makePlotInfoCmp('bitScoreMedian'))
-        elif by == 'readCount':
-            return sorted(titles, cmp=makeCmp('readCount'))
-        elif by == 'length':
-            return sorted(titles, cmp=makeCmp('length'))
-        elif by == 'title':
-            return sorted(titles)
-
-        raise ValueError('sort attribute must be one of "eMean", '
-                         '"eMedian", "eMin", "bitScoreMax", "bitScoreMean", '
-                         '"bitScoreMedian", "readCount", "length", "title".')
-
-    def filterHits(self, whitelist=None, blacklist=None, minSequenceLen=None,
-                   maxSequenceLen=None, minMatchingReads=None,
-                   maxMeanEValue=None, maxMedianEValue=None,
-                   withEBetterThan=None, titleRegex=None,
-                   negativeTitleRegex=None, truncateTitlesAfter=None,
-                   minMeanBitScore=None, minMedianBitScore=None,
-                   withBitScoreBetterThan=None, minNewReads=None,
-                   taxonomy=None):
-        """
-        Produce a new L{BlastHits} instance consisting of just the interesting
-        hits, as given by our parameters.
-
-        IMPORTANT: the hitInfo entries in the new instance are the same objects
-        we have in self.titles. So if our caller changes the result we return,
-        they will be changing self too. This could be prevented by making a
-        copy of each hitInfo element we have before passing it to result.addHit
-        below.  Sharing the hitInfo is usually desirable because it's summary
-        information about a BLAST run and so should not be changing, and it
-        saves memory.
-
-        @param whitelist: If not C{None}, a set of exact titles that are always
-            acceptable (though the hit info for a whitelist title may rule it
-            out for other reasons).
-        @param blacklist: If not C{None}, a set of exact titles that are never
-            acceptable.
-        @param minSequenceLen: sequences of lesser length will be elided.
-        @param maxSequenceLen: sequences of greater length will be elided.
-        @param minMatchingReads: sequences that are matched by fewer reads
-            will be elided.
-        @param maxMeanEValue: sequences that are matched with a mean e-value
-            that is greater will be elided.
-        @param maxMedianEValue: sequences that are matched with a median
-            e-value that is greater will be elided.
-        @param withEBetterThan: if the best (minimum) e-value for a hit is not
-            as good as (i.e., is higher than) this value, elide the hit. E.g.,
-            suppose we are passed a value of 1e-20, then we should reject any
-            hit whose best (i.e., lowest) e-value is worse (bigger) than 1e-20.
-            So a hit with minimal e-value of 1e-10 would not be reported,
-            whereas a hit with a minimal e-value of 1e-30 would be.
-        @param titleRegex: a regex that sequence titles must match.
-        @param negativeTitleRegex: a regex that sequence titles must not match.
-        @param truncateTitlesAfter: specify a string that titles will be
-            truncated beyond. If a truncated title has already been seen, that
-            title will be elided.
-        @param minMeanBitScore: sequences that are matched with a mean bit
-            score that is less than this value will be elided.
-        @param minMedianBitScore: sequences that are matched with a median
-            bit score that is less than this value will be elided.
-        @param withBitScoreBetterThan: If no bit score for a sequence is higher
-            than this value, the hit will be elided.
-        @param minNewReads: The C{float} fraction of its reads by which a new
-            read set must differ from all previously seen read sets in order to
-            be considered acceptably different.
-        @return: A new L{BlastHits} instance, with hits filtered as above.
-        """
-        titleFilter = TitleFilter(
-            whitelist=whitelist, blacklist=blacklist, positiveRegex=titleRegex,
-            negativeRegex=negativeTitleRegex,
-            truncateAfter=truncateTitlesAfter)
-
-        # Use a ReadSetFilter only if we're checking that read sets are
-        # sufficiently new.
-        if minNewReads is None:
-            readSetFilter = None
-        else:
-            readSetFilter = ReadSetFilter(minNewReads)
-
-        if taxonomy:
-            lineageFetcher = LineageFetcher()
-
-        blastHits = BlastHits(self.records, readSetFilter=readSetFilter)
-        for title, hitInfo in self.titles.iteritems():
-            titleFilterResult = titleFilter.accept(title)
-            if taxonomy:
-                if hitInfo['taxonomy'] is None:
-                    # Taxonomy information not yet been fetched for this title.
-                    hitInfo['taxonomy'] = lineageFetcher.lineage(title)
-                if taxonomy not in hitInfo['taxonomy']:
-                    continue
-
-            if (titleFilterResult == TitleFilter.WHITELIST_ACCEPT or
-                    titleFilterResult == TitleFilter.DEFAULT_ACCEPT and
-                    (minNewReads is None or
-                     readSetFilter.accept(title, hitInfo))):
-                blastHits.addHit(title, hitInfo)
-
-        if taxonomy:
-            lineageFetcher.close()
-
-        return blastHits
-
-    def _getHsps(self):
-        """
-        Extract detailed HSP information for our titles from the BLAST records.
-
-        @return: A generator yielding tuples of the form
-            (title, readNumber, hsps)
-            Where:
-                title is the title of the sequence that was hit.
-                readNumber is the index of the read in the records (and hence
-                    in the original FASTA file).
-                hsps is the list of HSPs for the read matching against the hit.
-        """
-        titles = self.titles
-        for readNum, record in enumerate(self.records.records()):
-            for alignment in record.alignments:
-                title = alignment.title
-                if title in titles and readNum in titles[title]['readNums']:
-                    yield (title, readNum, alignment.hsps)
-
-    def _convertEValuesToRanks(self, plotInfo):
-        """
-        Change e-values for the reads that hit each sequence to be their ranks.
-
-        @param plotInfo: A C{dict} of plot information, as returned by
-            C{plotInfoDict} in C{computePlotInfo}.
-        """
-        items = plotInfo['items']
-        items.sort(key=lambda item: item['convertedE'])
-        for rank, item in enumerate(items, start=1):
-            item['convertedE'] = rank
-        plotInfo['maxE'] = plotInfo['maxEIncludingRandoms'] = len(items)
-        plotInfo['minE'] = 1
-        plotInfo['zeroEValueFound'] = False
-
     def _convertBitScoresToRanks(self, plotInfo):
         """
         Change the bit scores for the reads that hit each sequence to be their
@@ -332,36 +41,7 @@ class BlastHits(object):
         plotInfo['bitScoreMax'] = len(items)
         plotInfo['bitScoreMin'] = 1
 
-    def _readFASTA(self):
-        """
-        Read the FASTA data and check its length is compatible with the
-        number of BLAST records.
-
-        @return: A C{list} of BioPython sequences.
-        """
-        fasta = list(SeqIO.parse(self.records.fastaFilename, 'fasta'))
-        # Sanity check that the number of reads in the FASTA file is
-        # compatible with the number of records in the BLAST file.
-        if self.records.limit is None:
-            assert len(fasta) == len(self.records), (
-                'Sanity check failed: mismatched BLAST and FASTA files. '
-                'BLAST files %r contain %d records, whereas FASTA file '
-                '%r contains %d sequences.' %
-                (self.records.blastFilenames, len(self.records),
-                 self.records.fastaFilename, len(fasta)))
-        else:
-            assert len(fasta) >= len(self.records), (
-                'Sanity check failed: mismatched BLAST and FASTA files. '
-                'BLAST files %r contain at least %d records, whereas '
-                'FASTA file %r only contains %d sequences.' %
-                (self.records.blastFilenames, self.records.limit,
-                 self.records.fastaFilename, len(fasta)))
-            # Truncate the FASTA to match the limit we have on the
-            # number of BLAST records.
-            fasta = fasta[:self.records.limit]
-        return fasta
-
-    def computePlotInfo(self, minStart=None, maxStop=None,
+    def computePlotInfo(self,
                         logLinearXAxis=False,
                         logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
                         randomizeZeroEValues=True, rankValues=False):
@@ -370,10 +50,6 @@ class BlastHits(object):
         and compute summary statistics on it. The various parameters allow
         us to restrict and transform the data that is read.
 
-        @param minStart: Reads that start before this subject offset should
-            not be returned.
-        @param maxStop: Reads that end after this subject offset should not
-            be returned.
         @param logLinearXAxis: if True, convert read offsets so that empty
             regions in the plot we're preparing will only be as wide as their
             logged actual values.
@@ -396,8 +72,6 @@ class BlastHits(object):
         self.plotParams = {
             'logBase': logBase,
             'logLinearXAxis': logLinearXAxis,
-            'maxStop': maxStop,
-            'minStart': minStart,
             'randomizeZeroEValues': randomizeZeroEValues,
             'rankValues': rankValues,
         }
@@ -467,11 +141,7 @@ class BlastHits(object):
                     # from dark.hsp import printHSP
                     # printHSP(hsp)
                     raise
-                if ((minStart is not None and
-                     normalized['queryStart'] < minStart)
-                    or (maxStop is not None and
-                        normalized['queryEnd'] > maxStop)):
-                    continue
+
                 if logLinearXAxis:
                     plotInfo['readIntervals'].add(normalized['queryStart'],
                                                   normalized['queryEnd'])

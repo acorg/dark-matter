@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from dark.intervals import OffsetAdjuster, ReadIntervals
+from dark.hsp import HSP
 
 
 class TestReadIntervals(TestCase):
@@ -382,46 +383,28 @@ class TestOffsetAdjuster(TestCase):
         self.assertEqual(132 - 27 - 12 - 58, adjuster.adjustOffset(132))
 
         # Test an HSP at the beginning is unchanged.
-        self.assertEqual(
-            {
-                'queryEnd': 10,
-                'queryStart': 0,
-                'subjectEnd': 10,
-                'subjectStart': 0,
-            },
-            adjuster.adjustNormalizedHSP({
-                'queryEnd': 10,
-                'queryStart': 0,
-                'subjectEnd': 10,
-                'subjectStart': 0,
-            }))
+        hsp = adjuster.adjustHSP(HSP(
+            10, readEndInHit=10, readStartInHit=0,
+            hitEnd=10, hitStart=0))
+        self.assertEqual(10, hsp.readEndInHit)
+        self.assertEqual(0, hsp.readStartInHit)
+        self.assertEqual(10, hsp.hitEnd)
+        self.assertEqual(0, hsp.hitStart)
 
         # Test an HSP in the first read region.
-        self.assertEqual(
-            {
-                'queryEnd': 15,
-                'queryStart': 5,
-                'subjectEnd': 13,
-                'subjectStart': 8,
-            },
-            adjuster.adjustNormalizedHSP({
-                'queryEnd': 42,
-                'queryStart': 32,
-                'subjectEnd': 40,
-                'subjectStart': 35,
-            }))
+        hsp = adjuster.adjustHSP(HSP(
+            10, readEndInHit=42, readStartInHit=32,
+            hitEnd=40, hitStart=35))
+        self.assertEqual(15, hsp.readEndInHit)
+        self.assertEqual(5, hsp.readStartInHit)
+        self.assertEqual(13, hsp.hitEnd)
+        self.assertEqual(8, hsp.hitStart)
 
         # Test an HSP in the second read region.
-        self.assertEqual(
-            {
-                'queryEnd': 29,
-                'queryStart': 19,
-                'subjectEnd': 27,
-                'subjectStart': 21,
-            },
-            adjuster.adjustNormalizedHSP({
-                'queryEnd': 68,
-                'queryStart': 58,
-                'subjectEnd': 66,
-                'subjectStart': 60,
-            }))
+        hsp = adjuster.adjustHSP(HSP(
+            10, readEndInHit=68, readStartInHit=58,
+            hitEnd=66, hitStart=60))
+        self.assertEqual(29, hsp.readEndInHit)
+        self.assertEqual(19, hsp.readStartInHit)
+        self.assertEqual(27, hsp.hitEnd)
+        self.assertEqual(21, hsp.hitStart)

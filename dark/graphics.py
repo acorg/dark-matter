@@ -17,7 +17,6 @@ from dark.dimension import dimensionalIterator
 from dark.html import AlignmentPanelHTML, NCBISequenceLink, NCBISequenceLinkURL
 from dark.intervals import ReadIntervals
 from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
-from dark import ncbidb
 from dark import orfs
 
 
@@ -153,21 +152,34 @@ def summarizeHitsByMedianBitScore(hits):
     return _sortHTML(hits, 'bitScoreMedian')
 
 
-def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
+DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
+
+
+def alignmentGraph(titlesAlignments, title, plotInfo, addQueryLines=True,
+                   showFeatures=True, logLinearXAxis=False,
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankValues=False,
                    colorQueryBases=False, createFigure=True, showFigure=True,
                    readsAx=None, imageFile=None, quiet=False, idList=False,
-                   xRange='subject', plot='e values', showOrfs=True):
+                   xRange='subject', showOrfs=True):
     """
     Align a set of matching reads against a BLAST hit.
 
-    @param blastHits: A L{dark.blast.BlastHits} instance.
+    @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
     @param title: A C{str} sequence title that was hit by BLAST. We plot the
         reads that hit this title.
+    @param plotInfo: A C{dict} containing information for plotting this title.
     @param addQueryLines: if C{True}, draw query lines in full (these will then
         be partly overdrawn by the HSP match against the subject). These are
         the 'whiskers' that potentially protrude from each side of a query.
     @param showFeatures: if C{True}, look online for features of the subject
         sequence (given by hitId).
+    @param logLinearXAxis: if True, convert read offsets so that empty regions
+        in the plot we're preparing will only be as wide as their logged actual
+        values.
+    @param logBase: The base of the logarithm to use if logLinearXAxis is
+        C{True}.
+    @param: rankValues: If C{True}, change the e-values and bit scores for the
+        reads for each title to be their rank (worst to best).
     @param colorQueryBases: if C{True}, color each base of a query string. If
         C{True}, then addQueryLines is meaningless since the whole query is
         shown colored.
@@ -182,8 +194,6 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         of read identifiers that should be colored in the respective color.
     @param xRange: set to either 'subject' or 'reads' to indicate the range of
         the X axis.
-    @param plot: A C{str}, either 'bit scores' or 'e values', to indicate
-        which values should be plotted on the graph Y axis.
     @param showOrfs: If C{True}, open reading frames will be displayed.
     """
 
@@ -192,20 +202,20 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
 
-    assert plot in ('bit scores', 'e values'), (
-        'plot must be either "bit scores", or "e values".')
+    titleAlignments = titlesAlignments[title]
+    subjectIsNucleotides = titlesAlignments.params['subjectIsNucleotides']
 
-    params = blastHits.plotParams
-    assert params is not None, ('Oops, it looks like you forgot to run '
-                                'computePlotInfo.')
-
-    application = blastHits.records.blastParams['application'].lower()
-
-    if application == 'blastx' and showOrfs:
+    if not subjectIsNucleotides and showOrfs:
         # We cannot show ORFs when displaying protein plots.
         showOrfs = False
 
+    # TODO: this will not work if the subject is not in NCBI or if its
+    # title doesn't have a form that NCBI can recognize.
+    #
+    # The subject sequence is only really used to show ORFs. We also get
+    # its length, but we already have that info in titlesAlignments.
     sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
+    titlesAlignments
 
     if createFigure:
         width = 20
@@ -233,12 +243,14 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         else:
             readsAx = readsAx or plt.subplot(111)
 
-    plotInfo = blastHits.titles[title]['plotInfo']
-
-    logLinearXAxis = params['logLinearXAxis']
-
     if logLinearXAxis:
-        offsetAdjuster = plotInfo['offsetAdjuster'].adjustOffset
+        readIntervals = ReadIntervals(titleAlignments.subjectLength)
+        offsetAdjuster = offsetAdjuster.adjustOffset
+        adjuster = OffsetAdjuster(readIntervals, base=logBase)
+
+        for hsp in titleAlignments.hsps():
+            readIntervals.add(hsp.readStartInHit, hsp.readEndInHit)
+
     else:
         offsetAdjuster = lambda x: x
 
@@ -258,8 +270,8 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     # gaps that are more than SMALLEST_LOGGED_GAP_TO_DISPLAY pixels wide as
     # we could have millions of tiny gaps for a bacteria and drawing them
     # all will be slow and only serves to make the entire background grey.
-    if logLinearXAxis and len(plotInfo['offsetAdjuster'].adjustments()) < 100:
-        for (intervalType, interval) in plotInfo['readIntervals'].walk():
+    if logLinearXAxis and len(offsetAdjuster.adjustments()) < 100:
+        for (intervalType, interval) in readIntervals.walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = offsetAdjuster(interval[0])
                 adjustedStop = offsetAdjuster(interval[1])
@@ -271,16 +283,19 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     # A function to pull the Y value out of a plotInfo.
     getY = itemgetter('bitScore' if plot == 'bit scores' else 'convertedE')
 
+    if logLinearXAxis:
+        plotInfo['readIntervals'].add(normalized['readStartInHit'],
+                                      normalized['readEndInHit'])
+
     if colorQueryBases:
         # Color each query by its bases.
         xScale = 3
         yScale = 2
         baseImage = BaseImage(
             maxX - minX,
-            maxYIncludingRandoms - minY + (1 if params['rankValues'] else 0),
+            maxYIncludingRandoms - minY + (1 if rankValues else 0),
             xScale, yScale)
-        for item in items:
-            hsp = item['hsp']
+        for hsp in titleAlignments.hsps():
             y = getY(item) - minY
             # If the product of the subject and query frame values is +ve,
             # then they're either both +ve or both -ve, so we just use the
@@ -292,7 +307,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                 query = blastHits.fasta[
                     item['readNum']].reverse_complement().seq
             query = query.upper()
-            queryStart = hsp['queryStart']
+            readStartInHit = hsp.readStartInHit
             # There are 3 parts of the query string we need to display. 1)
             # the left part (if any) before the matched part of the
             # subject. 2) the matched part (which can include gaps in the
@@ -306,20 +321,20 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             # query.
 
             # 1. Left part:
-            leftRange = hsp['subjectStart'] - queryStart
+            leftRange = hsp.hitStart - readStartInHit
 
             # 2. Match, middle part:
             middleRange = len(item['origHsp'].query)
 
             # 3. Right part:
-            # Using hsp['queryEnd'] - hsp['subjectEnd'] to calculate the length
+            # Using hsp.readEndInHit - hsp.hitEnd to calculate the length
             # of the right part leads to the part being too long. The number of
             # gaps needs to be subtracted to get the right length.
             origQuery = item['origHsp'].query
-            rightRange = hsp['queryEnd']-hsp['subjectEnd']-origQuery.count('-')
+            rightRange = hsp.readEndInHit - hsp.hitEnd - origQuery.count('-')
 
             # 1. Left part.
-            xOffset = queryStart - minX
+            xOffset = readStartInHit - minX
             queryOffset = 0
             for queryIndex in xrange(leftRange):
                 color = QUERY_COLORS.get(query[queryOffset + queryIndex],
@@ -327,9 +342,9 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                 baseImage.set(xOffset + queryIndex, y, color)
 
             # 2. Match part.
-            xOffset = hsp['subjectStart'] - minX
+            xOffset = hsp.hitStart - minX
             xIndex = 0
-            queryOffset = hsp['subjectStart'] - hsp['queryStart']
+            queryOffset = hsp.hitStart - hsp.readStartInHit
             origSubject = item['origHsp'].sbjct
             origQuery = item['origHsp'].query.upper()
             for matchIndex in xrange(middleRange):
@@ -359,7 +374,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                     xIndex += 1
 
             # 3. Right part.
-            xOffset = hsp['subjectEnd'] - minX
+            xOffset = hsp.hitEnd - minX
             backQuery = query[-rightRange:].upper()
             for queryIndex in xrange(rightRange):
                 color = QUERY_COLORS.get(backQuery[queryIndex],
@@ -374,10 +389,9 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         # grey 'whiskers' in the plots once we (below) draw the matched part
         # on top of part of them.
         if addQueryLines:
-            for item in items:
-                y = getY(item)
-                hsp = item['hsp']
-                line = Line2D([hsp['queryStart'], hsp['queryEnd']], [y, y],
+            for hsp in titleAlignments.hsps():
+                y = hsp.score.score
+                line = Line2D([hsp.readStartInHit, hsp.readEndInHit], [y, y],
                               color='#aaaaaa')
                 readsAx.add_line(line)
 
@@ -394,11 +408,11 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                     else:
                         readColor[read] = color
 
-        for item in items:
+        for hsp in titleAlignments.hsps():
             queryId = blastHits.fasta[item['readNum']].id
             y = getY(item)
             hsp = item['hsp']
-            line = Line2D([hsp['subjectStart'], hsp['subjectEnd']], [y, y],
+            line = Line2D([hsp.hitStart, hsp.hitEnd], [y, y],
                           color=readColor.get(queryId, 'blue'))
             readsAx.add_line(line)
 
@@ -409,10 +423,10 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
                              minX, maxX, offsetAdjuster)
 
     if showFeatures:
-        if application == 'blastx':
-            featureAdder = ProteinFeatureAdder()
-        else:
+        if subjectIsNucleotides:
             featureAdder = NucleotideFeatureAdder()
+        else:
+            featureAdder = ProteinFeatureAdder()
 
         features = featureAdder.add(featureAx, title, minX, maxX,
                                     offsetAdjuster)
@@ -452,7 +466,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
             '%s\nLength %d %s, %d read%s hit, %d HSP%s in total (%d shown).' %
             (
                 sequence.description,
-                len(sequence), 'aa' if application == 'blastx' else 'nt',
+                len(sequence), 'nt' if subjectIsNucleotides else 'aa',
                 readCount, '' if readCount == 1 else 's',
                 hspTotal, '' if hspTotal == 1 else 's',
                 len(plotInfo['items'])
@@ -462,7 +476,7 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
     # Add a title and y-axis label, but only if we made the reads axes.
     if createdReadsAx:
         readsAx.set_title('Read alignments', fontsize=20)
-        if params['rankValues']:
+        if rankValues:
             if plot == 'bit scores':
                 plt.ylabel('bit score rank', fontsize=17)
             else:
@@ -480,17 +494,16 @@ def alignmentGraph(blastHits, title, addQueryLines=True, showFeatures=True,
         # Look at all the HSPs for this subject and figure out the min read
         # start and max read end so we can set the X-axis.
         first = True
-        for item in plotInfo['items']:
-            hsp = item['hsp']
+        for hsp in titleAlignments.hsps():
             if first:
-                queryMin = hsp['queryStart']
-                queryMax = hsp['queryEnd']
+                queryMin = hsp.readStartInHit
+                queryMax = hsp.readEndInHit
                 first = False
             else:
-                if hsp['queryStart'] < queryMin:
-                    queryMin = hsp['queryStart']
-                if hsp['queryEnd'] > queryMax:
-                    queryMax = hsp['queryEnd']
+                if hsp.readStartInHit < queryMin:
+                    queryMin = hsp.readStartInHit
+                if hsp.readEndInHit > queryMax:
+                    queryMax = hsp.readEndInHit
 
         readsAx.set_xlim([queryMin, queryMax])
         result['queryMin'] = queryMin

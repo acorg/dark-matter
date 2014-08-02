@@ -55,6 +55,29 @@ class ReadAlignments(object):
         self.alignments = alignments
 
 
+class ReadsAlignmentsParams(dict):
+    """
+    Holds information about how a ReadsAlignments instance was created.
+
+    @param application: The C{str} name of the application that created
+        the ReadsAlignments data.
+    @param applicationParams: A C{dict} holding options and their values
+        given to the application that created the ReadsAlignments data.
+    @param subjectIsNucleotides: A C{bool} that indicates whether subject
+        sequences (that are aligned against) are at the nucleotide level.
+        If C{False}, the subject is assumed to be amino acids.
+    @param scoreTitle: A C{str} to describe a score. E.g, "Bit value"
+        or "E value".
+    """
+
+    def __init__(self, application, applicationParams=None,
+                 subjectIsNucleotides=True, scoreTitle='Score'):
+        self.application = application
+        self.applicationParams = applicationParams
+        self.subjectIsNucleotides = subjectIsNucleotides
+        self.scoreTitle = scoreTitle
+
+
 class ReadsAlignments(object):
     """
     Provide for filtering for a collection of reads and their alignments.
@@ -65,28 +88,38 @@ class ReadsAlignments(object):
 
     @param reads: A L{Reads} instance, containing the reads (sequences)
         given to the application to create these hits.
-    @param application: The C{str} name of the application that generated
-        these read hits.
-    @param params: A C{dict} of the parameters that were given to the
-        application to create these hits.
+    @param params: An instance of C{ReadsAlignmentsParams}, containing
+        the details of the application that created the alignments.
     @param scoreClass: A class to hold and compare scores (see scores.py).
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e.g., BLAST e-values, pass LowerIsBetterScore instead.
     """
 
-    def __init__(self, reads, application, params,
-                 scoreClass=HigherIsBetterScore):
+    def __init__(self, reads, params, scoreClass=HigherIsBetterScore):
         self.reads = reads
-        self.application = application
         self.params = params
         self.scoreClass = scoreClass
 
     def __iter__(self):
         """
-        Must be implemented by a subclass, e.g.,
+        Must be implemented by a subclass, e.g., see
         L{blast.alignments.BlastReadsAlignments}.
         """
         raise NotImplementedError('__iter__ must be implemented by a subclass')
+
+    def getSequence(self, title):
+        """
+        Obtain information about a sequence given its title.
+
+        Must be implemented by a subclass, e.g., see
+        L{blast.alignments.BlastReadsAlignments}.
+
+        @param title: A C{str} sequence title from a BLAST hit. Of the form
+            'gi|63148399|gb|DQ011818.1| Description...'.
+        @return: A C{SeqIO.read} instance.
+        """
+        raise NotImplementedError('getSequence must be implemented by a '
+                                  'subclass')
 
     def filter(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
                minStart=None, maxStop=None,
