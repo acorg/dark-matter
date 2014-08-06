@@ -1,4 +1,3 @@
-from copy import deepcopy
 from math import log
 
 
@@ -100,19 +99,14 @@ class OffsetAdjuster(object):
 
     def adjustHSP(self, hsp):
         """
-        Adjust the read and subject start and end offsets in an HSP,
-        returning a new HSP.
+        Adjust the read and subject start and end offsets in an HSP.
 
         @param hsp: a L{dark.hsp.HSP} or L{dark.hsp.LSP} instance.
-        @return: A new L{dark.hsp.HSP} or L{dark.hsp.LSP} instance.
         """
         reduction = self._reductionForOffset(
             min(hsp.readStartInSubject, hsp.subjectStart))
 
-        result = deepcopy(hsp)
-        result.readEndInSubject = hsp.readEndInSubject - reduction
-        result.readStartInSubject = hsp.readStartInSubject - reduction
-        result.subjectEnd = hsp.subjectEnd - reduction
-        result.subjectStart = hsp.subjectStart - reduction
-
-        return result
+        hsp.readEndInSubject = hsp.readEndInSubject - reduction
+        hsp.readStartInSubject = hsp.readStartInSubject - reduction
+        hsp.subjectEnd = hsp.subjectEnd - reduction
+        hsp.subjectStart = hsp.subjectStart - reduction

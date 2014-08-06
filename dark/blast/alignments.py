@@ -1,3 +1,5 @@
+from random import uniform
+from math import log10
 import copy
 import string
 
@@ -6,6 +8,8 @@ from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
 from dark import ncbidb
+
+ZERO_EVALUE_UPPER_RANDOM_INCREMENT = 150
 
 
 def numericallySortFilenames(names):
@@ -80,7 +84,7 @@ class BlastReadsAlignments(ReadsAlignments):
         blastParams = copy.deepcopy(self._reader.params)
         subjectIsNucleotides = application != 'blastx'
         scoreTitle = ('Bit score' if scoreClass is HigherIsBetterScore
-                      else '$- log_{10}(e)')
+                      else '$- log_{10}(e)$')
 
         applicationParams = ReadsAlignmentsParams(
             application, blastParams,
@@ -138,8 +142,6 @@ class BlastReadsAlignments(ReadsAlignments):
                 count += 1
                 yield readAlignments
 
-            reader.close()
-
         # Make sure all reads were used.
         try:
             read = reads.next()
@@ -163,3 +165,61 @@ class BlastReadsAlignments(ReadsAlignments):
         # command line.
         return ncbidb.getSequence(
             title, self.params.applicationParams['database'])
+
+    def adjustHspsForPlotting(self, titleAlignments):
+        """
+        Our HSPs are about to be plotted. If we are using e-values, these need
+        to be adjusted.
+
+        @param titleAlignments: An instance of L{TitleAlignment}.
+        """
+        # If we're using bit scores, there's nothing to do.
+        if self.scoreClass is HigherIsBetterScore:
+            return
+
+        # Convert all e-values to high positive values, and keep track of the
+        # maximum converted value.
+        maxConvertedEValue = None
+        zeroHsps = []
+
+        # Note: don't call self.hsps() here because that will read them
+        # from disk again, which is not what's wanted.
+        for hsp in titleAlignments.hsps():
+            if hsp.score.score == 0.0:
+                zeroHsps.append(hsp)
+            else:
+                convertedEValue = -1.0 * log10(hsp.score.score)
+                hsp.score.score = convertedEValue
+                if (maxConvertedEValue is None or
+                        convertedEValue > maxConvertedEValue):
+                    maxConvertedEValue = convertedEValue
+
+        if zeroHsps:
+            # Save values so that we can use them in self.adjustPlot
+            self._maxConvertedEValue = maxConvertedEValue
+            self._zeroEValueFound = True
+
+            # Adjust all zero e-value HSPs to have numerically high values.
+            if self.randomizeZeroEValues:
+                for hsp in zeroHsps:
+                    hsp.score.score = (maxConvertedEValue + 2 + uniform(
+                        0, ZERO_EVALUE_UPPER_RANDOM_INCREMENT))
+            else:
+                for count, hsp in enumerate(zeroHsps, start=1):
+                    hsp.score.score = maxConvertedEValue + count
+
+    def adjustPlot(self, readsAx):
+        """
+        Add a horizontal line to the plotted reads if we're plotting e-values
+        and a zero e-value was found.
+
+        @param readsAx: A Matplotlib sub-plot instance, as returned by
+            matplotlib.pyplot.subplot.
+        """
+        # If we're using bit scores, there's nothing to do.
+        if self.scoreClass is HigherIsBetterScore:
+            return
+
+        if self._zeroEValueFound:
+            readsAx.axhline(y=self._maxConvertedEValue + 0.5, color='#cccccc',
+                            linewidth=0.5)

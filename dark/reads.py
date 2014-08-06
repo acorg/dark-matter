@@ -1,4 +1,27 @@
-# from collections import OrderedDict
+from Bio.Data.IUPACData import (
+    ambiguous_dna_complement, ambiguous_rna_complement)
+
+
+def _makeComplementTable(complementData):
+    """
+    Make a sequence complement table.
+
+    @param complementData: A C{dict} whose keys and values are strings of
+        length one. A key, value pair indicates a substitution that should
+        be performed during complementation.
+    @return: A 256 character string that can be used as a translation table
+        by the C{translate} method of a Python string.
+    """
+    table = range(256)
+    for _from, to in complementData.iteritems():
+        table[ord(_from[0])] = ord(to[0])
+    return ''.join(map(chr, table))
+
+
+_TRANSLATION_TABLE = {
+    'dna': _makeComplementTable(ambiguous_dna_complement),
+    'rna': _makeComplementTable(ambiguous_rna_complement),
+}
 
 
 class Read(object):
@@ -10,15 +33,23 @@ class Read(object):
         nucleotides or proteins).
     @param quality: An optional C{str} of phred quality scores. If not C{None},
         it must be the same length as C{sequence}.
+    @param type: A C{str}, either 'dna', 'rna', or 'aa' to indicate the type
+        of the sequence, either DNA, RNA, or amino acids.
+    @raise ValueError: if the length of the quality string (if any) does not
+        match the length of the sequence, or if the passed type is invalid.
     """
-    def __init__(self, id, sequence, quality=None):
+    def __init__(self, id, sequence, quality=None, type='dna'):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
                 (len(sequence), len(quality)))
+        if type not in ('aa', 'dna', 'rna'):
+            raise ValueError('Unknown sequence type %r' % type)
+
         self.id = id
         self.sequence = sequence.upper()
         self.quality = quality
+        self.type = type
 
     def __eq__(self, other):
         return (self.id == other.id and
@@ -30,6 +61,21 @@ class Read(object):
 
     def __len__(self):
         return len(self.sequence)
+
+    def reverseComplement(self):
+        """
+        Reverse complement a nucleotide sequence.
+
+        @raise ValueError: if an attempt is made to reverse complement an amino
+            acid sequence.
+        @return: The reverse complemented sequence as a C{Read} instance.
+        """
+        if self.type == 'aa':
+            raise ValueError('Cannot reverse complement an amino acid '
+                             'sequence')
+        quality = None if self.quality is None else self.quality[::-1]
+        sequence = self.sequence.translate(_TRANSLATION_TABLE[self.type])[::-1]
+        return Read(self.id, sequence, quality)
 
 
 class Reads(object):

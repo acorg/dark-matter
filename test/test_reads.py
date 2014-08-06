@@ -8,6 +8,15 @@ class TestRead(TestCase):
     Test the Read class.
     """
 
+    def testUnknownType(self):
+        """
+        Attempting to construct a read with an unknown type must raise a
+        ValueError.
+        """
+        error = "Unknown sequence type 'weird'"
+        with self.assertRaisesRegexp(ValueError, error):
+            Read('id', 'ACGT', '!!!!', type='weird')
+
     def testUnequalLengths(self):
         """
         Attempting to construct a read whose sequence and quality strings are
@@ -25,6 +34,13 @@ class TestRead(TestCase):
         read = Read('id', 'ACGT')
         self.assertIs(None, read.quality)
 
+    def testNoType(self):
+        """
+        If no type is given, the read's type must be DNA.
+        """
+        read = Read('id', 'ACGT')
+        self.assertIs('dna', read.type)
+
     def testConvertToUpperCase(self):
         """
         The sequence passed to Read must be converted to upper case.
@@ -40,6 +56,7 @@ class TestRead(TestCase):
         self.assertEqual('id', read.id)
         self.assertEqual('ACGT', read.sequence)
         self.assertEqual('!!!!', read.quality)
+        self.assertEqual('dna', read.type)
 
     def testLength(self):
         """
@@ -89,6 +106,53 @@ class TestRead(TestCase):
         should be considered equal.
         """
         self.assertEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'qq'))
+
+    def testReverseComplementAA(self):
+        """
+        The reverseComplement function must raise a C{ValueError} when called
+        on an amino acid sequence.
+        """
+        read = Read('id', 'atcg', type='aa')
+        error = 'Cannot reverse complement an amino acid sequence'
+        with self.assertRaisesRegexp(ValueError, error):
+            read.reverseComplement()
+
+    def testReverseComplementReversesQuality(self):
+        """
+        The reverseComplement function must return a reversed quality string.
+        """
+        read = Read('id', 'atcg', quality='!@#$')
+        self.assertEqual('$#@!', read.reverseComplement().quality)
+
+    def testReverseComplementDNA(self):
+        """
+        The reverseComplement function must work for DNA
+        """
+        read = Read('id', 'atcg', quality='!@#$', type='dna')
+        self.assertEqual('CGAT', read.reverseComplement().sequence)
+
+    def testReverseComplementAmbiguousDNA(self):
+        """
+        The reverseComplement function must work for DNA that includes
+        ambiguous bases.
+        """
+        read = Read('id', 'atcgmrwsvhxn', type='dna')
+        self.assertEqual('NXDBSWYKCGAT', read.reverseComplement().sequence)
+
+    def testReverseComplementRNA(self):
+        """
+        The reverseComplement function must work for RNA
+        """
+        read = Read('id', 'aucg', type='rna')
+        self.assertEqual('CGAU', read.reverseComplement().sequence)
+
+    def testReverseComplementAmbiguousRNA(self):
+        """
+        The reverseComplement function must work for RNA that includes
+        ambiguous bases.
+        """
+        read = Read('id', 'aucgmrwsykvhxn', type='rna')
+        self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
 
 
 class TestReads(TestCase):

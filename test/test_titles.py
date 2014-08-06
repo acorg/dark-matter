@@ -110,6 +110,30 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(2, titleAlignments.readCount())
 
+    def testHspCountZero(self):
+        """
+        The hspCount function must return zero if no reads matched a title.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        self.assertEqual(0, titleAlignments.hspCount())
+
+    def testHspCount(self):
+        """
+        The hspCount function must indicate how many HSPs were found in
+        total for all the alignments to a title.
+        """
+        hsp1 = HSP(7)
+        hsp2 = HSP(14)
+        hsp3 = HSP(21)
+        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(3, titleAlignments.hspCount())
+
     def testMedianScoreWithNoAlignments(self):
         """
         The medianScore function must issue a warning (due to no inputs)

@@ -67,6 +67,14 @@ class TitleAlignments(object):
         """
         return len(self.alignments)
 
+    def hspCount(self):
+        """
+        How many HSPs were there in total for all the alignments to a title.
+
+        @return: The C{int} number of HSPs for the alignments to this title.
+        """
+        return sum(len(alignment.hsps) for alignment in self.alignments)
+
     def readIds(self):
         """
         Find the set of read ids that matched the title.
@@ -134,6 +142,9 @@ class TitlesAlignments(dict):
     @param readsAlignments: A L{dark.alignments.ReadsAlignments} instance.
     @param scoreClass: A class to hold and compare scores. If C{None},
         the score class from readsAlignments will be used.
+    @param readSetFilter: An instance of dark.filter.ReadSetFilter, or C{None}.
+        This can be used to pass a previously used title filter for ongoing
+        use in filtering.
     """
 
     def __init__(self, readsAlignments, scoreClass=None, readSetFilter=None):
@@ -189,9 +200,11 @@ class TitlesAlignments(dict):
         if minNewReads is None:
             readSetFilter = None
         else:
-            readSetFilter = ReadSetFilter(minNewReads)
+            if self.readSetFilter is None:
+                self.readSetFilter = ReadSetFilter(minNewReads)
+            readSetFilter = self.readSetFilter
 
-        result = TitlesAlignments([], self.scoreClass, readSetFilter)
+        result = TitlesAlignments([], self.scoreClass, self.readSetFilter)
 
         for title, titleAlignments in self.iteritems():
             if (minMatchingReads is not None and

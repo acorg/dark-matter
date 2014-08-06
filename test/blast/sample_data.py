@@ -229,6 +229,17 @@ RECORD4 = {
                     'frame': [1, 1],
                     'query_end': 68,
                     'query_start': 28
+                },
+                {
+                    'bits': 3,
+                    'sbjct_end': 1400,
+                    'expect': 0.0,
+                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
+                    'sbjct_start': 1362,
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'frame': [1, 1],
+                    'query_end': 68,
+                    'query_start': 28
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Cowpox virus 15',

@@ -39,6 +39,10 @@ DEFAULT_BASE_COLOR = (0.5, 0.5, 0.5)  # Grey
 # than SMALLEST_LOGGED_GAP_TO_DISPLAY.
 SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
+# The default base of the logarithm to use when logLinearXAxis is used to
+# produce an alignment graph.
+DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
+
 
 def report(msg):
     print '%s: %s' % (ctime(time()), msg)
@@ -153,9 +157,6 @@ def summarizeHitsByMedianBitScore(hits):
     return _sortHTML(hits, 'bitScoreMedian')
 
 
-DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
-
-
 def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                    showFeatures=True, logLinearXAxis=False,
                    logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankValues=False,
@@ -197,7 +198,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     @param showOrfs: If C{True}, open reading frames will be displayed.
     """
 
-    start = time()
+    startTime = time()
 
     assert xRange in ('subject', 'reads'), (
         'xRange must be either "subject" or "reads".')
@@ -228,28 +229,34 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         else:
             readsAx = readsAx or plt.subplot(111)
 
-    titleAlignments = titlesAlignments[title]
-
-    # Set copiedTitleAlignments to True if we deepcopy titleAlignments, in
-    # order to prevent copying it multiple times.
-    copiedTitleAlignments = False
-
-    subjectIsNucleotides = titlesAlignments.params['subjectIsNucleotides']
+    titleAlignments = deepcopy(titlesAlignments[title])
+    readsAlignments = titlesAlignments.readsAlignments
+    subjectIsNucleotides = readsAlignments.params.subjectIsNucleotides
+    sequence = readsAlignments.getSequence(title)
 
     if showOrfs and not subjectIsNucleotides:
         # We cannot show ORFs when displaying protein plots.
         showOrfs = False
 
-    sequence = titlesAlignments.getSequence(title)
+    # Allow the class of titlesAlignments to adjust HSPs for plotting,
+    # if it has a method for doing so.
+    try:
+        adjuster = readsAlignments.adjustHspsForPlotting
+    except AttributeError:
+        pass
+    else:
+        adjuster(titleAlignments)
 
     if logLinearXAxis:
-        if not copiedTitleAlignments:
-            titleAlignments = deepcopy(titleAlignments)
-            copiedTitleAlignments = True
         readIntervals = ReadIntervals(titleAlignments.subjectLength)
+        # Examine all HSPs so we can build an offset adjuster.
         for hsp in titleAlignments.hsps():
             readIntervals.add(hsp.readStartInSubject, hsp.readEndInSubject)
+        # Now adjust offsets in all HSPs.
         offsetAdjuster = OffsetAdjuster(readIntervals, base=logBase)
+        for hsp in titleAlignments.hsps():
+            offsetAdjuster.adjustHSP(hsp)
+        # A function for adjusting other offsets, below.
         adjustOffset = adjuster.adjustOffset
     else:
         adjustOffset = lambda x: x
@@ -260,6 +267,31 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     minY = int(titleAlignments.worstHsp().score.score)
     maxX = max(hsp.readEnd for hsp in titleAlignments.hsps())
     minX = min(hsp.readStart for hsp in titleAlignments.hsps())
+
+    # Sway min & max Y values as it's possible we are dealing with LSPs but
+    # that the score adjuster made numerically greater values for those
+    # that were small.
+    if maxY < minY:
+        (maxY, minY) = (minY, maxY)
+
+    if logLinearXAxis:
+        # Adjust minX and maxX if we have gaps at the subject start or end.
+        gaps = list(readIntervals.walk())
+        if gaps:
+            # Check start of first gap:
+            intervalType, (start, stop) = gaps[0]
+            if intervalType == ReadIntervals.EMPTY:
+                adjustedStart = adjustOffset(start)
+                if adjustedStart < minX:
+                    minX = adjustedStart
+            # Check stop of last gap:
+            intervalType, (start, stop) = gaps[-1]
+            if intervalType == ReadIntervals.EMPTY:
+                adjustedStop = adjustOffset(stop)
+                if adjustedStop > maxX:
+                    maxX = adjustedStop
+
+    # We're all set up to start plotting the graph.
 
     # Add light grey vertical rectangles to show the logarithmic gaps. Add
     # these first so that reads will be plotted on top of them. Only draw
@@ -276,8 +308,6 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                     readsAx.axvspan(adjustedStart, adjustedStop,
                                     color='#f4f4f4')
 
-    # Call here to adjust the scores in case of e-values?
-
     if colorQueryBases:
         # Color each query by its bases.
         xScale = 3
@@ -285,96 +315,97 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         baseImage = BaseImage(
             maxX - minX, maxY - minY + (1 if rankValues else 0),
             xScale, yScale)
-        for hsp in titleAlignments.hsps():
-            y = hsp.score.score - minY
-            # If the product of the subject and read frame values is +ve,
-            # then they're either both +ve or both -ve, so we just use the
-            # read as is. Otherwise, we need to reverse complement it.
-            if hsp.frame['subject'] * hsp.frame['query'] > 0:
-                query = blastHits.fasta[hsp['readNum']].seq
-            else:
-                # One of the subject or query has negative sense.
-                query = blastHits.fasta[
-                    hsp['readNum']].reverse_complement().seq
-            query = query.upper()
-            readStartInSubject = hsp.readStartInSubject
-            # There are 3 parts of the query string we need to display. 1)
-            # the left part (if any) before the matched part of the subject.
-            # 2) the matched part (which can include gaps in the query
-            # and/or subject). 3) the right part (if any) after the matched
-            # part.  For each part, calculate the ranges in which we have
-            # to make the comparison between subject and query.
-
-            # NOTE: never use hsp['origHsp'].gaps to calculate the number
-            # of gaps, as this number contains gaps in both subject and
-            # query.
-
-            # 1. Left part:
-            leftRange = hsp.subjectStart - readStartInSubject
-
-            # 2. Match, middle part:
-            middleRange = len(hsp['origHsp'].query)
-
-            # 3. Right part:
-            # Using hsp.readEndInSubject - hsp.subjectEnd to calculate the
-            # length of the right part leads to the part being too long.
-            # The number of gaps needs to be subtracted to get the right
-            # length.
-            origQuery = hsp['origHsp'].query
-            rightRange = (hsp.readEndInSubject - hsp.subjectEnd -
-                          origQuery.count('-'))
-
-            # 1. Left part.
-            xOffset = readStartInSubject - minX
-            queryOffset = 0
-            for queryIndex in xrange(leftRange):
-                color = QUERY_COLORS.get(query[queryOffset + queryIndex],
-                                         DEFAULT_BASE_COLOR)
-                baseImage.set(xOffset + queryIndex, y, color)
-
-            # 2. Match part.
-            xOffset = hsp.subjectStart - minX
-            xIndex = 0
-            queryOffset = hsp.subjectStart - hsp.readStartInSubject
-            origSubject = hsp['origHsp'].sbjct
-            origQuery = hsp['origHsp'].query.upper()
-            for matchIndex in xrange(middleRange):
-                if origSubject[matchIndex] == '-':
-                    # A gap in the subject was needed to match the query.
-                    # In our graph we keep the subject the same even in the
-                    # case where BLAST opened gaps in it, so we compensate
-                    # for the gap in the subject by not showing this base
-                    # of the query.
-                    pass
+        for alignment in titleAlignments.alignments:
+            for hsp in alignment.hsps:
+                y = hsp.score.score - minY
+                # If the product of the subject and read frame values is +ve,
+                # then they're either both +ve or both -ve, so we just use the
+                # read as is. Otherwise, we need to reverse complement it.
+                if hsp.frame['subject'] * hsp.frame['query'] > 0:
+                    query = alignment.read.sequence
                 else:
-                    if origSubject[matchIndex] == origQuery[matchIndex]:
-                        # The query matched the subject at this location.
-                        # Matching bases are all colored in the same
-                        # 'match' color.
-                        color = QUERY_COLORS['match']
-                    else:
-                        if origQuery[matchIndex] == '-':
-                            # A gap in the query. All query gaps get the
-                            # same 'gap' color.
-                            color = QUERY_COLORS['gap']
-                        else:
-                            # Query doesn't match subject (and is not a gap).
-                            color = QUERY_COLORS.get(origQuery[matchIndex],
-                                                     DEFAULT_BASE_COLOR)
-                    baseImage.set(xOffset + xIndex, y, color)
-                    xIndex += 1
+                    # One of the subject or query has negative sense.
+                    query = alignment.read.reverseComplement().sequence
+                readStartInSubject = hsp.readStartInSubject
+                # There are 3 parts of the query string we need to
+                # display. 1) the left part (if any) before the matched
+                # part of the subject.  2) the matched part (which can
+                # include gaps in the query and/or subject). 3) the right
+                # part (if any) after the matched part.  For each part,
+                # calculate the ranges in which we have to make the
+                # comparison between subject and query.
 
-            # 3. Right part.
-            xOffset = hsp.subjectEnd - minX
-            backQuery = query[-rightRange:].upper()
-            for queryIndex in xrange(rightRange):
-                color = QUERY_COLORS.get(backQuery[queryIndex],
-                                         DEFAULT_BASE_COLOR)
-                baseImage.set(xOffset + queryIndex, y, color)
+                # NOTE: never use hsp['origHsp'].gaps to calculate the number
+                # of gaps, as this number contains gaps in both subject and
+                # query.
+
+                # 1. Left part:
+                leftRange = hsp.subjectStart - readStartInSubject
+
+                # 2. Match, middle part:
+                middleRange = len(hsp['origHsp'].query)
+
+                # 3. Right part:
+                # Using hsp.readEndInSubject - hsp.subjectEnd to calculate the
+                # length of the right part leads to the part being too long.
+                # The number of gaps needs to be subtracted to get the right
+                # length.
+                origQuery = hsp['origHsp'].query
+                rightRange = (hsp.readEndInSubject - hsp.subjectEnd -
+                              origQuery.count('-'))
+
+                # 1. Left part.
+                xOffset = readStartInSubject - minX
+                queryOffset = 0
+                for queryIndex in xrange(leftRange):
+                    color = QUERY_COLORS.get(query[queryOffset + queryIndex],
+                                             DEFAULT_BASE_COLOR)
+                    baseImage.set(xOffset + queryIndex, y, color)
+
+                # 2. Match part.
+                xOffset = hsp.subjectStart - minX
+                xIndex = 0
+                queryOffset = hsp.subjectStart - hsp.readStartInSubject
+                origSubject = hsp['origHsp'].sbjct
+                origQuery = hsp['origHsp'].query.upper()
+                for matchIndex in xrange(middleRange):
+                    if origSubject[matchIndex] == '-':
+                        # A gap in the subject was needed to match the query.
+                        # In our graph we keep the subject the same even in the
+                        # case where BLAST opened gaps in it, so we compensate
+                        # for the gap in the subject by not showing this base
+                        # of the query.
+                        pass
+                    else:
+                        if origSubject[matchIndex] == origQuery[matchIndex]:
+                            # The query matched the subject at this location.
+                            # Matching bases are all colored in the same
+                            # 'match' color.
+                            color = QUERY_COLORS['match']
+                        else:
+                            if origQuery[matchIndex] == '-':
+                                # A gap in the query. All query gaps get the
+                                # same 'gap' color.
+                                color = QUERY_COLORS['gap']
+                            else:
+                                # Query doesn't match subject (and is not a
+                                # gap).
+                                color = QUERY_COLORS.get(origQuery[matchIndex],
+                                                         DEFAULT_BASE_COLOR)
+                        baseImage.set(xOffset + xIndex, y, color)
+                        xIndex += 1
+
+                # 3. Right part.
+                xOffset = hsp.subjectEnd - minX
+                backQuery = query[-rightRange:].upper()
+                for queryIndex in xrange(rightRange):
+                    color = QUERY_COLORS.get(backQuery[queryIndex],
+                                             DEFAULT_BASE_COLOR)
+                    baseImage.set(xOffset + queryIndex, y, color)
 
         readsAx.imshow(baseImage.data, aspect='auto', origin='lower',
                        interpolation='nearest',
-                       extent=[minX, maxX, minY, maxYIncludingRandoms])
+                       extent=[minX, maxX, minY, maxY])
     else:
         # Add horizontal lines for all the query sequences. These will be the
         # grey 'whiskers' in the plots once we (below) draw the matched part
@@ -401,7 +432,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
 
         for titleAlignment in titleAlignments.alignments:
             readId = titleAlignment.read.id
-            for hsp in titleAlignment.hsps():
+            for hsp in titleAlignment.hsps:
                 y = hsp.score.score
                 line = Line2D([hsp.subjectStart, hsp.subjectEnd], [y, y],
                               color=readColor.get(readId, 'blue'))
@@ -445,35 +476,36 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         # TODO: add the thing that's needed by alignmentPanel.
     }
 
-
-    # TODO: Call the plot-adjuster function in titlesAlignments
-    if plot == 'e values' and plotInfo['zeroEValueFound']:
-        # Add the horizontal divider between the highest e-value and the
-        # randomly higher ones (if any).
-        readsAx.axhline(y=maxY + 0.5, color='#cccccc', linewidth=0.5)
+    # Allow the class of titlesAlignments to add to the plot,
+    # if it has a method for doing so.
+    try:
+        adjuster = readsAlignments.adjustPlot
+    except AttributeError:
+        pass
+    else:
+        adjuster(readsAx)
 
     # Titles, axis, etc.
     if createFigure:
-        readCount = blastHits.titles[title]['readCount']
-        hspTotal = plotInfo['hspTotal']
+        readCount = titleAlignments.readCount()
+        hspCount = titleAlignments.hspCount()
         figure.suptitle(
-            '%s\nLength %d %s, %d read%s hit, %d HSP%s in total (%d shown).' %
+            '%s\nLength %d %s, %d read%s hit, %d HSP%s.' %
             (
                 sequence.description,
                 len(sequence), 'nt' if subjectIsNucleotides else 'aa',
                 readCount, '' if readCount == 1 else 's',
-                hspTotal, '' if hspTotal == 1 else 's',
-                len(plotInfo['items'])
+                hspCount, '' if hspCount == 1 else 's'
             ),
             fontsize=20)
 
     # Add a title and y-axis label, but only if we made the reads axes.
     if createdReadsAx:
         readsAx.set_title('Read alignments', fontsize=20)
-        ylabel = titlesAlignments.readsAlignments.params.scoreTitle
+        ylabel = readsAlignments.params.scoreTitle
         if rankValues:
             ylabel += ' rank'
-        plt.ylabel('bit score rank', fontsize=17)
+        plt.ylabel(ylabel, fontsize=17)
 
     # Set the x-axis limits.
     if xRange == 'subject':
@@ -497,7 +529,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         result['queryMin'] = queryMin
         result['queryMax'] = queryMax
 
-    readsAx.set_ylim([0, maxYIncludingRandoms + 1])
+    readsAx.set_ylim([0, maxY + 1])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -506,7 +538,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
             figure.savefig(imageFile)
     stop = time()
     if not quiet:
-        report('Graph generated in %.3f mins.' % ((stop - start) / 60.0))
+        report('Graph generated in %.3f mins.' % ((stop - startTime) / 60.0))
 
     return result
 

@@ -55,7 +55,7 @@ class ReadAlignments(object):
         self.alignments = alignments
 
 
-class ReadsAlignmentsParams(dict):
+class ReadsAlignmentsParams(object):
     """
     Holds information about how a ReadsAlignments instance was created.
 
@@ -120,6 +120,17 @@ class ReadsAlignments(object):
         """
         raise NotImplementedError('getSequence must be implemented by a '
                                   'subclass')
+
+    def hsps(self):
+        """
+        Provide access to all HSPs for all alignments of all reads.
+
+        @return: A generator that yields HSPs (or LSPs).
+        """
+        for readAlignment in self:
+            for alignment in readAlignment.alignments:
+                for hsp in alignment.hsps:
+                    yield hsp
 
     def filter(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
                minStart=None, maxStop=None,

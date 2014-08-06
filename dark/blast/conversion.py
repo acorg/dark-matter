@@ -182,52 +182,44 @@ class JSONRecordsReader(object):
         self._scoreClass = scoreClass
         if scoreClass is HigherIsBetterScore:
             self._hspClass = HSP
-            self._hspScore = itemgetter('bits')
         else:
             self._hspClass = LSP
-            self._hspScore = itemgetter('expect')
 
+        self._open(filename)
+        self.application = self.params['application'].lower()
+
+    def _open(self, filename):
+        """
+        Open the input file. Set self._fp to point to it. Read the first
+        line of parameters.
+
+        @param filename: A C{str} filename containing JSON BLAST records.
+        @raise ValueError: if the first line of the file isn't valid JSON
+            or if the JSON does not contain an 'application' key.
+        """
         if filename.endswith('.bz2'):
             self._fp = bz2.BZ2File(filename)
         else:
             self._fp = open(filename)
-        self.params = self._params()
-        self.application = self.params['application'].lower()
 
-    def close(self):
-        """
-        Close the open file descriptor for these records.
-        """
-        self._fp.close()
-        self._fp = None
-
-    def _params(self):
-        """
-        Extract the BLAST parameters from the first line of the JSON file.
-
-        @return: A C{dict} containing the BLAST parameters.
-        @raise ValueError: if the first line of the file isn't valid JSON
-            or if the JSON does not contain an 'application' key.
-        """
         line = self._fp.readline()
         if not line:
             raise ValueError('JSON file %r was empty.' % self._filename)
 
         try:
-            params = loads(line[:-1])
+            self.params = loads(line[:-1])
         except ValueError as e:
             raise ValueError(
                 'Could not convert first line of %r to JSON (%s). '
                 'Line is %r.' % (self._filename, e, line[:-1]))
         else:
-            if 'application' not in params:
+            if 'application' not in self.params:
                 raise ValueError(
                     '%r appears to be an old JSON file with no BLAST global '
                     'parameters. Please re-run convert-blast-xml-to-json.py '
                     'to convert it to the newest format.' % self._filename)
-            return params
 
-    def _convertDictToAlignments(self, blastDict, read):
+    def _dictToAlignments(self, blastDict, read):
         """
         Take a dict (made by XMLRecordsReader._convertBlastRecordToDict)
         and convert it to a list of alignments.
@@ -239,7 +231,7 @@ class JSONRecordsReader(object):
             match the id of the read.
         @return: A C{list} of L{dark.alignment.Alignment} instances.
         """
-        if blastDict['query'] != read.id:
+        if blastDict['query'].split()[0] != read.id:
             raise ValueError(
                 'The reads you have provided do not match the BLAST output: '
                 'BLAST record query id (%s) does not match the id of the '
@@ -247,13 +239,14 @@ class JSONRecordsReader(object):
                 (blastDict['query'], read.id))
 
         alignments = []
+        getScore = itemgetter('bits' if self._hspClass is HSP else 'expect')
 
         for blastAlignment in blastDict['alignments']:
             alignment = Alignment(blastAlignment['length'],
                                   blastAlignment['title'])
             alignments.append(alignment)
             for blastHsp in blastAlignment['hsps']:
-                score = self._hspScore(blastHsp)
+                score = getScore(blastHsp)
                 normalized = normalizeHSP(blastHsp, len(read),
                                           self.application)
                 hsp = self._hspClass(
@@ -283,23 +276,29 @@ class JSONRecordsReader(object):
         @return: A generator that yields C{dark.alignments.ReadAlignments}
             instances.
         """
+        if self._fp is None:
+            self._open(self._filename)
 
-        for lineNumber, line in enumerate(self._fp, start=2):
-            try:
-                record = loads(line[:-1])
-            except ValueError as e:
-                raise ValueError(
-                    'Could not convert line %d of %r to JSON (%s). '
-                    'Line is %r.' %
-                    (lineNumber, self._filename, e, line[:-1]))
-            else:
+        try:
+            for lineNumber, line in enumerate(self._fp, start=2):
                 try:
-                    read = reads.next()
-                except StopIteration:
+                    record = loads(line[:-1])
+                except ValueError as e:
                     raise ValueError(
-                        'Read generator failed to yield read number %d '
-                        'during parsing of BLAST file %r.' %
-                        (lineNumber - 1, self._filename))
+                        'Could not convert line %d of %r to JSON (%s). '
+                        'Line is %r.' %
+                        (lineNumber, self._filename, e, line[:-1]))
                 else:
-                    alignments = self._convertDictToAlignments(record, read)
-                    yield ReadAlignments(read, alignments)
+                    try:
+                        read = reads.next()
+                    except StopIteration:
+                        raise ValueError(
+                            'Read generator failed to yield read number %d '
+                            'during parsing of BLAST file %r.' %
+                            (lineNumber - 1, self._filename))
+                    else:
+                        alignments = self._dictToAlignments(record, read)
+                        yield ReadAlignments(read, alignments)
+        finally:
+            self._fp.close()
+            self._fp = None

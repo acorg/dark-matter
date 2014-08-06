@@ -9,13 +9,15 @@ from cStringIO import StringIO
 from Bio import SeqIO
 
 from ..mocking import mockOpen
-from sample_data import PARAMS, RECORD0, RECORD1, RECORD2
+from sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
 from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import (
-    BlastReadsAlignments, numericallySortFilenames)
+    BlastReadsAlignments, numericallySortFilenames,
+    ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
+from dark.titles import TitlesAlignments
 from dark import ncbidb
 
 
@@ -136,7 +138,7 @@ class TestBlastReadsAlignments(TestCase):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(
                 reads, 'file.json', scoreClass=LowerIsBetterScore)
-            self.assertEqual('$- log_{10}(e)',
+            self.assertEqual('$- log_{10}(e)$',
                              readsAlignments.params.scoreTitle)
 
     def testNucleotidesBlastn(self):
@@ -390,6 +392,86 @@ class TestBlastReadsAlignments(TestCase):
                 sequence = readsAlignments.getSequence('title')
                 self.assertEqual('AA', str(sequence.seq))
                 self.assertEqual('id1 Description', sequence.description)
+
+    def testHsps(self):
+        """
+        The hsps function must yield the HSPs.
+        """
+        # adjustHspsForPlotting changes HSPs in place, so we pass copied
+        # records so we don't mess up other tests.
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            self.assertEqual(
+                sorted([HSP(20), HSP(25), HSP(20), HSP(20), HSP(20), HSP(20)]),
+                sorted(readsAlignments.hsps()))
+
+    def testAdjustHspsForPlotting_EValueNoZero(self):
+        """
+        The adjustHspsForPlotting function must alter HSPs so that non-zero
+        evalues are converted to the positive value of their negative exponent.
+        """
+        result = lambda a: BZ2([
+            dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
+            dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
+            dumps(deepcopy(RECORD3)) + '\n'])
+
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = result
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json.bz2', scoreClass=LowerIsBetterScore)
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
+            titleAlignments = titlesAlignments[title]
+            readsAlignments.adjustHspsForPlotting(titleAlignments)
+            hsps = sorted(titleAlignments.hsps())
+            self.assertEqual([6.0, 5.0], [hsp.score.score for hsp in hsps])
+
+    def testAdjustHspsForPlotting_EValueWithZero(self):
+        """
+        The adjustHspsForPlotting function must alter HSPs so that zero
+        evalues are set randomly high.
+        """
+        result = lambda a: BZ2([
+            dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
+            dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
+            dumps(deepcopy(RECORD3)) + '\n', dumps(deepcopy(RECORD4)) + '\n'])
+
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = result
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            reads.add(Read('id4', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json.bz2', scoreClass=LowerIsBetterScore)
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
+            titleAlignments = titlesAlignments[title]
+            readsAlignments.adjustHspsForPlotting(titleAlignments)
+            hsps = sorted(titleAlignments.hsps())
+            # All we really know is that the first HSP will have a randomly
+            # high value whose bounds we can check. The other values are
+            # predictable.
+            self.assertTrue(LSP(6.0 + 2) > hsps[0] >
+                            LSP(6.0 + 2 + ZERO_EVALUE_UPPER_RANDOM_INCREMENT))
+            self.assertEqual([6.0, 5.0, 3.0, 2.0],
+                             [hsp.score.score for hsp in hsps[1:]])
 
 
 class TestBlastReadsAlignmentsFiltering(TestCase):

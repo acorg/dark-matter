@@ -383,27 +383,27 @@ class TestOffsetAdjuster(TestCase):
         self.assertEqual(132 - 27 - 12 - 58, adjuster.adjustOffset(132))
 
         # Test an HSP at the beginning is unchanged.
-        hsp = adjuster.adjustHSP(HSP(
-            10, readEndInSubject=10, readStartInSubject=0,
-            subjectEnd=10, subjectStart=0))
+        hsp = HSP(10, readEndInSubject=10, readStartInSubject=0,
+                  subjectEnd=10, subjectStart=0)
+        adjuster.adjustHSP(hsp)
         self.assertEqual(10, hsp.readEndInSubject)
         self.assertEqual(0, hsp.readStartInSubject)
         self.assertEqual(10, hsp.subjectEnd)
         self.assertEqual(0, hsp.subjectStart)
 
         # Test an HSP in the first read region.
-        hsp = adjuster.adjustHSP(HSP(
-            10, readEndInSubject=42, readStartInSubject=32,
-            subjectEnd=40, subjectStart=35))
+        hsp = HSP(10, readEndInSubject=42, readStartInSubject=32,
+                  subjectEnd=40, subjectStart=35)
+        adjuster.adjustHSP(hsp)
         self.assertEqual(15, hsp.readEndInSubject)
         self.assertEqual(5, hsp.readStartInSubject)
         self.assertEqual(13, hsp.subjectEnd)
         self.assertEqual(8, hsp.subjectStart)
 
         # Test an HSP in the second read region.
-        hsp = adjuster.adjustHSP(HSP(
-            10, readEndInSubject=68, readStartInSubject=58,
-            subjectEnd=66, subjectStart=60))
+        hsp = HSP(10, readEndInSubject=68, readStartInSubject=58,
+                  subjectEnd=66, subjectStart=60)
+        adjuster.adjustHSP(hsp)
         self.assertEqual(29, hsp.readEndInSubject)
         self.assertEqual(19, hsp.readStartInSubject)
         self.assertEqual(27, hsp.subjectEnd)
