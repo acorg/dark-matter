@@ -12,6 +12,7 @@ The following works on Ubuntu 14.04 LTS.
 $ cd /tmp
 $ curl -L 'http://downloads.sourceforge.net/freetype/freetype-2.5.3.tar.bz2' > freetype-2.5.3.tar.bz2
 $ tar xfj freetype-2.5.3.tar.bz2
+$ cd freetype-2.5.3
 $ sed -i  -e "/AUX.*.gxvalid/s@^# @@" -e "/AUX.*.otvalid/s@^# @@" modules.cfg
 $ sed -ri -e 's:.*(#.*SUBPIXEL.*) .*:\1:' include/config/ftoption.h
 $ ./configure --prefix=/usr --disable-static
