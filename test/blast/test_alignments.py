@@ -87,6 +87,17 @@ class TestNumericallySortFilenames(TestCase):
             numericallySortFilenames(
                 ['3.json', '21.json', '35.json', '250.json', '2.json']))
 
+    def testBasename(self):
+        """
+        Sorting must be according to file basename.
+        """
+        self.assertEqual(
+            ['../output/2.json', '../output/3.json', '../output/21.json',
+             '../output/35.json', '../output/250.json'],
+            numericallySortFilenames(
+                ['../output/3.json', '../output/21.json', '../output/35.json',
+                 '../output/250.json', '../output/2.json']))
+
 
 class TestBlastReadsAlignments(TestCase):
     """

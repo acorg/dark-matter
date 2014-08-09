@@ -24,9 +24,10 @@ class Alignment(object):
     """
     Hold information about a read alignment.
 
-    @param subjectLength: The C{int} length of the sequence the read hit
+    @param subjectLength: The C{int} length of the sequence the read matched
         against.
-    @param subjectTitle: The C{str} title of the sequence the read hit against.
+    @param subjectTitle: The C{str} title of the sequence the read matched
+        against.
     """
 
     def __init__(self, subjectLength, subjectTitle):
@@ -87,7 +88,7 @@ class ReadsAlignments(object):
     See L{blast.alignments.BlastReadsAlignments} for an example.
 
     @param reads: A L{Reads} instance, containing the reads (sequences)
-        given to the application to create these hits.
+        given to the application to create these matches.
     @param params: An instance of C{ReadsAlignmentsParams}, containing
         the details of the application that created the alignments.
     @param scoreClass: A class to hold and compare scores (see scores.py).
@@ -114,7 +115,7 @@ class ReadsAlignments(object):
         Must be implemented by a subclass, e.g., see
         L{blast.alignments.BlastReadsAlignments}.
 
-        @param title: A C{str} sequence title from a BLAST hit. Of the form
+        @param title: A C{str} sequence title from a BLAST match. Of the form
             'gi|63148399|gb|DQ011818.1| Description...'.
         @return: A C{SeqIO.read} instance.
         """
@@ -127,8 +128,8 @@ class ReadsAlignments(object):
 
         @return: A generator that yields HSPs (or LSPs).
         """
-        for readAlignment in self:
-            for alignment in readAlignment.alignments:
+        for readAlignments in self:
+            for alignment in readAlignments.alignments:
                 for hsp in alignment.hsps:
                     yield hsp
 
@@ -142,18 +143,18 @@ class ReadsAlignments(object):
         @param limit: An C{int} limit on the number of records to read.
         @param minSequenceLen: sequences of lesser length will be elided.
         @param maxSequenceLen: sequences of greater length will be elided.
-        @param minStart: HSPs that start before this offset in the hit sequence
-            should not be returned.
-        @param maxStop: HSPs that end after this offset in the hit sequence
+        @param minStart: HSPs that start before this offset in the matched
+            sequence should not be returned.
+        @param maxStop: HSPs that end after this offset in the matched sequence
             should not be returned.
         @param oneAlignmentPerRead: if C{True}, only keep the best
             alignment for each read.
         @param maxHspsPerHit: The maximum number of HSPs to keep for each
             alignment for each read.
-        @param scoreCutoff: A C{float} score. Hits with scores that are not
+        @param scoreCutoff: A C{float} score. Matchess with scores that are not
             better than this score will be ignored.
         @param whitelist: If not C{None}, a set of exact titles that are always
-            acceptable (though the hit info for a whitelist title may rule it
+            acceptable (though the match info for a whitelist title may rule it
             out for other reasons).
         @param blacklist: If not C{None}, a set of exact titles that are never
             acceptable.
@@ -164,7 +165,7 @@ class ReadsAlignments(object):
             title will be elided.
         @param taxonomy: a C{str} of the taxonomic group on which should be
             filtered. eg 'Vira' will filter on viruses.
-        @return: A generator that yields L{Hit} instances.
+        @return: A generator that yields C{ReadAlignments} instances.
         """
 
         # Implementation notes:
@@ -181,15 +182,15 @@ class ReadsAlignments(object):
         #
         # 2. This function could be made faster if it first looked at its
         #    arguments and dynamically created an acceptance function
-        #    (taking a hit as an argument). The acceptance function would
-        #    run without examining the above arguments for each hit the way
-        #    the current code does.
+        #    (taking a readAlignments as an argument). The acceptance
+        #    function would run without examining the above arguments for
+        #    each match the way the current code does.
 
         #
         # Alignment-only (i.e., non-HSP based) filtering.
         #
 
-        # If we've been asked to filter on hit sequence titles in any way,
+        # If we've been asked to filter on matched sequence titles in any way,
         # build a title filter.
         if (whitelist or blacklist or titleRegex or negativeTitleRegex or
                 truncateTitlesAfter):
@@ -204,7 +205,7 @@ class ReadsAlignments(object):
             lineageFetcher = LineageFetcher()
 
         count = 0
-        for hit in self:
+        for readAlignments in self:
             if limit is not None and count == limit:
                 return
 
@@ -212,12 +213,12 @@ class ReadsAlignments(object):
                 # Remove alignments against sequences whose titles are
                 # unacceptable.
                 wantedAlignments = []
-                for alignment in hit.alignments:
+                for alignment in readAlignments.alignments:
                     if (titleFilter.accept(alignment.subjectTitle) !=
                             TitleFilter.REJECT):
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    hit.alignments = wantedAlignments
+                    readAlignments.alignments = wantedAlignments
                 else:
                     continue
 
@@ -225,7 +226,7 @@ class ReadsAlignments(object):
             # desired length.
             if minSequenceLen is not None or maxSequenceLen is not None:
                 wantedAlignments = []
-                for alignment in hit.alignments:
+                for alignment in readAlignments.alignments:
                     length = alignment.subjectLength
                     if not ((minSequenceLen is not None and
                              length < minSequenceLen) or
@@ -233,13 +234,13 @@ class ReadsAlignments(object):
                              length > maxSequenceLen)):
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    hit.alignments = wantedAlignments
+                    readAlignments.alignments = wantedAlignments
                 else:
                     continue
 
             if taxonomy:
                 wantedAlignments = []
-                for alignment in hit.alignments:
+                for alignment in readAlignments.alignments:
                     lineage = lineageFetcher.lineage(alignment.subjectTitle)
                     if lineage:
                         if taxonomy in lineage:
@@ -250,12 +251,12 @@ class ReadsAlignments(object):
                         # option to control this.
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    hit.alignments = wantedAlignments
+                    readAlignments.alignments = wantedAlignments
                 else:
                     continue
 
-            if oneAlignmentPerRead and hit.alignments:
-                hit.alignments = [bestAlignment(hit)]
+            if oneAlignmentPerRead and readAlignments.alignments:
+                readAlignments.alignments = [bestAlignment(readAlignments)]
 
             #
             # From here on we do only HSP-based filtering.
@@ -263,7 +264,7 @@ class ReadsAlignments(object):
 
             # Throw out any unwanted HSPs due to maxHspsPerHit.
             if maxHspsPerHit is not None:
-                for alignment in hit.alignments:
+                for alignment in readAlignments.alignments:
                     hsps = alignment.hsps
                     if len(hsps) > maxHspsPerHit:
                         alignment.hsps = hsps[:maxHspsPerHit]
@@ -271,7 +272,7 @@ class ReadsAlignments(object):
             # Throw out HSPs whose scores are not good enough.
             if scoreCutoff is not None:
                 wantedAlignments = []
-                for alignment in hit.alignments:
+                for alignment in readAlignments.alignments:
                     hsps = alignment.hsps
                     wantedHsps = []
                     for hsp in hsps:
@@ -281,15 +282,15 @@ class ReadsAlignments(object):
                         alignment.hsps = wantedHsps
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    hit.alignments = wantedAlignments
+                    readAlignments.alignments = wantedAlignments
                 else:
                     continue
 
             # Throw out HSPs that don't match in the desired place on the
-            # hit sequence.
+            # matched sequence.
             if minStart is not None or maxStop is not None:
                 wantedAlignments = []
-                for alignment in hit.alignments:
+                for alignment in readAlignments.alignments:
                     hsps = alignment.hsps
                     wantedHsps = []
                     for hsp in hsps:
@@ -302,11 +303,11 @@ class ReadsAlignments(object):
                         alignment.hsps = wantedHsps
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    hit.alignments = wantedAlignments
+                    readAlignments.alignments = wantedAlignments
                 else:
                     continue
 
-            yield hit
+            yield readAlignments
             count += 1
 
         if taxonomy:
