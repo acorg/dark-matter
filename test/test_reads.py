@@ -1,5 +1,7 @@
 from unittest import TestCase
+from mock import patch, call
 
+from mocking import mockOpen
 from dark.reads import Read, Reads
 
 
@@ -277,3 +279,95 @@ class TestReads(TestCase):
         reads = FastaReads()
         reads.add(read3)
         self.assertEqual([read1, read2, read3], list(reads))
+
+    def testSaveWithUnknownFormat(self):
+        """
+        A Reads instance must raise ValueError if asked to save in an unknown
+        format.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT', '!!')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        error = "Save format must be either 'fasta' or 'fastq'\\."
+        self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'xxx')
+
+    def testSaveFASTAIsDefault(self):
+        """
+        A Reads instance must save in FASTA format by default.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads.save('filename')
+        handle = mockOpener()
+        self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
+                         handle.write.call_args_list)
+
+    def testSaveAsFASTA(self):
+        """
+        A Reads instance must be able to save in FASTA format.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads.save('filename', 'fasta')
+        handle = mockOpener()
+        self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
+                         handle.write.call_args_list)
+
+    def testSaveWithUppercaseFormat(self):
+        """
+        A Reads instance must save correctly when the format string is
+        given in upper case.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads.save('filename', 'FASTA')
+        handle = mockOpener()
+        self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
+                         handle.write.call_args_list)
+
+    def testSaveAsFASTQ(self):
+        """
+        A Reads instance must be able to save in FASTQ format.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT', '!!')
+        read2 = Read('id2', 'AC', '@@')
+        reads.add(read1)
+        reads.add(read2)
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads.save('filename', 'fastq')
+        handle = mockOpener()
+        self.assertEqual(
+            [call('@id1\nAT\n+id1\n!!\n'), call('@id2\nAC\n+id2\n@@\n')],
+            handle.write.call_args_list)
+
+    def testSaveAsFASTQFailsOnReadWithNoQuality(self):
+        """
+        A Reads instance must raise a ValueError if asked to save in FASTQ
+        format and there is a read with no quality present.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT', '!!')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        error = "Read 'id2' has no quality information"
+        self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'fastq')

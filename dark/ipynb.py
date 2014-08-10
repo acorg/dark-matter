@@ -8,16 +8,16 @@ from .html import (
     summarizeTitlesByLength, summarizeTitlesByMaxScore,
     summarizeTitlesByMedianScore, summarizeTitlesByCount,
     summarizeTitlesByTitle)
-from .graphics import alignmentGraph, alignmentPanel
+from .graphics import alignmentGraph, alignmentPanel, scoreGraph
 
 # Keep pyflakes quiet by pretending to make use of all our imports.
 _ = (FastaReads, BlastReadsAlignments, titleCounts, TitlesAlignments,
      summarizeTitlesByLength, summarizeTitlesByMaxScore,
      summarizeTitlesByMedianScore, summarizeTitlesByCount,
-     summarizeTitlesByTitle, alignmentGraph, alignmentPanel)
+     summarizeTitlesByTitle, alignmentGraph, alignmentPanel, scoreGraph)
 
 __all__ = [
     'FastaReads', 'BlastReadsAlignments', 'titleCounts', 'TitlesAlignments',
     'summarizeTitlesByLength', 'summarizeTitlesByMaxScore',
     'summarizeTitlesByMedianScore', 'summarizeTitlesByCount',
-    'summarizeTitlesByTitle', 'alignmentGraph', 'alignmentPanel']
+    'summarizeTitlesByTitle', 'alignmentGraph', 'alignmentPanel', 'scoreGraph']

@@ -119,3 +119,30 @@ class Reads(object):
         # If self.__iter__ has not been exhausted, we will not know the true
         # number of reads.
         return self._length
+
+    def save(self, filename, format_='fasta'):
+        """
+        Write the reads out to C{filename} in the desired format.
+
+        @param filename: A C{str} file name to save into. The file will be
+            overwritten.
+        @param format_: A C{str} format to save as, either 'fasta' or 'fastq'.
+        @raise ValueError: if C{format_} is 'fastq' and a read with no quality
+            is present.
+        """
+        format_ = format_.lower()
+        if format_ == 'fasta':
+            toString = lambda read: '>%s\n%s\n' % (read.id, read.sequence)
+        elif format_ == 'fastq':
+            for read in self:
+                if read.quality is None:
+                    raise ValueError('Read %r has no quality information' %
+                                     read.id)
+            toString = lambda read: '@%s\n%s\n+%s\n%s\n' % (
+                read.id, read.sequence, read.id, read.quality)
+        else:
+            raise ValueError("Save format must be either 'fasta' or 'fastq'.")
+
+        with open(filename, 'w') as fp:
+            for read in self:
+                fp.write(toString(read))

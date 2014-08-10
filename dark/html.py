@@ -1,5 +1,6 @@
-from Bio import SeqIO
 from IPython.display import HTML
+
+from dark.reads import Reads
 
 
 def NCBISequenceLinkURL(title, default=None):
@@ -116,20 +117,19 @@ class AlignmentPanelHTML(object):
     """
     Produces HTML details of a rectangular panel of graphs that each
     contain an alignment graph against a given sequence. This is
-    supplementary output info for the AlignmentPanel class in utils.py.
+    supplementary output info for the AlignmentPanel class in graphics.py.
 
     @param outputDir: The C{str} directory to write files into.
-    @param blastHits: A L{BlastHits} instance.
+    @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
     """
-    def __init__(self, outputDir, blastHits):
+    def __init__(self, outputDir, titlesAlignments):
         self._outputDir = outputDir
-        self._blastHits = blastHits
+        self._titlesAlignments = titlesAlignments
         self._images = []
 
-    def addImage(self, imageBasename, title, alignmentInfo, plotInfo):
+    def addImage(self, imageBasename, title, graphInfo):
         self._images.append({
-            'alignmentInfo': alignmentInfo,
-            'plotInfo': plotInfo,
+            'graphInfo': graphInfo,
             'imageBasename': imageBasename,
             'title': title
         })
@@ -167,9 +167,9 @@ class AlignmentPanelHTML(object):
         # Write out the summary images.
         for i, image in enumerate(self._images):
             title = image['title']
-            alignmentInfo = image['alignmentInfo']
-            plotInfo = image['plotInfo']
-            readIds = self._writeFASTA(i, image)
+            titleAlignments = self._titlesAlignments[title]
+            graphInfo = image['graphInfo']
+            reads = self._writeFASTA(i, image)
             fp.write("""
       <a id="small_%d"></a>
       <h3>%d: %s</h3>
@@ -177,13 +177,13 @@ class AlignmentPanelHTML(object):
         <a href="#big_%d"><img src="%s" class="thumbnail"/></a>
         Sequence length: %d base pairs.<br/>
         Number of reads that hit overall: %d.<br/>
-        Number of HSPs in this selection: %d (of %d overall).<br/>
+        Number of HSPs: %d.<br/>
         <a href="#big_%d">Full size image</a>.
 """
                      % (i, i, title, i, image['imageBasename'],
-                        self._blastHits.titles[title]['length'],
-                        self._blastHits.titles[title]['readCount'],
-                        len(plotInfo['items']), plotInfo['hspTotal'], i))
+                        titleAlignments.subjectLength,
+                        titleAlignments.readCount(),
+                        titleAlignments.hspCount(), i))
 
             url = NCBISequenceLinkURL(title)
             if url:
@@ -191,9 +191,9 @@ class AlignmentPanelHTML(object):
                          'target</a>.' % url)
 
             # Write out feature information.
-            if alignmentInfo['features'] is None:
+            if graphInfo['features'] is None:
                 fp.write('<br/>Feature lookup was False (or we were offline).')
-            elif len(alignmentInfo['features']) == 0:
+            elif len(graphInfo['features']) == 0:
                 fp.write('<br/>There were no features.')
             else:
                 fp.write('<br/><a href="%s">Features</a>' %
@@ -201,8 +201,9 @@ class AlignmentPanelHTML(object):
 
             # Write out the titles that this title invalidated due to its
             # read set.
-            if self._blastHits.readSetFilter:
-                invalidated = self._blastHits.readSetFilter.invalidates(title)
+            readSetFilter = self._titlesAlignments.readSetFilter
+            if readSetFilter:
+                invalidated = readSetFilter.invalidates(title)
                 if invalidated:
                     nInvalidated = len(invalidated)
                     fp.write('<br/>This title invalidated %d other%s due to '
@@ -213,9 +214,9 @@ class AlignmentPanelHTML(object):
                         fp.write('<li>%s</li>' % title)
                     fp.write('</ul>')
 
-            if len(plotInfo['items']):
+            if len(reads):
                 fp.write('<br/>Reads: <span class="reads">%s</span>'
-                         % ', '.join(readIds))
+                         % ', '.join(read.id for read in reads))
 
             fp.write('<br clear="all"/></p>')
 
@@ -262,20 +263,20 @@ span.reads {
     def _writeFASTA(self, i, image):
         """
         Write a FASTA file containing the set of reads that hit a sequence.
-        Return a list of the read identifiers.
 
-        i: The number of the image in self._images.
-        image: A member of self._images.
+        @param i: The number of the image in self._images.
+        @param image: A member of self._images.
+        @return: A C{dark.reads.Reads} instance holding the reads for the
+            image title.
         """
-        ids = []
-        reads = []
-        with open('%s/%d.fasta' % (self._outputDir, i), 'w') as fp:
-            for item in image['plotInfo']['items']:
-                readNum = item['readNum']
-                reads.append(self._blastHits.fasta[readNum])
-                ids.append(self._blastHits.fasta[readNum].description)
-            SeqIO.write(reads, fp, 'fasta')
-        return ids
+        reads = Reads()
+        title = image['title']
+        titleAlignments = self._titlesAlignments[title]
+        for titleAlignment in titleAlignments.alignments:
+            reads.add(titleAlignment.read)
+        filename = '%s/%d.fasta' % (self._outputDir, i)
+        reads.save(filename, 'fasta')
+        return reads
 
     def _writeFeatures(self, i, image):
         """
@@ -288,7 +289,7 @@ span.reads {
         """
         basename = 'features-%d.txt' % i
         filename = '%s/%s' % (self._outputDir, basename)
-        featureList = image['alignmentInfo']['features']
+        featureList = image['graphInfo']['features']
         with open(filename, 'w') as fp:
             for feature in featureList:
                 fp.write('%s\n\n' % feature.feature)
