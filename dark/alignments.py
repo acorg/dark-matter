@@ -188,7 +188,7 @@ class ReadsAlignments(object):
         @return: C{self}.
         """
 
-        def _makeIterator():
+        def makeIterator():
             iteratorIndex = len(self._iterators) - 1
 
             def result():
@@ -199,7 +199,7 @@ class ReadsAlignments(object):
                     truncateTitlesAfter, taxonomy, iteratorIndex)
             return result
 
-        self._iterators.append(_makeIterator())
+        self._iterators.append(makeIterator())
         return self
 
     def _filter(self, limit, minSequenceLen, maxSequenceLen, minStart, maxStop,

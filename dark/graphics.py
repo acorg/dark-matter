@@ -69,39 +69,6 @@ def _sortHTML(hits, by):
     return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
 
 
-def summarizeHitsByMeanEValue(hits):
-    """
-    Sort hit titles by mean e-value.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        mean e-value.
-    """
-    return _sortHTML(hits, 'eMean')
-
-
-def summarizeHitsByMedianEValue(hits):
-    """
-    Sort hit titles by median e-value.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        median e-value.
-    """
-    return _sortHTML(hits, 'eMedian')
-
-
-def summarizeHitsByMinEValue(hits):
-    """
-    Sort hit titles by minimum (i.e., best) e-value.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        minimum e-value.
-    """
-    return _sortHTML(hits, 'eMedian')
-
-
 def summarizeHitsByCount(hits):
     """
     Sort hit titles by read count.
@@ -124,37 +91,26 @@ def summarizeHitsByLength(hits):
     return _sortHTML(hits, 'length')
 
 
-def summarizeHitsByMaxBitScore(hits):
+def summarizeHitsByMaxScore(hits):
     """
-    Sort hit titles by sequence length.
+    Sort hit titles by maximum score.
 
     @param hits: An L{dark.blast.BlastHits} instance.
     @return: An C{IPython.display.HTML} instance with hit titles sorted by
         max bitscore.
     """
-    return _sortHTML(hits, 'bitScoreMax')
+    return _sortHTML(hits, 'scoreMax')
 
 
-def summarizeHitsByMeanBitScore(hits):
+def summarizeHitsByMedianScore(hits):
     """
-    Sort hit titles by sequence length.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        mean bitScore.
-    """
-    return _sortHTML(hits, 'bitScoreMean')
-
-
-def summarizeHitsByMedianBitScore(hits):
-    """
-    Sort hit titles by sequence length.
+    Sort hit titles by median score.
 
     @param hits: An L{dark.blast.BlastHits} instance.
     @return: An C{IPython.display.HTML} instance with hit titles sorted by
         median bit score.
     """
-    return _sortHTML(hits, 'bitScoreMedian')
+    return _sortHTML(hits, 'scoreMedian')
 
 
 def alignmentGraph(titlesAlignments, title, addQueryLines=True,
@@ -262,7 +218,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         adjustOffset = lambda x: x
 
     # It might be more efficient to only walk through all HSPs once and
-    # compute these values all at once, but for now this is simple & clear.
+    # compute these values all at once, but for now this is simple and clear.
     maxY = int(ceil(titleAlignments.bestHsp().score.score))
     minY = int(titleAlignments.worstHsp().score.score)
     maxX = max(hsp.readEnd for hsp in titleAlignments.hsps())
