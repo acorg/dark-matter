@@ -9,12 +9,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib import gridspec
-from IPython.display import HTML
 import numpy as np
 
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
-from dark.html import AlignmentPanelHTML, NCBISequenceLink, NCBISequenceLinkURL
+from dark.html import AlignmentPanelHTML, NCBISequenceLinkURL
 from dark.intervals import ReadIntervals
 from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
 from dark import orfs
@@ -46,71 +45,6 @@ DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
 def report(msg):
     print '%s: %s' % (ctime(time()), msg)
-
-
-def _sortHTML(hits, by):
-    """
-    Return an C{IPython.display.HTML} object with the hits sorted by the
-    given attribute.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @param by: A C{str}, one of 'scoreMedian', 'readCount', 'title'.
-    @return: An HTML instance with sorted titles and information about
-        hit read count, length, and e-values.
-    """
-    out = []
-    for i, title in enumerate(hits.sortTitles(by), start=1):
-        hitInfo = hits.titles[title]
-        link = NCBISequenceLink(title, title)
-        out.append(
-            '%3d: count=%4d, len=%7d, max(bit)=%20s median(bit)=%20s: %s' %
-            (i, hitInfo['readCount'], hitInfo['length'],
-             hitInfo['scoreMax'], hitInfo['scoreMedian'], link))
-    return HTML('<pre><tt>' + '<br/>'.join(out) + '</tt></pre>')
-
-
-def summarizeHitsByCount(hits):
-    """
-    Sort hit titles by read count.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        read count.
-    """
-    return _sortHTML(hits, 'readCount')
-
-
-def summarizeHitsByLength(hits):
-    """
-    Sort hit titles by sequence length.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        mean sequence length.
-    """
-    return _sortHTML(hits, 'length')
-
-
-def summarizeHitsByMaxScore(hits):
-    """
-    Sort hit titles by maximum score.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        max bitscore.
-    """
-    return _sortHTML(hits, 'scoreMax')
-
-
-def summarizeHitsByMedianScore(hits):
-    """
-    Sort hit titles by median score.
-
-    @param hits: An L{dark.blast.BlastHits} instance.
-    @return: An C{IPython.display.HTML} instance with hit titles sorted by
-        median bit score.
-    """
-    return _sortHTML(hits, 'scoreMedian')
 
 
 def alignmentGraph(titlesAlignments, title, addQueryLines=True,
@@ -221,12 +155,18 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     # compute these values all at once, but for now this is simple and clear.
     maxY = int(ceil(titleAlignments.bestHsp().score.score))
     minY = int(titleAlignments.worstHsp().score.score)
-    maxX = max(hsp.readEnd for hsp in titleAlignments.hsps())
-    minX = min(hsp.readStart for hsp in titleAlignments.hsps())
+    maxX = max(hsp.readEndInSubject for hsp in titleAlignments.hsps())
+    minX = min(hsp.readStartInSubject for hsp in titleAlignments.hsps())
 
-    # Sway min & max Y values as it's possible we are dealing with LSPs but
-    # that the score adjuster made numerically greater values for those
-    # that were small.
+    if xRange == 'subject':
+        # We'll display a graph for the full subject range. Adjust X axis
+        # min/max to make sure we cover at least zero to the sequence length.
+        maxX = max(len(sequence), maxX)
+        minX = min(0, minX)
+
+    # Swap min & max Y values, if needed, as it's possible we are dealing
+    # with LSPs but that the score adjuster made numerically greater values
+    # for those that were small.
     if maxY < minY:
         (maxY, minY) = (minY, maxY)
 
@@ -464,26 +404,9 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         plt.ylabel(ylabel, fontsize=17)
 
     # Set the x-axis limits.
-    if xRange == 'subject':
-        readsAx.set_xlim([minX - 1, maxX + 1])
-    else:
-        # Look at all the HSPs for this subject and figure out the min read
-        # start and max read end so we can set the X-axis.
-        first = True
-        for hsp in titleAlignments.hsps():
-            if first:
-                queryMin = hsp.readStartInSubject
-                queryMax = hsp.readEndInSubject
-                first = False
-            else:
-                if hsp.readStartInSubject < queryMin:
-                    queryMin = hsp.readStartInSubject
-                if hsp.readEndInSubject > queryMax:
-                    queryMax = hsp.readEndInSubject
-
-        readsAx.set_xlim([queryMin, queryMax])
-        result['queryMin'] = queryMin
-        result['queryMax'] = queryMax
+    readsAx.set_xlim([minX - 1, maxX + 1])
+    result['minX'] = minX
+    result['maxX'] = maxX
 
     readsAx.set_ylim([0, maxY + 1])
     readsAx.grid()
