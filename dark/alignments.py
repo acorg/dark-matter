@@ -100,13 +100,14 @@ class ReadsAlignments(object):
         self.reads = reads
         self.params = params
         self.scoreClass = scoreClass
-
-    def __iter__(self):
-        """
-        Must be implemented by a subclass, e.g., see
-        L{blast.alignments.BlastReadsAlignments}.
-        """
-        raise NotImplementedError('__iter__ must be implemented by a subclass')
+        self._originalIter = None
+        try:
+            # Look for 'iter' function in a subclass.
+            self.iter
+        except AttributeError:
+            self._iterators = []
+        else:
+            self._iterators = [self.iter]
 
     def getSequence(self, title):
         """
@@ -133,6 +134,16 @@ class ReadsAlignments(object):
                 for hsp in alignment.hsps:
                     yield hsp
 
+    def __iter__(self):
+        """
+        Must be implemented via a subclass implementing C{iter}, e.g., see
+        L{blast.alignments.BlastReadsAlignments}.
+        """
+        if not self._iterators:
+            raise NotImplementedError('iter must be implemented by a subclass')
+
+        return self._iterators[-1]()
+
     def filter(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
                minStart=None, maxStop=None,
                oneAlignmentPerRead=False, maxHspsPerHit=None,
@@ -140,6 +151,15 @@ class ReadsAlignments(object):
                titleRegex=None, negativeTitleRegex=None,
                truncateTitlesAfter=None, taxonomy=None):
         """
+        Update self so that __iter__ returns a generator that yields a filtered
+        set of C{ReadAlignments}.
+
+        See self._filter for details of arguments.
+
+        Filter the read alignments in self.
+
+        Do not call this function directly, instead see self.filter (above).
+
         @param limit: An C{int} limit on the number of records to read.
         @param minSequenceLen: sequences of lesser length will be elided.
         @param maxSequenceLen: sequences of greater length will be elided.
@@ -165,6 +185,37 @@ class ReadsAlignments(object):
             title will be elided.
         @param taxonomy: a C{str} of the taxonomic group on which should be
             filtered. eg 'Vira' will filter on viruses.
+        @return: C{self}.
+        """
+
+        def _makeIterator():
+            iteratorIndex = len(self._iterators) - 1
+
+            def result():
+                return self._filter(
+                    limit, minSequenceLen, maxSequenceLen, minStart, maxStop,
+                    oneAlignmentPerRead, maxHspsPerHit, scoreCutoff, whitelist,
+                    blacklist, titleRegex, negativeTitleRegex,
+                    truncateTitlesAfter, taxonomy, iteratorIndex)
+            return result
+
+        self._iterators.append(_makeIterator())
+        return self
+
+    def _filter(self, limit, minSequenceLen, maxSequenceLen, minStart, maxStop,
+                oneAlignmentPerRead, maxHspsPerHit, scoreCutoff, whitelist,
+                blacklist, titleRegex, negativeTitleRegex,
+                truncateTitlesAfter, taxonomy, iteratorIndex):
+        """
+        Filter the read alignments in self.
+
+        Do not call this function directly, instead use self.filter (above).
+        Argument defaults and descriptions (other than for iteratorIndex) are
+        as in self.filter.
+
+        @param iteratorIndex: An index into self._iterators. Calling the
+            iterator function will return a generator that yields
+            C{ReadAlignments} instances.
         @return: A generator that yields C{ReadAlignments} instances.
         """
 
@@ -205,7 +256,7 @@ class ReadsAlignments(object):
             lineageFetcher = LineageFetcher()
 
         count = 0
-        for readAlignments in self:
+        for readAlignments in self._iterators[iteratorIndex]():
             if limit is not None and count == limit:
                 return
 
@@ -312,3 +363,10 @@ class ReadsAlignments(object):
 
         if taxonomy:
             lineageFetcher.close()
+
+    def clearFilter(self):
+        """
+        Clear any filtering that has been applied to this instance.
+        """
+        if self._iterators:
+            self._iterators = self._iterators[:1]

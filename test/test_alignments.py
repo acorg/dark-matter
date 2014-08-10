@@ -169,9 +169,9 @@ class TestReadsAlignments(TestCase):
         """
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
-        error = '__iter__ must be implemented by a subclass'
+        error = 'iter must be implemented by a subclass'
         self.assertRaisesRegexp(NotImplementedError, error, list,
-                                readsAlignments.filter())
+                                readsAlignments)
 
     def testGetSequence(self):
         """

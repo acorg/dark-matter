@@ -108,7 +108,7 @@ class BlastReadsAlignments(ReadsAlignments):
             raise ValueError(
                 'Unknown BLAST record file suffix for file %r.' % filename)
 
-    def __iter__(self):
+    def iter(self):
         """
         Extract BLAST records and yield C{ReadAlignments} instances.
 

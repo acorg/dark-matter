@@ -1028,7 +1028,8 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            result = list(readsAlignments.filter(truncateTitlesAfter='virus'))
+            result = readsAlignments.filter(truncateTitlesAfter='virus')
+            result = list(result)
             self.assertEqual(3, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual(1, len(result[0].alignments))
@@ -1234,3 +1235,69 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id1', result[0].read.id)
             self.assertEqual(2, len(result[0].alignments))
+
+    def testRepeatedFilter_MinStartThenMinStart(self):
+        """
+        It must be possible to filter alignments multiple times using the same
+        filter parameters.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            readsAlignments.filter(minStart=9000)
+            readsAlignments.filter(minStart=9000)
+            result = list(readsAlignments)
+            self.assertEqual(2, len(result))
+            self.assertEqual('id0', result[0].read.id)
+            self.assertEqual('id1', result[1].read.id)
+
+    def testRepeatedFilter_MinStartThenMaxstop(self):
+        """
+        It must be possible to filter alignments multiple times using different
+        filter parameters.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            readsAlignments.filter(minStart=9000)
+            readsAlignments.filter(maxStop=12000)
+            result = list(readsAlignments)
+            self.assertEqual(1, len(result))
+            self.assertEqual('id1', result[0].read.id)
+            self.assertEqual(2, len(result[0].alignments))
+
+    def testClearFilter(self):
+        """
+        It must be possible to clear any filtering that has been applied.
+        """
+        result = lambda a: BZ2([
+            dumps(PARAMS) + '\n', dumps(RECORD0) + '\n',
+            dumps(RECORD1) + '\n', dumps(RECORD2) + '\n'])
+
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = result
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json.bz2')
+            self.assertEqual(3, len(list(readsAlignments)))
+            readsAlignments.filter(minStart=9000)
+            readsAlignments.filter(maxStop=12000)
+            readsAlignments.filter(scoreCutoff=19)
+            result = list(readsAlignments)
+            self.assertEqual(1, len(result))
+            readsAlignments.clearFilter()
+            self.assertEqual(3, len(list(readsAlignments)))
