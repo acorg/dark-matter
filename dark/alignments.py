@@ -171,7 +171,7 @@ class ReadsAlignments(object):
             alignment for each read.
         @param maxHspsPerHit: The maximum number of HSPs to keep for each
             alignment for each read.
-        @param scoreCutoff: A C{float} score. Matchess with scores that are not
+        @param scoreCutoff: A C{float} score. Matches with scores that are not
             better than this score will be ignored.
         @param whitelist: If not C{None}, a set of exact titles that are always
             acceptable (though the match info for a whitelist title may rule it

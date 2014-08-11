@@ -1,5 +1,6 @@
 from unittest import TestCase
 from mock import patch, call
+from cStringIO import StringIO
 
 from mocking import mockOpen
 from dark.reads import Read, Reads
@@ -371,3 +372,17 @@ class TestReads(TestCase):
         reads.add(read2)
         error = "Read 'id2' has no quality information"
         self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'fastq')
+
+    def testSaveToFileDescriptor(self):
+        """
+        A Reads instance must save to a file-like object if not passed a string
+        filename.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        fp = StringIO()
+        reads.save(fp)
+        self.assertEqual('>id1\nAT\n>id2\nAC\n', fp.getvalue())

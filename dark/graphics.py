@@ -145,7 +145,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         for hsp in titleAlignments.hsps():
             offsetAdjuster.adjustHSP(hsp)
         # A function for adjusting other offsets, below.
-        adjustOffset = adjuster.adjustOffset
+        adjustOffset = offsetAdjuster.adjustOffset
     else:
         adjustOffset = lambda x: x
 
@@ -526,9 +526,9 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         ax[row][col].set_title(plotTitle, fontsize=10)
 
     maxX = max(graphInfo['maxX'] for graphInfo in allGraphInfo.itervalues())
-    minX = max(graphInfo['minX'] for graphInfo in allGraphInfo.itervalues())
+    minX = min(graphInfo['minX'] for graphInfo in allGraphInfo.itervalues())
     maxY = max(graphInfo['maxY'] for graphInfo in allGraphInfo.itervalues())
-    minY = max(graphInfo['minY'] for graphInfo in allGraphInfo.itervalues())
+    minY = min(graphInfo['minY'] for graphInfo in allGraphInfo.itervalues())
 
     # Post-process graphs to adjust axes, etc.
 

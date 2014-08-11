@@ -122,13 +122,13 @@ class Reads(object):
 
     def save(self, filename, format_='fasta'):
         """
-        Write the reads out to C{filename} in the desired format.
+        Write the reads to C{filename} in the requested format.
 
-        @param filename: A C{str} file name to save into. The file will be
-            overwritten.
+        @param filename: Either a C{str} file name to save into (the file will
+            be overwritten) or an open file descriptor (e.g., sys.stdout).
         @param format_: A C{str} format to save as, either 'fasta' or 'fastq'.
         @raise ValueError: if C{format_} is 'fastq' and a read with no quality
-            is present.
+            is present, or if an unknown format is requested.
         """
         format_ = format_.lower()
         if format_ == 'fasta':
@@ -143,6 +143,11 @@ class Reads(object):
         else:
             raise ValueError("Save format must be either 'fasta' or 'fastq'.")
 
-        with open(filename, 'w') as fp:
+        if isinstance(filename, basestring):
+            with open(filename, 'w') as fp:
+                for read in self:
+                    fp.write(toString(read))
+        else:
+            # We have a file-like object.
             for read in self:
-                fp.write(toString(read))
+                filename.write(toString(read))
