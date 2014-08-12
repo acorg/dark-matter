@@ -151,3 +151,22 @@ class Reads(object):
             # We have a file-like object.
             for read in self:
                 filename.write(toString(read))
+
+    def filter(self, minLength=None, maxLength=None):
+        """
+        Filter a set of reads to produce a matching subset.
+
+        Note: there are many additional filtering options that could be added,
+        e.g., filtering on read id (whitelist, blacklist, regex, etc), GC %,
+        and quality.
+
+        @param minLength: The minimum acceptable length.
+        @param maxLength: The maximum acceptable length.
+        """
+        result = Reads()
+        for read in self:
+            readLen = len(read)
+            if ((minLength is None or readLen >= minLength) and
+                    (maxLength is None or readLen <= maxLength)):
+                result.add(read)
+        return result

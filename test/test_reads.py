@@ -386,3 +386,66 @@ class TestReads(TestCase):
         fp = StringIO()
         reads.save(fp)
         self.assertEqual('>id1\nAT\n>id2\nAC\n', fp.getvalue())
+
+    def testFilterOnMinLength(self):
+        """
+        Filtering on minimal length must work.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(minLength=4)
+        self.assertEqual([read1], list(result))
+
+    def testFilterOnMaxLength(self):
+        """
+        Filtering on maximal length must work.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(maxLength=3)
+        self.assertEqual([read2], list(result))
+
+    def testFilterOnLengthNothingMatches(self):
+        """
+        When filtering on length, no reads should be returned if none of them
+        satisfy the length requirements.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(minLength=10, maxLength=15)
+        self.assertEqual([], list(result))
+
+    def testFilterOnLengthEverythingMatches(self):
+        """
+        When filtering on length, all reads should be returned if they all
+        satisfy the length requirements.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(minLength=2, maxLength=5)
+        self.assertEqual([read1, read2], list(result))
+
+    def testFilterWithMinLengthEqualToMaxLength(self):
+        """
+        When filtering on length, a read should be returned if its length
+        equals a passed minimum and maximum length.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(minLength=4, maxLength=4)
+        self.assertEqual([read1], list(result))
