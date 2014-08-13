@@ -202,6 +202,7 @@ class LineageFetcher(object):
     def __init__(self):
         self._db = mysql.getDatabaseConnection()
         self._cursor = self._db.cursor()
+        self._cache = {}
 
     def lineage(self, title):
         """
@@ -213,6 +214,9 @@ class LineageFetcher(object):
         @return: A C{list} of the taxonomic categories of the title. If
             no taxonomy is found, the list will be empty.
         """
+        if title in self._cache:
+            return self._cache[title]
+
         lineage = []
         gi = int(title.split('|')[1])
         query = 'SELECT taxID from gi_taxid_nucl where gi = %d' % gi
@@ -230,10 +234,17 @@ class LineageFetcher(object):
                 scientificName = self._cursor.fetchone()[0]
                 lineage.append(scientificName)
                 taxID = parentTaxID
-            return lineage
         except TypeError:
-            return []
+            lineage = []
+
+        self._cache[title] = lineage
+        return lineage
 
     def close(self):
+        """
+        Close the database connection and render self invalid. Any subsequent
+        re-use of self will raise an error.
+        """
         self._cursor.close()
         self._db.close()
+        self._cursor = self._db = self._cache = None

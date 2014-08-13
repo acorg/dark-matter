@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.blast import BlastHits
+from dark.blast.blast import BlastHits
 from dark import taxonomy
 
 
@@ -32,7 +32,8 @@ class FakeDbConnection(object):
         self.open = False
 
 
-class TestTaxonomy(TestCase):
+# TODO: put these taxonomy tests elsewhere after modernizing them.
+class TestTaxonomy(object):
     """
     Test the helper functions in taxonomy.py
     """

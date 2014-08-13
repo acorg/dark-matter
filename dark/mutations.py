@@ -15,8 +15,8 @@ def basePlotter(blastHits, title):
     read_1         A......TTC..T
 
     @param blastHits: A L{dark.blast.BlastHits} instance.
-    @param title: A C{str} sequence title that was hit by BLAST. We plot the
-        reads that hit this title.
+    @param title: A C{str} sequence title that was matched by BLAST. We plot
+        the reads that matched this title.
     """
     result = []
     params = blastHits.plotParams
