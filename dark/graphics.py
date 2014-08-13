@@ -117,7 +117,11 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         else:
             readsAx = readsAx or plt.subplot(111)
 
+    # Make a deep copy of the title alignments. We're potentially going to
+    # change the HSP scores, the X axis offsets, etc., and we don't want to
+    # interfere with the data we were passed.
     titleAlignments = deepcopy(titlesAlignments[title])
+
     readsAlignments = titlesAlignments.readsAlignments
     subjectIsNucleotides = readsAlignments.params.subjectIsNucleotides
     sequence = readsAlignments.getSequence(title)
@@ -134,6 +138,10 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         pass
     else:
         adjuster(titleAlignments)
+
+    if rankScores:
+        for rank, hsp in enumerate(sorted(titleAlignments.hsps()), start=1):
+            hsp.score.score = rank
 
     if logLinearXAxis:
         readIntervals = ReadIntervals(titleAlignments.subjectLength)
