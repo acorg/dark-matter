@@ -40,4 +40,4 @@ $ pip install -r requirements.txt
 ### Set PYTHONPATH
 
 You may want to add the `dark-matter` directory (the one that was created
-above by `git clone`) to you `PYTHONPATH`.
+above by `git clone`) to your `PYTHONPATH`.
