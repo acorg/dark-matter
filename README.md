@@ -83,7 +83,7 @@ $ make
 $ make install
 ```
 
-### Install dark matter in a Python virtual environment
+### Install dark matter from github
 
 ```sh
 $ git clone git@github.com:acorg/dark-matter.git
