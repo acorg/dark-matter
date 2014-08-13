@@ -1,3 +1,5 @@
+import re
+
 from dark.taxonomy import LineageFetcher
 from dark.filter import TitleFilter
 from dark.score import HigherIsBetterScore
@@ -149,7 +151,7 @@ class ReadsAlignments(object):
                oneAlignmentPerRead=False, maxHspsPerHit=None,
                scoreCutoff=None, whitelist=None, blacklist=None,
                titleRegex=None, negativeTitleRegex=None,
-               truncateTitlesAfter=None, taxonomy=None):
+               truncateTitlesAfter=None, taxonomy=None, readIdRegex=None):
         """
         Update self so that __iter__ returns a generator that yields a filtered
         set of C{ReadAlignments}.
@@ -161,13 +163,13 @@ class ReadsAlignments(object):
         Do not call this function directly, instead see self.filter (above).
 
         @param limit: An C{int} limit on the number of records to read.
-        @param minSequenceLen: sequences of lesser length will be elided.
-        @param maxSequenceLen: sequences of greater length will be elided.
+        @param minSequenceLen: Sequences of lesser length will be elided.
+        @param maxSequenceLen: Sequences of greater length will be elided.
         @param minStart: HSPs that start before this offset in the matched
             sequence should not be returned.
         @param maxStop: HSPs that end after this offset in the matched sequence
             should not be returned.
-        @param oneAlignmentPerRead: if C{True}, only keep the best
+        @param oneAlignmentPerRead: If C{True}, only keep the best
             alignment for each read.
         @param maxHspsPerHit: The maximum number of HSPs to keep for each
             alignment for each read.
@@ -178,13 +180,14 @@ class ReadsAlignments(object):
             out for other reasons).
         @param blacklist: If not C{None}, a set of exact titles that are never
             acceptable.
-        @param titleRegex: a regex that sequence titles must match.
-        @param negativeTitleRegex: a regex that sequence titles must not match.
-        @param truncateTitlesAfter: specify a string that titles will be
-            truncated beyond. If a truncated title has already been seen, that
-            title will be elided.
-        @param taxonomy: a C{str} of the taxonomic group on which should be
+        @param titleRegex: A regex that sequence titles must match.
+        @param negativeTitleRegex: A regex that sequence titles must not match.
+        @param truncateTitlesAfter: A string that titles will be truncated
+            beyond. If a truncated title has already been seen, that title will
+            be elided.
+        @param taxonomy: A C{str} of the taxonomic group on which should be
             filtered. eg 'Vira' will filter on viruses.
+        @param readIdRegex: A regex that read ids must match.
         @return: C{self}.
         """
 
@@ -196,7 +199,7 @@ class ReadsAlignments(object):
                     limit, minSequenceLen, maxSequenceLen, minStart, maxStop,
                     oneAlignmentPerRead, maxHspsPerHit, scoreCutoff, whitelist,
                     blacklist, titleRegex, negativeTitleRegex,
-                    truncateTitlesAfter, taxonomy, iteratorIndex)
+                    truncateTitlesAfter, taxonomy, iteratorIndex, readIdRegex)
             return result
 
         self._iterators.append(makeIterator())
@@ -205,7 +208,7 @@ class ReadsAlignments(object):
     def _filter(self, limit, minSequenceLen, maxSequenceLen, minStart, maxStop,
                 oneAlignmentPerRead, maxHspsPerHit, scoreCutoff, whitelist,
                 blacklist, titleRegex, negativeTitleRegex,
-                truncateTitlesAfter, taxonomy, iteratorIndex):
+                truncateTitlesAfter, taxonomy, iteratorIndex, readIdRegex):
         """
         Filter the read alignments in self.
 
@@ -255,10 +258,18 @@ class ReadsAlignments(object):
         if taxonomy:
             lineageFetcher = LineageFetcher()
 
+        if readIdRegex is not None:
+            readIdRegex = re.compile(readIdRegex, re.I)
+
         count = 0
         for readAlignments in self._iterators[iteratorIndex]():
             if limit is not None and count == limit:
                 return
+
+            # Filter on the read id.
+            if (readIdRegex and
+                    readIdRegex.search(readAlignments.read.id) is None):
+                continue
 
             if titleFilter:
                 # Remove alignments against sequences whose titles are
