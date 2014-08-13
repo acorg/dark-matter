@@ -148,6 +148,12 @@ class TestReadsAlignments(TestCase):
     Test the L{dark.alignments.ReadsAlignments} class.
     """
 
+    # NOTE: The ReadsAlignments class is a base class for concrete
+    # implementations, such as BlastReadsAlignments. So it can only be
+    # tested minimally by itself. For full tests see the
+    # TestBlastReadsAlignments and TestBlastReadsAlignmentsFiltering
+    # classes in test/blast/blast_alignments.py
+
     def testExpectedAttrs(self):
         """
         A ReadsAlignments instance must have the expected attributes.

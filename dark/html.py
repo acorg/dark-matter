@@ -34,7 +34,7 @@ def NCBISequenceLink(title, default=None):
         return '<a href="%s" target="_blank">%s</a>' % (url, title)
 
 
-def _sortHTML(titlesAlignments, by):
+def _sortHTML(titlesAlignments, by, limit=None):
     """
     Return an C{IPython.display.HTML} object with the alignments sorted by the
     given attribute.
@@ -42,11 +42,14 @@ def _sortHTML(titlesAlignments, by):
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
     @param by: A C{str}, one of 'length', 'maxScore', 'medianScore',
         'readCount', or 'title'.
+    @param limit: An C{int} limit on the number of results to show.
     @return: An HTML instance with sorted titles and information about
         hit read count, length, and e-values.
     """
     out = []
     for i, title in enumerate(titlesAlignments.sortTitles(by), start=1):
+        if limit is not None and i > limit:
+            break
         titleAlignments = titlesAlignments[title]
         link = NCBISequenceLink(title, title)
         out.append(
@@ -58,59 +61,64 @@ def _sortHTML(titlesAlignments, by):
     return HTML('<pre>' + '<br/>'.join(out) + '</pre>')
 
 
-def summarizeTitlesByTitle(titlesAlignments):
+def summarizeTitlesByTitle(titlesAlignments, limit=None):
     """
     Sort match titles by title
 
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
+    @param limit: An C{int} limit on the number of results to show.
     @return: An C{IPython.display.HTML} instance with match titles sorted by
         title.
     """
-    return _sortHTML(titlesAlignments, 'title')
+    return _sortHTML(titlesAlignments, 'title', limit)
 
 
-def summarizeTitlesByCount(titlesAlignments):
+def summarizeTitlesByCount(titlesAlignments, limit=None):
     """
     Sort match titles by read count.
 
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
+    @param limit: An C{int} limit on the number of results to show.
     @return: An C{IPython.display.HTML} instance with match titles sorted by
         read count.
     """
-    return _sortHTML(titlesAlignments, 'readCount')
+    return _sortHTML(titlesAlignments, 'readCount', limit)
 
 
-def summarizeTitlesByLength(titlesAlignments):
+def summarizeTitlesByLength(titlesAlignments, limit=None):
     """
     Sort match titles by sequence length.
 
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
+    @param limit: An C{int} limit on the number of results to show.
     @return: An C{IPython.display.HTML} instance with match titles sorted by
         sequence length.
     """
-    return _sortHTML(titlesAlignments, 'length')
+    return _sortHTML(titlesAlignments, 'length', limit)
 
 
-def summarizeTitlesByMaxScore(titlesAlignments):
+def summarizeTitlesByMaxScore(titlesAlignments, limit=None):
     """
     Sort hit titles by maximum score.
 
     @param titlesAlignments: A L{dark.blast.BlastMatchs} instance.
+    @param limit: An C{int} limit on the number of results to show.
     @return: An C{IPython.display.HTML} instance with hit titles sorted by
         max score.
     """
-    return _sortHTML(titlesAlignments, 'maxScore')
+    return _sortHTML(titlesAlignments, 'maxScore', limit)
 
 
-def summarizeTitlesByMedianScore(titlesAlignments):
+def summarizeTitlesByMedianScore(titlesAlignments, limit=None):
     """
     Sort match titles by median score.
 
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
+    @param limit: An C{int} limit on the number of results to show.
     @return: An C{IPython.display.HTML} instance with match titles sorted by
         median score.
     """
-    return _sortHTML(titlesAlignments, 'medianScore')
+    return _sortHTML(titlesAlignments, 'medianScore', limit)
 
 
 class AlignmentPanelHTML(object):

@@ -1301,3 +1301,74 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             readsAlignments.clearFilter()
             self.assertEqual(3, len(list(readsAlignments)))
+
+    def testReadIdNoMatches(self):
+        """
+        When filtering on alignments based on a regex for
+        read ids that matches no ids, an empty generator must be returned.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(readIdRegex='blah'))
+            self.assertEqual(0, len(result))
+
+    def testReadId(self):
+        """
+        It must be possible to filter alignments based on a regex for
+        read ids.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(readIdRegex='id[12]'))
+            self.assertEqual(2, len(result))
+            self.assertEqual('id1', result[0].read.id)
+            self.assertEqual('id2', result[1].read.id)
+
+    def testReadIdAnchored(self):
+        """
+        It must be possible to filter alignments based on a regex for
+        read ids that is anchored at start and end.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(readIdRegex='^id0$'))
+            self.assertEqual(1, len(result))
+            self.assertEqual('id0', result[0].read.id)
+
+    def testReadIdCaseSensitive(self):
+        """
+        Filtering alignments based on a regex for read ids must be case
+        sensitive.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(readIdRegex='^ID0$'))
+            self.assertEqual(0, len(result))
