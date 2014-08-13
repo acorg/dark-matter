@@ -187,7 +187,8 @@ class ReadsAlignments(object):
             be elided.
         @param taxonomy: A C{str} of the taxonomic group on which should be
             filtered. eg 'Vira' will filter on viruses.
-        @param readIdRegex: A regex that read ids must match.
+        @param readIdRegex: A case-sensitive regex C{str} that read ids must
+            match.
         @return: C{self}.
         """
 
@@ -239,6 +240,10 @@ class ReadsAlignments(object):
         #    (taking a readAlignments as an argument). The acceptance
         #    function would run without examining the above arguments for
         #    each match the way the current code does.
+        #
+        # 3. A better approach with readIdRegex might be to allow the
+        #    passing of a regex object. Then the caller would make the
+        #    regex with whatever flags they liked (e.g., case insensitive).
 
         #
         # Alignment-only (i.e., non-HSP based) filtering.
@@ -259,11 +264,7 @@ class ReadsAlignments(object):
             lineageFetcher = LineageFetcher()
 
         if readIdRegex is not None:
-            # NOTE: we might not want this to be case-insensitive. A
-            # better, though less user-friendly, solution would be to allow
-            # the passing of a regex object for readIdRegex. Then the
-            # caller would make the regex with whatever flags they liked.
-            readIdRegex = re.compile(readIdRegex, re.I)
+            readIdRegex = re.compile(readIdRegex)
 
         count = 0
         for readAlignments in self._iterators[iteratorIndex]():

@@ -1355,3 +1355,20 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(readIdRegex='^id0$'))
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
+
+    def testReadIdCaseSensitive(self):
+        """
+        Filtering alignments based on a regex for read ids must be case
+        sensitive.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(readIdRegex='^ID0$'))
+            self.assertEqual(0, len(result))
