@@ -259,6 +259,10 @@ class ReadsAlignments(object):
             lineageFetcher = LineageFetcher()
 
         if readIdRegex is not None:
+            # NOTE: we might not want this to be case-insensitive. A
+            # better, though less user-friendly, solution would be to allow
+            # the passing of a regex object for readIdRegex. Then the
+            # caller would make the regex with whatever flags they liked.
             readIdRegex = re.compile(readIdRegex, re.I)
 
         count = 0
