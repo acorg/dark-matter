@@ -18,8 +18,7 @@ def bestAlignment(readAlignments):
     @return: The alignment with the best first HSP score.
 
     """
-    return max(readAlignments.alignments,
-               key=lambda alignment: alignment.hsps[0])
+    return max(readAlignments, key=lambda alignment: alignment.hsps[0])
 
 
 class Alignment(object):
@@ -46,7 +45,7 @@ class Alignment(object):
         self.hsps.append(hsp)
 
 
-class ReadAlignments(object):
+class ReadAlignments(list):
     """
     Holds information about the alignments for a read.
 
@@ -54,8 +53,9 @@ class ReadAlignments(object):
     @param alignments: A C{list} of L{dark.alignment.Alignment} instances.
     """
     def __init__(self, read, alignments):
+        list.__init__(self)
         self.read = read
-        self.alignments = alignments
+        self.extend(alignments)
 
 
 class ReadsAlignmentsParams(object):
@@ -132,7 +132,7 @@ class ReadsAlignments(object):
         @return: A generator that yields HSPs (or LSPs).
         """
         for readAlignments in self:
-            for alignment in readAlignments.alignments:
+            for alignment in readAlignments:
                 for hsp in alignment.hsps:
                     yield hsp
 
@@ -155,12 +155,6 @@ class ReadsAlignments(object):
         """
         Update self so that __iter__ returns a generator that yields a filtered
         set of C{ReadAlignments}.
-
-        See self._filter for details of arguments.
-
-        Filter the read alignments in self.
-
-        Do not call this function directly, instead see self.filter (above).
 
         @param limit: An C{int} limit on the number of records to read.
         @param minSequenceLen: Sequences of lesser length will be elided.
@@ -280,12 +274,12 @@ class ReadsAlignments(object):
                 # Remove alignments against sequences whose titles are
                 # unacceptable.
                 wantedAlignments = []
-                for alignment in readAlignments.alignments:
+                for alignment in readAlignments:
                     if (titleFilter.accept(alignment.subjectTitle) !=
                             TitleFilter.REJECT):
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    readAlignments.alignments = wantedAlignments
+                    readAlignments[:] = wantedAlignments
                 else:
                     continue
 
@@ -293,7 +287,7 @@ class ReadsAlignments(object):
             # desired length.
             if minSequenceLen is not None or maxSequenceLen is not None:
                 wantedAlignments = []
-                for alignment in readAlignments.alignments:
+                for alignment in readAlignments:
                     length = alignment.subjectLength
                     if not ((minSequenceLen is not None and
                              length < minSequenceLen) or
@@ -301,13 +295,13 @@ class ReadsAlignments(object):
                              length > maxSequenceLen)):
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    readAlignments.alignments = wantedAlignments
+                    readAlignments[:] = wantedAlignments
                 else:
                     continue
 
             if taxonomy:
                 wantedAlignments = []
-                for alignment in readAlignments.alignments:
+                for alignment in readAlignments:
                     lineage = lineageFetcher.lineage(alignment.subjectTitle)
                     if lineage:
                         if taxonomy in lineage:
@@ -318,12 +312,12 @@ class ReadsAlignments(object):
                         # option to control this.
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    readAlignments.alignments = wantedAlignments
+                    readAlignments[:] = wantedAlignments
                 else:
                     continue
 
-            if oneAlignmentPerRead and readAlignments.alignments:
-                readAlignments.alignments = [bestAlignment(readAlignments)]
+            if oneAlignmentPerRead and readAlignments:
+                readAlignments[:] = [bestAlignment(readAlignments)]
 
             #
             # From here on we do only HSP-based filtering.
@@ -331,7 +325,7 @@ class ReadsAlignments(object):
 
             # Throw out any unwanted HSPs due to maxHspsPerHit.
             if maxHspsPerHit is not None:
-                for alignment in readAlignments.alignments:
+                for alignment in readAlignments:
                     hsps = alignment.hsps
                     if len(hsps) > maxHspsPerHit:
                         alignment.hsps = hsps[:maxHspsPerHit]
@@ -339,7 +333,7 @@ class ReadsAlignments(object):
             # Throw out HSPs whose scores are not good enough.
             if scoreCutoff is not None:
                 wantedAlignments = []
-                for alignment in readAlignments.alignments:
+                for alignment in readAlignments:
                     hsps = alignment.hsps
                     wantedHsps = []
                     for hsp in hsps:
@@ -349,7 +343,7 @@ class ReadsAlignments(object):
                         alignment.hsps = wantedHsps
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    readAlignments.alignments = wantedAlignments
+                    readAlignments[:] = wantedAlignments
                 else:
                     continue
 
@@ -357,7 +351,7 @@ class ReadsAlignments(object):
             # matched sequence.
             if minStart is not None or maxStop is not None:
                 wantedAlignments = []
-                for alignment in readAlignments.alignments:
+                for alignment in readAlignments:
                     hsps = alignment.hsps
                     wantedHsps = []
                     for hsp in hsps:
@@ -370,7 +364,7 @@ class ReadsAlignments(object):
                         alignment.hsps = wantedHsps
                         wantedAlignments.append(alignment)
                 if wantedAlignments:
-                    readAlignments.alignments = wantedAlignments
+                    readAlignments[:] = wantedAlignments
                 else:
                     continue
 

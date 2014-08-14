@@ -603,8 +603,8 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             result = list(readsAlignments.filter(oneAlignmentPerRead=True))
             self.assertEqual(1, len(result))
-            self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual('Merkel1', result[0].alignments[0].subjectTitle)
+            self.assertEqual(1, len(result[0]))
+            self.assertEqual('Merkel1', result[0][0].subjectTitle)
 
     def testScoreCutoffRemovesEntireAlignment_Bits(self):
         """
@@ -660,8 +660,8 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             result = list(readsAlignments.filter(scoreCutoff=160))
             self.assertEqual(1, len(result))
-            self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual('Merkel2', result[0].alignments[0].subjectTitle)
+            self.assertEqual(1, len(result[0]))
+            self.assertEqual('Merkel2', result[0][0].subjectTitle)
 
     def testScoreCutoffRemovesEntireAlignment_EValue(self):
         """
@@ -718,8 +718,8 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
                 reads, 'file.json', scoreClass=LowerIsBetterScore)
             result = list(readsAlignments.filter(scoreCutoff=1e-20))
             self.assertEqual(1, len(result))
-            self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual('Merkel2', result[0].alignments[0].subjectTitle)
+            self.assertEqual(1, len(result[0]))
+            self.assertEqual('Merkel2', result[0][0].subjectTitle)
 
     def testScoreCutoffRemovesHsps_Bits(self):
         """
@@ -788,12 +788,12 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
             # There should only be one HSP left in the alignments for the
             # first read, and it should have the right score (bit score).
-            self.assertEqual(1, len(result[0].alignments[0].hsps))
-            self.assertEqual(HSP(170), result[0].alignments[0].hsps[0])
+            self.assertEqual(1, len(result[0][0].hsps))
+            self.assertEqual(HSP(170), result[0][0].hsps[0])
 
             # The second alignment should also be present.
-            self.assertEqual(1, len(result[0].alignments[1].hsps))
-            self.assertEqual(HSP(180), result[0].alignments[1].hsps[0])
+            self.assertEqual(1, len(result[0][1].hsps))
+            self.assertEqual(HSP(180), result[0][1].hsps[0])
 
     def testScoreCutoffRemovesHsps_EValue(self):
         """
@@ -863,12 +863,12 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
             # There should only be one HSP left in the alignments for the
             # first read, and it should have the right score (e-value).
-            self.assertEqual(1, len(result[0].alignments[0].hsps))
-            self.assertEqual(LSP(1.25e-20), result[0].alignments[0].hsps[0])
+            self.assertEqual(1, len(result[0][0].hsps))
+            self.assertEqual(LSP(1.25e-20), result[0][0].hsps[0])
 
             # The second alignment should also be present.
-            self.assertEqual(1, len(result[0].alignments[1].hsps))
-            self.assertEqual(LSP(1.25e-30), result[0].alignments[1].hsps[0])
+            self.assertEqual(1, len(result[0][1].hsps))
+            self.assertEqual(LSP(1.25e-30), result[0][1].hsps[0])
 
     def testTitleByRegexCaseInvariant(self):
         """
@@ -887,7 +887,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testTitleByRegexAllAlignments(self):
         """
@@ -907,7 +907,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testTitleByRegexOneAlignments(self):
         """
@@ -927,7 +927,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result))
             self.assertEqual('id1', result[0].read.id)
             self.assertEqual('gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testTitleByNegativeRegexOneAlignment(self):
         """
@@ -947,9 +947,9 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(negativeTitleRegex='Mummy'))
             self.assertEqual(3, len(result))
             self.assertEqual('id1', result[1].read.id)
-            self.assertEqual(1, len(result[1].alignments))
+            self.assertEqual(1, len(result[1]))
             self.assertEqual('gi|887699|gb|DQ37780 Monkeypox virus 456',
-                             result[1].alignments[0].subjectTitle)
+                             result[1][0].subjectTitle)
 
     def testTitleByNegativeRegexMatchesAll(self):
         """
@@ -988,8 +988,8 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
                                                  whitelist=[title]))
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
-            self.assertEqual(1, len(result[0].alignments))
-            self.assertEqual(title, result[0].alignments[0].subjectTitle)
+            self.assertEqual(1, len(result[0]))
+            self.assertEqual(title, result[0][0].subjectTitle)
 
     def testTitleByRegexMatchingAllWithBlacklist(self):
         """
@@ -1032,10 +1032,10 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(result)
             self.assertEqual(3, len(result))
             self.assertEqual('id0', result[0].read.id)
-            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual(1, len(result[0]))
             # The Squirrelpox virus 55 hit in RECORD0 is not returned.
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testMinTitleSequenceLength(self):
         """
@@ -1054,9 +1054,9 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(minSequenceLen=37500))
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
-            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual(1, len(result[0]))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 55',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testMinTitleSequenceLengthNoHits(self):
         """
@@ -1093,9 +1093,9 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(maxSequenceLen=31000))
             self.assertEqual(1, len(result))
             self.assertEqual('id2', result[0].read.id)
-            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual(1, len(result[0]))
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testMaxTitleSequenceLengthNoHits(self):
         """
@@ -1133,11 +1133,11 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
                                                  maxSequenceLen=38000))
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
-            self.assertEqual(2, len(result[0].alignments))
+            self.assertEqual(2, len(result[0]))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 55',
-                             result[0].alignments[1].subjectTitle)
+                             result[0][1].subjectTitle)
 
     def testMinStart(self):
         """
@@ -1156,9 +1156,9 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(minStart=15300))
             self.assertEqual(1, len(result))
             self.assertEqual('id0', result[0].read.id)
-            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual(1, len(result[0]))
             self.assertEqual('gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testMinStartNoHits(self):
         """
@@ -1195,9 +1195,9 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(maxStop=1500))
             self.assertEqual(1, len(result))
             self.assertEqual('id2', result[0].read.id)
-            self.assertEqual(1, len(result[0].alignments))
+            self.assertEqual(1, len(result[0]))
             self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
-                             result[0].alignments[0].subjectTitle)
+                             result[0][0].subjectTitle)
 
     def testMaxStopNoHits(self):
         """
@@ -1234,7 +1234,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(minStart=9000, maxStop=12000))
             self.assertEqual(1, len(result))
             self.assertEqual('id1', result[0].read.id)
-            self.assertEqual(2, len(result[0].alignments))
+            self.assertEqual(2, len(result[0]))
 
     def testRepeatedFilter_MinStartThenMinStart(self):
         """
@@ -1276,7 +1276,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments)
             self.assertEqual(1, len(result))
             self.assertEqual('id1', result[0].read.id)
-            self.assertEqual(2, len(result[0].alignments))
+            self.assertEqual(2, len(result[0]))
 
     def testClearFilter(self):
         """
