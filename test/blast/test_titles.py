@@ -131,17 +131,17 @@ class TestTitlesAlignments(TestCase):
             titleAlignments = titlesAlignments[title]
             self.assertEqual(title, titleAlignments.subjectTitle)
             self.assertEqual(37000, titleAlignments.subjectLength)
-            self.assertEqual(1, len(titleAlignments.alignments))
-            self.assertEqual(read, titleAlignments.alignments[0].read)
-            self.assertEqual(HSP(20), titleAlignments.alignments[0].hsps[0])
+            self.assertEqual(1, len(titleAlignments))
+            self.assertEqual(read, titleAlignments[0].read)
+            self.assertEqual(HSP(20), titleAlignments[0].hsps[0])
 
             title = 'gi|887699|gb|DQ37780 Squirrelpox virus 55'
             titleAlignments = titlesAlignments[title]
             self.assertEqual(title, titleAlignments.subjectTitle)
             self.assertEqual(38000, titleAlignments.subjectLength)
-            self.assertEqual(1, len(titleAlignments.alignments))
-            self.assertEqual(read, titleAlignments.alignments[0].read)
-            self.assertEqual(HSP(25), titleAlignments.alignments[0].hsps[0])
+            self.assertEqual(1, len(titleAlignments))
+            self.assertEqual(read, titleAlignments[0].read)
+            self.assertEqual(HSP(25), titleAlignments[0].hsps[0])
 
     def testTitleCollection(self):
         """
@@ -164,13 +164,13 @@ class TestTitlesAlignments(TestCase):
             titleAlignments = titlesAlignments[title]
             self.assertEqual(title, titleAlignments.subjectTitle)
             self.assertEqual(30000, titleAlignments.subjectLength)
-            self.assertEqual(2, len(titleAlignments.alignments))
+            self.assertEqual(2, len(titleAlignments))
 
-            self.assertEqual(read2, titleAlignments.alignments[0].read)
-            self.assertEqual(HSP(20), titleAlignments.alignments[0].hsps[0])
+            self.assertEqual(read2, titleAlignments[0].read)
+            self.assertEqual(HSP(20), titleAlignments[0].hsps[0])
 
-            self.assertEqual(read3, titleAlignments.alignments[1].read)
-            self.assertEqual(HSP(20), titleAlignments.alignments[1].hsps[0])
+            self.assertEqual(read3, titleAlignments[1].read)
+            self.assertEqual(HSP(20), titleAlignments[1].hsps[0])
 
     def testAddTitleRepeat(self):
         """

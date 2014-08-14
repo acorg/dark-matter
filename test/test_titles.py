@@ -56,7 +56,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignments = TitleAlignments('subject title', 55)
         self.assertEqual('subject title', titleAlignments.subjectTitle)
         self.assertEqual(55, titleAlignments.subjectLength)
-        self.assertEqual([], titleAlignments.alignments)
+        self.assertEqual([], titleAlignments)
 
     def testAddAlignment(self):
         """
@@ -67,8 +67,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         read = Read('id', 'AAA')
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        self.assertEqual(read, titleAlignments.alignments[0].read)
-        self.assertEqual([], titleAlignments.alignments[0].hsps)
+        self.assertEqual(read, titleAlignments[0].read)
+        self.assertEqual([], titleAlignments[0].hsps)
 
     def testHSPs(self):
         """
