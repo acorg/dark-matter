@@ -35,9 +35,9 @@ class TitleAlignment(object):
         self.hsps = hsps
 
 
-class TitleAlignments(object):
+class TitleAlignments(list):
     """
-    Holds information about a set of alignments against a sequence.
+    Holds information about a list of alignments against a sequence.
 
     @param subjectTitle: The C{str} title of the sequence the read matched
         against.
@@ -49,7 +49,6 @@ class TitleAlignments(object):
         # TODO: Do we need the title in here?
         self.subjectTitle = subjectTitle
         self.subjectLength = subjectLength
-        self.alignments = []
 
     def addAlignment(self, alignment):
         """
@@ -57,7 +56,7 @@ class TitleAlignments(object):
 
         @param alignment: A L{TitleAlignment} instance.
         """
-        self.alignments.append(alignment)
+        self.append(alignment)
 
     def readCount(self):
         """
@@ -65,7 +64,7 @@ class TitleAlignments(object):
 
         @return: The C{int} number of reads that aligned to this title.
         """
-        return len(self.alignments)
+        return len(self)
 
     def hspCount(self):
         """
@@ -73,7 +72,7 @@ class TitleAlignments(object):
 
         @return: The C{int} number of HSPs for the alignments to this title.
         """
-        return sum(len(alignment.hsps) for alignment in self.alignments)
+        return sum(len(alignment.hsps) for alignment in self)
 
     def readIds(self):
         """
@@ -81,7 +80,7 @@ class TitleAlignments(object):
 
         @return: A C{set} of read ids that aligned to this title.
         """
-        return set(alignment.read.id for alignment in self.alignments)
+        return set(alignment.read.id for alignment in self)
 
     def hsps(self):
         """
@@ -89,7 +88,7 @@ class TitleAlignments(object):
 
         @return: A generator yielding L{dark.hsp.HSP} instances.
         """
-        return (hsp for alignment in self.alignments for hsp in alignment.hsps)
+        return (hsp for alignment in self for hsp in alignment.hsps)
 
     def bestHsp(self):
         """
@@ -238,8 +237,8 @@ class TitlesAlignments(dict):
 
         @return: A generator yielding L{dark.hsp.HSP} instances.
         """
-        return (hsp for titleAlignments in self.itervalues() for alignment in
-                titleAlignments.alignments for hsp in alignment.hsps)
+        return (hsp for titleAlignments in self.itervalues()
+                for alignment in titleAlignments for hsp in alignment.hsps)
 
     def sortTitles(self, by):
         """
