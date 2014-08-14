@@ -217,7 +217,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         baseImage = BaseImage(
             maxX - minX, maxY - minY + (1 if rankScores else 0),
             xScale, yScale)
-        for alignment in titleAlignments.alignments:
+        for alignment in titleAlignments:
             for hsp in alignment.hsps:
                 y = hsp.score.score - minY
                 # If the product of the subject and read frame values is +ve,
@@ -332,7 +332,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                         readColor[read] = color
 
         # Draw the matched region.
-        for titleAlignment in titleAlignments.alignments:
+        for titleAlignment in titleAlignments:
             readId = titleAlignment.read.id
             for hsp in titleAlignment.hsps:
                 y = hsp.score.score
@@ -623,7 +623,7 @@ def scoreGraph(titlesAlignments, find=None, showTitles=False, figureWidth=5,
         scores = []
         highlightX = []
         highlightY = []
-        for x, titleAlignment in enumerate(titleAlignments.alignments):
+        for x, titleAlignment in enumerate(titleAlignments):
             score = titleAlignment.hsps[0].score.score
             scores.append(score)
             if find and find(titleAlignment.subjectTitle):

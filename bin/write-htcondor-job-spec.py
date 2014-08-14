@@ -250,21 +250,6 @@ fi
     os.chmod('finalize.sh', 0755)
 
 
-def printConcatScript(params):
-    """
-    Write out a simple script to cat our *.json result files in numeric
-    order of their names.
-    """
-    with open('concat.sh', 'w') as outfp:
-        outfp.write("""\
-#!/bin/sh
-ls [0-9]*.json | sort -n | xargs -n 500 cat
-""" % params)
-
-    # Make the script executable so we can run it.
-    os.chmod('concat.sh', 0755)
-
-
 if __name__ == '__main__':
     import argparse
 
@@ -325,7 +310,6 @@ if __name__ == '__main__':
     printPostProcessScript(params)
     printRedoScript(params)
     printFinalizeScript(params)
-    printConcatScript(params)
 
     print ('%(sequenceCount)d sequences split into %(nJobs)d jobs of '
            '%(seqsPerJob)d sequences each.' % params)
