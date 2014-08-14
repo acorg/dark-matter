@@ -87,6 +87,31 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         self.assertEqual([7, 14, 21],
                          [hsp.score.score for hsp in titleAlignments.hsps()])
 
+    def testReadsEmpty(self):
+        """
+        The reads function must return an empty Reads instance if there are no
+        reads for the title.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        self.assertEqual(0, len(titleAlignments.reads()))
+
+    def testReads(self):
+        """
+        The reads function must return a Reads instance with the reads for
+        the title.
+        """
+        hsp1 = HSP(7)
+        hsp2 = HSP(14)
+        hsp3 = HSP(21)
+        titleAlignments = TitleAlignments('subject title', 55)
+        read1 = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read1, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read2 = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read2, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual([read1, read2], list(titleAlignments.reads()))
+
     def testReadCountZero(self):
         """
         The readCount function must return zero if no reads matched a title.
