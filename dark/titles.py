@@ -1,6 +1,7 @@
 import numpy as np
 from collections import defaultdict
 
+from dark.reads import Reads
 from dark.filter import ReadSetFilter
 
 
@@ -57,6 +58,17 @@ class TitleAlignments(list):
         @param alignment: A L{TitleAlignment} instance.
         """
         self.append(alignment)
+
+    def reads(self):
+        """
+        Find the set of reads matching a this title.
+
+        @return: An instance of C{dark.reads.Reads}.
+        """
+        reads = Reads()
+        for alignment in self:
+            reads.add(alignment.read)
+        return reads
 
     def readCount(self):
         """
