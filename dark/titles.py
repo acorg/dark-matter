@@ -17,7 +17,7 @@ def titleCounts(readsAlignments):
 
     titles = defaultdict(int)
     for readAlignments in readsAlignments:
-        for alignment in readAlignments.alignments:
+        for alignment in readAlignments:
             titles[alignment.subjectTitle] += 1
     return titles
 
@@ -153,7 +153,7 @@ class TitlesAlignments(dict):
         self.scoreClass = scoreClass or readsAlignments.scoreClass
         self.readSetFilter = readSetFilter
         for readAlignments in readsAlignments:
-            for alignment in readAlignments.alignments:
+            for alignment in readAlignments:
                 title = alignment.subjectTitle
                 try:
                     titleAlignments = self[title]
