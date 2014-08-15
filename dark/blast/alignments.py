@@ -211,6 +211,8 @@ class BlastReadsAlignments(ReadsAlignments):
             else:
                 for count, hsp in enumerate(zeroHsps, start=1):
                     hsp.score.score = maxConvertedEValue + count
+        else:
+            self._zeroEValueFound = False
 
     def adjustPlot(self, readsAx):
         """
