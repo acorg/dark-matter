@@ -174,7 +174,7 @@ if __name__ == '__main__':
         'of the reads that hit the subject.')
 
     parser.add_argument(
-        '--logLinearXAxis', type=bool, default=False,
+        '--logLinearXAxis', default=False, action='store_true',
         help='If True, convert read offsets so that empty regions in the '
         'alignment panel plots will only be as wide as their logged actual '
         'values')
