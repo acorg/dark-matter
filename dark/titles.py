@@ -156,23 +156,29 @@ class TitlesAlignments(dict):
     @param readSetFilter: An instance of dark.filter.ReadSetFilter, or C{None}.
         This can be used to pass a previously used title filter for ongoing
         use in filtering.
+    @param importReadsAlignmentsTitles: If C{True}, titles from
+        C{readsAlignments} will be added to self. This argument is only used
+        by the filtering function to make an new instance without reading its
+        titles.
     """
 
-    def __init__(self, readsAlignments, scoreClass=None, readSetFilter=None):
+    def __init__(self, readsAlignments, scoreClass=None, readSetFilter=None,
+                 importReadsAlignmentsTitles=True):
         dict.__init__(self)
         self.readsAlignments = readsAlignments
         self.scoreClass = scoreClass or readsAlignments.scoreClass
         self.readSetFilter = readSetFilter
-        for readAlignments in readsAlignments:
-            for alignment in readAlignments:
-                title = alignment.subjectTitle
-                try:
-                    titleAlignments = self[title]
-                except KeyError:
-                    titleAlignments = self[title] = TitleAlignments(
-                        title, alignment.subjectLength)
-                titleAlignments.addAlignment(
-                    TitleAlignment(readAlignments.read, alignment.hsps))
+        if importReadsAlignmentsTitles:
+            for readAlignments in readsAlignments:
+                for alignment in readAlignments:
+                    title = alignment.subjectTitle
+                    try:
+                        titleAlignments = self[title]
+                    except KeyError:
+                        titleAlignments = self[title] = TitleAlignments(
+                            title, alignment.subjectLength)
+                    titleAlignments.addAlignment(
+                        TitleAlignment(readAlignments.read, alignment.hsps))
 
     def addTitle(self, title, titleAlignments):
         """
@@ -215,7 +221,9 @@ class TitlesAlignments(dict):
                 self.readSetFilter = ReadSetFilter(minNewReads)
             readSetFilter = self.readSetFilter
 
-        result = TitlesAlignments([], self.scoreClass, self.readSetFilter)
+        result = TitlesAlignments(
+            self.readsAlignments, self.scoreClass, self.readSetFilter,
+            importReadsAlignmentsTitles=False)
 
         for title, titleAlignments in self.iteritems():
             if (minMatchingReads is not None and
