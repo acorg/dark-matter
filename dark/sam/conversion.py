@@ -1,0 +1,632 @@
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from json import dumps
+#from dark import ncbidb
+from itertools import groupby
+import sys
+import explain_sam_flags
+import subprocess as sp
+
+
+class SAMtoJSON(object):
+    """
+    Provide a method that yields parsed SAM records from a file. Store as
+    a JSON file.
+
+    @param filename: A C{str} filename containing SAM records.
+    @param outFile: A C{str} filename of a JSON file.
+    """
+
+    def __init__(self, filename, outFile):
+        self.filename = filename
+        self.outFile = outFile
+        self.params = None  # Set below, in records.
+
+    def _convertCigarMD(self, category, cigar, MD=None, match=6,
+                        mismatch=-3, insert=-1, delete=-1):
+        """
+        Calculates sequence identity or 'bitscore' from CIGAR
+        and MD string.
+        Bitscore scoring: =:6, X:-3, I:-1, D:-1, can be changed.
+
+        @param category: a C{str} of either 'seqID' or 'bit'
+        @param cigar: a C{str} CIGAR string as present in the 6th field
+            of a SAM file.
+        @param MD: a C{str} MD string that may be present in the
+            optional field of a SAM file.
+        @raise ValueError: If category != 'seqID' or 'bit'
+        @return: a C{float} representing sequence identity or a
+            C{int} representing bitscore.
+        """
+
+        if category is not 'seqID' and category is not 'bit':
+            raise ValueError('Category must be "seqID" or "bit"')
+
+
+        if 'M' not in cigar:
+            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
+            els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
+                   'X': 0}
+            index = 0
+            for element in xrange(0, len(sepNumLet), 2):
+                els[sepNumLet[index + 1]] += int(sepNumLet[index])
+                index += 2
+            if category is 'seqID':
+                seqLen = els['I'] + els['S'] + els['='] + els['X']
+                seqID = els['='] / float(seqLen)
+                return seqID
+            else:
+                bit = (match * els['='] + mismatch * els['X'] + insert * els['I']
+                       + delete * els['D'])
+                return bit
+        else:
+            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
+            els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
+                   'X': 0}
+            index = 0
+            for element in xrange(0, len(sepNumLet), 2):
+                els[sepNumLet[index + 1]] += int(sepNumLet[index])
+                index += 2
+            seqLen = els['M'] + els['I'] + els['S'] + els['='] + els['X']
+
+            sepNumLetMD = [''.join(v) for k, v in groupby(MD, str.isdigit)]
+            elsMD = {'matchMD': 0, 'misMD': 0, 'delMD': 0}
+            for item in sepNumLetMD:
+                if str.isdigit(item):
+                    elsMD['matchMD'] += int(item)
+                elif '^' in item:
+                    elsMD['delMD'] += len(item) - 1
+                else:
+                    elsMD['misMD'] += len(item)
+            seqLenMD = elsMD['matchMD'] + elsMD['misMD']
+
+            assert seqLen - seqLenMD == els['I'], "seq lengths from MD and cigar are not equal"
+            assert els['D'] == elsMD['delMD'], "no. of deletions from MD and cigar are not equal"
+
+            if category is 'seqID':
+                seqID = elsMD['matchMD'] / float(seqLen)
+                return seqID
+            else:
+                bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
+                       + insert * els['I'] + delete * elsMD['delMD'])
+                return bit
+    
+    # Don't actually need this function, subject length is in the header of
+    # the sam file
+    """
+    def _subjLenAndTitle(self, title, db='nt'):
+        
+        Get information about sequence length from NCBI.
+
+        @param title: a C{Str} with the which contains the giNumber
+            of the subject.
+        @param db: The C{str} name of the Entrez database to consult.
+        
+        print >>sys.stderr, 'title is', title
+        info = ncbidb.getSequence(title, db=database)
+        # pyflakes says database not defined
+        seq = info.seq
+        length = len(seq)
+        return length
+    """    
+
+    def _calcHsp(self, pos, sbjctemplateLen, query, flag, score, seqid):
+        """
+        Calculate the offsets of subject and query, so that they are 0-based,
+        and usable in python.
+
+        @param pos: a C{int}. The POS field as reported in a .SAM file.
+            Corresponds to the '1-based leftmost mapping POSition'
+        @param sbjctemplateLen: a C{int}. The length of the subject.
+        @param queryLen: a C{int}. The length of the query.
+        @param flag: C{int}, bitwise FLAG. For unpaired reads: 0 is single-end
+            read mapped in the forward strand, 16 is single-end read mapped in
+            the reverse strand, 4 is unmapped.
+        """
+        queryLen = len(query)
+        subjectStart = 0
+        subjectEnd = queryLen - 1 # not sure about this
+        queryStart = pos - 1
+        queryEnd = pos + queryLen - 1
+        frame = [1, 1]
+        if 'read reverse strand' in explain_sam_flags(flag):
+            frame[0] = -1
+
+        hsp = {"sbjct_end": subjectEnd,
+               "expect": seqid, 
+               "sbjct": ' ',
+               "sbjct_start": subjectStart,
+               "query": query,
+               "frame": frame,
+               "query_end": queryEnd,
+               "query_start": queryStart,
+               "bits": score}
+
+        return hsp
+
+    def _convertSamAlignmentsToDict(self, line):
+        """
+        Pull (only) the fields we use out of the samFile and return them as a
+        dict.
+
+        @param line: an instance of a SAM file.
+
+        Optional values after qual will vary between aligners and whether
+        the read is aligned.
+        """
+        if not line.startswith('$') and not line.startswith('@'):
+            line = line.strip().split()
+            query = line[0]
+            flag = int(line[1])
+            refSeqName = line[2]
+            pos = int(line[3])
+            mapq = int(line[4])
+            cigar = line[5]
+            rnext = line[6]
+            pnext = int(line[7])
+            templateLen = abs(int(line[8]))  # this is template len
+            seq = line[9]
+            qual = line[10]
+            optional = line[11:]
+
+            lengths = self.params['@SQ']
+
+            if refSeqName != '*':
+                if not cigar.isalnum() and '=' not in cigar:
+                    raise ValueError("Cigar string is not alphanumeric - with "
+                                     "the exception of =")
+
+                subjectemplateLength = lengths[refSeqName]  # does this work? Nope.
+
+                record = {
+                    "query": line[0],
+                    "alignment": {
+                        "length": subjectemplateLength,
+                        "hsps": [],
+                        "title": refSeqName,
+                    }
+                }
+
+                optionalDict = {}
+                for tag in optional:
+                    key = tag.split(':')[0]
+                    val = tag.split(':')[2]
+                    optionalDict[key] = val
+
+                if 'M' in cigar:
+                    try:
+                        MD = optionalDict['MD']
+                        seqid = _convertCigarMD('seqID', cigar, MD=MD)
+                    except KeyError:
+                        raise ValueError("No optional tag MD."
+                            "Run function findMD before proceeding")
+
+                    try:
+                        score = optionalDict['AS']
+                    except KeyError:
+                        score = _convertCigarMD('bit', cigar, MD=MD)
+                else:
+                    seqid = _convertCigarMD('seqID', cigar)
+                    try:
+                        score = optionalDict['AS']
+                    except KeyError:
+                        score = _convertCigarMD('bit', cigar)
+
+                record["alignment"]["hsps"].append(_calcHsp(pos, subjectemplateLength, seq, flag, score, seqid))
+            else:
+                record = {
+                    "query": line[0],
+                }
+
+            return record
+
+    def _convertSamHeaderToDict(self, record):
+        """
+        Takes the lines of a SAM file beginning with '@' and returns a dict. 
+        For @SQ lines, the ref seq name is a key and the length the value.
+
+        @param record: an instance of a SAM file which starts with '@'.
+        @return: a C{dict}.
+        """
+        result = {'@HD': [], '@SQ': [], '@RG':[], '@PG':[], '@CO': []}
+        for line in record:
+            line = line.strip().split()
+            if line[0] == '@SQ':
+                tags = line[1:]
+                tagDict = {}
+                for tag in tags:
+                    if 'SN' in tag:
+                        key = tag.split(':')[1]
+                    elif 'LN' in tag:
+                        val = tag.split(':')[1]
+                    tagDict[key] = val
+                result[line[0]].append(tagDict)
+            elif line[0] in result:
+                tags = line[1:]
+                tagDict = {}
+                for tag in tags:
+                    key = tag.split(':')[0]
+                    val = tag.split(':')[1]
+                    tagDict[key] = val
+                result[line[0]].append(tagDict)
+        return result
+
+    def records(self):
+        """
+        Yield SAM records. Set self.params from data in the SAM header.
+        """
+        if not self.filename.lower().endswith('.sam'):
+            raise ValueError('A SAM file must be given')
+        headerLines = []
+        with open(self.filename) as fp:
+            for record in fp:
+                if record.startswith('@'):
+                    headerLines.append(record)
+                yield record
+            self.params = self._convertSamHeaderToDict(headerLines)
+
+    def saveAsJSON(self):
+        """
+        Write the records out as JSON. The first JSON object saved contains
+        the SAM header tags.
+
+        @param outFile: a C{str} name of the output file.
+        """
+        if not self.outFile.lower().endswith('.json'):
+            raise ValueError('A JSON file must be given')
+        with open(self.outFile, 'w') as ofp:
+            first = True
+            for record in self.records():
+                if record.startswith('@') and first:
+                    print >>ofp, dumps(self.params, separators=(',', ':'))
+                    first = False
+                elif not record.startswith('@'):
+                    print >>ofp, dumps(self._convertSamAlignmentsToDict(record),
+                                       separators=(',', ':'))
+
+
+class SAMRecordsReader(object):
+    """
+    Provide a method that yields alignment records from a SAM file. 
+    Store, check, and make accessible the alignment parameters.
+
+    @param filename: A C{str} filename containing alignment records.
+    @param application: The C{str} name of the alignment program used.
+    @param scoreClass: A class to hold and compare scores (see scores.py).
+        Default is C{HigherIsBetterScore}.
+    """
+
+    def __init__(self, filename, scoreClass=HigherIsBetterScore):
+        self._filename = filename
+        self._scoreClass = scoreClass
+        self._appParams = self.applicationParams['samParams']
+        if scoreClass is HigherIsBetterScore:
+            self._hspClass = HSP
+        else:
+            self._hspClass = LSP
+
+        self._open(filename)
+        self.application = self.applicationParams['application'].lower()
+
+    def _open(self, filename):
+        """
+        Open the input file. Set self._fp to point to it. Read the first
+        line of parameters.
+
+        @param filename: A C{str} filename containing alignment records.
+        @raise ValueError: if the first line of the file isn't a valid SAM
+            file.
+        """
+        if filename.lower().endswith('.sam'):
+            self._fp = open(filename)
+        else:
+            raise ValueError('Invalid file type given: %s' % self._filename)
+
+        line = self._fp.readline()
+        if not line:
+            raise ValueError('SAM file %r was empty.' % self._filename)
+
+    def _convertCigarMD(self, cigar, MD=None, match=6,
+                        mismatch=-3, insert=-1, delete=-1):
+        """
+        Calculates 'bitscore' from CIGAR and MD string.
+        Bitscore scoring: =:6, X:-3, I:-1, D:-1, can be changed.
+
+        @param cigar: a C{str} CIGAR string as present in the 6th field
+            of a SAM file.
+        @param MD: a C{str} MD string that may be present in the
+            optional field of a SAM file.
+        @raise ValueError: If category != 'seqID' or 'bit'
+        @return: a C{int} representing bitscore.
+        """
+        if 'M' not in cigar:
+            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
+            els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
+                   'X': 0}
+            index = 0
+            for element in xrange(0, len(sepNumLet), 2):
+                els[sepNumLet[index + 1]] += int(sepNumLet[index])
+                index += 2
+            bit = (match * els['='] + mismatch * els['X'] + insert * els['I']
+                   + delete * els['D'])
+            return bit
+        else:
+            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
+            els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
+                   'X': 0}
+            index = 0
+            for element in xrange(0, len(sepNumLet), 2):
+                els[sepNumLet[index + 1]] += int(sepNumLet[index])
+                index += 2
+            seqLen = els['M'] + els['I'] + els['S'] + els['='] + els['X']
+
+            sepNumLetMD = [''.join(v) for k, v in groupby(MD, str.isdigit)]
+            elsMD = {'matchMD': 0, 'misMD': 0, 'delMD': 0}
+            for item in sepNumLetMD:
+                if str.isdigit(item):
+                    elsMD['matchMD'] += int(item)
+                elif '^' in item:
+                    elsMD['delMD'] += len(item) - 1
+                else:
+                    elsMD['misMD'] += len(item)
+            seqLenMD = elsMD['matchMD'] + elsMD['misMD']
+
+            assert seqLen - seqLenMD == els['I'], "seq lengths from MD and cigar are not equal"
+            assert els['D'] == elsMD['delMD'], "no. of deletions from MD and cigar are not equal"
+
+            bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
+                   + insert * els['I'] + delete * elsMD['delMD'])
+            return bit
+
+    def _lineToAlignments(self, line, read):
+        """
+        Take a line of a SAM file and convert it to a list of alignments.
+
+        @param line: A C{str} (?) from a line of a SAM file.
+        @param read: A C{Read} instance, containing the read that the aligner
+            used to create this record.
+        @raise ValueError: If the query id in the SAM entry does not
+            match the id of the read.
+        @return: A C{list} of L{dark.alignment.Alignment} instances.
+        """
+        if not line.startswith('$') and not line.startswith('@'):
+            line = line.strip().split()
+            query = line[0]
+            flag = int(line[1])
+            refSeqName = line[2]
+            pos = int(line[3])
+            mapq = int(line[4])
+            cigar = line[5]
+            rnext = line[6]
+            pnext = int(line[7])
+            templateLen = abs(int(line[8]))  # this is template len
+            seq = line[9]
+            qual = line[10]
+            optional = line[11:]
+
+            lengths = self.params['@SQ'] # Need to fix this. FIX
+
+            if refSeqName != '*':
+                if not cigar.isalnum() and '=' not in cigar:
+                    raise ValueError("Cigar string is not alphanumeric - with "
+                                     "the exception of =")
+
+                subjectemplateLength = lengths[refSeqName]  # does this work? Nope. FIX
+
+                record = {
+                    "query": line[0],
+                    "alignment": {
+                        "length": subjectemplateLength,
+                        "hsps": [],
+                        "title": refSeqName,
+                    }
+                }
+
+                optionalDict = {}
+                for tag in optional:
+                    key = tag.split(':')[0]
+                    val = tag.split(':')[2]
+                    optionalDict[key] = val
+
+                try:
+                    score = optionalDict['AS']
+                except KeyError:
+                    if 'M' in cigar:
+                        try:
+                            MD = optionalDict['MD']
+                        except KeyError:
+                            raise ValueError("No optional tag MD."
+                                    "Run function findMD before proceeding")
+                        else:
+                            score = _convertCigarMD(cigar, MD=MD)
+                    else:
+                        score = _convertCigarMD(cigar)
+
+                record["alignment"]["hsps"].append(_calcHsp(pos, subjectemplateLength, seq, flag, score))
+            else:
+                record = {
+                    "query": line[0],
+                }
+
+            return record
+
+        for line in samData:
+            readId, title, length, quality, start, end = line.split('/')
+            alignment = Alignment(length, title)
+            hsp = HSP(int(quality), readStart=start, readEnd=end)
+            alignment.addHsp(hsp)
+            readIds[readId].append(alignment)
+
+        for read in self.reads:
+            try:
+                alignments = readIds[read.id]
+            except KeyError:
+                raise ValueError(
+                    'Read id %s found in passed reads but not in SAM file %r '
+                    % (read.id, self.samFilename))
+            else:
+                yield ReadAlignments(read, alignments)
+
+
+
+        if blastDict['query'].split()[0] != read.id:
+            raise ValueError(
+                'The reads you have provided do not match the BLAST output: '
+                'BLAST record query id (%s) does not match the id of the '
+                'supposedly corresponding read (%s).' %
+                (blastDict['query'], read.id))
+
+        alignments = []
+        getScore = itemgetter('bits' if self._hspClass is HSP else 'expect')
+
+        for blastAlignment in blastDict['alignments']:
+            alignment = Alignment(blastAlignment['length'],
+                                  blastAlignment['title'])
+            alignments.append(alignment)
+            for blastHsp in blastAlignment['hsps']:
+                score = getScore(blastHsp)
+                normalized = normalizeHSP(blastHsp, len(read),
+                                          self.application)
+                hsp = self._hspClass(
+                    score,
+                    readStart=normalized['readStart'],
+                    readEnd=normalized['readEnd'],
+                    readStartInSubject=normalized['readStartInSubject'],
+                    readEndInSubject=normalized['readEndInSubject'],
+                    subjectStart=normalized['subjectStart'],
+                    subjectEnd=normalized['subjectEnd'],
+                    readMatchedSequence=blastHsp['query'],
+                    subjectMatchedSequence=blastHsp['sbjct'])
+
+                alignment.addHsp(hsp)
+
+        return alignments
+
+    def readAlignments(self, reads):
+        """
+        Read lines of SAM file from self._filename, convert them to read alignments
+        and yield them.
+
+        @param reads: A generator yielding L{Read} instances, corresponding to
+            the reads that were given to BLAST.
+        @raise ValueError: If any of the lines in the file cannot be parsed.
+        @return: A generator that yields C{dark.alignments.ReadAlignments}
+            instances.
+        """
+        if self._fp is None:
+            self._open(self._filename)
+        readIds = defaultdict(list)
+        try:
+            for line in self._fp:
+                if not line.startswith('$') and not line.startswith('@'):
+                    try:
+                        read = reads.next()
+                    except StopIteration:
+                        raise ValueError(
+                            'Read generator failed to yield read number %d '
+                            'during parsing of BLAST file %r.' %
+                            (lineNumber - 1, self._filename))
+                    else:
+                        alignments = self._lineToAlignments(record, read)
+                        yield ReadAlignments(read, alignments)
+        finally:
+            self._fp.close()
+            self._fp = None
+
+
+def findMD(samFile, fastaFile):
+    """
+    Calculates the optional MD tag. If MD tag already present
+    raises error if any are found to be different.
+    Requires samtools.
+
+    @param samFile: a C{str} of a SAM file.
+    @param fastaFile: a C{str} of the FASTA file used for the
+        SAM file.
+    @return: samFile with the MD strings.
+    """
+    if not fastaFile.lower().endswith('.fasta'):
+        raise ValueError('A FASTA file must be given')
+    if not samFile.lower().endswith('.sam'):
+        raise ValueError('A SAM file must be given')
+
+    samFileNew = ''.join(samFile.split())[:-4] + '-fillmd.sam'
+    sp.Popen(['samtools', 'fillmd', '-S', samFile, fastaFile, '>',
+             samFileNew], stderr=sp.PIPE)
+    return samFileNew
+
+
+def samSubtract(samFile, outFile):
+    """
+    Takes a SAM file, makes a set of the seqids of unaligned sequences.
+    Makes a new FASTA or FASTQ file with just these seqs (outFile).
+
+    @param samFile: a C{str} name of a SAM file.
+    @param outFile: a C{str} name of the output file which should be a .fasta
+        or .fastq file.
+    """
+    # Put these in bin script once written
+    if not samFile.lower().endswith('.sam'):
+        raise ValueError('A SAM file must be given')
+    if not outFile.lower().endswith('.fasta') and not outFile.lower().endswith('.fastq'):
+        raise ValueError('An output FASTA or FASTQ file must be given')
+
+    records = []
+    with open(samFile) as fp:
+        for line in fp:
+            if not line.startswith('$') and not line.startswith('@'):
+                line = line.strip().split()
+                refSeqName = line[2]
+                if refSeqName == '*':
+                    query = line[0]
+                    seq = line[9]
+                    if outFile.lower().endswith('.fastq'):
+                        qual = line[10]
+                        record = {'query': query, 'seq': seq, 'qual': qual}
+                        # record = SeqRecord(Seq(seq), id=query)
+                        # record.letter_annotations['phred_quality']=qual
+                        records.append(record)
+                    else:
+                        record = SeqRecord(Seq(seq), id=query)
+                        records.append(record)
+
+    with open(outFile, 'w') as ofp:
+        if outFile.lower().endswith('.fasta'):
+            # NB seq in fasta may be over multiple lines
+            SeqIO.write(records, ofp, 'fasta')
+        else:
+            # Previously: SeqIO.write(records, ofp, 'fastq')
+            # The SeqIO.write for fastq requires you to define the type of
+            # quality string eg illumina, solexa etc. See help on QualityIO.
+            # https://github.com/biopython/biopython/blob/master/Bio/SeqIO/QualityIO.py
+            # Need to use FastqGeneralIterator? But that req file input.
+
+            for item in records:
+                ofp.write("@%s\n%s\n+\n%s\n" % (item['query'], item['seq'], item['qual']))
+
+
+def bamSubtract(bamFile, fastaFile, outFile):
+    """
+    Takes a BAM file, converts to a SAM file using samtools and then calls
+    the samSubtract function. Useful if BAM files are stored instead of SAM
+    files. Samtools required.
+
+    @param bamFile: a C{str} name of a BAM file.
+    @param fastaFile: a C{str} name of a FASTA file or FASTQ file.
+    @param outFile: a C{str} name of the output file which
+        should be a .fasta or .fastq file.
+    """
+    # Need to put in bin file
+    if not bamFile.lower().endswith('.bam'):
+        raise ValueError('A BAM file must be given')
+    if not fastaFile.lower().endswith('.fasta') and not fastaFile.lower().endswith('.fastq'):
+        raise ValueError('A FASTA or FASTQ file must be given')
+    if not outFile.lower().endswith('.fasta') and not outFile.lower().endswith('.fastq'):
+        raise ValueError('An output FASTA or FASTQ file must be given')
+
+    samFileNew = ''.join(bamFile.split())[:-3] + 'sam'
+    sp.Popen(['samtools', 'view', '-h', bamFile, '>', samFileNew],
+             stderr=sp.PIPE)
+
+    return samSubtract(samFileNew, fastaFile, outFile)

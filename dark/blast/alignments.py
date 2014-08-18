@@ -159,8 +159,7 @@ class BlastReadsAlignments(ReadsAlignments):
 
     def getSequence(self, title):
         """
-        Obtain information about a sequence, given its title.
-
+        Obtain information about a sequence, given its title
         @param title: A C{str} sequence title from a BLAST hit. Of the form
             'gi|63148399|gb|DQ011818.1| Description...'.
         @return: A C{SeqIO.read} instance.
