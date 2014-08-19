@@ -35,7 +35,7 @@ class SamReadsAlignments(ReadsAlignments):
             for record in fp:
                 if record.startswith('@'):
                     headerLines.append(record)
-            result = {'@HD': [], '@SQ': [], '@RG':[], '@PG':[], '@CO': []}
+            result = {'@HD': [], '@SQ': [], '@RG': [], '@PG': [], '@CO': []}
             for line in headerLines:
                 line = line.strip().split()
                 if line[0] == '@SQ':
@@ -65,8 +65,8 @@ class SamReadsAlignments(ReadsAlignments):
         header = _convertSamHeaderToDict(self)
         app = header['@PG']['ID']
 
-        applicationParams = ReadsAlignmentsParams('application' = app,
-                                                  'samParams' = header)
+        applicationParams = ReadsAlignmentsParams('application'=app,
+                                                  'samParams'=header)
 
         ReadsAlignments.__init__(self, reads, applicationParams,
                                  scoreClass=HigherIsBetterScore)
@@ -99,7 +99,6 @@ class SamReadsAlignments(ReadsAlignments):
         for readAlignments in reader.readAlignments(reads):
             count += 1
             yield readAlignments
-
 
     # Is anything calling this function?
     def getSequence(self, title):

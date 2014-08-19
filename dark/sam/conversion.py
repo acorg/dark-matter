@@ -2,7 +2,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from json import dumps
-#from dark import ncbidb
+# from dark import ncbidb
 from itertools import groupby
 import sys
 import explain_sam_flags
@@ -43,7 +43,6 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         if category is not 'seqID' and category is not 'bit':
             raise ValueError('Category must be "seqID" or "bit"')
 
-
         if 'M' not in cigar:
             sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
             els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
@@ -57,13 +56,13 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                 seqID = els['='] / float(seqLen)
                 return seqID
             else:
-                bit = (match * els['='] + mismatch * els['X'] + insert * els['I']
-                       + delete * els['D'])
+                bit = (match * els['='] + mismatch * els['X']
+                       + insert * els['I'] + delete * els['D'])
                 return bit
         else:
             sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
-            els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
-                   'X': 0}
+            els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0,
+                   '=': 0, 'X': 0}
             index = 0
             for element in xrange(0, len(sepNumLet), 2):
                 els[sepNumLet[index + 1]] += int(sepNumLet[index])
@@ -81,8 +80,10 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                     elsMD['misMD'] += len(item)
             seqLenMD = elsMD['matchMD'] + elsMD['misMD']
 
-            assert seqLen - seqLenMD == els['I'], "seq lengths from MD and cigar are not equal"
-            assert els['D'] == elsMD['delMD'], "no. of deletions from MD and cigar are not equal"
+            assert ((seqLen - seqLenMD == els['I']),
+                    "seq lengths from MD and cigar are not equal")
+            assert ((els['D'] == elsMD['delMD']),
+                    "no. of deletions from MD and cigar are not equal")
 
             if category is 'seqID':
                 seqID = elsMD['matchMD'] / float(seqLen)
@@ -91,25 +92,25 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                 bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
                        + insert * els['I'] + delete * elsMD['delMD'])
                 return bit
-    
+
     # Don't actually need this function, subject length is in the header of
     # the sam file
     """
     def _subjLenAndTitle(self, title, db='nt'):
-        
+
         Get information about sequence length from NCBI.
 
         @param title: a C{Str} with the which contains the giNumber
             of the subject.
         @param db: The C{str} name of the Entrez database to consult.
-        
+
         print >>sys.stderr, 'title is', title
         info = ncbidb.getSequence(title, db=database)
         # pyflakes says database not defined
         seq = info.seq
         length = len(seq)
         return length
-    """    
+    """
 
     def _calcHsp(self, pos, sbjctemplateLen, query, flag, score, seqid):
         """
@@ -126,7 +127,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         """
         queryLen = len(query)
         subjectStart = 0
-        subjectEnd = queryLen - 1 # not sure about this
+        subjectEnd = queryLen - 1  # not sure about this
         queryStart = pos - 1
         queryEnd = pos + queryLen - 1
         frame = [1, 1]
@@ -134,7 +135,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
             frame[0] = -1
 
         hsp = {"sbjct_end": subjectEnd,
-               "expect": seqid, 
+               "expect": seqid,
                "sbjct": ' ',
                "sbjct_start": subjectStart,
                "query": query,
@@ -174,12 +175,12 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                     raise ValueError("Cigar string is not alphanumeric - with "
                                      "the exception of =")
 
-                subjectTemplateLen = lengths[refSeqName]  # does this work? Nope.
+                subjTempLen = lengths[refSeqName]  # does this work? No
 
                 record = {
                     "query": query,
                     "alignment": {
-                        "length": subjectTemplateLen,
+                        "length": subjTempLen,
                         "hsps": [],
                         "title": refSeqName,
                     }
@@ -197,7 +198,8 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                         seqid = _convertCigarMD('seqID', cigar, MD=MD)
                     except KeyError:
                         raise ValueError("No optional tag MD."
-                            "Run function findMD before proceeding")
+                                         "Run function findMD before"
+                                         "proceeding")
 
                     try:
                         score = optionalDict['AS']
@@ -210,7 +212,8 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                     except KeyError:
                         score = _convertCigarMD('bit', cigar)
 
-                record["alignment"]["hsps"].append(_calcHsp(pos, subjectTemplateLen, seq, flag, score, seqid))
+                record["alignment"]["hsps"].append(_calcHsp(pos, subjTempLen,
+                                                   seq, flag, score, seqid))
             else:
                 record = {
                     "query": line[0],
@@ -220,13 +223,13 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
 
     def _convertSamHeaderToDict(self, record):
         """
-        Takes the lines of a SAM file beginning with '@' and returns a dict. 
+        Takes the lines of a SAM file beginning with '@' and returns a dict.
         For @SQ lines, the ref seq name is a key and the length the value.
 
         @param record: an instance of a SAM file which starts with '@'.
         @return: a C{dict}.
         """
-        result = {'@HD': [], '@SQ': [], '@RG':[], '@PG':[], '@CO': []}
+        result = {'@HD': [], '@SQ': [], '@RG': [], '@PG': [], '@CO': []}
         for line in record:
             line = line.strip().split()
             if line[0] == '@SQ':
@@ -274,18 +277,18 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
             raise ValueError('A JSON file must be given')
         with open(self.outFile, 'w') as ofp:
             first = True
-            for record in self.records():
-                if record.startswith('@') and first:
+            for rec in self.records():
+                if rec.startswith('@') and first:
                     print >>ofp, dumps(self.params, separators=(',', ':'))
                     first = False
-                elif not record.startswith('@'):
-                    print >>ofp, dumps(self._convertSamAlignmentsToDict(record),
+                elif not rec.startswith('@'):
+                    print >>ofp, dumps(self._convertSamAlignmentsToDict(rec),
                                        separators=(',', ':'))
 
 
 class SAMRecordsReader(object):
     """
-    Provide a method that yields alignment records from a SAM file. 
+    Provide a method that yields alignment records from a SAM file.
     Store, check, and make accessible the alignment parameters.
 
     @param filename: A C{str} filename containing alignment records.
@@ -351,8 +354,8 @@ class SAMRecordsReader(object):
 
         else:
             sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
-            els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
-                   'X': 0}
+            els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0,
+                   '=': 0, 'X': 0}
             index = 0
             for element in xrange(0, len(sepNumLet), 2):
                 els[sepNumLet[index + 1]] += int(sepNumLet[index])
@@ -370,8 +373,10 @@ class SAMRecordsReader(object):
                     elsMD['misMD'] += len(item)
             seqLenMD = elsMD['matchMD'] + elsMD['misMD']
 
-            assert (seqLen - seqLenMD == els['I']), "seq lengths from MD and cigar are not equal"
-            assert (els['D'] == elsMD['delMD']), "no. of deletions from MD and cigar are not equal"
+            assert ((seqLen - seqLenMD == els['I']),
+                    "seq lengths from MD and cigar are not equal")
+            assert ((els['D'] == elsMD['delMD']),
+                    "no. of deletions from MD and cigar are not equal")
 
             bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
                    + insert * els['I'] + delete * elsMD['delMD'])
@@ -403,12 +408,12 @@ class SAMRecordsReader(object):
 
             if refSeqName != '*':
                 if not cigar.isalnum() and '=' not in cigar:
-                    raise ValueError("Cigar string is not alphanumeric - with "
-                                     "the exception of =")
+                    raise ValueError("Cigar string is not alphanumeric - with"
+                                     " the exception of =")
+                # Does this work?
+                subjTempLen = self._appParams['@SQ'][refSeqName]
 
-                subjectTemplateLen = self._appParams['@SQ'][refSeqName] # Does this work?
-
-                alignment = Alignment(subjectTemplateLen, refSeqName)
+                alignment = Alignment(subjTempLen, refSeqName)
 
                 optionalDict = {}
                 for tag in optional:
@@ -426,13 +431,14 @@ class SAMRecordsReader(object):
                             MD = optionalDict['MD']
                         except KeyError:
                             raise ValueError("No optional tag MD."
-                                    "Run function findMD before proceeding")
+                                             "Run function findMD before "
+                                             "proceeding")
                         else:
                             score = _convertCigarMD(cigar, MD=MD)
                     else:
                         score = _convertCigarMD(cigar)
 
-                cigarSplit = [''.join(v) for k, v in groupby(cigar, 
+                cigarSplit = [''.join(v) for k, v in groupby(cigar,
                                                              str.isdigit)]
                 if cigarSplit[1] is 'S':
                     beginS = cigarSplit[0]
@@ -442,7 +448,7 @@ class SAMRecordsReader(object):
                     lastS = cigarSplit[-2]
                 elif cigarSplit[-1] is 'H' and cigarSplit[-3] is 'S':
                     lastS = cigarSplit[-4]
-                
+
                 cig = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0,
                        'P': 0, '=': 0, 'X': 0}
                 index = 0
@@ -454,19 +460,19 @@ class SAMRecordsReader(object):
                 readEnd = len(seq) - 1 - lastS
                 subjStart = pos - 1
                 subjEnd = (pos - 2 + len(seq) - cig['I'] - cig['S']
-                              - cig['P']  + cig['N'] + cig['D'])
+                           - cig['P'] + cig['N'] + cig['D'])
 
-                hsp = HSP(score, readStart=readStart, readEnd=readEnd, 
+                hsp = HSP(score, readStart=readStart, readEnd=readEnd,
                           subjectStart=subjStart, subjectEnd=subjEnd)
                 alignment.addHsp(hsp)
                 return alignment
         else:
-            pass # Need something here for unaligned reads?
+            pass  # Need something here for unaligned reads?
 
     def readAlignments(self, reads):
         """
-        Read lines of SAM file from self._filename, convert them to read alignments
-        and yield them.
+        Read lines of SAM file from self._filename, convert them to read
+        alignments and yield them.
 
         @param reads: A generator yielding L{Read} instances, corresponding to
             the reads that were given to the aligner.
@@ -563,7 +569,8 @@ def samSubtract(samFile, outFile):
             # Need to use FastqGeneralIterator? But that req file input.
 
             for item in records:
-                ofp.write("@%s\n%s\n+\n%s\n" % (item['query'], item['seq'], item['qual']))
+                ofp.write("@%s\n%s\n+\n%s\n" % (item['query'], item['seq'],
+                                                item['qual']))
 
 
 def bamSubtract(bamFile, fastaFile, outFile):
