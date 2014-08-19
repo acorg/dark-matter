@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from dark.sam.alignments import SAMRecordsReader
+from dark.sam.conversion import SAMRecordsReader
 from dark.score import HigherIsBetterScore
 from dark.hsp import HSP
 from dark.alignments import (
@@ -101,7 +101,7 @@ class SamReadsAlignments(ReadsAlignments):
             yield readAlignments
 
 
-# Is anything calling this function?
+    # Is anything calling this function?
     def getSequence(self, title):
         """
         Obtain information about a sequence, given its title.

@@ -9,7 +9,7 @@ import explain_sam_flags
 import subprocess as sp
 
 
-class SAMtoJSON(object):
+class SAMtoJSON(object):  # Kept this in just in case, not debugged.
     """
     Provide a method that yields parsed SAM records from a file. Store as
     a JSON file.
@@ -163,9 +163,6 @@ class SAMtoJSON(object):
             pos = int(line[3])
             mapq = int(line[4])
             cigar = line[5]
-            rnext = line[6]
-            pnext = int(line[7])
-            templateLen = abs(int(line[8]))  # this is template len
             seq = line[9]
             qual = line[10]
             optional = line[11:]
@@ -177,12 +174,12 @@ class SAMtoJSON(object):
                     raise ValueError("Cigar string is not alphanumeric - with "
                                      "the exception of =")
 
-                subjectemplateLength = lengths[refSeqName]  # does this work? Nope.
+                subjectTemplateLen = lengths[refSeqName]  # does this work? Nope.
 
                 record = {
-                    "query": line[0],
+                    "query": query,
                     "alignment": {
-                        "length": subjectemplateLength,
+                        "length": subjectTemplateLen,
                         "hsps": [],
                         "title": refSeqName,
                     }
@@ -213,7 +210,7 @@ class SAMtoJSON(object):
                     except KeyError:
                         score = _convertCigarMD('bit', cigar)
 
-                record["alignment"]["hsps"].append(_calcHsp(pos, subjectemplateLength, seq, flag, score, seqid))
+                record["alignment"]["hsps"].append(_calcHsp(pos, subjectTemplateLen, seq, flag, score, seqid))
             else:
                 record = {
                     "query": line[0],
@@ -351,6 +348,7 @@ class SAMRecordsReader(object):
             bit = (match * els['='] + mismatch * els['X'] + insert * els['I']
                    + delete * els['D'])
             return bit
+
         else:
             sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
             els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
@@ -372,20 +370,18 @@ class SAMRecordsReader(object):
                     elsMD['misMD'] += len(item)
             seqLenMD = elsMD['matchMD'] + elsMD['misMD']
 
-            assert seqLen - seqLenMD == els['I'], "seq lengths from MD and cigar are not equal"
-            assert els['D'] == elsMD['delMD'], "no. of deletions from MD and cigar are not equal"
+            assert (seqLen - seqLenMD == els['I']), "seq lengths from MD and cigar are not equal"
+            assert (els['D'] == elsMD['delMD']), "no. of deletions from MD and cigar are not equal"
 
             bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
                    + insert * els['I'] + delete * elsMD['delMD'])
             return bit
 
-    def _lineToAlignments(self, line, read):
+    def _lineToAlignments(self, line):
         """
         Take a line of a SAM file and convert it to a list of alignments.
 
-        @param line: A C{str} (?) from a line of a SAM file.
-        @param read: A C{Read} instance, containing the read that the aligner
-            used to create this record.
+        @param line: Line of a SAM file.
         @raise ValueError: If the query id in the SAM entry does not
             match the id of the read.
         @return: A C{list} of L{dark.alignment.Alignment} instances.
@@ -400,37 +396,30 @@ class SAMRecordsReader(object):
             cigar = line[5]
             rnext = line[6]
             pnext = int(line[7])
-            templateLen = abs(int(line[8]))  # this is template len
+            templateLen = abs(int(line[8]))
             seq = line[9]
             qual = line[10]
             optional = line[11:]
-
-            lengths = self.params['@SQ'] # Need to fix this. FIX
 
             if refSeqName != '*':
                 if not cigar.isalnum() and '=' not in cigar:
                     raise ValueError("Cigar string is not alphanumeric - with "
                                      "the exception of =")
 
-                subjectemplateLength = lengths[refSeqName]  # does this work? Nope. FIX
+                subjectTemplateLen = self._appParams['@SQ'][refSeqName] # Does this work?
 
-                record = {
-                    "query": line[0],
-                    "alignment": {
-                        "length": subjectemplateLength,
-                        "hsps": [],
-                        "title": refSeqName,
-                    }
-                }
+                alignment = Alignment(subjectTemplateLen, refSeqName)
 
                 optionalDict = {}
                 for tag in optional:
                     key = tag.split(':')[0]
                     val = tag.split(':')[2]
                     optionalDict[key] = val
-
                 try:
                     score = optionalDict['AS']
+                # Need to make sure if 'AS' is used as a score for one read
+                # then it's used for all of the others - can't have mix of
+                # AS and score from _convertCigarMD
                 except KeyError:
                     if 'M' in cigar:
                         try:
@@ -443,65 +432,36 @@ class SAMRecordsReader(object):
                     else:
                         score = _convertCigarMD(cigar)
 
-                record["alignment"]["hsps"].append(_calcHsp(pos, subjectemplateLength, seq, flag, score))
-            else:
-                record = {
-                    "query": line[0],
-                }
+                cigarSplit = [''.join(v) for k, v in groupby(cigar, 
+                                                             str.isdigit)]
+                if cigarSplit[1] is 'S':
+                    beginS = cigarSplit[0]
+                elif cigarSplit[1] is 'H' and cigarSplit[3] is 'S':
+                    beginS = cigarSplit[2]
+                if cigarSplit[-1] is 'S':
+                    lastS = cigarSplit[-2]
+                elif cigarSplit[-1] is 'H' and cigarSplit[-3] is 'S':
+                    lastS = cigarSplit[-4]
+                
+                cig = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0,
+                       'P': 0, '=': 0, 'X': 0}
+                index = 0
+                for element in xrange(0, len(cigarSplit), 2):
+                    cig[cigarSplit[index + 1]] += int(cigarSplit[index])
+                    index += 2
 
-            return record
+                readStart = 0 + beginS
+                readEnd = len(seq) - 1 - lastS
+                subjStart = pos - 1
+                subjEnd = (pos - 2 + len(seq) - cig['I'] - cig['S']
+                              - cig['P']  + cig['N'] + cig['D'])
 
-        for line in samData:
-            readId, title, length, quality, start, end = line.split('/')
-            alignment = Alignment(length, title)
-            hsp = HSP(int(quality), readStart=start, readEnd=end)
-            alignment.addHsp(hsp)
-            readIds[readId].append(alignment)
-
-        for read in self.reads:
-            try:
-                alignments = readIds[read.id]
-            except KeyError:
-                raise ValueError(
-                    'Read id %s found in passed reads but not in SAM file %r '
-                    % (read.id, self.samFilename))
-            else:
-                yield ReadAlignments(read, alignments)
-
-
-
-        if blastDict['query'].split()[0] != read.id:
-            raise ValueError(
-                'The reads you have provided do not match the BLAST output: '
-                'BLAST record query id (%s) does not match the id of the '
-                'supposedly corresponding read (%s).' %
-                (blastDict['query'], read.id))
-
-        alignments = []
-        getScore = itemgetter('bits' if self._hspClass is HSP else 'expect')
-
-        for blastAlignment in blastDict['alignments']:
-            alignment = Alignment(blastAlignment['length'],
-                                  blastAlignment['title'])
-            alignments.append(alignment)
-            for blastHsp in blastAlignment['hsps']:
-                score = getScore(blastHsp)
-                normalized = normalizeHSP(blastHsp, len(read),
-                                          self.application)
-                hsp = self._hspClass(
-                    score,
-                    readStart=normalized['readStart'],
-                    readEnd=normalized['readEnd'],
-                    readStartInSubject=normalized['readStartInSubject'],
-                    readEndInSubject=normalized['readEndInSubject'],
-                    subjectStart=normalized['subjectStart'],
-                    subjectEnd=normalized['subjectEnd'],
-                    readMatchedSequence=blastHsp['query'],
-                    subjectMatchedSequence=blastHsp['sbjct'])
-
+                hsp = HSP(score, readStart=readStart, readEnd=readEnd, 
+                          subjectStart=subjStart, subjectEnd=subjEnd)
                 alignment.addHsp(hsp)
-
-        return alignments
+                return alignment
+        else:
+            pass # Need something here for unaligned reads?
 
     def readAlignments(self, reads):
         """
@@ -509,30 +469,30 @@ class SAMRecordsReader(object):
         and yield them.
 
         @param reads: A generator yielding L{Read} instances, corresponding to
-            the reads that were given to BLAST.
+            the reads that were given to the aligner.
         @raise ValueError: If any of the lines in the file cannot be parsed.
         @return: A generator that yields C{dark.alignments.ReadAlignments}
             instances.
         """
-        if self._fp is None:
-            self._open(self._filename)
+        self._open(self._filename)  # Function to open the file.
         readIds = defaultdict(list)
-        try:
-            for line in self._fp:
-                if not line.startswith('$') and not line.startswith('@'):
-                    try:
-                        read = reads.next()
-                    except StopIteration:
-                        raise ValueError(
-                            'Read generator failed to yield read number %d '
-                            'during parsing of BLAST file %r.' %
-                            (lineNumber - 1, self._filename))
-                    else:
-                        alignments = self._lineToAlignments(record, read)
-                        yield ReadAlignments(read, alignments)
-        finally:
-            self._fp.close()
-            self._fp = None
+        for line in self._fp:
+            if not line.startswith('$') and not line.startswith('@'):
+                line = line.strip().split()
+                query = line[0]
+                readIds[query].append(self._lineToAlignments(line))
+
+        for read in reads:
+            try:
+                alignments = readIds[read.id]
+            except KeyError:
+                raise ValueError(
+                    'Read id %s found in passed reads but not in SAM file %r '
+                    % (read.id, self._fp))
+            else:
+                yield ReadAlignments(read, alignments)
+
+        self._fp.close()
 
 
 def findMD(samFile, fastaFile):
