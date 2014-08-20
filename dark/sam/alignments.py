@@ -1,10 +1,6 @@
-from collections import defaultdict
-
 from dark.sam.conversion import SAMRecordsReader
 from dark.score import HigherIsBetterScore
-from dark.hsp import HSP
-from dark.alignments import (
-    Alignment, ReadsAlignments, ReadAlignments, ReadsAlignmentsParams)
+from dark.alignments import (ReadsAlignments, ReadsAlignmentsParams)
 
 
 class SamReadsAlignments(ReadsAlignments):
@@ -35,43 +31,46 @@ class SamReadsAlignments(ReadsAlignments):
             for record in fp:
                 if record.startswith('@'):
                     headerLines.append(record)
-            result = {'@HD': [], '@SQ': [], '@RG': [], '@PG': [], '@CO': []}
+            result = {}
             for line in headerLines:
                 line = line.strip().split()
+                tags = line[1:]
                 if line[0] == '@SQ':
-                    tags = line[1:]
-                    tagDict = {}
                     for tag in tags:
                         if 'SN' in tag:
                             key = tag.split(':')[1]
                         elif 'LN' in tag:
                             val = tag.split(':')[1]
-                        tagDict[key] = val
-                    result[line[0]].append(tagDict)
-                elif line[0] in result:
-                    tags = line[1:]
-                    tagDict = {}
+                        result[key] = val
+                elif line[0] == '@PG':
+                    for tag in tags:
+                        if 'ID' in tag:
+                            result['app'] = tag.split(':')[1]
+                        else:
+                            key = tag.split(':')[0]
+                            val = tag.split(':')[1]
+                            result[key] = val
+                else:
                     for tag in tags:
                         key = tag.split(':')[0]
                         val = tag.split(':')[1]
-                        tagDict[key] = val
-                    result[line[0]].append(tagDict)
+                        result[key] = val
             return result
 
     def __init__(self, reads, samFilename):
         self.samFilename = samFilename
         self.reads = reads
         # Prepare application parameters in order to initialize self.
-        header = _convertSamHeaderToDict(self)
-        app = header['@PG']['ID']
+        self.header = self._convertSamHeaderToDict()
+        app = self.header['app']
 
-        applicationParams = ReadsAlignmentsParams('application'=app,
-                                                  'samParams'=header)
+        applicationParams = ReadsAlignmentsParams(app,
+                                                  applicationParams=self.header)
 
         ReadsAlignments.__init__(self, reads, applicationParams,
                                  scoreClass=HigherIsBetterScore)
 
-    def _getReader(self, filename, scoreClass):
+    def _getReader(self, filename, applicationParams, scoreClass):
         """
         Obtain a SAM record reader.
 
@@ -79,7 +78,8 @@ class SamReadsAlignments(ReadsAlignments):
         @param scoreClass: A class to hold and compare scores (see scores.py).
         """
         if filename.endswith('.sam'):
-            return SAMRecordsReader(samFilename, scoreClass)
+            return SAMRecordsReader(self.samFilename, self.header,
+                                    self.scoreClass)
         # Haven't written JSONRecordsReader for after SAM->JSON
         # elif filename.endswith('.json'):
             # return JSONRecordsReader(samFilename, scoreClass)
@@ -93,23 +93,10 @@ class SamReadsAlignments(ReadsAlignments):
 
         @return: A generator that yields C{ReadAlignments} instances.
         """
-
-        reader = self._getReader(samFilename, self.scoreClass)
+        reads = iter(self.reads)
+        reader = self._getReader(self.samFilename, self.header,
+                                 self.scoreClass)
 
         for readAlignments in reader.readAlignments(reads):
-            count += 1
+            # count += 1
             yield readAlignments
-
-    # Is anything calling this function?
-    def getSequence(self, title):
-        """
-        Obtain information about a sequence, given its title.
-
-        @param title: A C{str} sequence title from a BLAST hit. Of the form
-            'gi|63148399|gb|DQ011818.1| Description...'.
-        @return: A C{SeqIO.read} instance.
-        """
-        # Look up the title in the database that was given to BLAST on the
-        # command line.
-        return ncbidb.getSequence(
-            title, self.params.applicationParams['database'])
