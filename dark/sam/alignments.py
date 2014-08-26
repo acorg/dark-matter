@@ -31,6 +31,8 @@ class SamReadsAlignments(ReadsAlignments):
             for record in fp:
                 if record.startswith('@'):
                     headerLines.append(record)
+            if headerLines is None:
+                raise ValueError('No header lines in %s' % self.samFilename)
             result = {}
             for line in headerLines:
                 line = line.strip().split()
@@ -93,10 +95,22 @@ class SamReadsAlignments(ReadsAlignments):
 
         @return: A generator that yields C{ReadAlignments} instances.
         """
+        count = 0
         reads = iter(self.reads)
         reader = self._getReader(self.samFilename, self.header,
                                  self.scoreClass)
 
         for readAlignments in reader.readAlignments(reads):
-            # count += 1
+            count += 1
             yield readAlignments
+
+        # Make sure all reads were used.
+        try:
+            read = reads.next()
+        except StopIteration:
+            pass
+        else:
+            raise ValueError(
+                'Reads iterator contained more reads than the number of '
+                'BLAST records found (%d). First unknown read id is %r.' %
+                (count, read.id))
