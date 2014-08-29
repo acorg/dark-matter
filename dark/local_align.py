@@ -1,0 +1,248 @@
+class LocalAlignment(object):
+    """
+    Smith-Waterman algorithm
+    Local alignment between two fasta files (nucleotides only)
+
+    @param seq1: a C{Bio.SeqRecord} instance of a sequence to be aligned
+    @param seq2: a C{Bio.SeqRecord} instance of a sequence to be aligned
+    @param match: The C{int} match score.
+    @param mismatch: The C{int} mismatch score.
+    @param gap: The C{int} penalty for opening a gap.
+    @param gapExtend: C{int} penalty for extending a gap.
+    @return: A C{list} of strings. For every three lines the first
+        and third contain the input sequences, possibly padded with '-'.
+        The second contains '|' where the two sequences match,
+        and ' ' where not.
+        If either sequence is of zero length, return a C{list} of three empty
+        strings.
+        Format is as follows:
+        Cigar: (Cigar string)
+        Evalue:
+        Bitscore:
+        Id1 Match start: (int) Match end: (int)
+        Id2 Match start: (int) Match end: (int)
+        Id1:  1 (seq) 50
+        [lines to show matches]
+        Id2:  1 (seq) 50
+
+        Id1: 51 (seq) 100
+        [lines to show matches]
+        Id2: 51 (seq) 100
+    """
+
+    def __init__(self, seq1, seq2, match=1, mismatch=-1, gap=-1, 
+                 gapExtend=-1, gapExtendDecay=0.0):
+        self.seq1Seq = seq1.seq.upper()
+        self.seq1ID = seq1.id
+        self.seq2Seq = seq2.seq.upper()
+        self.seq2ID = seq2.id
+        self.match = match
+        self.mismatch = mismatch
+        self.gapOpen = gap
+        self.gapExtend = gapExtend
+        self.gapExtendDecay = gapExtendDecay
+
+        if self.mismatch >= 0:
+            raise ValueError('Mismatch must be negative')
+        if self.gapOpen >= 0:
+            raise ValueError('Gap must be negative')
+        if self.gapExtend > 0:
+            raise ValueError('Gap extension penalty must be negative')
+
+        if len(self.seq1Seq) == 0:
+            raise ValueError('Empty sequence: %s' % self.seq1ID)
+        if len(self.seq2Seq) == 0:
+            raise ValueError('Empty sequence: %s' % self.seq2ID)
+
+        for nt in self.seq1Seq:
+            if nt not in 'ACGT':
+                raise ValueError('Invalid DNA nucleotide: "%s"' % nt)
+        for nt in self.seq2Seq:
+            if nt not in 'ACGT':
+                raise ValueError('Invalid DNA nucleotide: "%s"' % nt)
+
+    def _initialise(self):
+        """
+        Initialises table with dictionary.
+        """
+        d = {'score': 0, 'pointer': None, 'ins': 0, 'del': 0}
+        cols = len(self.seq1Seq) + 1
+        rows = len(self.seq2Seq) + 1
+        table = [[d for _ in xrange(cols)] for _ in xrange(rows)]
+        return table
+
+    def _fillAndTraceback(self, table):
+        """
+        Fills the table.
+        NB left = deletion and up = insertion wrt seq1
+        """
+        # Fill
+        max_score = 0
+        max_row = 0
+        max_col = 0
+
+        for row in xrange(1, len(self.seq2Seq)+1):
+            for col in xrange(1, len(self.seq1Seq)+1):
+                # Calculate match score
+                letter1 = self.seq1Seq[col-1]
+                letter2 = self.seq2Seq[row-1]
+                if letter1 == letter2:
+                    diagonal_score = (table[row-1][col-1]['score'] +
+                                      self.match)
+                else:
+                    diagonal_score = (table[row-1][col-1]['score'] +
+                                      self.mismatch)
+
+                ins_run = table[row-1][col]['ins']
+                del_run = table[row][col-1]['del']
+
+                # Calculate gap scores
+                if table[row-1][col]['ins'] <= 0:
+                    ins_score = table[row-1][col]['score'] + self.gapOpen
+                else:
+                    ins_score = (table[row-1][col]['score'] + self.gapExtend +
+                                 ins_run * self.gapExtendDecay)
+
+                if table[row-1][col]['del'] <= 0:
+                    del_score = table[row][col-1]['score'] + self.gapOpen
+                else:
+                    del_score = (table[row][col-1]['score'] + self.gapExtend +
+                                 del_run * self.gapExtendDecay)
+
+                # Choose best score
+                if diagonal_score <= 0 and ins_score <= 0 and del_score <= 0:
+                    table[row][col] = {'score': 0, 'pointer': None, 'ins': 0,
+                                       'del': 0}
+                else:
+                    if diagonal_score >= ins_score:
+                        if diagonal_score >= del_score:  # diag lef/up
+                            diagonal = {'score': diagonal_score,
+                                   'pointer': 'diagonal', 'ins': 0, 'del': 0}
+                            table[row][col] = diagonal
+                        else:  # lef diag/up
+                            deletion = {'score': del_score, 'pointer': 'del',
+                                        'ins': 0, 'del': del_run + 1}
+                            table[row][col] = deletion
+                    else:  # up diag
+                        if ins_score >= del_score:  # up diag/lef
+                            insertion = {'score': ins_score,'pointer': 'ins',
+                                         'ins': ins_run + 1, 'del': 0}
+                            table[row][col] = insertion
+                        else:  # lef up diag
+                            deletion = {'score': del_score, 'pointer': 'del',
+                                        'ins': 0, 'del': del_run + 1}
+                            table[row][col] = deletion
+
+                # Set max score - is this the best way of getting max score
+                # considering how the for loop iterates through the matrix?
+                if table[row][col]['score'] >= max_score:
+                    max_row = row
+                    max_col = col
+                    max_score = table[row][col]['score']
+
+        # Traceback 
+        indexes = {'max_row': max_row, 'max_col': max_col}
+        align1 = ''
+        align2 = ''
+        align = ''
+
+        current_row = max_row
+        current_col = max_col
+
+        while True:
+            arrow = table[current_row][current_col]['pointer']
+            if arrow is None:
+                min_row = current_row + 1
+                min_col = current_col + 1
+                break
+            elif arrow == 'diagonal':
+                align1 += self.seq1Seq[current_col-1]
+                align2 += self.seq2Seq[current_row-1]
+                if self.seq1Seq[current_col-1] == self.seq2Seq[current_row-1]:
+                    align += '|'
+                else:
+                    align += ' '
+                current_row -= 1
+                current_col -= 1
+            elif arrow == 'del':
+                align1 += self.seq1Seq[current_col-1]
+                align2 += '-'
+                align += ' '
+                current_col -= 1
+            elif arrow == 'ins':
+                align1 += '-'
+                align2 += self.seq2Seq[current_row-1]
+                align += ' '
+                current_row -= 1
+            else:
+                raise ValueError('Invalid pointer: %s' % arrow)
+
+        indexes['min_row'] = min_row
+        indexes['min_col'] = min_col
+        align1 = align1[::-1]
+        align2 = align2[::-1]
+        align = align[::-1]
+
+        if len(align1) != len(align2):
+            raise ValueError('Lengths of locally aligned sequences'
+                             ' different')
+
+        return ([align1, align, align2], indexes)
+
+    def _formatAlignment(self, output, indexes):
+        align1 = ''
+        align2 = ''
+        align = ''
+
+        if len(self.seq1ID) > len(self.seq2ID):
+            diff = len(self.seq1ID) - len(self.seq2ID)
+            align1 += self.seq1ID
+            align2 += (self.seq2ID + ' ' * diff)
+            align += (' ' * len(self.seq1ID))
+        elif len(self.seq1ID) < len(self.seq2ID):
+            diff = len(self.seq2ID) - len(self.seq1ID)
+            align1 += (self.seq1ID + ' ' * diff)
+            align2 += self.seq2ID
+            align += (' ' * len(self.seq2ID))
+        else:
+            align1 += (self.seq1ID)
+            align2 += (self.seq2ID)
+            align += (' ' * len(self.seq1ID))
+
+        if len(str(indexes['min_col'])) > len(str(indexes['min_row'])):
+            diff = len(str(indexes['min_col'])) - len(str(indexes['min_row']))
+            align1 += (' ' + str(indexes['min_col']) + ' ')
+            align2 += (' ' + str(indexes['min_row']) + ' ' * (diff + 1))
+            align += (' ' * (2 + len(str(indexes['min_col']))))
+        elif len(str(indexes['min_col'])) < len(str(indexes['min_row'])):
+            diff = len(str(indexes['min_row'])) - len(str(indexes['min_col']))
+            align1 += (' ' + str(indexes['min_col']) + ' ' * (diff + 1))
+            align2 += (' ' + str(indexes['min_row']) + ' ')
+            align += (' ' * (2 + len(str(indexes['min_row']))))
+        else:
+            align1 += (' ' + str(indexes['min_col']) + ' ')
+            align2 += (' ' + str(indexes['min_row']) + ' ')
+            align += (' ' * (2 + len(str(indexes['min_row']))))
+               
+        align1 += (output[0] + ' ' + str(indexes['max_col']))
+        align += (output[1])
+        align2 += (output[2] + ' ' + str(indexes['max_row']))
+
+        return [align1, align, align2]
+
+    def mainFunction(self):
+        table = self._initialise()
+        alignment = self._fillAndTraceback(table)
+        output = alignment[0]
+        indexes = alignment[1]
+        text = self._formatAlignment(output, indexes)
+        result = "\n".join(text)
+        # cigar = 
+        # bitscore = 
+        # evalue = 
+        header = ("\n%s Match start: %d Match end: %d \n" 
+                  "%s Match start: %d Match end: %d \n"
+                  % (self.seq1ID, indexes['min_col'], indexes['max_col'],
+                     self.seq2ID, indexes['min_row'], indexes['max_row']))
+
+        return header + result
