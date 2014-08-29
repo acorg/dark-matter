@@ -2,15 +2,6 @@
 
 """
 Aligns each sequence in fileHandle1 to each sequence in fileHandle2.
-Returns list of strings for each alignment with format:
-    Cigar: (Cigar string)
-    Id1:  1 (seq) 50
-    [lines to show matches]
-    Id2:  1 (seq) 50
-
-    Id1: 51 (seq) 100
-    [lines to show matches]
-    Id2: 51 (seq) 100
 """
 
 from dark.local_align import LocalAlignment
@@ -43,7 +34,9 @@ else:
         for record in SeqIO.parse(fileHandle2, "fasta"):
             input2 = record
             alignment = LocalAlignment(input1, input2, match=matchScore,
-                                    mismatch=mismatchScore, gap=gapOpenScore,
-                                    gapExtend=gapExtendScore, gapDecay=gapExtendDecay)
+                                       mismatch=mismatchScore,
+                                       gap=gapOpenScore,
+                                       gapExtend=gapExtendScore,
+                                       gapDecay=gapExtendDecay)
             print alignment.mainFunction()
             # Maybe print to a txt file?

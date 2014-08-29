@@ -1,3 +1,6 @@
+import itertools
+
+
 class LocalAlignment(object):
     """
     Smith-Waterman algorithm
@@ -13,8 +16,7 @@ class LocalAlignment(object):
         and third contain the input sequences, possibly padded with '-'.
         The second contains '|' where the two sequences match,
         and ' ' where not.
-        If either sequence is of zero length, return a C{list} of three empty
-        strings.
+        If either sequence is of zero length, raise a ValueError.
         Format is as follows:
         Cigar: (Cigar string)
         Evalue:
@@ -24,13 +26,9 @@ class LocalAlignment(object):
         Id1:  1 (seq) 50
         [lines to show matches]
         Id2:  1 (seq) 50
-
-        Id1: 51 (seq) 100
-        [lines to show matches]
-        Id2: 51 (seq) 100
     """
 
-    def __init__(self, seq1, seq2, match=1, mismatch=-1, gap=-1, 
+    def __init__(self, seq1, seq2, match=1, mismatch=-1, gap=-1,
                  gapExtend=-1, gapExtendDecay=0.0):
         self.seq1Seq = seq1.seq.upper()
         self.seq1ID = seq1.id
@@ -73,7 +71,8 @@ class LocalAlignment(object):
 
     def _fillAndTraceback(self, table):
         """
-        Fills the table.
+        Perform Local Alignment according to Smith-Waterman Algorithm.
+        Fills the table and then traces back from the highest score.
         NB left = deletion and up = insertion wrt seq1
         """
         # Fill
@@ -117,7 +116,8 @@ class LocalAlignment(object):
                     if diagonal_score >= ins_score:
                         if diagonal_score >= del_score:  # diag lef/up
                             diagonal = {'score': diagonal_score,
-                                   'pointer': 'diagonal', 'ins': 0, 'del': 0}
+                                        'pointer': 'diagonal', 'ins': 0,
+                                        'del': 0}
                             table[row][col] = diagonal
                         else:  # lef diag/up
                             deletion = {'score': del_score, 'pointer': 'del',
@@ -125,7 +125,7 @@ class LocalAlignment(object):
                             table[row][col] = deletion
                     else:  # up diag
                         if ins_score >= del_score:  # up diag/lef
-                            insertion = {'score': ins_score,'pointer': 'ins',
+                            insertion = {'score': ins_score, 'pointer': 'ins',
                                          'ins': ins_run + 1, 'del': 0}
                             table[row][col] = insertion
                         else:  # lef up diag
@@ -140,7 +140,7 @@ class LocalAlignment(object):
                     max_col = col
                     max_score = table[row][col]['score']
 
-        # Traceback 
+        # Traceback
         indexes = {'max_row': max_row, 'max_col': max_col}
         align1 = ''
         align2 = ''
@@ -189,7 +189,59 @@ class LocalAlignment(object):
 
         return ([align1, align, align2], indexes)
 
+    def _returnCigarString(self, output):
+        """
+        Return cigar string of aligned sequences.
+        @param output: a C{tup} of strings (align1, align, align2)
+        @return: a C{str} containing the cigar string
+        Eg with input:
+        'GGCCCGCA' and 'GG-CTGCA'
+        return 2=1D1=1X3=
+        """
+        cigar = []
+        count = 0
+        align1 = output[0]
+        align2 = output[2]
+        for nt1, nt2 in itertools.izip(align1, align2):
+            if nt1 == nt2:
+                cigar.append('=')
+            elif nt1 == '-':
+                cigar.append('I')
+            elif nt2 == '-':
+                cigar.append('D')
+            else:
+                cigar.append('X')
+        # Initially create a list of characters,
+        # eg ['=', '=', 'D', '=', 'X', '=', '=', '=']
+        cigar.append('*')
+        # Append an arbitrary character to ensure parsing below functions
+        cigarString = ''
+        previousCharacter = ''
+        count = 0
+        first = True
+        for character in cigar:
+            if first:
+                previousCharacter = character
+                count += 1
+                first = False
+            else:
+                if character == previousCharacter:
+                    count += 1
+                else:
+                    cigarString += (str(count) + str(previousCharacter))
+                    count = 1
+                previousCharacter = character
+        return cigarString
+
     def _formatAlignment(self, output, indexes):
+        """
+        @param output: a C{tup} of strings (align1, align, align2)
+        @param indexes: a C{dict} of positions where the alignment begins/
+            ends in the input sequences.
+        @return: a C{list} of strings which have been formatted to include
+            the ID of the sequences and the positions where the alignment
+            begins/ends.
+        """
         align1 = ''
         align2 = ''
         align = ''
@@ -223,7 +275,7 @@ class LocalAlignment(object):
             align1 += (' ' + str(indexes['min_col']) + ' ')
             align2 += (' ' + str(indexes['min_row']) + ' ')
             align += (' ' * (2 + len(str(indexes['min_row']))))
-               
+
         align1 += (output[0] + ' ' + str(indexes['max_col']))
         align += (output[1])
         align2 += (output[2] + ' ' + str(indexes['max_row']))
@@ -235,14 +287,16 @@ class LocalAlignment(object):
         alignment = self._fillAndTraceback(table)
         output = alignment[0]
         indexes = alignment[1]
+        cigar = self._returnCigarString(output)
         text = self._formatAlignment(output, indexes)
         result = "\n".join(text)
-        # cigar = 
-        # bitscore = 
-        # evalue = 
-        header = ("\n%s Match start: %d Match end: %d \n" 
+        # bitscore =
+        # evalue =
+        header = ("\nCigar string: %s\n"
                   "%s Match start: %d Match end: %d \n"
-                  % (self.seq1ID, indexes['min_col'], indexes['max_col'],
-                     self.seq2ID, indexes['min_row'], indexes['max_row']))
+                  "%s Match start: %d Match end: %d \n"
+                  % (cigar, self.seq1ID, indexes['min_col'],
+                     indexes['max_col'], self.seq2ID, indexes['min_row'],
+                     indexes['max_row']))
 
         return header + result
