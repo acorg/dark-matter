@@ -37,6 +37,38 @@ class TestAlignment(TestCase):
         self.assertEqual(HSP(3), alignment.hsps[0])
 
 
+class TestReadAlignments(TestCase):
+    """
+    Tests for the dark.alignment.ReadAlignments class
+    """
+
+    def testRead(self):
+        """
+        An read alignments must store its read.
+        """
+        read = Read('id', 'ACGT')
+        readAlignments = ReadAlignments(read)
+        self.assertEqual(read, readAlignments.read)
+
+    def testNoAlignments(self):
+        """
+        An read alignments must be able to have no alignments.
+        """
+        read = Read('id', 'ACGT')
+        readAlignments = ReadAlignments(read)
+        self.assertEqual(0, len(readAlignments))
+
+    def testAlignments(self):
+        """
+        An read alignments must store its alignments.
+        """
+        read = Read('id', 'ACGT')
+        alignment1 = Alignment(45, 'title1')
+        alignment2 = Alignment(55, 'title2')
+        readAlignments = ReadAlignments(read, [alignment1, alignment2])
+        self.assertEqual([alignment1, alignment2], readAlignments)
+
+
 class TestBestAlignmentHSP(TestCase):
     """
     Test the L{dark.hits.bestAlignment} function when HSPs are used.
