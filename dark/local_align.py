@@ -97,18 +97,26 @@ class LocalAlignment(object):
                 ins_run = table[row-1][col]['ins']
                 del_run = table[row][col-1]['del']
 
-                # Calculate gap scores
+                # Calculate gap scores ensuring extension is not > 0
                 if table[row-1][col]['ins'] <= 0:
                     ins_score = table[row-1][col]['score'] + self.gapOpen
                 else:
-                    ins_score = (table[row-1][col]['score'] + self.gapExtend +
-                                 ins_run * self.gapExtendDecay)
+                    if self.gapExtend + ins_run * self.gapExtendDecay <= 0.0:
+                        ins_score = (table[row-1][col]['score'] +
+                                     self.gapExtend +
+                                     ins_run * self.gapExtendDecay)
+                    else:
+                        ins_score = table[row-1][col]['score']
 
                 if table[row-1][col]['del'] <= 0:
                     del_score = table[row][col-1]['score'] + self.gapOpen
                 else:
-                    del_score = (table[row][col-1]['score'] + self.gapExtend +
-                                 del_run * self.gapExtendDecay)
+                    if self.gapExtend + del_run * self.gapExtendDecay <= 0.0:
+                        del_score = (table[row][col-1]['score'] +
+                                     self.gapExtend +
+                                     del_run * self.gapExtendDecay)
+                    else:
+                        del_score = table[row][col-1]['score']
 
                 # Choose best score
                 if diagonal_score <= 0 and ins_score <= 0 and del_score <= 0:

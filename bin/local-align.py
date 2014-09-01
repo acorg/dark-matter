@@ -39,4 +39,3 @@ else:
                                        gapExtend=gapExtendScore,
                                        gapDecay=gapExtendDecay)
             print alignment.createAlignment()
-            # Maybe print to a txt file?
