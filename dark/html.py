@@ -280,7 +280,7 @@ span.reads {
         reads = Reads()
         title = image['title']
         titleAlignments = self._titlesAlignments[title]
-        for titleAlignment in titleAlignments.alignments:
+        for titleAlignment in titleAlignments:
             reads.add(titleAlignment.read)
         filename = '%s/%d.fasta' % (self._outputDir, i)
         reads.save(filename, 'fasta')

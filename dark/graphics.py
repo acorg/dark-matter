@@ -396,7 +396,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         readCount = titleAlignments.readCount()
         hspCount = titleAlignments.hspCount()
         figure.suptitle(
-            '%s\nLength %d %s, %d read%s hit, %d HSP%s.' %
+            '%s\nLength %d %s, %d read%s, %d HSP%s.' %
             (
                 sequence.description,
                 len(sequence), 'nt' if subjectIsNucleotides else 'aa',
@@ -517,7 +517,7 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         allGraphInfo[title] = graphInfo
         readCount = titleAlignments.readCount()
         hspCount = titleAlignments.hspCount()
-        plotTitle = ('%d: %s\nLength %d, %d read%s hit.\n%d HSP%s.' % (
+        plotTitle = ('%d: %s\nLength %d, %d read%s, %d HSP%s.' % (
             i, title.split(' ', 1)[1][:40],
             titleAlignments.subjectLength,
             readCount, '' if readCount == 1 else 's',

@@ -50,12 +50,14 @@ class ReadAlignments(list):
     Holds information about the alignments for a read.
 
     @param read: A C{Read} instance.
-    @param alignments: A C{list} of L{dark.alignment.Alignment} instances.
+    @param alignments: A C{list} of L{dark.alignment.Alignment} instances or
+        C{None} if the read has no alignments.
     """
-    def __init__(self, read, alignments):
+    def __init__(self, read, alignments=None):
         list.__init__(self)
         self.read = read
-        self.extend(alignments)
+        if alignments:
+            self.extend(alignments)
 
 
 class ReadsAlignmentsParams(object):

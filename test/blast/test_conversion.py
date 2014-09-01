@@ -1,6 +1,6 @@
 from unittest import TestCase
 from mock import patch
-from mocking import mockOpen
+from ..mocking import mockOpen
 
 from dark.blast.conversion import XMLRecordsReader
 
