@@ -38,5 +38,5 @@ else:
                                        gap=gapOpenScore,
                                        gapExtend=gapExtendScore,
                                        gapDecay=gapExtendDecay)
-            print alignment.mainFunction()
+            print alignment.createAlignment()
             # Maybe print to a txt file?

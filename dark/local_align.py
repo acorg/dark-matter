@@ -12,12 +12,14 @@ class LocalAlignment(object):
     @param mismatch: The C{int} mismatch score.
     @param gap: The C{int} penalty for opening a gap.
     @param gapExtend: C{int} penalty for extending a gap.
+    @param gapExtendDecay: C{float} which decreases the penalty for extending
+        a gap.
     @return: A C{list} of strings. For every three lines the first
         and third contain the input sequences, possibly padded with '-'.
         The second contains '|' where the two sequences match,
         and ' ' where not.
         If either sequence is of zero length, raise a ValueError.
-        Format is as follows:
+        Format of the output is as follows:
         Cigar: (Cigar string)
         Evalue:
         Bitscore:
@@ -45,7 +47,7 @@ class LocalAlignment(object):
         if self.gapOpen >= 0:
             raise ValueError('Gap must be negative')
         if self.gapExtend > 0:
-            raise ValueError('Gap extension penalty must be negative')
+            raise ValueError('Gap extension penalty cannot be positive')
 
         if len(self.seq1Seq) == 0:
             raise ValueError('Empty sequence: %s' % self.seq1ID)
@@ -282,21 +284,25 @@ class LocalAlignment(object):
 
         return [align1, align, align2]
 
-    def mainFunction(self):
+    def createAlignment(self):
         table = self._initialise()
         alignment = self._fillAndTraceback(table)
         output = alignment[0]
-        indexes = alignment[1]
-        cigar = self._returnCigarString(output)
-        text = self._formatAlignment(output, indexes)
-        result = "\n".join(text)
-        # bitscore =
-        # evalue =
-        header = ("\nCigar string: %s\n"
-                  "%s Match start: %d Match end: %d \n"
-                  "%s Match start: %d Match end: %d \n"
-                  % (cigar, self.seq1ID, indexes['min_col'],
-                     indexes['max_col'], self.seq2ID, indexes['min_row'],
-                     indexes['max_row']))
-
-        return header + result
+        if output[0] is '' or output[2] is '':
+            result = ("\nNo alignment between %s and %s \n"
+                      % (self.seq1ID, self.seq2ID))
+            return result
+        else:
+            indexes = alignment[1]
+            cigar = self._returnCigarString(output)
+            text = self._formatAlignment(output, indexes)
+            result = "\n".join(text)
+            # bitscore =
+            # evalue =
+            header = ("\nCigar string of aligned region: %s\n"
+                      "%s Match start: %d Match end: %d\n"
+                      "%s Match start: %d Match end: %d\n"
+                      % (cigar, self.seq1ID, indexes['min_col'],
+                         indexes['max_col'], self.seq2ID, indexes['min_row'],
+                         indexes['max_row']))
+            return header + result
