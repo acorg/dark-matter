@@ -100,7 +100,7 @@ See: [pip installation guide](http://pip.readthedocs.org/en/latest/installing.ht
 
 ### Install some required Cygwin packages
 
-These can be found and downloaded through the Cygwin setup.exe process or using apt-cyg if downloaded:
+These can be found and downloaded through the Cygwin setup.exe process or using apt-cyg, if installed:
 ```
 curl
 make
