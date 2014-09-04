@@ -36,6 +36,12 @@ DEFAULT_BASE_COLOR = (0.5, 0.5, 0.5)  # Grey
 # than SMALLEST_LOGGED_GAP_TO_DISPLAY.
 SMALLEST_LOGGED_GAP_TO_DISPLAY = 20
 
+# Y (Score) axis extra spacing above the best read match. The score of the
+# best read HSP will be multiplied by this value, the result converted to
+# an int, and then used as the upper bound on the Y axis. Adding 1% seems
+# to be a good heuristic.
+Y_AXIS_UPPER_PADDING = 1.01
+
 # The default base of the logarithm to use when logLinearXAxis is used to
 # produce an alignment graph.
 DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
@@ -416,7 +422,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     # Set the x-axis limits.
     readsAx.set_xlim([minX - 1, maxX + 1])
 
-    readsAx.set_ylim([0, maxY + 1])
+    readsAx.set_ylim([0, int(maxY * Y_AXIS_UPPER_PADDING)])
     readsAx.grid()
     if createFigure:
         if showFigure:
@@ -545,7 +551,7 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         titleAlignments = titlesAlignments[title]
         row, col = coords.next()
         a = ax[row][col]
-        a.set_ylim([0, maxY + 1])
+        a.set_ylim([0, int(maxY * Y_AXIS_UPPER_PADDING)])
         if equalizeXAxes:
             a.set_xlim([minX, maxX])
         a.set_yticks([])

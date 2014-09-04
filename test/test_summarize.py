@@ -1,6 +1,6 @@
 from unittest import TestCase
 from cStringIO import StringIO
-from Bio import SeqIO
+
 from dark.summarize import summarize_reads
 
 
@@ -70,22 +70,6 @@ class TestSummarizeReads(TestCase):
         seq = '>hey\nagtcagtcagtc\n>you\nacctg'
         result = summarize_reads(StringIO(seq), 'fasta')
         self.assertEqual(result['min_length'], 5)
-
-    def testSequenceListEmptyInput(self):
-        result = summarize_reads(StringIO(), 'fasta', returnSequences=True)
-        self.assertEqual(result['sequences'], [])
-
-    def testSequenceListOneString(self):
-        seq = '>hey\nagtcagtcagtc'
-        result = summarize_reads(StringIO(seq), 'fasta', returnSequences=True)
-        test_result = list(SeqIO.parse(StringIO(seq), 'fasta'))
-        self.assertEqual(map(str, result['sequences']), map(str, test_result))
-
-    def testSequenceListTwoStrings(self):
-        seq = '>hey\nagtcagtcagtc\n>you\nacctg'
-        result = summarize_reads(StringIO(seq), 'fasta', returnSequences=True)
-        test_result = list(SeqIO.parse(StringIO(seq), 'fasta'))
-        self.assertEqual(map(str, result['sequences']), map(str, test_result))
 
     def testMedianEmptyInput(self):
         result = summarize_reads(StringIO(), 'fasta')

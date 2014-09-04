@@ -2,18 +2,17 @@ from Bio import SeqIO
 from collections import defaultdict
 
 
-def summarize_reads(file_handle, file_type, returnSequences=False):
+def summarize_reads(file_handle, file_type):
     """
     open a fasta or fastq file, prints number of of reads,
     average length of read, total number of bases, longest,
     shortest and median read, total number and average of
-    individual base (A, T, G, C, N)
+    individual base (A, T, G, C, N).
     """
     base_counts = defaultdict(int)
     read_number = 0
     total_length = 0
     length_list = []
-    sequenceList = []
 
     records = SeqIO.parse(file_handle, file_type)
 
@@ -21,7 +20,6 @@ def summarize_reads(file_handle, file_type, returnSequences=False):
         total_length += len(record)
         read_number += 1
         length_list.append(len(record))
-        sequenceList.append(record)
         for base in record:
             base_counts[base] += 1
 
@@ -45,8 +43,5 @@ def summarize_reads(file_handle, file_type, returnSequences=False):
         "median_length": median(length_list) if length_list else 0,
         "base_counts": base_counts
     }
-
-    if returnSequences:
-        result["sequences"] = sequenceList
 
     return result
