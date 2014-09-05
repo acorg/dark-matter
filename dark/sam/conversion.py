@@ -361,14 +361,14 @@ class SAMRecordsReader(object):
                    + insert * els['I'] + delete * elsMD['delMD'])
             return bit
 
-    def _lineToAlignments(self, line):
+    def _lineToHSP(self, line):
         """
-        Take a line of a SAM file and convert it to a list of alignments.
+        Take a line of a SAM file and convert it to an HSP.
 
         @param line: Line of a SAM file.
         @raise ValueError: If the query id in the SAM entry does not
             match the id of the read.
-        @return: A C{list} of L{dark.alignment.Alignment} instances.
+        @return: A L{dark.alignment.Alignment.HSP} instance.
         """
         if not line.startswith('$') and not line.startswith('@'):
             line = line.strip().split()
@@ -389,10 +389,6 @@ class SAMRecordsReader(object):
                 if not cigar.isalnum() and '=' not in cigar:
                     raise ValueError("Cigar string is not alphanumeric - with"
                                      " the exception of =")
-                # Does this work?
-                subjTempLen = self._appParams[refSeqName]
-
-                alignment = Alignment(subjTempLen, refSeqName)
 
                 optionalDict = {}
                 for tag in optional:
@@ -448,10 +444,7 @@ class SAMRecordsReader(object):
 
                 hsp = HSP(score, readStart=readStart, readEnd=readEnd,
                           subjectStart=subjStart, subjectEnd=subjEnd)
-                alignment.addHsp(hsp)
-                return alignment
-        else:
-            pass  # Need something here for unaligned reads?
+                return hsp
 
     def readAlignments(self, reads):
         """
@@ -465,12 +458,16 @@ class SAMRecordsReader(object):
             instances.
         """
         self._open(self._filename)  # Function to open the file.
-        readIds = defaultdict(list)
+        readIds = defaultdict(lambda : defaultdict(list))
         for line in self._fp:
             if not line.startswith('$') and not line.startswith('@'):
                 details = line.strip().split()  # Gives list of strings
                 query = details[0]
-                readIds[query].append(self._lineToAlignments(line))
+                refSeqName = details[2]
+                if refSeqName != '*':
+                    subjTempLen = self._appParams[refSeqName]  # Does this work?
+                    alignment = Alignment(subjTempLen, refSeqName)
+                    readIds[query][alignment].append(self._lineToHSP(line))
 
         for read in reads:
             try:
