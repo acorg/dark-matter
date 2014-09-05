@@ -63,11 +63,11 @@ class SamReadsAlignments(ReadsAlignments):
         self.samFilename = samFilename
         self.reads = reads
         # Prepare application parameters in order to initialize self.
-        self.header = self._convertSamHeaderToDict()
-        app = self.header['app']
+        self.head = self._convertSamHeaderToDict()
+        app = self.head['app']
 
         applicationParams = ReadsAlignmentsParams(app,
-                                                  applicationParams=self.header)
+                                                  applicationParams=self.head)
 
         ReadsAlignments.__init__(self, reads, applicationParams,
                                  scoreClass=HigherIsBetterScore)
@@ -80,7 +80,7 @@ class SamReadsAlignments(ReadsAlignments):
         @param scoreClass: A class to hold and compare scores (see scores.py).
         """
         if filename.endswith('.sam'):
-            return SAMRecordsReader(self.samFilename, self.header,
+            return SAMRecordsReader(self.samFilename, self.head,
                                     self.scoreClass)
         # Haven't written JSONRecordsReader for after SAM->JSON
         # elif filename.endswith('.json'):
@@ -97,7 +97,7 @@ class SamReadsAlignments(ReadsAlignments):
         """
         count = 0
         reads = iter(self.reads)
-        reader = self._getReader(self.samFilename, self.header,
+        reader = self._getReader(self.samFilename, self.head,
                                  self.scoreClass)
 
         for readAlignments in reader.readAlignments(reads):

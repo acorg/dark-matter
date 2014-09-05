@@ -3,6 +3,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import subprocess as sp
 
+
 def samSubtract(samFile, outFile):
     """
     Takes a SAM file, makes a set of the seqids of unaligned sequences.
@@ -15,7 +16,8 @@ def samSubtract(samFile, outFile):
     # Put these in bin script once written
     if not samFile.lower().endswith('.sam'):
         raise ValueError('A SAM file must be given')
-    if not outFile.lower().endswith('.fasta') and not outFile.lower().endswith('.fastq'):
+    if (not outFile.lower().endswith('.fasta') and not
+            outFile.lower().endswith('.fastq')):
         raise ValueError('An output FASTA or FASTQ file must be given')
 
     records = []
@@ -67,9 +69,11 @@ def bamSubtract(bamFile, fastaFile, outFile):
     # Need to put in bin file
     if not bamFile.lower().endswith('.bam'):
         raise ValueError('A BAM file must be given')
-    if not fastaFile.lower().endswith('.fasta') and not fastaFile.lower().endswith('.fastq'):
+    if (not fastaFile.lower().endswith('.fasta') and not
+            fastaFile.lower().endswith('.fastq')):
         raise ValueError('A FASTA or FASTQ file must be given')
-    if not outFile.lower().endswith('.fasta') and not outFile.lower().endswith('.fastq'):
+    if (not outFile.lower().endswith('.fasta') and not
+            outFile.lower().endswith('.fastq')):
         raise ValueError('An output FASTA or FASTQ file must be given')
 
     samFileNew = ''.join(bamFile.split())[:-3] + 'sam'

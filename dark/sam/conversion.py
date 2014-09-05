@@ -145,14 +145,13 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
             qual = line[10]
             optional = line[11:]
 
-            lengths = self.params['@SQ']  # This doesn't work
-
             if refSeqName != '*':
                 if not cigar.isalnum() and '=' not in cigar:
-                    raise ValueError("Cigar string is not alphanumeric - with "
-                                     "the exception of =")
+                    raise ValueError("Cigar string is not alphanumeric - with"
+                                     " the exception of =")
 
-                subjTempLen = lengths[refSeqName]  # does this work? No
+                subjTempLen = self.params['@SQ'][refSeqName]
+                # TypeError: list indices must be integers, not str
 
                 record = {
                     "query": query,
@@ -206,7 +205,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         Takes the lines of a SAM file beginning with '@' and returns a dict.
         For @SQ lines, the ref seq name is a key and the length the value.
 
-        @param record: an instance of a SAM file which starts with '@'.
+        @param record: instances of a SAM file which start with '@'.
         @return: a C{dict}.
         """
         result = {'@HD': [], '@SQ': [], '@RG': [], '@PG': [], '@CO': []}
@@ -243,9 +242,12 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
             for record in fp:
                 if record.startswith('@'):
                     headerLines.append(record)
-                yield record
-
-            self.params = self._convertSamHeaderToDict(headerLines)
+                else:
+                    self.params = self._convertSamHeaderToDict(headerLines)
+                    break
+            for record in fp:
+                if not record.startswith('@'):
+                    yield record
 
     def saveAsJSON(self):
         """
@@ -257,14 +259,10 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         if not self.outFile.lower().endswith('.json'):
             raise ValueError('A JSON file must be given')
         with open(self.outFile, 'w') as ofp:
-            first = True
+            print >>ofp, dumps(self.params, separators=(',', ':'))
             for rec in self.records():
-                if rec.startswith('@') and first:
-                    print >>ofp, dumps(self.params, separators=(',', ':'))
-                    first = False
-                elif not rec.startswith('@'):
-                    print >>ofp, dumps(self._convertSamAlignmentsToDict(rec),
-                                       separators=(',', ':'))
+                print >>ofp, dumps(self._convertSamAlignmentsToDict(rec),
+                                   separators=(',', ':'))
 
 
 class SAMRecordsReader(object):
@@ -459,14 +457,14 @@ class SAMRecordsReader(object):
             instances.
         """
         self._open(self._filename)  # Function to open the file.
-        readIds = defaultdict(lambda : defaultdict(list))
+        readIds = defaultdict(lambda: defaultdict(list))
         for line in self._fp:
             if not line.startswith('$') and not line.startswith('@'):
                 details = line.strip().split()  # Gives list of strings
                 query = details[0]
                 refSeqName = details[2]
                 if refSeqName != '*':
-                    subjTempLen = self._appParams[refSeqName]  # Does this work?
+                    subjTempLen = self._appParams[refSeqName]
                     alignment = Alignment(subjTempLen, refSeqName)
                     readIds[query][alignment].append(self._lineToHSP(line))
 

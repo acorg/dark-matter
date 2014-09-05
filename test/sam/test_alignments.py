@@ -41,8 +41,8 @@ class TestSamReadsAlignments(TestCase):
 
     def testApplicationParams(self):
         """
-        Alignment parameters must be extracted from the input SAM file and stored
-        correctly.
+        Alignment parameters must be extracted from the input SAM file and
+        stored correctly.
         """
         mockOpener = mockOpen(read_data=open(sample_data))
         with patch('__builtin__.open', mockOpener, create=True):
