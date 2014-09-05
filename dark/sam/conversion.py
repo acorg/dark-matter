@@ -41,23 +41,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         if category is not 'seqID' and category is not 'bit':
             raise ValueError('Category must be "seqID" or "bit"')
 
-        if 'M' not in cigar:
-            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
-            els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
-                   'X': 0}
-            index = 0
-            for element in xrange(0, len(sepNumLet), 2):
-                els[sepNumLet[index + 1]] += int(sepNumLet[index])
-                index += 2
-            if category is 'seqID':
-                seqLen = els['I'] + els['S'] + els['='] + els['X']
-                seqID = els['='] / float(seqLen)
-                return seqID
-            else:
-                bit = (match * els['='] + mismatch * els['X']
-                       + insert * els['I'] + delete * els['D'])
-                return bit
-        else:
+        if 'M' in cigar:
             sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
             els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0,
                    '=': 0, 'X': 0}
@@ -78,8 +62,10 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                     elsMD['misMD'] += len(item)
             seqLenMD = elsMD['matchMD'] + elsMD['misMD']
 
-            assert (seqLen - seqLenMD == els['I']), "seq lengths from MD and cigar are not equal"
-            assert (els['D'] == elsMD['delMD']), "no. of deletions from MD and cigar are not equal"
+            assert (seqLen - seqLenMD == els['I']), ("seq lengths from MD "
+                                                     "and cigar are not equal")
+            assert (els['D'] == elsMD['delMD']), ("no. of deletions from MD "
+                                                  "and cigar are not equal")
 
             if category is 'seqID':
                 seqID = elsMD['matchMD'] / float(seqLen)
@@ -87,6 +73,23 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
             else:
                 bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
                        + insert * els['I'] + delete * elsMD['delMD'])
+                return bit
+
+        else:
+            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
+            els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
+                   'X': 0}
+            index = 0
+            for element in xrange(0, len(sepNumLet), 2):
+                els[sepNumLet[index + 1]] += int(sepNumLet[index])
+                index += 2
+            if category is 'seqID':
+                seqLen = els['I'] + els['S'] + els['='] + els['X']
+                seqID = els['='] / float(seqLen)
+                return seqID
+            else:
+                bit = (match * els['='] + mismatch * els['X']
+                       + insert * els['I'] + delete * els['D'])
                 return bit
 
     def _calcHsp(self, pos, sbjctemplateLen, query, flag, score, seqid):
@@ -133,7 +136,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         Optional values after qual will vary between aligners and whether
         the read is aligned.
         """
-        if not line.startswith('$') and not line.startswith('@'):
+        if line[0] not in '$@':
             line = line.strip().split()
             query = line[0]
             flag = int(line[1])
@@ -173,7 +176,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                         MD = optionalDict['MD']
                         seqid = self._convertCigarMD('seqID', cigar, MD=MD)
                     except KeyError:
-                        raise ValueError("No optional tag MD."
+                        raise ValueError("No optional tag MD. "
                                          "Run function findMD before"
                                          "proceeding")
 
@@ -320,19 +323,7 @@ class SAMRecordsReader(object):
         @raise ValueError: If category != 'seqID' or 'bit'
         @return: a C{int} representing bitscore.
         """
-        if 'M' not in cigar:
-            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
-            els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
-                   'X': 0}
-            index = 0
-            for element in xrange(0, len(sepNumLet), 2):
-                els[sepNumLet[index + 1]] += int(sepNumLet[index])
-                index += 2
-            bit = (match * els['='] + mismatch * els['X'] + insert * els['I']
-                   + delete * els['D'])
-            return bit
-
-        else:
+        if 'M' in cigar:
             sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
             els = {'M': 0, 'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0,
                    '=': 0, 'X': 0}
@@ -353,11 +344,24 @@ class SAMRecordsReader(object):
                     elsMD['misMD'] += len(item)
             seqLenMD = elsMD['matchMD'] + elsMD['misMD']
 
-            assert (seqLen - seqLenMD == els['I']), "seq lengths from MD and cigar are not equal"
-            assert (els['D'] == elsMD['delMD']), "no. of deletions from MD and cigar are not equal"
+            assert (seqLen - seqLenMD == els['I']), ("seq lengths from MD "
+                                                     "and cigar are not equal")
+            assert (els['D'] == elsMD['delMD']), ("no. of deletions from MD "
+                                                  "and cigar are not equal")
 
             bit = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
                    + insert * els['I'] + delete * elsMD['delMD'])
+            return bit
+        else:
+            sepNumLet = [''.join(v) for k, v in groupby(cigar, str.isdigit)]
+            els = {'I': 0, 'D': 0, 'N': 0, 'S': 0, 'H': 0, 'P': 0, '=': 0,
+                   'X': 0}
+            index = 0
+            for element in xrange(0, len(sepNumLet), 2):
+                els[sepNumLet[index + 1]] += int(sepNumLet[index])
+                index += 2
+            bit = (match * els['='] + mismatch * els['X'] + insert * els['I']
+                   + delete * els['D'])
             return bit
 
     def _lineToHSP(self, line):
@@ -369,7 +373,7 @@ class SAMRecordsReader(object):
             match the id of the read.
         @return: A L{dark.alignment.Alignment.HSP} instance.
         """
-        if not line.startswith('$') and not line.startswith('@'):
+        if line[0] not in '$@':
             line = line.strip().split()
             query = line[0]
             flag = int(line[1])
@@ -404,7 +408,7 @@ class SAMRecordsReader(object):
                         try:
                             MD = optionalDict['MD']
                         except KeyError:
-                            raise ValueError("No optional tag MD."
+                            raise ValueError("No optional tag MD. "
                                              "Run function findMD before "
                                              "proceeding")
                         else:
@@ -492,7 +496,8 @@ def findMD(samFile, fastaFile):
         SAM file.
     @return: samFile with the MD strings.
     """
-    if not fastaFile.lower().endswith('.fasta'):
+    ffile = ('.fasta', '.fas', '.ffn', '.fna', '.faa', '.frn')
+    if not fastaFile.lower().endswith(ffile):
         raise ValueError('A FASTA file must be given')
     if not samFile.lower().endswith('.sam'):
         raise ValueError('A SAM file must be given')

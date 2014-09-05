@@ -1,6 +1,6 @@
 from dark.sam.conversion import SAMRecordsReader
 from dark.score import HigherIsBetterScore
-from dark.alignments import (ReadsAlignments, ReadsAlignmentsParams)
+from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
 
 
 class SamReadsAlignments(ReadsAlignments):
@@ -17,48 +17,6 @@ class SamReadsAlignments(ReadsAlignments):
         reads does not match the number of records found in the BLAST result
         files, or if BLAST parameters in all files do not match.
     """
-
-    def _convertSamHeaderToDict(self):
-        """
-        Takes the lines of a SAM file beginning with '@' and returns a dict.
-        For @SQ lines, the ref seq name is a key and the length the value.
-
-        @param record: a C{str} of samFilename.
-        @return: a C{dict}.
-        """
-        headerLines = []
-        with open(self.samFilename) as fp:
-            for record in fp:
-                if record.startswith('@'):
-                    headerLines.append(record)
-            if headerLines is None:
-                raise ValueError('No header lines in %s' % self.samFilename)
-            result = {}
-            for line in headerLines:
-                line = line.strip().split()
-                tags = line[1:]
-                if line[0] == '@SQ':
-                    for tag in tags:
-                        if 'SN' in tag:
-                            key = tag.split(':')[1]
-                        elif 'LN' in tag:
-                            val = tag.split(':')[1]
-                        result[key] = val
-                elif line[0] == '@PG':
-                    for tag in tags:
-                        if 'ID' in tag:
-                            result['app'] = tag.split(':')[1]
-                        else:
-                            key = tag.split(':')[0]
-                            val = tag.split(':')[1]
-                            result[key] = val
-                else:
-                    for tag in tags:
-                        key = tag.split(':')[0]
-                        val = tag.split(':')[1]
-                        result[key] = val
-            return result
-
     def __init__(self, reads, samFilename):
         self.samFilename = samFilename
         self.reads = reads
@@ -71,6 +29,50 @@ class SamReadsAlignments(ReadsAlignments):
 
         ReadsAlignments.__init__(self, reads, applicationParams,
                                  scoreClass=HigherIsBetterScore)
+
+    def _convertSamHeaderToDict(self):
+        """
+        Takes the lines of a SAM file beginning with '@' and returns a dict.
+        For @SQ lines, the ref seq name is a key and the length the value.
+
+        @param record: a C{str} of samFilename.
+        @return: a C{dict} of the parameters found in the header of a
+            SAMRecordsReader file.
+        """
+        headerLines = []
+        with open(self.samFilename) as fp:
+            for record in fp:
+                if record.startswith('@'):
+                    headerLines.append(record)
+        if not headerLines:
+            raise ValueError('No header lines in %s' % self.samFilename)
+        result = {}
+        for line in headerLines:
+            line = line.strip().split()
+            tags = line[1:]
+            if line[0] == '@SQ':
+                if 'SN' in tags and 'LN' in tags:
+                    for tag in tags:
+                        if 'SN' in tag:
+                            key = tag.split(':')[1]
+                        elif 'LN' in tag:
+                            val = tag.split(':')[1]
+                        result[key] = val
+            # Need to make sure that there is always a key and val pair
+            elif line[0] == '@PG':
+                for tag in tags:
+                    if 'ID' in tag:
+                        result['app'] = tag.split(':')[1]
+                    else:
+                        key = tag.split(':')[0]
+                        val = tag.split(':')[1]
+                        result[key] = val
+            else:
+                for tag in tags:
+                    key = tag.split(':')[0]
+                    val = tag.split(':')[1]
+                    result[key] = val
+        return result
 
     def _getReader(self, filename, applicationParams, scoreClass):
         """
