@@ -185,5 +185,3 @@ mysql> ALTER TABLE gi_taxid_nucl ADD INDEX (gi);
 mysql> ALTER TABLE nodes ADD INDEX (taxID);
 mysql> ALTER TABLE names ADD INDEX (taxID);
 ```
-
-
