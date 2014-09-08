@@ -81,3 +81,61 @@ def bamSubtract(bamFile, fastaFile, outFile):
              stderr=sp.PIPE)
 
     return samSubtract(samFileNew, fastaFile, outFile)
+
+
+def findMD(samFile, fastaFile):
+    """
+    Calculates the optional MD tag. If MD tag already present
+    raises error if any are found to be different.
+    Requires samtools.
+
+    @param samFile: a C{str} of a SAM file.
+    @param fastaFile: a C{str} of the FASTA file used for the
+        SAM file.
+    @return: samFile with the MD strings.
+    """
+    if checkSAMfile(samFile) and checkFASTAfile(fastaFile):
+        samFileNew = ''.join(samFile.split())[:-4] + '-fillmd.sam'
+        sp.Popen(['samtools', 'fillmd', '-S', samFile, fastaFile, '>',
+                 samFileNew], stderr=sp.PIPE)
+        return samFileNew
+
+
+def checkSAMfile(samFilename):
+    """
+    Checks that the file inputted as a SAM file is indeed a SAM file.
+    @param samFilename: a C{str} of a SAM file.
+    """
+    headerLines = 0
+    with open(samFilename) as samFile:
+        for line in samFile:
+            if line[0] == '@':
+                headerLines += 1
+            else:
+                elements = line.strip().split()
+                assert len(elements) > 10, ("SAM file does not contain at "
+                                            "least 11 fields.")
+    assert headerLines > 0, ("SAM file does not contain header.")
+    return True
+
+
+def checkFASTAfile(fastaFilename):
+    """
+    Checks that the file inputted as a FASTA file is indeed a FASTA file.
+    @param fastaFilename: a C{str} of a FASTA file.
+    """
+    with open(fastaFilename) as fastaFile:
+        # Make into an iterable so can compare two lines.
+        fastaFile = iter(fastaFile)
+        first = True
+        for line in fastaFile:
+            if line[0] == '>':
+                first = False
+                line = next(fastaFile)
+                # Invalid if two lines begin with >
+                assert line[0] != '>', "Invalid FASTA file format"
+            elif first:
+                raise ValueError('FASTA file does not begin with title')
+            elif not line:
+                break
+    return True

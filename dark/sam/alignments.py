@@ -1,6 +1,7 @@
 from dark.sam.conversion import SAMRecordsReader
 from dark.score import HigherIsBetterScore
 from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
+from dark.sam.hacks import checkSAMfile
 
 
 class SamReadsAlignments(ReadsAlignments):
@@ -82,15 +83,14 @@ class SamReadsAlignments(ReadsAlignments):
         @param filename: The C{str} file name holding the SAM records.
         @param scoreClass: A class to hold and compare scores (see scores.py).
         """
-        if filename.endswith('.sam'):
+        if checkSAMfile(filename):
             return SAMRecordsReader(self.samFilename, self.head,
                                     self.scoreClass)
         # Haven't written JSONRecordsReader for after SAM->JSON
         # elif filename.endswith('.json'):
             # return JSONRecordsReader(samFilename, scoreClass)
         else:
-            raise ValueError(
-                'Unknown SAM file suffix for file %r.' % filename)
+            raise ValueError('Invalid file type given: %s' % filename)
 
     def iter(self):
         """

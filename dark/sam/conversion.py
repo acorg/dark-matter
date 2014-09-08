@@ -1,10 +1,10 @@
 from json import dumps
 from itertools import groupby
-import subprocess as sp
 from collections import defaultdict
 from dark.alignments import Alignment, ReadAlignments
 from dark.hsp import HSP, LSP
 from dark.sam.explain_sam_flags import explain_sam_flags
+from dark.sam.hacks import checkSAMfile
 
 
 class SAMRecordsReader(object):
@@ -44,7 +44,7 @@ class SAMRecordsReader(object):
         @raise ValueError: if the first line of the file isn't a valid SAM
             file.
         """
-        if filename.lower().endswith('.sam'):
+        if checkSAMfile(filename):
             self._fp = open(filename)
         else:
             raise ValueError('Invalid file type given: %s' % self._filename)
@@ -58,6 +58,7 @@ class SAMRecordsReader(object):
         """
         Calculates 'bitscore' from CIGAR and MD string.
         Bitscore scoring: =:5, X:-4, I:-1, D:-1, can be changed.
+        TODO allow the scoring scheme to be changed.
 
         @param cigar: a C{str} CIGAR string as present in the 6th field
             of a SAM file.
@@ -122,7 +123,6 @@ class SAMRecordsReader(object):
             refSeqName = line[2]
             pos = int(line[3])
             cigar = line[5]
-            templateLen = abs(int(line[8]))
             seq = line[9]
             optional = line[11:]
 
@@ -141,9 +141,7 @@ class SAMRecordsReader(object):
                 # Need to make sure if 'AS' is used as a score for one read
                 # then it's used for all of the others - can't have mix of
                 # AS and score from _convertCigarMD
-                # But this function only takes a line so can't have
-                # first = True kind of situation.
-                # Maybe make function - _checkScoreScheme
+                # But this function only takes a line.
                 except KeyError:
                     if 'M' in cigar:
                         try:
@@ -224,29 +222,6 @@ class SAMRecordsReader(object):
                 yield ReadAlignments(read, alignments)
 
         self._fp.close()
-
-
-def findMD(samFile, fastaFile):
-    """
-    Calculates the optional MD tag. If MD tag already present
-    raises error if any are found to be different.
-    Requires samtools.
-
-    @param samFile: a C{str} of a SAM file.
-    @param fastaFile: a C{str} of the FASTA file used for the
-        SAM file.
-    @return: samFile with the MD strings.
-    """
-    ffile = ('.fasta', '.fas', '.ffn', '.fna', '.faa', '.frn')
-    if not fastaFile.lower().endswith(ffile):
-        raise ValueError('A FASTA file must be given')
-    if not samFile.lower().endswith('.sam'):
-        raise ValueError('A SAM file must be given')
-
-    samFileNew = ''.join(samFile.split())[:-4] + '-fillmd.sam'
-    sp.Popen(['samtools', 'fillmd', '-S', samFile, fastaFile, '>',
-             samFileNew], stderr=sp.PIPE)
-    return samFileNew
 
 
 class SAMtoJSON(object):
@@ -351,7 +326,7 @@ class SAMtoJSON(object):
                                                   "and cigar are not equal")
 
             score = (match * elsMD['matchMD'] + mismatch * elsMD['misMD']
-                   + insert * els['I'] + delete * elsMD['delMD'])
+                     + insert * els['I'] + delete * elsMD['delMD'])
             return score
 
         else:
@@ -471,9 +446,7 @@ class SAMtoJSON(object):
                 # Need to make sure if 'AS' is used as a score for one read
                 # then it's used for all of the others - can't have mix of
                 # AS and score from _convertCigarMD
-                # But this function only takes a line so can't have
-                # first = True kind of situation.
-                # Maybe make function - _checkScoreScheme
+                # But this function only takes a line.
                 except KeyError:
                     if 'M' in cigar:
                         try:
@@ -502,12 +475,11 @@ class SAMtoJSON(object):
         """
         Yield SAM records. Set self.params from data in the SAM header.
         """
-        if not self.samFilename.lower().endswith('.sam'):
-            raise ValueError('A SAM file must be given')
-        with open(self.samFilename) as fp:
-            for record in fp:
-                if not record.startswith('@'):
-                    yield record
+        if checkSAMfile(self.samFilename):
+            with open(self.samFilename) as fp:
+                for record in fp:
+                    if not record.startswith('@'):
+                        yield record
 
     def saveAsJSON(self):
         """
