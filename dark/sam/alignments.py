@@ -14,8 +14,8 @@ class SamReadsAlignments(ReadsAlignments):
     @param samFilename: Either a single C{str} filename or a C{list} of
         C{str} file names containing SAM output.
     @raises ValueError: if a file type is not recognized, if the number of
-        reads does not match the number of records found in the BLAST result
-        files, or if BLAST parameters in all files do not match.
+        reads does not match the number of records found in the SAM
+        files.
     """
     def __init__(self, reads, samFilename):
         self.samFilename = samFilename
@@ -44,6 +44,8 @@ class SamReadsAlignments(ReadsAlignments):
             for record in fp:
                 if record.startswith('@'):
                     headerLines.append(record)
+                else:
+                    break
         if not headerLines:
             raise ValueError('No header lines in %s' % self.samFilename)
         result = {}
@@ -51,13 +53,12 @@ class SamReadsAlignments(ReadsAlignments):
             line = line.strip().split()
             tags = line[1:]
             if line[0] == '@SQ':
-                if 'SN' in tags and 'LN' in tags:
-                    for tag in tags:
-                        if 'SN' in tag:
-                            key = tag.split(':')[1]
-                        elif 'LN' in tag:
-                            val = tag.split(':')[1]
-                        result[key] = val
+                for tag in tags:
+                    if 'SN' in tag:
+                        key = tag.split(':')[1]
+                    elif 'LN' in tag:
+                        val = tag.split(':')[1]
+                    result[key] = val
             # Need to make sure that there is always a key and val pair
             elif line[0] == '@PG':
                 for tag in tags:
@@ -114,5 +115,5 @@ class SamReadsAlignments(ReadsAlignments):
         else:
             raise ValueError(
                 'Reads iterator contained more reads than the number of '
-                'BLAST records found (%d). First unknown read id is %r.' %
+                'SAM records found (%d). First unknown read id is %r.' %
                 (count, read.id))

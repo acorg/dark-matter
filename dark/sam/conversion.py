@@ -1,10 +1,10 @@
 from json import dumps
 from itertools import groupby
-import explain_sam_flags
 import subprocess as sp
 from collections import defaultdict
-from dark.alignments import (Alignment, ReadAlignments)
+from dark.alignments import Alignment, ReadAlignments
 from dark.hsp import HSP
+from dark.sam.explain_sam_flags import explain_sam_flags
 
 
 class SAMtoJSON(object):  # Kept this in just in case, not debugged.
@@ -17,9 +17,54 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
     """
 
     def __init__(self, filename, outFile):
-        self.filename = filename
+        self.samFilename = filename
         self.outFile = outFile
-        self.params = None  # Set below, in records.
+        self.params = self._convertSamHeaderToDict()
+
+    def _convertSamHeaderToDict(self):
+        """
+        Takes the lines of a SAM file beginning with '@' and returns a dict.
+        For @SQ lines, the ref seq name is a key and the length the value.
+
+        @param record: instances of a SAM file which start with '@'.
+        @return: a C{dict} of the parameters found in the header of a
+            SAMRecordsReader file.
+        """
+        headerLines = []
+        with open(self.samFilename) as fp:
+            for record in fp:
+                if record.startswith('@'):
+                    headerLines.append(record)
+                else:
+                    break
+        if not headerLines:
+            raise ValueError('No header lines in %s' % self.samFilename)
+        result = {}
+        for line in headerLines:
+            line = line.strip().split()
+            tags = line[1:]
+            if line[0] == '@SQ':
+                for tag in tags:
+                    if 'SN' in tag:
+                        key = tag.split(':')[1]
+                    elif 'LN' in tag:
+                        val = int(tag.split(':')[1])
+                    result[key] = val
+            # Need to make sure that there is always a key and val pair
+            elif line[0] == '@PG':
+                for tag in tags:
+                    if 'ID' in tag:
+                        result['app'] = tag.split(':')[1]
+                    else:
+                        key = tag.split(':')[0]
+                        val = tag.split(':')[1]
+                        result[key] = val
+            else:
+                for tag in tags:
+                    key = tag.split(':')[0]
+                    val = tag.split(':')[1]
+                    result[key] = val
+        return result
 
     def _convertCigarMD(self, category, cigar, MD=None, match=6,
                         mismatch=-3, insert=-1, delete=-1):
@@ -113,6 +158,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
         frame = [1, 1]
         if 'read reverse strand' in explain_sam_flags(flag):
             frame[0] = -1
+        # TypeError: argument of type 'NoneType' is not iterable
 
         hsp = {"sbjct_end": subjectEnd,
                "expect": seqid,
@@ -153,7 +199,7 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
                     raise ValueError("Cigar string is not alphanumeric - with"
                                      " the exception of =")
 
-                subjTempLen = self.params['@SQ'][refSeqName]
+                subjTempLen = self.params[refSeqName]
                 # TypeError: list indices must be integers, not str
 
                 record = {
@@ -203,51 +249,13 @@ class SAMtoJSON(object):  # Kept this in just in case, not debugged.
 
             return record
 
-    def _convertSamHeaderToDict(self, record):
-        """
-        Takes the lines of a SAM file beginning with '@' and returns a dict.
-        For @SQ lines, the ref seq name is a key and the length the value.
-
-        @param record: instances of a SAM file which start with '@'.
-        @return: a C{dict}.
-        """
-        result = {'@HD': [], '@SQ': [], '@RG': [], '@PG': [], '@CO': []}
-        for line in record:
-            line = line.strip().split()
-            if line[0] == '@SQ':
-                tags = line[1:]
-                tagDict = {}
-                for tag in tags:
-                    if 'SN' in tag:
-                        key = tag.split(':')[1]
-                    elif 'LN' in tag:
-                        val = tag.split(':')[1]
-                tagDict[key] = val
-                result[line[0]].append(tagDict)
-            elif line[0] in result:
-                tags = line[1:]
-                tagDict = {}
-                for tag in tags:
-                    key = tag.split(':')[0]
-                    val = tag.split(':')[1]
-                    tagDict[key] = val
-                result[line[0]].append(tagDict)
-        return result
-
     def records(self):
         """
         Yield SAM records. Set self.params from data in the SAM header.
         """
-        if not self.filename.lower().endswith('.sam'):
+        if not self.samFilename.lower().endswith('.sam'):
             raise ValueError('A SAM file must be given')
-        headerLines = []
-        with open(self.filename) as fp:
-            for record in fp:
-                if record.startswith('@'):
-                    headerLines.append(record)
-                else:
-                    self.params = self._convertSamHeaderToDict(headerLines)
-                    break
+        with open(self.samFilename) as fp:
             for record in fp:
                 if not record.startswith('@'):
                     yield record
@@ -291,6 +299,10 @@ class SAMRecordsReader(object):
 
         self._open(filename)
         self.application = applicationParams['app'].lower()
+
+    def _autovivify(self, levels=1, final=dict):
+        return (defaultdict(final) if levels < 2 else
+                defaultdict(lambda: self._autovivify(levels - 1, final)))
 
     def _open(self, filename):
         """
@@ -461,7 +473,7 @@ class SAMRecordsReader(object):
             instances.
         """
         self._open(self._filename)  # Function to open the file.
-        readIds = defaultdict(lambda: defaultdict(list))
+        readIds = self._autovivify(2, list)
         for line in self._fp:
             if not line.startswith('$') and not line.startswith('@'):
                 details = line.strip().split()  # Gives list of strings
