@@ -56,7 +56,7 @@ def explain_sam_flags(iFlags):
         if iFlags & iMask:
             # print "\t" + strFlagName
             desc.append(strFlagName)
-            return desc
+    return desc
 
 
 def main(argv=None):
