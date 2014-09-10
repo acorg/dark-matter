@@ -13,31 +13,27 @@ def samSubtract(samFile, outFile):
     @param outFile: a C{str} name of the output file which should be a .fasta
         or .fastq file.
     """
-    # Put these in bin script once written
-    if not samFile.lower().endswith('.sam'):
-        raise ValueError('A SAM file must be given')
-    if (not outFile.lower().endswith('.fasta') and not
-            outFile.lower().endswith('.fastq')):
+    if not checkFASTAfile(outFile) and not outFile.lower().endswith('.fastq'):
         raise ValueError('An output FASTA or FASTQ file must be given')
-
-    records = []
-    with open(samFile) as fp:
-        for line in fp:
-            if not line.startswith('$') and not line.startswith('@'):
-                line = line.strip().split()
-                refSeqName = line[2]
-                if refSeqName == '*':
-                    query = line[0]
-                    seq = line[9]
-                    if outFile.lower().endswith('.fastq'):
-                        qual = line[10]
-                        record = {'query': query, 'seq': seq, 'qual': qual}
-                        # record = SeqRecord(Seq(seq), id=query)
-                        # record.letter_annotations['phred_quality']=qual
-                        records.append(record)
-                    else:
-                        record = SeqRecord(Seq(seq), id=query)
-                        records.append(record)
+    if checkSAMfile(samFile):
+        records = []
+        with open(samFile) as fp:
+            for line in fp:
+                if not line.startswith('$') and not line.startswith('@'):
+                    line = line.strip().split()
+                    refSeqName = line[2]
+                    if refSeqName == '*':
+                        query = line[0]
+                        seq = line[9]
+                        if outFile.lower().endswith('.fastq'):
+                            qual = line[10]
+                            record = {'query': query, 'seq': seq, 'qual': qual}
+                            # record = SeqRecord(Seq(seq), id=query)
+                            # record.letter_annotations['phred_quality']=qual
+                            records.append(record)
+                        else:
+                            record = SeqRecord(Seq(seq), id=query)
+                            records.append(record)
 
     with open(outFile, 'w') as ofp:
         if outFile.lower().endswith('.fasta'):
@@ -51,7 +47,7 @@ def samSubtract(samFile, outFile):
             # Need to use FastqGeneralIterator? But that req file input.
 
             for item in records:
-                ofp.write("@%s\n%s\n+\n%s\n" % (item['query'], item['seq'],
+                ofp.write('@%s\n%s\n+\n%s\n' % (item['query'], item['seq'],
                                                 item['qual']))
 
 
@@ -113,9 +109,9 @@ def checkSAMfile(samFilename):
                 headerLines += 1
             else:
                 elements = line.strip().split()
-                assert len(elements) > 10, ("SAM file does not contain at "
-                                            "least 11 fields.")
-    assert headerLines > 0, ("SAM file does not contain header.")
+                assert len(elements) > 10, ('SAM file does not contain at '
+                                            'least 11 fields.')
+    assert headerLines > 0, 'SAM file does not contain header.'
     return True
 
 
@@ -127,15 +123,28 @@ def checkFASTAfile(fastaFilename):
     with open(fastaFilename) as fastaFile:
         # Make into an iterable so can compare two lines.
         fastaFile = iter(fastaFile)
-        first = True
         for line in fastaFile:
-            if line[0] == '>':
-                first = False
-                line = next(fastaFile)
-                # Invalid if two lines begin with >
-                assert line[0] != '>', "Invalid FASTA file format"
-            elif first:
-                raise ValueError('FASTA file does not begin with title')
-            elif not line:
-                break
+            assert line[0] == '>', 'FASTA file does not begin with a title'
+            line = next(fastaFile)
+            # Invalid if two lines begin with >
+            assert line[0] != '>' and line, 'Invalid FASTA file format'
+
+
+def checkFASTQfile(fastqFilename):
+    """
+    TODO: Finish
+    Checks that the file inputted as a FASTQ file is indeed a FASTQ file.
+    @param fastqFilename: a C{str} of a FASTQ file.
+    """
+    with open(fastqFilename) as fastqFile:
+        fastqFile = iter(fastqFile)
+        for line in fastqFile:
+            header = line[1:]
+            assert line[0] == '@', 'Invalid header of entry: %s' % header
+            line = next(fastqFile)
+            assert line, 'Empty raw sequence in entry: %s' % header
+            line = next(fastqFile)
+            assert line[0] == '+', 'Invalid third line of entry: %s' % header
+            line = next(fastqFile)
+            assert line, 'Empty quality score in entry: %s' % header
     return True

@@ -43,7 +43,7 @@ class SamReadsAlignments(ReadsAlignments):
         headerLines = []
         with open(self.samFilename) as fp:
             for record in fp:
-                if record.startswith('@'):
+                if record[0] == '@':
                     headerLines.append(record)
                 else:
                     break
@@ -60,11 +60,10 @@ class SamReadsAlignments(ReadsAlignments):
                     elif 'LN' in tag:
                         val = tag.split(':')[1]
                     result[key] = val
-            # Need to make sure that there is always a key and val pair
             elif line[0] == '@PG':
                 for tag in tags:
                     if 'ID' in tag:
-                        result['app'] = tag.split(':')[1]
+                        result['application'] = tag.split(':')[1]
                     else:
                         key = tag.split(':')[0]
                         val = tag.split(':')[1]
@@ -86,9 +85,6 @@ class SamReadsAlignments(ReadsAlignments):
         if checkSAMfile(filename):
             return SAMRecordsReader(self.samFilename, self.head,
                                     self.scoreClass)
-        # Haven't written JSONRecordsReader for after SAM->JSON
-        # elif filename.endswith('.json'):
-            # return JSONRecordsReader(samFilename, scoreClass)
         else:
             raise ValueError('Invalid file type given: %s' % filename)
 
