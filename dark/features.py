@@ -252,7 +252,8 @@ class NucleotideFeatureAdder(_FeatureAdder):
     """
 
     DATABASE = 'nucleotide'
-    WANTED_TYPES = ('CDS', 'LTR', 'mat_peptide', 'repeat_region', 'rRNA')
+    WANTED_TYPES = ('CDS', 'LTR', 'mat_peptide', 'misc_structure',
+                    'repeat_region', 'rRNA')
 
     def _displayFeatures(self, fig, features, minX, maxX):
         """
