@@ -58,19 +58,21 @@ class _Feature(object):
         )
         maxValueLength = 30
         result = []
-        for qualifier in sorted(self.feature.qualifiers.keys()):
-            if qualifier not in excludedQualifiers:
-                value = ', '.join(self.feature.qualifiers[qualifier])
-                if qualifier == 'site_type' and value == 'other':
-                    continue
-                if len(value) > maxValueLength:
-                    value = value[:maxValueLength - 3] + '...'
-                result.append('%s: %s' % (qualifier, value))
-        return '%d-%d %s%s. %s' % (int(self.feature.location.start),
-                                   int(self.feature.location.end),
-                                   self.feature.type,
-                                   ' (subfeature)' if self.subfeature else '',
-                                   ', '.join(result))
+        if self.feature.qualifiers:
+            for qualifier in sorted(self.feature.qualifiers.keys()):
+                if qualifier not in excludedQualifiers:
+                    value = ', '.join(self.feature.qualifiers[qualifier])
+                    if qualifier == 'site_type' and value == 'other':
+                        continue
+                    if len(value) > maxValueLength:
+                        value = value[:maxValueLength - 3] + '...'
+                    result.append('%s: %s' % (qualifier, value))
+        return '%d-%d %s%s.%s' % (
+            int(self.feature.location.start),
+            int(self.feature.location.end),
+            self.feature.type,
+            ' (subfeature)' if self.subfeature else '',
+            ' ' + ', '.join(result) if result else '')
 
 
 class _FeatureList(list):
@@ -104,11 +106,10 @@ class _FeatureList(list):
         else:
             wantedTypes = set(wantedTypes)
             for feature in record.features:
-                if feature.type in wantedTypes and feature.qualifiers:
+                if feature.type in wantedTypes:
                     self.append(_Feature(feature, offsetAdjuster))
                 for subfeature in feature.sub_features:
-                    if (subfeature.type in wantedTypes and
-                            subfeature.qualifiers):
+                    if subfeature.type in wantedTypes:
                         self.append(_Feature(subfeature, offsetAdjuster,
                                              subfeature=True))
 
@@ -252,8 +253,8 @@ class NucleotideFeatureAdder(_FeatureAdder):
     """
 
     DATABASE = 'nucleotide'
-    WANTED_TYPES = ('CDS', 'LTR', 'mat_peptide', 'misc_structure',
-                    'repeat_region', 'rRNA')
+    WANTED_TYPES = ('CDS', 'LTR', 'mat_peptide', 'misc_feature',
+                    'misc_structure', 'repeat_region', 'rRNA')
 
     def _displayFeatures(self, fig, features, minX, maxX):
         """

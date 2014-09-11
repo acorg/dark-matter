@@ -117,6 +117,16 @@ class Test_Feature(TestCase):
         self.assertEqual('100-200 site. note: Capsid protein, product: CP1',
                          feature.legendLabel())
 
+    def testLegendLabelNoQualifiers(self):
+        """
+        The legendLabel method must return a correct description for a feature
+        that has no qualifiers.
+        """
+        location = FeatureLocation(100, 200)
+        seqFeature = SeqFeature(location=location, type='site')
+        feature = _Feature(seqFeature, identity)
+        self.assertEqual('100-200 site.', feature.legendLabel())
+
     def testLegendLabelTruncatesValues(self):
         """
         The legendLabel method must return a description with qualifier
@@ -196,7 +206,7 @@ class Test_FeatureList(TestCase):
         """
         If the sequence fetcher returns a record with two features but
         neither of them has any qualifiers, the L{_FeatureList} instance
-        must have length zero.
+        must still include both features.
         """
         def fetcher(title, db='database'):
             feature = SeqFeature(type='site')
@@ -204,7 +214,7 @@ class Test_FeatureList(TestCase):
 
         featureList = _FeatureList('title', 'database', set(['site']),
                                    identity, sequenceFetcher=fetcher)
-        self.assertEqual(0, len(featureList))
+        self.assertEqual(2, len(featureList))
 
     def testNotSubfeature(self):
         """
