@@ -85,8 +85,6 @@ class SamReadsAlignments(ReadsAlignments):
         if checkSAMfile(filename):
             return SAMRecordsReader(self.samFilename, self.head,
                                     self.scoreClass)
-        else:
-            raise ValueError('Invalid file type given: %s' % filename)
 
     def iter(self):
         """

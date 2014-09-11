@@ -125,6 +125,7 @@ class SAMRecordsReader(object):
         # Parse elements of line which are needed.
         if line[0] not in '$@':
             line = line.strip().split()
+            flag = line[1]
             refSeqName = line[2]
             pos = int(line[3])
             cigar = line[5]
@@ -216,6 +217,11 @@ class SAMRecordsReader(object):
                            - cig['P'] + cig['N'] + cig['D'])
 
                 # TODO use explain_sam_flags to determine frame
+                # Does that now mean changing readStart etc?
+                frame = [1, 1]
+                if 'read reverse strand' in explain_sam_flags(flag):
+                    frame[0] = -1
+
                 hsp = HSP(score, readStart=readStart, readEnd=readEnd,
                           subjectStart=subjStart, subjectEnd=subjEnd)
                 return hsp
