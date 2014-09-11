@@ -207,7 +207,7 @@ class SAMRecordsReader(object):
                     else:
                         score = self._convertCigarMD(cig)
                 else:
-                    raise ValueError("Invalid scoring scheme: %s" 
+                    raise ValueError("Invalid scoring scheme: %s"
                                      % self.scoringScheme)
 
                 # Find index where match begins in read from cigar string
