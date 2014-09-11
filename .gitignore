@@ -2,3 +2,6 @@
 *~
 .DS_Store
 _trial_temp
+build
+dist
+dark_matter.egg-info
