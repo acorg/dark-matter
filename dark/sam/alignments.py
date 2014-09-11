@@ -7,6 +7,11 @@ from dark.sam.hacks import checkSAMfile
 class SamReadsAlignments(ReadsAlignments):
     """
     Hold information about a set of SAM records.
+    TODO If there are query names that come in pairs then they're paired-end
+        reads. Messes up the principle of the new code - the paired
+        end reads have the same identifier but are different sequences,
+        therefore counting them as two HSPs of one read alignment is not
+        accurate.
 
     @param reads: A L{dark.reads.Reads} instance providing the sequences that
         were given to the alignment application as queries. Note that the
