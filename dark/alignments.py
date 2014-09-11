@@ -1,6 +1,6 @@
 import re
 
-# from dark.taxonomy import LineageFetcher
+from dark.taxonomy import LineageFetcher
 from dark.filter import TitleFilter
 from dark.score import HigherIsBetterScore
 

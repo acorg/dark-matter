@@ -28,7 +28,7 @@ class SamReadsAlignments(ReadsAlignments):
         self.reads = reads
         # Prepare application parameters in order to initialize self.
         self.head = self._convertSamHeaderToDict()
-        app = self.head['app']
+        app = self.head['application']
 
         applicationParams = ReadsAlignmentsParams(app,
                                                   applicationParams=self.head)
@@ -63,7 +63,7 @@ class SamReadsAlignments(ReadsAlignments):
                     if 'SN' in tag:
                         key = tag.split(':')[1]
                     elif 'LN' in tag:
-                        val = tag.split(':')[1]
+                        val = int(tag.split(':')[1])
                     result[key] = val
             elif line[0] == '@PG':
                 for tag in tags:
