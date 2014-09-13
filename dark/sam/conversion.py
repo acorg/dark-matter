@@ -247,7 +247,7 @@ class SAMRecordsReader(object):
                 if 'read reverse strand' in explain_sam_flags(flag):
                     # What it says on the tin...
                     pass
-
+                # TODO add in readStartinsbjct etc
                 hsp = HSP(score, readStart=readStart, readEnd=readEnd,
                           subjectStart=subjStart, subjectEnd=subjEnd)
                 return hsp

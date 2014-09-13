@@ -24,7 +24,8 @@ class SamReadsAlignments(ReadsAlignments):
         files.
     """
     def __init__(self, reads, samFilename):
-        self.samFilename = samFilename
+        if checkSAMfile(samFilename):
+            self.samFilename = samFilename
         self.reads = reads
         # Prepare application parameters in order to initialize self.
         self.head = self._convertSamHeaderToDict()
@@ -87,9 +88,8 @@ class SamReadsAlignments(ReadsAlignments):
         @param filename: The C{str} file name holding the SAM records.
         @param scoreClass: A class to hold and compare scores (see scores.py).
         """
-        if checkSAMfile(filename):
-            return SAMRecordsReader(self.samFilename, self.head,
-                                    self.scoreClass)
+        return SAMRecordsReader(self.samFilename, self.head,
+                                self.scoreClass)
 
     def iter(self):
         """

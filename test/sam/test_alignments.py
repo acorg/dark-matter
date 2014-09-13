@@ -47,7 +47,7 @@ class TestSamReadsAlignments(TestCase):
         mockOpener = mockOpen()
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            error = "SAM file 'file.SAM' was empty."
+            error = "SAM file file.SAM was empty."
             self.assertRaisesRegexp(
                 ValueError, error, SamReadsAlignments, reads, 'file.SAM')
 
@@ -60,9 +60,9 @@ class TestSamReadsAlignments(TestCase):
         mockOpener = mockOpen(read_data='not SAM\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            error = ("No header lines in file.SAM")
+            error = "SAM file file.SAM does not contain at least 11 fields."
             self.assertRaisesRegexp(
-                ValueError, error, SamReadsAlignments, reads, 'file.SAM')
+                AssertionError, error, SamReadsAlignments, reads, 'file.SAM')
 
     def testApplicationParams(self):
         """

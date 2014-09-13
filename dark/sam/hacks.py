@@ -4,6 +4,63 @@ from Bio.SeqRecord import SeqRecord
 import subprocess as sp
 
 
+def checkSAMfile(samFilename):
+    """
+    Checks that the file inputted as a SAM file is indeed a SAM file.
+    @param samFilename: a C{str} of a SAM file.
+    """
+    headerLines = 0
+    with open(samFilename) as samFile:
+        for line in samFile:
+            if not str(line):
+                raise ValueError('SAM file %s was empty.' % samFilename)
+            elif line[0] == '@':
+                headerLines += 1
+            else:
+                elements = line.strip().split()
+                assert len(elements) > 10, ('SAM file %s does not contain '
+                                            'at least 11 fields.'
+                                            % samFilename)
+    assert headerLines > 0, ('SAM file %s does not contain header.'
+                             % samFilename)
+    return True
+
+
+def checkFASTAfile(fastaFilename):
+    """
+    Checks that the file inputted as a FASTA file is indeed a FASTA file.
+    @param fastaFilename: a C{str} of a FASTA file.
+    """
+    with open(fastaFilename) as fastaFile:
+        # Make into an iterable so can compare two lines.
+        fastaFile = iter(fastaFile)
+        for line in fastaFile:
+            assert line[0] == '>', 'FASTA file does not begin with a title'
+            line = next(fastaFile)
+            # Invalid if two lines begin with >
+            assert line[0] != '>' and line, 'Invalid FASTA file format'
+
+
+def checkFASTQfile(fastqFilename):
+    """
+    TODO: Finish
+    Checks that the file inputted as a FASTQ file is indeed a FASTQ file.
+    @param fastqFilename: a C{str} of a FASTQ file.
+    """
+    with open(fastqFilename) as fastqFile:
+        fastqFile = iter(fastqFile)
+        for line in fastqFile:
+            header = line[1:]
+            assert line[0] == '@', 'Invalid header of entry: %s' % header
+            line = next(fastqFile)
+            assert line, 'Empty raw sequence in entry: %s' % header
+            line = next(fastqFile)
+            assert line[0] == '+', 'Invalid third line of entry: %s' % header
+            line = next(fastqFile)
+            assert line, 'Empty quality score in entry: %s' % header
+    return True
+
+
 def samSubtract(samFile, outFile):
     """
     Takes a SAM file, makes a set of the seqids of unaligned sequences.
@@ -95,56 +152,3 @@ def findMD(samFile, fastaFile):
         sp.Popen(['samtools', 'fillmd', '-S', samFile, fastaFile, '>',
                  samFileNew], stderr=sp.PIPE)
         return samFileNew
-
-
-def checkSAMfile(samFilename):
-    """
-    Checks that the file inputted as a SAM file is indeed a SAM file.
-    @param samFilename: a C{str} of a SAM file.
-    """
-    headerLines = 0
-    with open(samFilename) as samFile:
-        for line in samFile:
-            if line[0] == '@':
-                headerLines += 1
-            else:
-                elements = line.strip().split()
-                assert len(elements) > 10, ('SAM file does not contain at '
-                                            'least 11 fields.')
-    assert headerLines > 0, 'SAM file does not contain header.'
-    return True
-
-
-def checkFASTAfile(fastaFilename):
-    """
-    Checks that the file inputted as a FASTA file is indeed a FASTA file.
-    @param fastaFilename: a C{str} of a FASTA file.
-    """
-    with open(fastaFilename) as fastaFile:
-        # Make into an iterable so can compare two lines.
-        fastaFile = iter(fastaFile)
-        for line in fastaFile:
-            assert line[0] == '>', 'FASTA file does not begin with a title'
-            line = next(fastaFile)
-            # Invalid if two lines begin with >
-            assert line[0] != '>' and line, 'Invalid FASTA file format'
-
-
-def checkFASTQfile(fastqFilename):
-    """
-    TODO: Finish
-    Checks that the file inputted as a FASTQ file is indeed a FASTQ file.
-    @param fastqFilename: a C{str} of a FASTQ file.
-    """
-    with open(fastqFilename) as fastqFile:
-        fastqFile = iter(fastqFile)
-        for line in fastqFile:
-            header = line[1:]
-            assert line[0] == '@', 'Invalid header of entry: %s' % header
-            line = next(fastqFile)
-            assert line, 'Empty raw sequence in entry: %s' % header
-            line = next(fastqFile)
-            assert line[0] == '+', 'Invalid third line of entry: %s' % header
-            line = next(fastqFile)
-            assert line, 'Empty quality score in entry: %s' % header
-    return True
