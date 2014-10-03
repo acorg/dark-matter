@@ -1,3 +1,4 @@
+from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
@@ -54,7 +55,8 @@ class Read(object):
     def __eq__(self, other):
         return (self.id == other.id and
                 self.sequence == other.sequence and
-                self.quality == other.quality)
+                self.quality == other.quality and
+                self.type == other.type)
 
     def __ne__(self, other):
         return not self == other
@@ -76,6 +78,71 @@ class Read(object):
         quality = None if self.quality is None else self.quality[::-1]
         sequence = self.sequence.translate(_TRANSLATION_TABLE[self.type])[::-1]
         return Read(self.id, sequence, quality)
+
+    def translations(self):
+        """
+        Yield all six translations of a nucleotide sequence.
+
+        @raise ValueError: If the read is already amino acids.
+        @return: A generator that produces six L{TranslatedRead} instances.
+        """
+        if self.type == 'aa':
+            raise ValueError('Cannot translate an amino acid sequence')
+
+        rc = self.reverseComplement().sequence
+        for reverseComplemented in False, True:
+            for frame in 0, 1, 2:
+                seq = rc if reverseComplemented else self.sequence
+                # Get the suffix of the sequence for translation. I.e.,
+                # skip 0, 1, or 2 initial bases, depending on the frame.
+                # Note that this makes a copy of the sequence, which we can
+                # then safely append 'N' bases to to adjust its length to
+                # be zero mod 3.
+                suffix = seq[frame:]
+                lengthMod3 = len(suffix) % 3
+                if lengthMod3:
+                    suffix += ('NN' if lengthMod3 == 1 else 'N')
+                # import sys
+                # print >>sys.stderr, 'suffix:', suffix, translate(suffix)
+                yield TranslatedRead(self, translate(suffix), frame,
+                                     reverseComplemented)
+
+
+class TranslatedRead(Read):
+    """
+    Hold information about one DNA->AA translation of a Read.
+
+    @param originalRead: The original DNA or RNA L{Read} instance from which
+        this translation was obtained.
+    @param sequence: The C{str} AA translated sequence.
+    @param frame: The C{int} frame, either 0, 1, or 2.
+    @param reverseComplemented: A C{bool}, C{True} if the original sequence
+        must be reverse complemented to obtain this AA sequence.
+    """
+    def __init__(self, originalRead, sequence, frame,
+                 reverseComplemented=False):
+        newId = '%s-frame%d' % (originalRead.id, frame)
+        Read.__init__(self, newId, sequence, type='aa')
+        self.originalRead = originalRead
+        self.frame = frame
+        self.reverseComplemented = reverseComplemented
+
+    def __eq__(self, other):
+        return (Read.__eq__(self, other) and
+                self.frame == other.frame and
+                self.reverseComplemented == other.reverseComplemented and
+                self.originalRead == other.originalRead)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def maximumORFLength(self):
+        """
+        Return the length of the longest (possibly partial) ORF in a translated
+        read. The ORF may originate or terminate outside the sequence, which is
+        why the length is just a lower bound.
+        """
+        return max(len(orf) for orf in self.sequence.split('*'))
 
 
 class Reads(object):
