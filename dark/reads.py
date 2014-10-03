@@ -102,8 +102,6 @@ class Read(object):
                 lengthMod3 = len(suffix) % 3
                 if lengthMod3:
                     suffix += ('NN' if lengthMod3 == 1 else 'N')
-                # import sys
-                # print >>sys.stderr, 'suffix:', suffix, translate(suffix)
                 yield TranslatedRead(self, translate(suffix), frame,
                                      reverseComplemented)
 
