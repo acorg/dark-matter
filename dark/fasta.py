@@ -79,8 +79,8 @@ class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
 
-    @param file_: A C{str} file name, or a file handle, containing
-    sequences in FASTA format,
+    @param file_: A C{str} file name or file handle, containing
+        sequences in FASTA format,
     """
     def __init__(self, file_):
         self.file_ = file_
