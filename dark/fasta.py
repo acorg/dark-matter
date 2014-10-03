@@ -79,16 +79,17 @@ class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
 
-    @param filename: A C{str} file name containing sequences in FASTA format.
+    @param file_: A C{str} file name, or a file handle, containing
+    sequences in FASTA format,
     """
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, file_):
+        self.file_ = file_
         Reads.__init__(self)
 
     def iter(self):
         """
-        Iterate over the sequences in self.filename, yielding each as a Read
+        Iterate over the sequences in self.file_, yielding each as a Read
         instance.
         """
-        for seq in SeqIO.parse(self.filename, 'fasta'):
+        for seq in SeqIO.parse(self.file_, 'fasta'):
             yield Read(seq.id, str(seq.seq))

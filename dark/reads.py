@@ -64,6 +64,27 @@ class Read(object):
     def __len__(self):
         return len(self.sequence)
 
+    def toString(self, format_):
+        """
+        Convert the read to a string format.
+
+        @param format_: Either 'fasta' or 'fastq'.
+        @raise ValueError: if C{format_} is 'fastq' and the read has no quality
+            information, or if an unknown format is requested.
+        @return: A C{str} representing the read in the requested format.
+        """
+        if format_ == 'fasta':
+            return '>%s\n%s\n' % (self.id, self.sequence)
+        elif format_ == 'fastq':
+            if self.quality is None:
+                raise ValueError('Read %r has no quality information' %
+                                 self.id)
+            else:
+                return '@%s\n%s\n+%s\n%s\n' % (
+                    self.id, self.sequence, self.id, self.quality)
+        else:
+            raise ValueError("Format must be either 'fasta' or 'fastq'.")
+
     def reverseComplement(self):
         """
         Reverse complement a nucleotide sequence.
@@ -119,7 +140,10 @@ class TranslatedRead(Read):
     """
     def __init__(self, originalRead, sequence, frame,
                  reverseComplemented=False):
-        newId = '%s-frame%d' % (originalRead.id, frame)
+        if frame not in (0, 1, 2):
+            raise ValueError('Frame must be 0, 1, or 2')
+        newId = '%s-frame%d%s' % (originalRead.id, frame,
+                                  'rc' if reverseComplemented else '')
         Read.__init__(self, newId, sequence, type='aa')
         self.originalRead = originalRead
         self.frame = frame
@@ -196,26 +220,15 @@ class Reads(object):
             is present, or if an unknown format is requested.
         """
         format_ = format_.lower()
-        if format_ == 'fasta':
-            toString = lambda read: '>%s\n%s\n' % (read.id, read.sequence)
-        elif format_ == 'fastq':
-            for read in self:
-                if read.quality is None:
-                    raise ValueError('Read %r has no quality information' %
-                                     read.id)
-            toString = lambda read: '@%s\n%s\n+%s\n%s\n' % (
-                read.id, read.sequence, read.id, read.quality)
-        else:
-            raise ValueError("Save format must be either 'fasta' or 'fastq'.")
 
         if isinstance(filename, basestring):
             with open(filename, 'w') as fp:
                 for read in self:
-                    fp.write(toString(read))
+                    fp.write(read.toString(format_))
         else:
             # We have a file-like object.
             for read in self:
-                filename.write(toString(read))
+                filename.write(read.toString(format_))
 
     def filter(self, minLength=None, maxLength=None):
         """

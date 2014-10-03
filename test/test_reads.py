@@ -68,6 +68,46 @@ class TestRead(TestCase):
         read = Read('id', 'ACGT', '!!!!')
         self.assertEqual(4, len(read))
 
+    def testToUnknownFormat(self):
+        """
+        toString must raise a ValueError if asked to convert to an unknown
+        format.
+        """
+        read = Read('id', 'ACGT', '!!!!')
+        error = "Format must be either 'fasta' or 'fastq'\\."
+        self.assertRaisesRegexp(ValueError, error, read.toString, 'unknown')
+
+    def testToFASTA(self):
+        """
+        toString must return correct FASTA.
+        """
+        read = Read('id', 'ACGT')
+        self.assertEqual('>id\nACGT\n', read.toString('fasta'))
+
+    def testToFASTAWithQuality(self):
+        """
+        toString must return correct FASTA, including when a read has quality
+        information (which is not present in FASTA).
+        """
+        read = Read('id', 'ACGT', '!!!!')
+        self.assertEqual('>id\nACGT\n', read.toString('fasta'))
+
+    def testToFASTQWithNoQuality(self):
+        """
+        toString must raise a ValueError if asked to convert to FASTQ but the
+        read has no quality.
+        """
+        read = Read('id', 'ACGT')
+        error = "Read 'id' has no quality information"
+        self.assertRaisesRegexp(ValueError, error, read.toString, 'fastq')
+
+    def testToFASTQ(self):
+        """
+        toString must return correct FASTA.
+        """
+        read = Read('id', 'ACGT', '!@#$')
+        self.assertEqual('@id\nACGT\n+id\n!@#$\n', read.toString('fastq'))
+
     def testEqualityWithDifferingIds(self):
         """
         If two Read instances have different ids, they must not be
@@ -313,13 +353,23 @@ class TestTranslatedRead(TestCase):
         translated = TranslatedRead(read, 'IRDS', 0)
         self.assertEqual('IRDS', translated.sequence)
 
+    def testOutOfRangeFrame(self):
+        """
+        A TranslatedRead instance must raise a ValueError if the passed frame
+        is not 0, 1, or 2.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        error = 'Frame must be 0, 1, or 2'
+        self.assertRaisesRegexp(ValueError, error, TranslatedRead, read,
+                                'IRDS', 3)
+
     def testExpectedFrame(self):
         """
         A TranslatedRead instance must have the expected frame.
         """
         read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 3)
-        self.assertEqual(3, translated.frame)
+        translated = TranslatedRead(read, 'IRDS', 2)
+        self.assertEqual(2, translated.frame)
 
     def testReverseComplemented(self):
         """
@@ -348,6 +398,15 @@ class TestTranslatedRead(TestCase):
         read = Read('id', 'atcgatcgatcg')
         translated = TranslatedRead(read, 'IRDS', 0)
         self.assertEqual('id-frame0', translated.id)
+
+    def testIdReverseComplemented(self):
+        """
+        A TranslatedRead instance must put the the frame information into its
+        read id when the original read was reverse complemented.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 1, True)
+        self.assertEqual('id-frame1rc', translated.id)
 
     def testTypeAA(self):
         """
@@ -508,7 +567,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        error = "Save format must be either 'fasta' or 'fastq'\\."
+        error = "Format must be either 'fasta' or 'fastq'\\."
         self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'xxx')
 
     def testSaveFASTAIsDefault(self):
