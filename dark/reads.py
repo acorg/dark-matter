@@ -1,3 +1,4 @@
+from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
@@ -54,13 +55,35 @@ class Read(object):
     def __eq__(self, other):
         return (self.id == other.id and
                 self.sequence == other.sequence and
-                self.quality == other.quality)
+                self.quality == other.quality and
+                self.type == other.type)
 
     def __ne__(self, other):
         return not self == other
 
     def __len__(self):
         return len(self.sequence)
+
+    def toString(self, format_):
+        """
+        Convert the read to a string format.
+
+        @param format_: Either 'fasta' or 'fastq'.
+        @raise ValueError: if C{format_} is 'fastq' and the read has no quality
+            information, or if an unknown format is requested.
+        @return: A C{str} representing the read in the requested format.
+        """
+        if format_ == 'fasta':
+            return '>%s\n%s\n' % (self.id, self.sequence)
+        elif format_ == 'fastq':
+            if self.quality is None:
+                raise ValueError('Read %r has no quality information' %
+                                 self.id)
+            else:
+                return '@%s\n%s\n+%s\n%s\n' % (
+                    self.id, self.sequence, self.id, self.quality)
+        else:
+            raise ValueError("Format must be either 'fasta' or 'fastq'.")
 
     def reverseComplement(self):
         """
@@ -76,6 +99,72 @@ class Read(object):
         quality = None if self.quality is None else self.quality[::-1]
         sequence = self.sequence.translate(_TRANSLATION_TABLE[self.type])[::-1]
         return Read(self.id, sequence, quality)
+
+    def translations(self):
+        """
+        Yield all six translations of a nucleotide sequence.
+
+        @raise ValueError: If the read is already amino acids.
+        @return: A generator that produces six L{TranslatedRead} instances.
+        """
+        if self.type == 'aa':
+            raise ValueError('Cannot translate an amino acid sequence')
+
+        rc = self.reverseComplement().sequence
+        for reverseComplemented in False, True:
+            for frame in 0, 1, 2:
+                seq = rc if reverseComplemented else self.sequence
+                # Get the suffix of the sequence for translation. I.e.,
+                # skip 0, 1, or 2 initial bases, depending on the frame.
+                # Note that this makes a copy of the sequence, which we can
+                # then safely append 'N' bases to to adjust its length to
+                # be zero mod 3.
+                suffix = seq[frame:]
+                lengthMod3 = len(suffix) % 3
+                if lengthMod3:
+                    suffix += ('NN' if lengthMod3 == 1 else 'N')
+                yield TranslatedRead(self, translate(suffix), frame,
+                                     reverseComplemented)
+
+
+class TranslatedRead(Read):
+    """
+    Hold information about one DNA->AA translation of a Read.
+
+    @param originalRead: The original DNA or RNA L{Read} instance from which
+        this translation was obtained.
+    @param sequence: The C{str} AA translated sequence.
+    @param frame: The C{int} frame, either 0, 1, or 2.
+    @param reverseComplemented: A C{bool}, C{True} if the original sequence
+        must be reverse complemented to obtain this AA sequence.
+    """
+    def __init__(self, originalRead, sequence, frame,
+                 reverseComplemented=False):
+        if frame not in (0, 1, 2):
+            raise ValueError('Frame must be 0, 1, or 2')
+        newId = '%s-frame%d%s' % (originalRead.id, frame,
+                                  'rc' if reverseComplemented else '')
+        Read.__init__(self, newId, sequence, type='aa')
+        self.originalRead = originalRead
+        self.frame = frame
+        self.reverseComplemented = reverseComplemented
+
+    def __eq__(self, other):
+        return (Read.__eq__(self, other) and
+                self.frame == other.frame and
+                self.reverseComplemented == other.reverseComplemented and
+                self.originalRead == other.originalRead)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def maximumORFLength(self):
+        """
+        Return the length of the longest (possibly partial) ORF in a translated
+        read. The ORF may originate or terminate outside the sequence, which is
+        why the length is just a lower bound.
+        """
+        return max(len(orf) for orf in self.sequence.split('*'))
 
 
 class Reads(object):
@@ -131,26 +220,15 @@ class Reads(object):
             is present, or if an unknown format is requested.
         """
         format_ = format_.lower()
-        if format_ == 'fasta':
-            toString = lambda read: '>%s\n%s\n' % (read.id, read.sequence)
-        elif format_ == 'fastq':
-            for read in self:
-                if read.quality is None:
-                    raise ValueError('Read %r has no quality information' %
-                                     read.id)
-            toString = lambda read: '@%s\n%s\n+%s\n%s\n' % (
-                read.id, read.sequence, read.id, read.quality)
-        else:
-            raise ValueError("Save format must be either 'fasta' or 'fastq'.")
 
         if isinstance(filename, basestring):
             with open(filename, 'w') as fp:
                 for read in self:
-                    fp.write(toString(read))
+                    fp.write(read.toString(format_))
         else:
             # We have a file-like object.
             for read in self:
-                filename.write(toString(read))
+                filename.write(read.toString(format_))
 
     def filter(self, minLength=None, maxLength=None):
         """

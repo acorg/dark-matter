@@ -3,7 +3,7 @@ from mock import patch, call
 from cStringIO import StringIO
 
 from mocking import mockOpen
-from dark.reads import Read, Reads
+from dark.reads import Read, TranslatedRead, Reads
 
 
 class TestRead(TestCase):
@@ -68,23 +68,63 @@ class TestRead(TestCase):
         read = Read('id', 'ACGT', '!!!!')
         self.assertEqual(4, len(read))
 
+    def testToUnknownFormat(self):
+        """
+        toString must raise a ValueError if asked to convert to an unknown
+        format.
+        """
+        read = Read('id', 'ACGT', '!!!!')
+        error = "Format must be either 'fasta' or 'fastq'\\."
+        self.assertRaisesRegexp(ValueError, error, read.toString, 'unknown')
+
+    def testToFASTA(self):
+        """
+        toString must return correct FASTA.
+        """
+        read = Read('id', 'ACGT')
+        self.assertEqual('>id\nACGT\n', read.toString('fasta'))
+
+    def testToFASTAWithQuality(self):
+        """
+        toString must return correct FASTA, including when a read has quality
+        information (which is not present in FASTA).
+        """
+        read = Read('id', 'ACGT', '!!!!')
+        self.assertEqual('>id\nACGT\n', read.toString('fasta'))
+
+    def testToFASTQWithNoQuality(self):
+        """
+        toString must raise a ValueError if asked to convert to FASTQ but the
+        read has no quality.
+        """
+        read = Read('id', 'ACGT')
+        error = "Read 'id' has no quality information"
+        self.assertRaisesRegexp(ValueError, error, read.toString, 'fastq')
+
+    def testToFASTQ(self):
+        """
+        toString must return correct FASTA.
+        """
+        read = Read('id', 'ACGT', '!@#$')
+        self.assertEqual('@id\nACGT\n+id\n!@#$\n', read.toString('fastq'))
+
     def testEqualityWithDifferingIds(self):
         """
-        If two Read instances have different ids, they should not be
+        If two Read instances have different ids, they must not be
         considered equal.
         """
         self.assertNotEqual(Read('id1', 'AC'), Read('id2', 'AC'))
 
     def testEqualityWithDifferingSequences(self):
         """
-        If two Read instances have different sequences, they should not be
+        If two Read instances have different sequences, they must not be
         considered equal.
         """
         self.assertNotEqual(Read('id1', 'AA'), Read('id1', 'CC'))
 
     def testEqualityWithDifferingQuality(self):
         """
-        If two Read instances have different quality, they should not be
+        If two Read instances have different quality, they must not be
         considered equal.
         """
         self.assertNotEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'rr'))
@@ -92,21 +132,29 @@ class TestRead(TestCase):
     def testEqualityWithOneOmittedQuality(self):
         """
         If two Read instances have different quality (one is omitted), they
-        should not be considered equal.
+        must not be considered equal.
         """
         self.assertNotEqual(Read('id1', 'AC'), Read('id1', 'AC', 'rr'))
 
     def testEqualityWithNoQuality(self):
         """
         If two Read instances have the same id and sequence and neither has a
-        quality, they should be considered equal.
+        quality, they must be considered equal.
         """
         self.assertEqual(Read('id1', 'AC'), Read('id1', 'AC'))
+
+    def testEqualityWithDifferingType(self):
+        """
+        If two Read instances have different types, they must not be
+        considered equal.
+        """
+        self.assertNotEqual(Read('id1', 'AC', 'qq', 'dna'),
+                            Read('id1', 'AC', 'qq', 'aa'))
 
     def testEquality(self):
         """
         If two Read instances have the same id, sequence, and quality, they
-        should be considered equal.
+        must be considered equal.
         """
         self.assertEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'qq'))
 
@@ -115,7 +163,7 @@ class TestRead(TestCase):
         The reverseComplement function must raise a C{ValueError} when called
         on an amino acid sequence.
         """
-        read = Read('id', 'atcg', type='aa')
+        read = Read('id', 'ygasvdt', type='aa')
         error = 'Cannot reverse complement an amino acid sequence'
         with self.assertRaisesRegexp(ValueError, error):
             read.reverseComplement()
@@ -157,6 +205,234 @@ class TestRead(TestCase):
         read = Read('id', 'aucgmrwsykvhxn', type='rna')
         self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
 
+    def testTranslateAA(self):
+        """
+        The translations function (which returns a generator) must raise a
+        C{ValueError} when called on an amino acid read.
+        """
+        read = Read('id', 'ygasvdt', type='aa')
+        error = 'Cannot translate an amino acid sequence'
+        with self.assertRaisesRegexp(ValueError, error):
+            list(read.translations())
+
+    def testTranslationsOfEmptySequence(self):
+        """
+        The translations function must correctly return all six (empty)
+        translations of the empty sequence.
+        """
+        read = Read('id', '')
+        self.assertEqual(
+            [
+                TranslatedRead(read, '', 0, False),
+                TranslatedRead(read, '', 1, False),
+                TranslatedRead(read, '', 2, False),
+                TranslatedRead(read, '', 0, True),
+                TranslatedRead(read, '', 1, True),
+                TranslatedRead(read, '', 2, True)
+            ],
+            list(read.translations()))
+
+    def testTranslationsOfOneBaseSequence(self):
+        """
+        The translations function must correctly return all six translations
+        of a sequence with just one base.
+        """
+        read = Read('id', 'a')
+        self.assertEqual(
+            [
+                TranslatedRead(read, 'X', 0, False),
+                TranslatedRead(read, '',  1, False),
+                TranslatedRead(read, '',  2, False),
+                TranslatedRead(read, 'X', 0, True),
+                TranslatedRead(read, '',  1, True),
+                TranslatedRead(read, '',  2, True)
+            ],
+            list(read.translations()))
+
+    def testTranslationsOfTwoBaseSequence(self):
+        """
+        The translations function must correctly return all six translations
+        of a sequence with just two bases.
+        """
+        read = Read('id', 'ag')
+        self.assertEqual(
+            [
+                TranslatedRead(read, 'X', 0, False),
+                TranslatedRead(read, 'X', 1, False),
+                TranslatedRead(read, '',  2, False),
+                TranslatedRead(read, 'L', 0, True),
+                TranslatedRead(read, 'X', 1, True),
+                TranslatedRead(read, '',  2, True)
+            ],
+            list(read.translations()))
+
+    def testTranslationOfStopCodonTAA(self):
+        """
+        The translations function must correctly translate the TAA stop codon.
+        """
+        read = Read('id', 'taa')
+        self.assertEqual(
+            TranslatedRead(read, '*', 0, False),
+            read.translations().next())
+
+    def testTranslationOfStopCodonTAG(self):
+        """
+        The translations function must correctly translate the TAG stop codon.
+        """
+        read = Read('id', 'tag')
+        self.assertEqual(
+            TranslatedRead(read, '*', 0, False),
+            read.translations().next())
+
+    def testTranslationOfStopCodonTGA(self):
+        """
+        The translations function must correctly translate the TGA stop codon.
+        """
+        read = Read('id', 'tga')
+        self.assertEqual(
+            TranslatedRead(read, '*', 0, False),
+            read.translations().next())
+
+    def testTranslationOfMultipleStopCodons(self):
+        """
+        The translations function must correctly translate multiple stop codons
+        in a sequence.
+        """
+        read = Read('id', 'taatagtga')
+        self.assertEqual(
+            TranslatedRead(read, '***', 0, False),
+            read.translations().next())
+
+    def testTranslationOfStartCodonATG(self):
+        """
+        The translations function must correctly translate the ATG start codon
+        to a methionine (M).
+        """
+        read = Read('id', 'atg')
+        self.assertEqual(
+            TranslatedRead(read, 'M', 0, False),
+            read.translations().next())
+
+    def testTranslations(self):
+        """
+        The translations function must correctly return all six translations.
+        """
+        read = Read('id', 'accgtcagg')
+        self.assertEqual(
+            [
+                TranslatedRead(read, 'TVR', 0, False),
+                TranslatedRead(read, 'PSG', 1, False),
+                TranslatedRead(read, 'RQX', 2, False),
+                TranslatedRead(read, 'PDG', 0, True),
+                TranslatedRead(read, 'LTV', 1, True),
+                TranslatedRead(read, '*RX', 2, True)
+            ],
+            list(read.translations()))
+
+
+class TestTranslatedRead(TestCase):
+    """
+    Test the TranslatedRead class.
+    """
+
+    def testExpectedAttributes(self):
+        """
+        A TranslatedRead instance must have the expected attributes.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertEqual('IRDS', translated.sequence)
+        self.assertEqual(0, translated.frame)
+        self.assertIs(read, translated.originalRead)
+
+    def testSequence(self):
+        """
+        A TranslatedRead instance must have the expected sequence.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertEqual('IRDS', translated.sequence)
+
+    def testOutOfRangeFrame(self):
+        """
+        A TranslatedRead instance must raise a ValueError if the passed frame
+        is not 0, 1, or 2.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        error = 'Frame must be 0, 1, or 2'
+        self.assertRaisesRegexp(ValueError, error, TranslatedRead, read,
+                                'IRDS', 3)
+
+    def testExpectedFrame(self):
+        """
+        A TranslatedRead instance must have the expected frame.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 2)
+        self.assertEqual(2, translated.frame)
+
+    def testReverseComplemented(self):
+        """
+        A TranslatedRead instance must have the expected reversedComplemented
+        value.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertFalse(translated.reverseComplemented)
+        translated = TranslatedRead(read, 'IRDS', 0, reverseComplemented=True)
+        self.assertTrue(translated.reverseComplemented)
+
+    def testExpectedOriginalRead(self):
+        """
+        A TranslatedRead instance must store the original read.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertIs(read, translated.originalRead)
+
+    def testId(self):
+        """
+        A TranslatedRead instance must put the the frame information into its
+        read id.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertEqual('id-frame0', translated.id)
+
+    def testIdReverseComplemented(self):
+        """
+        A TranslatedRead instance must put the the frame information into its
+        read id when the original read was reverse complemented.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 1, True)
+        self.assertEqual('id-frame1rc', translated.id)
+
+    def testTypeAA(self):
+        """
+        A TranslatedRead instance must have 'aa' type.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertEqual('aa', translated.type)
+
+    def testMaximumORFLengthNoStops(self):
+        """
+        The maximumORFLength function must return the correct value when
+        there are no stop codons in a translated read.
+        """
+        read = Read('id', 'atcgatcgatcg')
+        translated = TranslatedRead(read, 'IRDS', 0)
+        self.assertEqual(4, translated.maximumORFLength())
+
+    def testMaximumORFLength(self):
+        """
+        The maximumORFLength function must return the correct value.
+        """
+        read = Read('id', 'acctaggttgtttag')
+        translated = TranslatedRead(read, 'T*VV*', 0)
+        self.assertEqual(2, translated.maximumORFLength())
+
 
 class TestReads(TestCase):
     """
@@ -165,14 +441,14 @@ class TestReads(TestCase):
 
     def testNoReads(self):
         """
-        A Reads instance with no reads should return an empty iterator.
+        A Reads instance with no reads must return an empty iterator.
         """
         reads = Reads()
         self.assertEqual([], list(reads))
 
     def testNoReadsLength(self):
         """
-        A Reads instance with no reads should have a length of zero.
+        A Reads instance with no reads must have a length of zero.
         """
         reads = Reads()
         self.assertEqual(0, len(reads))
@@ -200,7 +476,7 @@ class TestReads(TestCase):
 
     def testSubclass(self):
         """
-        A Reads subclass with an iter method should result in an instance
+        A Reads subclass with an iter method must result in an instance
         with a correct iterator.
         """
         read1 = Read('id1', 'AT')
@@ -216,7 +492,7 @@ class TestReads(TestCase):
 
     def testSubclassLength(self):
         """
-        A Reads subclass with an iter method should result in an instance
+        A Reads subclass with an iter method must result in an instance
         with a correct length.
         """
         read1 = Read('id1', 'AT')
@@ -232,7 +508,7 @@ class TestReads(TestCase):
 
     def testRepeatedIter(self):
         """
-        A Reads subclass with an iter method should be able to be listed
+        A Reads subclass with an iter method must be able to be listed
         more than once.
         """
         read1 = Read('id1', 'AT')
@@ -249,8 +525,8 @@ class TestReads(TestCase):
 
     def testLengthAfterRepeatedIter(self):
         """
-        A Reads subclass with an iter method should be able to be iterated
-        more than once, and following each its length should be correct.
+        A Reads subclass with an iter method must be able to be iterated
+        more than once, and following each its length must be correct.
         """
         class FastaReads(Reads):
             def iter(self):
@@ -266,7 +542,7 @@ class TestReads(TestCase):
     def testSubclassWithAdditionalReads(self):
         """
         A Reads subclass with an iter method that is then added to manually
-        should result in an instance with a correct iterator.
+        must result in an instance with a correct iterator.
         """
         read1 = Read('id1', 'AT')
         read2 = Read('id2', 'AC')
@@ -291,7 +567,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        error = "Save format must be either 'fasta' or 'fastq'\\."
+        error = "Format must be either 'fasta' or 'fastq'\\."
         self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'xxx')
 
     def testSaveFASTAIsDefault(self):
@@ -413,7 +689,7 @@ class TestReads(TestCase):
 
     def testFilterOnLengthNothingMatches(self):
         """
-        When filtering on length, no reads should be returned if none of them
+        When filtering on length, no reads must be returned if none of them
         satisfy the length requirements.
         """
         reads = Reads()
@@ -426,7 +702,7 @@ class TestReads(TestCase):
 
     def testFilterOnLengthEverythingMatches(self):
         """
-        When filtering on length, all reads should be returned if they all
+        When filtering on length, all reads must be returned if they all
         satisfy the length requirements.
         """
         reads = Reads()
@@ -439,7 +715,7 @@ class TestReads(TestCase):
 
     def testFilterWithMinLengthEqualToMaxLength(self):
         """
-        When filtering on length, a read should be returned if its length
+        When filtering on length, a read must be returned if its length
         equals a passed minimum and maximum length.
         """
         reads = Reads()
