@@ -44,7 +44,7 @@ class Read(object):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
                 (len(sequence), len(quality)))
-        if type not in ('aa', 'dna', 'rna'):
+        if type not in ('aa', 'dna', 'rna', 'properties'):
             raise ValueError('Unknown sequence type %r' % type)
 
         self.id = id
