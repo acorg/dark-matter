@@ -346,7 +346,7 @@ class TestRead(TestCase):
         read = Read('id', 'ADADR*', type='aa')
         result = read.aaToProperties()
         self.assertEqual([PropertiesRead(read,
-                         [193, 3202, 193, 3202, 2562, 4096])], list(result))
+                         [193, 3202, 193, 3202, 2562, 4096])], result)
 
 
 class TestPropertiesRead(TestCase):
