@@ -343,9 +343,10 @@ class TestRead(TestCase):
         """
         An AA sequence must be correctly translated to properties.
         """
-        read = Read('id', 'ADADR', type='aa')
+        read = Read('id', 'ADADR*', type='aa')
         result = read.aaToProperties()
-        self.assertEqual([PropertiesRead(read, 'HAHAB')], list(result))
+        self.assertEqual([PropertiesRead(read,
+                         [193, 3202, 193, 3202, 2562, 4096])], list(result))
 
 
 class TestPropertiesRead(TestCase):
@@ -357,8 +358,8 @@ class TestPropertiesRead(TestCase):
         A PropertiesRead instance must have the expected attributes.
         """
         read = Read('id', 'ADADR', type='aa')
-        properties = PropertiesRead(read, 'HAHAB')
-        self.assertEqual('HAHAB', properties.sequence)
+        properties = PropertiesRead(read, [193, 3202, 193, 3202, 2562])
+        self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
         self.assertEqual(read, properties.originalRead)
 
     def testRightSequence(self):
@@ -366,8 +367,8 @@ class TestPropertiesRead(TestCase):
         A PropertiesRead must have the expected sequence.
         """
         read = Read('id', 'ADADR', type='aa')
-        properties = PropertiesRead(read, 'HAHAB')
-        self.assertEqual('HAHAB', properties.sequence)
+        properties = PropertiesRead(read, [193, 3202, 193, 3202, 2562])
+        self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
 
     def testRightId(self):
         """

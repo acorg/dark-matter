@@ -48,7 +48,10 @@ class Read(object):
             raise ValueError('Unknown sequence type %r' % type)
 
         self.id = id
-        self.sequence = sequence.upper()
+        try:
+            self.sequence = sequence.upper()
+        except AttributeError:
+            self.sequence = sequence
         self.quality = quality
         self.type = type
 
@@ -133,15 +136,42 @@ class Read(object):
         @raise ValueError: If sequence type is 'dna', 'rna' or 'properties'.
         @return: A generator that produces six L{PropertiesRead} instances.
         """
-        # H = hydrophobic
-        # P = polar
-        # B = basic
-        # A = acidic
+        HYDROPHOBIC = 0x0001
+        HYDROPHILIC = 0x0002
+        AROMATIC = 0x0004
+        SULPHUR = 0x0008
+        ALIPHATIC = 0x0010
+        HYDROXYLIC = 0x0020
+        TINY = 0x0040
+        SMALL = 0x0080
+        ACIDIC = 0x0100
+        BASIC_POSITIVE = 0x0200
+        NEGATIVE = 0x0400
+        POLAR = 0x0800
+        NONE = 0x1000
 
-        SIMPLE = {'A': 'H', 'V': 'H', 'M': 'H', 'L': 'H', 'I': 'H', 'P': 'H',
-                  'W': 'H', 'F': 'H', 'K': 'B', 'R': 'B', 'H': 'B', 'Y': 'P',
-                  'T': 'P', 'Q': 'P', 'G': 'P', 'S': 'P', 'C': 'P', 'D': 'P',
-                  'E': 'A', 'D': 'A'}
+        PROPERTIES = {
+            'I': ALIPHATIC | HYDROPHOBIC,
+            'L': ALIPHATIC | HYDROPHOBIC,
+            'V': ALIPHATIC | HYDROPHOBIC | SMALL,
+            'M': HYDROPHOBIC | SULPHUR,
+            'F': HYDROPHOBIC | AROMATIC,
+            'A': HYDROPHOBIC | SMALL | TINY,
+            'C': HYDROPHOBIC | SMALL | TINY | SULPHUR,
+            'T': HYDROPHOBIC | SMALL | HYDROXYLIC,
+            'Y': HYDROPHOBIC | AROMATIC | POLAR,
+            'W': HYDROPHOBIC | AROMATIC | POLAR,
+            'H': HYDROPHOBIC | AROMATIC | POLAR | BASIC_POSITIVE,
+            'K': HYDROPHOBIC | BASIC_POSITIVE | POLAR,
+            'P': HYDROPHILIC | SMALL,
+            'G': HYDROPHILIC | SMALL | TINY,
+            'S': HYDROPHILIC | SMALL | POLAR | HYDROXYLIC,
+            'N': HYDROPHILIC | SMALL | POLAR | ACIDIC,
+            'D': HYDROPHILIC | SMALL | POLAR | NEGATIVE,
+            'Q': HYDROPHILIC | POLAR | ACIDIC,
+            'E': HYDROPHILIC | NEGATIVE | ACIDIC,
+            'R': HYDROPHILIC | POLAR | BASIC_POSITIVE
+        }
 
         if self.type in ('dna', 'rna'):
             raise ValueError('Cannot convert nucleotides to properties.')
@@ -149,7 +179,8 @@ class Read(object):
             raise ValueError('Sequence is a properties sequence already.')
 
         aaSeq = self.sequence
-        properties = ''.join(SIMPLE[base] for base in aaSeq)
+        properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
+                      for base in aaSeq]
         yield PropertiesRead(self, properties)
 
 
