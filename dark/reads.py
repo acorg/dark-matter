@@ -144,13 +144,12 @@ class Read(object):
                   'E': 'A', 'D': 'A'}
 
         if self.type in ('dna', 'rna'):
-            raise ValueError('Cannot convert nucleotide sequence to '
-                             'properties.')
+            raise ValueError('Cannot convert nucleotides to properties.')
         if self.type == 'properties':
             raise ValueError('Sequence is a properties sequence already.')
 
         aaSeq = self.sequence
-        properties = ''.join([SIMPLE[base] for base in aaSeq])
+        properties = ''.join(SIMPLE[base] for base in aaSeq)
         yield PropertiesRead(self, properties)
 
 
