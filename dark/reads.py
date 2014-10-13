@@ -113,11 +113,7 @@ class _NucleotideRead(Read):
             current class.
         """
         quality = None if self.quality is None else self.quality[::-1]
-<<<<<<< HEAD
-        sequence = self.sequence.translate(TRANSLATION_TABLE)[::-1]
-=======
-        sequence = self.sequence.translate(self.COMPLEMENT_TABLE[0])[::-1]
->>>>>>> e36f89f4bb0da5510e4536c85a6b0bdec8dfebf8
+        sequence = self.sequence.translate(self.COMPLEMENT_TABLE)[::-1]
         return self.__class__(self.id, sequence, quality)
 
 
@@ -125,22 +121,14 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
-<<<<<<< HEAD
-    TRANSLATION_TABLE = _makeComplementTable(ambiguous_dna_complement)
-=======
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
->>>>>>> e36f89f4bb0da5510e4536c85a6b0bdec8dfebf8
 
 
 class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-<<<<<<< HEAD
-    TRANSLATION_TABLE = _makeComplementTable(ambiguous_rna_complement)
-=======
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
->>>>>>> e36f89f4bb0da5510e4536c85a6b0bdec8dfebf8
 
 
 class AARead(Read):
