@@ -18,7 +18,7 @@ def _makeComplementTable(complementData):
     table = range(256)
     for _from, to in complementData.iteritems():
         table[ord(_from[0])] = ord(to[0])
-    return ''.join(map(chr, table))
+    return ''.join(map(chr, table)), complementData
 
 
 class Read(object):
@@ -113,22 +113,27 @@ class _NucleotideRead(Read):
         @return: The reverse complemented sequence as a C{Read} instance.
         """
         quality = None if self.quality is None else self.quality[::-1]
-        sequence = self.sequence.translate(self.TRANSLATION_TABLE)[::-1]
-        return Read(self.id, sequence, quality)
+        translationTable = self.getTranslationTable()
+        sequence = self.sequence.translate(translationTable[0])[::-1]
+        return (DNARead(self.id, sequence, quality) if (
+                translationTable[1] == ambiguous_dna_complement)
+                else RNARead(self.id, sequence, quality))
 
 
 class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
-    TRANSLATION_TABLE = _makeComplementTable(ambiguous_dna_complement)
+    def getTranslationTable(self):
+        return _makeComplementTable(ambiguous_dna_complement)
 
 
 class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-    TRANSLATION_TABLE = _makeComplementTable(ambiguous_rna_complement)
+    def getTranslationTable(self):
+        return _makeComplementTable(ambiguous_rna_complement)
 
 
 class AARead(Read):
