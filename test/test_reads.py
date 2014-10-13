@@ -3,8 +3,7 @@ from mock import patch, call
 from cStringIO import StringIO
 
 from mocking import mockOpen
-from dark.reads import (Read, TranslatedRead, Reads, PropertiesRead,
-                        DNARNARead, AARead)
+from dark.reads import (Read, TranslatedRead, Reads, DNARead, RNARead, AARead)
 
 
 class TestRead(TestCase):
@@ -134,22 +133,22 @@ class TestRead(TestCase):
         self.assertEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'qq'))
 
 
-class TestDNARNARead(TestCase):
+class TestDNARead(TestCase):
     """
-    Tests for the DNARNARead class.
+    Tests for the DNARead class.
     """
     def testReverseComplementReversesQuality(self):
         """
         The reverseComplement function must return a reversed quality string.
         """
-        read = DNARNARead('id', 'atcg', quality='!@#$')
+        read = DNARead('id', 'atcg', quality='!@#$')
         self.assertEqual('$#@!', read.reverseComplement().quality)
 
     def testReverseComplementDNA(self):
         """
         The reverseComplement function must work for DNA
         """
-        read = DNARNARead('id', 'atcg', quality='!@#$')
+        read = DNARead('id', 'atcg', quality='!@#$')
         self.assertEqual('CGAT', read.reverseComplement().sequence)
 
     def testReverseComplementAmbiguousDNA(self):
@@ -157,30 +156,15 @@ class TestDNARNARead(TestCase):
         The reverseComplement function must work for DNA that includes
         ambiguous bases.
         """
-        read = DNARNARead('id', 'atcgmrwsvhxn')
+        read = DNARead('id', 'atcgmrwsvhxn')
         self.assertEqual('NXDBSWYKCGAT', read.reverseComplement().sequence)
-
-    def testReverseComplementRNA(self):
-        """
-        The reverseComplement function must work for RNA
-        """
-        read = DNARNARead('id', 'aucg')
-        self.assertEqual('CGAU', read.reverseComplement().sequence)
-
-    def testReverseComplementAmbiguousRNA(self):
-        """
-        The reverseComplement function must work for RNA that includes
-        ambiguous bases.
-        """
-        read = DNARNARead('id', 'aucgmrwsykvhxn')
-        self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
 
     def testTranslationsOfEmptySequence(self):
         """
         The translations function must correctly return all six (empty)
         translations of the empty sequence.
         """
-        read = DNARNARead('id', '')
+        read = DNARead('id', '')
         self.assertEqual(
             [
                 TranslatedRead(read, '', 0, False),
@@ -197,7 +181,7 @@ class TestDNARNARead(TestCase):
         The translations function must correctly return all six translations
         of a sequence with just one base.
         """
-        read = DNARNARead('id', 'a')
+        read = DNARead('id', 'a')
         self.assertEqual(
             [
                 TranslatedRead(read, 'X', 0, False),
@@ -214,7 +198,7 @@ class TestDNARNARead(TestCase):
         The translations function must correctly return all six translations
         of a sequence with just two bases.
         """
-        read = DNARNARead('id', 'ag')
+        read = DNARead('id', 'ag')
         self.assertEqual(
             [
                 TranslatedRead(read, 'X', 0, False),
@@ -226,20 +210,11 @@ class TestDNARNARead(TestCase):
             ],
             list(read.translations()))
 
-    def testTranslationOfStopCodonTAA(self):
-        """
-        The translations function must correctly translate the TAA stop codon.
-        """
-        read = DNARNARead('id', 'taa')
-        self.assertEqual(
-            TranslatedRead(read, '*', 0, False),
-            read.translations().next())
-
     def testTranslationOfStopCodonTAG(self):
         """
         The translations function must correctly translate the TAG stop codon.
         """
-        read = DNARNARead('id', 'tag')
+        read = DNARead('id', 'tag')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
             read.translations().next())
@@ -248,7 +223,7 @@ class TestDNARNARead(TestCase):
         """
         The translations function must correctly translate the TGA stop codon.
         """
-        read = DNARNARead('id', 'tga')
+        read = DNARead('id', 'tga')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
             read.translations().next())
@@ -258,7 +233,7 @@ class TestDNARNARead(TestCase):
         The translations function must correctly translate multiple stop codons
         in a sequence.
         """
-        read = DNARNARead('id', 'taatagtga')
+        read = DNARead('id', 'taatagtga')
         self.assertEqual(
             TranslatedRead(read, '***', 0, False),
             read.translations().next())
@@ -268,7 +243,7 @@ class TestDNARNARead(TestCase):
         The translations function must correctly translate the ATG start codon
         to a methionine (M).
         """
-        read = DNARNARead('id', 'atg')
+        read = DNARead('id', 'atg')
         self.assertEqual(
             TranslatedRead(read, 'M', 0, False),
             read.translations().next())
@@ -277,7 +252,7 @@ class TestDNARNARead(TestCase):
         """
         The translations function must correctly return all six translations.
         """
-        read = DNARNARead('id', 'accgtcagg')
+        read = DNARead('id', 'accgtcagg')
         self.assertEqual(
             [
                 TranslatedRead(read, 'TVR', 0, False),
@@ -290,39 +265,62 @@ class TestDNARNARead(TestCase):
             list(read.translations()))
 
 
+class TestRNARead(TestCase):
+    """
+    Tests for the RNARead class.
+    """
+    def testReverseComplementRNA(self):
+        """
+        The reverseComplement function must work for RNA
+        """
+        read = RNARead('id', 'aucg')
+        self.assertEqual('CGAU', read.reverseComplement().sequence)
+
+    def testReverseComplementAmbiguousRNA(self):
+        """
+        The reverseComplement function must work for RNA that includes
+        ambiguous bases.
+        """
+        read = RNARead('id', 'aucgmrwsykvhxn')
+        self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
+
+    def testTranslationOfStopCodonTAA(self):
+        """
+        The translations function must correctly translate the TAA stop codon.
+        """
+        read = DNARead('id', 'taa')
+        self.assertEqual(
+            TranslatedRead(read, '*', 0, False),
+            read.translations().next())
+
+
 class TestAARead(TestCase):
     """
     Tests for the AARead class.
     """
-    def testAAToPropertiesCorrectTranslation(self):
+    def testpropertiesCorrectTranslation(self):
         """
         An AA sequence must be correctly translated to properties.
         """
         read = AARead('id', 'ADADR*')
-        result = read.aaToProperties()
-        self.assertEqual(PropertiesRead(read,
+        result = read.properties()
+        self.assertEqual(AARead(read,
                          [193, 3202, 193, 3202, 2562, 4096]), result)
 
-
-class TestPropertiesRead(TestCase):
-    """
-    Test the PropertiesRead class.
-    """
     def testAllAttributes(self):
         """
         A PropertiesRead instance must have the expected attributes.
         """
         read = AARead('id', 'ADADR')
-        properties = PropertiesRead(read, [193, 3202, 193, 3202, 2562])
+        properties = AARead(read, [193, 3202, 193, 3202, 2562])
         self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
-        self.assertEqual(read, properties.originalRead)
 
     def testRightSequence(self):
         """
         A PropertiesRead must have the expected sequence.
         """
         read = AARead('id', 'ADADR')
-        properties = PropertiesRead(read, [193, 3202, 193, 3202, 2562])
+        properties = AARead(read, [193, 3202, 193, 3202, 2562])
         self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
 
     def testRightId(self):
@@ -330,7 +328,7 @@ class TestPropertiesRead(TestCase):
         A PropertiesRead must have the right id.
         """
         read = AARead('id', 'ADADR')
-        properties = PropertiesRead(read, 'HAHAB')
+        properties = AARead(read, 'HAHAB')
         self.assertEqual('id-properties', properties.id)
 
 

@@ -85,23 +85,10 @@ class Read(object):
             raise ValueError("Format must be either 'fasta' or 'fastq'.")
 
 
-class DNARNARead(Read):
+class _NucleotideRead(Read):
     """
-    Hold information and methods to work with DNA and RNA reads.
+    Holds methods to work with nucleotide (DNA and RNA) sequences.
     """
-    def reverseComplement(self):
-        """
-        Reverse complement a nucleotide sequence.
-
-        @return: The reverse complemented sequence as a C{Read} instance.
-        """
-        quality = None if self.quality is None else self.quality[::-1]
-        if 'U' in self.sequence:
-            sequence = self.sequence.translate(_TRANSLATION_TABLE['rna'])[::-1]
-        else:
-            sequence = self.sequence.translate(_TRANSLATION_TABLE['dna'])[::-1]
-        return Read(self.id, sequence, quality)
-
     def translations(self):
         """
         Yield all six translations of a nucleotide sequence.
@@ -125,11 +112,41 @@ class DNARNARead(Read):
                                      reverseComplemented)
 
 
+class DNARead(_NucleotideRead):
+    """
+    Hold information and methods to work with DNA reads.
+    """
+    def reverseComplement(self):
+        """
+        Reverse complement a nucleotide sequence.
+
+        @return: The reverse complemented sequence as a C{Read} instance.
+        """
+        quality = None if self.quality is None else self.quality[::-1]
+        sequence = self.sequence.translate(_TRANSLATION_TABLE['dna'])[::-1]
+        return Read(self.id, sequence, quality)
+
+
+class RNARead(_NucleotideRead):
+    """
+    Hold information and methods to work with RNA reads.
+    """
+    def reverseComplement(self):
+        """
+        Reverse complement a nucleotide sequence.
+
+        @return: The reverse complemented sequence as a C{Read} instance.
+        """
+        quality = None if self.quality is None else self.quality[::-1]
+        sequence = self.sequence.translate(_TRANSLATION_TABLE['rna'])[::-1]
+        return Read(self.id, sequence, quality)
+
+
 class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
-    def aaToProperties(self):
+    def properties(self):
         """
         Translate an amino acid sequence to properties.
 
@@ -138,29 +155,8 @@ class AARead(Read):
         aaSeq = self.sequence
         properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
                       for base in aaSeq]
-        return PropertiesRead(self, properties)
-
-
-class PropertiesRead(Read):
-    """
-    Hold information about one AA->properties translation of a Read.
-
-    @param originalRead: The original AA L{Read} instance from which
-        this translation was obtained.
-    @param sequence: The C{str} properties translated sequence.
-    """
-    def __init__(self, originalRead, sequence):
-        newId = '%s-properties' % originalRead.id
-
-        Read.__init__(self, newId, sequence)
-        self.originalRead = originalRead
-
-    def __eq__(self, other):
-        return (Read.__eq__(self, other) and
-                self.originalRead == other.originalRead)
-
-    def __ne__(self, other):
-        return not self == other
+        newId = '%s-properties' % self.id
+        return Read(newId, properties)
 
 
 class TranslatedRead(Read):
