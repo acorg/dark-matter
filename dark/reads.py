@@ -136,7 +136,7 @@ class Read(object):
         Translate an amino acid sequence to properties.
 
         @raise ValueError: If sequence type is 'dna', 'rna' or 'properties'.
-        @return: A generator that produces six L{PropertiesRead} instances.
+        @return: A generator that produces an L{PropertiesRead} instance.
         """
         if self.type in ('dna', 'rna'):
             raise ValueError('Cannot convert nucleotides to properties.')
