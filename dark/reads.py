@@ -139,10 +139,10 @@ class AARead(Read):
         """
         Translate an amino acid sequence to properties.
 
-        @return: A generator that produces an L{PropertiesRead} instance.
+        @return: A generator yielding properties for the residues in the
+            current sequence.
         """
-        return [PROPERTIES[aa] if aa in PROPERTIES else NONE
-                for aa in self.sequence]
+        return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
 
 
 class TranslatedRead(AARead):

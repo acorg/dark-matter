@@ -313,7 +313,7 @@ class TestAARead(TestCase):
                 HYDROPHILIC | POLAR | BASIC_POSITIVE,
                 NONE
             ],
-            properties
+            list(properties)
         )
 
 
