@@ -2,7 +2,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
-from dark.aa import *
+from dark.aa import PROPERTIES, NONE
 
 
 def _makeComplementTable(complementData):

@@ -334,7 +334,6 @@ class TestRead(TestCase):
         A ValueError must be risen if Read doesn't have the right type.
         """
         read = Read('id', 'accgtcagg', type='dna')
-        #result = read.aaToProperties()
         error = 'Cannot convert nucleotides to properties.'
         with self.assertRaisesRegexp(ValueError, error):
             list(read.aaToProperties())
