@@ -141,7 +141,7 @@ class AARead(Read):
 
         @return: A generator that produces an L{PropertiesRead} instance.
         """
-        return [PROPERTIES[aa] if aa in PROPERTIES.keys() else NONE
+        return [PROPERTIES[aa] if aa in PROPERTIES else NONE
                 for aa in self.sequence]
 
 
