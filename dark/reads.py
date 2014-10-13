@@ -21,12 +21,6 @@ def _makeComplementTable(complementData):
     return ''.join(map(chr, table))
 
 
-_TRANSLATION_TABLE = {
-    'dna': _makeComplementTable(ambiguous_dna_complement),
-    'rna': _makeComplementTable(ambiguous_rna_complement),
-}
-
-
 class Read(object):
     """
     Hold information about a single read.
@@ -119,7 +113,7 @@ class _NucleotideRead(Read):
         @return: The reverse complemented sequence as a C{Read} instance.
         """
         quality = None if self.quality is None else self.quality[::-1]
-        sequence = self.sequence.translate(TRANSLATION_TABLE)[::-1]
+        sequence = self.sequence.translate(self.TRANSLATION_TABLE)[::-1]
         return Read(self.id, sequence, quality)
 
 
@@ -153,7 +147,7 @@ class AARead(Read):
         return properties
 
 
-class TranslatedRead(Read):
+class TranslatedRead(AARead):
     """
     Hold information about one DNA->AA translation of a Read.
 
