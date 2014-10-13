@@ -33,7 +33,7 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
-    def __init__(self, id, sequence, quality=None, translation_table=None):
+    def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
@@ -45,7 +45,6 @@ class Read(object):
         except AttributeError:
             self.sequence = sequence
         self.quality = quality
-        self.TRANSLATION_TABLE = translation_table
 
     def __eq__(self, other):
         return (self.id == other.id and
@@ -110,10 +109,15 @@ class _NucleotideRead(Read):
         """
         Reverse complement a nucleotide sequence.
 
-        @return: The reverse complemented sequence as a C{Read} instance.
+        @return: The reverse complemented sequence as an instance of the
+            current class.
         """
         quality = None if self.quality is None else self.quality[::-1]
+<<<<<<< HEAD
         sequence = self.sequence.translate(TRANSLATION_TABLE)[::-1]
+=======
+        sequence = self.sequence.translate(self.COMPLEMENT_TABLE[0])[::-1]
+>>>>>>> e36f89f4bb0da5510e4536c85a6b0bdec8dfebf8
         return self.__class__(self.id, sequence, quality)
 
 
@@ -121,14 +125,22 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
+<<<<<<< HEAD
     TRANSLATION_TABLE = _makeComplementTable(ambiguous_dna_complement)
+=======
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
+>>>>>>> e36f89f4bb0da5510e4536c85a6b0bdec8dfebf8
 
 
 class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
+<<<<<<< HEAD
     TRANSLATION_TABLE = _makeComplementTable(ambiguous_rna_complement)
+=======
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
+>>>>>>> e36f89f4bb0da5510e4536c85a6b0bdec8dfebf8
 
 
 class AARead(Read):
@@ -139,12 +151,10 @@ class AARead(Read):
         """
         Translate an amino acid sequence to properties.
 
-        @return: A generator that produces an L{PropertiesRead} instance.
+        @return: A generator yielding properties for the residues in the
+            current sequence.
         """
-        aaSeq = self.sequence
-        properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
-                      for base in aaSeq]
-        return properties
+        return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
 
 
 class TranslatedRead(AARead):

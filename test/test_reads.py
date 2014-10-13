@@ -3,8 +3,9 @@ from mock import patch, call
 from cStringIO import StringIO
 
 from mocking import mockOpen
-from dark.reads import (Read, TranslatedRead, Reads, DNARead, RNARead, AARead)
-from dark.aa import (HYDROPHOBIC, SMALL, TINY)
+from dark.reads import Read, TranslatedRead, Reads, DNARead, RNARead, AARead
+from dark.aa import (BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE,
+                     POLAR, SMALL, TINY)
 
 
 class TestRead(TestCase):
@@ -145,16 +146,16 @@ class TestDNARead(TestCase):
         read = DNARead('id', 'atcg', quality='!@#$')
         self.assertEqual('$#@!', read.reverseComplement().quality)
 
-    def testReverseComplementDNA(self):
+    def testReverseComplement(self):
         """
-        The reverseComplement function must work for DNA
+        The reverseComplement function must work.
         """
         read = DNARead('id', 'atcg', quality='!@#$')
         self.assertEqual('CGAT', read.reverseComplement().sequence)
 
-    def testReverseComplementAmbiguousDNA(self):
+    def testReverseComplementAmbiguous(self):
         """
-        The reverseComplement function must work for DNA that includes
+        The reverseComplement function must work for a sequence that includes
         ambiguous bases.
         """
         read = DNARead('id', 'atcgmrwsvhxn')
@@ -270,26 +271,26 @@ class TestRNARead(TestCase):
     """
     Tests for the RNARead class.
     """
-    def testReverseComplementRNA(self):
+    def testReverseComplement(self):
         """
-        The reverseComplement function must work for RNA
+        The reverseComplement function must work.
         """
         read = RNARead('id', 'aucg')
         self.assertEqual('CGAU', read.reverseComplement().sequence)
 
-    def testReverseComplementAmbiguousRNA(self):
+    def testReverseComplementAmbiguous(self):
         """
-        The reverseComplement function must work for RNA that includes
+        The reverseComplement function must work for a sequence that includes
         ambiguous bases.
         """
         read = RNARead('id', 'aucgmrwsykvhxn')
         self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
 
-    def testTranslationOfStopCodonTAA(self):
+    def testTranslationOfStopCodonUAA(self):
         """
-        The translations function must correctly translate the TAA stop codon.
+        The translations function must correctly translate the UAA stop codon.
         """
-        read = DNARead('id', 'taa')
+        read = RNARead('id', 'uaa')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
             read.translations().next())
@@ -299,21 +300,21 @@ class TestAARead(TestCase):
     """
     Tests for the AARead class.
     """
-    def testpropertiesCorrectTranslation(self):
+    def testPropertiesCorrectTranslation(self):
         """
-        An AA sequence must be correctly translated to properties.
+        The properties function must work correctly.
         """
-        read = AARead('id', 'ADADR*')
-        result = read.properties()
-        self.assertEqual(HYDROPHOBIC | SMALL | TINY, result[0])
-
-    def testRightSequence(self):
-        """
-        A PropertiesRead must have the expected sequence.
-        """
-        read = AARead('id', 'ADADR')
-        properties = AARead(read, [193, 3202, 193, 3202, 2562])
-        self.assertEqual(HYDROPHOBIC | SMALL | TINY, properties.sequence[0])
+        read = AARead('id', 'ADR*')
+        properties = read.properties()
+        self.assertEqual(
+            [
+                HYDROPHOBIC | SMALL | TINY,
+                HYDROPHILIC | SMALL | POLAR | NEGATIVE,
+                HYDROPHILIC | POLAR | BASIC_POSITIVE,
+                NONE
+            ],
+            list(properties)
+        )
 
 
 class TestTranslatedRead(TestCase):
