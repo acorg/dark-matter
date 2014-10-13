@@ -1,3 +1,4 @@
+from os import unlink
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
@@ -240,9 +241,13 @@ class Reads(object):
         format_ = format_.lower()
 
         if isinstance(filename, basestring):
-            with open(filename, 'w') as fp:
-                for read in self:
-                    fp.write(read.toString(format_))
+            try:
+                with open(filename, 'w') as fp:
+                    for read in self:
+                        fp.write(read.toString(format_))
+            except ValueError:
+                unlink(filename)
+                raise
         else:
             # We have a file-like object.
             for read in self:
