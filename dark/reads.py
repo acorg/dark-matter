@@ -119,7 +119,7 @@ class _NucleotideRead(Read):
         @return: The reverse complemented sequence as a C{Read} instance.
         """
         quality = None if self.quality is None else self.quality[::-1]
-        sequence = self.sequence.translate(self.TRANSLATION_TABLE)[::-1]
+        sequence = self.sequence.translate(self.getTranslationTable())[::-1]
         return Read(self.id, sequence, quality)
 
 
@@ -128,7 +128,7 @@ class DNARead(_NucleotideRead):
     Hold information and methods to work with DNA reads.
     """
     def getTranslationTable(self):
-        self.TRANSLATION_TABLE = _TRANSLATION_TABLE['dna']
+        return _TRANSLATION_TABLE['dna']
 
 
 class RNARead(_NucleotideRead):
@@ -136,7 +136,7 @@ class RNARead(_NucleotideRead):
     Hold information and methods to work with RNA reads.
     """
     def getTranslationTable(self):
-        self.TRANSLATION_TABLE = _TRANSLATION_TABLE['rna']
+        return _TRANSLATION_TABLE['rna']
 
 
 class AARead(Read):
