@@ -4,6 +4,7 @@ from cStringIO import StringIO
 
 from mocking import mockOpen
 from dark.reads import (Read, TranslatedRead, Reads, DNARead, RNARead, AARead)
+from dark.aa import (HYDROPHOBIC, SMALL, TINY)
 
 
 class TestRead(TestCase):
@@ -304,16 +305,7 @@ class TestAARead(TestCase):
         """
         read = AARead('id', 'ADADR*')
         result = read.properties()
-        self.assertEqual(AARead(read,
-                         [193, 3202, 193, 3202, 2562, 4096]), result)
-
-    def testAllAttributes(self):
-        """
-        A PropertiesRead instance must have the expected attributes.
-        """
-        read = AARead('id', 'ADADR')
-        properties = AARead(read, [193, 3202, 193, 3202, 2562])
-        self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
+        self.assertEqual(HYDROPHOBIC | SMALL | TINY, result[0])
 
     def testRightSequence(self):
         """
@@ -321,15 +313,7 @@ class TestAARead(TestCase):
         """
         read = AARead('id', 'ADADR')
         properties = AARead(read, [193, 3202, 193, 3202, 2562])
-        self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
-
-    def testRightId(self):
-        """
-        A PropertiesRead must have the right id.
-        """
-        read = AARead('id', 'ADADR')
-        properties = AARead(read, 'HAHAB')
-        self.assertEqual('id-properties', properties.id)
+        self.assertEqual(HYDROPHOBIC | SMALL | TINY, properties.sequence[0])
 
 
 class TestTranslatedRead(TestCase):

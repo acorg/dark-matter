@@ -39,7 +39,7 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
-    def __init__(self, id, sequence, quality=None):
+    def __init__(self, id, sequence, quality=None, translation_table=None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
@@ -51,6 +51,7 @@ class Read(object):
         except AttributeError:
             self.sequence = sequence
         self.quality = quality
+        self.TRANSLATION_TABLE = translation_table
 
     def __eq__(self, other):
         return (self.id == other.id and
@@ -111,11 +112,6 @@ class _NucleotideRead(Read):
                 yield TranslatedRead(self, translate(suffix), frame,
                                      reverseComplemented)
 
-
-class DNARead(_NucleotideRead):
-    """
-    Hold information and methods to work with DNA reads.
-    """
     def reverseComplement(self):
         """
         Reverse complement a nucleotide sequence.
@@ -123,23 +119,24 @@ class DNARead(_NucleotideRead):
         @return: The reverse complemented sequence as a C{Read} instance.
         """
         quality = None if self.quality is None else self.quality[::-1]
-        sequence = self.sequence.translate(_TRANSLATION_TABLE['dna'])[::-1]
+        sequence = self.sequence.translate(self.TRANSLATION_TABLE)[::-1]
         return Read(self.id, sequence, quality)
+
+
+class DNARead(_NucleotideRead):
+    """
+    Hold information and methods to work with DNA reads.
+    """
+    def getTranslationTable(self):
+        self.TRANSLATION_TABLE = _TRANSLATION_TABLE['dna']
 
 
 class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-    def reverseComplement(self):
-        """
-        Reverse complement a nucleotide sequence.
-
-        @return: The reverse complemented sequence as a C{Read} instance.
-        """
-        quality = None if self.quality is None else self.quality[::-1]
-        sequence = self.sequence.translate(_TRANSLATION_TABLE['rna'])[::-1]
-        return Read(self.id, sequence, quality)
+    def getTranslationTable(self):
+        self.TRANSLATION_TABLE = _TRANSLATION_TABLE['rna']
 
 
 class AARead(Read):
@@ -155,8 +152,7 @@ class AARead(Read):
         aaSeq = self.sequence
         properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
                       for base in aaSeq]
-        newId = '%s-properties' % self.id
-        return Read(newId, properties)
+        return properties
 
 
 class TranslatedRead(Read):
