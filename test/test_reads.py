@@ -1,6 +1,7 @@
 from unittest import TestCase
 from mock import patch, call
 from cStringIO import StringIO
+from os import stat
 
 from mocking import mockOpen
 from dark.reads import Read, TranslatedRead, Reads, DNARead, RNARead, AARead
@@ -548,6 +549,9 @@ class TestReads(TestCase):
         reads.add(read2)
         error = "Format must be either 'fasta' or 'fastq'\\."
         self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'xxx')
+        # The output file must not exist following the save() failure.
+        error = "No such file or directory: 'file'"
+        self.assertRaisesRegexp(OSError, error, stat, 'file')
 
     def testSaveFASTAIsDefault(self):
         """
@@ -627,6 +631,9 @@ class TestReads(TestCase):
         reads.add(read2)
         error = "Read 'id2' has no quality information"
         self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'fastq')
+        # The output file must not exist following the save() failure.
+        error = "No such file or directory: 'file'"
+        self.assertRaisesRegexp(OSError, error, stat, 'file')
 
     def testSaveToFileDescriptor(self):
         """
