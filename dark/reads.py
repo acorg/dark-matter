@@ -21,12 +21,6 @@ def _makeComplementTable(complementData):
     return ''.join(map(chr, table))
 
 
-_TRANSLATION_TABLE = {
-    'dna': _makeComplementTable(ambiguous_dna_complement),
-    'rna': _makeComplementTable(ambiguous_rna_complement),
-}
-
-
 class Read(object):
     """
     Hold information about a single read.
@@ -36,18 +30,14 @@ class Read(object):
         nucleotides or proteins).
     @param quality: An optional C{str} of phred quality scores. If not C{None},
         it must be the same length as C{sequence}.
-    @param type: A C{str}, either 'dna', 'rna', or 'aa' to indicate the type
-        of the sequence, either DNA, RNA, or amino acids.
     @raise ValueError: if the length of the quality string (if any) does not
-        match the length of the sequence, or if the passed type is invalid.
+        match the length of the sequence.
     """
-    def __init__(self, id, sequence, quality=None, type='dna'):
+    def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
                 (len(sequence), len(quality)))
-        if type not in ('aa', 'dna', 'rna', 'properties'):
-            raise ValueError('Unknown sequence type %r' % type)
 
         self.id = id
         try:
@@ -55,13 +45,11 @@ class Read(object):
         except AttributeError:
             self.sequence = sequence
         self.quality = quality
-        self.type = type
 
     def __eq__(self, other):
         return (self.id == other.id and
                 self.sequence == other.sequence and
-                self.quality == other.quality and
-                self.type == other.type)
+                self.quality == other.quality)
 
     def __ne__(self, other):
         return not self == other
@@ -90,31 +78,17 @@ class Read(object):
         else:
             raise ValueError("Format must be either 'fasta' or 'fastq'.")
 
-    def reverseComplement(self):
-        """
-        Reverse complement a nucleotide sequence.
 
-        @raise ValueError: if an attempt is made to reverse complement an amino
-            acid sequence.
-        @return: The reverse complemented sequence as a C{Read} instance.
-        """
-        if self.type == 'aa':
-            raise ValueError('Cannot reverse complement an amino acid '
-                             'sequence')
-        quality = None if self.quality is None else self.quality[::-1]
-        sequence = self.sequence.translate(_TRANSLATION_TABLE[self.type])[::-1]
-        return Read(self.id, sequence, quality)
-
+class _NucleotideRead(Read):
+    """
+    Holds methods to work with nucleotide (DNA and RNA) sequences.
+    """
     def translations(self):
         """
         Yield all six translations of a nucleotide sequence.
 
-        @raise ValueError: If the read is already amino acids.
         @return: A generator that produces six L{TranslatedRead} instances.
         """
-        if self.type == 'aa':
-            raise ValueError('Cannot translate an amino acid sequence')
-
         rc = self.reverseComplement().sequence
         for reverseComplemented in False, True:
             for frame in 0, 1, 2:
@@ -131,47 +105,47 @@ class Read(object):
                 yield TranslatedRead(self, translate(suffix), frame,
                                      reverseComplemented)
 
-    def aaToProperties(self):
+    def reverseComplement(self):
+        """
+        Reverse complement a nucleotide sequence.
+
+        @return: The reverse complemented sequence as an instance of the
+            current class.
+        """
+        quality = None if self.quality is None else self.quality[::-1]
+        sequence = self.sequence.translate(self.COMPLEMENT_TABLE)[::-1]
+        return self.__class__(self.id, sequence, quality)
+
+
+class DNARead(_NucleotideRead):
+    """
+    Hold information and methods to work with DNA reads.
+    """
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
+
+
+class RNARead(_NucleotideRead):
+    """
+    Hold information and methods to work with RNA reads.
+    """
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
+
+
+class AARead(Read):
+    """
+    Hold information and methods to work with AA reads.
+    """
+    def properties(self):
         """
         Translate an amino acid sequence to properties.
 
-        @raise ValueError: If sequence type is 'dna', 'rna' or 'properties'.
-        @return: A generator that produces an L{PropertiesRead} instance.
+        @return: A generator yielding properties for the residues in the
+            current sequence.
         """
-        if self.type in ('dna', 'rna'):
-            raise ValueError('Cannot convert nucleotides to properties.')
-        if self.type == 'properties':
-            raise ValueError('Sequence is a properties sequence already.')
-
-        aaSeq = self.sequence
-        properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
-                      for base in aaSeq]
-        return PropertiesRead(self, properties)
+        return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
 
 
-class PropertiesRead(Read):
-    """
-    Hold information about one AA->properties translation of a Read.
-
-    @param originalRead: The original AA L{Read} instance from which
-        this translation was obtained.
-    @param sequence: The C{str} properties translated sequence.
-    """
-    def __init__(self, originalRead, sequence):
-        newId = '%s-properties' % originalRead.id
-
-        Read.__init__(self, newId, sequence, type='properties')
-        self.originalRead = originalRead
-
-    def __eq__(self, other):
-        return (Read.__eq__(self, other) and
-                self.originalRead == other.originalRead)
-
-    def __ne__(self, other):
-        return not self == other
-
-
-class TranslatedRead(Read):
+class TranslatedRead(AARead):
     """
     Hold information about one DNA->AA translation of a Read.
 
@@ -188,7 +162,7 @@ class TranslatedRead(Read):
             raise ValueError('Frame must be 0, 1, or 2')
         newId = '%s-frame%d%s' % (originalRead.id, frame,
                                   'rc' if reverseComplemented else '')
-        Read.__init__(self, newId, sequence, type='aa')
+        Read.__init__(self, newId, sequence)
         self.originalRead = originalRead
         self.frame = frame
         self.reverseComplemented = reverseComplemented
