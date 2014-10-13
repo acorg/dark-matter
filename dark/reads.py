@@ -33,7 +33,7 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
-    def __init__(self, id, sequence, quality=None, translation_table=None):
+    def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
@@ -45,7 +45,6 @@ class Read(object):
         except AttributeError:
             self.sequence = sequence
         self.quality = quality
-        self.TRANSLATION_TABLE = translation_table
 
     def __eq__(self, other):
         return (self.id == other.id and
@@ -110,30 +109,26 @@ class _NucleotideRead(Read):
         """
         Reverse complement a nucleotide sequence.
 
-        @return: The reverse complemented sequence as a C{Read} instance.
+        @return: The reverse complemented sequence as an instance of the
+            current class.
         """
         quality = None if self.quality is None else self.quality[::-1]
-        translationTable = self.getTranslationTable()
-        sequence = self.sequence.translate(translationTable[0])[::-1]
-        return (DNARead(self.id, sequence, quality) if (
-                translationTable[1] == ambiguous_dna_complement)
-                else RNARead(self.id, sequence, quality))
+        sequence = self.sequence.translate(self.COMPLEMENT_TABLE[0])[::-1]
+        return self.__class__(self.id, sequence, quality)
 
 
 class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
-    def getTranslationTable(self):
-        return _makeComplementTable(ambiguous_dna_complement)
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
 
 class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-    def getTranslationTable(self):
-        return _makeComplementTable(ambiguous_rna_complement)
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
 
 class AARead(Read):
@@ -146,10 +141,8 @@ class AARead(Read):
 
         @return: A generator that produces an L{PropertiesRead} instance.
         """
-        aaSeq = self.sequence
-        properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
-                      for base in aaSeq]
-        return properties
+        return [PROPERTIES[aa] if aa in PROPERTIES.keys() else NONE
+                for aa in self.sequence]
 
 
 class TranslatedRead(AARead):
