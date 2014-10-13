@@ -17,7 +17,7 @@ class TestAAProperties(TestCase):
         letters = 'ARNDCEQGHILKMFPSTWYV'
         self.assertEqual(sorted(letters), sorted(PROPERTIES.keys()))
 
-    def testProperyValuesDiffer(self):
+    def testPropertyValuesDiffer(self):
         """
         All individual property values must be different.
         """
