@@ -3,7 +3,7 @@ from mock import patch, call
 from cStringIO import StringIO
 
 from mocking import mockOpen
-from dark.reads import Read, TranslatedRead, Reads
+from dark.reads import Read, TranslatedRead, Reads, PropertiesRead
 
 
 class TestRead(TestCase):
@@ -241,11 +241,11 @@ class TestRead(TestCase):
         self.assertEqual(
             [
                 TranslatedRead(read, 'X', 0, False),
-                TranslatedRead(read, '',  1, False),
-                TranslatedRead(read, '',  2, False),
+                TranslatedRead(read, '', 1, False),
+                TranslatedRead(read, '', 2, False),
                 TranslatedRead(read, 'X', 0, True),
-                TranslatedRead(read, '',  1, True),
-                TranslatedRead(read, '',  2, True)
+                TranslatedRead(read, '', 1, True),
+                TranslatedRead(read, '', 2, True)
             ],
             list(read.translations()))
 
@@ -259,10 +259,10 @@ class TestRead(TestCase):
             [
                 TranslatedRead(read, 'X', 0, False),
                 TranslatedRead(read, 'X', 1, False),
-                TranslatedRead(read, '',  2, False),
+                TranslatedRead(read, '', 2, False),
                 TranslatedRead(read, 'L', 0, True),
                 TranslatedRead(read, 'X', 1, True),
-                TranslatedRead(read, '',  2, True)
+                TranslatedRead(read, '', 2, True)
             ],
             list(read.translations()))
 
@@ -328,6 +328,62 @@ class TestRead(TestCase):
                 TranslatedRead(read, '*RX', 2, True)
             ],
             list(read.translations()))
+
+    def testAAToPropertiesValueErrors(self):
+        """
+        A ValueError must be risen if Read doesn't have the right type.
+        """
+        read = Read('id', 'accgtcagg', type='dna')
+        error = 'Cannot convert nucleotides to properties.'
+        with self.assertRaisesRegexp(ValueError, error):
+            list(read.aaToProperties())
+
+    def testAAToPropertiesCorrectTranslation(self):
+        """
+        An AA sequence must be correctly translated to properties.
+        """
+        read = Read('id', 'ADADR*', type='aa')
+        result = read.aaToProperties()
+        self.assertEqual(PropertiesRead(read,
+                         [193, 3202, 193, 3202, 2562, 4096]), result)
+
+
+class TestPropertiesRead(TestCase):
+    """
+    Test the PropertiesRead class.
+    """
+    def testAllAttributes(self):
+        """
+        A PropertiesRead instance must have the expected attributes.
+        """
+        read = Read('id', 'ADADR', type='aa')
+        properties = PropertiesRead(read, [193, 3202, 193, 3202, 2562])
+        self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
+        self.assertEqual(read, properties.originalRead)
+
+    def testRightSequence(self):
+        """
+        A PropertiesRead must have the expected sequence.
+        """
+        read = Read('id', 'ADADR', type='aa')
+        properties = PropertiesRead(read, [193, 3202, 193, 3202, 2562])
+        self.assertEqual([193, 3202, 193, 3202, 2562], properties.sequence)
+
+    def testRightId(self):
+        """
+        A PropertiesRead must have the right id.
+        """
+        read = Read('id', 'ADADR', type='aa')
+        properties = PropertiesRead(read, 'HAHAB')
+        self.assertEqual('id-properties', properties.id)
+
+    def testTypeProperties(self):
+        """
+        A PropertiesRead must have the right type.
+        """
+        read = Read('id', 'ADADR', type='aa')
+        properties = PropertiesRead(read, 'HAHAB')
+        self.assertEqual('properties', properties.type)
 
 
 class TestTranslatedRead(TestCase):

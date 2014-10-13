@@ -2,6 +2,8 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
+from dark.aa import PROPERTIES, NONE
+
 
 def _makeComplementTable(complementData):
     """
@@ -44,11 +46,14 @@ class Read(object):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
                 (len(sequence), len(quality)))
-        if type not in ('aa', 'dna', 'rna'):
+        if type not in ('aa', 'dna', 'rna', 'properties'):
             raise ValueError('Unknown sequence type %r' % type)
 
         self.id = id
-        self.sequence = sequence.upper()
+        try:
+            self.sequence = sequence.upper()
+        except AttributeError:
+            self.sequence = sequence
         self.quality = quality
         self.type = type
 
@@ -125,6 +130,45 @@ class Read(object):
                     suffix += ('NN' if lengthMod3 == 1 else 'N')
                 yield TranslatedRead(self, translate(suffix), frame,
                                      reverseComplemented)
+
+    def aaToProperties(self):
+        """
+        Translate an amino acid sequence to properties.
+
+        @raise ValueError: If sequence type is 'dna', 'rna' or 'properties'.
+        @return: A generator that produces an L{PropertiesRead} instance.
+        """
+        if self.type in ('dna', 'rna'):
+            raise ValueError('Cannot convert nucleotides to properties.')
+        if self.type == 'properties':
+            raise ValueError('Sequence is a properties sequence already.')
+
+        aaSeq = self.sequence
+        properties = [PROPERTIES[base] if base in PROPERTIES.keys() else NONE
+                      for base in aaSeq]
+        return PropertiesRead(self, properties)
+
+
+class PropertiesRead(Read):
+    """
+    Hold information about one AA->properties translation of a Read.
+
+    @param originalRead: The original AA L{Read} instance from which
+        this translation was obtained.
+    @param sequence: The C{str} properties translated sequence.
+    """
+    def __init__(self, originalRead, sequence):
+        newId = '%s-properties' % originalRead.id
+
+        Read.__init__(self, newId, sequence, type='properties')
+        self.originalRead = originalRead
+
+    def __eq__(self, other):
+        return (Read.__eq__(self, other) and
+                self.originalRead == other.originalRead)
+
+    def __ne__(self, other):
+        return not self == other
 
 
 class TranslatedRead(Read):
