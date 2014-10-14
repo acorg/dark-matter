@@ -585,6 +585,20 @@ class TestReads(TestCase):
         self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
                          handle.write.call_args_list)
 
+    def testSaveReturnsReadsInstance(self):
+        """
+        The save method on a Reads instance must return that instance.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        mockOpener = mockOpen()
+        with patch('__builtin__.open', mockOpener, create=True):
+            result = reads.save('filename')
+            self.assertIs(reads, result)
+
     def testSaveWithUppercaseFormat(self):
         """
         A Reads instance must save correctly when the format string is

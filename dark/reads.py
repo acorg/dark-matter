@@ -237,6 +237,8 @@ class Reads(object):
         @param format_: A C{str} format to save as, either 'fasta' or 'fastq'.
         @raise ValueError: if C{format_} is 'fastq' and a read with no quality
             is present, or if an unknown format is requested.
+        @return: C{self} in case our caller wants to chain the result into
+            another method call.
         """
         format_ = format_.lower()
 
@@ -252,6 +254,7 @@ class Reads(object):
             # We have a file-like object.
             for read in self:
                 filename.write(read.toString(format_))
+        return self
 
     def filter(self, minLength=None, maxLength=None):
         """
