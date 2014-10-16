@@ -1,7 +1,7 @@
 from Bio import SeqIO
 from hashlib import md5
 
-from dark.reads import Read, Reads
+from dark.reads import Reads, AARead, DNARead, RNARead
 
 
 def fastaToList(fastaFilename):
@@ -81,15 +81,25 @@ class FastaReads(Reads):
 
     @param file_: A C{str} file name or file handle, containing
         sequences in FASTA format,
+    @param type: A C{str}, either 'aa', 'dna', 'rna'.
+    @raise ValueError: if C{type} is not one of 'aa', 'dna', 'rna'.
     """
-    def __init__(self, file_):
+    def __init__(self, file_, type='dna'):
+        if type not in ('aa', 'dna', 'rna'):
+            raise ValueError("Type must be either 'aa', 'dna', 'rna'.")
         self.file_ = file_
+        if type == 'aa':
+            self.readClass = AARead
+        elif type == 'dna':
+            self.readClass = DNARead
+        else:
+            self.readClass = RNARead
         Reads.__init__(self)
 
     def iter(self):
         """
-        Iterate over the sequences in self.file_, yielding each as a Read
-        instance.
+        Iterate over the sequences in self.file_, yielding each as an
+        instance of the desired read class.
         """
         for seq in SeqIO.parse(self.file_, 'fasta'):
-            yield Read(seq.id, str(seq.seq))
+            yield self.readClass(seq.id, str(seq.seq))

@@ -1,4 +1,4 @@
-from dark.reads import Read
+from dark.reads import Read, AARead, DNARead, RNARead
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
                         FastaReads)
 
@@ -262,3 +262,55 @@ class TestFastaReads(TestCase):
             reads = list(FastaReads('filename.fasta'))
             self.assertEqual(2, len(reads))
             self.assertEqual([Read('id1', 'ACGT'), Read('id2', 'TGCA')], reads)
+
+    def testTypeDefaultsToDNA(self):
+        """
+        A FASTA file whose type is not specified must result in reads that
+        are instances of DNARead.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta'))
+            self.assertTrue(isinstance(reads[0], DNARead))
+
+    def testUnknownType(self):
+        """
+        A FASTA file whose type is specified as an unknown type must raise
+        a ValueError.
+        """
+        error = "Type must be either 'aa', 'dna', 'rna'\\."
+        self.assertRaisesRegexp(ValueError, error, FastaReads, 'f.fasta', 'x')
+
+    def testTypeAA(self):
+        """
+        A FASTA file whose type is specified as 'aa' must result in reads that
+        are instances of AARead.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta', 'aa'))
+            self.assertTrue(isinstance(reads[0], AARead))
+
+    def testTypeDNA(self):
+        """
+        A FASTA file whose type is specified as 'dna' must result in reads that
+        are instances of DNARead.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta', 'dna'))
+            self.assertTrue(isinstance(reads[0], DNARead))
+
+    def testTypeRNA(self):
+        """
+        A FASTA file whose type is specified as 'rna' must result in reads that
+        are instances of RNARead.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(FastaReads('filename.fasta', 'rna'))
+            self.assertTrue(isinstance(reads[0], RNARead))
