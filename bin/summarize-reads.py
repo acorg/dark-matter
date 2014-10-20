@@ -15,8 +15,6 @@ else:
         # Assume anything not ending with a 'q' is fasta.
         filetype = 'fasta'
 
-    print filetype
-
     result = summarizeReads(filename, filetype)
 
     print 'Number of reads:', result['read_number']
