@@ -2,7 +2,7 @@ from Bio import SeqIO
 from collections import defaultdict
 
 
-def summarize_reads(file_handle, file_type):
+def summarizeReads(file_handle, file_type):
     """
     open a fasta or fastq file, prints number of of reads,
     average length of read, total number of bases, longest,

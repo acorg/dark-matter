@@ -20,12 +20,17 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '--type', type=str, default='dna',
+        choices=['aa', 'dna', 'rna'],
+        help='The type of the bases in the FASTA file.')
+
+    parser.add_argument(
         '--minORFLength', metavar='LEN', type=int, default=None,
         help='Translations to AA that do not contain an ORF of at least '
         'this length will not be produced.')
 
     args = parser.parse_args()
-    reads = FastaReads(sys.stdin)
+    reads = FastaReads(sys.stdin, args.type)
     write = sys.stdout.write
     minORFLength = args.minORFLength
 
