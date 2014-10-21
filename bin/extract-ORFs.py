@@ -14,6 +14,7 @@ basis leaving in start/stop codons, use dna-to-aa.py instead.
 """
 
 import sys
+from os.path import basename
 import argparse
 
 from Bio.Data.CodonTable import TranslationError
@@ -66,5 +67,5 @@ if __name__ == '__main__':
             print >>sys.stderr, (
                 'Could not translate read %r sequence %r (%s).\nDid you '
                 'forget to run %s with "--type aa"?' %
-                (read.id, read.sequence, error, sys.argv[0].split('/')[-1]))
+                (read.id, read.sequence, error, basename(sys.argv[0])))
             sys.exit(1)
