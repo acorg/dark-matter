@@ -37,17 +37,23 @@ On translating, you'll see what you'd expect:
     >SK7F6:30:80-frame2rc
     KK*LLILFSCQRWSRKSICVHLTQR*G*
 
+There are 6 translations for each sequence.
+
 You can see that `dna-to-aa.py` adds frame information to the read ids
 (`rc` = reverse complement).
 
-If your reads are RNA, you can pass a `type`:
+Any start (`M`) and stop (`*`) codons in the translations are left intact.
 
-    $ dna-to-aa.py --type rna < dna-reads.fasta > aa-reads.fasta
+### Translating RNA
 
-### Only translating when a read has a sufficiently long ORF
+If your reads are RNA, you can pass the type using `--type rna`:
 
-To only output translations that contain an ORF of at least some specified
-length:
+    $ dna-to-aa.py --type rna < dna-reads.fasta
+
+### Requiring a sufficiently long ORF
+
+To only output translations that contain at least one ORF of at least some
+specified length:
 
     $ dna-to-aa.py --minORFLength 20 < dna.fasta
     >SK7F6:30:80-frame1
