@@ -73,6 +73,6 @@ def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
     fig.axis([minX, maxX, -1, 3])
     fig.set_yticks(np.arange(3))
     fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Reversed target sequence start (%s) & stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)
+    fig.set_title('Reversed target sequence start (%s) and stop (%s) codons' %
+                 (', '.join(sorted(START_CODONS)),
+                  ', '.join(sorted(STOP_CODONS))), fontsize=20)
