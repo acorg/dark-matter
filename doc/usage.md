@@ -24,7 +24,6 @@ The information model is hierarchical. We'll start from the bottom.
 A `Read` is a genetic sequence (in our case usually obtained from an NGS run).
 It has an `id`, the sequence, and it may have an associated quality.
 
-
     from dark.reads import Read
     
     read = Read('id1', 'ACGGTCAACG')
@@ -50,7 +49,6 @@ It has an `id`, the sequence, and it may have an associated quality.
     rnaRead.type, aaRead.type
 
     ('rna', 'aa')
-
 
 ## Reads
 
@@ -103,11 +101,8 @@ filters will be added), and you can save it to a file.
     ACGGTCAACG
     +id1
     9CA@>>>BB@
-    
-
 
 You can load a list of FASTA reads from a file:
-
 
     !echo '>id1\nACGT\n>id2\nCCC\n' > /tmp/ipynb-demo-data.fasta
     
@@ -119,7 +114,6 @@ You can load a list of FASTA reads from a file:
     id1 ACGT
     id2 CCC
 
-
 ## Alignment
 
 When you run some kind of alignment program, such as BLAST or bowtie or STAR or
@@ -127,7 +121,6 @@ one of many others, the program will take reads and try to match them to a
 database of sequences. When a match is found, we call that an `alignment` and we
 have a corresponding `Alignment` class for it. Following BLAST, we call the
 sequence that a `read` matched against a `subject`.
-
 
     from dark.alignments import Alignment
     
@@ -138,14 +131,12 @@ sequence that a `read` matched against a `subject`.
     77
     gi|68448876|gb|DQ011154.1| Monkeypox virus strain Congo_2003_358, complete genome
 
-
 ## High-scoring pairs
 
 A `read` sequence may match a `subject` sequence in multiple places. The
 alignment program may therefore report a set of match offsets for a single
 read/subject pair. Again following BLAST, we'll call each of these a `high-
 scoring pair` or `HSP`.
-
 
     from dark.hsp import HSP
     
@@ -160,13 +151,11 @@ scoring pair` or `HSP`.
 
     True
 
-
 The numeric values above are called `scores`. With an `HSP`, as you would expect
 from the name, a higher score is considered better.
 
 We also have a class for alignment programs that produces scores that are better
 when they are lower (e.g., BLAST e-values).
-
 
     from dark.hsp import LSP
     
@@ -175,19 +164,15 @@ when they are lower (e.g., BLAST e-values).
     
     lsp1 < lsp2
 
-
     False
 
     lsp1.betterThan(22)
 
     False
 
-
-
 ## Adding HSPs to an Alignment
 
 We can add `HSP`s to a single `read` alignment:
-
 
     alignment = Alignment(77, 'gi|68448876|gb|DQ011154.1| Monkeypox virus strain Congo_2003_358, complete genome')
     alignment.addHsp(HSP(14))
@@ -196,8 +181,6 @@ We can add `HSP`s to a single `read` alignment:
     alignment.hsps
 
     [<dark.hsp.HSP at 0x109df94d0>, <dark.hsp.HSP at 0x107aac810>]
-
-
 
 ## Summary of terms so far
 
@@ -213,7 +196,6 @@ but we don't need to think about that right now.
 
 A single `read` might match many `subjects`, so we have a `ReadAlignments` class
 (a subclass of `list`) that can hold all the `Alignment`s of a single `read`:
-
 
     from dark.reads import Read
     from dark.alignments import Alignment, ReadAlignments
@@ -236,8 +218,6 @@ A single `read` might match many `subjects`, so we have a `ReadAlignments` class
      [<dark.alignments.Alignment at 0x109dfc0d0>,
       <dark.alignments.Alignment at 0x109dfc210>])
 
-
-
 ## ReadsAlignments
 
 Many reads, each with many alignments, each with many HSPs... Now we're getting
@@ -254,7 +234,6 @@ multiple alignments.
 The `ReadsAlignments` class is abstract: you have to subclass it with something
 more concrete. We only have one example of this at the moment,
 `BlastReadsAlignments`. Let's get some real data and see how it works.
-
 
     from dark.blast.alignments import BlastReadsAlignments
     
@@ -290,7 +269,6 @@ a collection of `ReadAlignments`.
 Let's filter the BLAST reads alignments and then iterate on them. There are many
 filtering options. Here's an example:
 
-
     blastReadsAlignments.filter(maxHspsPerHit=1, titleRegex='influenza', scoreCutoff=4000,
                                 negativeTitleRegex='homo sapiens')
     
@@ -306,11 +284,9 @@ filtering options. Here's an example:
        gi|341610030|gb|JN244103.1| Influenza A virus (A/pintail/Korea/1173/2009(H7N7)) segment 1 polymerase PB2 (PB2) gene, complete cds
        gi|564125838|gb|KF874478.1| Influenza A virus (A/wild waterfowl/Dongting/C2383/2012(H1N2)) segment 1 polymerase PB2 (PB2) gene, complete cds
 
-
 ### Filtering options
 
 Here are the filtering options
-
 
         def filter(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
                    minStart=None, maxStop=None,
@@ -366,7 +342,6 @@ if you're interested to know how many, or which, reads matched a title, read on.
 
 We can pass a `ReadsAlignments` instance to a `TitlesAlignments`:
 
-
     from dark.titles import TitlesAlignments
     
     titlesAlignments = TitlesAlignments(blastReadsAlignments)
@@ -381,7 +356,6 @@ to be read. So if you have a lot of data, it can be slow to create a
 
 A `TitlesAlignments` is just like a Python `dict` (in fact it's a subclass).
 
-
     titlesAlignments.keys()[0]
 
     u'gi|298659151|gb|CY064947.1| Influenza A virus (A/mallard/Netherlands/5/1999(H2N9)) segment 1 sequence'
@@ -391,35 +365,27 @@ A `TitlesAlignments` is just like a Python `dict` (in fact it's a subclass).
 
     [<dark.titles.TitleAlignment at 0x10af2d790>]
 
-
-
 As you might have guessed, each value of a `TitlesAlignments` is a
 `TitleAlignments` (note the singular: it's a single title with its multiple
 alignments).
 
 ## TitleAlignments
 
-
     titleAlignments = titlesAlignments[title]
     titleAlignments.subjectLength
 
     2334
 
-
 A `TitleAlignments` is actually a subclass of `list`.
-
 
     titleAlignments
 
     [<dark.titles.TitleAlignment at 0x10af2d790>]
 
-
-
 And, of course, a `TitleAlignments` is a collection of `TitleAlignment`
 instances.
 
 ## TitleAlignment
-
 
     titleAlignment = titleAlignments[0]
     titleAlignment.read.id
@@ -430,15 +396,12 @@ instances.
 
     [<dark.hsp.HSP at 0x10a4938d0>]
 
-
-
 And, after drilling down sufficiently, we arrive back at an `HSP`.
 
 ## Filtering a TitlesAlignments
 
 There are several ways to filter a `TitlesAlignments` once all matching reads
 for titles have been collected (from the `ReadsAlignments` used to create it):
-
 
         def filter(self, minMatchingReads=None, minMedianScore=None,
                    withScoreBetterThan=None, minNewReads=None):
@@ -459,7 +422,6 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
                 matching titles.
             """
 
-
     matchedBySeveralReads = titlesAlignments.filter(minMatchingReads=3)
     len(matchedBySeveralReads)
 
@@ -470,10 +432,7 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
     [u'gi|355391446|gb|CY080412.1| Influenza A virus (A/mallard/France/090360/2009(H9N2)) segment 1 sequence',
      u'gi|338855247|gb|CY093093.1| Influenza A virus (A/quail/Lebanon/273/2010(H9N2)) polymerase PB2 (PB2) gene, complete cds']
 
-
-
 ## Making an alignment graph
-
 
     %pylab inline
     from dark.graphics import alignmentGraph
@@ -483,15 +442,11 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
     title = 'gi|355391446|gb|CY080412.1| Influenza A virus (A/mallard/France/090360/2009(H9N2)) segment 1 sequence'
     _ = alignmentGraph(titlesAlignments, title)
 
-
 ![png](alignment-graph.png)
-
 
     Thu Aug 14 11:38:31 2014: Graph generated in 0.074 mins.
 
-
 ## Making an alignment panel
-
 
     from dark.graphics import alignmentPanel
     
@@ -530,17 +485,13 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
     29: gi|523793342|gb|KF260743.1| Influenza A virus (A/duck/Jiangxi/16309/2010(H7N7)) segment 1 polymerase PB2 (PB2) gene, complete cds http://www.ncbi.nlm.nih.gov/nuccore/KF260743
     Thu Aug 14 11:38:46 2014: Alignment panel generated in 0.150 mins.
 
-
-
 ![png](alignment-panel.png)
-
 
 ## Subtleties not mentioned above
 
 ### Convenient imports via ipynb.py
 
 If you use
-
 
     from dark.ipynb import *
 
@@ -565,14 +516,12 @@ Notebook without the need for many explicit imports. You'll pick up:
 If you have a `ReadsAlignments` instance and you're curious to know what titles
 are matched and how many times, you can use `titleCounts`:
 
-
     from dark.titles import titleCounts
     
     counts = titleCounts(blastReadsAlignments)
 
 `titleCounts` returns a `dict` whose keys are `subject` titles and whose keys
 are the number of reads that matched that title.
-
 
     len(counts)
 
@@ -586,8 +535,6 @@ are the number of reads that matched that title.
      u'gi|341610028|gb|JN244102.1| Influenza A virus (A/wild bird/Korea/A331/2009(H7N7)) segment 1 polymerase PB2 (PB2) gene, partial cds',
      u'gi|341610026|gb|JN244101.1| Influenza A virus (A/wild bird/Korea/A330/2009(H7N7)) segment 1 polymerase PB2 (PB2) gene, complete cds',
      u'gi|298659151|gb|CY064947.1| Influenza A virus (A/mallard/Netherlands/5/1999(H2N9)) segment 1 sequence']
-
-
 
 Note that calling `titleCounts` forces the alignment data to be read. But apart
 from the title names and their counts, all data is discarded. Thus `titleCounts`
@@ -603,7 +550,6 @@ from the BLAST output and use that as a score.
 If you prefer to work with BLAST e-values, it's easy. Just pass
 `scoreClass=LowerIsBetterScore` to the `BlastReadsAlignments` constructor:
 
-
     from dark.blast.alignments import BlastReadsAlignments
     from dark.score import LowerIsBetterScore
     
@@ -613,9 +559,7 @@ If you prefer to work with BLAST e-values, it's easy. Just pass
     reads = FastaReads(fastaFile)
     blastReadsAlignments = BlastReadsAlignments(reads, json, scoreClass=LowerIsBetterScore)
 
-
 ### A `FastaReads` instance doesn't know how long it is until is has read the reads:
-
 
     !echo '>id1\nACGT\n>id2\nCCC\n' > /tmp/ipynb-demo-data.fasta
     
@@ -629,7 +573,6 @@ If you prefer to work with BLAST e-values, it's easy. Just pass
 
 Scores in `HSP` and `LSP` classes are implemented by two `score` classes. It is
 those classes that know how to compare themselves properly:
-
 
     from dark.score import HigherIsBetterScore
     
@@ -650,7 +593,6 @@ correctly, it is actually their scores that are doing the work.
 
 If you are working with multiple JSON files in iPython Notebook, here's how you
 can collect them all to pass to `BlastReadsAlignments`:
-
 
     from glob import glob
     
@@ -684,12 +626,9 @@ can collect them all to pass to `BlastReadsAlignments`:
      '../output/emc-rna-seq/3697/8.json.bz2',
      '../output/emc-rna-seq/3697/9.json.bz2']
 
-
-
 ### Looking at the size of your JSON inputs
 
 Continuing from the above, let's see the size of all those JSON files
-
 
     total = 0
     for j in json:
