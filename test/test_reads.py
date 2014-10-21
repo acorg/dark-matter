@@ -4,9 +4,11 @@ from cStringIO import StringIO
 from os import stat
 
 from mocking import mockOpen
-from dark.reads import Read, TranslatedRead, Reads, DNARead, RNARead, AARead
-from dark.aa import (BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE,
-                     POLAR, SMALL, TINY)
+from dark.reads import (
+    Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF)
+from dark.aa import (
+    BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
+    TINY)
 
 
 class TestRead(TestCase):
@@ -317,6 +319,542 @@ class TestAARead(TestCase):
             list(properties)
         )
 
+    def testORFsEmptySequence(self):
+        """
+        An AA read of length zero must not have any ORFs.
+        """
+        read = AARead('id', '')
+        orfs = list(read.ORFs())
+        self.assertEqual(0, len(orfs))
+
+    def testORFsEmptySequenceWithStartStop(self):
+        """
+        An AA read with just a start and stop codon must not have any ORFs.
+        """
+        read = AARead('id', 'M*')
+        orfs = list(read.ORFs())
+        self.assertEqual(0, len(orfs))
+
+    def testORFsEmptySequenceWithStart(self):
+        """
+        An AA read with just a start codon must not have any ORFs.
+        """
+        read = AARead('id', 'M')
+        orfs = list(read.ORFs())
+        self.assertEqual(0, len(orfs))
+
+    def testORFsWithOneStopCodon(self):
+        """
+        An AA read of a single stop codon must not have any ORFs.
+        """
+        read = AARead('id', '*')
+        orfs = list(read.ORFs())
+        self.assertEqual(0, len(orfs))
+
+    def testORFsWithTwoStopCodons(self):
+        """
+        An AA read of two stop codons must not have any ORFs.
+        """
+        read = AARead('id', '**')
+        orfs = list(read.ORFs())
+        self.assertEqual(0, len(orfs))
+
+    def testORFsWithJustStartsAndStops(self):
+        """
+        An AA read of only start and stop codons must not have any ORFs.
+        """
+        read = AARead('id', '**MM*M**MMM*')
+        orfs = list(read.ORFs())
+        self.assertEqual(0, len(orfs))
+
+    def testOpenOpenORF(self):
+        """
+        An AA read that contains no start or stop codons should result in
+        just one AAReadORF when its ORFs method is called. The ORF must have
+        the correct start/stop offsets and its left and right side must be
+        marked as open.
+        """
+        read = AARead('id', 'ADRADR')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+        orf = orfs[0]
+        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(6, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testOpenCloseORF(self):
+        """
+        An AA read that contains no start codon but one trailing stop
+        codon should result in just one AAReadORF when its ORFs method is
+        called. The ORF must have the correct start/stop offsets and its
+        left and right sides must be marked as open and closed,
+        respectively.
+        """
+        read = AARead('id', 'ADRADR*')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+        orf = orfs[0]
+        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(6, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+    def testOpenCloseORFWithMultipleStops(self):
+        """
+        An AA read that contains no start codon but multiple trailing
+        stop codons should result in just one AAReadORF when its ORFs
+        method is called. The ORF must have the correct start/stop offsets
+        and its left and right sides must be marked as open and closed,
+        respectively.
+        """
+        read = AARead('id', 'ADRADR***')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+        orf = orfs[0]
+        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(6, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+    def testCloseOpenORF(self):
+        """
+        An AA read that contains a start but no stop codon should result in
+        just one AAReadORF when its ORFs method is called. The ORF must have
+        the correct start/stop offsets and its left and right sides must be
+        marked as closed and open, respectively.
+        """
+        read = AARead('id', 'MADRADR')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+        orf = orfs[0]
+        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual(1, orf.start)
+        self.assertEqual(7, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseOpenORFWithMultipleStarts(self):
+        """
+        An AA read that contains multiple initial start codons but no
+        stop codon should result in just one AAReadORF when its ORFs method
+        is called. The ORF must have the correct start/stop offsets and its
+        left and right sides must be marked as closed and open,
+        respectively.
+        """
+        read = AARead('id', 'MMMADRADR')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+        orf = orfs[0]
+        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual(3, orf.start)
+        self.assertEqual(9, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseORF(self):
+        """
+        An AA read that contains a start and a stop codon should result in
+        just one AAReadORF when its ORFs method is called. The ORF must have
+        the correct start/stop offsets and its left and right sides must be
+        both marked as closed.
+        """
+        read = AARead('id', 'MADRADR*')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+        orf = orfs[0]
+        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual(1, orf.start)
+        self.assertEqual(7, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+    def testOpenCloseThenCloseOpenORF(self):
+        """
+        An AA read that contains an ORF that is left open and right closed
+        followed by an ORF that is left closed and right open must have the
+        ORFs detected correctly when its ORFs method is called.
+        """
+        read = AARead('id', 'ADR*MRRR')
+        orfs = list(read.ORFs())
+        self.assertEqual(2, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(3, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(5, orf.start)
+        self.assertEqual(8, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseThenCloseOpenORF(self):
+        """
+        An AA read that contains an ORF that is left and right closed
+        followed by an ORF that is left closed and right open must have the
+        ORFs detected correctly when its ORFs method is called.
+        """
+        read = AARead('id', 'MADR*MRRR')
+        orfs = list(read.ORFs())
+        self.assertEqual(2, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(1, orf.start)
+        self.assertEqual(4, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(6, orf.start)
+        self.assertEqual(9, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseThenCloseCloseORF(self):
+        """
+        An AA read that contains two ORFs that are both left and right closed
+        must have the ORFs detected correctly when its ORFs method is called.
+        """
+        read = AARead('id', 'MADR*MRRR*')
+        orfs = list(read.ORFs())
+        self.assertEqual(2, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(1, orf.start)
+        self.assertEqual(4, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(6, orf.start)
+        self.assertEqual(9, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+    def testOpenCloseThenCloseCloseThenCloseOpenORF(self):
+        """
+        An AA read that contains an ORF that is left open and right closed
+        followed by an internal ORF, followed by an ORF that is left closed
+        and right open must have the ORFs detected correctly when its ORFs
+        method is called.
+        """
+        read = AARead('id', 'ADR*MAAA*MRRR')
+        orfs = list(read.ORFs())
+        self.assertEqual(3, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(3, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual(5, orf.start)
+        self.assertEqual(8, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[2]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(10, orf.start)
+        self.assertEqual(13, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseThenCloseCloseThenCloseOpenORF(self):
+        """
+        An AA read that contains an ORF that is left and right closed
+        followed by an internal ORF, followed by an ORF that is left closed
+        and right open must have the ORFs detected correctly when its ORFs
+        method is called.
+        """
+        read = AARead('id', 'MADR*MAAA*MRRR')
+        orfs = list(read.ORFs())
+        self.assertEqual(3, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(1, orf.start)
+        self.assertEqual(4, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual(6, orf.start)
+        self.assertEqual(9, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[2]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(11, orf.start)
+        self.assertEqual(14, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseThenCloseCloseThenCloseCloseORF(self):
+        """
+        An AA read that contains an ORF that is left and right closed
+        followed by an internal ORF, followed by an ORF that is left and
+        right closed must have the ORFs detected correctly when its ORFs
+        method is called.
+        """
+        read = AARead('id', 'MADR*MAAA*MRRR*')
+        orfs = list(read.ORFs())
+        self.assertEqual(3, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(1, orf.start)
+        self.assertEqual(4, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual(6, orf.start)
+        self.assertEqual(9, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[2]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(11, orf.start)
+        self.assertEqual(14, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+    def testOpenCloseThenCloseCloseThenCloseOpenORFWithJunk(self):
+        """
+        An AA read that contains an ORF that is left open and right closed
+        followed by an internal ORF, followed by an ORF that is left closed
+        and right open must have the ORFs detected correctly when its ORFs
+        method is called, including when there are intermediate start and
+        stop codons.
+        """
+        read = AARead('id', 'ADR***M*MAAA***MMM*MRRR')
+        orfs = list(read.ORFs())
+        self.assertEqual(3, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(3, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual(9, orf.start)
+        self.assertEqual(12, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[2]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(20, orf.start)
+        self.assertEqual(23, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseThenCloseCloseThenCloseOpenORFWithJunk(self):
+        """
+        An AA read that contains an ORF that is left and right closed
+        followed by an internal ORF, followed by an ORF that is left closed
+        and right open must have the ORFs detected correctly when its ORFs
+        method is called.
+        """
+        read = AARead('id', '**MADR***MM**MAAA***M*MRRR')
+        orfs = list(read.ORFs())
+        self.assertEqual(3, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(3, orf.start)
+        self.assertEqual(6, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual(14, orf.start)
+        self.assertEqual(17, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[2]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(23, orf.start)
+        self.assertEqual(26, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertTrue(orf.openRight)
+
+    def testCloseCloseThenCloseCloseThenCloseCloseORFWithJunk(self):
+        """
+        An AA read that contains an ORF that is left and right closed
+        followed by an internal ORF, followed by an ORF that is left and
+        right closed must have the ORFs detected correctly when its ORFs
+        method is called.
+        """
+        read = AARead('id', 'M***MADR***MAAA***MRRR***MM')
+        orfs = list(read.ORFs())
+        self.assertEqual(3, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual(5, orf.start)
+        self.assertEqual(8, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[1]
+        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual(12, orf.start)
+        self.assertEqual(15, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+        orf = orfs[2]
+        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual(19, orf.start)
+        self.assertEqual(22, orf.stop)
+        self.assertFalse(orf.openLeft)
+        self.assertFalse(orf.openRight)
+
+
+class TestAAReadORF(TestCase):
+    """
+    Test the AAReadORF class.
+    """
+    def testSequence(self):
+        """
+        An AAReadORF instance must have the correct sequence.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 0, 4, True, True)
+        self.assertEqual('ADRA', read.sequence)
+
+    def testStart(self):
+        """
+        An AAReadORF instance must store the correct start offset.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 3, 4, True, True)
+        self.assertEqual(3, read.start)
+        read = AAReadORF(originalRead, 4, 4, True, True)
+        self.assertEqual(4, read.start)
+
+    def testStop(self):
+        """
+        An AAReadORF instance must store the correct stop offset.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 0, 4, True, True)
+        self.assertEqual(4, read.stop)
+        read = AAReadORF(originalRead, 0, 6, True, True)
+        self.assertEqual(6, read.stop)
+
+    def testOpenLeft(self):
+        """
+        An AAReadORF instance must store the correct openLeft value.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 0, 4, True, True)
+        self.assertTrue(read.openLeft)
+        read = AAReadORF(originalRead, 0, 4, False, True)
+        self.assertFalse(read.openLeft)
+
+    def testOpenRight(self):
+        """
+        An AAReadORF instance must store the correct openRight value.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 0, 4, True, True)
+        self.assertTrue(read.openRight)
+        read = AAReadORF(originalRead, 0, 4, True, False)
+        self.assertFalse(read.openRight)
+
+    def testStartGreaterThanStop(self):
+        """
+        An AAReadORF start offset must not be greater than its stop offset.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        error = 'start offset \(4\) greater than stop offset \(0\)'
+        self.assertRaisesRegexp(
+            ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
+
+    def testStartNegative(self):
+        """
+        An AAReadORF start offset must not be less than zero.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        error = 'start offset \(-1\) less than zero'
+        self.assertRaisesRegexp(
+            ValueError, error, AAReadORF, originalRead, -1, 6, True, True)
+
+    def testStopGreaterThanOriginalSequenceLength(self):
+        """
+        An AAReadORF stop offset must not be greater than the length of the
+        original sequence.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        error = 'stop offset \(10\) > original read length \(6\)'
+        self.assertRaisesRegexp(
+            ValueError, error, AAReadORF, originalRead, 0, 10, True, True)
+
+    def testOpenOpenId(self):
+        """
+        An AAReadORF instance must have a correctly annotated (containing the
+        sequence offsets) id when the left and right sides of the ORF are open.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 3, 4, True, True)
+        self.assertEqual('id-(3:4)', read.id)
+
+    def testOpenClosedId(self):
+        """
+        An AAReadORF instance must have a correctly annotated (containing the
+        sequence offsets) id when the left side of the ORF is open and the
+        right is closed.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 3, 4, True, False)
+        self.assertEqual('id-(3:4]', read.id)
+
+    def testClosedOpenId(self):
+        """
+        An AAReadORF instance must have a correctly annotated (containing the
+        sequence offsets) id when the left side of the ORF is closed and the
+        right is open.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 3, 4, False, True)
+        self.assertEqual('id-[3:4)', read.id)
+
+    def testClosedClosedId(self):
+        """
+        An AAReadORF instance must have a correctly annotated (containing the
+        sequence offsets) id when both sides of the ORF are closed.
+        """
+        originalRead = AARead('id', 'ADRADR')
+        read = AAReadORF(originalRead, 3, 4, False, False)
+        self.assertEqual('id-[3:4]', read.id)
+
 
 class TestTranslatedRead(TestCase):
     """
@@ -331,7 +869,6 @@ class TestTranslatedRead(TestCase):
         translated = TranslatedRead(read, 'IRDS', 0)
         self.assertEqual('IRDS', translated.sequence)
         self.assertEqual(0, translated.frame)
-        self.assertIs(read, translated.originalRead)
 
     def testSequence(self):
         """
@@ -369,14 +906,6 @@ class TestTranslatedRead(TestCase):
         self.assertFalse(translated.reverseComplemented)
         translated = TranslatedRead(read, 'IRDS', 0, reverseComplemented=True)
         self.assertTrue(translated.reverseComplemented)
-
-    def testExpectedOriginalRead(self):
-        """
-        A TranslatedRead instance must store the original read.
-        """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 0)
-        self.assertIs(read, translated.originalRead)
 
     def testId(self):
         """

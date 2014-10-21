@@ -145,6 +145,75 @@ class AARead(Read):
         """
         return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
 
+    def ORFs(self):
+        """
+        Find all ORFs in our sequence.
+
+        @return: A generator that yields AAReadORF instances that correspond
+            to the ORFs found in the AA sequence.
+        """
+        ORFStart = None
+        openLeft = True
+
+        for index, residue in enumerate(self.sequence):
+            if residue == 'M':
+                # Start codon.
+                openLeft = False
+            elif residue == '*':
+                # Stop codon. Yield an ORF, if it has non-zero length.
+                if ORFStart is not None and index - ORFStart > 0:
+                    # The ORF has non-zero length.
+                    yield AAReadORF(self, ORFStart, index, openLeft, False)
+                    ORFStart = None
+            else:
+                if ORFStart is None:
+                    ORFStart = index
+
+        # End of sequence. Yield the final ORF if there is one and it has
+        # non-zero length.
+        length = len(self.sequence)
+        if ORFStart is not None and length - ORFStart > 0:
+            yield AAReadORF(self, ORFStart, length, openLeft, True)
+
+
+class AAReadORF(AARead):
+    """
+    Hold information about an ORF from an AA read.
+
+    @param originalRead: The original L{AARead} instance in which this ORF
+        occurs.
+    @param start: The C{int} offset where the ORF starts in the original read.
+    @param stop: The Python-style C{int} offset of the end of the ORF in the
+        original read. The final index is not included in the ORF.
+    @param openLeft: A C{bool}. If C{True}, the ORF potentially begins before
+        the sequence given in C{sequence}. I.e., the ORF-detection code started
+        to examine a read assuming it was already in an ORF. If C{False}, a
+        start codon was found preceeding this ORF.
+    @param openRight: A C{bool}. If C{True}, the ORF potentially ends after
+        the sequence given in C{sequence}. I.e., the ORF-detection code
+        was in an ORF when it encountered the end of a read (so no stop codon
+        was found). If C{False}, a stop codon was found in the read after this
+        ORF.
+    """
+    def __init__(self, originalRead, start, stop, openLeft, openRight):
+        if start < 0:
+            raise ValueError('start offset (%d) less than zero' % start)
+        if stop > len(originalRead):
+            raise ValueError('stop offset (%d) > original read length (%d)' %
+                             (stop, len(originalRead)))
+        if start > stop:
+            raise ValueError('start offset (%d) greater than stop offset (%d)'
+                             % (start, stop))
+        newId = '%s-%s%d:%d%s' % (originalRead.id,
+                                  '(' if openLeft else '[',
+                                  start, stop,
+                                  ')' if openRight else ']')
+        AARead.__init__(self, newId, originalRead.sequence[start:stop])
+        self.start = start
+        self.stop = stop
+        self.openLeft = openLeft
+        self.openRight = openRight
+
 
 class TranslatedRead(AARead):
     """
@@ -163,16 +232,14 @@ class TranslatedRead(AARead):
             raise ValueError('Frame must be 0, 1, or 2')
         newId = '%s-frame%d%s' % (originalRead.id, frame,
                                   'rc' if reverseComplemented else '')
-        Read.__init__(self, newId, sequence)
-        self.originalRead = originalRead
+        AARead.__init__(self, newId, sequence)
         self.frame = frame
         self.reverseComplemented = reverseComplemented
 
     def __eq__(self, other):
-        return (Read.__eq__(self, other) and
+        return (AARead.__eq__(self, other) and
                 self.frame == other.frame and
-                self.reverseComplemented == other.reverseComplemented and
-                self.originalRead == other.originalRead)
+                self.reverseComplemented == other.reverseComplemented)
 
     def __ne__(self, other):
         return not self == other
