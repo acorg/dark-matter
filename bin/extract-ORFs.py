@@ -55,7 +55,7 @@ if __name__ == '__main__':
             # No need to translate to AA, since our input is already AA.
             translations = [read]
         else:
-                translations = read.translations()
+            translations = read.translations()
         try:
             for translation in translations:
                 for orf in translation.ORFs():
