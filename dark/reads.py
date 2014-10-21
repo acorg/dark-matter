@@ -180,9 +180,9 @@ class AAReadORF(AARead):
     """
     Hold information about an ORF from an AA read.
 
-    @param originalRead: The original L{AARead} instance from which
-        this ORF was obtained.
-    @param start: The C{int} offset where the ORF started in the original read.
+    @param originalRead: The original L{AARead} instance in which this ORF
+        occurs.
+    @param start: The C{int} offset where the ORF starts in the original read.
     @param stop: The Python-style C{int} offset of the end of the ORF in the
         original read. The final index is not included in the ORF.
     @param openLeft: A C{bool}. If C{True}, the ORF potentially begins before
