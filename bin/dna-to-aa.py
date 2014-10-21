@@ -4,10 +4,16 @@
 Read DNA FASTA from stdin and print AA FASTA to stdout.  If a minimum
 ORF length is given, only print AA sequences that have an ORF of at least
 that length.
+
+Note that start and stop codons will be present in the output. If you actually
+want to just output all ORFs, use extract-ORFs.py directly instead (or pipe
+the output of this program into extract-ORFs.py --type aa).
 """
 
 import sys
 import argparse
+
+from Bio.Data.CodonTable import TranslationError
 
 from dark.fasta import FastaReads
 
@@ -21,8 +27,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--type', type=str, default='dna',
-        choices=['aa', 'dna', 'rna'],
-        help='The type of the bases in the FASTA file.')
+        choices=['dna', 'rna'],
+        help='The type of the bases in the stdin FASTA.')
 
     parser.add_argument(
         '--minORFLength', metavar='LEN', type=int, default=None,
@@ -35,6 +41,12 @@ if __name__ == '__main__':
     minORFLength = args.minORFLength
 
     for read in reads:
-        for aa in read.translations():
-            if minORFLength is None or aa.maximumORFLength() >= minORFLength:
-                write(aa.toString('fasta'))
+        try:
+            for translation in read.translations():
+                if (minORFLength is None or
+                        translation.maximumORFLength() >= minORFLength):
+                    write(translation.toString('fasta'))
+        except TranslationError as error:
+            print >>sys.stderr, ('Could not translate read %r sequence '
+                                 '%r (%s).' % (read.id, read.sequence, error))
+            sys.exit(1)
