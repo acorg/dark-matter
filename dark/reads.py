@@ -154,25 +154,31 @@ class AARead(Read):
         """
         ORFStart = None
         openLeft = True
+        seenStart = False
 
         for index, residue in enumerate(self.sequence):
             if residue == 'M':
                 # Start codon.
                 openLeft = False
+                seenStart = True
             elif residue == '*':
                 # Stop codon. Yield an ORF, if it has non-zero length.
                 if ORFStart is not None and index - ORFStart > 0:
                     # The ORF has non-zero length.
                     yield AAReadORF(self, ORFStart, index, openLeft, False)
                     ORFStart = None
+                # After a stop codon, we can no longer be open on the left
+                # and we have no longer seen a start codon.
+                openLeft = seenStart = False
             else:
-                if ORFStart is None:
+                if (seenStart or openLeft) and ORFStart is None:
                     ORFStart = index
 
         # End of sequence. Yield the final ORF if there is one and it has
         # non-zero length.
         length = len(self.sequence)
-        if ORFStart is not None and length - ORFStart > 0:
+        if ((seenStart or openLeft) and ORFStart is not None
+                and length - ORFStart > 0):
             yield AAReadORF(self, ORFStart, length, openLeft, True)
 
 

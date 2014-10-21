@@ -383,6 +383,7 @@ class TestAARead(TestCase):
         self.assertEqual(6, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:6)')
 
     def testOpenCloseORF(self):
         """
@@ -401,6 +402,7 @@ class TestAARead(TestCase):
         self.assertEqual(6, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:6]')
 
     def testOpenCloseORFWithMultipleStops(self):
         """
@@ -419,6 +421,7 @@ class TestAARead(TestCase):
         self.assertEqual(6, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:6]')
 
     def testCloseOpenORF(self):
         """
@@ -436,6 +439,7 @@ class TestAARead(TestCase):
         self.assertEqual(7, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[1:7)')
 
     def testCloseOpenORFWithMultipleStarts(self):
         """
@@ -454,6 +458,7 @@ class TestAARead(TestCase):
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[3:9)')
 
     def testCloseCloseORF(self):
         """
@@ -471,6 +476,7 @@ class TestAARead(TestCase):
         self.assertEqual(7, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[1:7]')
 
     def testOpenCloseThenCloseOpenORF(self):
         """
@@ -488,6 +494,7 @@ class TestAARead(TestCase):
         self.assertEqual(3, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:3]')
 
         orf = orfs[1]
         self.assertEqual('RRR', orf.sequence)
@@ -495,6 +502,7 @@ class TestAARead(TestCase):
         self.assertEqual(8, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[5:8)')
 
     def testCloseCloseThenCloseOpenORF(self):
         """
@@ -512,6 +520,7 @@ class TestAARead(TestCase):
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[1:4]')
 
         orf = orfs[1]
         self.assertEqual('RRR', orf.sequence)
@@ -519,6 +528,7 @@ class TestAARead(TestCase):
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[6:9)')
 
     def testCloseCloseThenCloseCloseORF(self):
         """
@@ -535,6 +545,7 @@ class TestAARead(TestCase):
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[1:4]')
 
         orf = orfs[1]
         self.assertEqual('RRR', orf.sequence)
@@ -542,6 +553,7 @@ class TestAARead(TestCase):
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[6:9]')
 
     def testOpenCloseThenCloseCloseThenCloseOpenORF(self):
         """
@@ -560,6 +572,7 @@ class TestAARead(TestCase):
         self.assertEqual(3, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:3]')
 
         orf = orfs[1]
         self.assertEqual('AAA', orf.sequence)
@@ -567,6 +580,7 @@ class TestAARead(TestCase):
         self.assertEqual(8, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[5:8]')
 
         orf = orfs[2]
         self.assertEqual('RRR', orf.sequence)
@@ -574,6 +588,7 @@ class TestAARead(TestCase):
         self.assertEqual(13, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[10:13)')
 
     def testCloseCloseThenCloseCloseThenCloseOpenORF(self):
         """
@@ -592,6 +607,7 @@ class TestAARead(TestCase):
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[1:4]')
 
         orf = orfs[1]
         self.assertEqual('AAA', orf.sequence)
@@ -599,6 +615,7 @@ class TestAARead(TestCase):
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[6:9]')
 
         orf = orfs[2]
         self.assertEqual('RRR', orf.sequence)
@@ -606,6 +623,7 @@ class TestAARead(TestCase):
         self.assertEqual(14, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[11:14)')
 
     def testCloseCloseThenCloseCloseThenCloseCloseORF(self):
         """
@@ -624,6 +642,7 @@ class TestAARead(TestCase):
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[1:4]')
 
         orf = orfs[1]
         self.assertEqual('AAA', orf.sequence)
@@ -631,6 +650,7 @@ class TestAARead(TestCase):
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[6:9]')
 
         orf = orfs[2]
         self.assertEqual('RRR', orf.sequence)
@@ -638,6 +658,7 @@ class TestAARead(TestCase):
         self.assertEqual(14, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[11:14]')
 
     def testOpenCloseThenCloseCloseThenCloseOpenORFWithJunk(self):
         """
@@ -657,6 +678,7 @@ class TestAARead(TestCase):
         self.assertEqual(3, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:3]')
 
         orf = orfs[1]
         self.assertEqual('AAA', orf.sequence)
@@ -664,6 +686,7 @@ class TestAARead(TestCase):
         self.assertEqual(12, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[9:12]')
 
         orf = orfs[2]
         self.assertEqual('RRR', orf.sequence)
@@ -671,6 +694,7 @@ class TestAARead(TestCase):
         self.assertEqual(23, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[20:23)')
 
     def testCloseCloseThenCloseCloseThenCloseOpenORFWithJunk(self):
         """
@@ -689,6 +713,7 @@ class TestAARead(TestCase):
         self.assertEqual(6, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[3:6]')
 
         orf = orfs[1]
         self.assertEqual('AAA', orf.sequence)
@@ -696,6 +721,7 @@ class TestAARead(TestCase):
         self.assertEqual(17, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[14:17]')
 
         orf = orfs[2]
         self.assertEqual('RRR', orf.sequence)
@@ -703,6 +729,7 @@ class TestAARead(TestCase):
         self.assertEqual(26, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
+        self.assertEqual(orf.id, 'id-[23:26)')
 
     def testCloseCloseThenCloseCloseThenCloseCloseORFWithJunk(self):
         """
@@ -721,6 +748,7 @@ class TestAARead(TestCase):
         self.assertEqual(8, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[5:8]')
 
         orf = orfs[1]
         self.assertEqual('AAA', orf.sequence)
@@ -728,6 +756,7 @@ class TestAARead(TestCase):
         self.assertEqual(15, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[12:15]')
 
         orf = orfs[2]
         self.assertEqual('RRR', orf.sequence)
@@ -735,6 +764,25 @@ class TestAARead(TestCase):
         self.assertEqual(22, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-[19:22]')
+
+    def testNoStartCodon_GithubIssue239(self):
+        """
+        If there is no start codon in a sequence, it should not be returned
+        as an ORF.
+        """
+        # Example from https://github.com/acorg/dark-matter/issues/239
+        read = AARead('id', 'KK*LLILFSCQRWSRKSICVHLTQR*G*')
+        orfs = list(read.ORFs())
+        self.assertEqual(1, len(orfs))
+
+        orf = orfs[0]
+        self.assertEqual('KK', orf.sequence)
+        self.assertEqual(0, orf.start)
+        self.assertEqual(2, orf.stop)
+        self.assertTrue(orf.openLeft)
+        self.assertFalse(orf.openRight)
+        self.assertEqual(orf.id, 'id-(0:2]')
 
 
 class TestAAReadORF(TestCase):
@@ -939,7 +987,7 @@ class TestTranslatedRead(TestCase):
         The maximumORFLength function must return the correct value.
         """
         read = Read('id', 'acctaggttgtttag')
-        translated = TranslatedRead(read, 'T*VV*', 0)
+        translated = TranslatedRead(read, 'T*MVV*', 0)
         self.assertEqual(2, translated.maximumORFLength())
 
 
