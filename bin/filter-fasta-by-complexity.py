@@ -10,7 +10,7 @@ ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST
 """
 
 import sys
-from os import close, environ, unlink
+from os import close, unlink
 from time import time
 import argparse
 from subprocess import call
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     start = time()
 
     try:
-        status = call(cmd, shell=True, env=environ)
+        status = call(cmd, shell=True)
         print >>sys.stderr, 'done.\ndustmasker completed in %.2f seconds.' % (
             time() - start)
         if status < 0:
