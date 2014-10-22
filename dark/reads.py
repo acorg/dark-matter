@@ -76,6 +76,22 @@ class Read(object):
         else:
             raise ValueError("Format must be either 'fasta' or 'fastq'.")
 
+    def lowComplexityFraction(self):
+        """
+        What fraction of a read's bases are in low-complexity regions?
+        By convention, a region of low complexity is indicated by lowercase
+        base letters.
+
+        @return: The C{float} representing the fraction of bases in the
+            read that are in regions of low complexity.
+        """
+        length = len(self)
+        if length:
+            lowerCount = len(filter(str.islower, self.sequence))
+            return float(lowerCount) / length
+        else:
+            return 0.0
+
 
 class _NucleotideRead(Read):
     """

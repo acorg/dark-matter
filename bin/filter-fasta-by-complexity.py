@@ -79,9 +79,7 @@ if __name__ == '__main__':
     for read in reads:
         readCount += 1
         fasta = read.toString('fasta')
-        lowerCount = len(filter(str.islower, read.sequence))
-        lowComplexityFraction = lowerCount / maxLowComplexity
-        if lowComplexityFraction < maxLowComplexity:
+        if read.lowComplexityFraction() < maxLowComplexity:
             save(fasta)
         else:
             reject(fasta)
