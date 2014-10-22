@@ -41,10 +41,7 @@ class Read(object):
                 (len(sequence), len(quality)))
 
         self.id = id
-        try:
-            self.sequence = sequence.upper()
-        except AttributeError:
-            self.sequence = sequence
+        self.sequence = sequence
         self.quality = quality
 
     def __eq__(self, other):
