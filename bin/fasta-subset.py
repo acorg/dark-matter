@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Given a set of FASTA sequence identifiers from sys.argv or in a file, read
+Given a set of FASTA sequence identifiers from sys.argv and/or in a file, read
 FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 """
 
