@@ -32,12 +32,12 @@ class TestRead(TestCase):
         read = Read('id', 'ACGT')
         self.assertIs(None, read.quality)
 
-    def testConvertToUpperCase(self):
+    def testCasePreservation(self):
         """
-        The sequence passed to Read must be converted to upper case.
+        The sequence passed to Read must not have its case converted.
         """
-        read = Read('id', 'acgt')
-        self.assertEqual('ACGT', read.sequence)
+        read = Read('id', 'aCGt')
+        self.assertEqual('aCGt', read.sequence)
 
     def testExpectedAttributes(self):
         """
@@ -153,7 +153,7 @@ class TestDNARead(TestCase):
         """
         The reverseComplement function must work.
         """
-        read = DNARead('id', 'atcg', quality='!@#$')
+        read = DNARead('id', 'ATCG', quality='!@#$')
         self.assertEqual('CGAT', read.reverseComplement().sequence)
 
     def testReverseComplementAmbiguous(self):
@@ -161,7 +161,7 @@ class TestDNARead(TestCase):
         The reverseComplement function must work for a sequence that includes
         ambiguous bases.
         """
-        read = DNARead('id', 'atcgmrwsvhxn')
+        read = DNARead('id', 'ATCGMRWSVHXN')
         self.assertEqual('NXDBSWYKCGAT', read.reverseComplement().sequence)
 
     def testTranslationsOfEmptySequence(self):
@@ -203,7 +203,7 @@ class TestDNARead(TestCase):
         The translations function must correctly return all six translations
         of a sequence with just two bases.
         """
-        read = DNARead('id', 'ag')
+        read = DNARead('id', 'AG')
         self.assertEqual(
             [
                 TranslatedRead(read, 'X', 0, False),
@@ -257,7 +257,7 @@ class TestDNARead(TestCase):
         """
         The translations function must correctly return all six translations.
         """
-        read = DNARead('id', 'accgtcagg')
+        read = DNARead('id', 'ACCGTCAGG')
         self.assertEqual(
             [
                 TranslatedRead(read, 'TVR', 0, False),
@@ -278,7 +278,7 @@ class TestRNARead(TestCase):
         """
         The reverseComplement function must work.
         """
-        read = RNARead('id', 'aucg')
+        read = RNARead('id', 'AUCG')
         self.assertEqual('CGAU', read.reverseComplement().sequence)
 
     def testReverseComplementAmbiguous(self):
@@ -286,14 +286,14 @@ class TestRNARead(TestCase):
         The reverseComplement function must work for a sequence that includes
         ambiguous bases.
         """
-        read = RNARead('id', 'aucgmrwsykvhxn')
+        read = RNARead('id', 'AUCGMRWSYKVHXN')
         self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
 
     def testTranslationOfStopCodonUAA(self):
         """
         The translations function must correctly translate the UAA stop codon.
         """
-        read = RNARead('id', 'uaa')
+        read = RNARead('id', 'UAA')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
             read.translations().next())
