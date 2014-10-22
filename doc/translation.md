@@ -62,12 +62,38 @@ specified length:
     SLTAVSNVHRYFSGSSAGMKTKLTIIF*
     >SK7F6:30:80-frame1rc
     QKIIVNFVFMPALEPEKYLCTFDTAVRLX
-    >SK7F6:30:80-frame2rc
-    KK*LLILFSCQRWSRKSICVHLTQR*G*
 
 ## Extracting ORFs
 
 To find and extract all ORFs in the translations, use `extract-ORFs.py`:
+
+    $ extract-ORFs.py < dna.fasta
+    >SK7F6:25:89-frame0-[0:5)
+    VTMNX
+    >SK7F6:25:89-frame1-(0:2]
+    LQ
+    >SK7F6:25:89-frame2-(0:4)
+    YNEX
+    >SK7F6:25:89-frame0rc-(0:3]
+    HSL
+    >SK7F6:25:89-frame1rc-(0:4)
+    IHCN
+    >SK7F6:25:89-frame2rc-(0:4)
+    FIVT
+    >SK7F6:30:80-frame0-[0:19]
+    SASPLCQMYTDTFPAPALA
+    >SK7F6:30:80-frame1-(0:29)
+    QPHRCVKCTQILFRLQRWHENKINNYFLX
+    >SK7F6:30:80-frame2-[0:27]
+    SLTAVSNVHRYFSGSSAGMKTKLTIIF
+    >SK7F6:30:80-frame0rc-(0:5]
+    SKNNC
+    >SK7F6:30:80-frame1rc-[0:29)
+    QKIIVNFVFMPALEPEKYLCTFDTAVRLX
+    >SK7F6:30:80-frame2rc-(0:2]
+    KK
+
+This can also be restricted by minimal ORF length:
 
     $ extract-ORFs.py --minORFLength 20 < dna.fasta
     >SK7F6:30:80-frame1-(0:29)
@@ -76,11 +102,25 @@ To find and extract all ORFs in the translations, use `extract-ORFs.py`:
     SLTAVSNVHRYFSGSSAGMKTKLTIIF
     >SK7F6:30:80-frame1rc-[0:29)
     QKIIVNFVFMPALEPEKYLCTFDTAVRLX
-    >SK7F6:30:80-frame2rc-(3:25]
-    LLILFSCQRWSRKSICVHLTQR
 
 Unlike `dna-to-aa.py`, `extract-ORFs.py` writes one new sequence per ORF
 and start and stop colons do not appear in the output.
+
+`extract-ORFs.py` also adds a suffix to the read ids to indicate the ORF
+offset in the original sequence, e.g., the `[0:29)` in
+`SK7F6:30:80-frame1rc-[0:29)`.  A parenthesis indicates that that side of
+the ORF was open (see below), whereas a square bracket indicates that the
+ORF had a start or stop codon on that side. The numbers in between give the
+start and stop offsets using Python's convention that the stop offset is
+not part of the ORF.
+
+To illustrate, the id `SK7F6:30:80-frame1rc-[0:29)` tells us that the
+original read was `SK7F6:30:80` (`TCAGCCTCACCG...ATTATTTTTTGA`). That was
+reverse complemented (`rc`) to get `TCAAAAAATAAT...CGGTGAGGCTGA`. The
+translation was of the frame with offset 1: `CAAAAAATAAT...CGGTGAGGCTGA`,
+producing ``. In that translation, the ORF had
+Python offsets (0, 29), corresponding to the AA substring
+`QKIIVNFVFMPALEPEKYLCTFDTAVRLX` (as shown above).
 
 ### Include "open" ORFs
 
@@ -99,32 +139,20 @@ length requirement, use `--allowOpenORFs`:
     YNEX
     >SK7F6:25:89-frame0rc-(0:3]
     HSL
-    >SK7F6:25:89-frame0rc-(4:5)
-    X
     >SK7F6:25:89-frame1rc-(0:4)
     IHCN
     >SK7F6:25:89-frame2rc-(0:4)
     FIVT
-    >SK7F6:30:80-frame0-[24:29)
-    QLFFX
     >SK7F6:30:80-frame1-(0:29)
     QPHRCVKCTQILFRLQRWHENKINNYFLX
     >SK7F6:30:80-frame2-[0:27]
     SLTAVSNVHRYFSGSSAGMKTKLTIIF
     >SK7F6:30:80-frame0rc-(0:5]
     SKNNC
-    >SK7F6:30:80-frame0rc-(6:22]
-    FCFHASAGAGKVSVYI
-    >SK7F6:30:80-frame0rc-(23:29)
-    HSGEAX
     >SK7F6:30:80-frame1rc-[0:29)
     QKIIVNFVFMPALEPEKYLCTFDTAVRLX
     >SK7F6:30:80-frame2rc-(0:2]
     KK
-    >SK7F6:30:80-frame2rc-(3:25]
-    LLILFSCQRWSRKSICVHLTQR
-    >SK7F6:30:80-frame2rc-(26:27]
-    G
 
 ### Starting from AA input
 
@@ -143,8 +171,6 @@ AA using `dna-to-aa.py` and pipe that into `extract-ORFs.py`:
     SLTAVSNVHRYFSGSSAGMKTKLTIIF
     >SK7F6:30:80-frame1rc-[0:29)
     QKIIVNFVFMPALEPEKYLCTFDTAVRLX
-    >SK7F6:30:80-frame2rc-(3:25]
-    LLILFSCQRWSRKSICVHLTQR
 
 In this case, if you forget to tell `extract-ORFs.py` that its input is AA,
 you'll get a translation error and a reminder to use `--type aa`:
