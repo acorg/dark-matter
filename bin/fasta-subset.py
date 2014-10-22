@@ -1,30 +1,60 @@
 #!/usr/bin/env python
 
 """
-Get a set of FASTA sequence identifiers from sys.argv, read FASTA from
-stdin, and print FASTA to stdout for the given sequences.
+Given a set of FASTA sequence identifiers from sys.argv or in a file, read
+FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 """
 
 import sys
+import argparse
+
 from Bio import SeqIO
 
+
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print >>sys.stderr, 'Usage: %s seqId-1 seqId-2 ... < sequences.fasta'
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Extract a subset of FASTA reads by id',
+        epilog='Given a set of FASTA sequence identifiers from sys.argv '
+        'or in a file, read FASTA from stdin, and print FASTA to stdout '
+        'for the given sequence ids.')
 
-    wanted = set(sys.argv[1:])
+    parser.add_argument(
+        'ids', type=str, default=None, nargs='*',
+        help='Wanted read ids.')
+
+    parser.add_argument(
+        '--readIdFile', type=str, default=None,
+        help='A file of wanted read ids.')
+
+    args = parser.parse_args()
+    wanted = set()
+
+    if args.ids:
+        wanted.update(args.ids)
+
+    if args.readIdFile is not None:
+        with open(args.readIdFile) as fp:
+            for line in fp:
+                wanted.add(line[:-1])
+
     found = []
-    for seq in SeqIO.parse(sys.stdin, 'fasta'):
-        if seq.description in wanted:
-            wanted.remove(seq.description)
-            found.append(seq)
 
-    if found:
-        SeqIO.write(found, sys.stdout, 'fasta')
-
-    print >>sys.stderr, 'Found %d sequences.' % len(found)
     if wanted:
-        print >>sys.stderr, 'WARNING: %d sequence%s not found: %s' % (
-            len(wanted), '' if len(wanted) == 1 else 's were',
-            ' '.join(wanted))
+        for seq in SeqIO.parse(sys.stdin, 'fasta'):
+            if seq.description in wanted:
+                wanted.remove(seq.description)
+                found.append(seq)
+
+        if found:
+            SeqIO.write(found, sys.stdout, 'fasta')
+
+        print >>sys.stderr, 'Found %d sequences.' % len(found)
+
+        if wanted:
+            print >>sys.stderr, 'WARNING: %d sequence%s not found: %s' % (
+                len(wanted), '' if len(wanted) == 1 else 's were',
+                ' '.join(wanted))
+    else:
+        # No wanted ids were given.
+        parser.print_help(sys.stderr)
+        sys.exit(1)
