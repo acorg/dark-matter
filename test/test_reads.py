@@ -137,6 +137,38 @@ class TestRead(TestCase):
         """
         self.assertEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'qq'))
 
+    def testLowComplexityFractionEmptySequence(self):
+        """
+        A read with an empty sequence must return a zero result from its
+        lowComplexityFraction method.
+        """
+        read = Read('id', '')
+        self.assertEqual(0.0, read.lowComplexityFraction())
+
+    def testLowComplexityFractionZero(self):
+        """
+        A read with no low-complexity bases must return a zero result from its
+        lowComplexityFraction method.
+        """
+        read = Read('id', 'ACGT')
+        self.assertEqual(0.0, read.lowComplexityFraction())
+
+    def testLowComplexityFractionOne(self):
+        """
+        A read with all low-complexity bases must return a one result from its
+        lowComplexityFraction method.
+        """
+        read = Read('id', 'acgt')
+        self.assertEqual(1.0, read.lowComplexityFraction())
+
+    def testLowComplexityFraction(self):
+        """
+        A read with all low-complexity bases must return the correct result
+        from its lowComplexityFraction method.
+        """
+        read = Read('id', 'aCGT')
+        self.assertEqual(0.25, read.lowComplexityFraction())
+
 
 class TestDNARead(TestCase):
     """
