@@ -158,7 +158,7 @@ class TitlesAlignments(dict):
         use in filtering.
     @param importReadsAlignmentsTitles: If C{True}, titles from
         C{readsAlignments} will be added to self. This argument is only used
-        by the filtering function to make an new instance without reading its
+        by the filtering function to make a new instance without reading its
         titles.
     """
 
