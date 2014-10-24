@@ -6,4 +6,4 @@ reads.
 
 ## Installation
 
-[Linux](doc/linux.html), [Windows](doc/windows.html).
+[Linux](doc/linux.md), [Windows](doc/windows.md).
