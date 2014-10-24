@@ -23,16 +23,9 @@ $ mysql.server start
 $ /usr/local/opt/mysql/bin/mysql_secure_installation
 ```
 
-* make a mySQL database:
-```sh
-mysql> create database ncbi_taxonomy;
-mysql> use ncbi_taxonomy;
-```
-
 #### On Windows
 
 See: [mySQL installer](http://dev.mysql.com/downloads/windows/installer/).
-
 
 ### Create a database
 
