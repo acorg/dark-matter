@@ -40,4 +40,4 @@ above by `git clone`) to your `PYTHONPATH`.
 
 ### Install a taxonomy database (optional)
 
-See [taxonomy.md](taxonomy.html) for details.
+See [taxonomy.md](taxonomy.md) for details.
