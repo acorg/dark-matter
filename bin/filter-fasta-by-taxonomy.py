@@ -37,8 +37,8 @@ def writeDetails(accept, readId, taxonomy, fp):
     @taxonomy: A C{list} of taxonomy C{str} levels.
     @fp: An open file pointer to write to.
     """
-    fp.write('%s: %s\n        %s\n\n' % (
-        'ACCEPT' if accept else 'REJECT', readId,
+    fp.write('%s %s\n       %s\n\n' % (
+        'MATCH:' if accept else 'MISS: ', readId,
         ' | '.join(taxonomy) if taxonomy else 'No taxonomy found.'))
 
 
@@ -54,8 +54,8 @@ if __name__ == '__main__':
         help='The regex to match the taxonomy on. Case is ignored.')
 
     parser.add_argument(
-        '--rejects', metavar='FILE', type=str, default=None,
-        help='The name of a file to save rejected sequences to.')
+        '--invert', action='store_true', default=False,
+        help='If True, only write sequences whose taxonomy does not match.')
 
     parser.add_argument(
         '--details', metavar='FILE', type=str, default=None,
@@ -63,12 +63,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.rejects is not None:
-        rejectFp = open(args.rejects, 'w')
-        reject = rejectFp.write
-    else:
-        rejectFp = None
-        reject = lambda x: None
+    try:
+        regexp = re.compile(args.taxonomy, re.I)
+    except re.error as e:
+        print >>sys.stderr, (
+            "Could not compile %r to a regular expression:" % args.taxonomy), e
+        sys.exit(1)
 
     if args.details is not None:
         detailsFp = open(args.details, 'w')
@@ -80,37 +80,39 @@ if __name__ == '__main__':
 
     lineageFetcher = LineageFetcher()
     reads = FastaReads(sys.stdin)
-    regexp = re.compile(args.taxonomy, re.I)
     save = sys.stdout.write
-    readCount = rejectCount = 0
+    readCount = saveCount = noTaxonomyCount = 0
 
     for read in reads:
         readCount += 1
         fasta = read.toString('fasta')
         taxonomy = lineageFetcher.lineage(read.id)
-        accept = False
-        for level in taxonomy:
-            if regexp.match(level):
-                save(fasta)
-                accept = True
-                break
+        if taxonomy:
+            for level in taxonomy:
+                if regexp.match(level):
+                    details(True, read.id, taxonomy)
+                    if not args.invert:
+                        saveCount += 1
+                        save(fasta)
+                    break
+            else:
+                details(False, read.id, taxonomy)
+                if args.invert:
+                    saveCount += 1
+                    save(fasta)
         else:
-            rejectCount += 1
-            reject(fasta)
-
-        details(accept, read.id, taxonomy)
-
-    if rejectFp:
-        rejectFp.close()
+            noTaxonomyCount += 1
 
     if detailsFp:
         detailsFp.close()
 
     lineageFetcher.close()
 
+    rejectCount = readCount - saveCount - noTaxonomyCount
     print >>sys.stderr, (
-        '%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected.' % (
-            readCount, readCount - rejectCount,
-            (readCount - rejectCount) / float(readCount) * 100.0,
-            rejectCount,
-            rejectCount / float(readCount) * 100.0))
+        '%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected, '
+        '%d (%.2f%%) no taxomony found.' % (
+            readCount,
+            saveCount, saveCount / float(readCount) * 100.0,
+            rejectCount, (rejectCount) / float(readCount) * 100.0,
+            noTaxonomyCount, noTaxonomyCount / float(readCount) * 100.0))
