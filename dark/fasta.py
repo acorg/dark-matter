@@ -102,4 +102,4 @@ class FastaReads(Reads):
         instance of the desired read class.
         """
         for seq in SeqIO.parse(self.file_, 'fasta'):
-            yield self.readClass(seq.id, str(seq.seq))
+            yield self.readClass(seq.description, str(seq.seq))
