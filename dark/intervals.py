@@ -3,8 +3,10 @@ from math import log
 
 class ReadIntervals(object):
     """
-    targetLength: the length of the target sequence that these reads
-    were against.
+    Hold information about the set of reads that match a subect.
+
+    @param targetLength: The C{int} length of the target sequence that the
+        reads are against.
     """
 
     EMPTY = 0
@@ -15,15 +17,24 @@ class ReadIntervals(object):
         self._intervals = []
 
     def add(self, start, end):
+        """
+        Add the start and end offsets of a matching read.
+
+        @param start: The C{int} start offset of the read match in the subject.
+        @param end: The C{int} end offset of the read match in the subject.
+            This is Python-style: the end offset is not included in the match.
+        """
         assert start <= end
         self._intervals.append((start, end))
 
     def walk(self):
         """
-        Yield intervals. Each is (type, (start, stop)) where type is
-        either EMPTY or FULL and (start, stop) is the interval. The
-        endpoint (stop) of the interval is not considered to be in the
-        interval. I.e., the interval is really [start, stop).
+        Get the non-overlapping read intervals that match the subject.
+
+        @return: A generator that produces (TYPE, (START, END)) tuples, where
+            where TYPE is either self.EMPTY or self.FULL and (START, STOP) is
+            the interval. The endpoint (STOP) of the interval is not considered
+            to be in the interval. I.e., the interval is really [START, STOP).
         """
         intervals = sorted(self._intervals)
 
@@ -58,6 +69,23 @@ class ReadIntervals(object):
 
         else:
             yield (self.EMPTY, (0, self._targetLength))
+
+    def coverage(self):
+        """
+        Get the fraction of a subject is matched by its set of reads.
+
+        @return: The C{float} fraction of a subject matched by its reads.
+        """
+        if self._targetLength == 0:
+            return 0.0
+
+        coverage = 0
+        for (intervalType, (start, end)) in self.walk():
+            if intervalType == self.FULL:
+                # Adjust start and end to ignore areas where the read falls
+                # outside the target.
+                coverage += (min(end, self._targetLength) - max(0, start))
+        return float(coverage) / self._targetLength
 
 
 class OffsetAdjuster(object):

@@ -229,6 +229,148 @@ class TestReadIntervals(TestCase):
             ],
             list(ri.walk()))
 
+    # The following tests have the same setup as above, but they test the
+    # coverage() method.
+
+    def testEmptyCoverage(self):
+        """
+        When no intervals are added, coverage should return 0.0
+        """
+        ri = ReadIntervals(100)
+        self.assertEqual(0.0, ri.coverage())
+
+    def testOneIntervalExactCoveringCoverage(self):
+        """
+        If there is a single interval that spans the whole hit exactly,
+        coverage should return 1.0.
+        """
+        ri = ReadIntervals(100)
+        ri.add(0, 100)
+        self.assertEqual(1.0, ri.coverage())
+
+    def testOneIntervalCoveringAllExtendingLeftCoverage(self):
+        """
+        If there is a single interval that spans the whole hit, including
+        going negative to the left, coverage should return 1.0.
+        """
+        ri = ReadIntervals(100)
+        ri.add(-10, 100)
+        self.assertEqual(1.0, ri.coverage())
+
+    def testOneIntervalCoveringAllExtendingRightCoverage(self):
+        """
+        If there is a single interval that spans the whole hit, including
+        going beyond the hit to the right, coverage should return 1.0.
+        """
+        ri = ReadIntervals(100)
+        ri.add(0, 110)
+        self.assertEqual(1.0, ri.coverage())
+
+    def testOneIntervalCoveringAllExtendingBothCoverage(self):
+        """
+        If there is a single interval that spans the whole hit, including
+        starting before zero and also going beyond the hit to the right,
+        coverage should return 1.0
+        """
+        ri = ReadIntervals(100)
+        ri.add(-10, 110)
+        self.assertEqual(1.0, ri.coverage())
+
+    def testOneIntervalStartingAtZeroCoverage(self):
+        """
+        If there is a single interval that starts at zero but doesn't
+        cover the whole hit, coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(0, 50)
+        self.assertEqual(0.5, ri.coverage())
+
+    def testOneIntervalStartingBeforeZeroCoverage(self):
+        """
+        If there is a single interval that starts before zero but doesn't
+        cover the whole hit, coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(-50, 50)
+        self.assertEqual(0.5, ri.coverage())
+
+    def testOneIntervalEndingAtHitEndCoverage(self):
+        """
+        If there is a single interval that ends at the end of the hit
+        but doesn't start at zero, coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(50, 100)
+        self.assertEqual(0.5, ri.coverage())
+
+    def testOneIntervalEndingAfterHitEndCoverage(self):
+        """
+        If there is a single interval that ends after the end of the hit
+        but doesn't start at zero, coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(50, 150)
+        self.assertEqual(0.5, ri.coverage())
+
+    def testOneIntervalInMiddleCoverage(self):
+        """
+        If there is a single interval in the middle of the hit, coverage
+        should return the correct value.
+
+        """
+        ri = ReadIntervals(100)
+        ri.add(50, 60)
+        self.assertEqual(0.1, ri.coverage())
+
+    def testTwoOverlappingIntervalsInMiddleCoverage(self):
+        """
+        If there are two overlapping intervals in the middle of the hit,
+        coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(50, 60)
+        ri.add(55, 70)
+        self.assertEqual(0.2, ri.coverage())
+
+    def testThreeOverlappingIntervalsInMiddleCoverage(self):
+        """
+        If there are three overlapping intervals in the middle of the hit,
+        coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(50, 60)
+        ri.add(65, 75)
+        ri.add(55, 70)
+        self.assertEqual(0.25, ri.coverage())
+
+    def testPairOfTwoOverlappingIntervalsCoverage(self):
+        """
+        If there are two sets of two overlapping intervals in the middle of
+        the hit, coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        # First overlapping pair, 50-70.
+        ri.add(50, 60)
+        ri.add(55, 70)
+        # First overlapping pair, 80-95.
+        ri.add(80, 90)
+        ri.add(85, 95)
+        self.assertEqual(0.35, ri.coverage())
+
+    def testOverlappingIntervalsThatCoverEverythingCoverage(self):
+        """
+        If there are sets of overlapping intervals that cover the whole hit,
+        coverage should return the correct value.
+        """
+        ri = ReadIntervals(100)
+        ri.add(-10, 20)
+        ri.add(15, 40)
+        ri.add(40, 70)
+        ri.add(66, 89)
+        ri.add(77, 93)
+        ri.add(70, 110)
+        self.assertEqual(1.0, ri.coverage())
+
 
 class TestOffsetAdjuster(TestCase):
     """
