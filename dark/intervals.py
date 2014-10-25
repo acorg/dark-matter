@@ -3,7 +3,7 @@ from math import log
 
 class ReadIntervals(object):
     """
-    Hold information about the set of reads that match a subect.
+    Hold information about the set of reads that match a subject.
 
     @param targetLength: The C{int} length of the target sequence that the
         reads are against.
