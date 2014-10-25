@@ -232,6 +232,13 @@ class TestReadIntervals(TestCase):
     # The following tests have the same setup as above, but they test the
     # coverage() method.
 
+    def testEmptyCoverageOnZeroLengthSequence(self):
+        """
+        When no intervals are added, coverage should return 0.0
+        """
+        ri = ReadIntervals(0)
+        self.assertEqual(0.0, ri.coverage())
+
     def testEmptyCoverage(self):
         """
         When no intervals are added, coverage should return 0.0
