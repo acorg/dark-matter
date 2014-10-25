@@ -93,9 +93,9 @@ class OffsetAdjuster(object):
     A class that knows how to adjust the offsets in a normalized HSP according
     to the overall set of reads being plotted.
 
-    intervals: an instance of ReadIntervals.
-    base: the logarithmic base to use when adjusting empty spaces in the hit
-        sequence.
+    @param intervals: An instance of L{ReadIntervals}.
+    @param base: The C{float} logarithmic base to use when adjusting empty
+        spaces in the hit sequence.
     """
 
     def __init__(self, intervals=None, base=2.0):
@@ -109,10 +109,22 @@ class OffsetAdjuster(object):
                     self._adjustments.append((stop, width - logWidth))
 
     def adjustments(self):
+        """
+        Provide the adjustment values for this instance.
+
+        @return: A C{list} of (X offset, adjustment) values, where the X
+            offset is an C{int} and the adjustment is a C{float}.
+        """
         return self._adjustments
 
     def _reductionForOffset(self, offset):
-        """Calculate the total reduction for a given X axis offset."""
+        """
+        Calculate the total reduction for a given X axis offset.
+
+        @param offset: The C{int} offset.
+        @return: The total C{float} reduction that should be made for this
+            offset.
+        """
         reduction = 0
         for (thisOffset, thisReduction) in self._adjustments:
             if offset >= thisOffset:
@@ -122,7 +134,12 @@ class OffsetAdjuster(object):
         return reduction
 
     def adjustOffset(self, offset):
-        """Adjust a single X offset."""
+        """
+        Adjust a single X offset.
+
+        @param offset: The C{int} offset to adjust.
+        @return: The C{float} adjusted offset.
+        """
         return offset - self._reductionForOffset(offset)
 
     def adjustHSP(self, hsp):
