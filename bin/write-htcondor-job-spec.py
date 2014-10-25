@@ -220,7 +220,7 @@ do
         then
             if [ -s $xml ]
             then
-                echo "convert-blast-xml-to-json.py $xml | bzip > $json.bz2"
+                echo "convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2"
                 convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2
             else
                 echo "WARNING: $xml is empty. Job $n should be re-run." >&2
