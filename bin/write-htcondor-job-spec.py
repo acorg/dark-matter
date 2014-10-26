@@ -201,7 +201,7 @@ for i in *.fasta
 do
     n=`echo $i | cut -f1 -d.`
     error=$n.error
-    json=$n.json
+    json=$n.json.bz2
     xml=$n.xml
 
     if [ -f $error ]
@@ -216,12 +216,14 @@ do
 
     if [ -f $json ]
     then
-        if [ ! -s $json ]
+        size=`wc -c < $json | awk '{print $1}'`
+        # bzip2 run on an empty file results in a file of 14 bytes.
+        if [ $size -eq 14 ]
         then
             if [ -s $xml ]
             then
-                echo "convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2"
-                convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2
+                echo "convert-blast-xml-to-json.py $xml | bzip2 > $json"
+                convert-blast-xml-to-json.py $xml | bzip2 > $json
             else
                 echo "WARNING: $xml is empty. Job $n should be re-run." >&2
                 redo="$redo $n"
@@ -230,8 +232,8 @@ do
     else
         if [ -s $xml ]
         then
-            echo "convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2"
-            convert-blast-xml-to-json.py $xml | bzip2 > $json.bz2
+            echo "convert-blast-xml-to-json.py $xml | bzip2 > $json"
+            convert-blast-xml-to-json.py $xml | bzip2 > $json
         else
             echo "WARNING: $json does not exist. Job $n should be re-run." >&2
             redo="$redo $n"
