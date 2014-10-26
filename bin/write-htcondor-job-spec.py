@@ -10,9 +10,9 @@ from Bio import SeqIO
 
 DEFAULT_BLAST_ARGS = ''
 DEFAULT_BLAST_DB = 'nt'
-DEFAULT_BLAST_DB_DIR = '/syn/terry/dark-matter/ncbi-blast-dbs'
+DEFAULT_BLAST_DB_DIR = '/usr/local/dark-matter/blast-dbs'
 DEFAULT_EMAIL = 'tcj25@cam.ac.uk'
-DEFAULT_BLAST_EXECUTABLE_DIR = '/syn/terry/dark-matter/ncbi-blast/bin'
+DEFAULT_BLAST_EXECUTABLE_DIR = '/usr/local/dark-matter/blast/bin'
 DEFAULT_BLAST_EXECUTABLE_NAME = 'blastn'
 DEFAULT_SEQUENCES_PER_BLAST = 100
 
@@ -165,13 +165,22 @@ def printPostProcessScript(params):
     with open('post-process.sh', 'w') as outfp:
         outfp.write("""\
 #!/bin/sh
-export PYTHONPATH=/syn/terry/dark-matter/dark-matter
+
+DM=/usr/local/dark-matter
+PATH=$DM/virtualenv/bin:$DM/dark-matter/bin:"$PATH"
+export PYTHONPATH=$DM/dark-matter
+
 for i in "$@"
 do
-    /syn/terry/.virtualenvs/dm/bin/python \
-    /syn/terry/dark-matter/dark-matter/bin/convert-blast-xml-to-json.py \
-        $i.xml | bzip2 > $i.json.bz2
-    date > $i.done
+    errs=$i.post-process-error
+    python convert-blast-xml-to-json.py $i.xml 2>$errs | bzip2 > $i.json.bz2
+    if [ -s $errs ]
+    then
+        echo "Completed WITH ERRORS ($errs) on `hostname` at `date`." > $i.done
+    else
+        rm $errs
+        echo "Completed on `hostname` at `date`." > $i.done
+    fi
 done
 """ % params)
 
