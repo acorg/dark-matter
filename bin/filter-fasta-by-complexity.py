@@ -20,7 +20,6 @@ from dark.fasta import FastaReads
 
 
 if __name__ == '__main__':
-    # TODO: fix
     parser = argparse.ArgumentParser(
         description='Filter FASTA for low complexity sequences',
         epilog='Read DNA FASTA from stdin and print FASTA to stdout, '
