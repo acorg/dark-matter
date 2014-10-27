@@ -173,7 +173,7 @@ export PYTHONPATH=$DM/dark-matter
 for i in "$@"
 do
     errs=$i.post-process-error
-    python convert-blast-xml-to-json.py $i.xml 2>$errs | bzip2 > $i.json.bz2
+    convert-blast-xml-to-json.py $i.xml 2>$errs | bzip2 > $i.json.bz2
     if [ -s $errs ]
     then
         echo "Completed WITH ERRORS ($errs) on `hostname` at `date`." > $i.done
