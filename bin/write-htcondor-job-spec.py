@@ -167,13 +167,14 @@ def printPostProcessScript(params):
 #!/bin/sh
 
 DM=/usr/local/dark-matter
-PATH=$DM/virtualenv/bin:$DM/dark-matter/bin:"$PATH"
 export PYTHONPATH=$DM/dark-matter
 
 for i in "$@"
 do
     errs=$i.post-process-error
-    convert-blast-xml-to-json.py $i.xml 2>$errs | bzip2 > $i.json.bz2
+    $DM/virtualenv/bin/python \
+        $DM/dark-matter/bin/convert-blast-xml-to-json.py \
+        $i.xml 2>$errs | bzip2 > $i.json.bz2
     if [ -s $errs ]
     then
         echo "Completed WITH ERRORS ($errs) on `hostname` at `date`." > $i.done
