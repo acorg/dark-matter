@@ -58,7 +58,7 @@ if __name__ == '__main__':
         help='If True, only write sequences whose taxonomy does not match.')
 
     parser.add_argument(
-        '--details', metavar='FILE', type=str, default=None,
+        '--detailsFile', metavar='FILE', type=str, default=None,
         help='The name of a file to save taxonomy details to')
 
     args = parser.parse_args()
@@ -70,8 +70,8 @@ if __name__ == '__main__':
             "Could not compile %r to a regular expression:" % args.taxonomy), e
         sys.exit(1)
 
-    if args.details is not None:
-        detailsFp = open(args.details, 'w')
+    if args.detailsFile is not None:
+        detailsFp = open(args.detailsFile, 'w')
         details = lambda accept, readId, taxonomy: (
             writeDetails(accept, readId, taxonomy, detailsFp))
     else:
