@@ -1,5 +1,5 @@
-# Note: Tests for the TitlesAlignments class are in blast/titles.py because
-#       that class needs a concrete (iterable)
+# Note: Tests for the TitlesAlignments class are in blast/test_titles.py
+#       because that class needs a concrete (iterable)
 #       dark.alignments.ReadsAlignments class passed to its __init__.  The
 #       tests below test the simpler dark.titles classes, TitleAlignment
 #       and TitleAlignments.
@@ -264,6 +264,44 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertTrue(titleAlignments.hasScoreBetterThan(20))
+
+    def testCoverageNoReads(self):
+        """
+        The coverage method must return zero when a title alignments has no
+        alignments (and therefore no coverage).
+        """
+        titleAlignments = TitleAlignments('subject title', 100)
+        self.assertEqual(0.0, titleAlignments.coverage())
+
+    def testFullCoverage(self):
+        """
+        The coverage method must return the correct value when the title is
+        fully covered by its reads.
+        """
+        hsp1 = HSP(7, subjectStart=0, subjectEnd=50)
+        hsp2 = HSP(8, subjectStart=50, subjectEnd=100)
+        titleAlignments = TitleAlignments('subject title', 100)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(1.0, titleAlignments.coverage())
+
+    def testPartialCoverage(self):
+        """
+        The coverage method must return the correct value when the title is
+        partially covered by its reads.
+        """
+        hsp1 = HSP(7, subjectStart=10, subjectEnd=20)
+        hsp2 = HSP(15, subjectStart=30, subjectEnd=40)
+        hsp3 = HSP(21, subjectStart=50, subjectEnd=60)
+        titleAlignments = TitleAlignments('subject title', 100)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(0.3, titleAlignments.coverage())
 
 
 class TestTitleAlignmentsLSP(TestCase):

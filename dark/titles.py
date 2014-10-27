@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from dark.reads import Reads
 from dark.filter import ReadSetFilter
+from dark.intervals import ReadIntervals
 
 
 def titleCounts(readsAlignments):
@@ -145,6 +146,18 @@ class TitleAlignments(list):
         """
         return np.median([hsp.score.score for hsp in self.hsps()])
 
+    def coverage(self):
+        """
+        Get the fraction of this title sequence that is matched by its reads.
+
+        @return: The C{float} fraction of the title sequence matched by its
+            reads.
+        """
+        intervals = ReadIntervals(self.subjectLength)
+        for hsp in self.hsps():
+            intervals.add(hsp.subjectStart, hsp.subjectEnd)
+        return intervals.coverage()
+
 
 class TitlesAlignments(dict):
     """
@@ -195,7 +208,7 @@ class TitlesAlignments(dict):
             self[title] = titleAlignments
 
     def filter(self, minMatchingReads=None, minMedianScore=None,
-               withScoreBetterThan=None, minNewReads=None):
+               withScoreBetterThan=None, minNewReads=None, minCoverage=None):
         """
         Filter the titles in self to create another TitlesAlignments.
 
@@ -209,6 +222,8 @@ class TitlesAlignments(dict):
             title's read set must differ from the read sets of all previously
             seen titles in order for this title to be considered acceptably
             different (and therefore interesting).
+        @param minCoverage: The C{float} minimum fraction of the title sequence
+            that must be matched by at least one read.
         @return: A new L{TitlesAlignments} instance containing only the
             matching titles.
         """
@@ -242,6 +257,10 @@ class TitlesAlignments(dict):
 
             if (withScoreBetterThan is not None and not
                     titleAlignments.hasScoreBetterThan(withScoreBetterThan)):
+                continue
+
+            if (minCoverage is not None and
+                    titleAlignments.coverage() < minCoverage):
                 continue
 
             if (readSetFilter and not

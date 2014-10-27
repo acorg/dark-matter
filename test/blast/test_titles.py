@@ -451,6 +451,84 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
             self.assertEqual(1, assertionCount)
 
+    def testCoverageExcludesAll(self):
+        """
+        The coverage function must return an titlesAlignments instance with
+        no titles if none of its titles has sufficient coverage.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(minCoverage=0.1)
+            self.assertEqual(0, len(result))
+
+    def testCoverageIncludesAll(self):
+        """
+        The coverage function must return an titlesAlignments instance with
+        all titles if all its titles has sufficient coverage.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(minCoverage=0.0)
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Cowpox virus 15',
+                    'gi|887699|gb|DQ37780 Monkeypox virus 456',
+                    'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55',
+                ],
+                sorted(result.keys()))
+
+    def testCoverageIncludesSome(self):
+        """
+        The coverage function must return an titlesAlignments instance with
+        only the expected titles if only some of its titles have sufficient
+        coverage.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            # To understand why the following produces the result it does,
+            # you need to look at the HSP coverage in sample_data.py and
+            # calculate the coverage by hand.
+            result = titlesAlignments.filter(minCoverage=0.0011)
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Cowpox virus 15',
+                    'gi|887699|gb|DQ37780 Monkeypox virus 456',
+                    'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
+                ],
+                sorted(result.keys()))
+
 
 class TestTitleSorting(TestCase):
     """
