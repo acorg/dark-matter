@@ -6,16 +6,13 @@ from mock import call, MagicMock, ANY
 from Bio.SeqFeature import FeatureLocation, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
-from dark.features import (_Feature, _FeatureAdder, _FeatureList,
+from dark.features import (Feature, FeatureList, _FeatureAdder,
                            ProteinFeatureAdder, NucleotideFeatureAdder)
-
-# An identity offset adjuster
-identity = lambda x: x
 
 
 class Test_Feature(TestCase):
     """
-    Tests of the C{_Feature} class.
+    Tests of the C{Feature} class.
     """
 
     def testNotSubfeatureByDefault(self):
@@ -24,7 +21,7 @@ class Test_Feature(TestCase):
         """
         location = FeatureLocation(100, 200)
         seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, identity)
+        feature = Feature(seqFeature)
         self.assertFalse(feature.subfeature)
 
     def testSubfeature(self):
@@ -34,48 +31,26 @@ class Test_Feature(TestCase):
         """
         location = FeatureLocation(100, 200)
         seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, identity, subfeature=True)
+        feature = Feature(seqFeature, subfeature=True)
         self.assertTrue(feature.subfeature)
 
     def testStart(self):
         """
-        The start method must return the feature start.
+        The start attribute must hold the feature's start.
         """
         location = FeatureLocation(100, 200)
         seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, identity)
-        self.assertEqual(100, feature.start())
+        feature = Feature(seqFeature)
+        self.assertEqual(100, feature.start)
 
     def testEnd(self):
         """
-        The end method must return the feature start.
+        The end attribute must hold the feature start.
         """
         location = FeatureLocation(100, 200)
         seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, identity)
-        self.assertEqual(200, feature.end())
-
-    def testStartWithOffsetAdjuster(self):
-        """
-        The start method must return the feature start, as adjusted by the
-        passed offset adjuster.
-        """
-        adjuster = lambda x: 3 * x
-        location = FeatureLocation(100, 200)
-        seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, adjuster)
-        self.assertEqual(300, feature.start())
-
-    def testEndWithOffsetAdjuster(self):
-        """
-        The end method must return the feature end, as adjusted by the
-        passed offset adjuster.
-        """
-        adjuster = lambda x: 3 * x
-        location = FeatureLocation(100, 200)
-        seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, adjuster)
-        self.assertEqual(600, feature.end())
+        feature = Feature(seqFeature)
+        self.assertEqual(200, feature.end)
 
     def testSetColor(self):
         """
@@ -83,7 +58,7 @@ class Test_Feature(TestCase):
         """
         location = FeatureLocation(100, 200)
         seqFeature = SeqFeature(location=location)
-        feature = _Feature(seqFeature, identity)
+        feature = Feature(seqFeature)
         feature.setColor('red')
         self.assertEqual('red', feature.color)
 
@@ -97,7 +72,7 @@ class Test_Feature(TestCase):
         }
         seqFeature = SeqFeature(location=location, type='site',
                                 qualifiers=qualifiers)
-        feature = _Feature(seqFeature, identity)
+        feature = Feature(seqFeature)
         self.assertEqual('100-200 site. note: Capsid protein',
                          feature.legendLabel())
 
@@ -113,7 +88,7 @@ class Test_Feature(TestCase):
         }
         seqFeature = SeqFeature(location=location, type='site',
                                 qualifiers=qualifiers)
-        feature = _Feature(seqFeature, identity)
+        feature = Feature(seqFeature)
         self.assertEqual('100-200 site. note: Capsid protein, product: CP1',
                          feature.legendLabel())
 
@@ -124,7 +99,7 @@ class Test_Feature(TestCase):
         """
         location = FeatureLocation(100, 200)
         seqFeature = SeqFeature(location=location, type='site')
-        feature = _Feature(seqFeature, identity)
+        feature = Feature(seqFeature)
         self.assertEqual('100-200 site.', feature.legendLabel())
 
     def testLegendLabelTruncatesValues(self):
@@ -138,7 +113,7 @@ class Test_Feature(TestCase):
         }
         seqFeature = SeqFeature(location=location, type='site',
                                 qualifiers=qualifiers)
-        feature = _Feature(seqFeature, identity)
+        feature = Feature(seqFeature)
         xs = 'x' * 27 + '...'
         self.assertEqual('100-200 site. note: %s' % xs,
                          feature.legendLabel())
@@ -146,7 +121,7 @@ class Test_Feature(TestCase):
 
 class Test_FeatureList(TestCase):
     """
-    Tests of the C{_FeatureList} class.
+    Tests of the C{FeatureList} class.
     """
 
     def testOffline(self):
@@ -155,8 +130,8 @@ class Test_FeatureList(TestCase):
         offline.
         """
         fetcher = lambda title, db='database': None
-        featureList = _FeatureList('title', 'database', set(), identity,
-                                   sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(True, featureList.offline)
 
     def testOfflineLength(self):
@@ -165,8 +140,8 @@ class Test_FeatureList(TestCase):
         must have length zero.
         """
         fetcher = lambda title, db='database': None
-        featureList = _FeatureList('title', 'database', set(), identity,
-                                   sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(0, len(featureList))
 
     def testFetcherValueError(self):
@@ -177,8 +152,8 @@ class Test_FeatureList(TestCase):
         def fetcher(title, db):
             raise ValueError()
 
-        featureList = _FeatureList('title', 'database', set(), identity,
-                                   sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(0, len(featureList))
         self.assertEqual(False, featureList.offline)
 
@@ -188,32 +163,33 @@ class Test_FeatureList(TestCase):
         being online.
         """
         fetcher = lambda title, db='database': SeqRecord(None)
-        featureList = _FeatureList('title', 'database', set(), identity,
-                                   sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(False, featureList.offline)
 
     def testNoFeaturesLength(self):
         """
         If the sequence fetcher returns a record with no features, the
-        L{_FeatureList} instance must have length zero.
+        L{FeatureList} instance must have length zero.
         """
         fetcher = lambda title, db='database': SeqRecord(None)
-        featureList = _FeatureList('title', 'database', set(), identity,
-                                   sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(0, len(featureList))
 
     def testNoQualifiersLength(self):
         """
         If the sequence fetcher returns a record with two features but
-        neither of them has any qualifiers, the L{_FeatureList} instance
+        neither of them has any qualifiers, the L{FeatureList} instance
         must still include both features.
         """
         def fetcher(title, db='database'):
-            feature = SeqFeature(type='site')
+            location = FeatureLocation(100, 200)
+            feature = SeqFeature(type='site', location=location)
             return SeqRecord(None, features=[feature, feature])
 
-        featureList = _FeatureList('title', 'database', set(['site']),
-                                   identity, sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(['site']),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(2, len(featureList))
 
     def testNotSubfeature(self):
@@ -222,42 +198,48 @@ class Test_FeatureList(TestCase):
         not a subfeature, it must not be marked as a subfeature.
         """
         def fetcher(title, db='database'):
-            feature = SeqFeature(type='site', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            feature = SeqFeature(type='site', qualifiers={'a': ['b']},
+                                 location=location)
             return SeqRecord(None, features=[feature])
 
-        featureList = _FeatureList('title', 'database', set(['site']),
-                                   identity, sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(['site']),
+                                  sequenceFetcher=fetcher)
         self.assertFalse(featureList[0].subfeature)
 
     def testWantedTypeLength(self):
         """
         If the sequence fetcher returns a record with two features but
-        only one of them has a wanted type ('site'), the L{_FeatureList}
+        only one of them has a wanted type ('site'), the L{FeatureList}
         instance must have length one.
         """
         def fetcher(title, db='database'):
-            feature1 = SeqFeature(type='region')
-            feature2 = SeqFeature(type='site', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            feature1 = SeqFeature(type='region', location=location)
+            feature2 = SeqFeature(type='site', qualifiers={'a': ['b']},
+                                  location=location)
             return SeqRecord(None, features=[feature1, feature2])
 
-        featureList = _FeatureList('title', 'database', set(['site']),
-                                   identity, sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(['site']),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(1, len(featureList))
 
     def testSubfeatures(self):
         """
         If the sequence fetcher returns a record with a feature that
-        has a subfeature, the L{_FeatureList} instance must have length two
+        has a subfeature, the L{FeatureList} instance must have length two
         and the second feature in the list must be a subfeature.
         """
         def fetcher(title, db='database'):
-            subfeature = SeqFeature(type='site', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            subfeature = SeqFeature(type='site', qualifiers={'a': ['b']},
+                                    location=location)
             feature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                 sub_features=[subfeature])
+                                 sub_features=[subfeature], location=location)
             return SeqRecord(None, features=[feature])
 
-        featureList = _FeatureList('title', 'database', set(['site']),
-                                   identity, sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(['site']),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(2, len(featureList))
         self.assertTrue(featureList[1].subfeature)
 
@@ -265,17 +247,19 @@ class Test_FeatureList(TestCase):
         """
         If the sequence fetcher returns a record with a feature that
         has a subfeature, and the subfeature is wanted but the parent feature
-        is not, the L{_FeatureList} instance must have length one
+        is not, the L{FeatureList} instance must have length one
         and the feature in the list must be a subfeature.
         """
         def fetcher(title, db='database'):
-            subfeature = SeqFeature(type='region', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            subfeature = SeqFeature(type='region', qualifiers={'a': ['b']},
+                                    location=location)
             feature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                 sub_features=[subfeature])
+                                 sub_features=[subfeature], location=location)
             return SeqRecord(None, features=[feature])
 
-        featureList = _FeatureList('title', 'database', set(['region']),
-                                   identity, sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(['region']),
+                                  sequenceFetcher=fetcher)
         self.assertEqual(1, len(featureList))
         self.assertTrue(featureList[0].subfeature)
 
@@ -285,11 +269,13 @@ class Test_FeatureList(TestCase):
         must be assigned a correct color.
         """
         def fetcher(title, db='database'):
-            feature = SeqFeature(type='site', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            feature = SeqFeature(type='site', qualifiers={'a': ['b']},
+                                 location=location)
             return SeqRecord(None, features=[feature] * 3)
 
-        featureList = _FeatureList('title', 'database', set(['site']),
-                                   identity, sequenceFetcher=fetcher)
+        featureList = FeatureList('title', 'database', set(['site']),
+                                  sequenceFetcher=fetcher)
         colormap = plt.cm.coolwarm
         colors = [colormap(i) for i in np.linspace(0.0, 0.99, 3)]
 
@@ -318,8 +304,7 @@ class Test_FeatureAdder(TestCase):
         featureAdder = _FeatureAdder()
         fig = plt.subplot(111)
         fig.set_title = MagicMock()
-        featureAdder.add(fig, 'title', 0, 100, identity,
-                         sequenceFetcher=fetcher)
+        featureAdder.add(fig, 'title', 0, 100, sequenceFetcher=fetcher)
         fig.set_title.assert_called_with('Target sequence features',
                                          fontsize=16)
 
@@ -331,8 +316,7 @@ class Test_FeatureAdder(TestCase):
         featureAdder = _FeatureAdder()
         fig = plt.subplot(111)
         fig.set_yticks = MagicMock()
-        featureAdder.add(fig, 'title', 0, 100, identity,
-                         sequenceFetcher=fetcher)
+        featureAdder.add(fig, 'title', 0, 100, sequenceFetcher=fetcher)
         fig.set_yticks.assert_called_with([])
 
     def testOffline(self):
@@ -346,8 +330,7 @@ class Test_FeatureAdder(TestCase):
         fig = plt.subplot(111)
         fig.text = MagicMock()
         fig.axis = MagicMock()
-        featureAdder.add(fig, 'title', 0, 300, identity,
-                         sequenceFetcher=fetcher)
+        featureAdder.add(fig, 'title', 0, 300, sequenceFetcher=fetcher)
         fig.text.assert_called_with(100, 0,
                                     'You (or Genbank) appear to be offline.',
                                     fontsize=20)
@@ -365,7 +348,7 @@ class Test_FeatureAdder(TestCase):
         fig = plt.subplot(111)
         fig.text = MagicMock()
         fig.axis = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         fig.text.assert_called_with(0.5, 0.5,
                                     'No features found',
@@ -382,16 +365,18 @@ class Test_FeatureAdder(TestCase):
         C{_displayFeatures} method is not implemented.
         """
         def fetcher(title, db='database'):
-            subfeature = SeqFeature(type='region', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            subfeature = SeqFeature(type='region', qualifiers={'a': ['b']},
+                                    location=location)
             feature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                 sub_features=[subfeature])
+                                 sub_features=[subfeature], location=location)
             return SeqRecord(None, features=[feature])
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ('site',)
         fig = plt.subplot(111)
         self.assertRaises(NotImplementedError, featureAdder.add, fig, 'title',
-                          0, 300, identity, sequenceFetcher=fetcher)
+                          0, 300, sequenceFetcher=fetcher)
 
     def testTooManyFeatures(self):
         """
@@ -400,7 +385,9 @@ class Test_FeatureAdder(TestCase):
         correctly and the C{add} call must return the sequences.
         """
         def fetcher(title, db='database'):
-            feature = SeqFeature(type='site', qualifiers={'a': ['b']})
+            location = FeatureLocation(100, 200)
+            feature = SeqFeature(type='site', qualifiers={'a': ['b']},
+                                 location=location)
             return SeqRecord(None, features=[feature] * 100)
 
         featureAdder = _FeatureAdder()
@@ -408,7 +395,7 @@ class Test_FeatureAdder(TestCase):
         fig = plt.subplot(111)
         fig.text = MagicMock()
         fig.axis = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         fig.text.assert_called_with(0.5, 0.5,
                                     'Too many features to plot',
@@ -416,7 +403,7 @@ class Test_FeatureAdder(TestCase):
                                     verticalalignment='center',
                                     transform=ANY, fontsize=20)
         fig.axis.assert_called_with([0, 300, -1, 1])
-        self.assertTrue(isinstance(result, _FeatureList))
+        self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(100, len(result))
 
 
@@ -440,7 +427,7 @@ class TestProteinFeatureAdder(TestCase):
         featureAdder = ProteinFeatureAdder()
         fig = plt.subplot(111)
         fig.plot = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         self.assertEqual([], fig.plot.call_args_list)
         self.assertEqual([], result)
@@ -462,7 +449,7 @@ class TestProteinFeatureAdder(TestCase):
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         fig.plot.assert_called_with(
             [100, 200], [-0.0, -0.0],
@@ -472,38 +459,7 @@ class TestProteinFeatureAdder(TestCase):
         fig.legend.assert_called_with(
             ['100-200 Site. a: b'], loc='lower center', shadow=True,
             bbox_to_anchor=(0.5, 1.4), ncol=2, fancybox=True)
-        self.assertTrue(isinstance(result, _FeatureList))
-        self.assertEqual(1, len(result))
-
-    def testOneFeatureAdjusted(self):
-        """
-        If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
-        the C{text} and C{axis} methods on the figure must be called correctly
-        and the C{add} call must return the sequences.
-        """
-        def fetcher(title, db='database'):
-            location = FeatureLocation(100, 200)
-            feature = SeqFeature(type='Site', qualifiers={'a': ['b']},
-                                 location=location)
-            return SeqRecord(None, features=[feature])
-
-        featureAdder = ProteinFeatureAdder()
-        fig = plt.subplot(111)
-        fig.plot = MagicMock()
-        fig.axis = MagicMock()
-        fig.legend = MagicMock()
-        adjuster = lambda x: 3 * x
-        result = featureAdder.add(fig, 'title', 0, 300, adjuster,
-                                  sequenceFetcher=fetcher)
-        fig.plot.assert_called_with(
-            [300, 600], [-0.0, -0.0],
-            color=(0.2298057, 0.298717966, 0.75368315299999999, 1.0),
-            linewidth=2)
-        fig.axis.assert_called_with([0, 300, -0.4, 0.2])
-        fig.legend.assert_called_with(
-            ['100-200 Site. a: b'], loc='lower center', shadow=True,
-            bbox_to_anchor=(0.5, 1.4), ncol=2, fancybox=True)
-        self.assertTrue(isinstance(result, _FeatureList))
+        self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(1, len(result))
 
 
@@ -527,7 +483,7 @@ class TestNucleotideFeatureAdder(TestCase):
         featureAdder = NucleotideFeatureAdder()
         fig = plt.subplot(111)
         fig.plot = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         self.assertEqual([], fig.plot.call_args_list)
         self.assertEqual([], result)
@@ -549,7 +505,7 @@ class TestNucleotideFeatureAdder(TestCase):
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         fig.plot.assert_called_with(
             [100, 200], [1, 1],
@@ -560,7 +516,7 @@ class TestNucleotideFeatureAdder(TestCase):
             ['100-200 CDS. a: b'], loc='lower center',
             shadow=True, ncol=2, fancybox=True,
             bbox_to_anchor=(0.5, 2.5))
-        self.assertTrue(isinstance(result, _FeatureList))
+        self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(1, len(result))
 
     def testOneFeatureAdjusted(self):
@@ -595,7 +551,7 @@ class TestNucleotideFeatureAdder(TestCase):
             ['100-200 CDS. a: b'], loc='lower center',
             shadow=True, ncol=2, fancybox=True,
             bbox_to_anchor=(0.5, 2.5))
-        self.assertTrue(isinstance(result, _FeatureList))
+        self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(1, len(result))
 
     def testSubfeaturesAreMovedDown(self):
@@ -617,7 +573,7 @@ class TestNucleotideFeatureAdder(TestCase):
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         self.assertEqual(
             fig.plot.call_args_list,
@@ -631,7 +587,7 @@ class TestNucleotideFeatureAdder(TestCase):
              '130-150 CDS (subfeature). a: b'],
             loc='lower center', shadow=True, ncol=2, fancybox=True,
             bbox_to_anchor=(0.5, 2.5))
-        self.assertTrue(isinstance(result, _FeatureList))
+        self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(2, len(result))
 
     def testPolyproteinsAreMovedUp(self):
@@ -654,7 +610,7 @@ class TestNucleotideFeatureAdder(TestCase):
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300, identity,
+        result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
         self.assertEqual(
             fig.plot.call_args_list,
@@ -668,5 +624,5 @@ class TestNucleotideFeatureAdder(TestCase):
              '130-150 CDS. a: b'],
             loc='lower center', shadow=True, ncol=2, fancybox=True,
             bbox_to_anchor=(0.5, 2.5))
-        self.assertTrue(isinstance(result, _FeatureList))
+        self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(2, len(result))

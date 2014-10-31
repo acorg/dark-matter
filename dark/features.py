@@ -4,35 +4,22 @@ import matplotlib.pyplot as plt
 from dark.entrez import getSequence
 
 
-class _Feature(object):
+class Feature(object):
     """
-    An offset-adjusted feature, with methods to return a textual description
-    and a legend label.
+    An offset-adjusted feature, with start and stop attributes and methods to
+    return a textual description and a legend label.
 
     @param feature: A BioPython feature.
-    @param offsetAdjuster: a function for adjusting feature X axis offsets for
-        plotting.
     @param subfeature: A C{bool} to indicate if a feature is actually a
         subfeature.
     """
 
-    def __init__(self, feature, offsetAdjuster, subfeature=False):
+    def __init__(self, feature, subfeature=False):
         self.feature = feature
         self.color = None  # Should be set with setColor
-        self._offsetAdjuster = offsetAdjuster
         self.subfeature = subfeature
-
-    def start(self):
-        """
-        Return the offset-adjusted start location of the feature.
-        """
-        return self._offsetAdjuster(int(self.feature.location.start))
-
-    def end(self):
-        """
-        Return the offset-adjusted end location of the feature.
-        """
-        return self._offsetAdjuster(int(self.feature.location.end))
+        self.start = int(feature.location.start)
+        self.end = int(feature.location.end)
 
     def setColor(self, color):
         """
@@ -47,9 +34,7 @@ class _Feature(object):
         Provide a textual description of the feature and its qualifiers to be
         used as a label in a plot legend.
 
-        @return: A C{str} description of the feature. The start and end offsets
-            in the description are not offset-adjusted because the offset-
-            adjusted values do not correspond to anything meaningful.
+        @return: A C{str} description of the feature.
         """
         excludedQualifiers = set((
             'codon_start', 'db_xref', 'protein_id', 'region_name',
@@ -75,7 +60,7 @@ class _Feature(object):
             ' ' + ', '.join(result) if result else '')
 
 
-class _FeatureList(list):
+class FeatureList(list):
     """
     Provide access to a list of L{Feature} objects.
 
@@ -84,15 +69,12 @@ class _FeatureList(list):
     @param database: The S{str} name of the Entrez database to search.
     @param wantedTypes: A C{tuple} of feature types that are of interest.
         Feature whose types are not in this list will be ignored.
-    @param offsetAdjuster: A function for adjusting feature X axis offsets for
-        plotting.
     @param sequenceFetcher: A function that takes a sequence title and a
         database name and returns a C{Bio.SeqIO} instance. If C{None}, use
         L{dark.entrez.getSequence}.
     """
 
-    def __init__(self, title, database, wantedTypes, offsetAdjuster,
-                 sequenceFetcher=None):
+    def __init__(self, title, database, wantedTypes, sequenceFetcher=None):
         list.__init__(self)
         self.offline = False
         sequenceFetcher = sequenceFetcher or getSequence
@@ -107,11 +89,10 @@ class _FeatureList(list):
             wantedTypes = set(wantedTypes)
             for feature in record.features:
                 if feature.type in wantedTypes:
-                    self.append(_Feature(feature, offsetAdjuster))
+                    self.append(Feature(feature))
                 for subfeature in feature.sub_features:
                     if subfeature.type in wantedTypes:
-                        self.append(_Feature(subfeature, offsetAdjuster,
-                                             subfeature=True))
+                        self.append(Feature(subfeature, subfeature=True))
 
             # Assign colors to features.
             colormap = plt.cm.coolwarm
@@ -135,7 +116,7 @@ class _FeatureAdder(object):
     def __init__(self):
         self.tooManyFeaturesToPlot = False
 
-    def add(self, fig, title, minX, maxX, offsetAdjuster,
+    def add(self, fig, title, minX, maxX, offsetAdjuster=None,
             sequenceFetcher=None):
         """
         Find the features for a sequence title. If there aren't too many, add
@@ -147,21 +128,22 @@ class _FeatureAdder(object):
             'gi|63148399|gb|DQ011818.1| Description...'.
         @param minX: The smallest x coordinate.
         @param maxX: The largest x coordinate.
-        @param offsetAdjuster: a function for adjusting feature X axis offsets
+         @param offsetAdjuster: a function for adjusting feature X axis offsets
             for plotting.
         @param sequenceFetcher: A function that takes a sequence title and a
             database name and returns a C{Bio.SeqIO} instance. If C{None}, use
             L{dark.entrez.getSequence}.
         @return: If we seem to be offline, return C{None}. Otherwise, return
-            a L{_FeatureList} instance.
+            a L{FeatureList} instance.
         """
+
+        offsetAdjuster = offsetAdjuster or (lambda x: x)
 
         fig.set_title('Target sequence features', fontsize=self.TITLE_FONTSIZE)
         fig.set_yticks([])
 
-        features = _FeatureList(title, self.DATABASE, self.WANTED_TYPES,
-                                offsetAdjuster,
-                                sequenceFetcher=sequenceFetcher)
+        features = FeatureList(title, self.DATABASE, self.WANTED_TYPES,
+                               sequenceFetcher=sequenceFetcher)
 
         if features.offline:
             fig.text(minX + (maxX - minX) / 3.0, 0,
@@ -183,7 +165,7 @@ class _FeatureAdder(object):
             fig.axis([minX, maxX, -1, 1])
         elif nFeatures <= self.MAX_FEATURES_TO_DISPLAY:
             # Call the method in our subclass to do the figure display.
-            self._displayFeatures(fig, features, minX, maxX)
+            self._displayFeatures(fig, features, minX, maxX, offsetAdjuster)
         else:
             self.tooManyFeaturesToPlot = True
             # fig.text(minX + (maxX - minX) / 3.0, 0,
@@ -195,14 +177,16 @@ class _FeatureAdder(object):
 
         return features
 
-    def _displayFeatures(self, fig, features, minX, maxX):
+    def _displayFeatures(self, fig, features, minX, maxX, offsetAdjuster):
         """
         Add the given C{features} to the figure in C{fig}.
 
         @param fig: A matplotlib figure.
-        @param features: A C{_FeatureList} instance.
+        @param features: A C{FeatureList} instance.
         @param minX: The smallest x coordinate.
         @param maxX: The largest x coordinate.
+        @param offsetAdjuster: a function for adjusting feature X axis offsets
+            for plotting.
         """
         raise NotImplementedError('_displayFeatures must be implemented in '
                                   'a subclass.')
@@ -216,18 +200,21 @@ class ProteinFeatureAdder(_FeatureAdder):
     DATABASE = 'protein'
     WANTED_TYPES = ('CDS', 'mat_peptide', 'rRNA', 'Site', 'Region')
 
-    def _displayFeatures(self, fig, features, minX, maxX):
+    def _displayFeatures(self, fig, features, minX, maxX, offsetAdjuster):
         """
         Add the given C{features} to the figure in C{fig}.
 
         @param fig: A matplotlib figure.
-        @param features: A C{_FeatureList} instance.
+        @param features: A C{FeatureList} instance.
         @param minX: The smallest x coordinate.
         @param maxX: The largest x coordinate.
+        @param offsetAdjuster: a function for adjusting feature X axis offsets
+            for plotting.
         """
         labels = []
         for index, feature in enumerate(features):
-            fig.plot([feature.start(), feature.end()],
+            fig.plot([offsetAdjuster(feature.start),
+                      offsetAdjuster(feature.end)],
                      [index * -0.2, index * -0.2], color=feature.color,
                      linewidth=2)
             labels.append(feature.legendLabel())
@@ -256,20 +243,22 @@ class NucleotideFeatureAdder(_FeatureAdder):
     WANTED_TYPES = ('CDS', 'LTR', 'mat_peptide', 'misc_feature',
                     'misc_structure', 'repeat_region', 'rRNA')
 
-    def _displayFeatures(self, fig, features, minX, maxX):
+    def _displayFeatures(self, fig, features, minX, maxX, offsetAdjuster):
         """
         Add the given C{features} to the figure in C{fig}.
 
         @param fig: A matplotlib figure.
-        @param features: A C{_FeatureList} instance.
+        @param features: A C{FeatureList} instance.
         @param minX: The smallest x coordinate.
         @param maxX: The largest x coordinate.
+        @param offsetAdjuster: a function for adjusting feature X axis offsets
+            for plotting.
         """
         frame = None
         labels = []
         for feature in features:
-            start = feature.start()
-            end = feature.end()
+            start = offsetAdjuster(feature.start)
+            end = offsetAdjuster(feature.end)
             if feature.subfeature:
                 subfeatureFrame = start % 3
                 if subfeatureFrame == frame:
