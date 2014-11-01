@@ -1,3 +1,21 @@
+"""
+Probably the most comprehensive online reference for the way BLAST
+calculates scores is "BLAST Scoring Parameters" by E. Michael Gertz
+
+You can get a copy at
+    ftp://ftp.ncbi.nlm.nih.gov/blast/documents/developer/scoring.pdf
+
+or
+    https://notebooks.antigenic-cartography.org/terry/docs/papers/\
+    blast-scoring-parameters.pdf
+
+Section 5 has the calculation of effective search space.
+
+For details on going between bit scores and e-values, see
+The Statistics of Sequence Similarity Scores, at
+http://www.ncbi.nlm.nih.gov/BLAST/tutorial/Altschul-1.html
+"""
+
 from math import log
 
 _LOG2 = log(2.0)
