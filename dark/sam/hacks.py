@@ -7,22 +7,30 @@ import subprocess as sp
 def checkSAMfile(samFilename):
     """
     Checks that the file inputted as a SAM file is indeed a SAM file.
+    NB header section is optional but length of subjects is stored
+    there - so it is compulsory.
     @param samFilename: a C{str} of a SAM file.
     """
     headerLines = 0
+    nonHeaderLines = 0
     with open(samFilename) as samFile:
         for line in samFile:
-            if not str(line):
-                raise ValueError('SAM file %s was empty.' % samFilename)
-            elif line[0] == '@':
+            while line[0] == '@':
                 headerLines += 1
+                break
             else:
+                assert line[0] != '@', 'A header line is in alignment section'
                 elements = line.strip().split()
                 assert len(elements) > 10, ('SAM file %s does not contain '
                                             'at least 11 fields.'
                                             % samFilename)
-    assert headerLines > 0, ('SAM file %s does not contain header.'
-                             % samFilename)
+                nonHeaderLines += 1
+    assert headerLines > 0 or nonHeaderLines > 0, ('SAM file %s is empty.'
+                                                   % samFilename)
+    assert headerLines > 0, ('SAM file %s does not contain header section '
+                             'which is required.' % samFilename)
+    assert nonHeaderLines > 0, ('SAM file %s does not contain alignment '
+                                'section.' % samFilename)
     return True
 
 

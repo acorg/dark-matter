@@ -26,6 +26,7 @@ class SamReadsAlignments(ReadsAlignments):
     def __init__(self, reads, samFilename):
         if checkSAMfile(samFilename):
             self.samFilename = samFilename
+            print 'self.samFilename is defined'
         self.reads = reads
         # Prepare application parameters in order to initialize self.
         self.head = self._convertSamHeaderToDict()
@@ -42,15 +43,17 @@ class SamReadsAlignments(ReadsAlignments):
         Takes the lines of a SAM file beginning with '@' and returns a dict.
         For @SQ lines, the ref seq name is a key and the length the value.
 
-        @param record: a C{str} of samFilename.
         @return: a C{dict} of the parameters found in the header of a
             SAMRecordsReader file.
         """
         headerLines = []
-        with open(self.samFilename) as fp:
-            for record in fp:
-                if record[0] == '@':
-                    headerLines.append(record)
+        with open(self.samFilename) as samFile:
+            samFile.seek(0)
+            print 'samFile is open'
+            for line in samFile:
+                print 'hey'
+                if line[0] == '@':
+                    headerLines.append(line)
                 else:
                     break
         if not headerLines:

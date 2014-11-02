@@ -2,6 +2,8 @@ from unittest import TestCase
 from mock import patch
 from ..mocking import mockOpen
 
+import sys
+
 from dark.reads import Read, Reads
 from dark.sam.alignments import SamReadsAlignments
 
@@ -47,9 +49,9 @@ class TestSamReadsAlignments(TestCase):
         mockOpener = mockOpen()
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            error = "SAM file file.SAM was empty."
+            error = "SAM file file.sam is empty."
             self.assertRaisesRegexp(
-                ValueError, error, SamReadsAlignments, reads, 'file.SAM')
+                AssertionError, error, SamReadsAlignments, reads, 'file.sam')
 
     def testNonSAMInput(self):
         """
@@ -60,20 +62,20 @@ class TestSamReadsAlignments(TestCase):
         mockOpener = mockOpen(read_data='not SAM\n')
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            error = "SAM file file.SAM does not contain at least 11 fields."
+            error = "SAM file file.sam does not contain at least 11 fields."
             self.assertRaisesRegexp(
-                AssertionError, error, SamReadsAlignments, reads, 'file.SAM')
+                AssertionError, error, SamReadsAlignments, reads, 'file.sam')
 
     def testApplicationParams(self):
         """
         Alignment parameters must be extracted from the input SAM file and
         stored correctly.
         """
-
         mockOpener = mockOpen(read_data=SAMPLE_DATA)
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            readsAlignments = SamReadsAlignments(reads, 'file.SAM')
+            # print >>sys.stderr, 'hello'
+            readsAlignments = SamReadsAlignments(reads, 'file.sam')
             params = {'VN': '1.3', 'SO': 'unsorted', 'GO': 'none',
                       'gi|887699|gb|DQ37780': 37000,
                       'gi|639163157|ref|NC_024124.1|': 35000,
@@ -89,8 +91,9 @@ class TestSamReadsAlignments(TestCase):
         mockOpener = mockOpen(read_data=SAMPLE_DATA_PARAMS)
         with patch('__builtin__.open', mockOpener, create=True):
             reads = Reads()
-            readsAlignments = SamReadsAlignments(reads, 'file.SAM')
-            self.assertEqual([], list(readsAlignments))
+            error = "SAM file file.sam does not contain alignment section."
+            self.assertRaisesRegexp(
+                AssertionError, error, SamReadsAlignments, reads, 'file.sam')
 
     def testTooManyReads(self):
         """
@@ -105,5 +108,5 @@ class TestSamReadsAlignments(TestCase):
             error = ("Reads iterator contained more reads than the number of "
                      "BLAST records found \(1\)\. First unknown read id is "
                      "'id1'\.")
-            readsAlignments = SamReadsAlignments(reads, 'file.SAM')
+            readsAlignments = SamReadsAlignments(reads, 'file.sam')
             self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
