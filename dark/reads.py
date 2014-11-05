@@ -92,6 +92,44 @@ class Read(object):
         else:
             return 0.0
 
+    def walkHSP(self, hsp):
+        """
+        Provide information about exactly how a read matches a subject, as
+        specified by C{hsp}.
+
+        @return: A generator that yields (offset, residue, inMatch) tuples.
+            The offset is the offset into the matched subject. The residue is
+            the base in the read (which might be '-' to indicate a gap in the
+            read was aligned with the subject at this offset). inMatch will be
+            C{True} for residues that are part of the HSP match, and C{False}
+            for the (possibly non-existent) parts of the read that fall outside
+            the HSP (aka, the "whiskers" in an alignment graph).
+        """
+
+        # It will be easier to understand the following implementation if
+        # you refer to the ASCII art illustration of an HSP in the
+        # dark.hsp._Base class in hsp.py
+
+        # Left whisker.
+        readOffset = 0
+        subjectOffset = hsp.readStartInSubject
+        while subjectOffset < hsp.subjectStart:
+            yield (subjectOffset, self.sequence[readOffset], False)
+            readOffset += 1
+            subjectOffset += 1
+
+        # Match.
+        for matchOffset, residue in enumerate(hsp.readMatchedSequence):
+            yield (subjectOffset + matchOffset, residue, True)
+
+        # Right whisker.
+        readOffset = hsp.readEnd
+        subjectOffset = hsp.subjectEnd
+        while subjectOffset < hsp.readEndInSubject:
+            yield (subjectOffset, self.sequence[readOffset], False)
+            readOffset += 1
+            subjectOffset += 1
+
 
 class _NucleotideRead(Read):
     """

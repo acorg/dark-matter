@@ -12,21 +12,35 @@ class _Base(object):
     either HSP or LSP, depending on whether you want numerically higher
     scores to be considered better (HSP) or worse (LSP).
 
-    All offsets are zero-based and follow the Python convention that
-    the 'end' positions are not included in the string.
+    Below is an example of the six start/end offsets.  The upper four are
+    offsets into the subject. The lower two are offsets into the read. Note
+    that the read has two gaps ('-' characters). All offsets are zero-based
+    and follow the Python convention that the 'end' positions are not included
+    in the string.
+
+                           readStartInSubject              readEndInSubject
+                           |                               |
+                           |                               |
+                           |   subjectStart    subjectEnd  |
+                           |   |               |           |
+                           |   |               |           |
+    Subject:  .................ACGTAAAGGCTTAGGT.................
+    Read:                  ....ACGTA-AGGCTT-GGT............
+                               |               |
+                               |               |
+                               readStart       readEnd
 
     @param readStart: The offset in the read where the match begins.
     @param readEnd: The offset in the read where the match ends.
-    @param readStartInSubject: The offset in the subject where the match of
-        the read starts.
-    @param readEndInSubject: The offset in the subject where the match of
-        the read ends.
+    @param readStartInSubject: The offset in the subject where the read starts.
+    @param readEndInSubject: The offset in the subject where the read ends.
     @param subjectStart: The offset in the subject where the match begins.
     @param subjectEnd: The offset in the subject where the match ends.
     @param readMatchedSequence: The matched part of the read. Note that
         this may contain gaps (marked with '-').
     @param subjectMatchedSequence: The matched part of the subject. Note that
         this may contain gaps (marked with '-').
+
     """
     def __init__(self, readStart=None, readEnd=None, readStartInSubject=None,
                  readEndInSubject=None, subjectStart=None, subjectEnd=None,
@@ -48,7 +62,7 @@ class _Base(object):
 
     def betterThan(self, score):
         """
-        Compare this LSP's score with another score.
+        Compare this instance's score with another score.
 
         @param score: A C{float} score.
         @return: A C{bool}, C{True} if this score is the better.

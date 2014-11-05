@@ -303,6 +303,305 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(0.3, titleAlignments.coverage())
 
+    def testResidueCountsNoReads(self):
+        """
+        When a title has no reads aligned to it, the residueCounts method
+        must retrun an empty result.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        counts = titleAlignments.residueCounts()
+        self.assertEqual(0, len(counts))
+
+    def testResidueCountsUnknownCaseConversion(self):
+        """
+        The residueCounts method must raise a ValueError when asked to do an
+        unknown case conversion.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        error = "convertCaseTo must be one of 'none', 'lower', or 'upper'"
+        self.assertRaisesRegexp(
+            ValueError, error, titleAlignments.residueCounts,
+            convertCaseTo='xxx')
+
+    def testResidueCountsOneReadOneHSP(self):
+        """
+        The residueCounts method must return the correct result when just one
+        read with one HSP is aligned to a title.
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
+                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
+                  readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                0: {'A': 1},
+                1: {'C': 1},
+                2: {'G': 1},
+                3: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
+    def testResidueCountsOneReadOneHSPPartialMatch(self):
+        """
+        The residueCounts method must return the correct result when just one
+        read with one HSP is aligned to a title and only part of the read
+        matched the subject (all the read bases are still counted and
+        returned).
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=0, readEnd=2, readStartInSubject=0,
+                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
+                  readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                0: {'A': 1},
+                1: {'C': 1},
+                2: {'G': 1},
+                3: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
+    def testResidueCountsOneReadTwoHSPsAtStartOfSubject(self):
+        """
+        The residueCounts method must return the correct result when just one
+        read with two HSPs is aligned to a title and the leftmost HSP is
+        aligned with the left edge of the subject.
+
+        HSP1:       ACGT
+        HSP2:        CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
+                   readEndInSubject=4, subjectStart=0, subjectEnd=4,
+                   readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=1,
+                   readEndInSubject=5, subjectStart=1, subjectEnd=5,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                0: {'A': 1},
+                1: {'C': 2},
+                2: {'G': 2},
+                3: {'T': 2},
+                4: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
+    def testResidueCountsOneReadTwoHSPsNotAtStartOfSubject(self):
+        """
+        The residueCounts method must return the correct result when just one
+        read with two HSPs is aligned to a title and the leftmost HSP is not
+        aligned with the left edge of the subject.
+
+        HSP1:       ACGT
+        HSP2:        CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
+                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
+                   readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
+                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                10: {'A': 1},
+                11: {'C': 2},
+                12: {'G': 2},
+                13: {'T': 2},
+                14: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
+    def testResidueCountsNoCaseConversion(self):
+        """
+        The residueCounts method must return the correct result when asked not
+        to convert case.
+
+        HSP1:       AcgT
+        HSP2:        CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
+                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
+                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
+                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                10: {'A': 1},
+                11: {'C': 1, 'c': 1},
+                12: {'G': 1, 'g': 1},
+                13: {'T': 2},
+                14: {'T': 1},
+            },
+            titleAlignments.residueCounts(convertCaseTo='none'))
+
+    def testResidueCountsCaseConvertLower(self):
+        """
+        The residueCounts method must return the correct result when asked to
+        convert residues to lower case.
+
+        HSP1:       AcgT
+        HSP2:        CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
+                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
+                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
+                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                10: {'a': 1},
+                11: {'c': 2},
+                12: {'g': 2},
+                13: {'t': 2},
+                14: {'t': 1},
+            },
+            titleAlignments.residueCounts(convertCaseTo='lower'))
+
+    def testResidueCountsCaseConvertUpper(self):
+        """
+        The residueCounts method must return the correct result when asked to
+        convert residues to upper case.
+
+        HSP1:       AcgT
+        HSP2:        CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
+                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
+                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
+                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                10: {'A': 1},
+                11: {'C': 2},
+                12: {'G': 2},
+                13: {'T': 2},
+                14: {'T': 1},
+            },
+            titleAlignments.residueCounts(convertCaseTo='upper'))
+
+    def testResidueCountsCaseConvertUpperIsDefault(self):
+        """
+        The residueCounts method must convert to uppercase by default.
+
+        HSP1:       AcgT
+        HSP2:        CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
+                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
+                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
+                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                10: {'A': 1},
+                11: {'C': 2},
+                12: {'G': 2},
+                13: {'T': 2},
+                14: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
+    def testResidueCountsTwoReadsTwoHSPsLeftOverhang(self):
+        """
+        The residueCounts method must return the correct result when two
+        reads, each with one HSP are aligned to a title and the leftmost HSP
+        is aligned before the left edge of the subject (i.e, will include
+        negative subject offsets).
+
+        Subject:      GTT
+        HSP1:       ACGT
+        HSP2:        CGTT
+        """
+        read1 = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=-2,
+                   readEndInSubject=2, subjectStart=0, subjectEnd=2,
+                   readMatchedSequence='GT', subjectMatchedSequence='GT')
+        read2 = Read('id', 'CGTT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=-1,
+                   readEndInSubject=3, subjectStart=0, subjectEnd=3,
+                   readMatchedSequence='GTT', subjectMatchedSequence='GTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read1, [hsp1])
+        titleAlignments.addAlignment(titleAlignment)
+        titleAlignment = TitleAlignment(read2, [hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                -2: {'A': 1},
+                -1: {'C': 2},
+                0: {'G': 2},
+                1: {'T': 2},
+                2: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
+    def testResidueCountsOneReadTwoHSPsNotOverlapping(self):
+        """
+        The residueCounts method must return the correct result when just one
+        read with two HSPs is aligned to a title and the HSPs do not overlap
+        one another.
+
+        HSP1:    ACGT
+        HSP2:              CGTT
+        """
+        read = Read('id', 'ACGT')
+        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
+                   readEndInSubject=4, subjectStart=0, subjectEnd=4,
+                   readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
+        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
+                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
+                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
+        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        self.assertEqual(
+            {
+                0: {'A': 1},
+                1: {'C': 1},
+                2: {'G': 1},
+                3: {'T': 1},
+                10: {'C': 1},
+                11: {'G': 1},
+                12: {'T': 1},
+                13: {'T': 1},
+            },
+            titleAlignments.residueCounts())
+
 
 class TestTitleAlignmentsLSP(TestCase):
     """

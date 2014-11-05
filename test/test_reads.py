@@ -9,6 +9,7 @@ from dark.reads import (
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
+from dark.hsp import HSP
 
 
 class TestRead(TestCase):
@@ -168,6 +169,99 @@ class TestRead(TestCase):
         """
         read = Read('id', 'aCGT')
         self.assertEqual(0.25, read.lowComplexityFraction())
+
+    def testWalkHSPExactMatch(self):
+        """
+        If the HSP specifies that the entire read matches the subject exactly,
+        walkHSP must return the correct results.
+
+        Subject:     ACGT
+        Read:        ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
+                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
+                  readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
+        self.assertEqual([(0, 'A', True),
+                          (1, 'C', True),
+                          (2, 'G', True),
+                          (3, 'T', True)],
+                         list(read.walkHSP(hsp)))
+
+    def testWalkHSPExactMatchWithGap(self):
+        """
+        If the HSP specifies that the entire read matches the subject exactly,
+        including a gap, walkHSP must return the correct results.
+
+        Subject:     ACGT
+        Read:        A-GT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
+                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
+                  readMatchedSequence='A-GT', subjectMatchedSequence='ACGT')
+        self.assertEqual([(0, 'A', True),
+                          (1, '-', True),
+                          (2, 'G', True),
+                          (3, 'T', True)],
+                         list(read.walkHSP(hsp)))
+
+    def testWalkHSPLeftOverhangingMatch(self):
+        """
+        If the HSP specifies that the entire read matches the subject, and
+        also extends to the left of the subject, walkHSP must return the
+        correct results.
+
+        Subject:       GT.....
+        Read:        ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=2, readEnd=4, readStartInSubject=-2,
+                  readEndInSubject=2, subjectStart=0, subjectEnd=2,
+                  readMatchedSequence='GT', subjectMatchedSequence='GT')
+        self.assertEqual([(-2, 'A', False),
+                          (-1, 'C', False),
+                          (0, 'G', True),
+                          (1, 'T', True)],
+                         list(read.walkHSP(hsp)))
+
+    def testWalkHSPRightOverhangingMatch(self):
+        """
+        If the HSP specifies that the entire read matches the subject, and
+        also extends to the right of the subject, walkHSP must return the
+        correct results.
+
+        Subject:       AC
+        Read:          ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=0, readEnd=2, readStartInSubject=10,
+                  readEndInSubject=14, subjectStart=10, subjectEnd=12,
+                  readMatchedSequence='AC', subjectMatchedSequence='AC')
+        self.assertEqual([(10, 'A', True),
+                          (11, 'C', True),
+                          (12, 'G', False),
+                          (13, 'T', False)],
+                         list(read.walkHSP(hsp)))
+
+    def testWalkHSPLeftAndRightOverhangingMatch(self):
+        """
+        If the HSP specifies that the entire read matches the subject, and
+        also extends to both the left and right of the subject, walkHSP must
+        return the correct results.
+
+        Subject:        CG
+        Read:          ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=1, readEnd=3, readStartInSubject=10,
+                  readEndInSubject=14, subjectStart=11, subjectEnd=13,
+                  readMatchedSequence='CG', subjectMatchedSequence='CG')
+        self.assertEqual([(10, 'A', False),
+                          (11, 'C', True),
+                          (12, 'G', True),
+                          (13, 'T', False)],
+                         list(read.walkHSP(hsp)))
 
 
 class TestDNARead(TestCase):
