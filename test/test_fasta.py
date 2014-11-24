@@ -274,43 +274,35 @@ class TestFastaReads(TestCase):
             reads = list(FastaReads('filename.fasta'))
             self.assertTrue(isinstance(reads[0], DNARead))
 
-    def testUnknownType(self):
-        """
-        A FASTA file whose type is specified as an unknown type must raise
-        a ValueError.
-        """
-        error = "Type must be either 'aa', 'dna', 'rna'\\."
-        self.assertRaisesRegexp(ValueError, error, FastaReads, 'f.fasta', 'x')
-
     def testTypeAA(self):
         """
-        A FASTA file whose type is specified as 'aa' must result in reads that
+        A FASTA file whose read class is AARead must result in reads that
         are instances of AARead.
         """
         data = '\n'.join(['>id1', 'ACGT'])
         mockOpener = mockOpen(read_data=data)
         with patch('__builtin__.open', mockOpener, create=True):
-            reads = list(FastaReads('filename.fasta', 'aa'))
+            reads = list(FastaReads('filename.fasta', AARead))
             self.assertTrue(isinstance(reads[0], AARead))
 
     def testTypeDNA(self):
         """
-        A FASTA file whose type is specified as 'dna' must result in reads that
+        A FASTA file whose read class is DNARead must result in reads that
         are instances of DNARead.
         """
         data = '\n'.join(['>id1', 'ACGT'])
         mockOpener = mockOpen(read_data=data)
         with patch('__builtin__.open', mockOpener, create=True):
-            reads = list(FastaReads('filename.fasta', 'dna'))
+            reads = list(FastaReads('filename.fasta', DNARead))
             self.assertTrue(isinstance(reads[0], DNARead))
 
     def testTypeRNA(self):
         """
-        A FASTA file whose type is specified as 'rna' must result in reads that
+        A FASTA file whose read class is RNARead must result in reads that
         are instances of RNARead.
         """
         data = '\n'.join(['>id1', 'ACGT'])
         mockOpener = mockOpen(read_data=data)
         with patch('__builtin__.open', mockOpener, create=True):
-            reads = list(FastaReads('filename.fasta', 'rna'))
+            reads = list(FastaReads('filename.fasta', RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
