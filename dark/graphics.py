@@ -365,8 +365,8 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         # vertical feature lines to the reads and ORF axes.
         if features and not featureAdder.tooManyFeaturesToPlot:
             for feature in features:
-                start = feature.start()
-                end = feature.end()
+                start = feature.start
+                end = feature.end
                 color = feature.color
                 readsAx.axvline(x=start, color=color)
                 readsAx.axvline(x=end, color='#cccccc')
