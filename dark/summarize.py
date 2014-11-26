@@ -1,5 +1,5 @@
 from Bio import SeqIO
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 
 def summarizeReads(file_handle, file_type):
@@ -47,7 +47,7 @@ def summarizeReads(file_handle, file_type):
     return result
 
 
-def summarizePosition(fileName, position):
+def summarizePosition(records, position):
     """
     For a fasta file with sequences, summarize what is happening at a specific
     position.
@@ -57,19 +57,22 @@ def summarizePosition(fileName, position):
         assumes that the position is given in 1-based offsets (NOT how python
         usually does it!).
     """
-    countAtPosition = defaultdict(int)
-    sequenceCount = 0
+    countAtPosition = Counter()
 
-    records = SeqIO.parse(fileName, 'fasta')
-
+    bases = []
     for record in records:
-        sequence = record.seq
-        baseAtPosition = sequence[position - 1]
-        countAtPosition[baseAtPosition] += 1
-        sequenceCount += 1
+        sequence = record.sequence
+        try:
+            bases.append(sequence[position - 1])
+        except IndexError:
+            continue
+
+    for base in bases:
+        countAtPosition[base] += 1
 
     result = {
-        'sequenceCount': sequenceCount,
+        'includedSequences': len(bases),
+        'allSequences': len(records),
         'countAtPosition': countAtPosition
     }
 
