@@ -24,14 +24,14 @@ class TestFindDistance(TestCase):
     """
     def testFindDistanceThree(self):
         """
-        findDistance must return the right distance if codons are equal.
+        findDistance must return the right distance if codons are different.
         """
         distance = findDistance('ACA', 'TGT')
         self.assertEqual(3, distance)
 
     def testFindDistanceZero(self):
         """
-        findDistance must return the right distance if codons are different.
+        findDistance must return the right distance if codons are identical.
         """
         distance = findDistance('ACA', 'ACA')
         self.assertEqual(0, distance)
@@ -45,37 +45,24 @@ class TestCODONS(TestCase):
         """
         The table must contain the right number of keys.
         """
-        self.assertEqual(20, len(CODONS.keys()))
+        self.assertEqual(20, len(CODONS))
 
     def testNumberCodons(self):
         """
         The table must contain the right number of codons.
         """
-        count = 0
-        for aa, codons in CODONS.items():
-            count += len(codons)
-        self.assertEqual(44, count)
+        self.assertEqual(44, sum(len(codons) for codons in CODONS.values()))
 
     def testCodonLength(self):
         """
         All codons must be three bases long.
         """
-        three = True
-        for aa, codons in CODONS.items():
-            for codon in codons:
-                if len(codon) != 3:
-                    three = False
-        self.assertTrue(three)
+        self.assertTrue(len(codon) == 3 for codon in CODONS.values())
 
     def testCodonContent(self):
         """
         Codons must only contain the letters A, T, G, C.
         """
-        letters = True
         for aa, codons in CODONS.items():
             for codon in codons:
-                for letter in codon:
-                    if letter not in ['A', 'C', 'T', 'G']:
-                        print letter
-                        letters = False
-        self.assertTrue(letters)
+                self.assertTrue(all(letter in 'ACGT' for letter in codon))

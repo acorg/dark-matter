@@ -18,22 +18,15 @@ else:
         codonsAA2 = CODONS[aa2.lower()]
     except KeyError:
         print >>sys.stderr, ('Your arguments need to be two of: %s') % (
-            list(CODONS.keys()))
+            CODONS.keys())
         sys.exit(1)
 
     result = codonInformation(codonsAA1, codonsAA2)
+    print 'Codons:'
+    print '%s: %s' % (aa1, ' '.join(codonsAA1))
+    print '%s: %s' % (aa2, ' '.join(codonsAA2))
 
-    print 'Possible codons:'
-    print aa1 + ':',
-    for c in codonsAA1:
-        print c,
-    print
-    print aa2 + ':',
-    for c in codonsAA2:
-        print c,
-    print '\n'
-
-    print 'distances:'
+    print 'Distances:'
     for i in result:
         for codon in result[i]:
             print '%d: %s: %s; %s: %s' % (i, aa1, codon[0], aa2, codon[1])
