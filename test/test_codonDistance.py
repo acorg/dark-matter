@@ -1,38 +1,21 @@
 from unittest import TestCase
 
 from dark.codonDistance import codonInformation, findDistance
+from dark.aa import CODONS
 
 
 class TestCodonInformation(TestCase):
     """
     Tests for the codonInformation function.
     """
-    def testRaiseExceptionIfNoValidCode(self):
-        """
-        If amino acids are given in not valid code, exception must be raised.
-        """
-        pass
-
     def testReturnRightCodon(self):
         """
         Must return the right codon.
         """
-        result = codonInformation('Asp', 'Ala')
-        self.assertEqual(result['codons']['Asp'], ['GAT', 'GAC'])
-        self.assertEqual(result['codons']['Ala'], ['GCC', 'GCA'])
-
-    def testReturnRightDistance(self):
-        """
-        codonInformation must return the right distances.
-        """
-        result = codonInformation('Asp', 'Ala')
-        print result
-        self.assertEqual(result['distances'][0], [])
-        self.assertEqual(result['distances'][1], [['GAC', 'GCC']])
-        self.assertEqual(result['distances'][2], [['GAT', 'GCC'],
-                                                  ['GAT', 'GCA'],
-                                                  ['GAC', 'GCA']])
-        self.assertEqual(result['distances'][3], [])
+        result = codonInformation(['GAT', 'GAC'], ['GCC', 'GCA'])
+        self.assertEqual([['GAC', 'GCC']], result[1])
+        self.assertEqual([['GAT', 'GCC'], ['GAT', 'GCA'], ['GAC', 'GCA']],
+                         result[2])
 
 
 class TestFindDistance(TestCase):
@@ -44,11 +27,55 @@ class TestFindDistance(TestCase):
         findDistance must return the right distance if codons are equal.
         """
         distance = findDistance('ACA', 'TGT')
-        self.assertEqual(distance, 3)
+        self.assertEqual(3, distance)
 
     def testFindDistanceZero(self):
         """
         findDistance must return the right distance if codons are different.
         """
         distance = findDistance('ACA', 'ACA')
-        self.assertEqual(distance, 0)
+        self.assertEqual(0, distance)
+
+
+class TestCODONS(TestCase):
+    """
+    Tests for the CODONS table.
+    """
+    def testNumberOfKeys(self):
+        """
+        The table must contain the right number of keys.
+        """
+        self.assertEqual(20, len(CODONS.keys()))
+
+    def testNumberCodons(self):
+        """
+        The table must contain the right number of codons.
+        """
+        count = 0
+        for aa, codons in CODONS.items():
+            count += len(codons)
+        self.assertEqual(44, count)
+
+    def testCodonLength(self):
+        """
+        All codons must be three bases long.
+        """
+        three = True
+        for aa, codons in CODONS.items():
+            for codon in codons:
+                if len(codon) != 3:
+                    three = False
+        self.assertTrue(three)
+
+    def testCodonContent(self):
+        """
+        Codons must only contain the letters A, T, G, C.
+        """
+        letters = True
+        for aa, codons in CODONS.items():
+            for codon in codons:
+                for letter in codon:
+                    if letter not in ['A', 'C', 'T', 'G']:
+                        print letter
+                        letters = False
+        self.assertTrue(letters)

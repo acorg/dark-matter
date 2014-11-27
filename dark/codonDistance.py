@@ -1,47 +1,33 @@
-import sys
-
-from dark.codonTable import CODONS
+from collections import defaultdict
 
 
-def findDistance(codon1, codon2):
+def findDistance(co1, co2):
     """
     Find the distance between two codons.
     """
     inequal = 0
     count = 0
     while count < 3:
-        if codon1[count] != codon2[count]:
+        if co1[count] != co2[count]:
             inequal += 1
         count += 1
     return inequal
 
 
-def codonInformation(aa1, aa2):
+def codonInformation(codons1, codons2):
     """
-    Take two amino acids, in three letter code, and return information about
-    which codons code for that aa and the min and max distance between them.
+    Take two C{list} of codons, and returns information about a and the min and
+    max distance between them.
+
+    @param codon1: a C{list} of codons.
+    @param codon2: a C{list} of codons.
+
+    @return: a dict with how often a distance occurs between which codons.
     """
-    result = {}
-    try:
-        codonsAA1 = CODONS[aa1.lower()]
-        codonsAA2 = CODONS[aa2.lower()]
-    except KeyError:
-        print >>sys.stderr, ('You must give you amino acids in three-letter '
-                             'code.')
-        sys.exit(1)
-
-    result = {'codons': {aa1: codonsAA1,
-                         aa2: codonsAA2},
-              'distances': {0: [],
-                            1: [],
-                            2: [],
-                            3: []
-                            }
-              }
-
-    for c1 in codonsAA1:
-        for c2 in codonsAA2:
+    result = defaultdict(list)
+    for c1 in codons1:
+        for c2 in codons2:
             distance = findDistance(c1, c2)
-            result['distances'][distance].append([c1, c2])
+            result[distance].append([c1, c2])
 
     return result
