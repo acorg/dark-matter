@@ -45,32 +45,3 @@ def summarizeReads(file_handle, file_type):
     }
 
     return result
-
-
-def summarizePosition(fileName, position):
-    """
-    For a fasta file with sequences, summarize what is happening at a specific
-    position.
-
-    @param fileName: a C{str} fileName of a fasta file.
-    @param position: a position in the sequence that should be looked at. This
-        assumes that the position is given in 1-based offsets (NOT how python
-        usually does it!).
-    """
-    countAtPosition = defaultdict(int)
-    sequenceCount = 0
-
-    records = SeqIO.parse(fileName, 'fasta')
-
-    for record in records:
-        sequence = record.seq
-        baseAtPosition = sequence[position - 1]
-        countAtPosition[baseAtPosition] += 1
-        sequenceCount += 1
-
-    result = {
-        'sequenceCount': sequenceCount,
-        'countAtPosition': countAtPosition
-    }
-
-    return result

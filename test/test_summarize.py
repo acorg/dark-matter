@@ -1,7 +1,7 @@
 from unittest import TestCase
 from cStringIO import StringIO
 
-from dark.summarize import summarizeReads, summarizePosition
+from dark.summarize import summarizeReads
 
 
 class TestSummarizeReads(TestCase):
@@ -90,46 +90,3 @@ class TestSummarizeReads(TestCase):
         atggctattgaactgtatct'
         result = summarizeReads(StringIO(seq), 'fasta')
         self.assertEqual(result['median_length'], 9.5)
-
-
-class TestSummarizePosition(TestCase):
-    """
-    Tests for the summarizePosition function.
-    """
-    def testOffset(self):
-        """
-        The function must return the base at the right offset.
-        """
-        seq = '>hey\naataaa\n>you\naata\n>how\naataaaaaa'
-        result = summarizePosition(StringIO(seq), 3)
-        self.assertEqual(result['countAtPosition'], {'t': 3})
-
-    def testNumberOfSequences(self):
-        """
-        Must return the right number of sequences.
-        """
-        seq = '>hey\nagtcagtcagtc\n>you\nacctg\n>how\natgggtc'
-        result = summarizePosition(StringIO(seq), 2)
-        self.assertEqual(result['sequenceCount'], 3)
-
-    def testFrequencies(self):
-        """
-        Must return the right frequencies.
-        """
-        seq = '>hey\naaaaaa\n>you\naaca\n>how\naataaaaaa'
-        result = summarizePosition(StringIO(seq), 3)
-        self.assertEqual(result['countAtPosition'], {'a': 1, 'c': 1, 't': 1})
-
-    def testFrequenciesNonePresent(self):
-        """
-        Must return none, if no reads are present.
-        """
-        result = summarizePosition(StringIO(), 3)
-        self.assertEqual(result['countAtPosition'], {})
-
-    def testNumberOfSequencesNonePresent(self):
-        """
-        Must return none, if no reads are present.
-        """
-        result = summarizePosition(StringIO(), 3)
-        self.assertEqual(result['sequenceCount'], 0)
