@@ -13,7 +13,8 @@ else:
 
     result = codonInformation(aa1, aa2)
 
-    print 'Codons:', aa1 + ':',
+    print 'Possible codons:'
+    print aa1 + ':',
     for c in result['codons'][aa1]:
         print c,
 
@@ -21,9 +22,8 @@ else:
     for c in result['codons'][aa2]:
         print c,
     print '\n'
-    print 'Minimum distance: %d, Codons: %s, %s' % (result['minDistance'],
-                                                    result['minCodons'][0],
-                                                    result['minCodons'][0])
-    print 'Maximum distance: %d, Codons: %s, %s' % (result['maxDistance'],
-                                                    result['maxCodons'][0],
-                                                    result['maxCodons'][0])
+
+    print 'distances:'
+    for i in result['distances']:
+        for codon in result['distances'][i]:
+            print '%d: %s: %s; %s: %s' % (i, aa1, codon[0], aa2, codon[1])
