@@ -1,8 +1,7 @@
 from unittest import TestCase
 from cStringIO import StringIO
 
-from dark.summarize import summarizeReads, summarizePosition
-from dark.reads import Read, Reads
+from dark.summarize import summarizeReads
 
 
 class TestSummarizeReads(TestCase):
@@ -91,69 +90,3 @@ class TestSummarizeReads(TestCase):
         atggctattgaactgtatct'
         result = summarizeReads(StringIO(seq), 'fasta')
         self.assertEqual(result['median_length'], 9.5)
-
-
-class TestSummarizePosition(TestCase):
-    """
-    Tests for the summarizePosition function.
-    """
-    def testOffset(self):
-        """
-        The function must return the base at the right offset.
-        """
-        reads = Reads()
-        reads.add(Read('hey', 'aataaa'))
-        reads.add(Read('you', 'aata'))
-        reads.add(Read('how', 'aataaaaaa'))
-        result = summarizePosition(reads, 3)
-        self.assertEqual(result['countAtPosition'], {'t': 3})
-
-    def testNumberOfSequences(self):
-        """
-        Must return the right number of sequences.
-        """
-        reads = Reads()
-        reads.add(Read('hey', 'agtcagtcagtc'))
-        reads.add(Read('you', 'acctg'))
-        reads.add(Read('how', 'atg'))
-        result = summarizePosition(reads, 10)
-        self.assertEqual(result['includedSequences'], 1)
-        self.assertEqual(result['allSequences'], 3)
-
-    def testFrequencies(self):
-        """
-        Must return the right frequencies.
-        """
-        reads = Reads()
-        reads.add(Read('hey', 'aaaaaa'))
-        reads.add(Read('you', 'aaca'))
-        reads.add(Read('how', 'aataaaaaa'))
-        result = summarizePosition(reads, 3)
-        self.assertEqual(result['countAtPosition'], {'a': 1, 'c': 1, 't': 1})
-
-    def testFrequenciesNonePresent(self):
-        """
-        Must return none, if no reads are present.
-        """
-        reads = Reads()
-        result = summarizePosition(reads, 3)
-        self.assertEqual(result['countAtPosition'], {})
-
-    def testNumberOfSequencesNonePresent(self):
-        """
-        Must return none, if no reads are present.
-        """
-        reads = Reads()
-        result = summarizePosition(reads, 3)
-        self.assertEqual(result['includedSequences'], 0)
-
-    def testPositionBiggerThanSequenceLength(self):
-        """
-        Must not count sequence if too short.
-        """
-        reads = Reads()
-        reads.add(Read('hey', 'aaaaaa'))
-        reads.add(Read('you', 'aaca'))
-        reads.add(Read('how', 'aat'))
-        result = summarizePosition(reads, 6)
-        self.assertEqual(result['countAtPosition'], {'a': 1})

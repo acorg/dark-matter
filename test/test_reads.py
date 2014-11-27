@@ -1334,3 +1334,57 @@ class TestReads(TestCase):
         reads.add(read2)
         result = reads.filter(minLength=4, maxLength=4)
         self.assertEqual([read1], list(result))
+
+
+class TestSummarizePosition(TestCase):
+    """
+    Tests for the reads.summarizePosition function.
+    """
+    def testFrequenciesNoReads(self):
+        """
+        Must return empty counts if no reads are present.
+        """
+        reads = Reads()
+        result = reads.summarizePosition(2)
+        self.assertEqual({}, result['countAtPosition'])
+
+    def testNumberOfExclusionsNoReads(self):
+        """
+        The excluded count must be zero if no reads are present.
+        """
+        reads = Reads()
+        result = reads.summarizePosition(2)
+        self.assertEqual(0, result['excludedCount'])
+
+    def testExcludeShortSequences(self):
+        """
+        Sequences that are too short should be ignored.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'agtcagtcagtc'))
+        reads.add(Read('id2', 'acctg'))
+        reads.add(Read('id3', 'atg'))
+        result = reads.summarizePosition(9)
+        self.assertEqual(2, result['excludedCount'])
+
+    def testIndexLargerThanSequenceLength(self):
+        """
+        Must not count residues in sequences that are too short.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaaaa'))
+        reads.add(Read('id2', 'aaca'))
+        reads.add(Read('id3', 'aat'))
+        result = reads.summarizePosition(5)
+        self.assertEqual({'a': 1}, result['countAtPosition'])
+
+    def testCorrectFrequencies(self):
+        """
+        Must return the correct frequencies.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaaaa'))
+        reads.add(Read('id2', 'aata'))
+        reads.add(Read('id3', 'aataaaaaa'))
+        result = reads.summarizePosition(2)
+        self.assertEqual({'a': 1, 't': 2}, result['countAtPosition'])
