@@ -255,8 +255,10 @@ class JSONRecordsReader(object):
                     readEnd=normalized['readEnd'],
                     readStartInSubject=normalized['readStartInSubject'],
                     readEndInSubject=normalized['readEndInSubject'],
+                    readFrame=blastHsp['frame'][0],
                     subjectStart=normalized['subjectStart'],
                     subjectEnd=normalized['subjectEnd'],
+                    subjectFrame=blastHsp['frame'][1],
                     readMatchedSequence=blastHsp['query'],
                     subjectMatchedSequence=blastHsp['sbjct'])
 

@@ -229,7 +229,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 # If the product of the subject and read frame values is +ve,
                 # then they're either both +ve or both -ve, so we just use the
                 # read as is. Otherwise, we need to reverse complement it.
-                if hsp.frame['subject'] * hsp.frame['query'] > 0:
+                if hsp.subjectFrame * hsp.readFrame > 0:
                     query = alignment.read.sequence
                 else:
                     # One of the subject or query has negative sense.
