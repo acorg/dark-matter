@@ -251,14 +251,14 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 leftRange = hsp.subjectStart - readStartInSubject
 
                 # 2. Match, middle part:
-                middleRange = len(hsp.query)
+                middleRange = len(hsp.readMatchedSequence)
 
                 # 3. Right part:
                 # Using hsp.readEndInSubject - hsp.subjectEnd to calculate the
                 # length of the right part leads to the part being too long.
                 # The number of gaps needs to be subtracted to get the right
                 # length.
-                origQuery = hsp.query.upper()
+                origQuery = hsp.readMatchedSequence.upper()
                 rightRange = (hsp.readEndInSubject - hsp.subjectEnd -
                               origQuery.count('-'))
 
@@ -274,7 +274,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 xOffset = hsp.subjectStart - minX
                 xIndex = 0
                 queryOffset = hsp.subjectStart - hsp.readStartInSubject
-                origSubject = hsp.subject
+                origSubject = hsp.subjectMatchedSequence
                 for matchIndex in xrange(middleRange):
                     if origSubject[matchIndex] == '-':
                         # A gap in the subject was needed to match the query.
