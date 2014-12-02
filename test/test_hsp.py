@@ -15,7 +15,8 @@ class TestHSP(TestCase):
         hsp = HSP(7, readStart=1, readEnd=2,
                   readStartInSubject=3, readEndInSubject=4,
                   subjectStart=5, subjectEnd=6,
-                  readMatchedSequence='aaa', subjectMatchedSequence='ccc')
+                  readMatchedSequence='aaa', subjectMatchedSequence='ccc',
+                  readFrame=8, subjectFrame=9)
         self.assertEqual(1, hsp.readStart)
         self.assertEqual(2, hsp.readEnd)
         self.assertEqual(3, hsp.readStartInSubject)
@@ -25,6 +26,8 @@ class TestHSP(TestCase):
         self.assertEqual('aaa', hsp.readMatchedSequence)
         self.assertEqual('ccc', hsp.subjectMatchedSequence)
         self.assertEqual(7, hsp.score.score)
+        self.assertEqual(8, hsp.readFrame)
+        self.assertEqual(9, hsp.subjectFrame)
 
     def testEqual(self):
         """
@@ -65,7 +68,8 @@ class TestLSP(TestCase):
         hsp = LSP(7, readStart=1, readEnd=2,
                   readStartInSubject=3, readEndInSubject=4,
                   subjectStart=5, subjectEnd=6,
-                  readMatchedSequence='aaa', subjectMatchedSequence='ccc')
+                  readMatchedSequence='aaa', subjectMatchedSequence='ccc',
+                  readFrame=8, subjectFrame=9)
         self.assertEqual(1, hsp.readStart)
         self.assertEqual(2, hsp.readEnd)
         self.assertEqual(3, hsp.readStartInSubject)
@@ -75,6 +79,8 @@ class TestLSP(TestCase):
         self.assertEqual('aaa', hsp.readMatchedSequence)
         self.assertEqual('ccc', hsp.subjectMatchedSequence)
         self.assertEqual(7, hsp.score.score)
+        self.assertEqual(8, hsp.readFrame)
+        self.assertEqual(9, hsp.subjectFrame)
 
     def testEqual(self):
         """
