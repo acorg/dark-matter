@@ -11,7 +11,7 @@ def findDistance(co1, co2):
 
 def codonInformation(codons1, codons2):
     """
-    Take two C{list} of codons, and returns information about a and the min and
+    Take two C{list} of codons, and returns information about the min and
     max distance between them.
 
     @param codon1: a C{list} of codons.
