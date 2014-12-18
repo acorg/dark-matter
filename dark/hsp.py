@@ -32,10 +32,18 @@ class _Base(object):
 
     @param readStart: The offset in the read where the match begins.
     @param readEnd: The offset in the read where the match ends.
-    @param readStartInSubject: The offset in the subject where the read starts.
-    @param readEndInSubject: The offset in the subject where the read ends.
+    @param readStartInSubject: The offset in the subject where the match of
+        the read starts.
+    @param readEndInSubject: The offset in the subject where the match of
+        the read ends.
+    @param readFrame: The reading frame for the read, a value from
+        {-3, -2, -1, 1, 2, 3} where the sign indicates negative or positive
+        sense.
     @param subjectStart: The offset in the subject where the match begins.
     @param subjectEnd: The offset in the subject where the match ends.
+    @param subjectFrame: The reading frame for the subject, a value from
+        {-3, -2, -1, 1, 2, 3} where the sign indicates negative or positive
+        sense.
     @param readMatchedSequence: The matched part of the read. Note that
         this may contain gaps (marked with '-').
     @param subjectMatchedSequence: The matched part of the subject. Note that
@@ -43,14 +51,17 @@ class _Base(object):
 
     """
     def __init__(self, readStart=None, readEnd=None, readStartInSubject=None,
-                 readEndInSubject=None, subjectStart=None, subjectEnd=None,
-                 readMatchedSequence=None, subjectMatchedSequence=None):
+                 readEndInSubject=None, readFrame=None, subjectStart=None,
+                 subjectEnd=None, subjectFrame=None, readMatchedSequence=None,
+                 subjectMatchedSequence=None):
         self.readStart = readStart
         self.readEnd = readEnd
         self.readStartInSubject = readStartInSubject
         self.readEndInSubject = readEndInSubject
+        self.readFrame = readFrame
         self.subjectStart = subjectStart
         self.subjectEnd = subjectEnd
+        self.subjectFrame = subjectFrame
         self.readMatchedSequence = readMatchedSequence
         self.subjectMatchedSequence = subjectMatchedSequence
 

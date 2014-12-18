@@ -1,7 +1,7 @@
 from Bio import SeqIO
 from hashlib import md5
 
-from dark.reads import Reads, AARead, DNARead, RNARead
+from dark.reads import Reads, DNARead
 
 
 def fastaToList(fastaFilename):
@@ -81,19 +81,12 @@ class FastaReads(Reads):
 
     @param file_: A C{str} file name or file handle, containing
         sequences in FASTA format,
-    @param type: A C{str}, either 'aa', 'dna', 'rna'.
+    @param readClass: The class of read that should be yielded by iter.
     @raise ValueError: if C{type} is not one of 'aa', 'dna', 'rna'.
     """
-    def __init__(self, file_, type='dna'):
-        if type not in ('aa', 'dna', 'rna'):
-            raise ValueError("Type must be either 'aa', 'dna', 'rna'.")
+    def __init__(self, file_, readClass=DNARead):
         self.file_ = file_
-        if type == 'aa':
-            self.readClass = AARead
-        elif type == 'dna':
-            self.readClass = DNARead
-        else:
-            self.readClass = RNARead
+        self.readClass = readClass
         Reads.__init__(self)
 
     def iter(self):

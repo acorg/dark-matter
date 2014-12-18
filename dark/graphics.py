@@ -229,7 +229,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 # If the product of the subject and read frame values is +ve,
                 # then they're either both +ve or both -ve, so we just use the
                 # read as is. Otherwise, we need to reverse complement it.
-                if hsp.frame['subject'] * hsp.frame['query'] > 0:
+                if hsp.subjectFrame * hsp.readFrame > 0:
                     query = alignment.read.sequence
                 else:
                     # One of the subject or query has negative sense.
@@ -251,14 +251,14 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 leftRange = hsp.subjectStart - readStartInSubject
 
                 # 2. Match, middle part:
-                middleRange = len(hsp.query)
+                middleRange = len(hsp.readMatchedSequence)
 
                 # 3. Right part:
                 # Using hsp.readEndInSubject - hsp.subjectEnd to calculate the
                 # length of the right part leads to the part being too long.
                 # The number of gaps needs to be subtracted to get the right
                 # length.
-                origQuery = hsp.query.upper()
+                origQuery = hsp.readMatchedSequence.upper()
                 rightRange = (hsp.readEndInSubject - hsp.subjectEnd -
                               origQuery.count('-'))
 
@@ -274,7 +274,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 xOffset = hsp.subjectStart - minX
                 xIndex = 0
                 queryOffset = hsp.subjectStart - hsp.readStartInSubject
-                origSubject = hsp.subject
+                origSubject = hsp.subjectMatchedSequence
                 for matchIndex in xrange(middleRange):
                     if origSubject[matchIndex] == '-':
                         # A gap in the subject was needed to match the query.
@@ -365,8 +365,8 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         # vertical feature lines to the reads and ORF axes.
         if features and not featureAdder.tooManyFeaturesToPlot:
             for feature in features:
-                start = feature.start()
-                end = feature.end()
+                start = feature.start
+                end = feature.end
                 color = feature.color
                 readsAx.axvline(x=start, color=color)
                 readsAx.axvline(x=end, color='#cccccc')
