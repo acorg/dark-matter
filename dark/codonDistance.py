@@ -4,14 +4,17 @@ from collections import defaultdict
 def findDistance(co1, co2):
     """
     Find the distance between two codons.
+
+    @param co1: A C{str} of length three.
+    @param co2: A C{str} of length three.
+    @return: An C{int} distance in [0, 3].
     """
-    return int(co1[0] != co2[0]) + int(co1[1] != co2[1]) + int(co1[2] !=
-                                                               co2[2])
+    return (co1[0] != co2[0]) + (co1[1] != co2[1]) + (co1[2] != co2[2])
 
 
 def codonInformation(codons1, codons2):
     """
-    Take two C{list} of codons, and returns information about a and the min and
+    Take two C{list} of codons, and returns information about the min and
     max distance between them.
 
     @param codon1: a C{list} of codons.
