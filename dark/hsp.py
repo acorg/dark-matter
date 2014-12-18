@@ -12,8 +12,31 @@ class _Base(object):
     either HSP or LSP, depending on whether you want numerically higher
     scores to be considered better (HSP) or worse (LSP).
 
-    All offsets are zero-based and follow the Python convention that
-    the 'end' positions are not included in the string.
+    Below is an example alignment to show the locations of the six
+    start/end offsets.  The upper four are offsets into the subject. The
+    lower two are offsets into the read. Note that the read has two gaps
+    ('-' characters). All offsets are zero-based and follow the Python
+    convention that the 'end' positions are not included in the string.
+
+                           readStartInSubject              readEndInSubject
+                           |                               |
+                           |                               |
+                           |   subjectStart    subjectEnd  |
+                           |   |               |           |
+                           |   |               |           |
+    Subject:  .................ACGTAAAGGCTTAGGT.................
+    Read:                  ....ACGTA-AGGCTT-GGT............
+                               |               |
+                               |               |
+                               readStart       readEnd
+
+    Note that the above is just one alignment, and that others are possible
+    (e.g., with the read extending beyond the end(s) of the subject, or the
+    subject also with gaps in it). The point of the example diagram is to show
+    what the six variable names will always refer to, not to enumerate all
+    possible alignments (the tests in test/blast/test_hsp.py go through
+    many different cases). The classes in this file are just designed to hold
+    the variables associated with an HSP and to make it easy to compare them.
 
     @param readStart: The offset in the read where the match begins.
     @param readEnd: The offset in the read where the match ends.
@@ -57,7 +80,7 @@ class _Base(object):
 
     def betterThan(self, score):
         """
-        Compare this LSP's score with another score.
+        Compare this instance's score with another score.
 
         @param score: A C{float} score.
         @return: A C{bool}, C{True} if this score is the better.
