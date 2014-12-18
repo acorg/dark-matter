@@ -1,17 +1,25 @@
 from unittest import TestCase
 
 from dark.aa import (
-    PROPERTIES, ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
-    HYDROPHOBIC, HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY,
-    NAMES, NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
+    PROPERTIES, ALL_PROPERTIES, PROPERTY_NAMES, ACIDIC,
+    ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
+    HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
+    NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
     find, AminoAcid)
 
-# From https://en.wikipedia.org/wiki/Amino_acid
-_EXPECTED_AA_LETTERS = sorted('ARNDCEQGHILKMFPSTWYV')
 
-_INDIVIDUAL_PROPERTIES = (
-    ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
-    HYDROPHOBIC, HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY)
+class TestAALetters(TestCase):
+    """
+    Test the AA_LETTERS string in dark.aa
+    """
+
+    def testExpectedAALetters(self):
+        """
+        The AA_LETTERS value must be as expected.
+        """
+        # From https://en.wikipedia.org/wiki/Amino_acid
+        expected = sorted('ARNDCEQGHILKMFPSTWYV')
+        self.assertEqual(expected, AA_LETTERS)
 
 
 class TestProperties(TestCase):
@@ -23,51 +31,73 @@ class TestProperties(TestCase):
         """
         The PROPERTIES dict must have the correct AA keys.
         """
-        self.assertEqual(_EXPECTED_AA_LETTERS, sorted(PROPERTIES.keys()))
+        self.assertEqual(AA_LETTERS, sorted(PROPERTIES.keys()))
+
+    def testAllProperties(self):
+        """
+        The ALL_PROPERTIES tuple must contain all known properties.
+        """
+        expected = set([
+            ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
+            HYDROPHOBIC, HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR,
+            TINY])
+        self.assertEqual(set(ALL_PROPERTIES), expected)
 
     def testPropertyValuesDiffer(self):
         """
         All individual property values must be different.
         """
-        self.assertEqual(len(_INDIVIDUAL_PROPERTIES),
-                         len(set(_INDIVIDUAL_PROPERTIES)))
+        self.assertEqual(len(ALL_PROPERTIES), len(set(ALL_PROPERTIES)))
 
     def testEachAAHasItsCorrectPropertiesAndNoOthers(self):
         """
         Each amino acid must have the properties expected of it, and no others.
         """
         expected = {
-            'I': set([ALIPHATIC, HYDROPHOBIC]),
-            'L': set([ALIPHATIC, HYDROPHOBIC]),
-            'V': set([ALIPHATIC, HYDROPHOBIC, SMALL]),
-            'M': set([HYDROPHOBIC, SULPHUR]),
-            'F': set([HYDROPHOBIC, AROMATIC]),
             'A': set([HYDROPHOBIC, SMALL, TINY]),
             'C': set([HYDROPHOBIC, SMALL, TINY, SULPHUR]),
-            'T': set([HYDROPHOBIC, SMALL, HYDROXYLIC]),
-            'Y': set([HYDROPHOBIC, AROMATIC, POLAR]),
-            'W': set([HYDROPHOBIC, AROMATIC, POLAR]),
-            'H': set([HYDROPHOBIC, AROMATIC, POLAR, BASIC_POSITIVE]),
-            'K': set([HYDROPHOBIC, BASIC_POSITIVE, POLAR]),
-            'P': set([HYDROPHILIC, SMALL]),
-            'G': set([HYDROPHILIC, SMALL, TINY]),
-            'S': set([HYDROPHILIC, SMALL, POLAR, HYDROXYLIC]),
-            'N': set([HYDROPHILIC, SMALL, POLAR, ACIDIC]),
             'D': set([HYDROPHILIC, SMALL, POLAR, NEGATIVE]),
-            'Q': set([HYDROPHILIC, POLAR, ACIDIC]),
             'E': set([HYDROPHILIC, NEGATIVE, ACIDIC]),
+            'F': set([HYDROPHOBIC, AROMATIC]),
+            'G': set([HYDROPHILIC, SMALL, TINY]),
+            'H': set([HYDROPHOBIC, AROMATIC, POLAR, BASIC_POSITIVE]),
+            'I': set([ALIPHATIC, HYDROPHOBIC]),
+            'K': set([HYDROPHOBIC, BASIC_POSITIVE, POLAR]),
+            'L': set([ALIPHATIC, HYDROPHOBIC]),
+            'M': set([HYDROPHOBIC, SULPHUR]),
+            'N': set([HYDROPHILIC, SMALL, POLAR, ACIDIC]),
+            'P': set([HYDROPHILIC, SMALL]),
+            'Q': set([HYDROPHILIC, POLAR, ACIDIC]),
             'R': set([HYDROPHILIC, POLAR, BASIC_POSITIVE]),
+            'S': set([HYDROPHILIC, SMALL, POLAR, HYDROXYLIC]),
+            'T': set([HYDROPHOBIC, SMALL, HYDROXYLIC]),
+            'V': set([ALIPHATIC, HYDROPHOBIC, SMALL]),
+            'W': set([HYDROPHOBIC, AROMATIC, POLAR]),
+            'Y': set([HYDROPHOBIC, AROMATIC, POLAR]),
         }
 
-        # Make sure we have expected properties for everything.
-        self.assertEqual(_EXPECTED_AA_LETTERS, sorted(expected.keys()))
+        # Make sure our 'expected' dict (above) has properties for everything.
+        self.assertEqual(AA_LETTERS, sorted(expected.keys()))
 
-        for aa in _EXPECTED_AA_LETTERS:
-            for prop in _INDIVIDUAL_PROPERTIES:
+        for aa in AA_LETTERS:
+            for prop in ALL_PROPERTIES:
                 if prop in expected[aa]:
                     self.assertTrue(bool(PROPERTIES[aa] & prop))
                 else:
                     self.assertFalse(bool(PROPERTIES[aa] & prop))
+
+    def testProperyNamesKeys(self):
+        """
+        The PROPERTY_NAMES dict must have a key for each property.
+        """
+        self.assertEqual(sorted(ALL_PROPERTIES), sorted(PROPERTY_NAMES.keys()))
+
+    def testProperyNamesValuesDiffer(self):
+        """
+        The PROPERTY_NAMES dict must have different values for each key.
+        """
+        self.assertEqual(len(PROPERTY_NAMES),
+                         len(set(PROPERTY_NAMES.values())))
 
 
 class TestNames(TestCase):
@@ -79,7 +109,7 @@ class TestNames(TestCase):
         """
         The NAMES dict must have the correct AA keys.
         """
-        self.assertEqual(_EXPECTED_AA_LETTERS, sorted(NAMES.keys()))
+        self.assertEqual(AA_LETTERS, sorted(NAMES.keys()))
 
     def testValuesDiffer(self):
         """
@@ -98,7 +128,7 @@ class TestNamesToAbbrev1(TestCase):
         """
         The NAMES_TO_ABBREV1 dict must have the correct AA values.
         """
-        self.assertEqual(_EXPECTED_AA_LETTERS,
+        self.assertEqual(AA_LETTERS,
                          sorted(NAMES_TO_ABBREV1.values()))
 
 
@@ -111,7 +141,7 @@ class TestAbbrev3(TestCase):
         """
         The ABBREV3 dict must have the correct AA keys.
         """
-        self.assertEqual(_EXPECTED_AA_LETTERS, sorted(ABBREV3.keys()))
+        self.assertEqual(AA_LETTERS, sorted(ABBREV3.keys()))
 
     def testValuesDiffer(self):
         """
@@ -130,7 +160,7 @@ class TestAbbrev3ToAbbrev1(TestCase):
         """
         The ABBREV3_TO_ABBREV1 dict must have the correct AA values.
         """
-        self.assertEqual(_EXPECTED_AA_LETTERS,
+        self.assertEqual(AA_LETTERS,
                          sorted(ABBREV3_TO_ABBREV1.values()))
 
 
@@ -143,7 +173,7 @@ class TestCodons(TestCase):
         """
         The CODONS dict must have the correct AA keys.
         """
-        self.assertEqual(_EXPECTED_AA_LETTERS, sorted(CODONS.keys()))
+        self.assertEqual(AA_LETTERS, sorted(CODONS.keys()))
 
     def testNumberCodons(self):
         """
@@ -174,18 +204,6 @@ class TestCodons(TestCase):
         for codons in CODONS.values():
             self.assertFalse(
                 any(codon.title() in ABBREV3_TO_ABBREV1 for codon in codons))
-
-
-class TestAALetters(TestCase):
-    """
-    Test the AA_LETTERS string in dark.aa
-    """
-
-    def testCorrectAAs(self):
-        """
-        The AA_LETTERS string must have the correct AA letters.
-        """
-        self.assertEqual(_EXPECTED_AA_LETTERS, sorted(AA_LETTERS))
 
 
 class TestAminoAcid(TestCase):

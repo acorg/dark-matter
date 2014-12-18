@@ -33,8 +33,8 @@ else:
 
     distances = codonInformation(aa1.codons, aa2.codons)
     print 'Codons:'
-    print '%s: %s' % (aa1.name, ' '.join(aa1.codons))
-    print '%s: %s' % (aa2.name, ' '.join(aa2.codons))
+    print '%s: %s' % (aa1.name, ', '.join(sorted(aa1.codons)))
+    print '%s: %s' % (aa2.name, ', '.join(sorted(aa2.codons)))
 
     print 'Distances:'
     sortedDistances = sorted(distances.keys())

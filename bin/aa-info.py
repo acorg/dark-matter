@@ -1,29 +1,11 @@
 #!/usr/bin/env python
 
 import sys
-from pprint import pprint
 
 from dark.aa import find
 from dark.aa import CODONS
 
-from dark.aa import (
-    ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
-    HYDROPHOBIC, HYDROXYLIC, NEGATIVE, POLAR, SMALL, SULPHUR, TINY)
-
-INDIVIDUAL_PROPERTIES = {
-    ACIDIC: 'Acidic',
-    ALIPHATIC: 'Aliphatic',
-    AROMATIC: 'Aromatic',
-    BASIC_POSITIVE: 'Basic positive',
-    HYDROPHILIC: 'Hydrophilic',
-    HYDROPHOBIC: 'Hydrophobic',
-    HYDROXYLIC: 'Hydroxylic',
-    NEGATIVE: 'Negative',
-    POLAR: 'Polar',
-    SMALL: 'Small',
-    SULPHUR: 'Sulphur',
-    TINY: 'Tiny',
-}
+from dark.aa import AA_LETTERS, ALL_PROPERTIES, PROPERTY_NAMES
 
 
 def findOrDie(s):
@@ -44,21 +26,24 @@ def findOrDie(s):
 
 
 if len(sys.argv) == 1:
-    print >>sys.stderr, 'Usage: %s amino_acid...' % sys.argv[0]
-    sys.exit(1)
+    # Show info on all amino acides.
+    aas = AA_LETTERS
+else:
+    aas = sys.argv[1:]
 
-for aa in map(findOrDie, sys.argv[1:]):
-    print 'Name: %s' % aa.name
-    print 'Abbrev3: %s' % aa.abbrev3
-    print 'Abbrev1: %s' % aa.abbrev1
-    print 'Codons: %r' % aa.codons
+for aa in map(findOrDie, aas):
+    print aa.name
+    print '  3-letter abbreviation: %s' % aa.abbrev3
+    print '  1-letter abbreviation: %s' % aa.abbrev1
+    print '  Codons: %s' % ', '.join(sorted(aa.codons))
 
     properties = []
-    print 'Properties:',
-    for property_, name in INDIVIDUAL_PROPERTIES.items():
-        if aa.properties & property_:
-            properties.append(name)
+    print '  Properties:',
+    for prop in ALL_PROPERTIES:
+        if aa.properties & prop:
+            properties.append(PROPERTY_NAMES[prop])
     print ', '.join(properties)
 
-    print 'Property details:'
-    pprint(aa.propertyDetails, indent=2)
+    print '  Property details:'
+    for propertyDetail, value in aa.propertyDetails.items():
+        print '    %s: %s' % (propertyDetail, value)

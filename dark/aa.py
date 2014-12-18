@@ -44,7 +44,7 @@ NAMES = {
     'V': 'Valine',
 }
 
-AA_LETTERS = sorted(NAMES)
+AA_LETTERS = sorted(NAMES.keys())
 
 NAMES_TO_ABBREV1 = dict((name, abbrev1) for abbrev1, name in NAMES.items())
 
@@ -87,6 +87,26 @@ BASIC_POSITIVE = 0x0200
 NEGATIVE = 0x0400
 POLAR = 0x0800
 NONE = 0x1000
+
+ALL_PROPERTIES = (
+    ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
+    HYDROPHOBIC, HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY)
+
+PROPERTY_NAMES = {
+    ACIDIC: 'Acidic',
+    ALIPHATIC: 'Aliphatic',
+    AROMATIC: 'Aromatic',
+    BASIC_POSITIVE: 'Basic positive',
+    HYDROPHILIC: 'Hydrophilic',
+    HYDROPHOBIC: 'Hydrophobic',
+    HYDROXYLIC: 'Hydroxylic',
+    NEGATIVE: 'Negative',
+    NONE: '<NONE>',
+    POLAR: 'Polar',
+    SMALL: 'Small',
+    SULPHUR: 'Sulphur',
+    TINY: 'Tiny',
+}
 
 PROPERTIES = {
     'A': HYDROPHOBIC | SMALL | TINY,
