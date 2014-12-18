@@ -167,8 +167,6 @@ class JSONRecordsReader(object):
     make accessible the global BLAST parameters.
 
     @param filename: A C{str} filename containing JSON BLAST records.
-    @param application: The C{str} name of the blast program used (e.g.,
-        'blastn').
     @param scoreClass: A class to hold and compare scores (see scores.py).
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e-values, pass LowerIsBetterScore instead.

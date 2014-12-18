@@ -91,7 +91,7 @@ class ReadsAlignments(object):
     subclass that implements __iter__.
     See L{blast.alignments.BlastReadsAlignments} for an example.
 
-    @param reads: A L{Reads} instance, containing the reads (sequences)
+    @param reads: A L{Reads} instance, containing the reads (query sequences)
         given to the application to create these matches.
     @param params: An instance of C{ReadsAlignmentsParams}, containing
         the details of the application that created the alignments.
