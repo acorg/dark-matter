@@ -246,7 +246,7 @@ class TestRead(TestCase):
 
     def testWalkHSPLeftAndRightOverhangingMatch(self):
         """
-        If the HSP specifies that the entire read matches the subject, and
+        If the HSP specifies that the read matches the entire subject, and
         also extends to both the left and right of the subject, walkHSP must
         return the correct results.
 
