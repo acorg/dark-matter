@@ -9,10 +9,10 @@ from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 
 
-def main(recordFilename, fastaFilename, title, xRange, bitRange):
+def main(recordFilenames, fastaFilename, title, xRange, bitRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
-    recordFilename: the result of a blast run, in JSON format.
+    recordFilenames: the result of a blast run, in JSON format.
     fastaFilename: the fastafile that was originally blasted.
     title: the title of the subject sequence, as output by BLAST.
     ranges: The first parameter must be a number of an interval on the
@@ -21,7 +21,7 @@ def main(recordFilename, fastaFilename, title, xRange, bitRange):
         converted bit scores.
     """
     reads = FastaReads(fastaFilename)
-    blastReadsAlignments = BlastReadsAlignments(reads, recordFilename)
+    blastReadsAlignments = BlastReadsAlignments(reads, recordFilenames)
     filtered = blastReadsAlignments.filter(whitelist=set([title]),
                                            negativeTitleRegex='.')
     titlesAlignments = TitlesAlignments(filtered)
