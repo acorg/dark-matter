@@ -130,7 +130,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
 
     readsAlignments = titlesAlignments.readsAlignments
     subjectIsNucleotides = readsAlignments.params.subjectIsNucleotides
-    sequence = readsAlignments.getSequence(title)
+    sequence = readsAlignments.getSubjectSequence(title)
 
     if showOrfs and not subjectIsNucleotides:
         # We cannot show ORFs when displaying protein plots.

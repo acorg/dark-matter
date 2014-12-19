@@ -15,8 +15,7 @@ from dark.reads import Read, Reads
 from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import (
-    BlastReadsAlignments, numericallySortFilenames,
-    ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
+    BlastReadsAlignments,  ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
 from dark import ncbidb
 
@@ -40,63 +39,6 @@ class BZ2(object):
         index = self._index
         self._index = len(self._data)
         return iter(self._data[index:])
-
-
-class TestNumericallySortFilenames(TestCase):
-    """
-    Test the numericallySortFilenames function.
-    """
-
-    def testNoNames(self):
-        """
-        An empty list must be returned when an empty list is given.
-        """
-        self.assertEqual([], numericallySortFilenames([]))
-
-    def testOneNonNumericName(self):
-        """
-        A list with a single non-numeric name should result in that same
-        name being returned.
-        """
-        self.assertEqual(['hey'], numericallySortFilenames(['hey']))
-
-    def testOneNumericName(self):
-        """
-        A list with a single numeric name should result in that same
-        name being returned.
-        """
-        self.assertEqual(['3.json'], numericallySortFilenames(['3.json']))
-
-    def testSeveralNames(self):
-        """
-        A list with several numeric names should result in a correctly
-        sorted list of names being returned.
-        """
-        self.assertEqual(
-            ['1.json', '2.json', '3.json'],
-            numericallySortFilenames(['3.json', '1.json', '2.json']))
-
-    def testSeveralNamesWithUnequalPrefixLengths(self):
-        """
-        A list with several numeric names whose numeric prefixes differ
-        in length should result in a correctly sorted list of names being
-        returned.
-        """
-        self.assertEqual(
-            ['2.json', '3.json', '21.json', '35.json', '250.json'],
-            numericallySortFilenames(
-                ['3.json', '21.json', '35.json', '250.json', '2.json']))
-
-    def testBasename(self):
-        """
-        Sorting must be according to file basename.
-        """
-        self.assertEqual(
-            ['../output/2.json', '../output/3.json', '../output/21.json',
-             '../output/35.json', '../output/250.json'],
-            numericallySortFilenames(
-                ['../output/3.json', '../output/21.json', '../output/35.json',
-                 '../output/250.json', '../output/2.json']))
 
 
 class TestBlastReadsAlignments(TestCase):
@@ -389,9 +331,10 @@ class TestBlastReadsAlignments(TestCase):
                 reads, ['file1.json.bz2', 'file2.json.bz2'])
             self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
 
-    def testGetSequence(self):
+    def testGetSubjectSequence(self):
         """
-        The getSequence function must return a correct C{SeqIO.read} instance.
+        The getSubjectSequence function must return a correct C{SeqIO.read}
+        instance.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch('__builtin__.open', mockOpener, create=True):
@@ -400,7 +343,7 @@ class TestBlastReadsAlignments(TestCase):
             with patch.object(ncbidb, 'getSequence') as mockMethod:
                 mockMethod.return_value = SeqIO.read(
                     StringIO('>id1 Description\nAA\n'), 'fasta')
-                sequence = readsAlignments.getSequence('title')
+                sequence = readsAlignments.getSubjectSequence('title')
                 self.assertEqual('AA', str(sequence.seq))
                 self.assertEqual('id1 Description', sequence.description)
 
