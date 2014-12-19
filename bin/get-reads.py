@@ -4,10 +4,12 @@ import sys
 from re import compile
 import argparse
 
-from dark.blast import BlastRecords
+from dark.blast.alignments import BlastReadsAlignments
+from dark.titles import TitlesAlignments
+from dark.fasta import FastaReads
 
 
-def main(recordFilenames, fastaFilename, title, xRange, eRange):
+def main(recordFilename, fastaFilename, title, xRange, bitRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
     recordFilename: the result of a blast run, using outfmt 5.
@@ -18,26 +20,25 @@ def main(recordFilenames, fastaFilename, title, xRange, eRange):
         is optional and should be a converted value or an interval of
         converted evalues.
     """
-    blastRecords = BlastRecords(recordFilenames, fastaFilename)
-    hits = blastRecords.filterHits(whitelist=set([title]),
-                                   negativeTitleRegex='.')
-    if title not in hits.titles:
+    reads = FastaReads(fastaFilename)
+    blastReadsAlignments = BlastReadsAlignments(reads, recordFilename)
+    filtered = blastReadsAlignments.filter(whitelist=set([title]),
+                                           negativeTitleRegex='.')
+    titlesAlignments = TitlesAlignments(filtered)
+
+    if title not in titlesAlignments:
         print '%s: Title %r not found in BLAST output' % (sys.argv[0], title)
         sys.exit(3)
 
-    hits.computePlotInfo()
-
-    items = hits.titles[title]['plotInfo']['items']
-
-    for item in items:
-        hsp = item['hsp']
-        if ((xRange is None or (xRange[0][0] <= hsp['subjectEnd'] and
-                                xRange[0][1] >= hsp['subjectStart'])) and
-                (eRange is None or
-                    (eRange[0][0] <= item['convertedE'] <= eRange[0][1]))):
-            print ('query: ', hits.fasta[item['readNum']].id, 'start: ',
-                   hsp['subjectStart'], 'end: ', hsp['subjectEnd'],
-                   'E-value: ', item['convertedE'])
+    for titleAlignment in titlesAlignments[title]:
+        for hsp in titleAlignment.hsps:
+            if ((xRange is None or (xRange[0][0] <= hsp.subjectEnd and
+                                    xRange[0][1] >= hsp.subjectStart)) and
+                (bitRange is None or (bitRange[0][0] <= hsp.score.score <=
+                                      bitRange[0][1]))):
+                print ('query: %s, start: %d, end: %d, score: %d' % (
+                       titleAlignment.read.id, hsp.subjectStart,
+                       hsp.subjectEnd, hsp.score.score))
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -50,7 +51,7 @@ if __name__ == '__main__':
         description=('Print the reads that are '
                      'at specified positions in an alignmentGraph'),
         epilog=('Given a JSON BLAST output file, a title and an x and / or '
-                'eRange, print the reads that are within the given Ranges.'))
+                'bitRange, print the reads that are within the given Ranges.'))
 
     parser.add_argument(
         'json', metavar='BLAST-JSON-file', type=str, nargs='+',
@@ -69,8 +70,8 @@ if __name__ == '__main__':
         help='a range on the x-axis.')
 
     parser.add_argument(
-        '--eRange', default=None,
-        help='a range on the y-axis.')
+        '--bitRange', default=None,
+        help='a bit score range on the y-axis.')
 
     args = parser.parse_args()
 
@@ -98,4 +99,4 @@ if __name__ == '__main__':
         return ranges
 
     main(args.json, args.fasta, args.title,
-         _getRange(args.xRange), _getRange(args.eRange))
+         _getRange(args.xRange), _getRange(args.bitRange))
