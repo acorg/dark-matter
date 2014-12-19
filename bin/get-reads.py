@@ -11,14 +11,17 @@ from dark.fasta import FastaReads
 
 def main(recordFilenames, fastaFilename, title, xRange, bitRange):
     """
-    Prints the reads that are at a specified offset with a specified evalue.
-    recordFilenames: the result of a blast run, in JSON format.
-    fastaFilename: the fastafile that was originally blasted.
-    title: the title of the subject sequence, as output by BLAST.
-    ranges: The first parameter must be a number of an interval on the
-        x-axis from where the reads should be searched. The second parameter
-        is optional and should be a converted value or an interval of
-        converted bit scores.
+    Print reads that match in a specified X-axis and bit score range.
+
+    @param recordFilenames: A C{list} of C{str} file names contain results of a
+        BLAST run, in JSON format.
+    @param fastaFilename: The C{str} name of the FASTA file that was originally
+        BLASTed.
+    @param title: The C{str} title of the subject sequence, as output by BLAST.
+    @param xRange: A (start, end) list of C{int}s, giving an X-axis range or
+        C{None} if the entire X axis range should be printed.
+    @param bitRange: A (start, end) list of C{int}s, giving a bit score range
+        or C{None} if the entire bit score range should be printed.
     """
     reads = FastaReads(fastaFilename)
     blastReadsAlignments = BlastReadsAlignments(reads, recordFilenames)
@@ -32,10 +35,10 @@ def main(recordFilenames, fastaFilename, title, xRange, bitRange):
 
     for titleAlignment in titlesAlignments[title]:
         for hsp in titleAlignment.hsps:
-            if ((xRange is None or (xRange[0][0] <= hsp.subjectEnd and
-                                    xRange[0][1] >= hsp.subjectStart)) and
-                (bitRange is None or (bitRange[0][0] <= hsp.score.score <=
-                                      bitRange[0][1]))):
+            if ((xRange is None or (xRange[0] <= hsp.subjectEnd and
+                                    xRange[1] >= hsp.subjectStart)) and
+                (bitRange is None or (bitRange[0] <= hsp.score.score <=
+                                      bitRange[1]))):
                 print ('query: %s, start: %d, end: %d, score: %d' % (
                        titleAlignment.read.id, hsp.subjectStart,
                        hsp.subjectEnd, hsp.score.score))
@@ -76,27 +79,32 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def _getRange(inputRange):
-        if inputRange is None:
-            return None
-        rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
-        ranges = []
-        match = rangeRegex.match(inputRange)
-        if match:
-            start, end = match.groups()
-            start = int(start)
-            if end is None:
-                end = start
+        """
+        Convert a string input range into a pair of integers.
+
+        @param inputRange: A C{str}, either  a single number like '10', or a
+            hyphen-separated pair of numbers like '3-9'. May also be C{None}.
+        @return: Either C{None} if inputRange is C{None} or the empty string,
+            else a (start, end) list of C{int}s.
+        """
+        if inputRange:
+            rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
+            match = rangeRegex.match(inputRange)
+            if match:
+                start, end = match.groups()
+                start = int(start)
+                if end is None:
+                    end = start
+                else:
+                    end = int(end)
+                if start > end:
+                    start, end = end, start
+                return start, end
             else:
-                end = int(end)
-            if start > end:
-                start, end = end, start
-            ranges.append((start, end))
-        else:
-            print >>sys.stderr, (
-                'Illegal argument %r. Ranges must single numbers or '
-                'number-number.' % inputRange)
-            sys.exit(2)
-        return ranges
+                print >>sys.stderr, (
+                    'Illegal argument %r. Ranges must single numbers or '
+                    'number-number.' % inputRange)
+                sys.exit(2)
 
     main(args.json, args.fasta, args.title,
          _getRange(args.xRange), _getRange(args.bitRange))
