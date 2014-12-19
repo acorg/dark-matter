@@ -12,7 +12,7 @@ from dark.fasta import FastaReads
 def main(recordFilename, fastaFilename, title, xRange, bitRange):
     """
     Prints the reads that are at a specified offset with a specified evalue.
-    recordFilename: the result of a blast run, using outfmt 5.
+    recordFilename: the result of a blast run, in JSON format.
     fastaFilename: the fastafile that was originally blasted.
     title: the title of the subject sequence, as output by BLAST.
     ranges: The first parameter must be a number of an interval on the
