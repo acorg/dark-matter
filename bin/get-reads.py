@@ -85,7 +85,7 @@ if __name__ == '__main__':
         @param inputRange: A C{str}, either  a single number like '10', or a
             hyphen-separated pair of numbers like '3-9'. May also be C{None}.
         @return: Either C{None} if inputRange is C{None} or the empty string,
-            else a (start, end) list.
+            else a (start, end) list of C{int}s.
         """
         if inputRange:
             rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
