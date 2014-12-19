@@ -18,7 +18,7 @@ def main(recordFilename, fastaFilename, title, xRange, bitRange):
     ranges: The first parameter must be a number of an interval on the
         x-axis from where the reads should be searched. The second parameter
         is optional and should be a converted value or an interval of
-        converted evalues.
+        converted bit scores.
     """
     reads = FastaReads(fastaFilename)
     blastReadsAlignments = BlastReadsAlignments(reads, recordFilename)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 3:
         print >>sys.stderr, (
             'Usage: %s recordFilename, fastaFilename, '
-            'title, xCoords, eCoords' % sys.argv[0])
+            'title, xCoords, bitCoords' % sys.argv[0])
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
