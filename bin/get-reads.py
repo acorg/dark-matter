@@ -15,9 +15,9 @@ def main(recordFilenames, fastaFilename, title, xRange, bitRange):
 
     @param recordFilenames: A C{list} of C{str} file names contain results of a
         BLAST run, in JSON format.
-    @param fastaFilename: the C{str} name of the FASTA file that was originally
+    @param fastaFilename: The C{str} name of the FASTA file that was originally
         BLASTed.
-    @param title: the C{str} title of the subject sequence, as output by BLAST.
+    @param title: The C{str} title of the subject sequence, as output by BLAST.
     @param xRange: A (start, end) list of C{int}s, giving an X-axis range or
         C{None} if the entire X axis range should be printed.
     @param bitRange: A (start, end) list of C{int}s, giving a bit score range
@@ -80,9 +80,10 @@ if __name__ == '__main__':
 
     def _getRange(inputRange):
         """
-        Convert a string input range into a pair of integers. The input range
-        can be a single number, or a hyphen-separated pair of numbers like 3-9.
+        Convert a string input range into a pair of integers.
 
+        @param inputRange: A C{str}, either  a single number like '10', or a
+            hyphen-separated pair of numbers like '3-9'. May also be C{None}.
         @return: Either C{None} if inputRange is C{None} or the empty string,
             else a (start, end) list.
         """
