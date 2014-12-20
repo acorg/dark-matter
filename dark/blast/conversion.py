@@ -192,8 +192,9 @@ class JSONRecordsReader(object):
         line of parameters.
 
         @param filename: A C{str} filename containing JSON BLAST records.
-        @raise ValueError: if the first line of the file isn't valid JSON
-            or if the JSON does not contain an 'application' key.
+        @raise ValueError: if the first line of the file isn't valid JSON,
+            if the input file is empty, or if the JSON does not contain an
+            'application' key.
         """
         if filename.endswith('.bz2'):
             self._fp = bz2.BZ2File(filename)

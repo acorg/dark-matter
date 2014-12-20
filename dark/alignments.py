@@ -25,9 +25,9 @@ class Alignment(object):
     """
     Hold information about a read alignment.
 
-    @param subjectLength: The C{int} length of the sequence the read matched
+    @param subjectLength: The C{int} length of the sequence a read matched
         against.
-    @param subjectTitle: The C{str} title of the sequence the read matched
+    @param subjectTitle: The C{str} title of the sequence a read matched
         against.
     """
 
