@@ -147,14 +147,11 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         adjuster(titleAlignments)
 
     if rankScores:
-        print 'ranking'
         hsps = sorted(titleAlignments.hsps())
         if isinstance(hsps[0], d.hsp.LSP):
-            print 'lsp'
             for rank, hsp in enumerate(hsps[::-1], start=1):
                 hsp.score.score = rank
         else:
-            print 'hsp'
             for rank, hsp in enumerate(hsps, start=1):
                 hsp.score.score = rank
 
