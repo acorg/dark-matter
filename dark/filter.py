@@ -75,10 +75,7 @@ class TitleFilter(object):
             return self.REJECT
 
         if self._truncated is not None:
-            # Titles start with something like gi|525472786|emb|HG313807.1|
-            # that we need to skip.
-            titleSansId = title.split(' ', 1)[1]
-            truncated = simplifyTitle(titleSansId, self._truncateAfter)
+            truncated = simplifyTitle(title, self._truncateAfter)
             if truncated in self._truncated:
                 # We've already seen this (truncated) title. Reject unless
                 # this is the original title that we truncated to make this
