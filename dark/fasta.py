@@ -82,7 +82,6 @@ class FastaReads(Reads):
     @param file_: A C{str} file name or file handle, containing
         sequences in FASTA format,
     @param readClass: The class of read that should be yielded by iter.
-    @raise ValueError: if C{type} is not one of 'aa', 'dna', 'rna'.
     """
     def __init__(self, file_, readClass=DNARead):
         self.file_ = file_
