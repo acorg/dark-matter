@@ -20,6 +20,13 @@ import argparse
 from Bio.Data.CodonTable import TranslationError
 
 from dark.fasta import FastaReads
+from dark.reads import AARead, RNARead, DNARead
+
+TYPE = {
+    'aa': AARead,
+    'dna': DNARead,
+    'rna': RNARead,
+}
 
 
 if __name__ == '__main__':
@@ -46,10 +53,11 @@ if __name__ == '__main__':
         help='The type of the bases in the stdin FASTA.')
 
     args = parser.parse_args()
-    reads = FastaReads(sys.stdin, args.type)
     write = sys.stdout.write
     minORFLength = args.minORFLength
     allowOpenORFs = args.allowOpenORFs
+
+    reads = FastaReads(sys.stdin, readClass=TYPE[args.type])
 
     for read in reads:
         if args.type == 'aa':
