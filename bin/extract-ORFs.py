@@ -48,8 +48,7 @@ if __name__ == '__main__':
         help='Only ORFs of at least this length will be written to stdout.')
 
     parser.add_argument(
-        '--type', type=str, default='dna',
-        choices=['aa', 'dna', 'rna'],
+        '--type', type=str, default='dna', choices=TYPE.keys(),
         help='The type of the bases in the stdin FASTA.')
 
     args = parser.parse_args()
