@@ -16,7 +16,7 @@ from dark.intervals import ReadIntervals
 from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
 from dark import orfs
 from dark.intervals import OffsetAdjuster
-import dark as d
+from dark.score import HigherIsBetterScore
 
 
 QUERY_COLORS = {
@@ -147,13 +147,10 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         adjuster(titleAlignments)
 
     if rankScores:
-        hsps = sorted(titleAlignments.hsps())
-        if isinstance(hsps[0], d.hsp.LSP):
-            for rank, hsp in enumerate(hsps[::-1], start=1):
-                hsp.score.score = rank
-        else:
-            for rank, hsp in enumerate(hsps, start=1):
-                hsp.score.score = rank
+        reverse = titlesAlignments.scoreClass is not HigherIsBetterScore
+        for rank, hsp in enumerate(sorted(titleAlignments.hsps(),
+                                   reverse=reverse), start=1):
+            hsp.score.score = rank
 
     if logLinearXAxis:
         readIntervals = ReadIntervals(titleAlignments.subjectLength)
