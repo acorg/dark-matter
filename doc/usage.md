@@ -22,33 +22,42 @@ The information model is hierarchical. We'll start from the bottom.
 ## Read
 
 A `Read` is a genetic sequence (in our case usually obtained from an NGS run).
-It has an `id`, the sequence, and it may have an associated quality.
+There are three different types of reads: `DNARead` (for DNA sequences),
+`RNARead` (for RNA sequences) and `AARead` (for amino acid sequences).
+Each read has an `id`, the sequence, and it may have an associated quality string.
 
-    from dark.reads import Read
-    
-    read = Read('id1', 'ACGGTCAACG')
-    read.id, read.sequence, len(read)
+    from dark.reads import DNARead, RNARead, AARead
 
-    ('id1', 'ACGGTCAACG', 10)
+    # A DNARead:
+    dnaRead = Read('id', 'ACGGTCAACG')
+    dnaRead.id, dnaRead.sequence, len(dnaRead)
 
-    read = Read('id1', 'ACGGTCAACG', '9CA@>>>BB@')
+    ('id', 'ACGGTCAACG', 10)
+
+    # A DNARead with associated quality string:
+    read = Read('id', 'ACGGTCAACG', '9CA@>>>BB@')
     read.quality
 
     '9CA@>>>BB@'
 
-    # reverseComplement returns a new Read instance
-    rc = read.reverseComplement()
+    # An RNARead:
+    rnaRead = Read('id', 'ACGGUCAAUU')
+    rnaRead.id, rnaRead.sequence, len(rnaRead)
+
+    ('id', 'ACGGUCAAUU', 10)
+
+    # reverseComplement returns a new DNARead or RNARead instance as reverse
+    # complement.
+    rc = dnaRead.reverseComplement()
     type(rc), rc.sequence
 
-    (dark.reads.Read, 'CGTTGACCGT')
+    (dark.reads.Read.DNARead, 'CGTTGACCGT')
 
-    # Reads may also consist of RNA or amino acids.
-    rnaRead = Read('id2', 'AGUC', type='rna')
-    aaRead = Read('id3', 'AFFLT', type='aa')
-    
-    rnaRead.type, aaRead.type
+    # An AARead:
+    aaRead = Read('id', 'AFFLT')
+    aaRead.id, aaRead.sequence, len(aaRead)
 
-    ('rna', 'aa')
+    ('id', 'AFFLT', 5)
 
 ## Reads
 
@@ -105,9 +114,9 @@ filters will be added), and you can save it to a file.
 You can load a list of FASTA reads from a file:
 
     !echo '>id1\nACGT\n>id2\nCCC\n' > /tmp/ipynb-demo-data.fasta
-    
+
     from dark.fasta import FastaReads
-    
+
     for read in FastaReads('/tmp/ipynb-demo-data.fasta'):
         print read.id, read.sequence
 
@@ -123,7 +132,7 @@ have a corresponding `Alignment` class for it. Following BLAST, we call the
 sequence that a `read` matched against a `subject`.
 
     from dark.alignments import Alignment
-    
+
     alignment = Alignment(77, 'gi|68448876|gb|DQ011154.1| Monkeypox virus strain Congo_2003_358, complete genome')
     print alignment.subjectLength
     print alignment.subjectTitle
@@ -139,10 +148,10 @@ read/subject pair. Again following BLAST, we'll call each of these a `high-
 scoring pair` or `HSP`.
 
     from dark.hsp import HSP
-    
+
     hsp1 = HSP(27)
     hsp2 = HSP(34)
-    
+
     hsp1 < hsp2
 
     True
@@ -158,10 +167,10 @@ We also have a class for alignment programs that produces scores that are better
 when they are lower (e.g., BLAST e-values).
 
     from dark.hsp import LSP
-    
+
     lsp1 = LSP(27)
     lsp2 = LSP(34)
-    
+
     lsp1 < lsp2
 
     False
@@ -177,7 +186,7 @@ We can add `HSP`s to a single `read` alignment:
     alignment = Alignment(77, 'gi|68448876|gb|DQ011154.1| Monkeypox virus strain Congo_2003_358, complete genome')
     alignment.addHsp(HSP(14))
     alignment.addHsp(HSP(20))
-    
+
     alignment.hsps
 
     [<dark.hsp.HSP at 0x109df94d0>, <dark.hsp.HSP at 0x107aac810>]
@@ -199,19 +208,19 @@ A single `read` might match many `subjects`, so we have a `ReadAlignments` class
 
     from dark.reads import Read
     from dark.alignments import Alignment, ReadAlignments
-    
+
     read = Read('id1', 'ACGGTCAACG', '9CA@>>>BB@')
-    
+
     alignment1 = Alignment(77, 'gi|68448876|gb|DQ011154.1| Monkeypox virus strain Congo_2003_358, complete genome')
     alignment1.addHsp(HSP(14))
     alignment1.addHsp(HSP(20))
-    
+
     alignment2 = Alignment(77, 'gi|557951111|gb|KF493731.1| Hirudovirus strain Sangsue, complete genome')
     alignment2.addHsp(HSP(84))
     alignment2.addHsp(HSP(75))
-    
+
     readAlignments = ReadAlignments(read, [alignment1, alignment2])
-    
+
     readAlignments.read, readAlignments
 
     (<dark.reads.Read at 0x109d3c190>,
@@ -236,10 +245,10 @@ more concrete. We only have one example of this at the moment,
 `BlastReadsAlignments`. Let's get some real data and see how it works.
 
     from dark.blast.alignments import BlastReadsAlignments
-    
+
     fastaFile = '../seqs/nic/AI-sequences-segment11-7-2013/segment1.fasta'
     json = '../output/nic/AI-sequences-segment11-7-2013/segment1.json'
-    
+
     reads = FastaReads(fastaFile)
     blastReadsAlignments = BlastReadsAlignments(reads, json)
 
@@ -271,7 +280,7 @@ filtering options. Here's an example:
 
     blastReadsAlignments.filter(maxHspsPerHit=1, titleRegex='influenza', scoreCutoff=4000,
                                 negativeTitleRegex='homo sapiens')
-    
+
     for readAlignments in blastReadsAlignments:
         print 'Read with id %s matched the following titles:' % readAlignments.read.id
         for readAlignment in readAlignments:
@@ -297,7 +306,7 @@ Here are the filtering options
             """
             Update self so that __iter__ returns a generator that yields a filtered
             set of C{ReadAlignments}.
-    
+
             @param limit: An C{int} limit on the number of records to read.
             @param minSequenceLen: Sequences of lesser length will be elided.
             @param maxSequenceLen: Sequences of greater length will be elided.
@@ -343,7 +352,7 @@ if you're interested to know how many, or which, reads matched a title, read on.
 We can pass a `ReadsAlignments` instance to a `TitlesAlignments`:
 
     from dark.titles import TitlesAlignments
-    
+
     titlesAlignments = TitlesAlignments(blastReadsAlignments)
 
 Again, note the pluralization: a `TitlesAlignments` has information about
@@ -407,7 +416,7 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
                    withScoreBetterThan=None, minNewReads=None):
             """
             Filter the titles in self to create another TitlesAlignments.
-    
+
             @param minMatchingReads: titles that are matched by fewer reads
                 are unacceptable.
             @param minMedianScore: sequences that are matched with a median
@@ -449,7 +458,7 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
 ## Making an alignment panel
 
     from dark.graphics import alignmentPanel
-    
+
     alignmentPanel(titlesAlignments)
 
     Thu Aug 14 11:38:38 2014: Plotting 30 titles in 6x5 grid, sorted on maxScore
@@ -517,7 +526,7 @@ If you have a `ReadsAlignments` instance and you're curious to know what titles
 are matched and how many times, you can use `titleCounts`:
 
     from dark.titles import titleCounts
-    
+
     counts = titleCounts(blastReadsAlignments)
 
 `titleCounts` returns a `dict` whose keys are `subject` titles and whose keys
@@ -552,20 +561,20 @@ If you prefer to work with BLAST e-values, it's easy. Just pass
 
     from dark.blast.alignments import BlastReadsAlignments
     from dark.score import LowerIsBetterScore
-    
+
     fastaFile = '../seqs/nic/AI-sequences-segment11-7-2013/segment1.fasta'
     json = '../output/nic/AI-sequences-segment11-7-2013/segment1.json'
-    
+
     reads = FastaReads(fastaFile)
     blastReadsAlignments = BlastReadsAlignments(reads, json, scoreClass=LowerIsBetterScore)
 
 ### A `FastaReads` instance doesn't know how long it is until is has read the reads:
 
     !echo '>id1\nACGT\n>id2\nCCC\n' > /tmp/ipynb-demo-data.fasta
-    
+
     reads = FastaReads('/tmp/ipynb-demo-data.fasta')
     print len(reads)
-    
+
     list(reads)  # This causes the reads to be read from the file.
     print len(reads)
 
@@ -575,14 +584,14 @@ Scores in `HSP` and `LSP` classes are implemented by two `score` classes. It is
 those classes that know how to compare themselves properly:
 
     from dark.score import HigherIsBetterScore
-    
+
     score = HigherIsBetterScore(77)
     score.betterThan(70)
 
     score.score
 
     from dark.score import LowerIsBetterScore
-    
+
     score = LowerIsBetterScore(77)
     score.betterThan(70)
 
@@ -595,12 +604,12 @@ If you are working with multiple JSON files in iPython Notebook, here's how you
 can collect them all to pass to `BlastReadsAlignments`:
 
     from glob import glob
-    
+
     fastaFile = '../output/emc-rna-seq/3697/Trinity.fasta'
     json = glob('../output/emc-rna-seq/3697/*.json.bz2')
     reads = FastaReads(fastaFile)
     blastAlignments = BlastReadsAlignments(reads, json)
-    
+
     json
 
     ['../output/emc-rna-seq/3697/0.json.bz2',
