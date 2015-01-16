@@ -109,7 +109,6 @@ allocate()
 State *
 initialize(char *sequenceFilename, char *secondaryFilename, int *error)
 {
-    int status;
     State *state;
 
     *error = 0;
@@ -135,7 +134,7 @@ initialize(char *sequenceFilename, char *secondaryFilename, int *error)
 void
 predict(State *state, char *sequence)
 {
-    int length = strlen(sequence);
+    int length = (int)strlen(sequence);
 
     if (length > state->resultLength){
         /* Allocate more space for the results. */
