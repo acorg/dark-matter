@@ -59,6 +59,6 @@ setup(name='dark-matter',
       scripts=scripts,
       ext_modules=cythonize([
           Extension('dark.gor4',
-                    ['dark/gor4_src/gor4.pyx', 'dark/gor4_src/gor4-base.c',
-                     'dark/gor4_src/nrutil.c', 'dark/gor4_src/api.c'])]
+                    ['src/gor4/gor4.pyx', 'src/gor4/gor4-base.c',
+                     'src/gor4/nrutil.c', 'src/gor4/api.c'])]
       ))
