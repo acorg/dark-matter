@@ -4,7 +4,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
-from dark.aa import PROPERTIES, NONE
+from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 
 
 def _makeComplementTable(complementData):
@@ -188,14 +188,30 @@ class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
+    def __init__(self):
+        self.propertyDetails = None
+
     def properties(self):
         """
-        Translate an amino acid sequence to properties.
+        Translate an amino acid sequence to properties of the form:
+        'F': HYDROPHOBIC | AROMATIC.
 
         @return: A generator yielding properties for the residues in the
             current sequence.
         """
         return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
+
+    def propertyDetails(self):
+        """
+        Translate an amino acid sequence to properties. Each property of the
+        amino acid gets a value scaled from -1 to 1.
+
+        @return: A list of property dictionaries.
+        """
+        if not self.propertyDetails:
+            self.propertyDetails = (PROPERTY_DETAILS.get(aa, None) for aa in
+                                    self.sequence)
+        return self.propertyDetails
 
     def ORFs(self):
         """
