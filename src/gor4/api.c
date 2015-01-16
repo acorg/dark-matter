@@ -88,7 +88,7 @@ read_file(char *fname, int nprot, char **obs, char **title, int *pnter)
     return 1;
 }
 
-State *
+static State *
 allocate()
 {
     State *new = (State *)malloc(sizeof(State));
@@ -134,7 +134,11 @@ initialize(char *sequenceFilename, char *secondaryFilename, int *error)
 void
 predict(State *state, char *sequence)
 {
-    int length = (int)strlen(sequence);
+    /*
+     * We get passed a sequence that starts at offset one. So we have to
+     * subtract one to get its true length.
+     */
+    int length = (int)strlen(sequence) - 1;
 
     if (length > state->resultLength){
         /* Allocate more space for the results. */
@@ -142,9 +146,8 @@ predict(State *state, char *sequence)
             free(state->predi);
             free(state->probai);
         }
-        state->predi = cvector(1, length + 1);
-        state->probai = matrix(1, length + 1, 1, 3);
-        state->predi[length + 1] = '\0';
+        state->predi = cvector(1, length);
+        state->probai = matrix(1, length, 1, 3);
     }
 
     predic(length, sequence, state->predi, state->probai);

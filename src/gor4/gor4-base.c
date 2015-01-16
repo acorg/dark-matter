@@ -428,16 +428,9 @@ void predic(int nres, char *seq, char *pred, float **proba)
     }
 
     Normalize(proba[ires],it);
-
     pred[ires] = conf[INDMAXVAL(proba[ires],1,3)];
 
   }
-
-  /*
-  for(ires = 1; ires <= nres; ires++) {
-      fprintf(stderr, "Predict %d = %c.\n", ires, pred[ires]);
-  }
-  */
 
 /*
  * If "blank residues" are not included the first Nterm and the last Cterm residues are predicted as coils

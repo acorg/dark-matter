@@ -5,6 +5,7 @@ from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
 from dark.aa import PROPERTIES, NONE
+from dark.gor4 import GOR4
 
 
 def _makeComplementTable(complementData):
@@ -188,6 +189,12 @@ class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
+
+    # Keep a single GOR4 instance that can be used by all AA reads. This
+    # saves us from re-scanning the GOR IV secondary structure database
+    # every time we make an AARead instance.
+    _GOR4 = GOR4()
+
     def properties(self):
         """
         Translate an amino acid sequence to properties.
@@ -232,6 +239,20 @@ class AARead(Read):
         if ((seenStart or openLeft) and ORFStart is not None
                 and length - ORFStart > 0):
             yield AAReadORF(self, ORFStart, length, openLeft, True)
+
+    def gor4(self):
+        """
+        Get GOR IV secondary structure predictions (and the associated
+        prediction probabilities).
+
+        @return: A C{dict} with 'predictions' and 'probabilities' keys.
+            The 'predictions' value is a C{str} of letters from {'H', 'E',
+            'C'} for Helix, Beta Strand, Coil.  The probabilities value is
+            a C{list} of C{float} triples, one for each amino acid in
+            C{sequence}. The C{float} values are the probabilities assigned,
+            in order, to Helix, Beta Strand, Coil.
+        """
+        return self._GOR4.predict(self.sequence)
 
 
 class AAReadORF(AARead):
