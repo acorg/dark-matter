@@ -4,6 +4,6 @@ from Cython.Build import cythonize
 
 setup(
     ext_modules=cythonize(
-        [Extension('gor_iv', ['gor_iv.pyx'], libraries=['gor'])]
+        [Extension('gor4', ['gor4.pyx'], libraries=['gor4'])]
     )
 )

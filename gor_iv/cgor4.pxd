@@ -1,4 +1,4 @@
-cdef extern from "gor.h":
+cdef extern from "gor4-base.h":
     ctypedef struct State:
         char *predi
         float **probai

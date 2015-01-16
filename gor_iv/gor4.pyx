@@ -1,20 +1,20 @@
-cimport cgor_iv
+cimport cgor4
 
-cdef class GOR_IV:
-    cdef cgor_iv.State *_state
+cdef class GOR4:
+    cdef cgor4.State *_state
     def __cinit__(self, sequenceFilename, secondaryFilename):
         cdef int error
-        self._state = cgor_iv.initialize(sequenceFilename, secondaryFilename,
-                                         &error)
+        self._state = cgor4.initialize(sequenceFilename, secondaryFilename,
+                                       &error)
         if error:
-            raise Exception('Error in gor.c initialize function.')
+            raise Exception('Error in gor-base.c initialize function.')
 
         if self._state is NULL:
             raise MemoryError()
 
     def __dealloc__(self):
         if self._state is not NULL:
-            cgor_iv.finalize(self._state)
+            cgor4.finalize(self._state)
 
     def __init__(self, sequenceFilename, secondaryFilename):
         pass
@@ -22,8 +22,8 @@ cdef class GOR_IV:
     def predict(self, sequence):
         cdef int i
         cdef float *y
-        cgor_iv.predict(self._state, sequence)
-        # The gor.c code uses 1-based indexing.
+        cgor4.predict(self._state, sequence)
+        # The gor-base.c code uses 1-based indexing.
         prob = []
         append = prob.append
         for i in xrange(len(sequence)):

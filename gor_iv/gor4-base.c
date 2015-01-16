@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include "nrutil.h"
-#include "gor.h"
+#include "gor4-base.h"
 
 
 char buffer[BUFSIZE];

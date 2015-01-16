@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "nrutil.h"
-#include "gor.h"
+#include "gor4-base.h"
 
 /* Functions in gor.c */
 extern void Parameters(int nprot_dbase, int *nres, char **obs, char **seq);

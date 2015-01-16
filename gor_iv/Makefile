@@ -1,18 +1,18 @@
-OBJ = gor.o nrutil.o lib.o
-HDR = gor.h nrutil.h
-CFLAGS = -g
+OBJ = gor4-base.o nrutil.o api.o
+HDR = gor4-base.h nrutil.h
+CFLAGS = -g -O
 
-all: libgor.so gor_iv.so
+all: libgor4.so gor4.so
 
-libgor.so: $(OBJ)
-	gcc -shared -Wl,-install_name,libgor.so -o libgor.so -fPIC $(OBJ)
+libgor4.so: $(OBJ)
+	gcc -shared -Wl,-install_name,libgor4.so -o libgor4.so -fPIC $(OBJ)
 
-gor_iv.so: gor_iv.pyx cgor_iv.pxd libgor.so
+gor4.so: gor4.pyx cgor4.pxd libgor4.so
 	CFLAGS=-I. LDFLAGS=-L. python setup.py build_ext -i
 
 nrutil.o: nrutil.h
-gor.o: gor.h nrutil.h
-lib.o: gor.h nrutil.h
+gor4-base.o: gor4-base.h nrutil.h
+lib.o: gor4-base.h nrutil.h
 
 clean:
-	rm -fr build gor_iv.so libgor.so $(OBJ) *~ *.pyc
+	rm -fr build gor4.c gor4.so libgor4.so $(OBJ) *~ *.pyc
