@@ -5,3 +5,5 @@ _trial_temp
 build
 dist
 dark_matter.egg-info
+*.o
+*.so
