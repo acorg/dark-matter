@@ -445,6 +445,55 @@ class TestAARead(TestCase):
             list(properties)
         )
 
+    def testPropertyDetailsCorrectTranslation(self):
+        """
+        The propertyDetails function must return the right property details
+        sequence.
+        """
+        read = AARead('id', 'ADR*')
+        properties = read.propertyDetails()
+        self.assertEqual(
+            [
+                {
+                    'polarity': -0.20987654321,
+                    'aliphaticity': 0.305785123967,
+                    'volume': -0.664670658683,
+                    'polar_req': -0.463414634146,
+                    'hydropathy': 0.4,
+                    'iep': -0.191489361702,
+                    'hydroxyethilation': -0.265160523187,
+                    'aromaticity': -0.550128534704,
+                    'hydrogenation': 0.8973042362,
+                    'composition': -1.0
+                },
+                {
+                    'polarity': 1.0,
+                    'aliphaticity': -0.818181818182,
+                    'volume': -0.389221556886,
+                    'polar_req': 1.0,
+                    'hydropathy': -0.777777777778,
+                    'iep': -1.0,
+                    'hydroxyethilation': -0.348394768133,
+                    'aromaticity': -1.0,
+                    'hydrogenation': -0.90243902439,
+                    'composition': 0.00363636363636
+                },
+                {
+                    'polarity': 0.382716049383,
+                    'aliphaticity': -0.157024793388,
+                    'volume': 0.449101796407,
+                    'polar_req': 0.0487804878049,
+                    'hydropathy': -1.0,
+                    'iep': 1.0,
+                    'hydroxyethilation': -0.51486325802,
+                    'aromaticity': -0.0642673521851,
+                    'hydrogenation': -0.401797175866,
+                    'composition': -0.527272727273
+                },
+                NONE],
+            list(properties)
+        )
+
     def testORFsEmptySequence(self):
         """
         An AA read of length zero must not have any ORFs.
