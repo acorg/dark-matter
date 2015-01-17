@@ -489,7 +489,8 @@ class TestAARead(TestCase):
                     'aromaticity': -0.0642673521851,
                     'hydrogenation': -0.401797175866,
                     'composition': -0.527272727273
-                }, NONE],
+                },
+                NONE],
             list(properties)
         )
 
