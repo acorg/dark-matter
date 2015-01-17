@@ -12,3 +12,4 @@ reportlab==3.1.44
 simplejson==3.5.3
 tornado==4.0.1
 MySQL-python==1.2.5
+cython==0.21.2
