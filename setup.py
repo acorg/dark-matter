@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-
+from distutils.extension import Extension
+from Cython.Build import cythonize
 
 # Explicitly list bin scripts to be installed, seeing as I have a few local
 # bin files that are not (yet) part of the distribution.
@@ -37,7 +38,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.0',
+      version='1.0.1',
       packages=['dark'],
       url='https://github.com/acorg/dark-matter',
       download_url='https://github.com/acorg/dark-matter',
@@ -55,4 +56,9 @@ setup(name='dark-matter',
       license='MIT',
       description=('Python classes to help with virus discovery from genetic '
                    'sequence data'),
-      scripts=scripts)
+      scripts=scripts,
+      ext_modules=cythonize([
+          Extension('dark.gor4',
+                    ['src/gor4/gor4.pyx', 'src/gor4/gor4-base.c',
+                     'src/gor4/nrutil.c', 'src/gor4/api.c'])]
+      ))
