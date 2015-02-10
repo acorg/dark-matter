@@ -2,12 +2,10 @@
 
 The following works on Ubuntu 14.04 LTS.
 
-## Install a C compiler
-
-If you don't have a C compiler installed:
+### Install some required packages
 
 ```sh
-$ sudo apt-get install gcc
+$ sudo apt-get install pkg-config python-dev libpng-dev mysql-server libmysqlclient-dev pkg-config gcc
 ```
 
 ### Download & install Freetype2
@@ -22,12 +20,6 @@ $ sed -ri -e 's:.*(#.*SUBPIXEL.*) .*:\1:' include/config/ftoption.h
 $ ./configure --prefix=/usr --disable-static
 $ make
 $ sudo make install
-```
-
-### Install some required packages
-
-```sh
-$ sudo apt-get install python-pip pkg-config python-dev libpng-dev mysql-server libmysqlclient-dev
 ```
 
 ### Install dark matter in a Python virtual environment
