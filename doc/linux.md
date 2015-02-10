@@ -2,6 +2,14 @@
 
 The following works on Ubuntu 14.04 LTS.
 
+## Install a C compiler
+
+If you don't have a C compiler installed:
+
+```sh
+$ sudo apt-get install gcc
+```
+
 ### Download & install Freetype2
 
 ```sh
