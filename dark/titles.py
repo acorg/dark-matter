@@ -231,7 +231,7 @@ class TitlesAlignments(dict):
         Add a new title to self.
 
         @param title: A C{str} title.
-        @param titleAlignments: An instance of L{TitleAlignment}.
+        @param titleAlignments: An instance of L{TitleAlignments}.
         @raises KeyError: If the title is already present.
         """
         if title in self:
