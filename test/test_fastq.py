@@ -7,10 +7,14 @@ from mocking import mockOpen
 
 
 class TestFastqReads(TestCase):
-    """Tests for the L{dark.fastq.FastqReads} class."""
+    """
+    Tests for the L{dark.fastq.FastqReads} class.
+    """
 
     def testEmpty(self):
-        """An empty FASTQ file results in an empty iterator."""
+        """
+        An empty FASTQ file results in an empty iterator.
+        """
         mockOpener = mockOpen()
         with patch('__builtin__.open', mockOpener, create=True):
             reads = FastqReads('filename.fastq')
