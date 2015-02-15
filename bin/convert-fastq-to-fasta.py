@@ -11,7 +11,7 @@ from dark.fastq import FastqReads
 
 if len(sys.argv) > 1:
     print >>sys.stderr, (
-        'Usage: %s <input.fastq [>output.fasta]' % basename(sys.argv[0]))
+        'Usage: %s < input.fastq [> output.fasta]' % basename(sys.argv[0]))
     sys.exit(1)
 else:
     write = sys.stdout.write
