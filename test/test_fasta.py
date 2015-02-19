@@ -1,6 +1,6 @@
 from dark.reads import Read, AARead, DNARead, RNARead
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
-                        FastaReads)
+                        FastaReads, combineReads)
 
 from cStringIO import StringIO
 from unittest import TestCase
@@ -322,3 +322,74 @@ class TestFastaReads(TestCase):
         with patch('__builtin__.open', mockOpener, create=True):
             reads = list(FastaReads('filename.fasta', RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
+
+
+class TestCombineReads(TestCase):
+    """
+    Tests for the L{dark.fasta.combineReads} function.
+    """
+    def testNoneNone(self):
+        """
+        A None FASTA file name and None sequences results in an empty
+        FastaReads instance.
+        """
+        reads = combineReads(None, None)
+        self.assertEqual([], list(reads))
+
+    def testNoneEmpty(self):
+        """
+        A None FASTA file name and an empty sequences list results in an empty
+        FastaReads instance.
+        """
+        reads = list(combineReads(None, []))
+        self.assertEqual([], reads)
+
+    def testFileOnly(self):
+        """
+        If a FASTA file is given but sequences is None, the resulting
+        FastaReads must contain the expected read.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(combineReads('filename.fasta', None))
+            self.assertEqual([Read('id1', 'ACGT')], reads)
+
+    def testSequencesOnly(self):
+        """
+        A None FASTA file name and a non-empty sequences list results in a
+        FastaReads instance with the expected read.
+        """
+        reads = list(combineReads(None, ['id ACGT']))
+        self.assertEqual([Read('id', 'ACGT')], reads)
+
+    def testDefaultReadIdPrefix(self):
+        """
+        A None FASTA file name and a non-empty sequences list with a sequence
+        that has no id results in a FastaReads instance with the expected read.
+        """
+        reads = list(combineReads(None, ['ACGT']))
+        self.assertEqual([Read('command-line-read-1', 'ACGT')], reads)
+
+    def testCustomReadIdPrefix(self):
+        """
+        A None FASTA file name and a non-empty sequences list with a sequence
+        that has no id, but with a custom read id prefix, results in a
+        FastaReads instance with the expected read.
+        """
+        reads = list(combineReads(None, ['ACGT'], idPrefix='prefix-'))
+        self.assertEqual([Read('prefix-1', 'ACGT')], reads)
+
+    def testSpecificReadClass(self):
+        """
+        A specific read class must result in a FastaReads instance with reads
+        of that class, both for reads from a FASTA file and from individually
+        specified sequences.
+        """
+        data = '\n'.join(['>id1', 'ACGT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch('__builtin__.open', mockOpener, create=True):
+            reads = list(combineReads('filename.fasta', ['ACGT'],
+                                      readClass=RNARead))
+            self.assertTrue(isinstance(reads[0], RNARead))
+            self.assertTrue(isinstance(reads[1], RNARead))

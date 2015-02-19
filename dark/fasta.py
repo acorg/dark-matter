@@ -1,7 +1,7 @@
 from Bio import SeqIO
 from hashlib import md5
 
-from dark.reads import Reads, DNARead
+from dark.reads import Reads, AARead, DNARead
 
 
 def fastaToList(fastaFilename):
@@ -95,3 +95,44 @@ class FastaReads(Reads):
         """
         for seq in SeqIO.parse(self.file_, 'fasta'):
             yield self.readClass(seq.description, str(seq.seq))
+
+
+def combineReads(filename, sequences, readClass=AARead,
+                 idPrefix='command-line-read-'):
+    """
+    Combine FASTA reads from a file and/or sequence strings.
+
+    @param filename: A C{str} file name containing FASTA AA.
+    @param sequences: A C{list} of C{str} sequences. If a sequence
+        contains spaces, the last field (after splitting on spaces) will be
+        used as the sequence and the first fields will be used as the sequence
+        id.
+    @param readClass: The class of the individual reads.
+    @param idPrefix: The C{str} prefix that will be used for the id of the
+        sequences in C{sequences} that do not have an id specified. A trailing
+        sequence number will be appended to this prefix. Note that
+        'command-line-read-', the default id prefix, could collide with ids in
+        the FASTA file, if given. So output might be ambiguous. That's why we
+        allow the caller to specify a custom prefix.
+    @return: A C{FastaReads} instance.
+    """
+    # Read sequences from a FASTA file, if given.
+    if filename:
+        reads = FastaReads(filename, readClass=readClass)
+    else:
+        reads = Reads()
+
+    # Add any individually specified AA subject sequences.
+    if sequences:
+        for count, sequence in enumerate(sequences, start=1):
+            # Try splitting the sequence on its last space and using the
+            # first part of the split as the read id. If there's no space,
+            # assign a generic id.
+            parts = sequence.rsplit(' ', 1)
+            if len(parts) == 2:
+                readId, sequence = parts
+            else:
+                readId = '%s%d' % (idPrefix, count)
+            reads.add(readClass(readId, sequence))
+
+    return reads
