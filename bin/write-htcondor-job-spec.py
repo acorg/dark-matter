@@ -176,9 +176,21 @@ export PYTHONPATH=$DM/dark-matter
 for i in "$@"
 do
     errs=$i.post-process-error
-    $DM/virtualenv/bin/python \
-        $DM/dark-matter/bin/convert-blast-xml-to-json.py \
-        $i.xml 2>$errs | bzip2 > $i.json.bz2
+
+    if [ -f $i.xml ]
+    then
+        $DM/virtualenv/bin/python \
+            $DM/dark-matter/bin/convert-blast-xml-to-json.py \
+            < $i.xml 2>$errs | bzip2 > $i.json.bz2
+        bzip2 $i.xml
+    elif [ -f $i.xml.bz2 ]
+    then
+        bzcat $i.xml.bz2 | $DM/virtualenv/bin/python \
+            $DM/dark-matter/bin/convert-blast-xml-to-json.py \
+            2>$errs | bzip2 > $i.json.bz2
+    else
+        echo "Neither $i.xml nor $i.xml.bz2 existed." > $errs
+    fi
     if [ -s $errs ]
     then
         echo "Completed WITH ERRORS ($errs) on `hostname` at `date`." > $i.done

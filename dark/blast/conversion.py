@@ -3,6 +3,7 @@ from json import dumps, loads
 from operator import itemgetter
 
 from Bio.Blast import NCBIXML
+from Bio.File import as_handle
 
 from dark.hsp import HSP, LSP
 from dark.score import HigherIsBetterScore
@@ -16,7 +17,8 @@ class XMLRecordsReader(object):
     make accessible the global BLAST parameters.
 
     @ivar params: A C{dict} of global BLAST parameters.
-    @param filename: A C{str} filename containing XML BLAST records.
+    @param filename: A C{str} filename or an open file pointer, containing XML
+        BLAST records.
     """
 
     def __init__(self, filename):
@@ -138,7 +140,7 @@ class XMLRecordsReader(object):
         method. Set self.params from data in the first record.
         """
         first = True
-        with open(self._filename) as fp:
+        with as_handle(self._filename) as fp:
             for record in NCBIXML.parse(fp):
                 if first:
                     self.params = self._convertBlastParamsToDict(record)
