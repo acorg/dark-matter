@@ -30,22 +30,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.bzip2:
-        if args.json:
-            reader = XMLRecordsReader(args.xml)
-            fp = bz2file.BZ2File(args.json, 'w')
-            reader.saveAsJSON(fp)
-            fp.close()
-        else:
-            reader = XMLRecordsReader(args.xml)
-            fp = bz2file.BZ2File(sys.stdout, 'w')
-            reader.saveAsJSON(fp)
-            fp.close()
-
+        fp = bz2file.BZ2File(args.json or sys.stdout, 'w')
     else:
-        if args.json:
-            reader = XMLRecordsReader(args.xml)
-            with open(args.json, 'w') as fp:
-                reader.saveAsJSON(fp)
-        else:
-            reader = XMLRecordsReader(args.xml)
-            reader.saveAsJSON(sys.stdout)
+        fp = open(args.json, 'w') if args.json else sys.stdout
+
+    reader = XMLRecordsReader(args.xml)
+    reader.saveAsJSON(fp)
+    fp.close()
