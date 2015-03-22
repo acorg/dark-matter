@@ -16,11 +16,12 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        'xml', metavar='BLAST-XML-file', help='the XML file of BLAST output.')
-
-    parser.add_argument(
         'json', metavar='BLAST-JSON-file', nargs='?',
         help='the JSON filename where contents of "xml" should be written to.')
+
+    parser.add_argument(
+        '--xml', metavar='BLAST-XML-file', default=sys.stdin,
+        help='the XML file of BLAST output.')
 
     parser.add_argument(
         '--bzip2', default=False, action='store_true',
