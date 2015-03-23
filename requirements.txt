@@ -1,4 +1,5 @@
 biopython==1.64
+bz2file==0.98
 discover==0.4.0
 ipython==2.2.0
 matplotlib==1.3.1
