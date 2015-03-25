@@ -74,14 +74,12 @@ def printJobSpec(params):
     with open('job.htcondor', 'w') as outfp:
         outfp.write("""\
 universe                  = vanilla
-executable                = %(executableDir)s/%(executableName)s
-environment               = "BLASTDB=%(dbDir)s"
+executable                = process.sh
 should_transfer_files     = YES
 when_to_transfer_output   = ON_EXIT
 notify_user               = %(email)s
 max_transfer_input_mb     = -1
 max_transfer_output_mb    = -1
-transfer_input_files      = post-process.sh
 log                       = job.log
 
 # Job summary:
@@ -89,15 +87,12 @@ log                       = job.log
 #   %(sequenceCount)d sequences split into %(nJobs)d jobs of \
 %(seqsPerJob)d sequences each.
 
-arguments                 = -query $(Process).fasta -db %(db)s \
--out $(Process).xml -outfmt 5 %(blastArgs)s
+arguments                 = $(Process) %(db)s %(blastArgs)s
 input                     = $(Process).fasta
 output                    = $(Process).done
 error                     = $(Process).error
 dont_encrypt_input_files  = $(Process).fasta
-dont_encrypt_output_files = $(Process).xml,$(Process).json
-+PostCmd                  = "post-process.sh"
-+PostArguments            = "$(Process)"
+dont_encrypt_output_files = $(Process).json.bz2
 
 queue %(nJobs)d
 """ % params)
@@ -105,9 +100,9 @@ queue %(nJobs)d
 
 def printRedoScript(params):
     """
-    Write out a shell script that write a job spec file for HTCondor to process
-    a single FASTA input files via BLAST and our JSON post-processor, runs that
-    job, and removes the one-time spec file it wrote.
+    Write out a shell script that writes a job spec file for HTCondor to
+    process a single FASTA input file via BLAST and our JSON post-processor,
+    runs that job, and removes the one-time spec file it wrote.
     """
     with open('redo.sh', 'w') as outfp:
         outfp.write("""\
@@ -122,14 +117,12 @@ trap "rm -f $tmp" 0 1 2 3 15
 
     cat >$tmp <<EOF
 universe                  = vanilla
-executable                = %(executableDir)s/%(executableName)s
-environment               = "BLASTDB=%(dbDir)s"
+executable                = process.sh
 should_transfer_files     = YES
 when_to_transfer_output   = ON_EXIT
 notify_user               = %(email)s
 max_transfer_input_mb     = -1
 max_transfer_output_mb    = -1
-transfer_input_files      = post-process.sh
 log                       = job.log
 EOF
 
@@ -137,19 +130,16 @@ for jobid in "$@"
 do
     cat >>$tmp <<EOF
 
-arguments                 = -query $jobid.fasta -db %(db)s -out $jobid.xml \
--outfmt 5 %(blastArgs)s
+arguments                 = $jobid %(db)s %(blastArgs)s
 input                     = $jobid.fasta
 output                    = $jobid.done
 error                     = $jobid.error
 dont_encrypt_input_files  = $jobid.fasta
-dont_encrypt_output_files = $jobid.xml,$jobid.json
-+PostCmd                  = "post-process.sh"
-+PostArguments            = "$jobid"
+dont_encrypt_output_files = $jobid.json.bz2
 queue
 EOF
 
-    rm -f $jobid.json $jobid.xml $jobid.error $jobid.done
+    rm -f $jobid.json.bz2 $jobid.error $jobid.done
 done
 
 rm -f job.log
@@ -161,48 +151,43 @@ condor_submit $tmp
     os.chmod('redo.sh', 0755)
 
 
-def printPostProcessScript(params):
+def printProcessScript(params):
     """
-    Write out a simple post-processor script to call our BLAST XML to JSON
-    converter.
+    Write out a simple process script to call BLAST and convert its XML to
+    our compressed JSON format.
     """
-    with open('post-process.sh', 'w') as outfp:
+    with open('process.sh', 'w') as outfp:
         outfp.write("""\
 #!/bin/sh
 
 DM=/usr/local/dark-matter
 export PYTHONPATH=$DM/dark-matter
+export BLASTDB="%(dbDir)s"
 
-for i in "$@"
-do
-    errs=$i.post-process-error
+jobid=$1
+shift
 
-    if [ -f $i.xml ]
-    then
-        $DM/virtualenv/bin/python \
-            $DM/dark-matter/bin/convert-blast-xml-to-json.py \
-            < $i.xml 2>$errs | bzip2 > $i.json.bz2
-        bzip2 $i.xml
-    elif [ -f $i.xml.bz2 ]
-    then
-        bzcat $i.xml.bz2 | $DM/virtualenv/bin/python \
-            $DM/dark-matter/bin/convert-blast-xml-to-json.py \
-            2>$errs | bzip2 > $i.json.bz2
-    else
-        echo "Neither $i.xml nor $i.xml.bz2 existed." > $errs
-    fi
-    if [ -s $errs ]
-    then
-        echo "Completed WITH ERRORS ($errs) on `hostname` at `date`." > $i.done
-    else
-        rm $errs
-        echo "Completed on `hostname` at `date`." > $i.done
-    fi
-done
+db="$1"
+shift
+
+errs=$jobid.error
+
+%(executableDir)s/%(executableName)s -query $jobid.fasta -db "$db" \
+-outfmt 5 "$@" |
+$DM/virtualenv/bin/python $DM/dark-matter/bin/convert-blast-xml-to-json.py \
+--bzip2 > $jobid.json.bz2 2> $errs
+
+if [ -s $errs ]
+then
+    echo "Completed WITH ERRORS ($errs) on `hostname` at `date`." > $jobid.done
+else
+    rm $errs
+    echo "Completed on `hostname` at `date`." > $jobid.done
+fi
 """ % params)
 
     # Make the script executable so we can run it.
-    os.chmod('post-process.sh', 0755)
+    os.chmod('process.sh', 0755)
 
 
 def printFinalizeScript(params):
@@ -228,7 +213,6 @@ do
     n=`echo $i | cut -f1 -d.`
     error=$n.error
     json=$n.json.bz2
-    xml=$n.xml
 
     if [ -f $error ]
     then
@@ -243,27 +227,14 @@ do
     if [ -f $json ]
     then
         size=`wc -c < $json | awk '{print $1}'`
-        # bzip2 run on an empty file results in a file of 14 bytes.
+        # bzip2 run on empty input results in a file of 14 bytes.
         if [ $size -eq 14 ]
         then
-            if [ -s $xml ]
-            then
-                echo "convert-blast-xml-to-json.py $xml | bzip2 > $json"
-                convert-blast-xml-to-json.py $xml | bzip2 > $json
-            else
-                echo "WARNING: $xml is empty. Job $n should be re-run." >&2
-                redo="$redo $n"
-            fi
+            echo "WARNING: $json appears to be empty." >&2
         fi
     else
-        if [ -s $xml ]
-        then
-            echo "convert-blast-xml-to-json.py $xml | bzip2 > $json"
-            convert-blast-xml-to-json.py $xml | bzip2 > $json
-        else
-            echo "WARNING: $json does not exist. Job $n should be re-run." >&2
-            redo="$redo $n"
-        fi
+        echo "WARNING: $json does not exist. Job $n should be re-run." >&2
+        redo="$redo $n"
     fi
 done
 
@@ -335,7 +306,7 @@ if __name__ == '__main__':
     }
     params['nJobs'], params['sequenceCount'] = splitFASTA(params)
     printJobSpec(params)
-    printPostProcessScript(params)
+    printProcessScript(params)
     printRedoScript(params)
     printFinalizeScript(params)
 
