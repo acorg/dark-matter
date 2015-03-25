@@ -11,21 +11,23 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Convert a BLAST XML file to JSON.',
-        epilog='Give a BLAST XML file and convert it to JSON. Optionally '
-        'compress the JOSN output.'
+        epilog=('Give a BLAST XML file and convert it to JSON. Optionally '
+                'compress the JSON output.')
     )
 
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', nargs='?',
-        help='the JSON filename where contents of "xml" should be written to.')
+        '--json', metavar='JSON-output-file',
+        help=('the JSON filename to write the converted XML to. If omitted, '
+              'standard output will be used.'))
 
     parser.add_argument(
         '--xml', metavar='BLAST-XML-file', default=sys.stdin,
-        help='the XML file of BLAST output.')
+        help=('the BLAST XML output file to convert. If omitted, standard '
+              'input will be read.'))
 
     parser.add_argument(
         '--bzip2', default=False, action='store_true',
-        help='If True, compress the json output using bzip2.')
+        help='If True, compress the JSON output using bzip2.')
 
     args = parser.parse_args()
 
