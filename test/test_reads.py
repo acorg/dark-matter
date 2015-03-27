@@ -1489,6 +1489,18 @@ class TestReads(TestCase):
         reads.save(fp)
         self.assertEqual('>id1\nAT\n>id2\nAC\n', fp.getvalue())
 
+    def testFilterNoArgs(self):
+        """
+        Filtering must return the same list when not asked to do anything.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter()
+        self.assertEqual([read1, read2], list(result))
+
     def testFilterOnMinLength(self):
         """
         Filtering on minimal length must work.
@@ -1551,6 +1563,114 @@ class TestReads(TestCase):
         reads.add(read2)
         result = reads.filter(minLength=4, maxLength=4)
         self.assertEqual([read1], list(result))
+
+    def testFilterRemoveGaps(self):
+        """
+        Filtering must be able to remove gaps.
+        """
+        reads = Reads()
+        reads.add(Read('id', '-AT--CG-'))
+        result = reads.filter(removeGaps=True)
+        self.assertEqual([Read('id', 'ATCG')], list(result))
+
+    def testFilterNegativeRegex(self):
+        """
+        Filtering must be able to filter reads based on a negative regular
+        expression.
+        """
+        reads = Reads()
+        reads.add(Read('cats', 'ATCG'))
+        reads.add(Read('kittens', 'ATCG'))
+        reads.add(Read('dogs', 'ATCG'))
+        reads.add(Read('puppies', 'ATCG'))
+        reads.add(Read('lion', 'ATCG'))
+        result = reads.filter(negativeTitleRegex='s')
+        self.assertEqual([Read('lion', 'ATCG')], list(result))
+
+    def testFilterPositiveRegex(self):
+        """
+        Filtering must be able to filter reads based on a positive regular
+        expression.
+        """
+        reads = Reads()
+        reads.add(Read('cats', 'ATCG'))
+        reads.add(Read('kittens', 'ATCG'))
+        reads.add(Read('dogs', 'ATCG'))
+        reads.add(Read('puppies', 'ATCG'))
+        reads.add(Read('lion', 'ATCG'))
+        result = reads.filter(titleRegex='tt')
+        self.assertEqual([Read('kittens', 'ATCG')], list(result))
+
+    def testFilterWhitelist(self):
+        """
+        Filtering must be able to filter reads based on a whitelist.
+        """
+        reads = Reads()
+        reads.add(Read('cats', 'ATCG'))
+        reads.add(Read('kittens', 'ATCG'))
+        reads.add(Read('dogs', 'ATCG'))
+        reads.add(Read('puppies', 'ATCG'))
+        reads.add(Read('lion', 'ATCG'))
+        result = reads.filter(negativeTitleRegex='.', whitelist=['lion'])
+        self.assertEqual([Read('lion', 'ATCG')], list(result))
+
+    def testFilterBlacklist(self):
+        """
+        Filtering must be able to filter reads based on a blacklist.
+        """
+        reads = Reads()
+        reads.add(Read('cats', 'ATCG'))
+        reads.add(Read('kittens', 'ATCG'))
+        reads.add(Read('dogs', 'ATCG'))
+        reads.add(Read('puppies', 'ATCG'))
+        reads.add(Read('lion', 'ATCG'))
+        result = reads.filter(titleRegex='.',
+                              blacklist=['cats', 'kittens', 'dogs', 'puppies'])
+        self.assertEqual([Read('lion', 'ATCG')], list(result))
+
+    def testFilterTruncateTitles(self):
+        """
+        Filtering must be able to filter reads based on a blacklist.
+        """
+        reads = Reads()
+        reads.add(Read('cat 400', 'AA'))
+        reads.add(Read('cat 500', 'GG'))
+        result = reads.filter(truncateTitlesAfter='cat')
+        self.assertEqual([Read('cat 400', 'AA')], list(result))
+
+    def testFilterIndices(self):
+        """
+        Filtering must be able to filter reads based on their indices.
+        """
+        reads = Reads()
+        reads.add(Read('cow', 'AA'))
+        reads.add(Read('dog', 'GG'))
+        reads.add(Read('cat', 'TT'))
+        result = reads.filter(indices=set([1]))
+        self.assertEqual([Read('dog', 'GG')], list(result))
+
+    def testFilterHeadZero(self):
+        """
+        Filtering must be able to filter just the first N of a set of reads,
+        including when N=0.
+        """
+        reads = Reads()
+        reads.add(Read('cow', 'AA'))
+        reads.add(Read('dog', 'GG'))
+        reads.add(Read('cat', 'TT'))
+        result = reads.filter(head=0)
+        self.assertEqual([], list(result))
+
+    def testFilterHead(self):
+        """
+        Filtering must be able to filter just the first N of a set of reads.
+        """
+        reads = Reads()
+        reads.add(Read('cow', 'AA'))
+        reads.add(Read('dog', 'GG'))
+        reads.add(Read('cat', 'TT'))
+        result = reads.filter(head=2)
+        self.assertEqual([Read('cow', 'AA'), Read('dog', 'GG')], list(result))
 
 
 class TestSummarizePosition(TestCase):
