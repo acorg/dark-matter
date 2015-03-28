@@ -105,8 +105,9 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--truncateTitlesAfter', type=str, default=None,
-        help='a string that titles will be truncated beyond. If a truncated '
-        'title has already been seen, that title will be skipped.')
+        help=('a string that titles will be truncated beyond. If the '
+              'truncated version of a title has already been seen, '
+              'that title will be skipped.'))
 
     parser.add_argument(
         '--minSequenceLen', type=int, default=None,

@@ -4,6 +4,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
+from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 from dark.gor4 import GOR4
 
@@ -379,9 +380,9 @@ class Reads(object):
             yield read
 
     def __len__(self):
-        # Note that len reflects the number of reads that are currently known.
-        # If self.__iter__ has not been exhausted, we will not know the true
-        # number of reads.
+        # Note that __len__ reflects the number of reads that are currently
+        # known.  If self.__iter__ has not been exhausted, we will not know
+        # the true number of reads.
         return self._length
 
     def save(self, filename, format_='fasta'):
@@ -412,7 +413,10 @@ class Reads(object):
                 filename.write(read.toString(format_))
         return self
 
-    def filter(self, minLength=None, maxLength=None):
+    def filter(self, minLength=None, maxLength=None, removeGaps=False,
+               whitelist=None, blacklist=None,
+               titleRegex=None, negativeTitleRegex=None,
+               truncateTitlesAfter=None, indices=None, head=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -422,14 +426,56 @@ class Reads(object):
 
         @param minLength: The minimum acceptable length.
         @param maxLength: The maximum acceptable length.
+        @param removeGaps: If C{True} remove all gaps ('-' characters) from the
+            read sequences.
+        @param whitelist: If not C{None}, a set of exact read ids that are
+            always acceptable (though other characteristics, such as length,
+            of a whitelisted id may rule it out).
+        @param blacklist: If not C{None}, a set of exact read ids that are
+            never acceptable.
+        @param titleRegex: A regex that read ids must match.
+        @param negativeTitleRegex: A regex that read ids must not match.
+        @param truncateTitlesAfter: A string that read ids will be truncated
+            beyond. If the truncated version of an id has already been seen,
+            that sequence will be skipped.
+        @param indices: Either C{None} or a set of C{int} indices corresponding
+            to reads that are wanted. Indexing starts at zero.
+        @param head: If not C{None}, the C{int} number of sequences at the
+            start of the reads to return. Later sequences are skipped.
+        @return: A generator that yields C{Read} instances.
         """
-        result = Reads()
-        for read in self:
+        if (whitelist or blacklist or titleRegex or negativeTitleRegex or
+                truncateTitlesAfter):
+            titleFilter = TitleFilter(
+                whitelist=whitelist, blacklist=blacklist,
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
+                truncateAfter=truncateTitlesAfter)
+        else:
+            titleFilter = None
+
+        for readIndex, read in enumerate(self):
+
+            if head is not None and readIndex == head:
+                # We're completely done.
+                return
+
             readLen = len(read)
-            if ((minLength is None or readLen >= minLength) and
-                    (maxLength is None or readLen <= maxLength)):
-                result.add(read)
-        return result
+            if ((minLength is not None and readLen < minLength) or
+                    (maxLength is not None and readLen > maxLength)):
+                continue
+
+            if removeGaps:
+                sequence = read.sequence.replace('-', '')
+                read = read.__class__(read.id, sequence, read.quality)
+
+            if (titleFilter and
+                    titleFilter.accept(read.id) == TitleFilter.REJECT):
+                continue
+
+            if indices is not None and readIndex not in indices:
+                continue
+
+            yield read
 
     def summarizePosition(self, index):
         """
