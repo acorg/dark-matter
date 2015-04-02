@@ -1,12 +1,12 @@
-from dark.reads import Read, AARead, DNARead, RNARead
-from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
-                        FastaReads, combineReads)
-
 from cStringIO import StringIO
 from unittest import TestCase
 from Bio import SeqIO
 from mock import patch
 from mocking import mockOpen
+
+from dark.reads import Read, AARead, DNARead, RNARead, Reads
+from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
+                        FastaReads, combineReads)
 
 
 class FastaDeDup(TestCase):
@@ -24,16 +24,28 @@ class FastaDeDup(TestCase):
         """
         A FASTA list with just one item gets de-duped to the same one item.
         """
-        seq = '>hey\nagtcagtcagtc'
-        s1 = SeqIO.read(StringIO(seq), 'fasta')
-        self.assertEqual(list(dedupFasta([s1])), [s1])
+        reads = Reads()
+        reads.add(Read('id', 'GGG'))
+        self.assertEqual(list(dedupFasta(reads)), [Read('id', 'GGG')])
 
     def testRemovalOfIdenticalSequences(self):
-        """A list with 2 copies of the same seq is de-duped to have 1 copy."""
-        seq = '>hey\nagtcagtcagtc'
-        s1 = SeqIO.read(StringIO(seq), 'fasta')
-        s2 = SeqIO.read(StringIO(seq), 'fasta')
-        self.assertEqual(list(dedupFasta([s1, s2])), [s1])
+        """
+        A list with 2 copies of the same seq is de-duped to have 1 copy.
+        """
+        reads = Reads()
+        reads.add(Read('id', 'GGG'))
+        reads.add(Read('id', 'GGG'))
+        self.assertEqual(list(dedupFasta(reads)), [Read('id', 'GGG')])
+
+    def testRemovalOfIdenticalSequencesWithDifferingIds(self):
+        """
+        A list with 2 copies of the same seq is de-duped to have 1 copy,
+        including when the read ids differ.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'GGG'))
+        reads.add(Read('id2', 'GGG'))
+        self.assertEqual(list(dedupFasta(reads)), [Read('id1', 'GGG')])
 
 
 class Unused(TestCase):

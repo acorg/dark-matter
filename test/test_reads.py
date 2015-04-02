@@ -1672,6 +1672,18 @@ class TestReads(TestCase):
         result = reads.filter(head=2)
         self.assertEqual([Read('cow', 'AA'), Read('dog', 'GG')], list(result))
 
+    def testFilterDuplicates(self):
+        """
+        Filtering on sequence duplicates must work correctly.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(removeDuplicates=True)
+        self.assertEqual([read1], list(result))
+
 
 class TestSummarizePosition(TestCase):
     """

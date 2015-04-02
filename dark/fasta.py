@@ -8,18 +8,18 @@ def fastaToList(fastaFilename):
     return list(SeqIO.parse(fastaFilename, 'fasta'))
 
 
-def dedupFasta(sequences):
+def dedupFasta(reads):
     """
-    sequences: an iterator producing Bio.Seq sequences.
+    Remove sequence duplicates (based on sequence) from FASTA.
 
-    return: a generator of sequences with no duplicates.
+    @param reads: a C{dark.reads.Reads} instance.
+    @return: a generator of C{dark.reads.Read} instances with no duplicates.
     """
     seen = set()
-    for s in sequences:
-        thisSeq = str(s.seq)
-        if thisSeq not in seen:
-            seen.add(thisSeq)
-            yield s
+    for read in reads:
+        if read.sequence not in seen:
+            seen.add(read.sequence)
+            yield read
 
 
 def dePrefixAndSuffixFasta(sequences):
