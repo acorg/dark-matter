@@ -15,6 +15,7 @@ import argparse
 
 from Bio.Data.CodonTable import TranslationError
 
+from dark.reads import DNARead, RNARead
 from dark.fasta import FastaReads
 
 
@@ -36,7 +37,13 @@ if __name__ == '__main__':
         'this length will not be produced.')
 
     args = parser.parse_args()
-    reads = FastaReads(sys.stdin, args.type)
+
+    if args.type == 'dna':
+        readClass = DNARead
+    else:
+        readClass = RNARead
+
+    reads = FastaReads(sys.stdin, readClass)
     write = sys.stdout.write
     minORFLength = args.minORFLength
 
