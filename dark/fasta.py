@@ -16,9 +16,11 @@ def dedupFasta(reads):
     @return: a generator of C{dark.reads.Read} instances with no duplicates.
     """
     seen = set()
+    add = seen.add
     for read in reads:
-        if read.sequence not in seen:
-            seen.add(read.sequence)
+        hash_ = md5(read.sequence).digest()
+        if hash_ not in seen:
+            add(hash_)
             yield read
 
 
