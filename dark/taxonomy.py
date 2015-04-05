@@ -26,7 +26,7 @@ class LineageFetcher(object):
 
         lineage = []
         gi = int(title.split('|')[1])
-        query = 'SELECT taxID from gi_taxid_nucl where gi = %d' % gi
+        query = 'SELECT taxID from gi_taxid where gi = %d' % gi
         self._cursor.execute(query)
 
         try:
