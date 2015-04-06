@@ -3,6 +3,7 @@ from collections import Counter
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
+from warnings import warn
 
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
@@ -132,6 +133,27 @@ class Read(object):
             yield (subjectOffset, self.sequence[readOffset], False)
             readOffset += 1
             subjectOffset += 1
+
+    def nucleotideOrAa(self):
+        """
+        A function which checks whether it is a nucleotide or amino acid read.
+        Note that if an amino acid read consists of only A, T, G, C, amino
+        acids, it will still be classified as a nucleotide read. In this case,
+        a warning will be issued.
+
+        @param read: A C{dark.Read} object.
+        @return: C{True} if the read is AA or C{False} if the read is
+            nucleotide.
+        """
+        ntLetters = {'A', 'T', 'G', 'C'}
+        readLetters = set(self.sequence.upper())
+        subset = readLetters.issubset(ntLetters)
+        if subset:
+            warn('This is considered as a nucleotide read. Note that it might '
+                 'still be an amino acid read which only contains the letters '
+                 '"A", "T", "G", "C".', RuntimeWarning)
+            return False
+        return True
 
 
 class _NucleotideRead(Read):

@@ -2,6 +2,7 @@ from unittest import TestCase
 from mock import patch, call
 from cStringIO import StringIO
 from os import stat
+import warnings
 
 from mocking import mockOpen
 from dark.reads import (
@@ -262,6 +263,37 @@ class TestRead(TestCase):
                           (12, 'G', True),
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
+
+    def testAAReadReturnTrue(self):
+        """
+        If an AA read is passed in, the function must return True.
+        """
+        read = AARead('id', 'ARSTGATGC')
+        self.assertEqual(True, read.nucleotideOrAa())
+
+    def testNucleotideReadSomeNtReturnFalse(self):
+        """
+        If a nucleotide read is passed in that contains A, T, the
+        function must return False.
+        """
+        read = AARead('id', 'AAATCTT')
+        self.assertEqual(False, read.nucleotideOrAa())
+
+    def testNucleotideReadIssueWarning(self):
+        """
+        If a nucleotide read is passed in, a warning must be issued.
+        """
+        read = AARead('id', 'AATTGGCC')
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            result = read.nucleotideOrAa()
+            self.assertEqual(1, len(w))
+            self.assertEqual(w[0].category, RuntimeWarning)
+            error = ('This is considered as a nucleotide read. Note that it '
+                     'might still be an amino acid read which only contains '
+                     'the letters "A", "T", "G", "C".')
+            self.assertIn(error, str(w[0].message))
+            self.assertEqual(False, result)
 
 
 class TestDNARead(TestCase):
