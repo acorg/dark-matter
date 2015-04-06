@@ -54,6 +54,11 @@ if __name__ == '__main__':
         '--head', type=int, default=None, metavar='N',
         help='only the first N sequences will be printed.')
 
+    parser.add_argument(
+        '--removeDuplicates', action='store_true', default=False,
+        help=('If True, duplicate sequences will be removed. The first '
+              'occurrence is kept.'))
+
     args = parser.parse_args()
     kept = 0
     reads = FastaReads(sys.stdin)
@@ -68,7 +73,7 @@ if __name__ == '__main__':
             negativeTitleRegex=args.negativeTitleRegex,
             truncateTitlesAfter=args.truncateTitlesAfter,
             indices=set(args.indices) if args.indices else None,
-            head=args.head):
+            head=args.head, removeDuplicates=args.removeDuplicates):
         kept += 1
         print seq.toString('fasta'),
 

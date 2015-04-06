@@ -416,7 +416,8 @@ class Reads(object):
     def filter(self, minLength=None, maxLength=None, removeGaps=False,
                whitelist=None, blacklist=None,
                titleRegex=None, negativeTitleRegex=None,
-               truncateTitlesAfter=None, indices=None, head=None):
+               truncateTitlesAfter=None, indices=None, head=None,
+               removeDuplicates=False):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -442,6 +443,7 @@ class Reads(object):
             to reads that are wanted. Indexing starts at zero.
         @param head: If not C{None}, the C{int} number of sequences at the
             start of the reads to return. Later sequences are skipped.
+        @param removeDuplicates: If C{True} remove duplicated sequences.
         @return: A generator that yields C{Read} instances.
         """
         if (whitelist or blacklist or titleRegex or negativeTitleRegex or
@@ -452,6 +454,9 @@ class Reads(object):
                 truncateAfter=truncateTitlesAfter)
         else:
             titleFilter = None
+
+        if removeDuplicates:
+            sequencesSeen = set()
 
         for readIndex, read in enumerate(self):
 
@@ -474,6 +479,11 @@ class Reads(object):
 
             if indices is not None and readIndex not in indices:
                 continue
+
+            if removeDuplicates:
+                if read.sequence in sequencesSeen:
+                    continue
+                sequencesSeen.add(read.sequence)
 
             yield read
 
