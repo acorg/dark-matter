@@ -2,7 +2,6 @@ from unittest import TestCase
 from mock import patch, call
 from cStringIO import StringIO
 from os import stat
-import warnings
 
 from mocking import mockOpen
 from dark.reads import (
@@ -264,36 +263,41 @@ class TestRead(TestCase):
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
 
-    def testAAReadReturnTrue(self):
+    def testisReadClassAAReadMatchingReturnTrue(self):
         """
-        If an AA read is passed in, the function must return True.
+        If an AA read with an AARead readClass is passed in, the isReadClass
+        function must return True.
         """
-        read = AARead('id', 'ARSTGATGC')
-        self.assertEqual(True, read.nucleotideOrAa())
+        read = AARead('id', 'ARSTGATGCASASASASASAS')
+        self.assertEqual(True, read.isReadClass())
 
-    def testNucleotideReadSomeNtReturnFalse(self):
+    def testisReadClassDNAReadMatchingReturnTrue(self):
         """
-        If a nucleotide read is passed in that contains A, T, the
-        function must return False.
+        If a DNA read with a DNARead readClass is passed in, the isReadClass
+        function must return True.
         """
-        read = AARead('id', 'AAATCTT')
-        self.assertEqual(False, read.nucleotideOrAa())
+        read = DNARead('id', 'AAATTAACGGGCCTAGG')
+        self.assertEqual(True, read.isReadClass())
 
-    def testNucleotideReadIssueWarning(self):
+    def testisReadClassAAReadNotMatchingRaise(self):
         """
-        If a nucleotide read is passed in, a warning must be issued.
+        If an AA read with a DNARead readClass is passed in, the isReadClass
+        function must raise an IndexError.
         """
-        read = AARead('id', 'AATTGGCC')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            result = read.nucleotideOrAa()
-            self.assertEqual(1, len(w))
-            self.assertEqual(w[0].category, RuntimeWarning)
-            error = ('This is considered as a nucleotide read. Note that it '
-                     'might still be an amino acid read which only contains '
-                     'the letters "A", "T", "G", "C".')
-            self.assertIn(error, str(w[0].message))
-            self.assertEqual(False, result)
+        read = AARead('id', 'AAATTAACGGGCCTAGG')
+        error = ("It seems like you're trying to make a Read object of a type "
+                 "which doesn't match the sequence you passed.")
+        self.assertRaisesRegexp(ValueError, error, read.isReadClass)
+
+    def testisReadClassDNAReadNotMatchingRaise(self):
+        """
+        If a DNA read with an AARead readClass is passed in, the isReadClass
+        function must raise an IndexError.
+        """
+        read = DNARead('id', 'ARSTGATGCASASASASASAS')
+        error = ("It seems like you're trying to make a Read object of a type "
+                 "which doesn't match the sequence you passed.")
+        self.assertRaisesRegexp(ValueError, error, read.isReadClass)
 
 
 class TestDNARead(TestCase):

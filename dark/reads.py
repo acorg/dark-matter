@@ -3,7 +3,6 @@ from collections import Counter
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
-from warnings import warn
 
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
@@ -134,26 +133,29 @@ class Read(object):
             readOffset += 1
             subjectOffset += 1
 
-    def nucleotideOrAa(self):
+    def isReadClass(self):
         """
-        A function which checks whether it is a nucleotide or amino acid read.
-        Note that if an amino acid read consists of only A, T, G, C, amino
-        acids, it will still be classified as a nucleotide read. In this case,
-        a warning will be issued.
+        A function which checks whether the sequence in a L{dark.Read} object
+        corresponds to its readClass.
 
         @param read: A C{dark.Read} object.
-        @return: C{True} if the read is AA or C{False} if the read is
-            nucleotide.
+        @return: C{True} if the sequence corresponds from its readClass or
+            C{False} if the sequence doesn't correspond.
+        @raise ValueError: If the sequence and the readClass don't match, raise
+            a ValueError.
         """
-        ntLetters = {'A', 'T', 'G', 'C'}
-        readLetters = set(self.sequence.upper())
-        subset = readLetters.issubset(ntLetters)
-        if subset:
-            warn('This is considered as a nucleotide read. Note that it might '
-                 'still be an amino acid read which only contains the letters '
-                 '"A", "T", "G", "C".', RuntimeWarning)
-            return False
-        return True
+        dnaLetters = {'A', 'T', 'G', 'C'}
+        readLetters = set(self.sequence.upper()[:10])
+        # If nt is true, the sequence is most likely a nucleotide sequence.
+        # issubset checks if readLetters is contained in dnaLetters.
+        dna = readLetters.issubset(dnaLetters)
+        if ((dna and isinstance(self, DNARead)) or
+            (dna and isinstance(self, RNARead)) or
+                (not dna and isinstance(self, AARead))):
+            return True
+        raise ValueError("It seems like you're trying to make a Read object "
+                         "of a type which doesn't match the sequence you "
+                         "passed.")
 
 
 class _NucleotideRead(Read):
