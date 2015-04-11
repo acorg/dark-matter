@@ -133,26 +133,22 @@ class Read(object):
             readOffset += 1
             subjectOffset += 1
 
-    def isReadClass(self):
+    def checkAlphabeth(self, count=10):
         """
         A function which checks whether the sequence in a L{dark.Read} object
-        corresponds to its readClass.
+        corresponds to its readClass. For AA reads, more testing is done in
+        dark.Read.AARead.checkAlphabeth.
 
-        @param read: A C{dark.Read} object.
+        @param count: A C{int} of how many amino acids should be considered.
         @return: C{True} if the sequence corresponds from its readClass or
             C{False} if the sequence doesn't correspond.
         @raise ValueError: If the sequence and the readClass don't match, raise
             a ValueError.
         """
-        dnaLetters = {'A', 'T', 'G', 'C'}
-        readLetters = set(self.sequence.upper()[:10])
-        # If nt is true, the sequence is most likely a nucleotide sequence.
-        # issubset checks if readLetters is contained in dnaLetters.
-        dna = readLetters.issubset(dnaLetters)
-        if ((dna and isinstance(self, DNARead)) or
-            (dna and isinstance(self, RNARead)) or
-                (not dna and isinstance(self, AARead))):
-            return True
+        readLetters = set(self.sequence.upper()[:count])
+        # Check if readLetters is a subset of self.ALPHABETH.
+        if self.ALPHABETH is None or readLetters.issubset(self.ALPHABETH):
+            return readLetters
         raise ValueError("It seems like you're trying to make a Read object "
                          "of a type which doesn't match the sequence you "
                          "passed.")
@@ -200,6 +196,8 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
+    ALPHABETH = set('ATCG')
+
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
 
@@ -207,6 +205,8 @@ class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
+    ALPHABETH = set('ATCGU')
+
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
 
@@ -214,11 +214,30 @@ class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
-
+    ALPHABETH = set('ARNDCEQGHILKMFPSTWYV')
     # Keep a single GOR4 instance that can be used by all AA reads. This
     # saves us from re-scanning the GOR IV secondary structure database
     # every time we make an AARead instance.
     _GOR4 = GOR4()
+
+    def checkAlphabeth(self, count=10):
+        """
+        A function which checks if an AA read really contains amino acids. This
+        additional testing is needed, because the letters in the DNA alphabeth
+        are also in the AA alphabeth.
+
+        @param count: A C{int} of how many amino acids should be considered.
+        @return: C{True} if the sequence alphabeth corresponds to its class
+            alphabeth.
+        @raise ValueError: If the sequence alphabeth doesn't correspond to its
+            class alphabeth, raise a ValueError.
+        """
+        readLetters = super(AARead, self).checkAlphabeth()
+        if readLetters != set('ATGC'):
+            return readLetters
+        raise ValueError("It seems like you're trying to make a Read object "
+                         "of a type which doesn't match the sequence you "
+                         "passed.")
 
     def properties(self):
         """

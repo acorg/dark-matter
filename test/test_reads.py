@@ -263,41 +263,42 @@ class TestRead(TestCase):
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
 
-    def testisReadClassAAReadMatchingReturnTrue(self):
+    def testcheckAlphabethAAReadMatchingReturnTrue(self):
         """
-        If an AA read with an AARead readClass is passed in, the isReadClass
+        If an AA read with an AARead readClass is passed in, the checkAlphabeth
         function must return True.
         """
         read = AARead('id', 'ARSTGATGCASASASASASAS')
-        self.assertEqual(True, read.isReadClass())
+        self.assertEqual(set(['A', 'C', 'G', 'S', 'R', 'T']),
+                         read.checkAlphabeth())
 
-    def testisReadClassDNAReadMatchingReturnTrue(self):
+    def testcheckAlphabethDNAReadMatchingReturnTrue(self):
         """
-        If a DNA read with a DNARead readClass is passed in, the isReadClass
+        If a DNA read with a DNARead readClass is passed in, the checkAlphabeth
         function must return True.
         """
         read = DNARead('id', 'AAATTAACGGGCCTAGG')
-        self.assertEqual(True, read.isReadClass())
+        self.assertEqual(set(['A', 'C', 'T', 'G']), read.checkAlphabeth())
 
-    def testisReadClassAAReadNotMatchingRaise(self):
+    def testcheckAlphabethAAReadNotMatchingRaise(self):
         """
-        If an AA read with a DNARead readClass is passed in, the isReadClass
+        If an AA read with a DNARead readClass is passed in, the checkAlphabeth
         function must raise an IndexError.
         """
         read = AARead('id', 'AAATTAACGGGCCTAGG')
         error = ("It seems like you're trying to make a Read object of a type "
                  "which doesn't match the sequence you passed.")
-        self.assertRaisesRegexp(ValueError, error, read.isReadClass)
+        self.assertRaisesRegexp(ValueError, error, read.checkAlphabeth)
 
-    def testisReadClassDNAReadNotMatchingRaise(self):
+    def testcheckAlphabethDNAReadNotMatchingRaise(self):
         """
-        If a DNA read with an AARead readClass is passed in, the isReadClass
+        If a DNA read with an AARead readClass is passed in, the checkAlphabeth
         function must raise an IndexError.
         """
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
         error = ("It seems like you're trying to make a Read object of a type "
                  "which doesn't match the sequence you passed.")
-        self.assertRaisesRegexp(ValueError, error, read.isReadClass)
+        self.assertRaisesRegexp(ValueError, error, read.checkAlphabeth)
 
 
 class TestDNARead(TestCase):

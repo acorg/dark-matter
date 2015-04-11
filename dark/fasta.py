@@ -95,7 +95,7 @@ class FastaReads(Reads):
         """
         for seq in SeqIO.parse(self.file_, 'fasta'):
             read = self.readClass(seq.description, str(seq.seq))
-            if read.isReadClass():
+            if read.checkAlphabeth():
                 yield read
 
 
@@ -136,7 +136,7 @@ def combineReads(filename, sequences, readClass=DNARead,
             else:
                 readId = '%s%d' % (idPrefix, count)
             read = readClass(readId, sequence)
-            if read.isReadClass():
+            if read.checkAlphabeth():
                 reads.add(read)
 
     return reads
