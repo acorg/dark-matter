@@ -37,6 +37,8 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
+    ALPHABETH = None
+
     def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(

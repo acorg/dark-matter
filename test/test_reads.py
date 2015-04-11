@@ -263,6 +263,15 @@ class TestRead(TestCase):
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
 
+    def testcheckAlphabethwithReadMustBePermissive(self):
+        """
+        The checkAlphabeth function must be permissive if a dark.Read is
+        passed.
+        """
+        read = Read('id', 'ARSTGATGCASASASASASAS')
+        self.assertEqual(set(['A', 'C', 'G', 'S', 'R', 'T']),
+                         read.checkAlphabeth())
+
     def testcheckAlphabethAAReadMatchingReturnTrue(self):
         """
         If an AA read with an AARead readClass is passed in, the checkAlphabeth
