@@ -274,7 +274,7 @@ class TestRead(TestCase):
     def testcheckAlphabetAAReadMatchingReturnTrue(self):
         """
         If an AA read with an AARead readClass is passed in, the checkAlphabet
-        function must return True.
+        function must return the alphabet of the sequence.
         """
         read = AARead('id', 'ARSTGATGCASASASASASAS')
         self.assertEqual(set('ACGSRT'), read.checkAlphabet())
@@ -282,7 +282,7 @@ class TestRead(TestCase):
     def testcheckAlphabetDNAReadMatchingReturnTrue(self):
         """
         If a DNA read with a DNARead readClass is passed in, the checkAlphabet
-        function must return True.
+        function must return the alphabet of the sequence.
         """
         read = DNARead('id', 'AAATTAACGGGCCTAGG')
         self.assertEqual(set('ACTG'), read.checkAlphabet())
@@ -293,7 +293,7 @@ class TestRead(TestCase):
         function must raise an IndexError.
         """
         read = AARead('id', 'AAATTAACGGGCCTAGG')
-        error = ("It looks like a DNA sequence has been passed to AARead().")
+        error = "It looks like a DNA sequence has been passed to AARead()."
         self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
 
     def testcheckAlphabetDNAReadNotMatchingRaise(self):
@@ -302,8 +302,8 @@ class TestRead(TestCase):
         function must raise an IndexError.
         """
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
-        error = ("Read alphabet \(\'ACGRST\'\) is not a subset of expected "
-                 "alphabet \(\'ACGT\'\) for read class DNARead.")
+        error = ("Read alphabet \('ACGRST'\) is not a subset of expected "
+                 "alphabet \('ACGT'\) for read class DNARead.")
         self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
 
 
