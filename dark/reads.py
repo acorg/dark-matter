@@ -4,6 +4,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
+from dark.aa import AA_LETTERS
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 from dark.gor4 import GOR4
@@ -37,7 +38,7 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
-    ALPHABETH = None
+    ALPHABET = None
 
     def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
@@ -135,25 +136,28 @@ class Read(object):
             readOffset += 1
             subjectOffset += 1
 
-    def checkAlphabeth(self, count=10):
+    def checkAlphabet(self, count=10):
         """
         A function which checks whether the sequence in a L{dark.Read} object
         corresponds to its readClass. For AA reads, more testing is done in
-        dark.Read.AARead.checkAlphabeth.
+        dark.Read.AARead.checkAlphabet.
 
-        @param count: A C{int} of how many amino acids should be considered.
-        @return: C{True} if the sequence corresponds from its readClass or
-            C{False} if the sequence doesn't correspond.
-        @raise ValueError: If the sequence and the readClass don't match, raise
-            a ValueError.
+        @param count: A C{int} of how much of the start of the sequence should
+            be considered.
+        @return: C{True} if the alphabet characters in the first C{count}
+            positions of sequence is a subset of the allowed alphabet for this
+            read class, or if the read class has a C{None} alphabet.
+        @raise ValueError: If the sequence alphabet is not a subset of the read
+            class alphabet.
         """
         readLetters = set(self.sequence.upper()[:count])
-        # Check if readLetters is a subset of self.ALPHABETH.
-        if self.ALPHABETH is None or readLetters.issubset(self.ALPHABETH):
+        # Check if readLetters is a subset of self.ALPHABET.
+        if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
             return readLetters
-        raise ValueError("It seems like you're trying to make a Read object "
-                         "of a type which doesn't match the sequence you "
-                         "passed.")
+        raise ValueError("Read alphabet (%r) is not a subset of expected "
+                         "alphabet (%r) for read class %s." % (
+                             readLetters, self.ALPHABET,
+                             self.__class__.__name__))
 
 
 class _NucleotideRead(Read):
@@ -198,7 +202,7 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
-    ALPHABETH = set('ATCG')
+    ALPHABET = set('ATCG')
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
@@ -207,7 +211,7 @@ class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-    ALPHABETH = set('ATCGU')
+    ALPHABET = set('ATCGU')
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
@@ -216,30 +220,30 @@ class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
-    ALPHABETH = set('ARNDCEQGHILKMFPSTWYV')
+    ALPHABET = set(AA_LETTERS)
     # Keep a single GOR4 instance that can be used by all AA reads. This
     # saves us from re-scanning the GOR IV secondary structure database
     # every time we make an AARead instance.
     _GOR4 = GOR4()
 
-    def checkAlphabeth(self, count=10):
+    def checkAlphabet(self, count=10):
         """
         A function which checks if an AA read really contains amino acids. This
-        additional testing is needed, because the letters in the DNA alphabeth
-        are also in the AA alphabeth.
+        additional testing is needed, because the letters in the DNA alphabet
+        are also in the AA alphabet.
 
-        @param count: A C{int} of how many amino acids should be considered.
-        @return: C{True} if the sequence alphabeth corresponds to its class
-            alphabeth.
-        @raise ValueError: If the sequence alphabeth doesn't correspond to its
-            class alphabeth, raise a ValueError.
+        @param count: A C{int} of how much of the start of the sequence should
+            be considered.
+        @return: C{True} if the alphabet characters in the first C{count}
+            positions of sequence is a subset of the allowed alphabet for this
+            read class, or if the read class has a C{None} alphabet.
+        @raise ValueError: If a DNA sequence has been passed to AARead().
         """
-        readLetters = super(AARead, self).checkAlphabeth()
-        if readLetters != set('ATGC'):
-            return readLetters
-        raise ValueError("It seems like you're trying to make a Read object "
-                         "of a type which doesn't match the sequence you "
-                         "passed.")
+        readLetters = super(AARead, self).checkAlphabet()
+        if len(self) > 10 and readLetters.issubset(set('ACGT')):
+            raise ValueError("It looks like a DNA sequence has been passed to "
+                             "AARead().")
+        return readLetters
 
     def properties(self):
         """
