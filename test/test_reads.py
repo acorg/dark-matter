@@ -263,6 +263,49 @@ class TestRead(TestCase):
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
 
+    def testcheckAlphabetwithReadMustBePermissive(self):
+        """
+        The checkAlphabet function must be permissive if a dark.Read is
+        passed.
+        """
+        read = Read('id', 'ARSTGATGCASASASASASAS')
+        self.assertEqual(set('ACGSRT'), read.checkAlphabet())
+
+    def testcheckAlphabetAAReadMatchingReturnTrue(self):
+        """
+        If an AA read with an AARead readClass is passed in, the checkAlphabet
+        function must return the alphabet of the sequence.
+        """
+        read = AARead('id', 'ARSTGATGCASASASASASAS')
+        self.assertEqual(set('ACGSRT'), read.checkAlphabet())
+
+    def testcheckAlphabetDNAReadMatchingReturnTrue(self):
+        """
+        If a DNA read with a DNARead readClass is passed in, the checkAlphabet
+        function must return the alphabet of the sequence.
+        """
+        read = DNARead('id', 'AAATTAACGGGCCTAGG')
+        self.assertEqual(set('ACTG'), read.checkAlphabet())
+
+    def testcheckAlphabetAAReadNotMatchingRaise(self):
+        """
+        If an AA read with a DNARead readClass is passed in, the checkAlphabet
+        function must raise an IndexError.
+        """
+        read = AARead('id', 'AAATTAACGGGCCTAGG')
+        error = "It looks like a DNA sequence has been passed to AARead()."
+        self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
+
+    def testcheckAlphabetDNAReadNotMatchingRaise(self):
+        """
+        If a DNA read with an AARead readClass is passed in, the checkAlphabet
+        function must raise an IndexError.
+        """
+        read = DNARead('id', 'ARSTGATGCASASASASASAS')
+        error = ("Read alphabet \('ACGRST'\) is not a subset of expected "
+                 "alphabet \('ACGT'\) for read class DNARead.")
+        self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
+
 
 class TestDNARead(TestCase):
     """

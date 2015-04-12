@@ -4,6 +4,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
+from dark.aa import AA_LETTERS
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 from dark.gor4 import GOR4
@@ -37,6 +38,8 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
+    ALPHABET = None
+
     def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
@@ -133,6 +136,33 @@ class Read(object):
             readOffset += 1
             subjectOffset += 1
 
+    def checkAlphabet(self, count=10):
+        """
+        A function which checks whether the sequence in a L{dark.Read} object
+        corresponds to its readClass. For AA reads, more testing is done in
+        dark.Read.AARead.checkAlphabet.
+
+        @param count: A C{int} of how much of the start of the sequence should
+            be considered.
+        @return: C{True} if the alphabet characters in the first C{count}
+            positions of sequence is a subset of the allowed alphabet for this
+            read class, or if the read class has a C{None} alphabet.
+        @raise ValueError: If the sequence alphabet is not a subset of the read
+            class alphabet.
+        """
+        if count is None:
+            readLetters = set(self.sequence.upper())
+        else:
+            readLetters = set(self.sequence.upper()[:count])
+        # Check if readLetters is a subset of self.ALPHABET.
+        if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
+            return readLetters
+        raise ValueError("Read alphabet (%r) is not a subset of expected "
+                         "alphabet (%r) for read class %s." % (
+                             ''.join(sorted(readLetters)),
+                             ''.join(sorted(self.ALPHABET)),
+                             str(self.__class__.__name__)))
+
 
 class _NucleotideRead(Read):
     """
@@ -176,6 +206,8 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
+    ALPHABET = set('ATCG')
+
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
 
@@ -183,6 +215,8 @@ class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
+    ALPHABET = set('ATCGU')
+
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
 
@@ -190,11 +224,28 @@ class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
-
+    ALPHABET = set(AA_LETTERS)
     # Keep a single GOR4 instance that can be used by all AA reads. This
     # saves us from re-scanning the GOR IV secondary structure database
     # every time we make an AARead instance.
     _GOR4 = GOR4()
+
+    def checkAlphabet(self):
+        """
+        A function which checks if an AA read really contains amino acids. This
+        additional testing is needed, because the letters in the DNA alphabet
+        are also in the AA alphabet.
+
+        @return: C{True} if the alphabet characters in the first C{count}
+            positions of sequence is a subset of the allowed alphabet for this
+            read class, or if the read class has a C{None} alphabet.
+        @raise ValueError: If a DNA sequence has been passed to AARead().
+        """
+        readLetters = super(AARead, self).checkAlphabet()
+        if len(self) > 10 and readLetters.issubset(set('ACGT')):
+            raise ValueError("It looks like a DNA sequence has been passed to "
+                             "AARead().")
+        return readLetters
 
     def properties(self):
         """

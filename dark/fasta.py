@@ -1,7 +1,7 @@
 from Bio import SeqIO
 from hashlib import md5
 
-from dark.reads import Reads, AARead, DNARead
+from dark.reads import Reads, DNARead
 
 
 def fastaToList(fastaFilename):
@@ -95,16 +95,21 @@ class FastaReads(Reads):
         Iterate over the sequences in self.file_, yielding each as an
         instance of the desired read class.
         """
+        first = True
         for seq in SeqIO.parse(self.file_, 'fasta'):
-            yield self.readClass(seq.description, str(seq.seq))
+            read = self.readClass(seq.description, str(seq.seq))
+            if first:
+                read.checkAlphabet(count=None)
+                first = False
+            yield read
 
 
-def combineReads(filename, sequences, readClass=AARead,
+def combineReads(filename, sequences, readClass=DNARead,
                  idPrefix='command-line-read-'):
     """
     Combine FASTA reads from a file and/or sequence strings.
 
-    @param filename: A C{str} file name containing FASTA AA.
+    @param filename: A C{str} file name containing FASTA reads.
     @param sequences: A C{list} of C{str} sequences. If a sequence
         contains spaces, the last field (after splitting on spaces) will be
         used as the sequence and the first fields will be used as the sequence
@@ -124,7 +129,7 @@ def combineReads(filename, sequences, readClass=AARead,
     else:
         reads = Reads()
 
-    # Add any individually specified AA subject sequences.
+    # Add any individually specified subject sequences.
     if sequences:
         for count, sequence in enumerate(sequences, start=1):
             # Try splitting the sequence on its last space and using the
@@ -135,6 +140,8 @@ def combineReads(filename, sequences, readClass=AARead,
                 readId, sequence = parts
             else:
                 readId = '%s%d' % (idPrefix, count)
-            reads.add(readClass(readId, sequence))
+            read = readClass(readId, sequence)
+            read.checkAlphabet()
+            reads.add(read)
 
     return reads

@@ -307,7 +307,7 @@ class TestFastaReads(TestCase):
         A FASTA file whose read class is AARead must result in reads that
         are instances of AARead.
         """
-        data = '\n'.join(['>id1', 'ACGT'])
+        data = '\n'.join(['>id1', 'ACGST'])
         mockOpener = mockOpen(read_data=data)
         with patch('__builtin__.open', mockOpener, create=True):
             reads = list(FastaReads('filename.fasta', AARead))
@@ -372,8 +372,8 @@ class TestCombineReads(TestCase):
         A None FASTA file name and a non-empty sequences list results in a
         FastaReads instance with the expected read.
         """
-        reads = list(combineReads(None, ['id ACGT']))
-        self.assertEqual([Read('id', 'ACGT')], reads)
+        reads = list(combineReads(None, ['id ACGTSSS'], readClass=AARead))
+        self.assertEqual([AARead('id', 'ACGTSSS')], reads)
 
     def testDefaultReadIdPrefix(self):
         """
@@ -389,8 +389,9 @@ class TestCombineReads(TestCase):
         that has no id, but with a custom read id prefix, results in a
         FastaReads instance with the expected read.
         """
-        reads = list(combineReads(None, ['ACGT'], idPrefix='prefix-'))
-        self.assertEqual([Read('prefix-1', 'ACGT')], reads)
+        reads = list(combineReads(None, ['ACGTSSS'], idPrefix='prefix-',
+                     readClass=AARead))
+        self.assertEqual([AARead('prefix-1', 'ACGTSSS')], reads)
 
     def testSpecificReadClass(self):
         """
