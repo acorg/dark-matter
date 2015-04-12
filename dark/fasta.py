@@ -93,9 +93,12 @@ class FastaReads(Reads):
         Iterate over the sequences in self.file_, yielding each as an
         instance of the desired read class.
         """
+        first = True
         for seq in SeqIO.parse(self.file_, 'fasta'):
             read = self.readClass(seq.description, str(seq.seq))
-            read.checkAlphabet()
+            if first:
+                read.checkAlphabet(count=None)
+                first = False
             yield read
 
 

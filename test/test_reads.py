@@ -269,8 +269,7 @@ class TestRead(TestCase):
         passed.
         """
         read = Read('id', 'ARSTGATGCASASASASASAS')
-        self.assertEqual(set(['A', 'C', 'G', 'S', 'R', 'T']),
-                         read.checkAlphabet())
+        self.assertEqual(set('ACGSRT'), read.checkAlphabet())
 
     def testcheckAlphabetAAReadMatchingReturnTrue(self):
         """
@@ -278,8 +277,7 @@ class TestRead(TestCase):
         function must return True.
         """
         read = AARead('id', 'ARSTGATGCASASASASASAS')
-        self.assertEqual(set(['A', 'C', 'G', 'S', 'R', 'T']),
-                         read.checkAlphabet())
+        self.assertEqual(set('ACGSRT'), read.checkAlphabet())
 
     def testcheckAlphabetDNAReadMatchingReturnTrue(self):
         """
@@ -287,7 +285,7 @@ class TestRead(TestCase):
         function must return True.
         """
         read = DNARead('id', 'AAATTAACGGGCCTAGG')
-        self.assertEqual(set(['A', 'C', 'T', 'G']), read.checkAlphabet())
+        self.assertEqual(set('ACTG'), read.checkAlphabet())
 
     def testcheckAlphabetAAReadNotMatchingRaise(self):
         """
@@ -304,9 +302,8 @@ class TestRead(TestCase):
         function must raise an IndexError.
         """
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
-        error = ("Read alphabet (set([\'A\', \'C\', \'G\', \'S\', \'R\', "
-                 "\'T\'])) is not a subset of expected alphabet (set([\'A\', "
-                 "\'C\', \'T\', \'G\'])) for read class DNARead.")
+        error = ("Read alphabet \(\'ACGRST\'\) is not a subset of expected "
+                 "alphabet \(\'ACGT\'\) for read class DNARead.")
         self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
 
 

@@ -150,14 +150,18 @@ class Read(object):
         @raise ValueError: If the sequence alphabet is not a subset of the read
             class alphabet.
         """
-        readLetters = set(self.sequence.upper()[:count])
+        if count is None:
+            readLetters = set(self.sequence.upper())
+        else:
+            readLetters = set(self.sequence.upper()[:count])
         # Check if readLetters is a subset of self.ALPHABET.
         if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
             return readLetters
         raise ValueError("Read alphabet (%r) is not a subset of expected "
                          "alphabet (%r) for read class %s." % (
-                             readLetters, self.ALPHABET,
-                             self.__class__.__name__))
+                             ''.join(sorted(readLetters)),
+                             ''.join(sorted(self.ALPHABET)),
+                             str(self.__class__.__name__)))
 
 
 class _NucleotideRead(Read):
@@ -226,14 +230,12 @@ class AARead(Read):
     # every time we make an AARead instance.
     _GOR4 = GOR4()
 
-    def checkAlphabet(self, count=10):
+    def checkAlphabet(self):
         """
         A function which checks if an AA read really contains amino acids. This
         additional testing is needed, because the letters in the DNA alphabet
         are also in the AA alphabet.
 
-        @param count: A C{int} of how much of the start of the sequence should
-            be considered.
         @return: C{True} if the alphabet characters in the first C{count}
             positions of sequence is a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
