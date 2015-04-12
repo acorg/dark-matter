@@ -230,7 +230,7 @@ class AARead(Read):
     # every time we make an AARead instance.
     _GOR4 = GOR4()
 
-    def checkAlphabet(self):
+    def checkAlphabet(self, count=10):
         """
         A function which checks if an AA read really contains amino acids. This
         additional testing is needed, because the letters in the DNA alphabet
