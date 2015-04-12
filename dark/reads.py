@@ -241,10 +241,10 @@ class AARead(Read):
             read class, or if the read class has a C{None} alphabet.
         @raise ValueError: If a DNA sequence has been passed to AARead().
         """
-        readLetters = super(AARead, self).checkAlphabet()
+        readLetters = super(AARead, self).checkAlphabet(count)
         if len(self) > 10 and readLetters.issubset(set('ACGT')):
-            raise ValueError("It looks like a DNA sequence has been passed to "
-                             "AARead().")
+            raise ValueError('It looks like a DNA sequence has been passed to '
+                             'AARead().')
         return readLetters
 
     def properties(self):
