@@ -28,17 +28,17 @@ if __name__ == '__main__':
     length = len(adaptors[0])
     spaces = ' ' * length
 
-    for i in xrange(length):
-        print spaces,
+    for i in range(length):
+        print(spaces, end=' ')
         for adaptor in adaptors:
-            print adaptor[i],
-        print
+            print(adaptor[i], end=' ')
+        print()
 
-    for i in xrange(nAdaptors):
-        print adaptors[i],
-        for j in xrange(nAdaptors):
+    for i in range(nAdaptors):
+        print(adaptors[i], end=' ')
+        for j in range(nAdaptors):
             if j < i:
-                print ' ',
+                print(' ', end=' ')
             else:
-                print levenshtein(adaptors[i], adaptors[j]),
-        print
+                print(levenshtein(adaptors[i], adaptors[j]), end=' ')
+        print()

@@ -18,7 +18,7 @@ def dedupFasta(reads):
     seen = set()
     add = seen.add
     for read in reads:
-        hash_ = md5(read.sequence).digest()
+        hash_ = md5(read.sequence.encode('UTF-8')).digest()
         if hash_ not in seen:
             add(hash_)
             yield read
@@ -35,19 +35,17 @@ def dePrefixAndSuffixFasta(sequences):
     seen = set()
     for s in sequences:
         thisSeq = str(s.seq)
-        thisHash = md5(thisSeq).digest()
+        thisHash = md5(thisSeq.encode('UTF-8')).digest()
         if thisHash not in seen:
             # Add prefixes.
             newHash = md5()
             for nucl in thisSeq:
-                newHash.update(nucl)
+                newHash.update(nucl.encode('UTF-8'))
                 seen.add(newHash.digest())
             # Add suffixes.
-            for start in xrange(len(thisSeq) - 1):
-                seen.add(md5(thisSeq[start + 1:]).digest())
+            for start in range(len(thisSeq) - 1):
+                seen.add(md5(thisSeq[start + 1:].encode('UTF-8')).digest())
             yield s
-    # print 'seen contains %d hashes. total bytes = %d' % (len(seen),
-    # len(seen) * len(md5('x').digest()))
 
 
 def fastaSubtract(fastaFiles):
@@ -74,7 +72,7 @@ def fastaSubtract(fastaFiles):
                 assert str(seq.seq) == str(reads[seq.id].seq)
             reads.pop(seq.id, None)
 
-    return reads.itervalues()
+    return iter(reads.values())
 
 
 class FastaReads(Reads):

@@ -30,10 +30,10 @@ def trimPrimers(primer, verbose):
         reads.append(seqRecord[start:end])
 
     if verbose:
-        print >>sys.stderr, (
+        print((
             'Read %d sequences. Found forward: %d, '
             'Found reversed: %d, Absent: %d') % (
-            count, forwardCount, reverseCount, absentCount)
+            count, forwardCount, reverseCount, absentCount), file=sys.stderr)
 
     SeqIO.write(reads, sys.stdout, 'fasta')
 

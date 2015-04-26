@@ -27,11 +27,11 @@ def summarizeReads(file_handle, file_type):
         my_list = sorted(length_list)
         list_count = len(length_list)
         if list_count % 2 != 0:
-            index_middle_number = (list_count - 1) / 2
+            index_middle_number = (list_count - 1) // 2
             return my_list[index_middle_number]
         else:
-            first_number = my_list[list_count / 2]
-            second_number = my_list[(list_count / 2) - 1]
+            first_number = my_list[list_count // 2]
+            second_number = my_list[(list_count // 2) - 1]
             return (first_number + second_number) / 2.0
 
     result = {

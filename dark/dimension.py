@@ -1,6 +1,3 @@
-from itertools import imap
-
-
 def dimensionalIterator(dimensions, maxItems=-1):
     """
     Given a list of n positive integers, return a generator that yields
@@ -20,7 +17,7 @@ def dimensionalIterator(dimensions, maxItems=-1):
     nDimensions = len(dimensions)
     if nDimensions == 0 or maxItems == 0:
         raise StopIteration
-    if any(imap(lambda x: x != '*' and x <= 0, dimensions)):
+    if any(map(lambda x: x != '*' and x <= 0, dimensions)):
         raise ValueError
     odometer = [0, ] * nDimensions
     while maxItems != 0:

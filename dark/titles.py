@@ -1,5 +1,4 @@
 import numpy as np
-# Note that the use of collections.Counter means we need Python >= 2.7
 from collections import defaultdict, Counter
 
 from dark.reads import Reads
@@ -273,7 +272,7 @@ class TitlesAlignments(dict):
             self.readsAlignments, self.scoreClass, self.readSetFilter,
             importReadsAlignmentsTitles=False)
 
-        for title, titleAlignments in self.iteritems():
+        for title, titleAlignments in self.items():
             if (minMatchingReads is not None and
                     titleAlignments.readCount() < minMatchingReads):
                 continue
@@ -309,7 +308,7 @@ class TitlesAlignments(dict):
 
         @return: A generator yielding L{dark.hsp.HSP} instances.
         """
-        return (hsp for titleAlignments in self.itervalues()
+        return (hsp for titleAlignments in self.values()
                 for alignment in titleAlignments for hsp in alignment.hsps)
 
     def sortTitles(self, by):
@@ -320,65 +319,27 @@ class TitlesAlignments(dict):
             'readCount', or 'title'.
         @return: A sorted C{list} of titles.
         """
+        # First sort titles by the secondary key, which is always the title.
+        titles = sorted(iter(self))
 
-        def makeScoreCmp(attr):
-            """
-            Create a sorting comparison function that sorts first in reverse
-            on the result (as a score) of calling the passed attribute
-            function and then in ascending order on title.
-            """
-            def compare(title1, title2):
-                value1 = self.scoreClass(getattr(self[title1], attr)())
-                value2 = self.scoreClass(getattr(self[title2], attr)())
-                result = cmp(value2, value1)
-                if result == 0:
-                    result = cmp(title1, title2)
-                return result
-            return compare
-
-        def makeHspCmp(attr):
-            """
-            Create a sorting comparison function that sorts first in reverse
-            on the result (as a score) of calling the passed attribute
-            function and then in ascending order on title.
-            """
-            def compare(title1, title2):
-                value1 = getattr(self[title1], attr)()
-                value2 = getattr(self[title2], attr)()
-                result = cmp(value2, value1)
-                if result == 0:
-                    result = cmp(title1, title2)
-                return result
-            return compare
-
-        def makeNumericCmp(attr):
-            """
-            Create a sorting comparison function that sorts first in reverse
-            on the passed attribute (which may be a function or numeric) and
-            then in ascending order on title.
-            """
-            def compare(title1, title2):
-                value1 = getattr(self[title1], attr)
-                value2 = getattr(self[title2], attr)
-                if callable(value1) and callable(value2):
-                    result = cmp(value2(), value1())
-                else:
-                    result = cmp(value2, value1)
-                if result == 0:
-                    result = cmp(title1, title2)
-                return result
-            return compare
-
+        # Then sort on the primary key (if any).
         if by == 'length':
-            return sorted(self.iterkeys(), cmp=makeNumericCmp('subjectLength'))
+            return sorted(
+                titles,  reverse=True,
+                key=lambda title: self[title].subjectLength)
         if by == 'maxScore':
-            return sorted(self.iterkeys(), cmp=makeHspCmp('bestHsp'))
+            return sorted(
+                titles, reverse=True, key=lambda title: self[title].bestHsp())
         if by == 'medianScore':
-            return sorted(self.iterkeys(), cmp=makeScoreCmp('medianScore'))
+            return sorted(
+                titles, reverse=True,
+                key=lambda title: self.scoreClass(self[title].medianScore()))
         if by == 'readCount':
-            return sorted(self.iterkeys(), cmp=makeNumericCmp('readCount'))
+            return sorted(
+                titles, reverse=True,
+                key=lambda title: self[title].readCount())
         if by == 'title':
-            return sorted(self.iterkeys())
+            return titles
 
         raise ValueError('Sort attribute must be one of "length", "maxScore", '
                          '"medianScore", "readCount", "title".')

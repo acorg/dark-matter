@@ -1,5 +1,6 @@
+import builtins
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 from ..mocking import mockOpen
 
 from dark.blast.conversion import XMLRecordsReader
@@ -137,7 +138,7 @@ class TestXMLRecordsReader(TestCase):
         in the reader instance. We only test a subset of the parameters.
         """
         mockOpener = mockOpen(read_data=RECORD)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reader = XMLRecordsReader('file.xml')
             list(reader.records())
             self.assertEqual('BLASTN', reader.params['application'])
@@ -149,7 +150,7 @@ class TestXMLRecordsReader(TestCase):
         in what it tests.
         """
         mockOpener = mockOpen(read_data=RECORD)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reader = XMLRecordsReader('file.xml')
             record1, record2 = list(reader.records())
             self.assertEqual(0, len(record1.alignments))

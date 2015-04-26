@@ -19,7 +19,7 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     actualSequenceId: the str id of the actual sequence (if known).
     """
 
-    print 'TODO: This function is not finished yet.'
+    print('TODO: This function is not finished yet.')
     return
 
     start = time()
@@ -35,8 +35,8 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
         # UNUSED.
         # actualSequence = getSequence(actualSequenceId, db)
         pass
-    print summary['hitCount']
-    print 'seq len =', len(sequence)
+    print(summary['hitCount'])
+    print('seq len =', len(sequence))
     fasta = summary['fasta']
     # The length of the consensus depends on where the query sequences fell
     # when aligned with the target. The consensus could extend the target
@@ -44,31 +44,32 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
     consensusLen = maxX - minX
     consensus = [None, ] * consensusLen
     for item in summary['items']:
-        print 'NEW HSP'
+        print('NEW HSP')
         printHSP(item['origHsp'])  # TODO: REMOVE ME
         hsp = item['hsp']
-        print 'HIT query-start=%d query-stop=%d subj-start=%d subj-stop=%d' % (
+        print('HIT query-start=%d query-stop=%d subj-start=%d subj-stop=%d' % (
             hsp['queryStart'], hsp['queryEnd'], hsp['subjectStart'],
-            hsp['subjectEnd'])
+            hsp['subjectEnd']))
         # print '   match: %s%s' % ('.' * hsp['subjectStart'], '-' *
         # (hsp['subjectEnd'] - hsp['subjectStart']))
         if item['frame']['subject'] > 0:
             query = fasta[item['sequenceId']].seq
         else:
             query = fasta[item['sequenceId']].reverse_complement().seq
-        print '       target:', sequence[hsp['queryStart']:hsp['queryEnd']].seq
-        print '        query:', query
+        print('       target:',
+              sequence[hsp['queryStart']:hsp['queryEnd']].seq)
+        print('        query:', query)
         match = []
-        for index in xrange(hsp['subjectStart'], hsp['subjectEnd']):
+        for index in range(hsp['subjectStart'], hsp['subjectEnd']):
             queryIndex = index - hsp['queryStart']
             match.append('.' if query[queryIndex] == sequence[index] else '*')
-        print '        match: %s%s' % (
-            ' ' * (hsp['subjectStart'] - hsp['queryStart']), ''.join(match))
-        print '        score:', item['convertedE']
-        print '    match len:', hsp['subjectEnd'] - hsp['subjectStart']
-        print 'subject frame:', item['frame']['subject']
+        print('        match: %s%s' % (
+            ' ' * (hsp['subjectStart'] - hsp['queryStart']), ''.join(match)))
+        print('        score:', item['convertedE'])
+        print('    match len:', hsp['subjectEnd'] - hsp['subjectStart'])
+        print('subject frame:', item['frame']['subject'])
         for queryIndex, sequenceIndex in enumerate(
-                xrange(hsp['queryStart'], hsp['queryEnd'])):
+                range(hsp['queryStart'], hsp['queryEnd'])):
             consensusIndex = sequenceIndex + minX
             locus = consensus[consensusIndex]
             if locus is None:
@@ -76,24 +77,24 @@ def consensusSequence(recordFilename, hitId, fastaFilename, eCutoff=None,
             locus[query[queryIndex]] += 1
 
     # Print the consensus before the target, if any.
-    for index in xrange(minX, 0):
+    for index in range(minX, 0):
         consensusIndex = index - minX
         if consensus[consensusIndex]:
-            print '%d: %r' % (index, consensus[consensusIndex])
+            print('%d: %r' % (index, consensus[consensusIndex]))
     # Print the consensus as it overlaps with the target, if any.
-    for index in xrange(0, len(sequence)):
+    for index in range(0, len(sequence)):
         consensusIndex = index - minX
         try:
             if consensus[consensusIndex]:
-                print '%d: %r (%s)' % (
-                    index, consensus[index], sequence[index])
+                print('%d: %r (%s)' % (
+                    index, consensus[index], sequence[index]))
         except KeyError:
             # There's nothing left in the consensus, so we're done.
             break
-    for index in xrange(len(sequence), maxX):
+    for index in range(len(sequence), maxX):
         consensusIndex = index - minX
         if consensus[consensusIndex]:
-            print '%d: %r' % (index, consensus[consensusIndex])
+            print('%d: %r' % (index, consensus[consensusIndex]))
     stop = time()
     report('Consensus sequence generated in %.3f mins.' %
            ((stop - start) / 60.0))

@@ -316,7 +316,7 @@ def makeFrequencyPanel(allFreqs, patientName):
     @param patientName: A C{str}, title for the panel
     """
     titles = sorted(
-        allFreqs.iterkeys(),
+        iter(allFreqs.keys()),
         key=lambda title: (allFreqs[title]['bitScoreMax'], title))
 
     origMaxY = 0
@@ -330,7 +330,7 @@ def makeFrequencyPanel(allFreqs, patientName):
         for index in range(6):
             for subst in allFreqs[str(title)]:
                 substitution = substitutions[index]
-                print i, index, title, 'substitution', substitutions[index]
+                print(i, index, title, 'substitution', substitutions[index])
                 if substitution[0] == 'C':
                     pattern = 'cPattern'
                 else:
@@ -413,7 +413,7 @@ def mutateString(original, n, replacements='acgt'):
     result = list(original)
     length = len(original)
 
-    for offset in xrange(length):
+    for offset in range(length):
         if uniform(0.0, 1.0) < float(n) / (length - offset):
             # Mutate.
             while True:

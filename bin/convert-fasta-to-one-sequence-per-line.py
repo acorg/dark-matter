@@ -16,4 +16,4 @@ else:
     fp = open(sys.argv[1])
 
 for seq in SeqIO.parse(fp, 'fasta'):
-    print '>%s\n%s' % (seq.description, str(seq.seq))
+    print('>%s\n%s' % (seq.description, str(seq.seq)))

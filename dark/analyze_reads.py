@@ -14,7 +14,7 @@ def _longestPrefixOfTwoSeqs(a, b):
 
 def getPrefixAndSuffix(file_handle):
     read_list = list(SeqIO.parse(file_handle, "fasta"))
-    reversed_read_list = map(lambda read: read[::-1], read_list)
+    reversed_read_list = [read[::-1] for read in read_list]
 
     def longestCommonPrefix(read_list):
         sequences = read_list

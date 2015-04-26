@@ -116,7 +116,7 @@ class BlastReadsAlignments(ReadsAlignments):
 
         # Make sure all reads were used.
         try:
-            read = reads.next()
+            read = next(reads)
         except StopIteration:
             pass
         else:

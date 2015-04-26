@@ -21,7 +21,12 @@ cdef class GOR4:
 
     def __cinit__(self, sequenceFile=_SEQUENCES, secondaryFile=_SECONDARY):
         cdef int error
-        self._state = cgor4.initialize(sequenceFile, secondaryFile,
+        sequenceFile = sequenceFile.encode('UTF-8')
+        cdef char* c_sequenceFile = sequenceFile
+        secondaryFile = secondaryFile.encode('UTF-8')
+        cdef char* c_secondaryFile = secondaryFile
+
+        self._state = cgor4.initialize(c_sequenceFile, c_secondaryFile,
                                        &error)
         if error:
             raise Exception('Error in gor4-base.c initialize function.')
@@ -55,9 +60,9 @@ cdef class GOR4:
         cdef float *y
         # The gor4-base.c code uses 1-based indexing, unfortunately. So we need
         # to pad the sequence we pass, and to adjust all received results.
-        sequence = 'X' + sequence
+        sequence = ('X' + sequence).encode('UTF-8')
         cgor4.predict(self._state, sequence)
-        predictions = self._state.predi[1:len(sequence)]
+        predictions = self._state.predi[1:len(sequence)].decode('ASCII')
         probabilities = []
         append = probabilities.append
         for i in xrange(1, len(sequence)):

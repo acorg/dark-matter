@@ -115,7 +115,7 @@ class TestNames(TestCase):
         """
         All individual names must be different.
         """
-        names = NAMES.values()
+        names = list(NAMES.values())
         self.assertEqual(len(names), len(set(names)))
 
 
@@ -147,7 +147,7 @@ class TestAbbrev3(TestCase):
         """
         All individual names must be different.
         """
-        names = ABBREV3.values()
+        names = list(ABBREV3.values())
         self.assertEqual(len(names), len(set(names)))
 
 
@@ -185,14 +185,14 @@ class TestCodons(TestCase):
         """
         All codons must be three bases long.
         """
-        for codons in CODONS.values():
+        for codons in list(CODONS.values()):
             self.assertTrue(all(len(codon) == 3 for codon in codons))
 
     def testCodonContent(self):
         """
         Codons must only contain the letters A, T, G, C.
         """
-        for codons in CODONS.values():
+        for codons in list(CODONS.values()):
             for codon in codons:
                 self.assertTrue(all(letter in 'ACGT' for letter in codon))
 
@@ -201,7 +201,7 @@ class TestCodons(TestCase):
         No codon can be the same as an amino acid 3-letter abbreviation (or
         else our find function may not be unambiguous in what it returns).
         """
-        for codons in CODONS.values():
+        for codons in list(CODONS.values()):
             self.assertFalse(
                 any(codon.title() in ABBREV3_TO_ABBREV1 for codon in codons))
 

@@ -8,9 +8,9 @@ def printBlastRecordForDerek(record):
         return 0
     if record.descriptions[0].e > 1e-120:
         return 0
-    print record.query,
+    print(record.query, end=' ')
     for i, alignment in enumerate(record.alignments):
-        print record.descriptions[i].e,
+        print(record.descriptions[i].e, end=' ')
         for hspIndex, hsp in enumerate(alignment.hsps, start=1):
             if hsp.sbjct_start < hsp.sbjct_end:
                 sense = 1
@@ -24,6 +24,6 @@ def printBlastRecordForDerek(record):
                     side = 'left'
                 else:
                     side = 'right'
-            print sense, side
+            print(sense, side)
             break
     return 1

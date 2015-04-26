@@ -208,8 +208,8 @@ class TestReadsAlignments(TestCase):
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
         error = 'iter must be implemented by a subclass'
-        self.assertRaisesRegexp(NotImplementedError, error, list,
-                                readsAlignments)
+        self.assertRaisesRegex(NotImplementedError, error, list,
+                               readsAlignments)
 
     def testGetSequence(self):
         """
@@ -219,5 +219,5 @@ class TestReadsAlignments(TestCase):
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
         error = 'getSequence must be implemented by a subclass'
-        self.assertRaisesRegexp(NotImplementedError, error,
-                                readsAlignments.getSequence, 'title')
+        self.assertRaisesRegex(NotImplementedError, error,
+                               readsAlignments.getSequence, 'title')

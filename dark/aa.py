@@ -474,7 +474,7 @@ def find(s):
     else:
         # Look for a 3-letter codon.
         def findCodon(target):
-            for abbrev1, codons in CODONS.items():
+            for abbrev1, codons in list(CODONS.items()):
                 for codon in codons:
                     if codon == target:
                         return abbrev1

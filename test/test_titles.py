@@ -319,7 +319,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         titleAlignments = TitleAlignments('subject title', 55)
         error = "convertCaseTo must be one of 'none', 'lower', or 'upper'"
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, error, titleAlignments.residueCounts,
             convertCaseTo='xxx')
 

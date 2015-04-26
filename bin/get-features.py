@@ -19,7 +19,7 @@ def main(gi, ranges):
     record = getSequence(gi)
 
     if record is None:
-        print "Looks like you're offline."
+        print("Looks like you're offline.")
         sys.exit(3)
     else:
         printed = set()
@@ -29,18 +29,18 @@ def main(gi, ranges):
                     if (start < int(feature.location.end) and
                             end > int(feature.location.start) and
                             index not in printed):
-                        print feature
+                        print(feature)
                         printed.add(index)
         else:
             # Print all features.
             for feature in record.features:
-                print feature
+                print(feature)
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print >>sys.stderr, ('Usage: %s gi-number [offset1, offset2, ...]' %
-                             sys.argv[0])
+        print('Usage: %s gi-number [offset1, offset2, ...]' %
+              sys.argv[0], file=sys.stderr)
         sys.exit(1)
 
     rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
@@ -58,9 +58,9 @@ if __name__ == '__main__':
                 start, end = end, start
             ranges.append((start, end))
         else:
-            print >>sys.stderr, (
+            print((
                 'Illegal argument %r. Ranges must single numbers or '
-                'number-number.' % arg)
+                'number-number.' % arg), file=sys.stderr)
             sys.exit(2)
 
     main(sys.argv[1], ranges)

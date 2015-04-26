@@ -28,7 +28,7 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
     """
     adaptors = defaultdict(int)
     unknowns = 0
-    classes = dict(zip(knownAdaptors, knownAdaptors))
+    classes = dict(list(zip(knownAdaptors, knownAdaptors)))
     reads = []
 
     for count, seq in enumerate(SeqIO.parse(sys.stdin, 'fasta'), start=1):
@@ -42,7 +42,7 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
     for adaptor in order:
         if adaptor in knownAdaptors:
             if verbose:
-                print '%s: %s. Known adaptor' % (adaptor, adaptors[adaptor])
+                print('%s: %s. Known adaptor' % (adaptor, adaptors[adaptor]))
         else:
             distances = sorted((levenshtein(adaptor, known), known) for
                                known in knownAdaptors)
@@ -54,15 +54,15 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
                 unknowns += 1
                 classes[adaptor] = UNKNOWN
                 if verbose:
-                    print '%s: %s. Unknown, distances %r' % (
-                        adaptor, adaptors[adaptor], [d[0] for d in distances])
+                    print('%s: %s. Unknown, distances %r' % (
+                        adaptor, adaptors[adaptor], [d[0] for d in distances]))
             else:
                 correctedAdaptor = distances[0][1]
                 classes[adaptor] = correctedAdaptor
                 if verbose:
-                    print '%s: %s. Assigned to class %s, at dist %d' % (
+                    print('%s: %s. Assigned to class %s, at dist %d' % (
                         adaptor, adaptors[adaptor], correctedAdaptor,
-                        distances[0][0])
+                        distances[0][0]))
 
     readGroups = defaultdict(list)
 
@@ -73,7 +73,8 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
 
     # Calculate the number of digits in the size of the biggest read group
     # so we can nicely align the output.
-    width = int(ceil(log10(max(len(group) for group in readGroups.values()))))
+    width = int(ceil(log10(
+        max(len(group) for group in list(readGroups.values())))))
 
     # The width of the count of files we'll write, so file names have zero
     # padded numeric prefixes.
@@ -88,13 +89,13 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
         description = ('unrecognized adaptors' if adaptor == UNKNOWN
                        else 'adaptor %s' % adaptor)
         if dryRun:
-            print 'Would write %*d sequences for %s to %s' % (
-                width, len(reads), description, filename)
+            print('Would write %*d sequences for %s to %s' % (
+                width, len(reads), description, filename))
         else:
             with open(filename, 'w') as fp:
                 SeqIO.write(reads, fp, 'fasta')
-            print 'Wrote %*d sequences for %s to %s' % (
-                width, len(reads), description, filename)
+            print('Wrote %*d sequences for %s to %s' % (
+                width, len(reads), description, filename))
 
 
 if __name__ == '__main__':
@@ -138,7 +139,7 @@ if __name__ == '__main__':
 
     # Check all adaptors are the same length.
     if any((len(adaptor) != adaptorLen) for adaptor in adaptors):
-        print >>sys.stderr, 'All adaptors must be the same length.'
+        print('All adaptors must be the same length.', file=sys.stderr)
         sys.exit(1)
 
     splitFASTAByAdaptor(adaptors, adaptorLen, args.adaptorOffset,

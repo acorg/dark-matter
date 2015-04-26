@@ -12,12 +12,12 @@ from dark.fasta import FastaReads
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print >>sys.stderr, ('Usage: %s reads.fasta BLAST-files.json...' %
-                             sys.argv[0])
+        print('Usage: %s reads.fasta BLAST-files.json...' %
+              sys.argv[0], file=sys.stderr)
     else:
         readsFile = sys.argv[1]
         jsonFiles = sys.argv[2:]
         reads = FastaReads(readsFile)
         readsAlignments = BlastReadsAlignments(readsFile, jsonFiles)
         for readAlignments in readsAlignments:
-            print len(readAlignments.alignments), readAlignments.read.id
+            print(len(readAlignments.alignments), readAlignments.read.id)

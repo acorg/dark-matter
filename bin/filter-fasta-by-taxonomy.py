@@ -66,8 +66,8 @@ if __name__ == '__main__':
     try:
         regexp = re.compile(args.taxonomy, re.I)
     except re.error as e:
-        print >>sys.stderr, (
-            "Could not compile %r to a regular expression:" % args.taxonomy), e
+        print('Could not compile %r to a regular expression:' % args.taxonomy,
+              e, file=sys.stderr)
         sys.exit(1)
 
     if args.detailsFile is not None:
@@ -109,10 +109,10 @@ if __name__ == '__main__':
     lineageFetcher.close()
 
     rejectCount = readCount - saveCount - noTaxonomyCount
-    print >>sys.stderr, (
-        '%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected, '
-        '%d (%.2f%%) no taxomony found.' % (
-            readCount,
-            saveCount, saveCount / float(readCount) * 100.0,
-            rejectCount, (rejectCount) / float(readCount) * 100.0,
-            noTaxonomyCount, noTaxonomyCount / float(readCount) * 100.0))
+    print('%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected, '
+          '%d (%.2f%%) no taxomony found.' % (
+              readCount,
+              saveCount, saveCount / float(readCount) * 100.0,
+              rejectCount, (rejectCount) / float(readCount) * 100.0,
+              noTaxonomyCount, noTaxonomyCount / float(readCount) * 100.0),
+          file=sys.stderr)

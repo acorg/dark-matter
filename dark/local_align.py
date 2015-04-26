@@ -1,6 +1,3 @@
-import itertools
-
-
 class LocalAlignment(object):
     """
     Smith-Waterman algorithm
@@ -68,7 +65,7 @@ class LocalAlignment(object):
         d = {'score': 0, 'pointer': None, 'ins': 0, 'del': 0}
         cols = len(self.seq1Seq) + 1
         rows = len(self.seq2Seq) + 1
-        table = [[d for _ in xrange(cols)] for _ in xrange(rows)]
+        table = [[d for _ in range(cols)] for _ in range(rows)]
         return table
 
     def _fillAndTraceback(self, table):
@@ -82,8 +79,8 @@ class LocalAlignment(object):
         max_row = 0
         max_col = 0
 
-        for row in xrange(1, len(self.seq2Seq)+1):
-            for col in xrange(1, len(self.seq1Seq)+1):
+        for row in range(1, len(self.seq2Seq)+1):
+            for col in range(1, len(self.seq1Seq)+1):
                 # Calculate match score
                 letter1 = self.seq1Seq[col-1]
                 letter2 = self.seq2Seq[row-1]
@@ -212,7 +209,7 @@ class LocalAlignment(object):
         count = 0
         align1 = output[0]
         align2 = output[2]
-        for nt1, nt2 in itertools.izip(align1, align2):
+        for nt1, nt2 in zip(align1, align2):
             if nt1 == nt2:
                 cigar.append('=')
             elif nt1 == '-':

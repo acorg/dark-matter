@@ -1,6 +1,6 @@
 from unittest import TestCase
 from dark.analyze_reads import getPrefixAndSuffix, trimReads
-from cStringIO import StringIO
+from io import StringIO
 from Bio import SeqIO
 
 
@@ -61,51 +61,59 @@ class TestTrimReads(TestCase):
     def testZeroInput(self):
         result = trimReads(0, 0, StringIO())
         test_result = list(SeqIO.parse(StringIO(), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testOneInput(self):
         result = trimReads(10, 10, StringIO())
         test_result = list(SeqIO.parse(StringIO(), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testZeroPrefixZeroSuffix(self):
         seq = '>hey\nagtccgatcg'
         result = trimReads(0, 0, StringIO(seq))
         trimmed_seq = '>hey\nagtccgatcg'
         test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testPrefixZeroSuffix(self):
         seq = '>hey\nagtccgatcg'
         trimmed_seq = '>hey\nccgatcg'
         result = trimReads(3, 0, StringIO(seq))
         test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testZeroPrefixSuffix(self):
         seq = '>hey\nagtccgatcg'
         trimmed_seq = '>hey\nagtccga'
         result = trimReads(0, 3, StringIO(seq))
         test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testPrefixSuffix(self):
         seq = '>hey\nagtccgatcg'
         trimmed_seq = '>hey\nccga'
         result = trimReads(3, 3, StringIO(seq))
         test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testLongPrefixSuffix(self):
         seq = '>hey\nagtccgatcg'
         trimmed_seq = '>hey\n'
         result = trimReads(8, 4, StringIO(seq))
         test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))
 
     def testPrefixLongSuffix(self):
         seq = '>hey\nagtccgatcg'
         trimmed_seq = '>hey\n'
         result = trimReads(4, 8, StringIO(seq))
         test_result = list(SeqIO.parse(StringIO(trimmed_seq), 'fasta'))
-        self.assertEqual(map(str, tuple(result)), map(str, tuple(test_result)))
+        self.assertEqual(list(map(str, tuple(result))),
+                         list(map(str, tuple(test_result))))

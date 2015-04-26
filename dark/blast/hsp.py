@@ -1,7 +1,7 @@
 def printHSP(hsp, indent=''):
     for attr in ['bits', 'expect', 'frame', 'query_end', 'query_start',
                  'sbjct', 'query', 'sbjct_end', 'sbjct_start']:
-        print '%s%s: %s' % (indent, attr, hsp[attr])
+        print('%s%s: %s' % (indent, attr, hsp[attr]))
 
 
 def normalizeHSP(hsp, readLen, blastApplication):
@@ -47,13 +47,13 @@ def normalizeHSP(hsp, readLen, blastApplication):
         @param locals: A C{dict} of local variables.
         @param msg: A C{str} message to raise C{AssertionError} with.
         """
-        print 'normalizeHSP error:'
-        print '  readLen: %d' % readLen
+        print('normalizeHSP error:')
+        print('  readLen: %d' % readLen)
         for var in sorted(locals.keys()):
             if var in ('debugPrint', 'hsp'):
                 continue
-            print '  %s: %s' % (var, locals[var])
-        print '  Original HSP:'
+            print('  %s: %s' % (var, locals[var]))
+        print('  Original HSP:')
         printHSP(hsp, '    ')
         if msg:
             raise AssertionError(msg)

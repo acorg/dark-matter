@@ -75,6 +75,6 @@ if __name__ == '__main__':
             indices=set(args.indices) if args.indices else None,
             head=args.head, removeDuplicates=args.removeDuplicates):
         kept += 1
-        print seq.toString('fasta'),
+        print(seq.toString('fasta'), end=' ')
 
-    print >>sys.stderr, 'Read %d sequences, kept %d.' % (len(reads), kept)
+    print('Read %d sequences, kept %d.' % (len(reads), kept), file=sys.stderr)

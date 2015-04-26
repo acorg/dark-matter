@@ -20,9 +20,9 @@ if __name__ == '__main__':
     reads = FastaReads(args.fastaFile)
     result = reads.summarizePosition(args.position - 1)
 
-    print '%d of %d sequences were excluded due to length.' % (
-        result['excludedCount'], len(reads))
+    print('%d of %d sequences were excluded due to length.' % (
+        result['excludedCount'], len(reads)))
 
     denominator = (len(reads) - result['excludedCount']) / 100.0
-    for base, count in result['countAtPosition'].iteritems():
-        print '%s: Total: %s (%.2f%%)' % (base, count, count / denominator)
+    for base, count in result['countAtPosition'].items():
+        print('%s: Total: %s (%.2f%%)' % (base, count, count / denominator))

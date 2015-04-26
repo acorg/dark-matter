@@ -1,10 +1,9 @@
-import MySQLdb
+import mysql.connector
+
 from os import environ
 
 
 def getDatabaseConnection():
-    db = MySQLdb.connect(host='localhost',
-                         user=environ.get('DBI_USER', environ['USER']),
-                         passwd=environ['DBI_PASSWORD'],
-                         db='ncbi_taxonomy')
-    return db
+    return mysql.connector.connect(
+        host='localhost', user=environ.get('DBI_USER', environ['USER']),
+        password=environ['DBI_PASSWORD'], database='ncbi_taxonomy')

@@ -1,5 +1,7 @@
 from os import unlink
 from collections import Counter
+from itertools import chain
+
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
@@ -20,8 +22,8 @@ def _makeComplementTable(complementData):
     @return: A 256 character string that can be used as a translation table
         by the C{translate} method of a Python string.
     """
-    table = range(256)
-    for _from, to in complementData.iteritems():
+    table = list(range(256))
+    for _from, to in complementData.items():
         table[ord(_from[0])] = ord(to[0])
     return ''.join(map(chr, table))
 
@@ -93,7 +95,7 @@ class Read(object):
         """
         length = len(self)
         if length:
-            lowerCount = len(filter(str.islower, self.sequence))
+            lowerCount = len(list(filter(str.islower, self.sequence)))
             return float(lowerCount) / length
         else:
             return 0.0
@@ -413,22 +415,17 @@ class Reads(object):
         self._length += 1
 
     def __iter__(self):
-        # Reset self._length because __iter__ may be called more than once
-        # and we don't want to increment _length each time we iterate.
-        self._length = len(self.additionalReads)
-
-        # Look for an 'iter' method in a possible subclass.
-        try:
-            iter = self.iter()
-        except AttributeError:
-            pass
-        else:
-            for read in iter:
-                self._length += 1
-                yield read
-
-        for read in self.additionalReads:
+        # Reset self._length because __iter__ may be called more than once.
+        self._length = 0
+        for read in chain(self.iter(), self.additionalReads):
+            self._length += 1
             yield read
+
+    def iter(self):
+        """
+        Placeholder to allow subclasses to provide reads.
+        """
+        return []
 
     def __len__(self):
         # Note that __len__ reflects the number of reads that are currently
@@ -450,7 +447,7 @@ class Reads(object):
         """
         format_ = format_.lower()
 
-        if isinstance(filename, basestring):
+        if isinstance(filename, str):
             try:
                 with open(filename, 'w') as fp:
                     for read in self:

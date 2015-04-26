@@ -7,13 +7,14 @@ import sys
 
 
 if len(sys.argv) != 2:
-    print >> sys.stderr, "getPrefixAndSuffix() takes exactly 1 argument"
+    print('getPrefixAndSuffix() takes exactly 1 argument', file=sys.stderr)
     sys.exit(1)
 
 else:
     filename = sys.argv[1]
     prefix, suffix = getPrefixAndSuffix(filename)
 
-    print >>sys.stderr, "Prefix length %d, suffix length %d" % (prefix, suffix)
+    print('Prefix length %d, suffix length %d' % (prefix, suffix),
+          file=sys.stderr)
 
     SeqIO.write(trimReads(prefix, suffix, filename), sys.stdout, 'fasta')
