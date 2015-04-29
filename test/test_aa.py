@@ -185,14 +185,14 @@ class TestCodons(TestCase):
         """
         All codons must be three bases long.
         """
-        for codons in list(CODONS.values()):
+        for codons in CODONS.values():
             self.assertTrue(all(len(codon) == 3 for codon in codons))
 
     def testCodonContent(self):
         """
         Codons must only contain the letters A, T, G, C.
         """
-        for codons in list(CODONS.values()):
+        for codons in CODONS.values():
             for codon in codons:
                 self.assertTrue(all(letter in 'ACGT' for letter in codon))
 
@@ -201,7 +201,7 @@ class TestCodons(TestCase):
         No codon can be the same as an amino acid 3-letter abbreviation (or
         else our find function may not be unambiguous in what it returns).
         """
-        for codons in list(CODONS.values()):
+        for codons in CODONS.values():
             self.assertFalse(
                 any(codon.title() in ABBREV3_TO_ABBREV1 for codon in codons))
 

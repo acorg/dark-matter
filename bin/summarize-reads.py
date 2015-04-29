@@ -24,6 +24,6 @@ else:
     print('Shortest read:', result['min_length'])
     print('Median length:', result['median_length'])
 
-    for base, count in list(result['base_counts'].items()):
+    for base, count in result['base_counts'].items():
         print('%s: Total: %s; Average per read: %s' % (
             base, count, count / result['read_number']))

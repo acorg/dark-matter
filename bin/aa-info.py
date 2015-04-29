@@ -46,5 +46,5 @@ for aa in map(findOrDie, aas):
     print(', '.join(properties))
 
     print('  Property details:')
-    for propertyDetail, value in list(aa.propertyDetails.items()):
+    for propertyDetail, value in aa.propertyDetails.items():
         print('    %s: %s' % (propertyDetail, value))

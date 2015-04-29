@@ -28,7 +28,7 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
     """
     adaptors = defaultdict(int)
     unknowns = 0
-    classes = dict(list(zip(knownAdaptors, knownAdaptors)))
+    classes = dict(zip(knownAdaptors, knownAdaptors))
     reads = []
 
     for count, seq in enumerate(SeqIO.parse(sys.stdin, 'fasta'), start=1):
@@ -73,8 +73,7 @@ def splitFASTAByAdaptor(knownAdaptors, adaptorLen, adaptorOffset,
 
     # Calculate the number of digits in the size of the biggest read group
     # so we can nicely align the output.
-    width = int(ceil(log10(
-        max(len(group) for group in list(readGroups.values())))))
+    width = int(ceil(log10(max(len(group) for group in readGroups.values()))))
 
     # The width of the count of files we'll write, so file names have zero
     # padded numeric prefixes.
