@@ -12,7 +12,7 @@ from dark.graphics import evalueGraph
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        print >>sys.stderr, 'Usage: %s BLAST-hitfile...' % sys.argv[0]
+        print('Usage: %s BLAST-hitfile...' % sys.argv[0], file=sys.stderr)
     else:
         blastRecords = BlastRecords(sys.argv[1:])
         evalueGraph(blastRecords.records(), 10, 10,

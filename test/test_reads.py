@@ -1,9 +1,10 @@
 from unittest import TestCase
-from mock import patch, call
-from cStringIO import StringIO
+from unittest.mock import patch, call
+from io import StringIO
 from os import stat
+import builtins
 
-from mocking import mockOpen
+from .mocking import mockOpen
 from dark.reads import (
     Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF)
 from dark.aa import (
@@ -22,7 +23,7 @@ class TestRead(TestCase):
         of different lengths must raise a ValueError.
         """
         error = 'Invalid read: sequence length \(4\) != quality length \(3\)'
-        with self.assertRaisesRegexp(ValueError, error):
+        with self.assertRaisesRegex(ValueError, error):
             Read('id', 'ACGT', '!!!')
 
     def testNoQuality(self):
@@ -63,7 +64,7 @@ class TestRead(TestCase):
         """
         read = Read('id', 'ACGT', '!!!!')
         error = "Format must be either 'fasta' or 'fastq'\\."
-        self.assertRaisesRegexp(ValueError, error, read.toString, 'unknown')
+        self.assertRaisesRegex(ValueError, error, read.toString, 'unknown')
 
     def testToFASTA(self):
         """
@@ -87,7 +88,7 @@ class TestRead(TestCase):
         """
         read = Read('id', 'ACGT')
         error = "Read 'id' has no quality information"
-        self.assertRaisesRegexp(ValueError, error, read.toString, 'fastq')
+        self.assertRaisesRegex(ValueError, error, read.toString, 'fastq')
 
     def testToFASTQ(self):
         """
@@ -294,7 +295,7 @@ class TestRead(TestCase):
         """
         read = AARead('id', 'AAATTAACGGGCCTAGG')
         error = "It looks like a DNA sequence has been passed to AARead()."
-        self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
+        self.assertRaisesRegex(ValueError, error, read.checkAlphabet)
 
     def testcheckAlphabetDNAReadNotMatchingRaise(self):
         """
@@ -304,7 +305,7 @@ class TestRead(TestCase):
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
         error = ("Read alphabet \('ACGRST'\) is not a subset of expected "
                  "alphabet \('ACGT'\) for read class DNARead.")
-        self.assertRaisesRegexp(ValueError, error, read.checkAlphabet)
+        self.assertRaisesRegex(ValueError, error, read.checkAlphabet)
 
 
 class TestDNARead(TestCase):
@@ -391,7 +392,7 @@ class TestDNARead(TestCase):
         read = DNARead('id', 'tag')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
-            read.translations().next())
+            next(read.translations()))
 
     def testTranslationOfStopCodonTGA(self):
         """
@@ -400,7 +401,7 @@ class TestDNARead(TestCase):
         read = DNARead('id', 'tga')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
-            read.translations().next())
+            next(read.translations()))
 
     def testTranslationOfMultipleStopCodons(self):
         """
@@ -410,7 +411,7 @@ class TestDNARead(TestCase):
         read = DNARead('id', 'taatagtga')
         self.assertEqual(
             TranslatedRead(read, '***', 0, False),
-            read.translations().next())
+            next(read.translations()))
 
     def testTranslationOfStartCodonATG(self):
         """
@@ -420,7 +421,7 @@ class TestDNARead(TestCase):
         read = DNARead('id', 'atg')
         self.assertEqual(
             TranslatedRead(read, 'M', 0, False),
-            read.translations().next())
+            next(read.translations()))
 
     def testTranslations(self):
         """
@@ -465,7 +466,7 @@ class TestRNARead(TestCase):
         read = RNARead('id', 'UAA')
         self.assertEqual(
             TranslatedRead(read, '*', 0, False),
-            read.translations().next())
+            next(read.translations()))
 
 
 class TestAARead(TestCase):
@@ -1135,7 +1136,7 @@ class TestAAReadORF(TestCase):
         """
         originalRead = AARead('id', 'ADRADR')
         error = 'start offset \(4\) greater than stop offset \(0\)'
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
 
     def testStartNegative(self):
@@ -1144,7 +1145,7 @@ class TestAAReadORF(TestCase):
         """
         originalRead = AARead('id', 'ADRADR')
         error = 'start offset \(-1\) less than zero'
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, error, AAReadORF, originalRead, -1, 6, True, True)
 
     def testStopGreaterThanOriginalSequenceLength(self):
@@ -1154,7 +1155,7 @@ class TestAAReadORF(TestCase):
         """
         originalRead = AARead('id', 'ADRADR')
         error = 'stop offset \(10\) > original read length \(6\)'
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError, error, AAReadORF, originalRead, 0, 10, True, True)
 
     def testOpenOpenId(self):
@@ -1225,8 +1226,8 @@ class TestTranslatedRead(TestCase):
         """
         read = Read('id', 'atcgatcgatcg')
         error = 'Frame must be 0, 1, or 2'
-        self.assertRaisesRegexp(ValueError, error, TranslatedRead, read,
-                                'IRDS', 3)
+        self.assertRaisesRegex(ValueError, error, TranslatedRead, read,
+                               'IRDS', 3)
 
     def testExpectedFrame(self):
         """
@@ -1417,10 +1418,10 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         error = "Format must be either 'fasta' or 'fastq'\\."
-        self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'xxx')
+        self.assertRaisesRegex(ValueError, error, reads.save, 'file', 'xxx')
         # The output file must not exist following the save() failure.
         error = "No such file or directory: 'file'"
-        self.assertRaisesRegexp(OSError, error, stat, 'file')
+        self.assertRaisesRegex(OSError, error, stat, 'file')
 
     def testSaveFASTAIsDefault(self):
         """
@@ -1432,11 +1433,11 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads.save('filename')
         handle = mockOpener()
         self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
-                         handle.write.call_args_list)
+                         handle.write.mock_calls)
 
     def testSaveAsFASTA(self):
         """
@@ -1448,11 +1449,11 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads.save('filename', 'fasta')
         handle = mockOpener()
         self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
-                         handle.write.call_args_list)
+                         handle.write.mock_calls)
 
     def testSaveReturnsReadsInstance(self):
         """
@@ -1464,7 +1465,7 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             result = reads.save('filename')
             self.assertIs(reads, result)
 
@@ -1479,11 +1480,11 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads.save('filename', 'FASTA')
         handle = mockOpener()
         self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
-                         handle.write.call_args_list)
+                         handle.write.mock_calls)
 
     def testSaveAsFASTQ(self):
         """
@@ -1495,12 +1496,12 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads.save('filename', 'fastq')
         handle = mockOpener()
         self.assertEqual(
             [call('@id1\nAT\n+id1\n!!\n'), call('@id2\nAC\n+id2\n@@\n')],
-            handle.write.call_args_list)
+            handle.write.mock_calls)
 
     def testSaveAsFASTQFailsOnReadWithNoQuality(self):
         """
@@ -1513,10 +1514,10 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         error = "Read 'id2' has no quality information"
-        self.assertRaisesRegexp(ValueError, error, reads.save, 'file', 'fastq')
+        self.assertRaisesRegex(ValueError, error, reads.save, 'file', 'fastq')
         # The output file must not exist following the save() failure.
         error = "No such file or directory: 'file'"
-        self.assertRaisesRegexp(OSError, error, stat, 'file')
+        self.assertRaisesRegex(OSError, error, stat, 'file')
 
     def testSaveToFileDescriptor(self):
         """

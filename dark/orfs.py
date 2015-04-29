@@ -37,7 +37,7 @@ def addORFs(fig, seq, minX, maxX, offsetAdjuster):
         for (codons, codonType, color) in (
                 (START_CODONS, 'start', 'green'),
                 (STOP_CODONS, 'stop', 'red')):
-            offsets = map(offsetAdjuster, findCodons(target, codons))
+            offsets = list(map(offsetAdjuster, findCodons(target, codons)))
             if offsets:
                 fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
                          markersize=4, color=color, linestyle='None')
@@ -64,8 +64,8 @@ def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
         for (codons, codonType, color) in (
                 (START_CODONS, 'start', 'green'),
                 (STOP_CODONS, 'stop', 'red')):
-            offsets = map(lambda offset: maxX - offsetAdjuster(offset),
-                          findCodons(target, codons))
+            offsets = [maxX - offsetAdjuster(offset)
+                       for offset in findCodons(target, codons)]
             if offsets:
                 fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
                          markersize=4, color=color, linestyle='None')

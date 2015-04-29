@@ -20,6 +20,6 @@ class BaseImage(object):
         """
         xBase = int(x) * self.xScale
         yBase = int(y) * self.yScale
-        for xOffset in xrange(self.xScale):
-            for yOffset in xrange(self.yScale):
+        for xOffset in range(self.xScale):
+            for yOffset in range(self.yScale):
                 self.data[yBase + yOffset, xBase + xOffset] = value

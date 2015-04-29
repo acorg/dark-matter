@@ -54,6 +54,7 @@ if __name__ == '__main__':
                         translation.maximumORFLength() >= minORFLength):
                     write(translation.toString('fasta'))
         except TranslationError as error:
-            print >>sys.stderr, ('Could not translate read %r sequence '
-                                 '%r (%s).' % (read.id, read.sequence, error))
+            print('Could not translate read %r sequence '
+                  '%r (%s).' % (read.id, read.sequence, error),
+                  file=sys.stderr)
             sys.exit(1)

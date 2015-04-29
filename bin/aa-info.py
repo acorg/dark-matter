@@ -20,8 +20,9 @@ def findOrDie(s):
     if aa:
         return aa
     else:
-        print >>sys.stderr, 'Unknown amino acid or codon: %s' % s
-        print >>sys.stderr, 'Valid arguments are: %s.' % CODONS.keys()
+        print('Unknown amino acid or codon: %s' % s, file=sys.stderr)
+        print('Valid arguments are: %s.' % list(CODONS.keys()),
+              file=sys.stderr)
         sys.exit(1)
 
 
@@ -32,18 +33,18 @@ else:
     aas = sys.argv[1:]
 
 for aa in map(findOrDie, aas):
-    print aa.name
-    print '  3-letter abbreviation: %s' % aa.abbrev3
-    print '  1-letter abbreviation: %s' % aa.abbrev1
-    print '  Codons: %s' % ', '.join(sorted(aa.codons))
+    print(aa.name)
+    print('  3-letter abbreviation: %s' % aa.abbrev3)
+    print('  1-letter abbreviation: %s' % aa.abbrev1)
+    print('  Codons: %s' % ', '.join(sorted(aa.codons)))
 
     properties = []
-    print '  Properties:',
+    print('  Properties:', end=' ')
     for prop in ALL_PROPERTIES:
         if aa.properties & prop:
             properties.append(PROPERTY_NAMES[prop])
-    print ', '.join(properties)
+    print(', '.join(properties))
 
-    print '  Property details:'
+    print('  Property details:')
     for propertyDetail, value in aa.propertyDetails.items():
-        print '    %s: %s' % (propertyDetail, value)
+        print('    %s: %s' % (propertyDetail, value))

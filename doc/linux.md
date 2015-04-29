@@ -26,7 +26,7 @@ $ sudo make install
 
 ```sh
 $ sudo pip install virtualenv
-$ virtualenv env
+$ virtualenv --python=python3 env
 $ . env/bin/activate
 $ pip install dark-matter
 $ cd dark-matter

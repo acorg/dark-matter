@@ -1,9 +1,11 @@
+import builtins
+
 from dark.reads import AARead, DNARead, RNARead
 from dark.fastq import FastqReads
 
 from unittest import TestCase
-from mock import patch
-from mocking import mockOpen
+from unittest.mock import patch
+from .mocking import mockOpen
 
 
 class TestFastqReads(TestCase):
@@ -16,7 +18,7 @@ class TestFastqReads(TestCase):
         An empty FASTQ file results in an empty iterator.
         """
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = FastqReads('filename.fastq')
             self.assertEqual([], list(reads))
 
@@ -26,7 +28,7 @@ class TestFastqReads(TestCase):
         """
         data = '\n'.join(['@id1', 'ACGT', '+', '!!!!'])
         mockOpener = mockOpen(read_data=data)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = list(FastqReads('filename.fastq'))
             self.assertEqual([DNARead('id1', 'ACGT', '!!!!')], reads)
 
@@ -38,7 +40,7 @@ class TestFastqReads(TestCase):
         data = '\n'.join(['@id1', 'ACGT', '+', '!!!!',
                           '@id2', 'TGCA', '+', '????'])
         mockOpener = mockOpen(read_data=data)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = list(FastqReads('filename.fastq'))
             self.assertEqual(2, len(reads))
             self.assertEqual([DNARead('id1', 'ACGT', '!!!!'),
@@ -51,7 +53,7 @@ class TestFastqReads(TestCase):
         """
         data = '\n'.join(['@id1', 'ACGT', '+', '!!!!'])
         mockOpener = mockOpen(read_data=data)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = list(FastqReads('filename.fastq'))
             self.assertTrue(isinstance(reads[0], DNARead))
 
@@ -62,7 +64,7 @@ class TestFastqReads(TestCase):
         """
         data = '\n'.join(['@id1', 'ACGT', '+', '!!!!'])
         mockOpener = mockOpen(read_data=data)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = list(FastqReads('filename.fastq', AARead))
             self.assertTrue(isinstance(reads[0], AARead))
 
@@ -73,7 +75,7 @@ class TestFastqReads(TestCase):
         """
         data = '\n'.join(['@id1', 'ACGT', '+', '!!!!'])
         mockOpener = mockOpen(read_data=data)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = list(FastqReads('filename.fastq', DNARead))
             self.assertTrue(isinstance(reads[0], DNARead))
 
@@ -84,6 +86,6 @@ class TestFastqReads(TestCase):
         """
         data = '\n'.join(['@id1', 'ACGT', '+', '!!!!'])
         mockOpener = mockOpen(read_data=data)
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = list(FastqReads('filename.fastq', RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))

@@ -1,5 +1,5 @@
 import subprocess
-from cStringIO import StringIO
+from io import StringIO
 from Bio import SeqIO
 
 

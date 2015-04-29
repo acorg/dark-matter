@@ -18,4 +18,4 @@ from dark.reads import DNARead
 if __name__ == '__main__':
     for read in FastaReads(sys.stdin):
         seq = ''.join(choice(['A', 'C', 'G', 'T'], len(read), replace=True))
-        print DNARead(read.id, seq).toString('fasta')
+        print(DNARead(read.id, seq).toString('fasta'))

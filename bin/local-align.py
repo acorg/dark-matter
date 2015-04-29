@@ -9,10 +9,10 @@ import sys
 from Bio import SeqIO
 
 if len(sys.argv) != 3 or len(sys.argv) != 8:
-    print >>sys.stderr, ("Usage: %s filename1, filename2, (matchScore, "
-                         "mismatchScore, gapOpenScore, gapExtendScore, "
-                         "gapExtendDecay)"
-                         % sys.argv[0])
+    print('Usage: %s filename1, filename2, (matchScore, '
+          'mismatchScore, gapOpenScore, gapExtendScore, '
+          'gapExtendDecay)'
+          % sys.argv[0], file=sys.stderr)
     sys.exit(1)
 else:
     fileHandle1 = sys.argv[1]
@@ -29,13 +29,13 @@ else:
         gapOpenScore = int(sys.argv[5])
         gapExtendScore = int(sys.argv[6])
         gapExtendDecay = float(sys.argv[7])
-    for record in SeqIO.parse(fileHandle1, "fasta"):
+    for record in SeqIO.parse(fileHandle1, 'fasta'):
         input1 = record
-        for record in SeqIO.parse(fileHandle2, "fasta"):
+        for record in SeqIO.parse(fileHandle2, 'fasta'):
             input2 = record
             alignment = LocalAlignment(input1, input2, match=matchScore,
                                        mismatch=mismatchScore,
                                        gap=gapOpenScore,
                                        gapExtend=gapExtendScore,
                                        gapDecay=gapExtendDecay)
-            print alignment.createAlignment()
+            print(alignment.createAlignment())

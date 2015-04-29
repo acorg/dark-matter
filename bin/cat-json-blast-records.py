@@ -10,4 +10,4 @@ import sys
 
 for line in sys.stdin:
     s = dumps(loads(line[:-1]), sort_keys=True, indent=2)
-    print '\n'.join([l.rstrip() for l in s.splitlines()])
+    print('\n'.join([l.rstrip() for l in s.splitlines()]))

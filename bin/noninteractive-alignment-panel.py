@@ -209,12 +209,12 @@ if __name__ == '__main__':
         minNewReads=args.minNewReads)
 
     nTitles = len(titlesAlignments)
-    print 'Found %d interesting title%s.' % (nTitles,
-                                             '' if nTitles == 1 else 's')
+    print('Found %d interesting title%s.' % (nTitles,
+                                             '' if nTitles == 1 else 's'))
 
     if args.earlyExit:
-        print 'Matched titles (sorted by best score, descending):'
-        print '\n'.join(titlesAlignments.sortTitles('maxScore'))
+        print('Matched titles (sorted by best score, descending):')
+        print('\n'.join(titlesAlignments.sortTitles('maxScore')))
         sys.exit(0)
 
     alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=True,

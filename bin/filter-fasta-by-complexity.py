@@ -50,23 +50,23 @@ if __name__ == '__main__':
 
     cmd = 'dustmasker -in "%s" -out "%s" -outfmt fasta' % (
         args.fasta, outFilename)
-    print >>sys.stderr, 'Running dustmasker. Hang in there... ',
+    print('Running dustmasker. Hang in there... ', end=' ', file=sys.stderr)
     start = time()
 
     try:
         status = call(cmd, shell=True)
-        print >>sys.stderr, 'done.\ndustmasker completed in %.2f seconds.' % (
-            time() - start)
+        print('done.\ndustmasker completed in %.2f seconds.' % (
+            time() - start), file=sys.stderr)
         if status < 0:
             # Child terminated by signal.
             unlink(outFilename)
             sys.exit(-status)
         elif status > 0:
-            print >>sys.stderr, 'WARNING: Child exited with status', status
-            print >>sys.stderr, 'Output left in', outFilename
+            print('WARNING: Child exited with status', status, file=sys.stderr)
+            print('Output left in', outFilename, file=sys.stderr)
             sys.exit(status)
     except OSError as e:
-        print >>sys.stderr, 'Execution failed:', e
+        print('Execution failed:', e, file=sys.stderr)
         unlink(outFilename)
         sys.exit(1)
 
@@ -89,9 +89,9 @@ if __name__ == '__main__':
     if args.rejectFile is not None:
         rejectFp.close()
 
-    print >>sys.stderr, (
+    print((
         '%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected.' % (
             readCount, readCount - rejectCount,
             (readCount - rejectCount) / float(readCount) * 100.0,
             rejectCount,
-            rejectCount / float(readCount) * 100.0))
+            rejectCount / float(readCount) * 100.0)), file=sys.stderr)

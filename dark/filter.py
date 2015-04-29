@@ -124,7 +124,7 @@ class ReadSetFilter(object):
         readIds = titleAlignments.readIds()
         newReadsRequired = ceil(self._minNew * len(readIds))
 
-        for readSet, invalidatedTitles in self._titles.itervalues():
+        for readSet, invalidatedTitles in self._titles.values():
             if len(readIds - readSet) < newReadsRequired:
                 # Add this title to the set of titles invalidated by this
                 # previously seen read set.

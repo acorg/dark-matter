@@ -49,7 +49,7 @@ The files in this directory are as follows:
   so they can also be used in `api.c`.
 * `gor4-base.h`: Some `#define` constants that used to be in `gor4-base.c`, plus
   the definition of the `struct` returned by `initialize`.
-* `gor4.pyx`: The Cython interface definition. Note that this has to much around
+* `gor4.pyx`: The Cython interface definition. Note that this has to muck around
   with arguments to give to and receive from the underling GOR IV code the 1-based
   memory structures it expects.
 * `nrutil.{c,h}`: The original files from the GOR IV distribution.

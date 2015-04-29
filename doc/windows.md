@@ -1,8 +1,8 @@
 ## Installation on Windows
 
-The following works on Windows 8.1 with Cygwin. Alternative to sudo (which
-is found in the Linux instructions): run Cygwin as administrator or use
-`cygstart --action=runas` followed by the command.
+The following works on Windows 8.1 with [Cygwin](https://www.cygwin.com/).
+Alternative to sudo (which is found in the Linux instructions): run Cygwin
+as administrator or use `cygstart --action=runas` followed by the command.
 
 ### Install pip
 
@@ -10,7 +10,7 @@ See: [pip installation guide](http://pip.readthedocs.org/en/latest/installing.ht
 
 ### Install some required Cygwin packages
 
-These can be found and downloaded through the Cygwin setup.exe process or
+These can be found and downloaded through the Cygwin `setup.exe` process or
 using `apt-cyg`, if installed:
 
 ```

@@ -115,7 +115,7 @@ class TestNames(TestCase):
         """
         All individual names must be different.
         """
-        names = NAMES.values()
+        names = list(NAMES.values())
         self.assertEqual(len(names), len(set(names)))
 
 
@@ -147,7 +147,7 @@ class TestAbbrev3(TestCase):
         """
         All individual names must be different.
         """
-        names = ABBREV3.values()
+        names = list(ABBREV3.values())
         self.assertEqual(len(names), len(set(names)))
 
 

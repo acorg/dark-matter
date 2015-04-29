@@ -5,8 +5,8 @@ import sys
 from dark.blast import BlastRecords
 
 if len(sys.argv) < 3:
-    print >>sys.stderr, (
-        'Usage: %s title record-file.(xml|json)...' % sys.argv[0])
+    print('Usage: %s title record-file.(xml|json)...' % sys.argv[0],
+          file=sys.stderr)
     sys.exit(1)
 else:
     title = sys.argv[1]
@@ -14,6 +14,6 @@ else:
     hits = blastRecords.filterHits(whitelist=set([title]),
                                    negativeTitleRegex='.')
     if title in hits.titles:
-        print hits.titles[title]
+        print(hits.titles[title])
     else:
-        print 'Title %r was not hit by any reads.' % title
+        print('Title %r was not hit by any reads.' % title)

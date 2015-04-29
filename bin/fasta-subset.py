@@ -48,12 +48,12 @@ if __name__ == '__main__':
         if found:
             SeqIO.write(found, sys.stdout, 'fasta')
 
-        print >>sys.stderr, 'Found %d sequences.' % len(found)
+        print('Found %d sequences.' % len(found), file=sys.stderr)
 
         if wanted:
-            print >>sys.stderr, 'WARNING: %d sequence%s not found: %s' % (
+            print('WARNING: %d sequence%s not found: %s' % (
                 len(wanted), '' if len(wanted) == 1 else 's were',
-                ' '.join(wanted))
+                ' '.join(wanted)), file=sys.stderr)
     else:
         # No wanted ids were given.
         parser.print_help(sys.stderr)

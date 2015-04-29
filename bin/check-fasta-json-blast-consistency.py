@@ -64,6 +64,6 @@ if __name__ == '__main__':
     if len(sys.argv) >= 3:
         check(sys.argv[1], sys.argv[2:])
     else:
-        print >>sys.stderr, ('Usage: %s file.fasta file1.json file2.json...' %
-                             sys.argv[0])
+        print('Usage: %s file.fasta file1.json file2.json...' %
+              sys.argv[0], file=sys.stderr)
         sys.exit(1)

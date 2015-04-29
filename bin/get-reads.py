@@ -30,7 +30,7 @@ def main(recordFilenames, fastaFilename, title, xRange, bitRange):
     titlesAlignments = TitlesAlignments(filtered)
 
     if title not in titlesAlignments:
-        print '%s: Title %r not found in BLAST output' % (sys.argv[0], title)
+        print('%s: Title %r not found in BLAST output' % (sys.argv[0], title))
         sys.exit(3)
 
     for titleAlignment in titlesAlignments[title]:
@@ -39,15 +39,15 @@ def main(recordFilenames, fastaFilename, title, xRange, bitRange):
                                     xRange[1] >= hsp.subjectStart)) and
                 (bitRange is None or (bitRange[0] <= hsp.score.score <=
                                       bitRange[1]))):
-                print ('query: %s, start: %d, end: %d, score: %d' % (
+                print(('query: %s, start: %d, end: %d, score: %d' % (
                        titleAlignment.read.id, hsp.subjectStart,
-                       hsp.subjectEnd, hsp.score.score))
+                       hsp.subjectEnd, hsp.score.score)))
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print >>sys.stderr, (
+        print((
             'Usage: %s recordFilename, fastaFilename, '
-            'title, xCoords, bitCoords' % sys.argv[0])
+            'title, xCoords, bitCoords' % sys.argv[0]), file=sys.stderr)
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
@@ -101,9 +101,9 @@ if __name__ == '__main__':
                     start, end = end, start
                 return start, end
             else:
-                print >>sys.stderr, (
+                print((
                     'Illegal argument %r. Ranges must single numbers or '
-                    'number-number.' % inputRange)
+                    'number-number.' % inputRange), file=sys.stderr)
                 sys.exit(2)
 
     main(args.json, args.fasta, args.title,

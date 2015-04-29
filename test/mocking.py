@@ -5,7 +5,7 @@ because mock.mock_open in Python 2.7 doesn't support using a file descriptor
 from "with open() as fp" as an iterator.
 """
 
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 file_spec = None
 
@@ -50,7 +50,7 @@ class NoStopIterationReadline(object):
             # Ran out of data.
             return ''
 
-    def next(self):
+    def __next__(self):
         line = self.readline()
         if line:
             return line

@@ -40,5 +40,5 @@ if __name__ == '__main__':
         help='The length adjustment.')
 
     args = parser.parse_args()
-    print bitScoreToEValue(args.bitScore, args.dbSize, args.dbSequenceCount,
-                           args.queryLength, args.lengthAdjustment)
+    print(bitScoreToEValue(args.bitScore, args.dbSize, args.dbSequenceCount,
+                           args.queryLength, args.lengthAdjustment))

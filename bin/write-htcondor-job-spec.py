@@ -148,7 +148,7 @@ condor_submit $tmp
 """ % params)
 
     # Make the script executable so we can run it.
-    os.chmod('redo.sh', 0755)
+    os.chmod('redo.sh', 0o755)
 
 
 def printProcessScript(params):
@@ -187,7 +187,7 @@ fi
 """ % params)
 
     # Make the script executable so we can run it.
-    os.chmod('process.sh', 0755)
+    os.chmod('process.sh', 0o755)
 
 
 def printFinalizeScript(params):
@@ -246,7 +246,7 @@ fi
 """ % params)
 
     # Make the script executable so we can run it.
-    os.chmod('finalize.sh', 0755)
+    os.chmod('finalize.sh', 0o755)
 
 
 if __name__ == '__main__':
@@ -310,5 +310,5 @@ if __name__ == '__main__':
     printRedoScript(params)
     printFinalizeScript(params)
 
-    print ('%(sequenceCount)d sequences split into %(nJobs)d jobs of '
-           '%(seqsPerJob)d sequences each.' % params)
+    print(('%(sequenceCount)d sequences split into %(nJobs)d jobs of '
+           '%(seqsPerJob)d sequences each.' % params))

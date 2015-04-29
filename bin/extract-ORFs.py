@@ -71,8 +71,8 @@ if __name__ == '__main__':
                             allowOpenORFs and (orf.openLeft or orf.openRight)):
                         write(orf.toString('fasta'))
         except TranslationError as error:
-            print >>sys.stderr, (
-                'Could not translate read %r sequence %r (%s).\nDid you '
-                'forget to run %s with "--type aa"?' %
-                (read.id, read.sequence, error, basename(sys.argv[0])))
+            print('Could not translate read %r sequence %r (%s).\nDid you '
+                  'forget to run %s with "--type aa"?' %
+                  (read.id, read.sequence, error, basename(sys.argv[0])),
+                  file=sys.stderr)
             sys.exit(1)

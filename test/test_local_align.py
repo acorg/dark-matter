@@ -18,8 +18,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq('xxx'), id='seq1')
         seq2 = SeqRecord(Seq('yyy'), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Invalid DNA nucleotide: "X"',
-                                LocalAlignment, seq1, seq2)
+        self.assertRaisesRegex(ValueError, 'Invalid DNA nucleotide: "X"',
+                               LocalAlignment, seq1, seq2)
 
     def testPositiveMismatch(self):
         """
@@ -28,8 +28,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Mismatch must be negative',
-                                LocalAlignment, seq1, seq2, mismatch=3)
+        self.assertRaisesRegex(ValueError, 'Mismatch must be negative',
+                               LocalAlignment, seq1, seq2, mismatch=3)
 
     def testZeroMismatch(self):
         """
@@ -38,8 +38,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Mismatch must be negative',
-                                LocalAlignment, seq1, seq2, mismatch=0)
+        self.assertRaisesRegex(ValueError, 'Mismatch must be negative',
+                               LocalAlignment, seq1, seq2, mismatch=0)
 
     def testPositiveGap(self):
         """
@@ -48,8 +48,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Gap must be negative',
-                                LocalAlignment, seq1, seq2, gap=3)
+        self.assertRaisesRegex(ValueError, 'Gap must be negative',
+                               LocalAlignment, seq1, seq2, gap=3)
 
     def testZeroGap(self):
         """
@@ -58,8 +58,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Gap must be negative',
-                                LocalAlignment, seq1, seq2, gap=0)
+        self.assertRaisesRegex(ValueError, 'Gap must be negative',
+                               LocalAlignment, seq1, seq2, gap=0)
 
     def testPositiveGapExtend(self):
         """
@@ -68,9 +68,9 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError,
-                                'Gap extension penalty cannot be positive',
-                                LocalAlignment, seq1, seq2, gapExtend=3)
+        self.assertRaisesRegex(ValueError,
+                               'Gap extension penalty cannot be positive',
+                               LocalAlignment, seq1, seq2, gapExtend=3)
 
     def testFirstSequenceEmpty(self):
         """
@@ -78,8 +78,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq('agtcagtcagtc'), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Empty sequence: seq1',
-                                LocalAlignment, seq1, seq2)
+        self.assertRaisesRegex(ValueError, 'Empty sequence: seq1',
+                               LocalAlignment, seq1, seq2)
 
     def testSecondSequenceEmpty(self):
         """
@@ -87,8 +87,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq('agtcagtcagtc'), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Empty sequence: seq2',
-                                LocalAlignment, seq1, seq2)
+        self.assertRaisesRegex(ValueError, 'Empty sequence: seq2',
+                               LocalAlignment, seq1, seq2)
 
     def testBothSequencesEmpty(self):
         """
@@ -96,8 +96,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = SeqRecord(Seq(''), id='seq1')
         seq2 = SeqRecord(Seq(''), id='seq2')
-        self.assertRaisesRegexp(ValueError, 'Empty sequence: seq1',
-                                LocalAlignment, seq1, seq2)
+        self.assertRaisesRegex(ValueError, 'Empty sequence: seq1',
+                               LocalAlignment, seq1, seq2)
 
     def testGapAtStartOfSeq1(self):
         seq1 = SeqRecord(Seq('gaatcg'), id='seq1')

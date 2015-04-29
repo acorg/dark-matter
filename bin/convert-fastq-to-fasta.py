@@ -10,8 +10,8 @@ from dark.fastq import FastqReads
 # must use '<' to supply our stdin and '>' to store our output.
 
 if len(sys.argv) > 1:
-    print >>sys.stderr, (
-        'Usage: %s < input.fastq [> output.fasta]' % basename(sys.argv[0]))
+    print('Usage: %s < input.fastq [> output.fasta]' % basename(sys.argv[0]),
+          file=sys.stderr)
     sys.exit(1)
 else:
     write = sys.stdout.write

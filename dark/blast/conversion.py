@@ -157,10 +157,10 @@ class XMLRecordsReader(object):
         first = True
         for record in self.records():
             if first:
-                print >>fp, dumps(self.params, separators=(',', ':'))
+                print(dumps(self.params, separators=(',', ':')), file=fp)
                 first = False
-            print >>fp, dumps(self._convertBlastRecordToDict(record),
-                              separators=(',', ':'))
+            print(dumps(self._convertBlastRecordToDict(record),
+                        separators=(',', ':')), file=fp)
 
 
 class JSONRecordsReader(object):
@@ -293,7 +293,7 @@ class JSONRecordsReader(object):
                         (lineNumber, self._filename, e, line[:-1]))
                 else:
                     try:
-                        read = reads.next()
+                        read = next(reads)
                     except StopIteration:
                         raise ValueError(
                             'Read generator failed to yield read number %d '

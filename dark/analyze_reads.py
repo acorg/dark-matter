@@ -13,8 +13,8 @@ def _longestPrefixOfTwoSeqs(a, b):
 
 
 def getPrefixAndSuffix(file_handle):
-    read_list = list(SeqIO.parse(file_handle, "fasta"))
-    reversed_read_list = map(lambda read: read[::-1], read_list)
+    read_list = list(SeqIO.parse(file_handle, 'fasta'))
+    reversed_read_list = [read[::-1] for read in read_list]
 
     def longestCommonPrefix(read_list):
         sequences = read_list
@@ -43,7 +43,7 @@ def getPrefixAndSuffix(file_handle):
 
 
 def trimReads(prefix, suffix, file_handle):
-    for record in SeqIO.parse(file_handle, "fasta"):
+    for record in SeqIO.parse(file_handle, 'fasta'):
         if suffix == 0:
             yield record[prefix:]
         else:

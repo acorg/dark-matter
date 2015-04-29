@@ -49,7 +49,7 @@ DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
 
 def report(msg):
-    print '%s: %s' % (ctime(time()), msg)
+    print('%s: %s' % (ctime(time()), msg))
 
 
 def alignmentGraph(titlesAlignments, title, addQueryLines=True,
@@ -268,7 +268,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 # 1. Left part.
                 xOffset = readStartInSubject - minX
                 queryOffset = 0
-                for queryIndex in xrange(leftRange):
+                for queryIndex in range(leftRange):
                     color = QUERY_COLORS.get(query[queryOffset + queryIndex],
                                              DEFAULT_BASE_COLOR)
                     baseImage.set(xOffset + queryIndex, y, color)
@@ -278,7 +278,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 xIndex = 0
                 queryOffset = hsp.subjectStart - hsp.readStartInSubject
                 origSubject = hsp.subjectMatchedSequence
-                for matchIndex in xrange(middleRange):
+                for matchIndex in range(middleRange):
                     if origSubject[matchIndex] == '-':
                         # A gap in the subject was needed to match the query.
                         # In our graph we keep the subject the same even in the
@@ -308,7 +308,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 # 3. Right part.
                 xOffset = hsp.subjectEnd - minX
                 backQuery = query[-rightRange:].upper()
-                for queryIndex in xrange(rightRange):
+                for queryIndex in range(rightRange):
                     color = QUERY_COLORS.get(backQuery[queryIndex],
                                              DEFAULT_BASE_COLOR)
                     baseImage.set(xOffset + queryIndex, y, color)
@@ -332,7 +332,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         # If an idList is given set things up to look up read colors.
         readColor = {}
         if idList:
-            for color, reads in idList.iteritems():
+            for color, reads in idList.items():
                 for read in reads:
                     if read in readColor:
                         raise ValueError('Read %s is specified multiple '
@@ -497,8 +497,8 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
 
     for i, title in enumerate(titles):
         titleAlignments = titlesAlignments[title]
-        row, col = coords.next()
-        print '%d: %s %s' % (i, title, NCBISequenceLinkURL(title, ''))
+        row, col = next(coords)
+        print('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
         if interactive:
             graphInfo = alignmentGraph(
                 titlesAlignments, title, addQueryLines=True,
@@ -542,17 +542,17 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
-    maxX = max(graphInfo['maxX'] for graphInfo in allGraphInfo.itervalues())
-    minX = min(graphInfo['minX'] for graphInfo in allGraphInfo.itervalues())
-    maxY = max(graphInfo['maxY'] for graphInfo in allGraphInfo.itervalues())
-    minY = min(graphInfo['minY'] for graphInfo in allGraphInfo.itervalues())
+    maxX = max(graphInfo['maxX'] for graphInfo in allGraphInfo.values())
+    minX = min(graphInfo['minX'] for graphInfo in allGraphInfo.values())
+    maxY = max(graphInfo['maxY'] for graphInfo in allGraphInfo.values())
+    minY = min(graphInfo['minY'] for graphInfo in allGraphInfo.values())
 
     # Post-process graphs to adjust axes, etc.
 
     coords = dimensionalIterator((rows, cols))
     for title in titles:
         titleAlignments = titlesAlignments[title]
-        row, col = coords.next()
+        row, col = next(coords)
         a = ax[row][col]
         a.set_ylim([0, int(maxY * Y_AXIS_UPPER_PADDING)])
         if equalizeXAxes:
@@ -625,7 +625,7 @@ def scoreGraph(titlesAlignments, find=None, showTitles=False, figureWidth=5,
 
     for title in titlesAlignments:
         titleAlignments = titlesAlignments[title]
-        row, col = coords.next()
+        row, col = next(coords)
         hspCount = titleAlignments.hspCount()
         if hspCount > maxHsps:
             maxHsps = hspCount
@@ -652,8 +652,8 @@ def scoreGraph(titlesAlignments, find=None, showTitles=False, figureWidth=5,
 
     # Adjust all plots to have the same dimensions.
     coords = dimensionalIterator((rows, cols))
-    for _ in xrange(len(titlesAlignments)):
-        row, col = coords.next()
+    for _ in range(len(titlesAlignments)):
+        row, col = next(coords)
         a = ax[row][col]
         a.axis([0, maxHsps, 0, maxScore])
         # a.set_yscale('log')
@@ -685,7 +685,7 @@ def scatterAlign(seq1, seq2, window=7):
             section = seq[i:i + window]
             section_dict[section].append(i)
     matches = set(d1).intersection(d2)
-    print '%i unique matches' % len(matches)
+    print('%i unique matches' % len(matches))
     x = []
     y = []
     for section in matches:

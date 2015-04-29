@@ -28,4 +28,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     for seq in SeqIO.parse(args.reads, args.format):
-        print '%d %s' % (len(seq), seq.description)
+        print('%d %s' % (len(seq), seq.description))

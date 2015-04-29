@@ -6,8 +6,8 @@ from dark import fasta
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print >>sys.stderr, 'Usage: %s 1.fasta, 2.fasta, ... > seq.fasta' % (
-            sys.argv[0])
+        print('Usage: %s 1.fasta, 2.fasta, ... > seq.fasta' % (
+            sys.argv[0]), file=sys.stderr)
         sys.exit(1)
     else:
         reads = fasta.fastaSubtract(map(open, sys.argv[1:]))

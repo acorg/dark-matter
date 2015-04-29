@@ -154,9 +154,9 @@ if __name__ == '__main__':
             withScoreBetterThan=args.withScoreBetterThan,
             minNewReads=args.minNewReads)
 
-        for titleAlignments in titlesAlignments.itervalues():
+        for titleAlignments in titlesAlignments.values():
             for alignment in titleAlignments.alignments:
                 reads.add(alignment.read)
 
     reads.save(sys.stdout)
-    print >>sys.stderr, 'Found %d matching reads.' % len(reads)
+    print('Found %d matching reads.' % len(reads), file=sys.stderr)

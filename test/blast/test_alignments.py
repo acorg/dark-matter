@@ -1,15 +1,16 @@
 # TODO: Add tests based on taxonomy, once we know how to mock mysql.
 
+import builtins
 from copy import deepcopy
 import bz2
 from json import dumps
 from unittest import TestCase
-from mock import patch
-from cStringIO import StringIO
+from unittest.mock import patch
+from io import StringIO
 from Bio import SeqIO
 
 from ..mocking import mockOpen
-from sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
+from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
 from dark.hsp import HSP, LSP
@@ -52,10 +53,10 @@ class TestBlastReadsAlignments(TestCase):
         on trying to read it.
         """
         mockOpener = mockOpen()
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             error = "JSON file 'file.json' was empty."
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 ValueError, error, BlastReadsAlignments, reads, 'file.json')
 
     def testNonJSONInput(self):
@@ -64,12 +65,12 @@ class TestBlastReadsAlignments(TestCase):
         read the BLAST hits from it must raise a C{ValueError}.
         """
         mockOpener = mockOpen(read_data='not JSON\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            error = ("Could not convert first line of 'file.json' to JSON "
-                     "\(No JSON object could be decoded\). "
-                     "Line is 'not JSON'.")
-            self.assertRaisesRegexp(
+            error = ("^Could not convert first line of 'file\.json' to JSON "
+                     "\(Expecting value: line 1 column 1 \(char 0\)\)\. "
+                     "Line is 'not JSON'\.$")
+            self.assertRaisesRegex(
                 ValueError, error, BlastReadsAlignments, reads, 'file.json')
 
     def testScoreTitle_Bits(self):
@@ -77,7 +78,7 @@ class TestBlastReadsAlignments(TestCase):
         The score title must be correct when we are using bit scores.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual('Bit score', readsAlignments.params.scoreTitle)
@@ -87,7 +88,7 @@ class TestBlastReadsAlignments(TestCase):
         The score title must be correct when we are using e values.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(
                 reads, 'file.json', scoreClass=LowerIsBetterScore)
@@ -100,7 +101,7 @@ class TestBlastReadsAlignments(TestCase):
         blastn.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual('blastn', readsAlignments.params.application)
@@ -114,7 +115,7 @@ class TestBlastReadsAlignments(TestCase):
         params = deepcopy(PARAMS)
         params['application'] = 'tblastx'
         mockOpener = mockOpen(read_data=dumps(params) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual('tblastx', readsAlignments.params.application)
@@ -128,7 +129,7 @@ class TestBlastReadsAlignments(TestCase):
         params = deepcopy(PARAMS)
         params['application'] = 'blastx'
         mockOpener = mockOpen(read_data=dumps(params) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual('blastx', readsAlignments.params.application)
@@ -140,7 +141,7 @@ class TestBlastReadsAlignments(TestCase):
         correctly.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual(PARAMS, readsAlignments.params.applicationParams)
@@ -152,7 +153,7 @@ class TestBlastReadsAlignments(TestCase):
         not yield anything.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual([], list(readsAlignments))
@@ -164,12 +165,12 @@ class TestBlastReadsAlignments(TestCase):
         """
         mockOpener = mockOpen(
             read_data=dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             error = ("Read generator failed to yield read number 1 during "
                      "parsing of BLAST file 'file\.json'\.")
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
+            self.assertRaisesRegex(ValueError, error, list, readsAlignments)
 
     def testTooManyReads(self):
         """
@@ -178,7 +179,7 @@ class TestBlastReadsAlignments(TestCase):
         """
         mockOpener = mockOpen(
             read_data=dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'G' * 70))
@@ -186,7 +187,7 @@ class TestBlastReadsAlignments(TestCase):
                      "BLAST records found \(1\)\. First unknown read id is "
                      "'id1'\.")
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
+            self.assertRaisesRegex(ValueError, error, list, readsAlignments)
 
     def testIncorrectReadId(self):
         """
@@ -195,7 +196,7 @@ class TestBlastReadsAlignments(TestCase):
         """
         mockOpener = mockOpen(
             read_data=dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('not id0', 'A' * 70))
             error = ("The reads you have provided do not match the BLAST "
@@ -203,7 +204,7 @@ class TestBlastReadsAlignments(TestCase):
                      "not match the id of the supposedly corresponding read "
                      "\(not id0\)\.")
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
-            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
+            self.assertRaisesRegex(ValueError, error, list, readsAlignments)
 
     def testOneCompressedJSONInput(self):
         """
@@ -322,14 +323,14 @@ class TestBlastReadsAlignments(TestCase):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
-            error = ("Incompatible BLAST parameters found. The parameters in "
-                     "file2.json.bz2 differ from those originally found in "
-                     "file1.json.bz2. Summary of differences:\n\tParam "
-                     "u'application' initial value u'BLASTN' differs from "
-                     "later value u'Skype'")
+            error = ("^Incompatible BLAST parameters found\. The parameters "
+                     "in file2\.json\.bz2 differ from those originally found "
+                     "in file1\.json\.bz2. Summary of differences:\n\tParam "
+                     "'application' initial value 'BLASTN' differs from "
+                     "later value 'Skype'$")
             readsAlignments = BlastReadsAlignments(
                 reads, ['file1.json.bz2', 'file2.json.bz2'])
-            self.assertRaisesRegexp(ValueError, error, list, readsAlignments)
+            self.assertRaisesRegex(ValueError, error, list, readsAlignments)
 
     def testGetSubjectSequence(self):
         """
@@ -337,7 +338,7 @@ class TestBlastReadsAlignments(TestCase):
         instance.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             with patch.object(ncbidb, 'getSequence') as mockMethod:
@@ -357,7 +358,7 @@ class TestBlastReadsAlignments(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -440,7 +441,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         that yields no result.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             result = list(readsAlignments.filter())
@@ -454,7 +455,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(RECORD0) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -469,7 +470,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(RECORD0) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -484,7 +485,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(RECORD0) + '\n' +
                               dumps(RECORD1) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -540,7 +541,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -597,7 +598,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -654,7 +655,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(
@@ -723,7 +724,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -797,7 +798,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
 
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
                               dumps(record) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
             readsAlignments = BlastReadsAlignments(
@@ -820,7 +821,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -840,7 +841,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -860,7 +861,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -881,7 +882,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -902,7 +903,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -920,7 +921,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -942,7 +943,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -965,7 +966,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -988,7 +989,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1010,7 +1011,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1027,7 +1028,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1049,7 +1050,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1066,7 +1067,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1090,7 +1091,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1112,7 +1113,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1129,7 +1130,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1151,7 +1152,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1168,7 +1169,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1187,7 +1188,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1208,7 +1209,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1253,7 +1254,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1270,7 +1271,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1289,7 +1290,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -1307,7 +1308,7 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))

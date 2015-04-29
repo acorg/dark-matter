@@ -1,9 +1,10 @@
 from json import dumps
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
+import builtins
 
 from ..mocking import mockOpen
-from sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
+from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
 from dark.hsp import HSP
@@ -23,7 +24,7 @@ class TestTitleCounts(TestCase):
         empty dictionary.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual({}, titleCounts(readsAlignments))
@@ -36,7 +37,7 @@ class TestTitleCounts(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -60,7 +61,7 @@ class TestTitleCounts(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
@@ -83,11 +84,11 @@ class TestTitlesAlignments(TestCase):
         empty readsAlignments instance.
         """
         mockOpener = mockOpen(read_data=(dumps(PARAMS) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
-            self.assertEqual([], titlesAlignments.keys())
+            self.assertEqual([], list(titlesAlignments.keys()))
 
     def testExpectedTitles(self):
         """
@@ -96,7 +97,7 @@ class TestTitlesAlignments(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -120,7 +121,7 @@ class TestTitlesAlignments(TestCase):
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             read = Read('id0', 'A' * 70)
             reads.add(read)
@@ -151,7 +152,7 @@ class TestTitlesAlignments(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             read2 = Read('id2', 'A' * 70)
             read3 = Read('id3', 'A' * 70)
@@ -179,7 +180,7 @@ class TestTitlesAlignments(TestCase):
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -188,8 +189,8 @@ class TestTitlesAlignments(TestCase):
             titleAlignments = TitleAlignments(title, 55)
             error = ("Title 'gi\|887699\|gb\|DQ37780 Squirrelpox virus "
                      "1296/99' already present in TitlesAlignments instance\.")
-            self.assertRaisesRegexp(KeyError, error, titlesAlignments.addTitle,
-                                    title, titleAlignments)
+            self.assertRaisesRegex(KeyError, error, titlesAlignments.addTitle,
+                                   title, titleAlignments)
 
     def testAddTitle(self):
         """
@@ -198,7 +199,7 @@ class TestTitlesAlignments(TestCase):
         """
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
@@ -217,7 +218,7 @@ class TestTitlesAlignments(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -243,7 +244,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -270,7 +271,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -283,7 +284,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Cowpox virus 15',
                 ],
-                result.keys())
+                list(result.keys()))
 
     def testMinMedianScore_Bits(self):
         """
@@ -294,7 +295,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -307,7 +308,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                result.keys())
+                list(result.keys()))
 
     def testMinMedianScore_EValue(self):
         """
@@ -318,7 +319,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -344,7 +345,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -357,7 +358,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                result.keys())
+                list(result.keys()))
 
     def testWithScoreBetterThan_EValue(self):
         """
@@ -368,7 +369,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -382,7 +383,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                 ],
-                result.keys())
+                list(result.keys()))
 
     def testReadSetFilterAllowAnything(self):
         """
@@ -393,7 +394,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -421,7 +422,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -460,7 +461,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -480,7 +481,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -509,7 +510,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -540,7 +541,7 @@ class TestTitleSorting(TestCase):
         Sorting on an unknown attribute must raise C{ValueError}.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
@@ -551,7 +552,7 @@ class TestTitleSorting(TestCase):
         Sorting when there are no titles must return the empty list.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
@@ -567,7 +568,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n' + dumps(RECORD4) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -582,7 +583,7 @@ class TestTitleSorting(TestCase):
                 'gi|887699|gb|DQ37780 Monkeypox virus 456',        # 20
                 'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',   # 20
                 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',  # 20
-                'gi|887699|gb|DQ37780 Cowpox virus 15',            # 15
+                'gi|887699|gb|DQ37780 Cowpox virus 15',            # 20
             ], result)
 
     def testMedianScore_EValue(self):
@@ -594,7 +595,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n' + dumps(RECORD4) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -622,7 +623,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -648,7 +649,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -658,6 +659,13 @@ class TestTitleSorting(TestCase):
                 reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('maxScore')
+            # self.assertEqual([
+            #     'gi|887699|gb|DQ37780 Cowpox virus 15',            # 1e-6
+            #     'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',   # 1e-7
+            #     'gi|887699|gb|DQ37780 Monkeypox virus 456',        # 1e-8
+            #     'gi|887699|gb|DQ37780 Squirrelpox virus 55',       # 1e-10
+            #     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',  # 1e-11
+            # ], result)
             self.assertEqual([
                 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',  # 1e-11
                 'gi|887699|gb|DQ37780 Squirrelpox virus 55',       # 1e-10
@@ -674,7 +682,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -701,7 +709,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
@@ -727,7 +735,7 @@ class TestTitleSorting(TestCase):
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
-        with patch('__builtin__.open', mockOpener, create=True):
+        with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
