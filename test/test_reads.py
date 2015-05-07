@@ -139,6 +139,45 @@ class TestRead(TestCase):
         """
         self.assertEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'qq'))
 
+    def testHashDiffersIfIdDiffers(self):
+        """
+        The __hash__ value for two reads must differ if their ids differ.
+        """
+        self.assertNotEqual(hash(Read('id1', 'AA')),
+                            hash(Read('id2', 'AA')))
+
+    def testHashDiffersIfSequenceDiffers(self):
+        """
+        The __hash__ value for two reads must differ if their sequences
+        differ.
+        """
+        self.assertNotEqual(hash(Read('id', 'AAT')),
+                            hash(Read('id', 'AAG')))
+
+    def testHashDiffersIfQualityDiffers(self):
+        """
+        The __hash__ value for two reads must differ if their quality strings
+        differ.
+        """
+        self.assertNotEqual(hash(Read('id', 'AA', '!!')),
+                            hash(Read('id', 'AA', '++')))
+
+    def testHashIdenticalNoQuality(self):
+        """
+        The __hash__ value for two identical reads (with no quality strings)
+        must be identical.
+        """
+        self.assertEqual(hash(Read('id', 'AA')),
+                         hash(Read('id', 'AA')))
+
+    def testHashIdenticalWithQuality(self):
+        """
+        The __hash__ value for two identical reads (with quality strings) must
+        be identical.
+        """
+        self.assertEqual(hash(Read('id', 'AA', '!!')),
+                         hash(Read('id', 'AA', '!!')))
+
     def testLowComplexityFractionEmptySequence(self):
         """
         A read with an empty sequence must return a zero result from its
