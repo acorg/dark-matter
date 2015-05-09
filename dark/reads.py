@@ -1,6 +1,7 @@
 from os import unlink
 from collections import Counter
 from itertools import chain
+from hashlib import md5
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -62,6 +63,20 @@ class Read(object):
 
     def __len__(self):
         return len(self.sequence)
+
+    def __hash__(self):
+        """
+        Calculate a hash key for a read.
+
+        @return: The C{int} hash key for the read.
+        """
+        if self.quality is None:
+            return hash(md5(self.id.encode('UTF-8') + b'\0' +
+                            self.sequence.encode('UTF-8')).digest())
+        else:
+            return hash(md5(self.id.encode('UTF-8') + b'\0' +
+                            self.sequence.encode('UTF-8') + b'\0' +
+                            self.quality.encode('UTF-8')).digest())
 
     def toString(self, format_):
         """
