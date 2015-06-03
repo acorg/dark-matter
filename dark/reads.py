@@ -159,9 +159,9 @@ class Read(object):
         corresponds to its readClass. For AA reads, more testing is done in
         dark.Read.AARead.checkAlphabet.
 
-        @param count: An C{int}, indicating how many bases at the start of
-            the sequence should be considered. If C{None}, all bases are
-            checked.
+        @param count: An C{int}, indicating how many bases or amino acids at
+            the start of the sequence should be considered. If C{None}, all
+            bases are checked.
         @return: C{True} if the alphabet characters in the first C{count}
             positions of sequence is a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
@@ -254,9 +254,9 @@ class AARead(Read):
         additional testing is needed, because the letters in the DNA alphabet
         are also in the AA alphabet.
 
-        @param count: An C{int}, indicating how many bases at the start of
-            the sequence should be considered. If C{None}, all bases are
-            checked.
+        @param count: An C{int}, indicating how many bases or amino acids at
+            the start of the sequence should be considered. If C{None}, all
+            bases are checked.
         @return: C{True} if the alphabet characters in the first C{count}
             positions of sequence is a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
