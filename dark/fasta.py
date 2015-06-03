@@ -79,17 +79,17 @@ class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
 
-    @param file_: A C{str} file name or file handle, containing
+    @param _file: A C{str} file name or file handle, containing
         sequences in FASTA format,
     @param readClass: The class of read that should be yielded by iter.
     @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
         will be done on all reads. If an C{int}, only that many reads will be
         checked. (Pass zero to have no checks done.)
     """
-    def __init__(self, file_, readClass=DNARead, checkAlphabet=None):
-        self.file_ = file_
-        self.readClass = readClass
-        self.checkAlphabet = checkAlphabet
+    def __init__(self, _file, readClass=DNARead, checkAlphabet=None):
+        self._file = _file
+        self._readClass = readClass
+        self._checkAlphabet = checkAlphabet
         Reads.__init__(self)
 
     def iter(self):
@@ -97,9 +97,9 @@ class FastaReads(Reads):
         Iterate over the sequences in self.file_, yielding each as an
         instance of the desired read class.
         """
-        checkAlphabet = self.checkAlphabet
-        for count, seq in enumerate(SeqIO.parse(self.file_, 'fasta')):
-            read = self.readClass(seq.description, str(seq.seq))
+        checkAlphabet = self._checkAlphabet
+        for count, seq in enumerate(SeqIO.parse(self._file, 'fasta')):
+            read = self._readClass(seq.description, str(seq.seq))
             if checkAlphabet is None or count < checkAlphabet:
                 read.checkAlphabet(count=None)
             yield read
