@@ -159,8 +159,9 @@ class Read(object):
         corresponds to its readClass. For AA reads, more testing is done in
         dark.Read.AARead.checkAlphabet.
 
-        @param count: A C{int} of how much of the start of the sequence should
-            be considered.
+        @param count: An C{int}, indicating how many bases at the start of
+            the sequence should be considered. If C{None}, all bases are
+            checked.
         @return: C{True} if the alphabet characters in the first C{count}
             positions of sequence is a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
@@ -253,12 +254,15 @@ class AARead(Read):
         additional testing is needed, because the letters in the DNA alphabet
         are also in the AA alphabet.
 
+        @param count: An C{int}, indicating how many bases at the start of
+            the sequence should be considered. If C{None}, all bases are
+            checked.
         @return: C{True} if the alphabet characters in the first C{count}
             positions of sequence is a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
         @raise ValueError: If a DNA sequence has been passed to AARead().
         """
-        readLetters = super(AARead, self).checkAlphabet(count)
+        readLetters = super().checkAlphabet(count)
         if len(self) > 10 and readLetters.issubset(set('ACGT')):
             raise ValueError('It looks like a DNA sequence has been passed to '
                              'AARead().')
