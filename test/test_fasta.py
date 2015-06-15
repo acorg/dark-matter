@@ -337,6 +337,68 @@ class TestFastaReads(TestCase):
             reads = list(FastaReads('filename.fasta', RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
 
+    def testAlphabetIsCheckedAndRaisesValueErrorOnFirstRead(self):
+        """
+        The default behavior of a FastaReads instance is to check to ensure
+        its sequences have the correct alphabet and to raise ValueError if not.
+        A non-alphabetic character in the first read must be detected.
+        """
+        data = StringIO('\n'.join([
+            '>one',
+            'at-at',
+            ]))
+        error = ("^Read alphabet \('-AT'\) is not a subset of expected "
+                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
+                 "AARead\.$")
+        self.assertRaisesRegex(ValueError, error, list,
+                               FastaReads(data, AARead))
+
+    def testAlphabetIsCheckedAndRaisesValueErrorOnSecondRead(self):
+        """
+        The default behavior of a FastaReads instance is to check to ensure
+        its sequences have the correct alphabet and to raise ValueError if not.
+        A non-alphabetic character in the second read must be detected.
+        """
+        data = StringIO('\n'.join([
+            '>one',
+            'atat',
+            '>two',
+            'at-at',
+            ]))
+        error = ("^Read alphabet \('-AT'\) is not a subset of expected "
+                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
+                 "AARead\.$")
+        self.assertRaisesRegex(ValueError, error, list,
+                               FastaReads(data, AARead))
+
+    def testDisableAlphabetChecking(self):
+        """
+        It must be possible to have a FastaReads instance not do alphabet
+        checking, if requested (by passing checkAlphabet=0).
+        """
+        data = StringIO('\n'.join([
+            '>one',
+            'at-at',
+            ]))
+        self.assertEqual(1, len(list(FastaReads(data, AARead,
+                                                checkAlphabet=0))))
+
+    def testOnlyCheckSomeAlphabets(self):
+        """
+        It must be possible to have the alphabets of only a certain number of
+        reads checked. A non-alphabetic character in a later read must not
+        stop that read from being processed.
+        """
+        data = StringIO('\n'.join([
+            '>one',
+            'atat',
+            '>two',
+            'at-at',
+            ]))
+        reads = list(FastaReads(data, AARead, checkAlphabet=1))
+        self.assertEqual(2, len(reads))
+        self.assertEqual('at-at', reads[1].sequence)
+
 
 class TestCombineReads(TestCase):
     """
