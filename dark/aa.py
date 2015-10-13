@@ -39,9 +39,10 @@ NAMES = {
     'P': 'Proline',
     'S': 'Serine',
     'T': 'Threonine',
-    'W': 'Tryptophan',
-    'Y': 'Tyrosine',
     'V': 'Valine',
+    'W': 'Tryptophan',
+    'X': 'Unknown',
+    'Y': 'Tyrosine',
 }
 
 AA_LETTERS = sorted(NAMES.keys())
@@ -66,9 +67,10 @@ ABBREV3 = {
     'P': 'Pro',
     'S': 'Ser',
     'T': 'Thr',
-    'W': 'Trp',
-    'Y': 'Tyr',
     'V': 'Val',
+    'W': 'Trp',
+    'X': 'Unknown',
+    'Y': 'Tyr',
 }
 
 ABBREV3_TO_ABBREV1 = dict((abbrev3, abbrev1)
@@ -87,6 +89,7 @@ BASIC_POSITIVE = 0x0200
 NEGATIVE = 0x0400
 POLAR = 0x0800
 NONE = 0x1000
+UNKNOWN = 0x0000
 
 ALL_PROPERTIES = (
     ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
@@ -128,6 +131,7 @@ PROPERTIES = {
     'T': HYDROPHOBIC | SMALL | HYDROXYLIC,
     'V': ALIPHATIC | HYDROPHOBIC | SMALL,
     'W': HYDROPHOBIC | AROMATIC | POLAR,
+    'X': NONE,
     'Y': HYDROPHOBIC | AROMATIC | POLAR,
 }
 
@@ -155,6 +159,7 @@ CODONS = {
     'T': ['ACC', 'ACA'],
     'V': ['GTC', 'GTA'],
     'W': ['TGG'],
+    'X': ['XXX'],
     'Y': ['TAT', 'TAC'],
 }
 
@@ -392,6 +397,18 @@ PROPERTY_DETAILS = {
         'polar_req': -0.90243902439,
         'polarity': -0.876543209877,
         'volume': 1.0,
+    },
+    'X': {
+        'aliphaticity': None,
+        'aromaticity': None,
+        'composition': None,
+        'hydrogenation': None,
+        'hydropathy': None,
+        'hydroxyethilation': None,
+        'iep': None,
+        'polar_req': None,
+        'polarity': None,
+        'volume': None,
     },
     'Y': {
         'aliphaticity': -0.454545454545,

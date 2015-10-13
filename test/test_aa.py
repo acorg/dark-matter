@@ -18,7 +18,7 @@ class TestAALetters(TestCase):
         The AA_LETTERS value must be as expected.
         """
         # From https://en.wikipedia.org/wiki/Amino_acid
-        expected = sorted('ARNDCEQGHILKMFPSTWYV')
+        expected = sorted('ARNDCEQGHILKMFPSTWXYV')
         self.assertEqual(expected, AA_LETTERS)
 
 
@@ -73,6 +73,7 @@ class TestProperties(TestCase):
             'T': set([HYDROPHOBIC, SMALL, HYDROXYLIC]),
             'V': set([ALIPHATIC, HYDROPHOBIC, SMALL]),
             'W': set([HYDROPHOBIC, AROMATIC, POLAR]),
+            'X': set([NONE]),
             'Y': set([HYDROPHOBIC, AROMATIC, POLAR]),
         }
 
@@ -179,7 +180,7 @@ class TestCodons(TestCase):
         """
         The table must contain the right number of codons.
         """
-        self.assertEqual(44, sum(len(codons) for codons in CODONS.values()))
+        self.assertEqual(45, sum(len(codons) for codons in CODONS.values()))
 
     def testCodonLength(self):
         """
@@ -190,11 +191,11 @@ class TestCodons(TestCase):
 
     def testCodonContent(self):
         """
-        Codons must only contain the letters A, T, G, C.
+        Codons must only contain the letters A, T, G, C and X for unknown.
         """
         for codons in CODONS.values():
             for codon in codons:
-                self.assertTrue(all(letter in 'ACGT' for letter in codon))
+                self.assertTrue(all(letter in 'ACGTX' for letter in codon))
 
     def testCodonsAreNotAbbrev3s(self):
         """
