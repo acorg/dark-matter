@@ -338,6 +338,14 @@ class AARead(Read):
         return self._GOR4.predict(self.sequence)
 
 
+class AAReadWithX(AARead):
+    """
+    Hold information and methods to work with AA reads with additional
+    characters.
+    """
+    ALPHABET = set(AA_LETTERS + ['X'])
+
+
 class AAReadORF(AARead):
     """
     Hold information about an ORF from an AA read.

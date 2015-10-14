@@ -39,9 +39,9 @@ NAMES = {
     'P': 'Proline',
     'S': 'Serine',
     'T': 'Threonine',
+    'V': 'Valine',
     'W': 'Tryptophan',
     'Y': 'Tyrosine',
-    'V': 'Valine',
 }
 
 AA_LETTERS = sorted(NAMES.keys())
@@ -66,9 +66,9 @@ ABBREV3 = {
     'P': 'Pro',
     'S': 'Ser',
     'T': 'Thr',
+    'V': 'Val',
     'W': 'Trp',
     'Y': 'Tyr',
-    'V': 'Val',
 }
 
 ABBREV3_TO_ABBREV1 = dict((abbrev3, abbrev1)
@@ -87,6 +87,7 @@ BASIC_POSITIVE = 0x0200
 NEGATIVE = 0x0400
 POLAR = 0x0800
 NONE = 0x1000
+
 
 ALL_PROPERTIES = (
     ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,

@@ -85,11 +85,15 @@ class FastaReads(Reads):
     @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
         will be done on all reads. If an C{int}, only that many reads will be
         checked. (Pass zero to have no checks done.)
+    @param upperCase: If not C{False}, the reads will be converted to upper
+        case.
     """
-    def __init__(self, _file, readClass=DNARead, checkAlphabet=None):
+    def __init__(self, _file, readClass=DNARead, checkAlphabet=None,
+                 upperCase=False):
         self._file = _file
         self._readClass = readClass
         self._checkAlphabet = checkAlphabet
+        self._upperCase = upperCase
         Reads.__init__(self)
 
     def iter(self):
@@ -99,7 +103,11 @@ class FastaReads(Reads):
         """
         checkAlphabet = self._checkAlphabet
         for count, seq in enumerate(SeqIO.parse(self._file, 'fasta')):
-            read = self._readClass(seq.description, str(seq.seq))
+            if self._upperCase:
+                read = self._readClass(seq.description,
+                                       str(seq.seq.upper()))
+            else:
+                read = self._readClass(seq.description, str(seq.seq))
             if checkAlphabet is None or count < checkAlphabet:
                 read.checkAlphabet(count=None)
             yield read

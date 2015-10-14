@@ -132,7 +132,7 @@ class TestFastaSubtract(TestCase):
             'atgggtc',
             '>four',
             'atggctattgaactgtatct',
-            ])
+        ])
 
         result = list(fastaSubtract([StringIO(fasta1)]))
         self.assertEqual(len(result), 4)
@@ -151,7 +151,7 @@ class TestFastaSubtract(TestCase):
             'atgggtc',
             '>four',
             'atggctattgaactgtatct',
-            ])
+        ])
 
         result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta1)]))
         self.assertEqual([], result)
@@ -166,7 +166,7 @@ class TestFastaSubtract(TestCase):
             'agtcagtcagtc',
             '>six',
             'acctg',
-            ])
+        ])
 
         result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta2)]))
         self.assertEqual([], result)
@@ -185,13 +185,13 @@ class TestFastaSubtract(TestCase):
             'atgggtc',
             '>four',
             'atggctattgaactgtatct',
-            ])
+        ])
         fasta2 = '\n'.join([
             '>five',
             'agtcagtcagtc',
             '>six',
             'acctg',
-            ])
+        ])
 
         result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta2)]))
         self.assertEqual(['four', 'one', 'three', 'two'],
@@ -210,17 +210,17 @@ class TestFastaSubtract(TestCase):
             'atgggtc',
             '>four',
             'atggctattgaactgtatct',
-            ])
+        ])
         fasta2 = '\n'.join([
             '>one',
             'agtcagtcagtc',
-            ])
+        ])
         fasta3 = '\n'.join([
             '>two',
             'acctg',
             '>three',
             'atgggtc',
-            ])
+        ])
 
         result = list(fastaSubtract([StringIO(fasta1),
                                      StringIO(fasta2),
@@ -237,11 +237,11 @@ class TestFastaSubtract(TestCase):
         fasta1 = '\n'.join([
             '>one',
             'ag',
-            ])
+        ])
         fasta2 = '\n'.join([
             '>one',
             'at',
-            ])
+        ])
 
         self.assertRaises(AssertionError, fastaSubtract,
                           [StringIO(fasta1), StringIO(fasta2)])
@@ -346,7 +346,7 @@ class TestFastaReads(TestCase):
         data = StringIO('\n'.join([
             '>one',
             'at-at',
-            ]))
+        ]))
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
                  "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
@@ -364,7 +364,7 @@ class TestFastaReads(TestCase):
             'atat',
             '>two',
             'at-at',
-            ]))
+        ]))
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
                  "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
@@ -379,7 +379,7 @@ class TestFastaReads(TestCase):
         data = StringIO('\n'.join([
             '>one',
             'at-at',
-            ]))
+        ]))
         self.assertEqual(1, len(list(FastaReads(data, AARead,
                                                 checkAlphabet=0))))
 
@@ -394,10 +394,41 @@ class TestFastaReads(TestCase):
             'atat',
             '>two',
             'at-at',
-            ]))
+        ]))
         reads = list(FastaReads(data, AARead, checkAlphabet=1))
         self.assertEqual(2, len(reads))
         self.assertEqual('at-at', reads[1].sequence)
+
+    def testConvertLowerToUpperCaseIfSpecifiedAARead(self):
+        """
+        A read needs to be converted from lower to upper case if specified.
+        """
+        data = '\n'.join(['>id1', 'actgs'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = list(FastaReads('filename.fasta', readClass=AARead,
+                         upperCase=True))
+            self.assertEqual([AARead('id1', 'ACTGS')], reads)
+
+    def testConvertLowerToUpperCaseIfSpecifiedDNARead(self):
+        """
+        A read needs to be converted from lower to upper case if specified.
+        """
+        data = '\n'.join(['>id1', 'actg'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = list(FastaReads('filename.fasta', upperCase=True))
+            self.assertEqual([AARead('id1', 'ACTG')], reads)
+
+    def testDontConvertLowerToUpperCaseIfNotSpecified(self):
+        """
+        A read must not be converted from lower to upper case if not specified.
+        """
+        data = '\n'.join(['>id1', 'actgs'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = list(FastaReads('filename.fasta', readClass=AARead))
+            self.assertEqual([AARead('id1', 'actgs')], reads)
 
 
 class TestCombineReads(TestCase):

@@ -6,7 +6,8 @@ import builtins
 
 from .mocking import mockOpen
 from dark.reads import (
-    Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF)
+    Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
+    AAReadWithX)
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
@@ -1115,6 +1116,26 @@ class TestAARead(TestCase):
             self.assertAlmostEqual(e[0], r[0])
             self.assertAlmostEqual(e[1], r[1])
             self.assertAlmostEqual(e[2], r[2])
+
+
+class TestAAReadWithX(TestCase):
+    """
+    Tests for the TestAAReadWithX class.
+    """
+    def testAlphabet(self):
+        """
+        The correct alphabet must be used.
+        """
+        read = AAReadWithX('id', 'ATFDX')
+        expected = set('ACDEFGHIKLMNPQRSTVWXY')
+        self.assertEqual(expected, read.ALPHABET)
+
+    def testAlphabetChecking(self):
+        """
+        The alphabet check must work.
+        """
+        read = AAReadWithX('id', 'ARDGGCFFXEE')
+        self.assertEqual(set('ARDGCFFXE'), read.checkAlphabet())
 
 
 class TestAAReadORF(TestCase):
