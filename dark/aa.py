@@ -41,7 +41,6 @@ NAMES = {
     'T': 'Threonine',
     'V': 'Valine',
     'W': 'Tryptophan',
-    'X': 'Unknown',
     'Y': 'Tyrosine',
 }
 
@@ -69,7 +68,6 @@ ABBREV3 = {
     'T': 'Thr',
     'V': 'Val',
     'W': 'Trp',
-    'X': 'Unknown',
     'Y': 'Tyr',
 }
 
@@ -131,7 +129,6 @@ PROPERTIES = {
     'T': HYDROPHOBIC | SMALL | HYDROXYLIC,
     'V': ALIPHATIC | HYDROPHOBIC | SMALL,
     'W': HYDROPHOBIC | AROMATIC | POLAR,
-    'X': NONE,
     'Y': HYDROPHOBIC | AROMATIC | POLAR,
 }
 
@@ -159,7 +156,6 @@ CODONS = {
     'T': ['ACC', 'ACA'],
     'V': ['GTC', 'GTA'],
     'W': ['TGG'],
-    'X': ['XXX'],
     'Y': ['TAT', 'TAC'],
 }
 
@@ -397,18 +393,6 @@ PROPERTY_DETAILS = {
         'polar_req': -0.90243902439,
         'polarity': -0.876543209877,
         'volume': 1.0,
-    },
-    'X': {
-        'aliphaticity': None,
-        'aromaticity': None,
-        'composition': None,
-        'hydrogenation': None,
-        'hydropathy': None,
-        'hydroxyethilation': None,
-        'iep': None,
-        'polar_req': None,
-        'polarity': None,
-        'volume': None,
     },
     'Y': {
         'aliphaticity': -0.454545454545,

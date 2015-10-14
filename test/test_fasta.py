@@ -348,7 +348,7 @@ class TestFastaReads(TestCase):
             'at-at',
         ]))
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
-                 "alphabet \('ACDEFGHIKLMNPQRSTVWXY'\) for read class "
+                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
         self.assertRaisesRegex(ValueError, error, list,
                                FastaReads(data, AARead))
@@ -366,7 +366,7 @@ class TestFastaReads(TestCase):
             'at-at',
         ]))
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
-                 "alphabet \('ACDEFGHIKLMNPQRSTVWXY'\) for read class "
+                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
         self.assertRaisesRegex(ValueError, error, list,
                                FastaReads(data, AARead))
