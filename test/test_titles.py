@@ -161,11 +161,12 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
 
     def testMedianScoreWithNoAlignments(self):
         """
-        The medianScore function must issue a warning (due to no inputs)
+        The medianScore function must raise IndexError (due to no inputs)
         if there are no alignments matching a title.
         """
         titleAlignments = TitleAlignments('subject title', 55)
-        self.assertWarns(RuntimeWarning, titleAlignments.medianScore)
+        error = '^index -1 is out of bounds for axis 0 with size 0$'
+        self.assertRaisesRegex(IndexError, error, titleAlignments.medianScore)
 
     def testMedianScoreOfTwo(self):
         """
