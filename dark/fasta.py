@@ -85,11 +85,11 @@ class FastaReads(Reads):
     @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
         will be done on all reads. If an C{int}, only that many reads will be
         checked. (Pass zero to have no checks done.)
-    @param upperCase: If not C{None}, the reads will be converted to upper
+    @param upperCase: If not C{False}, the reads will be converted to upper
         case.
     """
     def __init__(self, _file, readClass=DNARead, checkAlphabet=None,
-                 upperCase=None):
+                 upperCase=False):
         self._file = _file
         self._readClass = readClass
         self._checkAlphabet = checkAlphabet

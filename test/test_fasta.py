@@ -422,7 +422,7 @@ class TestFastaReads(TestCase):
 
     def testDontConvertLowerToUpperCaseIfNotSpecified(self):
         """
-        A read needs to be converted from lower to upper case if specified.
+        A read must not be converted from lower to upper case if not specified.
         """
         data = '\n'.join(['>id1', 'actgs'])
         mockOpener = mockOpen(read_data=data)
