@@ -190,11 +190,11 @@ class TestCodons(TestCase):
 
     def testCodonContent(self):
         """
-        Codons must only contain the letters A, T, G, C and X for unknown.
+        Codons must only contain the letters A, T, G, C.
         """
         for codons in CODONS.values():
             for codon in codons:
-                self.assertTrue(all(letter in 'ACGTX' for letter in codon))
+                self.assertTrue(all(letter in 'ACGT' for letter in codon))
 
     def testCodonsAreNotAbbrev3s(self):
         """
