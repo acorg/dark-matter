@@ -8,6 +8,8 @@ criteria.
 Run with --help for help.
 """
 
+from __future__ import print_function
+
 import sys
 import argparse
 

@@ -4,6 +4,7 @@
 #       tests below test the simpler dark.titles classes, TitleAlignment
 #       and TitleAlignments.
 
+import six
 import warnings
 from unittest import TestCase
 
@@ -166,7 +167,12 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         titleAlignments = TitleAlignments('subject title', 55)
         error = '^index -1 is out of bounds for axis 0 with size 0$'
-        self.assertRaisesRegex(IndexError, error, titleAlignments.medianScore)
+        if six.PY3:
+            six.assertRaisesRegex(self, IndexError, error,
+                                  titleAlignments.medianScore)
+        else:
+            from numpy import isnan
+            self.assertTrue(isnan(titleAlignments.medianScore()))
 
     def testMedianScoreOfTwo(self):
         """
@@ -320,8 +326,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         titleAlignments = TitleAlignments('subject title', 55)
         error = "convertCaseTo must be one of 'none', 'lower', or 'upper'"
-        self.assertRaisesRegex(
-            ValueError, error, titleAlignments.residueCounts,
+        six.assertRaisesRegex(
+            self, ValueError, error, titleAlignments.residueCounts,
             convertCaseTo='xxx')
 
     def testResidueCountsOneReadOneHSP(self):

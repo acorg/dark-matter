@@ -10,6 +10,8 @@ want to just output all ORFs, use extract-ORFs.py directly instead (or pipe
 the output of this program into extract-ORFs.py --type aa).
 """
 
+from __future__ import print_function
+
 import sys
 import argparse
 

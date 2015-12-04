@@ -4,6 +4,8 @@
 Read AA FASTA from stdin and print properties FASTA to stdout.
 """
 
+from __future__ import print_function
+
 import sys
 
 from dark.fasta import FastaReads

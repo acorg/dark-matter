@@ -3,6 +3,9 @@
 check: dark/gor4.so
 	python -m discover -v
 
+tcheck: dark/gor4.so
+	trial --rterrors test
+
 dark/gor4.so: $(wildcard src/gor4/*.c src/gor4/*.h src/gor4/*.pxd src/gor4/*.pyx)
 	python setup.py build_ext -i
 
@@ -19,4 +22,7 @@ wc:
 
 clean:
 	find . \( -name '*.pyc' -o -name '*~' \) -print0 | xargs -0 rm
+	find . -name '__pycache__' -type d -print0 | xargs -0 rmdir
+	find . -name '_trial_temp' -type d -print0 | xargs -0 rm -r
 	rm -fr dark_matter.egg-info build dist dark/gor4.so src/gor4/gor4.c
+	rm -f dark/gor4.cpython-35m-darwin.so

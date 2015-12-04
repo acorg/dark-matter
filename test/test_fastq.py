@@ -1,10 +1,15 @@
-import builtins
+from six.moves import builtins
 
 from dark.reads import AARead, DNARead, RNARead
 from dark.fastq import FastqReads
 
 from unittest import TestCase
-from unittest.mock import patch
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 from .mocking import mockOpen
 
 

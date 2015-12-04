@@ -1,6 +1,6 @@
 from unittest import TestCase
 from dark.analyze_reads import getPrefixAndSuffix, trimReads
-from io import StringIO
+from six import StringIO
 from Bio import SeqIO
 
 

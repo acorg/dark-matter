@@ -1,3 +1,4 @@
+import six
 from unittest import TestCase
 from dark.mutations import getAPOBECFrequencies, mutateString
 
@@ -41,7 +42,7 @@ class TestMutateString(TestCase):
         The function should raise when given an empty string
         """
         error = 'Empty original string passed.'
-        with self.assertRaisesRegex(ValueError, error):
+        with six.assertRaisesRegex(self, ValueError, error):
             mutateString('', 1)
 
     def testTooManyMutationsRequested(self):
@@ -50,7 +51,7 @@ class TestMutateString(TestCase):
         there are in the original string.
         """
         error = 'Cannot make 2 mutations in a string of length 1'
-        with self.assertRaisesRegex(ValueError, error):
+        with six.assertRaisesRegex(self, ValueError, error):
             mutateString('x', 2)
 
     def testDuplicateReplacementLetter(self):
@@ -59,7 +60,7 @@ class TestMutateString(TestCase):
         a duplicate letter.
         """
         error = 'Replacement string contains duplicates'
-        with self.assertRaisesRegex(ValueError, error):
+        with six.assertRaisesRegex(self, ValueError, error):
             mutateString('x', 1, 'aa')
 
     def testReplacementLengthOneAppearsInOriginal(self):
@@ -68,7 +69,7 @@ class TestMutateString(TestCase):
         just one letter if that letter also appears in the original.
         """
         error = 'Impossible replacement'
-        with self.assertRaisesRegex(ValueError, error):
+        with six.assertRaisesRegex(self, ValueError, error):
             mutateString('x', 1, 'x')
 
     def testZeroReplacements(self):

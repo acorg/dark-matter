@@ -19,6 +19,8 @@ If you see sequences unexpectedly rejected because they have no associated
 taxonomy, make sure you have the latest taxonomy files loaded into MySQL.
 """
 
+from __future__ import print_function
+
 import sys
 import argparse
 import re

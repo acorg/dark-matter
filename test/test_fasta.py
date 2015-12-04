@@ -1,8 +1,13 @@
-import builtins
-from io import StringIO
+import six
+from six.moves import builtins
+from six import StringIO
 from unittest import TestCase
 from Bio import SeqIO
-from unittest.mock import patch
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 from .mocking import mockOpen
 
@@ -350,8 +355,8 @@ class TestFastaReads(TestCase):
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
                  "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
-        self.assertRaisesRegex(ValueError, error, list,
-                               FastaReads(data, AARead))
+        six.assertRaisesRegex(self, ValueError, error, list,
+                              FastaReads(data, AARead))
 
     def testAlphabetIsCheckedAndRaisesValueErrorOnSecondRead(self):
         """
@@ -368,8 +373,8 @@ class TestFastaReads(TestCase):
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
                  "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
-        self.assertRaisesRegex(ValueError, error, list,
-                               FastaReads(data, AARead))
+        six.assertRaisesRegex(self, ValueError, error, list,
+                              FastaReads(data, AARead))
 
     def testDisableAlphabetChecking(self):
         """

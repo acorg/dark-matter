@@ -4,6 +4,8 @@
 See the 'EPILOG' variable below, or (better) run with --help for help.
 """
 
+from __future__ import print_function
+
 import os
 import sys
 from Bio import SeqIO

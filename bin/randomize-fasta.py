@@ -8,6 +8,8 @@ Note: This produces DNA sequences. If you have AA reads and you need this
       functionality, we can add it.
 """
 
+from __future__ import print_function
+
 import sys
 from numpy.random import choice
 

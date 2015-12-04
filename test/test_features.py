@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from unittest import TestCase
-from unittest.mock import call, MagicMock, ANY
+
+try:
+    from unittest.mock import call, MagicMock, ANY
+except ImportError:
+    from mock import call, MagicMock, ANY
 
 from Bio.SeqFeature import FeatureLocation, SeqFeature
 from Bio.SeqRecord import SeqRecord

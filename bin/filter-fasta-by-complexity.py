@@ -9,6 +9,8 @@ dustmasker is part of the NCBI BLAST+ suite. You can get it from
 ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST
 """
 
+from __future__ import print_function
+
 import sys
 from os import close, unlink
 from time import time

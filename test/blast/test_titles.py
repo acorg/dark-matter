@@ -1,7 +1,13 @@
+import six
 from json import dumps
 from unittest import TestCase
-from unittest.mock import patch
-import builtins
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
+from six.moves import builtins
 
 from ..mocking import mockOpen
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
@@ -189,8 +195,9 @@ class TestTitlesAlignments(TestCase):
             titleAlignments = TitleAlignments(title, 55)
             error = ("Title 'gi\|887699\|gb\|DQ37780 Squirrelpox virus "
                      "1296/99' already present in TitlesAlignments instance\.")
-            self.assertRaisesRegex(KeyError, error, titlesAlignments.addTitle,
-                                   title, titleAlignments)
+            six.assertRaisesRegex(
+                self, KeyError, error, titlesAlignments.addTitle, title,
+                titleAlignments)
 
     def testAddTitle(self):
         """

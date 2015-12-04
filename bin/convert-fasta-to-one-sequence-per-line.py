@@ -7,6 +7,8 @@ reformat FASTA files into something that can be more easily processed by
 UNIX tools (like split).
 """
 
+from __future__ import print_function
+
 from Bio import SeqIO
 import sys
 

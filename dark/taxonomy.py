@@ -1,4 +1,4 @@
-from dark import mysql
+from dark.database import getDatabaseConnection
 
 
 class LineageFetcher(object):
@@ -7,7 +7,7 @@ class LineageFetcher(object):
     of title sequences hit by BLAST.
     """
     def __init__(self, db=None, cursor=None):
-        self._db = db or mysql.getDatabaseConnection()
+        self._db = db or getDatabaseConnection()
         self._cursor = cursor or self._db.cursor()
         self._cache = {}
 

@@ -13,6 +13,8 @@ wanting to simply translate DNA FASTA to AA FASTA on a sequence-by-sequence
 basis leaving in start/stop codons, use dna-to-aa.py instead.
 """
 
+from __future__ import print_function
+
 import sys
 from os.path import basename
 import argparse
