@@ -10,6 +10,8 @@ $ e-value-to-bit-score.py --dbSize 168142520 --dbSequenceCount 5660 \
 37.3537
 """
 
+from __future__ import print_function
+
 import argparse
 
 from dark.blast.score import eValueToBitScore

@@ -5,6 +5,8 @@ Read in BLAST records and print a count of how many sequences
 each read matches with, followed by the name of the read.
 """
 
+from __future__ import print_function
+
 import sys
 
 from dark.blast.alignments import BlastReadsAlignments

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 from re import compile
 import sys
 from dark.entrez import getSequence

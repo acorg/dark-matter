@@ -4,6 +4,8 @@
 Read simplified JSON BLAST records and report the elapsed time.
 """
 
+from __future__ import print_function
+
 from dark.conversion import JSONRecordsReader
 from time import time
 import sys

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from io import StringIO
+from six import StringIO
 
 from dark.summarize import summarizeReads
 

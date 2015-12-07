@@ -8,6 +8,8 @@ Exits non-zero with an error message on stderr if there's a problem, else
 exits silently with zero status.
 """
 
+from __future__ import print_function
+
 import sys
 
 from dark.blast.alignments import BlastReadsAlignments

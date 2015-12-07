@@ -1,3 +1,6 @@
+from __future__ import print_function
+
+
 def printBlastRecordForDerek(record):
     """
     This is a hacked version of printBlastRecord that I wrote in

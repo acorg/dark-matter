@@ -1,5 +1,5 @@
 from Bio import Entrez, SeqIO
-from urllib.error import URLError
+from six.moves.urllib_error import URLError
 
 Entrez.email = 'tcj25@cam.ac.uk'
 

@@ -1,3 +1,4 @@
+import six
 from os import unlink
 from collections import Counter
 from itertools import chain
@@ -262,7 +263,10 @@ class AARead(Read):
             read class, or if the read class has a C{None} alphabet.
         @raise ValueError: If a DNA sequence has been passed to AARead().
         """
-        readLetters = super().checkAlphabet(count)
+        if six.PY3:
+            readLetters = super().checkAlphabet(count)
+        else:
+            readLetters = Read.checkAlphabet(self, count)
         if len(self) > 10 and readLetters.issubset(set('ACGT')):
             raise ValueError('It looks like a DNA sequence has been passed to '
                              'AARead().')

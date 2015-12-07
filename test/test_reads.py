@@ -1,8 +1,14 @@
+import six
+from six.moves import builtins
 from unittest import TestCase
-from unittest.mock import patch, call
-from io import StringIO
+
+try:
+    from unittest.mock import patch, call
+except ImportError:
+    from mock import patch, call
+
+from six import StringIO
 from os import stat
-import builtins
 
 from .mocking import mockOpen
 from dark.reads import (
@@ -24,7 +30,7 @@ class TestRead(TestCase):
         of different lengths must raise a ValueError.
         """
         error = 'Invalid read: sequence length \(4\) != quality length \(3\)'
-        with self.assertRaisesRegex(ValueError, error):
+        with six.assertRaisesRegex(self, ValueError, error):
             Read('id', 'ACGT', '!!!')
 
     def testNoQuality(self):
@@ -65,7 +71,8 @@ class TestRead(TestCase):
         """
         read = Read('id', 'ACGT', '!!!!')
         error = "Format must be either 'fasta' or 'fastq'\\."
-        self.assertRaisesRegex(ValueError, error, read.toString, 'unknown')
+        six.assertRaisesRegex(self, ValueError, error, read.toString,
+                              'unknown')
 
     def testToFASTA(self):
         """
@@ -89,7 +96,7 @@ class TestRead(TestCase):
         """
         read = Read('id', 'ACGT')
         error = "Read 'id' has no quality information"
-        self.assertRaisesRegex(ValueError, error, read.toString, 'fastq')
+        six.assertRaisesRegex(self, ValueError, error, read.toString, 'fastq')
 
     def testToFASTQ(self):
         """
@@ -335,7 +342,7 @@ class TestRead(TestCase):
         """
         read = AARead('id', 'AAATTAACGGGCCTAGG')
         error = "It looks like a DNA sequence has been passed to AARead()."
-        self.assertRaisesRegex(ValueError, error, read.checkAlphabet)
+        six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
     def testcheckAlphabetDNAReadNotMatchingRaise(self):
         """
@@ -345,7 +352,7 @@ class TestRead(TestCase):
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
         error = ("Read alphabet \('ACGRST'\) is not a subset of expected "
                  "alphabet \('ACGT'\) for read class DNARead.")
-        self.assertRaisesRegex(ValueError, error, read.checkAlphabet)
+        six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
 
 class TestDNARead(TestCase):
@@ -1196,8 +1203,8 @@ class TestAAReadORF(TestCase):
         """
         originalRead = AARead('id', 'ADRADR')
         error = 'start offset \(4\) greater than stop offset \(0\)'
-        self.assertRaisesRegex(
-            ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
+        six.assertRaisesRegex(
+            self, ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
 
     def testStartNegative(self):
         """
@@ -1205,8 +1212,9 @@ class TestAAReadORF(TestCase):
         """
         originalRead = AARead('id', 'ADRADR')
         error = 'start offset \(-1\) less than zero'
-        self.assertRaisesRegex(
-            ValueError, error, AAReadORF, originalRead, -1, 6, True, True)
+        six.assertRaisesRegex(
+            self, ValueError, error, AAReadORF, originalRead, -1, 6, True,
+            True)
 
     def testStopGreaterThanOriginalSequenceLength(self):
         """
@@ -1215,8 +1223,9 @@ class TestAAReadORF(TestCase):
         """
         originalRead = AARead('id', 'ADRADR')
         error = 'stop offset \(10\) > original read length \(6\)'
-        self.assertRaisesRegex(
-            ValueError, error, AAReadORF, originalRead, 0, 10, True, True)
+        six.assertRaisesRegex(
+            self, ValueError, error, AAReadORF, originalRead, 0, 10, True,
+            True)
 
     def testOpenOpenId(self):
         """
@@ -1286,8 +1295,8 @@ class TestTranslatedRead(TestCase):
         """
         read = Read('id', 'atcgatcgatcg')
         error = 'Frame must be 0, 1, or 2'
-        self.assertRaisesRegex(ValueError, error, TranslatedRead, read,
-                               'IRDS', 3)
+        six.assertRaisesRegex(self, ValueError, error, TranslatedRead, read,
+                              'IRDS', 3)
 
     def testExpectedFrame(self):
         """
@@ -1478,10 +1487,11 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         error = "Format must be either 'fasta' or 'fastq'\\."
-        self.assertRaisesRegex(ValueError, error, reads.save, 'file', 'xxx')
+        six.assertRaisesRegex(self, ValueError, error, reads.save, 'file',
+                              'xxx')
         # The output file must not exist following the save() failure.
         error = "No such file or directory: 'file'"
-        self.assertRaisesRegex(OSError, error, stat, 'file')
+        six.assertRaisesRegex(self, OSError, error, stat, 'file')
 
     def testSaveFASTAIsDefault(self):
         """
@@ -1574,10 +1584,11 @@ class TestReads(TestCase):
         reads.add(read1)
         reads.add(read2)
         error = "Read 'id2' has no quality information"
-        self.assertRaisesRegex(ValueError, error, reads.save, 'file', 'fastq')
+        six.assertRaisesRegex(self, ValueError, error, reads.save, 'file',
+                              'fastq')
         # The output file must not exist following the save() failure.
         error = "No such file or directory: 'file'"
-        self.assertRaisesRegex(OSError, error, stat, 'file')
+        six.assertRaisesRegex(self, OSError, error, stat, 'file')
 
     def testSaveToFileDescriptor(self):
         """

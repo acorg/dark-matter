@@ -7,6 +7,8 @@ criteria, produce an alignment panel.
 Run with --help for help.
 """
 
+from __future__ import print_function
+
 import os
 import sys
 import argparse

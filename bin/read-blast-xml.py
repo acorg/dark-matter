@@ -4,6 +4,8 @@
 Read simplified XML BLAST records and report the elapsed time.
 """
 
+from __future__ import print_function
+
 from Bio.Blast import NCBIXML
 from time import time
 import sys

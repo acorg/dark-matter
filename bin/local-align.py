@@ -4,6 +4,8 @@
 Aligns each sequence in fileHandle1 to each sequence in fileHandle2.
 """
 
+from __future__ import print_function
+
 from dark.local_align import LocalAlignment
 import sys
 from Bio import SeqIO

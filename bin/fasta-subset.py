@@ -5,6 +5,8 @@ Given a set of FASTA sequence identifiers from sys.argv and/or in a file, read
 FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 """
 
+from __future__ import print_function
+
 import sys
 import argparse
 

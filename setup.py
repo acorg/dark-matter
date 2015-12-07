@@ -47,6 +47,7 @@ setup(name='dark-matter',
       keywords=['virus discovery'],
       classifiers=[
           'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3',
           'Development Status :: 4 - Beta',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: MIT License',

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import bz2
 from json import dumps, loads
 from operator import itemgetter

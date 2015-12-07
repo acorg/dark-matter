@@ -1,3 +1,4 @@
+import six
 from unittest import TestCase
 
 from dark.reads import Read, Reads
@@ -208,8 +209,8 @@ class TestReadsAlignments(TestCase):
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
         error = 'iter must be implemented by a subclass'
-        self.assertRaisesRegex(NotImplementedError, error, list,
-                               readsAlignments)
+        six.assertRaisesRegex(self, NotImplementedError, error, list,
+                              readsAlignments)
 
     def testGetSequence(self):
         """
@@ -219,5 +220,5 @@ class TestReadsAlignments(TestCase):
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
         error = 'getSequence must be implemented by a subclass'
-        self.assertRaisesRegex(NotImplementedError, error,
-                               readsAlignments.getSequence, 'title')
+        six.assertRaisesRegex(self, NotImplementedError, error,
+                              readsAlignments.getSequence, 'title')

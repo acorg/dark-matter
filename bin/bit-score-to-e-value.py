@@ -10,6 +10,8 @@ $ bit-score-to-evalue.py --dbSize 168142520 --dbSequenceCount 5660 \
 0.0813077725194
 """
 
+from __future__ import print_function
+
 import argparse
 
 from dark.blast.score import bitScoreToEValue

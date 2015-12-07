@@ -1,6 +1,11 @@
-import builtins
+from six.moves import builtins
 from unittest import TestCase
-from unittest.mock import patch
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 from ..mocking import mockOpen
 
 from dark.blast.conversion import XMLRecordsReader

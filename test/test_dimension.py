@@ -13,10 +13,10 @@ class TestDimensionalIterator(TestCase):
             tuple(dimensionalIterator(())))
 
     def testZeroDimension(self):
-        self.assertRaises(ValueError, dimensionalIterator((2, 0, 3)).__next__)
+        self.assertRaises(ValueError, next, dimensionalIterator((2, 0, 3)))
 
     def testNegativeDimension(self):
-        self.assertRaises(ValueError, dimensionalIterator((2, -1, 3)).__next__)
+        self.assertRaises(ValueError, next, dimensionalIterator((2, -1, 3)))
 
     def testLimitedTo0Items(self):
         self.assertEqual(

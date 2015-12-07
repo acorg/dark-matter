@@ -6,6 +6,8 @@ This script needs work!  Or will we never use it again?
 There should be a --find option, or something.
 """
 
+from __future__ import print_function
+
 from dark.blast import BlastRecords
 from dark.graphics import evalueGraph
 
