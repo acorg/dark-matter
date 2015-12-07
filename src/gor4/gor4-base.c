@@ -4,15 +4,18 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <ctype.h>
+
+#ifndef _CFFI_
+#include "defines.h"
 #include "nrutil.h"
 #include "gor4-base.h"
-
+#endif
 
 char buffer[BUFSIZE];
 
 int seq_indx(int c);
 int obs_indx(int c);
-void read_file(char *fname, int nprot, char **obs, char **title, int *pnter);
+int read_file(char *fname, int nprot, char **obs, char **title, int *pnter);
 void read_fasta(FILE *fp, char **title, char **seq, int *nres, int nprot);
 void Parameters(int nprot_dbase, int *nres, char **obs, char **seq);
 void predic(int nres, char *seq, char *pred, float **proba);
@@ -171,9 +174,10 @@ int main(int argc, char *argv[])
  * Input the sequences and observed secondary structures for the data base
  */
 
-  read_file(Fname2,nprot_dbase,seq,title_seq,temp);
-
-  read_file(Fname3,nprot_dbase,obs,title_obs,nres);
+  if (!read_file(Fname2,nprot_dbase,seq,title_seq,temp) ||
+      !read_file(Fname3,nprot_dbase,obs,title_obs,nres)){
+    exit(1);
+  }
 
 /*
  * Check that the data are consistent in the two files
@@ -272,58 +276,7 @@ int main(int argc, char *argv[])
   return(0);
 
 }
-/*****************************************************************************/
-/*                                                                           */
-/* This routine reads the sequence and observed secondary structures for all */
-/* the proteins in the data base.                                            */
-/*                                                                           */
-/*****************************************************************************/
-void read_file(char *fname, int nprot, char **obs, char **title, int *pnter)
-{
-  FILE *fp;
-  int ip, nres, i;
-  int c;
-  char *keep;
 
-  fp = fopen(fname,"r");
-  if(fp == NULL) {
-    printf("Could not find file %s\n",fname);
-    exit(1);
-  }
-
-  keep = (char *) malloc((size_t) MAXRES*sizeof(char));
-
-  for(ip = 1; ip <= nprot; ip++) {
-    fgets(title[ip],MAXLINE,fp);
-    nres = 0;
-    while((c = getc(fp)) != '@') {
-      if(c == '\n' || c == ' ' || c =='\t') continue;
-      nres++;
-      if(nres > MAXRES) {
-	printf("The value of MAXRES should be increased: %d",MAXRES);
-	exit(1);
-      }
-      if((c >= 'A' && c < 'Z') && c != 'B' && c != 'J' && c != 'O' && c != 'U') {
-	keep[nres] = c;
-      }
-      else {
-	printf("protein: %d residue: %d\n",ip,nres);
-	printf("Invalid amino acid type or secondary structure state: ==>%c<==\n",c);
-	exit(1);
-      }
-    }
-    while((c = getc(fp)) != '\n')
-      ;
-    for(i = 1; i <= nres; i++)
-      obs[ip][i] = keep[i];
-    pnter[ip] = nres;
-  }
-
-  free(keep);
-
-  fclose(fp);
-
-}
 /*****************************************************************************/
 /*                                                                           */
 /* This function returns an integer for each amino acid type.                */

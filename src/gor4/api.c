@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef _CFFI_
+#include "defines.h"
 #include "nrutil.h"
 #include "gor4-base.h"
+#endif
 
 /* Functions in gor.c */
 extern void Parameters(int nprot_dbase, int *nres, char **obs, char **seq);
@@ -37,7 +40,7 @@ countProteins(char *filename)
     return n;
 }
 
-static int
+int
 read_file(char *fname, int nprot, char **obs, char **title, int *pnter)
 {
     FILE *fp;

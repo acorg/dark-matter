@@ -1,7 +1,7 @@
-import numpy as np
 from collections import defaultdict, Counter
 
 from dark.reads import Reads
+from dark.utils import median
 from dark.filter import ReadSetFilter
 from dark.intervals import ReadIntervals
 
@@ -107,6 +107,7 @@ class TitleAlignments(list):
         """
         Find the HSP with the best score.
 
+        @raise ValueError: If there are no HSPs.
         @return: The C{dark.hsp.HSP} instance (or a subclass) with the best
         score.
         """
@@ -116,6 +117,7 @@ class TitleAlignments(list):
         """
         Find the HSP with the worst score.
 
+        @raise ValueError: If there are no HSPs.
         @return: The C{dark.hsp.HSP} instance (or a subclass) with the worst
         score.
         """
@@ -138,13 +140,14 @@ class TitleAlignments(list):
 
     def medianScore(self):
         """
-        Find out the median score for the HSPs in the alignments that match
+        Find the median score for the HSPs in the alignments that match
         this title.
 
+        @raise ValueError: If there are no HSPs.
         @return: The C{float} median score of HSPs in alignments matching the
             title.
         """
-        return np.median([hsp.score.score for hsp in self.hsps()])
+        return median([hsp.score.score for hsp in self.hsps()])
 
     def coverage(self):
         """

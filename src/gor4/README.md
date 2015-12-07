@@ -14,7 +14,8 @@ change that, or to otherwise clean up the code, tempting as it has been.
 
 ## Python interface
 
-I used [Cython](http://cython.org/) to make a Python interface to GOR IV.
+I used [cffi](https://cffi.readthedocs.org/en/latest/index.html) to make a
+Python interface to GOR IV.
 
 Usage is as follows:
 
@@ -43,13 +44,11 @@ The files in this directory are as follows:
   `struct` containing pointers to `malloc`d memory that is `free`d in
   `finalize`. To get a secondary structure prediction, `predict` must be
   called.
-* `cgor4.pxd`: Cython declarations based on `gor4-base.h`.
+* `build.py`: Python to tell `cffi` how to build the module, and what functions
+  are available.
 * `gor4-base.c`: A very slightly modified copy of the original `gor.c` file.  The
   modification is that some `#define` constants have been moved into `gor4-base.h`
   so they can also be used in `api.c`.
 * `gor4-base.h`: Some `#define` constants that used to be in `gor4-base.c`, plus
   the definition of the `struct` returned by `initialize`.
-* `gor4.pyx`: The Cython interface definition. Note that this has to muck around
-  with arguments to give to and receive from the underling GOR IV code the 1-based
-  memory structures it expects.
 * `nrutil.{c,h}`: The original files from the GOR IV distribution.
