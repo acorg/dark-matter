@@ -23,6 +23,9 @@ $ . env/bin/activate
 You can either download a stable (and possibly slightly old) version of
 dark matter from PyPI using pip:
 
+Note that if you are using Python 2, use `requirements2.txt` in the
+following.
+
 ```sh
 $ pip install dark-matter
 $ cd dark-matter
@@ -50,10 +53,10 @@ those two and make and activate a virtualenv):
 $ git clone https://github.com/acorg/dark-matter
 $ cd dark-matter
 $ python setup.py install
-$ pip install -r requirements.txt
+$ pip install -r requirements-pypy.txt
 ```
 
-Then install a pypy-specific version of matplotlib:
+Then install the pypy-specific version of matplotlib:
 
 ```sh
 $ git clone git@github.com:mattip/matplotlib.git  # This might take a while
