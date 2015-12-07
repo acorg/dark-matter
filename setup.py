@@ -1,21 +1,30 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-from distutils.extension import Extension
-from Cython.Build import cythonize
 
 # Explicitly list bin scripts to be installed, seeing as I have a few local
 # bin files that are not (yet) part of the distribution.
 scripts = [
+    'bin/aa-info.py',
+    'bin/aa-to-properties.py',
     'bin/adaptor-distances.py',
     'bin/alignments-per-read.py',
+    'bin/bit-score-to-e-value.py',
     'bin/cat-json-blast-records.py',
     'bin/check-fasta-json-blast-consistency.py',
+    'bin/codon-distance.py',
     'bin/convert-blast-xml-to-json.py',
     'bin/convert-fasta-to-one-sequence-per-line.py',
+    'bin/convert-fastq-to-fasta.py',
+    'bin/convert-sam-to-fastq.sh',
+    'bin/dna-to-aa.py',
+    'bin/e-value-to-bit-score.py',
+    'bin/extract-ORFs.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
-    'bin/filter-fasta-by-length.py',
+    'bin/filter-fasta-by-complexity.py',
+    'bin/filter-fasta-by-taxonomy.py',
+    'bin/filter-fasta.py',
     'bin/filter-hits-to-fasta.py',
     'bin/find-hits.py',
     'bin/get-features.py',
@@ -23,10 +32,12 @@ scripts = [
     'bin/graph-evalues.py',
     'bin/local-align.py',
     'bin/noninteractive-alignment-panel.py',
+    'bin/position-summary.py',
     'bin/pre-commit.sh',
     'bin/print-blast-xml-for-derek.py',
     'bin/print-blast-xml.py',
     'bin/print-read-lengths.py',
+    'bin/randomize-fasta.py',
     'bin/read-blast-json.py',
     'bin/read-blast-xml.py',
     'bin/sff-to-fastq.py',
@@ -38,7 +49,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.1',
+      version='1.0.2',
       packages=['dark'],
       url='https://github.com/acorg/dark-matter',
       download_url='https://github.com/acorg/dark-matter',
@@ -54,11 +65,10 @@ setup(name='dark-matter',
           'Topic :: Software Development :: Libraries :: Python Modules',
       ],
       license='MIT',
-      description=('Python classes to help with virus discovery from genetic '
-                   'sequence data'),
+      description='Python classes for working with genetic sequence data',
       scripts=scripts,
-      ext_modules=cythonize([
-          Extension('dark.gor4',
-                    ['src/gor4/gor4.pyx', 'src/gor4/gor4-base.c',
-                     'src/gor4/nrutil.c', 'src/gor4/api.c'])]
-      ))
+      install_requires=['cffi>=1.0.0'],
+      setup_requires=['cffi>=1.0.0'],
+      cffi_modules=[
+          './src/gor4/build.py:ffi',
+      ])

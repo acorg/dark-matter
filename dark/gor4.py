@@ -1,4 +1,4 @@
-cimport cgor4
+from ._gor4 import ffi, lib
 
 from os.path import dirname, join
 import dark
@@ -8,7 +8,7 @@ _SEQUENCES = join(_DATA_DIR, 'New_KS.267.seq')
 _SECONDARY = join(_DATA_DIR, 'New_KS.267.obs')
 
 
-cdef class GOR4:
+class GOR4(object):
     """
     Interface with the C GOR IV code (see src/gor4).
 
@@ -17,32 +17,25 @@ cdef class GOR4:
     @param secondaryFile: The C{str} name of a file containing known
         secondary structure information for the sequences in C{sequenceFile}.
     """
-    cdef cgor4.State *_state
-
-    def __cinit__(self, sequenceFile=_SEQUENCES, secondaryFile=_SECONDARY):
-        cdef int error
-        sequenceFile = sequenceFile.encode('UTF-8')
-        cdef char* c_sequenceFile = sequenceFile
-        secondaryFile = secondaryFile.encode('UTF-8')
-        cdef char* c_secondaryFile = secondaryFile
-
-        self._state = cgor4.initialize(c_sequenceFile, c_secondaryFile,
-                                       &error)
-        if error:
-            raise Exception('Error in gor4-base.c initialize function.')
-
-        if self._state is NULL:
-            raise MemoryError()
-
-    def __dealloc__(self):
-        """
-        Free the storage associated with self._state.
-        """
-        if self._state is not NULL:
-            cgor4.finalize(self._state)
 
     def __init__(self, sequenceFile=_SEQUENCES, secondaryFile=_SECONDARY):
-        pass
+        sequenceFile = sequenceFile.encode('UTF-8')
+        secondaryFile = secondaryFile.encode('UTF-8')
+
+        error = ffi.new('int *')
+        state = lib.initialize(ffi.new('char[]', sequenceFile),
+                               ffi.new('char[]', secondaryFile), error)
+        if state == 0:
+            raise Exception('Error in gor4 initialization.')
+
+        if state == ffi.NULL:
+            raise MemoryError()
+
+        # ffi.gc returns a copy of the cdata object which will have the
+        # destructor (in this case ``finalize``) called when the Python
+        # object is GC'd:
+        # https://cffi.readthedocs.org/en/latest/using.html#ffi-interface
+        self._state = ffi.gc(state, lib.finalize)
 
     def predict(self, sequence):
         """
@@ -56,18 +49,19 @@ cdef class GOR4:
             C{sequence}. The C{float} values are the probabilities assigned,
             in order, to Helix, Beta Strand, Coil.
         """
-        cdef int i
-        cdef float *y
         # The gor4-base.c code uses 1-based indexing, unfortunately. So we need
         # to pad the sequence we pass, and to adjust all received results.
         sequence = ('X' + sequence).encode('UTF-8')
-        cgor4.predict(self._state, sequence)
-        predictions = self._state.predi[1:len(sequence)].decode('ASCII')
+        lib.predict(self._state, ffi.new('char[]', sequence))
+        predictions = ffi.string(self._state.predi[1:len(sequence)])
+        if isinstance(predictions, bytes):
+            predictions = predictions.decode()
         probabilities = []
         append = probabilities.append
-        for i in xrange(1, len(sequence)):
+        for i in range(1, len(sequence)):
             p = self._state.probai[i]
             append((p[1], p[2], p[3]))
+
         return {
             'predictions': predictions,
             'probabilities': probabilities,

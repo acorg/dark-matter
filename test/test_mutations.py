@@ -1,5 +1,6 @@
 import six
 from unittest import TestCase
+
 from dark.mutations import getAPOBECFrequencies, mutateString
 
 

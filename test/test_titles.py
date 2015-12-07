@@ -6,11 +6,14 @@
 
 import six
 import warnings
+import platform
 from unittest import TestCase
 
 from dark.titles import TitleAlignment, TitleAlignments
 from dark.reads import Read
 from dark.hsp import HSP, LSP
+
+_pypy = platform.python_implementation() == 'PyPy'
 
 
 class WarningTestMixin(object):
@@ -166,13 +169,21 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         if there are no alignments matching a title.
         """
         titleAlignments = TitleAlignments('subject title', 55)
-        error = '^index -1 is out of bounds for axis 0 with size 0$'
-        if six.PY3:
-            six.assertRaisesRegex(self, IndexError, error,
-                                  titleAlignments.medianScore)
-        else:
-            from numpy import isnan
-            self.assertTrue(isnan(titleAlignments.medianScore()))
+        error = '^arg is an empty sequence$'
+        six.assertRaisesRegex(self, ValueError, error,
+                              titleAlignments.medianScore)
+
+    def testMedianScoreWithNoHsps(self):
+        """
+        The medianScore function must raise ValueError if there are no HSPs.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [])
+        titleAlignments.addAlignment(titleAlignment)
+        error = '^arg is an empty sequence$'
+        six.assertRaisesRegex(self, ValueError, error,
+                              titleAlignments.medianScore)
 
     def testMedianScoreOfTwo(self):
         """
@@ -204,6 +215,23 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(15, titleAlignments.medianScore())
 
+    def testBestHspWithNoHsps(self):
+        """
+        The bestHsp function must raise ValueError if there are no HSPs.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [])
+        titleAlignments.addAlignment(titleAlignment)
+        if _pypy:
+            error = '^arg is an empty sequence$'
+        else:
+            error = '^max\(\) arg is an empty sequence$'
+        six.assertRaisesRegex(self, ValueError, error, titleAlignments.bestHsp)
+
     def testBestHsp(self):
         """
         The bestHsp function must return the HSP with the best score for all
@@ -220,6 +248,24 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp3, titleAlignments.bestHsp())
+
+    def testWorstHspWithNoHsps(self):
+        """
+        The worstHsp function must raise ValueError if there are no HSPs.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [])
+        titleAlignments.addAlignment(titleAlignment)
+        if _pypy:
+            error = '^arg is an empty sequence$'
+        else:
+            error = '^min\(\) arg is an empty sequence$'
+        six.assertRaisesRegex(self, ValueError, error,
+                              titleAlignments.worstHsp)
 
     def testWorstHsp(self):
         """

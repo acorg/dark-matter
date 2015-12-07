@@ -1,6 +1,7 @@
+import six
 from unittest import TestCase
 
-from dark.utils import numericallySortFilenames
+from dark.utils import numericallySortFilenames, median
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -58,3 +59,46 @@ class TestNumericallySortFilenames(TestCase):
             numericallySortFilenames(
                 ['../output/3.json', '../output/21.json', '../output/35.json',
                  '../output/250.json', '../output/2.json']))
+
+
+class TestMedian(TestCase):
+    """
+    Tests for the median function.
+    """
+
+    def testEmptyArgRaises(self):
+        """
+        An empty list must cause median to raise ValueError.
+        """
+        error = '^arg is an empty sequence$'
+        six.assertRaisesRegex(self, ValueError, error, median, [])
+
+    def testMedianOfOne(self):
+        """
+        The median function must work on a list of length one.
+        """
+        self.assertEqual(3, median([3]))
+
+    def testMedianOfTwo(self):
+        """
+        The median function must work on a list of length two.
+        """
+        self.assertEqual(4.5, median([3.1, 5.9]))
+
+    def testMedianOfThree(self):
+        """
+        The median function must work on a list of length threee.
+        """
+        self.assertEqual(5.9, median([3.1, 7.6, 5.9]))
+
+    def testMedianOfFour(self):
+        """
+        The median function must work on a list of length four.
+        """
+        self.assertEqual(4.5, median([3.1, 1.3, 7.6, 5.9]))
+
+    def testMedianOfFive(self):
+        """
+        The median function must work on a list of length five.
+        """
+        self.assertEqual(5.9, median([3.1, 1.3, 7.6, 9.9, 5.9]))

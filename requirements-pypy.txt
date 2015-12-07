@@ -1,10 +1,8 @@
+git+http://bitbucket.org/pypy/numpy.git
 biopython==1.64
-bz2file==0.98
-cython==0.21.2
 discover==0.4.0
-ipython==3.1.0
-matplotlib==1.4.3
-numpy==1.8.1
+ipython==2.2.0
+mock==1.0.1
 pandas==0.14.1
 pep8==1.5.7
 pyflakes==0.8.1
@@ -12,6 +10,7 @@ pyzmq==14.3.1
 reportlab==3.1.44
 simplejson==3.5.3
 tornado==4.0.1
+MySQL-python==1.2.5
+Twisted==15.5.0
 --allow-external mysql-connector-python
 mysql-connector-python==2.0.3
-Twisted==15.5.0

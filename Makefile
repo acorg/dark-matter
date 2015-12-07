@@ -1,12 +1,12 @@
 .PHONY: check, pep8, pyflakes, lint
 
-check: dark/gor4.so
+check: dark/_gor4.so
 	python -m discover -v
 
-tcheck: dark/gor4.so
+tcheck: dark/_gor4.so
 	trial --rterrors test
 
-dark/gor4.so: $(wildcard src/gor4/*.c src/gor4/*.h src/gor4/*.pxd src/gor4/*.pyx)
+dark/_gor4.so: $(wildcard src/gor4/*.c src/gor4/*.h src/gor4/build.py)
 	python setup.py build_ext -i
 
 pep8:
@@ -24,5 +24,6 @@ clean:
 	find . \( -name '*.pyc' -o -name '*~' \) -print0 | xargs -0 rm
 	find . -name '__pycache__' -type d -print0 | xargs -0 rmdir
 	find . -name '_trial_temp' -type d -print0 | xargs -0 rm -r
-	rm -fr dark_matter.egg-info build dist dark/gor4.so src/gor4/gor4.c
-	rm -f dark/gor4.cpython-35m-darwin.so
+	rm -f dark/_gor4.*
+	rm -fr dark_matter.egg-info
+	python setup.py clean

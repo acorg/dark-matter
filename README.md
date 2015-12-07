@@ -8,4 +8,4 @@ Requires Python 2.7 to 3.5.
 
 ## Installation
 
-[Linux](doc/linux.md), [Windows](doc/windows.md).
+[Linux](doc/linux.md), [OS X](doc/mac.md), [Windows](doc/windows.md).

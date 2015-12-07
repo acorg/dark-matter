@@ -7,4 +7,3 @@ dist
 dark_matter.egg-info
 *.o
 *.so
-src/gor4/gor4.c

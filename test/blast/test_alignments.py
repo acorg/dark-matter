@@ -1,6 +1,7 @@
 # TODO: Add tests based on taxonomy, once we know how to mock mysql.
 
 import six
+import platform
 from six.moves import builtins
 from copy import deepcopy
 import bz2
@@ -70,6 +71,7 @@ class TestBlastReadsAlignments(TestCase):
         When given a file whose contents are not JSON, attempting to
         read the BLAST hits from it must raise a C{ValueError}.
         """
+        pypy = platform.python_implementation() == 'PyPy'
         mockOpener = mockOpen(read_data='not JSON\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -79,10 +81,16 @@ class TestBlastReadsAlignments(TestCase):
                     "\(Expecting value: line 1 column 1 \(char 0\)\)\. "
                     "Line is 'not JSON'\.$")
             else:
-                error = (
-                    "^Could not convert first line of 'file\.json' to JSON "
-                    "\(No JSON object could be decoded\)\. Line is 'not "
-                    "JSON'\.$")
+                if pypy:
+                    error = (
+                        "^Could not convert first line of 'file\.json' to "
+                        "JSON \(Error when decoding null at char 1\)\. Line "
+                        "is 'not JSON'\.$")
+                else:
+                    error = (
+                        "^Could not convert first line of 'file\.json' to "
+                        "JSON \(No JSON object could be decoded\)\. Line is "
+                        "'not JSON'\.$")
             six.assertRaisesRegex(self, ValueError, error,
                                   BlastReadsAlignments, reads, 'file.json')
 
