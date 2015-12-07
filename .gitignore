@@ -7,3 +7,4 @@ dist
 dark_matter.egg-info
 *.o
 *.so
+.tox
