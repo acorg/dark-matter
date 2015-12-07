@@ -24,6 +24,23 @@ $ sudo make install
 
 ### Install dark matter in a Python virtual environment
 
+The dark matter code runs under Python 2 and 3. You need to create a
+virtual environment for the Python of your choice and then install the
+correct requirements:
+
+#### Python 2
+
+```sh
+$ sudo pip install virtualenv
+$ virtualenv --python=python2 env
+$ . env/bin/activate
+$ pip install dark-matter
+$ cd dark-matter
+$ pip install -r requirements2.txt
+```
+
+#### Python 3
+
 ```sh
 $ sudo pip install virtualenv
 $ virtualenv --python=python3 env
