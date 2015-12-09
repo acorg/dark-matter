@@ -23,13 +23,13 @@ $ . env/bin/activate
 You can either download a stable (and possibly slightly old) version of
 dark matter from PyPI using pip:
 
-Note that if you are using Python 2, use `requirements2.txt` in the
+Note that if you are using Python 2, use `requirements-2.txt` in the
 following.
 
 ```sh
 $ pip install dark-matter
 $ cd dark-matter
-$ pip install -r requirements.txt
+$ pip install -r requirements-3.txt
 ```
 
 Or, clone the dark matter github repo to have the very latest code:
