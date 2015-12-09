@@ -44,13 +44,13 @@ $ make install
 
 ### Install dark matter from PyPI
 
-Note that if you are running Python 2, you should use the `requirements2.txt`
+Note that if you are running Python 2, you should use the `requirements-2.txt`
 file in the following.
 
 ```sh
 $ pip install dark-matter
 $ cd dark-matter
-$ pip install -r requirements.txt
+$ pip install -r requirements-3.txt
 ```
 
 ### Set PYTHONPATH

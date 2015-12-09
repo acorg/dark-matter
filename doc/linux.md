@@ -36,7 +36,7 @@ $ virtualenv --python=python2 env
 $ . env/bin/activate
 $ pip install dark-matter
 $ cd dark-matter
-$ pip install -r requirements2.txt
+$ pip install -r requirements-2.txt
 ```
 
 #### Python 3
@@ -47,7 +47,7 @@ $ virtualenv --python=python3 env
 $ . env/bin/activate
 $ pip install dark-matter
 $ cd dark-matter
-$ pip install -r requirements.txt
+$ pip install -r requirements-3.txt
 ```
 
 ### Set PYTHONPATH

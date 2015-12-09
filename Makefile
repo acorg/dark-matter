@@ -10,10 +10,10 @@ dark/_gor4.so: $(wildcard src/gor4/*.c src/gor4/*.h src/gor4/build.py)
 	python setup.py build_ext -i
 
 pep8:
-	find . -name '*.py' -print0 | xargs -0 pep8
+	find . -path './.tox' -prune -o -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | xargs -0 pep8
 
 pyflakes:
-	find . -name '*.py' -print0 | xargs -0 pyflakes
+	find .  -path './.tox' -prune -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | xargs -0 pyflakes
 
 lint: pep8 pyflakes
 
@@ -27,3 +27,6 @@ clean:
 	rm -f dark/_gor4.*
 	rm -fr dark_matter.egg-info
 	python setup.py clean
+
+clobber: clean
+	rm -fr .tox
