@@ -239,15 +239,17 @@ class RNARead(_NucleotideRead):
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
 
+# Keep a single GOR4 instance that can be used by all AA reads. This saves us
+# from re-scanning the GOR IV secondary structure database every time we make
+# an AARead instance.
+_GOR4 = GOR4()
+
+
 class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
     ALPHABET = set(AA_LETTERS)
-    # Keep a single GOR4 instance that can be used by all AA reads. This
-    # saves us from re-scanning the GOR IV secondary structure database
-    # every time we make an AARead instance.
-    _GOR4 = GOR4()
 
     def checkAlphabet(self, count=10):
         """
@@ -339,7 +341,7 @@ class AARead(Read):
             C{sequence}. The C{float} values are the probabilities assigned,
             in order, to Helix, Beta Strand, Coil.
         """
-        return self._GOR4.predict(self.sequence)
+        return _GOR4.predict(self.sequence)
 
 
 class AAReadWithX(AARead):
