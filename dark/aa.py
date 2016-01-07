@@ -688,15 +688,30 @@ class AminoAcid(object):
             'polarity': 0.382716049383,
             'volume': 0.449101796407,
         }
+    @param propertyClusters: A C{dict} containing the property names and
+        clusters for this amino acid. E.g.:
+        {
+            'aliphaticity': 1,
+            'aromaticity': 2,
+            'composition': 1,
+            'hydrogenation': 1,
+            'hydropathy': 2,
+            'hydroxyethilation': 4,
+            'iep': 2,
+            'polar_req': 1,
+            'polarity': 1,
+            'volume': 4,
+        }
     """
     def __init__(self, name, abbrev3, abbrev1, codons, properties,
-                 propertyDetails):
+                 propertyDetails, propertyClusters):
         self.name = name
         self.abbrev3 = abbrev3
         self.abbrev1 = abbrev1
         self.codons = codons
         self.properties = properties
         self.propertyDetails = propertyDetails
+        self.propertyClusters = propertyClusters
 
 
 def find(s):
@@ -738,4 +753,5 @@ def find(s):
     if abbrev1:
         return AminoAcid(
             NAMES[abbrev1], ABBREV3[abbrev1], abbrev1, CODONS[abbrev1],
-            PROPERTIES[abbrev1], PROPERTY_DETAILS[abbrev1])
+            PROPERTIES[abbrev1], PROPERTY_DETAILS[abbrev1],
+            PROPERTY_CLUSTERS[abbrev1])

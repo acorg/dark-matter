@@ -5,7 +5,7 @@ from dark.aa import (
     ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
     NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
-    find, AminoAcid)
+    find, AminoAcid, PROPERTY_CLUSTERS)
 
 
 class TestAALetters(TestCase):
@@ -218,14 +218,16 @@ class TestAminoAcid(TestCase):
         properties = {}
         propertyDetails = {}
         codons = []
+        propertyClusters = {}
         aa = AminoAcid('Alanine', 'Ala', 'A', codons, properties,
-                       propertyDetails)
+                       propertyDetails, propertyClusters)
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
         self.assertIs(codons, aa.codons)
         self.assertIs(properties, aa.properties)
         self.assertIs(propertyDetails, aa.propertyDetails)
+        self.assertIs(propertyClusters, aa.propertyClusters)
 
 
 class TestFind(TestCase):
@@ -263,6 +265,20 @@ class TestFind(TestCase):
                 'volume': -0.664670658683,
             },
             aa.propertyDetails)
+        self.assertEqual(
+            {
+                'aliphaticity': 1,
+                'aromaticity': 1,
+                'composition': 1,
+                'hydrogenation': 1,
+                'hydropathy': 3,
+                'hydroxyethilation': 2,
+                'iep': 2,
+                'polar_req': 2,
+                'polarity': 2,
+                'volume': 2,
+            },
+            aa.propertyClusters)
 
     def testFindByAbbrev3(self):
         """
@@ -288,6 +304,20 @@ class TestFind(TestCase):
                 'volume': -0.664670658683,
             },
             aa.propertyDetails)
+        self.assertEqual(
+            {
+                'aliphaticity': 1,
+                'aromaticity': 1,
+                'composition': 1,
+                'hydrogenation': 1,
+                'hydropathy': 3,
+                'hydroxyethilation': 2,
+                'iep': 2,
+                'polar_req': 2,
+                'polarity': 2,
+                'volume': 2,
+            },
+            aa.propertyClusters)
 
     def testFindByCodon(self):
         """
@@ -313,6 +343,20 @@ class TestFind(TestCase):
                 'volume': -0.664670658683,
             },
             aa.propertyDetails)
+        self.assertEqual(
+            {
+                'aliphaticity': 1,
+                'aromaticity': 1,
+                'composition': 1,
+                'hydrogenation': 1,
+                'hydropathy': 3,
+                'hydroxyethilation': 2,
+                'iep': 2,
+                'polar_req': 2,
+                'polarity': 2,
+                'volume': 2,
+            },
+            aa.propertyClusters)
 
     def testFindByName(self):
         """
@@ -338,6 +382,20 @@ class TestFind(TestCase):
                 'volume': -0.664670658683,
             },
             aa.propertyDetails)
+        self.assertEqual(
+            {
+                'aliphaticity': 1,
+                'aromaticity': 1,
+                'composition': 1,
+                'hydrogenation': 1,
+                'hydropathy': 3,
+                'hydroxyethilation': 2,
+                'iep': 2,
+                'polar_req': 2,
+                'polarity': 2,
+                'volume': 2,
+            },
+            aa.propertyClusters)
 
     def testFindByNameCaseIgnored(self):
         """
@@ -364,6 +422,20 @@ class TestFind(TestCase):
                 'volume': -0.664670658683,
             },
             aa.propertyDetails)
+        self.assertEqual(
+            {
+                'aliphaticity': 1,
+                'aromaticity': 1,
+                'composition': 1,
+                'hydrogenation': 1,
+                'hydropathy': 3,
+                'hydroxyethilation': 2,
+                'iep': 2,
+                'polar_req': 2,
+                'polarity': 2,
+                'volume': 2,
+            },
+            aa.propertyClusters)
 
     def testFindByNameCaseIgnoredNameWithSpace(self):
         """
@@ -390,3 +462,43 @@ class TestFind(TestCase):
                 'volume': -0.389221556886,
             },
             aa.propertyDetails)
+        self.assertEqual(
+            {
+                'aliphaticity': 1,
+                'aromaticity': 1,
+                'composition': 2,
+                'hydrogenation': 1,
+                'hydropathy': 1,
+                'hydroxyethilation': 2,
+                'iep': 1,
+                'polar_req': 4,
+                'polarity': 4,
+                'volume': 3,
+            },
+            aa.propertyClusters)
+
+
+class TestPropertyClusters(TestCase):
+    """
+    Tests for the PROPERTY_CLUSTERS dict.
+    """
+    def testPropertyClusterKeys(self):
+        """
+        The PROPERTY_CLUSTERS dict must contain the right keys.
+        """
+        self.assertEqual(AA_LETTERS, sorted(PROPERTY_CLUSTERS.keys()))
+
+    def testNumberOfValues(self):
+        """
+        Each key in PROPERTY_CLUSTERS must have a dict with 10 elements in it
+        as the value.
+        """
+        for aa, propertiesDict in PROPERTY_CLUSTERS.items():
+            self.assertIs(10, len(propertiesDict))
+
+    def testAliphaticity(self):
+        """
+        Aliphaticity must always be in cluster 1.
+        """
+        for aa, propertiesDict in PROPERTY_CLUSTERS.items():
+            self.assertIs(1, propertiesDict['aliphaticity'])
