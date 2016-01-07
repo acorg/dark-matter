@@ -493,12 +493,24 @@ class TestPropertyClusters(TestCase):
         Each key in PROPERTY_CLUSTERS must have a dict with 10 elements in it
         as the value.
         """
-        for aa, propertiesDict in PROPERTY_CLUSTERS.items():
-            self.assertIs(10, len(propertiesDict))
+        for propertyNames in PROPERTY_CLUSTERS.values():
+            self.assertEqual([
+                'aliphaticity', 'aromaticity', 'composition',
+                'hydrogenation', 'hydropathy', 'hydroxyethilation',
+                'iep', 'polar_req', 'polarity', 'volume'],
+                sorted(propertyNames.keys()))
 
     def testAliphaticity(self):
         """
         Aliphaticity must always be in cluster 1.
         """
-        for aa, propertiesDict in PROPERTY_CLUSTERS.items():
-            self.assertIs(1, propertiesDict['aliphaticity'])
+        for propertiesDict in PROPERTY_CLUSTERS.values():
+            self.assertEqual(1, propertiesDict['aliphaticity'])
+
+    def testPermittedClustersOnly(self):
+        """
+        All cluster numbers must be in {1, 2, 3, 4, 5}.
+        """
+        for propertiesDict in PROPERTY_CLUSTERS.values():
+            for clusterNr in propertiesDict.values():
+                self.assertIn(clusterNr, {1, 2, 3, 4, 5})
