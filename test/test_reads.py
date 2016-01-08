@@ -552,7 +552,7 @@ class TestAARead(TestCase):
                     'polar_req': -0.463414634146,
                     'hydropathy': 0.4,
                     'iep': -0.191489361702,
-                    'hydroxyethilation': -0.265160523187,
+                    'hydroxythiolation': -0.265160523187,
                     'aromaticity': -0.550128534704,
                     'hydrogenation': 0.8973042362,
                     'composition': -1.0
@@ -564,7 +564,7 @@ class TestAARead(TestCase):
                     'polar_req': 1.0,
                     'hydropathy': -0.777777777778,
                     'iep': -1.0,
-                    'hydroxyethilation': -0.348394768133,
+                    'hydroxythiolation': -0.348394768133,
                     'aromaticity': -1.0,
                     'hydrogenation': -0.90243902439,
                     'composition': 0.00363636363636
@@ -576,7 +576,7 @@ class TestAARead(TestCase):
                     'polar_req': 0.0487804878049,
                     'hydropathy': -1.0,
                     'iep': 1.0,
-                    'hydroxyethilation': -0.51486325802,
+                    'hydroxythiolation': -0.51486325802,
                     'aromaticity': -0.0642673521851,
                     'hydrogenation': -0.401797175866,
                     'composition': -0.527272727273
