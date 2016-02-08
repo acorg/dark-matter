@@ -442,7 +442,7 @@ class TestCombineReads(TestCase):
     """
     def testNoneNone(self):
         """
-        A None FASTA file name and None sequences results in an empty
+        A C{None} FASTA file name and None sequences results in an empty
         FastaReads instance.
         """
         reads = combineReads(None, None)
@@ -450,15 +450,15 @@ class TestCombineReads(TestCase):
 
     def testNoneEmpty(self):
         """
-        A None FASTA file name and an empty sequences list results in an empty
-        FastaReads instance.
+        A C{None} FASTA file name and an empty sequences list results in an
+        empty FastaReads instance.
         """
         reads = list(combineReads(None, []))
         self.assertEqual([], reads)
 
     def testFileOnly(self):
         """
-        If a FASTA file is given but sequences is None, the resulting
+        If a FASTA file is given but sequences is C{None}, the resulting
         FastaReads must contain the expected read.
         """
         data = '\n'.join(['>id1', 'ACGT'])
@@ -469,7 +469,7 @@ class TestCombineReads(TestCase):
 
     def testNoUpperCaseFileOnly(self):
         """
-        If upperCase is not passed and a FASTA file is given , the resulting
+        If upperCase is not passed and a FASTA file is given, the resulting
         FastaReads must contain the expected read, in the original case.
         """
         data = '\n'.join(['>id1', 'AcgT'])
@@ -481,7 +481,7 @@ class TestCombineReads(TestCase):
     def testUpperCaseFileOnly(self):
         """
         When passing upperCase=True and a FASTA file, the resulting
-        FastaReads must have read sequences in uppper case.
+        FastaReads must have the read sequence in uppper case.
         """
         data = '\n'.join(['>id1', 'acgt'])
         mockOpener = mockOpen(read_data=data)
@@ -491,7 +491,7 @@ class TestCombineReads(TestCase):
 
     def testSequencesOnly(self):
         """
-        A None FASTA file name and a non-empty sequences list results in a
+        A C{None} FASTA file name and a non-empty sequences list results in a
         FastaReads instance with the expected read.
         """
         reads = list(combineReads(None, ['id ACGTSSS'], readClass=AARead))
@@ -515,16 +515,17 @@ class TestCombineReads(TestCase):
 
     def testDefaultReadIdPrefix(self):
         """
-        A None FASTA file name and a non-empty sequences list with a sequence
-        that has no id results in a FastaReads instance with the expected read.
+        A C{None} FASTA file name and a non-empty sequences list with a
+        sequence that has no id results in a FastaReads instance with the
+        expected read.
         """
         reads = list(combineReads(None, ['ACGT']))
         self.assertEqual([Read('command-line-read-1', 'ACGT')], reads)
 
     def testCustomReadIdPrefix(self):
         """
-        A None FASTA file name and a non-empty sequences list with a sequence
-        that has no id, but with a custom read id prefix, results in a
+        A C{None} FASTA file name and a non-empty sequences list with a
+        sequence that has no id, but with a custom read id prefix, results in a
         FastaReads instance with the expected read.
         """
         reads = list(combineReads(None, ['ACGTSSS'], idPrefix='prefix-',
