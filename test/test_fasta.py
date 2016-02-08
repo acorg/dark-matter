@@ -467,6 +467,28 @@ class TestCombineReads(TestCase):
             reads = list(combineReads('filename.fasta', None))
             self.assertEqual([Read('id1', 'ACGT')], reads)
 
+    def testNoUpperCaseFileOnly(self):
+        """
+        If upperCase is not passed and a FASTA file is given , the resulting
+        FastaReads must contain the expected read, in the original case.
+        """
+        data = '\n'.join(['>id1', 'AcgT'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = list(combineReads('filename.fasta', None))
+            self.assertEqual([Read('id1', 'AcgT')], reads)
+
+    def testUpperCaseFileOnly(self):
+        """
+        When passing upperCase=True and a FASTA file, the resulting
+        FastaReads must have read sequences in uppper case.
+        """
+        data = '\n'.join(['>id1', 'acgt'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = list(combineReads('filename.fasta', None, upperCase=True))
+            self.assertEqual([Read('id1', 'ACGT')], reads)
+
     def testSequencesOnly(self):
         """
         A None FASTA file name and a non-empty sequences list results in a
@@ -474,6 +496,22 @@ class TestCombineReads(TestCase):
         """
         reads = list(combineReads(None, ['id ACGTSSS'], readClass=AARead))
         self.assertEqual([AARead('id', 'ACGTSSS')], reads)
+
+    def testNoUpperCaseSequencesOnly(self):
+        """
+        If upperCase is not passed to combineReads the resulting read
+        sequences must have their original case.
+        """
+        reads = list(combineReads(None, ['id aCGt']))
+        self.assertEqual([Read('id', 'aCGt')], reads)
+
+    def testUpperCaseSequencesOnly(self):
+        """
+        Passing upperCase=True to combineReads must result in read sequences
+        being upper cased.
+        """
+        reads = list(combineReads(None, ['id acgt'], upperCase=True))
+        self.assertEqual([Read('id', 'ACGT')], reads)
 
     def testDefaultReadIdPrefix(self):
         """
