@@ -85,14 +85,20 @@ class FastaReads(Reads):
     @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
         will be done on all reads. If an C{int}, only that many reads will be
         checked. (Pass zero to have no checks done.)
-    @param upperCase: If not C{False}, the reads will be converted to upper
-        case.
+    @param upperCase: If C{True}, reads will be converted to upper case.
     """
     def __init__(self, _file, readClass=DNARead, checkAlphabet=None,
                  upperCase=False):
         self._file = _file
         self._readClass = readClass
         self._checkAlphabet = checkAlphabet
+        # TODO: It would be better if upperCase were an argument that could
+        # be passed to Reads.__init__ and that could do the uppercasing in
+        # its add method (as opposed to using it below in our iter method).
+        # In that case, in the iter of this class we'd call self.add on
+        # each of the sequences coming from self._file. Or, if we'd already
+        # read the file we'd return Reads.iter(self) to re-iterate over the
+        # sequences already added from the file.
         self._upperCase = upperCase
         Reads.__init__(self)
 
@@ -114,7 +120,7 @@ class FastaReads(Reads):
 
 
 def combineReads(filename, sequences, readClass=DNARead,
-                 idPrefix='command-line-read-'):
+                 upperCase=False, idPrefix='command-line-read-'):
     """
     Combine FASTA reads from a file and/or sequence strings.
 
@@ -124,6 +130,7 @@ def combineReads(filename, sequences, readClass=DNARead,
         used as the sequence and the first fields will be used as the sequence
         id.
     @param readClass: The class of the individual reads.
+    @param upperCase: If C{True}, reads will be converted to upper case.
     @param idPrefix: The C{str} prefix that will be used for the id of the
         sequences in C{sequences} that do not have an id specified. A trailing
         sequence number will be appended to this prefix. Note that
@@ -134,7 +141,7 @@ def combineReads(filename, sequences, readClass=DNARead,
     """
     # Read sequences from a FASTA file, if given.
     if filename:
-        reads = FastaReads(filename, readClass=readClass)
+        reads = FastaReads(filename, readClass=readClass, upperCase=upperCase)
     else:
         reads = Reads()
 
@@ -149,6 +156,8 @@ def combineReads(filename, sequences, readClass=DNARead,
                 readId, sequence = parts
             else:
                 readId = '%s%d' % (idPrefix, count)
+            if upperCase:
+                sequence = sequence.upper()
             read = readClass(readId, sequence)
             read.checkAlphabet()
             reads.add(read)
