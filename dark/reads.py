@@ -498,7 +498,7 @@ class Reads(object):
                whitelist=None, blacklist=None,
                titleRegex=None, negativeTitleRegex=None,
                truncateTitlesAfter=None, indices=None, head=None,
-               removeDuplicates=False):
+               removeDuplicates=False, modifier=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -525,6 +525,11 @@ class Reads(object):
         @param head: If not C{None}, the C{int} number of sequences at the
             start of the reads to return. Later sequences are skipped.
         @param removeDuplicates: If C{True} remove duplicated sequences.
+        @param modifier: If not C{None} a function that is passed a read
+            and which either returns a read or C{None}. If it returns a read,
+            that read is passed through the filter. If it returns C{None},
+            the read is omitted. Such a function can be used to do customized
+            filtering, to change sequence ids, etc.
         @return: A generator that yields C{Read} instances.
         """
         if (whitelist or blacklist or titleRegex or negativeTitleRegex or
@@ -565,6 +570,13 @@ class Reads(object):
                 if read.sequence in sequencesSeen:
                     continue
                 sequencesSeen.add(read.sequence)
+
+            if modifier:
+                modified = modifier(read)
+                if modified is None:
+                    continue
+                else:
+                    read = modified
 
             yield read
 

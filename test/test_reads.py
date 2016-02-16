@@ -1799,6 +1799,59 @@ class TestReads(TestCase):
         result = reads.filter(removeDuplicates=True)
         self.assertEqual([read1], list(result))
 
+    def testFilterWithModifierThatOmits(self):
+        """
+        Filtering with a modifier function must work correctly if the modifier
+        returns C{None} for some reads.
+        """
+        def modifier(read):
+            if read.id == 'id1':
+                return read
+
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(modifier=modifier)
+        self.assertEqual([read1], list(result))
+
+    def testFilterWithModifierThatChangesIds(self):
+        """
+        Filtering with a modifier function must work correctly if the modifier
+        changes the ids of reads.
+        """
+        def modifier(read):
+            read.id = read.id.upper()
+            return read
+
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(modifier=modifier)
+        self.assertEqual([Read('ID1', 'ATCG'), Read('ID2', 'ATCG')],
+                         list(result))
+
+    def testFilterWithModifierThatOmitsAndChangesIds(self):
+        """
+        Filtering with a modifier function must work correctly if the modifier
+        omits some reads and changes the ids of others.
+        """
+        def modifier(read):
+            if read.id == 'id1':
+                read.id = 'xxx'
+                return read
+
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(modifier=modifier)
+        self.assertEqual([Read('xxx', 'ATCG')], list(result))
+
 
 class TestSummarizePosition(TestCase):
     """
