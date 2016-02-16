@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     kept = 0
-    reads = FastaReads(sys.stdin)
+    reads = FastaReads(sys.stdin, checkAlphabet=False)
 
     for seq in reads.filter(
             minLength=args.minLength,
