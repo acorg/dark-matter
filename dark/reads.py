@@ -432,11 +432,16 @@ class TranslatedRead(AARead):
 class Reads(object):
     """
     Maintain a collection of sequence reads.
+
+    @param initialReads: If not C{None}, an iterable of C{Read} (or C{Read}
+        subclass) instances.
     """
 
-    def __init__(self):
+    def __init__(self, initialReads=None):
         self.additionalReads = []
         self._length = 0
+        if initialReads is not None:
+            list(map(self.add, initialReads))
 
     def add(self, read):
         """
@@ -525,7 +530,7 @@ class Reads(object):
         @param head: If not C{None}, the C{int} number of sequences at the
             start of the reads to return. Later sequences are skipped.
         @param removeDuplicates: If C{True} remove duplicated sequences.
-        @param modifier: If not C{None} a function that is passed a read
+        @param modifier: If not C{None}, a function that is passed a read
             and which either returns a read or C{None}. If it returns a read,
             that read is passed through the filter. If it returns C{None},
             the read is omitted. Such a function can be used to do customized

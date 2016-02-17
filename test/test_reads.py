@@ -1383,6 +1383,25 @@ class TestReads(TestCase):
         reads.add(read2)
         self.assertEqual([read1, read2], list(reads))
 
+    def testEmptyInitialReads(self):
+        """
+        A Reads instance must be able to accept an empty initial iterable of
+        reads.
+        """
+        reads = Reads([])
+        self.assertEqual([], list(reads))
+
+    def testInitialReads(self):
+        """
+        A Reads instance must be able to accept a non-empty initial iterable
+        of reads.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads = Reads([read1, read2])
+        self.assertEqual(2, len(reads))
+        self.assertEqual([read1, read2], list(reads))
+
     def testManuallyAddedReadsLength(self):
         """
         A Reads instance with reads added manually must have the correct
