@@ -535,6 +535,25 @@ class Reads(object):
             that read is passed through the filter. If it returns C{None},
             the read is omitted. Such a function can be used to do customized
             filtering, to change sequence ids, etc.
+        @return: A new C{Reads} instance, with reads filtered as requested.
+        """
+        return Reads(self._filter(
+            minLength=minLength, maxLength=maxLength, removeGaps=removeGaps,
+            whitelist=whitelist, blacklist=blacklist, titleRegex=titleRegex,
+            negativeTitleRegex=negativeTitleRegex,
+            truncateTitlesAfter=truncateTitlesAfter, indices=indices,
+            head=head, removeDuplicates=removeDuplicates, modifier=modifier))
+
+    def _filter(self, minLength=None, maxLength=None, removeGaps=False,
+                whitelist=None, blacklist=None,
+                titleRegex=None, negativeTitleRegex=None,
+                truncateTitlesAfter=None, indices=None, head=None,
+                removeDuplicates=False, modifier=None):
+        """
+        Filter a set of reads to produce a matching subset.
+
+        See docstring for self.filter (above) for parameter docs.
+
         @return: A generator that yields C{Read} instances.
         """
         if (whitelist or blacklist or titleRegex or negativeTitleRegex or

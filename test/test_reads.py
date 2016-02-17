@@ -1635,6 +1635,29 @@ class TestReads(TestCase):
         result = reads.filter()
         self.assertEqual([read1, read2], list(result))
 
+    def testFilterReturnsReadInstance(self):
+        """
+        Filtering must return a C{Reads} instance.
+        """
+        self.assertTrue(isinstance(Reads().filter(), Reads))
+
+    def testFilteredReadsInstanceHasExpectedLength(self):
+        """
+        After filtering, the returned Reads instance must have the expected
+        length.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        read3 = Read('id3', 'AC')
+        read4 = Read('id4', 'A')
+        reads.add(read1)
+        reads.add(read2)
+        reads.add(read3)
+        reads.add(read4)
+        result = reads.filter(minLength=3)
+        self.assertEqual(2, len(result))
+
     def testFilterOnMinLength(self):
         """
         Filtering on minimal length must work.
