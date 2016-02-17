@@ -530,7 +530,7 @@ class Reads(object):
         @param head: If not C{None}, the C{int} number of sequences at the
             start of the reads to return. Later sequences are skipped.
         @param removeDuplicates: If C{True} remove duplicated sequences.
-        @param modifier: If not C{None} a function that is passed a read
+        @param modifier: If not C{None}, a function that is passed a read
             and which either returns a read or C{None}. If it returns a read,
             that read is passed through the filter. If it returns C{None},
             the read is omitted. Such a function can be used to do customized
