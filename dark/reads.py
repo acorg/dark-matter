@@ -432,11 +432,16 @@ class TranslatedRead(AARead):
 class Reads(object):
     """
     Maintain a collection of sequence reads.
+
+    @param initialReads: If not C{None}, an iterable of C{Read} (or C{Read}
+        subclass) instances.
     """
 
-    def __init__(self):
+    def __init__(self, initialReads=None):
         self.additionalReads = []
         self._length = 0
+        if initialReads is not None:
+            list(map(self.add, initialReads))
 
     def add(self, read):
         """
