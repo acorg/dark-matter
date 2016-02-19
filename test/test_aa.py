@@ -1,3 +1,4 @@
+import six
 from unittest import TestCase
 
 from dark.aa import (
@@ -5,7 +6,8 @@ from dark.aa import (
     ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
     NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
-    find, AminoAcid, PROPERTY_CLUSTERS)
+    find, AminoAcid, propertiesForSequence, PROPERTY_CLUSTERS)
+from dark.reads import AARead
 
 
 class TestAALetters(TestCase):
@@ -514,3 +516,84 @@ class TestPropertyClusters(TestCase):
         for propertiesDict in PROPERTY_CLUSTERS.values():
             for clusterNr in propertiesDict.values():
                 self.assertIn(clusterNr, {1, 2, 3, 4, 5})
+
+
+class TestPropertiesForSequence(TestCase):
+    """
+    Tests for the propertiesForSequence function in aa.py
+    """
+    def testUnknownProperty(self):
+        """
+        A C{ValueError} must be raised if an unknown property name is passed.
+        """
+        error = 'Unknown property: xxx'
+        read = AARead('id', 'RRR')
+        six.assertRaisesRegex(self, ValueError, error,
+                              propertiesForSequence, read, ['xxx'])
+
+    def testNoProperties(self):
+        """
+        If no properties are wanted, an empty dict must be returned.
+        """
+        read = AARead('id', 'RRR')
+        self.assertEqual({}, propertiesForSequence(read, []))
+
+    def testOnePropertyEmptySequence(self):
+        """
+        If one property is wanted but the sequence is empty, a dict with the
+        property must be returned, and have an empty list value.
+        """
+        read = AARead('id', '')
+        self.assertEqual(
+            {
+                'hydropathy': [],
+            },
+            propertiesForSequence(read, ['hydropathy']))
+
+    def testPropertyNameIsLowercased(self):
+        """
+        The property name must be lower-cased in the result.
+        """
+        read = AARead('id', '')
+        self.assertTrue('hydropathy' in
+                        propertiesForSequence(read, ['HYDROPATHY']))
+
+    def testOneProperty(self):
+        """
+        If one property is wanted, a dict with the property must be returned,
+        and have the expected property values.
+        """
+        read = AARead('id', 'AI')
+        self.assertEqual(
+            {
+                'hydropathy': [0.4, 1.0],
+            },
+            propertiesForSequence(read, ['hydropathy']))
+
+    def testTwoProperties(self):
+        """
+        If two properties are wanted, a dict with the properties must be
+        returned, and have the expected property values.
+        """
+        read = AARead('id', 'AI')
+        self.assertEqual(
+            {
+                'composition': [-1.0, -1.0],
+                'hydropathy': [0.4, 1.0],
+            },
+            propertiesForSequence(read, ['composition', 'hydropathy']))
+
+    def testDuplicatedPropertyName(self):
+        """
+        If a property name is mentioned more than once, a dict with the
+        wanted properties must be returned, and have the expected property
+        values.
+        """
+        read = AARead('id', 'AI')
+        self.assertEqual(
+            {
+                'composition': [-1.0, -1.0],
+                'hydropathy': [0.4, 1.0],
+            },
+            propertiesForSequence(read, ['composition',
+                                         'hydropathy', 'hydropathy']))
