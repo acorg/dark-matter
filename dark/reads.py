@@ -391,6 +391,35 @@ class AAReadORF(AARead):
         self.openRight = openRight
 
 
+class SSAARead(AARead):
+    """
+    Hold information to work with AAReads that have secondary structure
+    information attached to them.
+
+    Note that this class (currently) has no quality string associated with it.
+
+    @param id: A C{str} describing the read.
+    @param sequence: A C{str} of sequence information.
+    @param structure: A C{str} of structure information.
+    """
+    def __init__(self, id, sequence, structure):
+        if six.PY3:
+            super().__init__(id, sequence)
+        else:
+            AARead.__init__(self, id, sequence)
+        self.structure = structure
+
+    def __eq__(self, other):
+        return (self.id == other.id and
+                self.sequence == other.sequence and
+                self.structure == other.structure)
+
+    def __getitem__(self, item):
+        sequence = self.sequence[item]
+        structure = None if self.structure is None else self.structure[item]
+        return self.__class__(self.id, sequence, structure)
+
+
 class TranslatedRead(AARead):
     """
     Hold information about one DNA->AA translation of a Read.
