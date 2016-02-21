@@ -79,6 +79,11 @@ class Read(object):
                             self.sequence.encode('UTF-8') + b'\0' +
                             self.quality.encode('UTF-8')).digest())
 
+    def __getitem__(self, item):
+        sequence = self.sequence[item]
+        quality = None if self.quality is None else self.quality[item]
+        return self.__class__(self.id, sequence, quality)
+
     def toString(self, format_):
         """
         Convert the read to a string format.

@@ -24,6 +24,64 @@ class TestRead(TestCase):
     """
     Test the Read class.
     """
+    def testGetitemReturnsNewRead(self):
+        """
+        __getitem__ must return a new Read instance.
+        """
+        self.assertIs(Read, Read('id', 'ACGT')[0:3].__class__)
+
+    def testGetitemId(self):
+        """
+        __getitem__ must return a new Read instance with the same read id.
+        """
+        self.assertEqual('id-1234', Read('id-1234', 'ACGT')[0:3].id)
+
+    def testGetitemSequence(self):
+        """
+        __getitem__ must return a Read instance with the expected sequence.
+        """
+        self.assertEqual('CG', Read('id', 'ACGT')[1:3].sequence)
+
+    def testGetitemQuality(self):
+        """
+        __getitem__ must return a Read instance with the expected quality
+        string.
+        """
+        self.assertEqual('12', Read('id', 'ACGT', '1234')[0:2].quality)
+
+    def testGetitemLength(self):
+        """
+        __getitem__ must return a Read instance of the expected length.
+        """
+        self.assertEqual(3, len(Read('id-1234', 'ACGT')[0:3]))
+
+    def testGetitemSingleIndex(self):
+        """
+        A single-index __getitem__ must return a length-one Read.
+        """
+        self.assertEqual(1, len(Read('id', 'ACGT')[0]))
+
+    def testGetitemFullCopy(self):
+        """
+        A full copy __getitem__ must return the expected result.
+        """
+        self.assertEqual(Read('id', 'ACGT'),
+                         Read('id', 'ACGT')[:])
+
+    def testGetitemWithStep(self):
+        """
+        A stepped __getitem__ must return the expected result.
+        """
+        self.assertEqual(Read('id', 'AG', '13'),
+                         Read('id', 'ACGT', '1234')[::2])
+
+    def testGetitemReversed(self):
+        """
+        A reverse copy __getitem__ must return the expected result.
+        """
+        self.assertEqual(Read('id', 'TGCA', '4321'),
+                         Read('id', 'ACGT', '1234')[::-1])
+
     def testUnequalLengths(self):
         """
         Attempting to construct a read whose sequence and quality strings are
@@ -359,6 +417,12 @@ class TestDNARead(TestCase):
     """
     Tests for the DNARead class.
     """
+    def testGetitemReturnsNewDNARead(self):
+        """
+        __getitem__ must return a new DNARead instance.
+        """
+        self.assertIs(DNARead, DNARead('id', 'ACGT')[0:3].__class__)
+
     def testReverseComplementReversesQuality(self):
         """
         The reverseComplement function must return a reversed quality string.
@@ -491,6 +555,12 @@ class TestRNARead(TestCase):
     """
     Tests for the RNARead class.
     """
+    def testGetitemReturnsNewRNARead(self):
+        """
+        __getitem__ must return a new RNARead instance.
+        """
+        self.assertIs(RNARead, RNARead('id', 'ACGU')[0:3].__class__)
+
     def testReverseComplement(self):
         """
         The reverseComplement function must work.
@@ -520,6 +590,12 @@ class TestAARead(TestCase):
     """
     Tests for the AARead class.
     """
+    def testGetitemReturnsNewAARead(self):
+        """
+        __getitem__ must return a new AARead instance.
+        """
+        self.assertIs(AARead, AARead('id', 'ACGU')[0:3].__class__)
+
     def testPropertiesCorrectTranslation(self):
         """
         The properties function must work correctly.
@@ -1129,6 +1205,12 @@ class TestAAReadWithX(TestCase):
     """
     Tests for the TestAAReadWithX class.
     """
+    def testGetitemReturnsNewAAReadWithX(self):
+        """
+        __getitem__ must return a new AAReadWithX instance.
+        """
+        self.assertIs(AAReadWithX, AAReadWithX('id', 'ACGU')[0:3].__class__)
+
     def testAlphabet(self):
         """
         The correct alphabet must be used.
