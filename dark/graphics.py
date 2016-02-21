@@ -6,9 +6,10 @@ from collections import defaultdict
 from time import ctime, time
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib import gridspec
+from matplotlib import gridspec, patches
 import numpy as np
 
+from dark.aa import propertiesForSequence
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
 from dark.html import AlignmentPanelHTML, NCBISequenceLinkURL
@@ -31,6 +32,23 @@ QUERY_COLORS = {
 }
 
 DEFAULT_BASE_COLOR = (0.5, 0.5, 0.5)  # Grey
+
+# From http://www.randalolson.com/2014/06/28/how-to-make-beautiful-data-\
+# visualizations-in-python-with-matplotlib/
+#
+# These are the "Tableau 20" colors as RGB.
+TABLEAU20 = [
+    (31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
+    (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),
+    (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),
+    (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),
+    (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]
+
+# Scale the above RGB values to the [0, 1] range, the format matplotlib
+# accepts.
+for i in range(len(TABLEAU20)):
+    r, g, b = TABLEAU20[i]
+    TABLEAU20[i] = (r / 255.0, g / 255.0, b / 255.0)
 
 # If we're making a plot that has a log-linear X axis, don't show
 # background light grey rectangles for any gap whose (logged) width is less
@@ -703,3 +721,41 @@ def scatterAlign(seq1, seq2, window=7):
     plt.title('Dot plot using window size %i\n(allowing no mis-matches)' %
               window)
     plt.show()
+
+
+def plotAAProperties(sequence, propertyNames, showFigure=True):
+    """
+    Plot amino acid property values for a sequence.
+
+    @param sequence: An C{AARead} (or a subclass) instance.
+    @param propertyNames: An iterable of C{str} property names (each of which
+        must be a key of a key in the dark.aa.PROPERTY_DETAILS dict).
+    @param showFigure: If C{True}, display the plot. Passing C{False} is useful
+        in testing.
+    @raise ValueError: If an unknown property is given in C{propertyNames}.
+    @return: The return value from calling dark.aa.propertiesForSequence:
+        a C{dict} keyed by (lowercase) property name, with values that are
+        C{list}s of the corresponding property value according to sequence
+        position.
+    """
+    MISSING_AA_VALUE = -1.1
+    propertyValues = propertiesForSequence(sequence, propertyNames,
+                                           missingAAValue=MISSING_AA_VALUE)
+    if showFigure:
+        legend = []
+        x = np.arange(0, len(sequence))
+
+        for index, propertyName in enumerate(propertyValues):
+            color = TABLEAU20[index]
+            plt.scatter(x, propertyValues[propertyName], color=color)
+            legend.append(patches.Patch(color=color, label=propertyName))
+
+        plt.legend(handles=legend, loc=(0, 1.1))
+        plt.xlim(0, len(sequence))
+        plt.ylim(min(MISSING_AA_VALUE, -1.1), 1.1)
+        plt.xlabel('%s (length %d)' % (sequence.id, len(sequence)))
+        plt.ylabel('Property value')
+        plt.title('AA property values by sequence position.')
+        plt.show()
+
+    return propertyValues
