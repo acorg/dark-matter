@@ -723,14 +723,14 @@ def scatterAlign(seq1, seq2, window=7):
     plt.show()
 
 
-def plotAAProperties(sequence, propertyNames, showPlot=True):
+def plotAAProperties(sequence, propertyNames, showFigure=True):
     """
     Plot amino acid property values for a sequence.
 
     @param sequence: An C{AARead} (or a subclass) instance.
     @param propertyNames: An iterable of C{str} property names (each of which
         must be a key of a key in the dark.aa.PROPERTY_DETAILS dict).
-    @param showPlot: If C{True}, display the plot. Passing C{False} is useful
+    @param showFigure: If C{True}, display the plot. Passing C{False} is useful
         in testing.
     @raise ValueError: If an unknown property is given in C{propertyNames}.
     @return: The return value from calling dark.aa.propertiesForSequence:
@@ -741,7 +741,7 @@ def plotAAProperties(sequence, propertyNames, showPlot=True):
     MISSING_AA_VALUE = -1.1
     propertyValues = propertiesForSequence(sequence, propertyNames,
                                            missingAAValue=MISSING_AA_VALUE)
-    if showPlot:
+    if showFigure:
         legend = []
         x = np.arange(0, len(sequence))
 

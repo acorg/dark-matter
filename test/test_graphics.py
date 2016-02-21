@@ -16,7 +16,7 @@ class TestPlotAAProperties(TestCase):
         plotAAProperties must run correctly when called with no properties.
         """
         read = AARead('id', 'AI')
-        self.assertEqual({}, plotAAProperties(read, [], showPlot=False))
+        self.assertEqual({}, plotAAProperties(read, [], showFigure=False))
 
     def testOneProperty(self):
         """
@@ -27,7 +27,7 @@ class TestPlotAAProperties(TestCase):
             {
                 'composition': [-1.0, -1.0],
             },
-            plotAAProperties(read, ['composition'], showPlot=False))
+            plotAAProperties(read, ['composition'], showFigure=False))
 
     def testTwoProperties(self):
         """
@@ -40,4 +40,4 @@ class TestPlotAAProperties(TestCase):
                 'hydropathy': [0.4, 1.0],
             },
             plotAAProperties(read, ['composition', 'hydropathy'],
-                             showPlot=False))
+                             showFigure=False))

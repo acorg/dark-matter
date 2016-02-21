@@ -597,3 +597,30 @@ class TestPropertiesForSequence(TestCase):
             },
             propertiesForSequence(read, ['composition',
                                          'hydropathy', 'hydropathy']))
+
+    def testMissingAminoAcid(self):
+        """
+        If an unknown amino acid appears in the sequence, its property value
+        must be the default (-1.1).
+        """
+        read = AARead('id', 'XX')
+        self.assertEqual(
+            {
+                'composition': [-1.1, -1.1],
+                'hydropathy': [-1.1, -1.1],
+            },
+            propertiesForSequence(read, ['composition', 'hydropathy']))
+
+    def testMissingAminoAcidWithNonDefaultMissingValue(self):
+        """
+        If an unknown amino acid appears in the sequence, its property value
+        must be the missing AA value that was passed.
+        """
+        read = AARead('id', 'XX')
+        self.assertEqual(
+            {
+                'composition': [-1.5, -1.5],
+                'hydropathy': [-1.5, -1.5],
+            },
+            propertiesForSequence(read, ['composition', 'hydropathy'],
+                                  missingAAValue=-1.5))

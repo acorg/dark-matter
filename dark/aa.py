@@ -757,7 +757,7 @@ def find(s):
             PROPERTY_CLUSTERS[abbrev1])
 
 
-def propertiesForSequence(sequence, propertyNames, missingAAValue=-1.2):
+def propertiesForSequence(sequence, propertyNames, missingAAValue=-1.1):
     """
     Extract amino acid property values for a sequence.
 
