@@ -330,8 +330,8 @@ class AARead(Read):
         # End of sequence. Yield the final ORF if there is one and it has
         # non-zero length.
         length = len(self.sequence)
-        if ((seenStart or openLeft) and ORFStart is not None
-                and length - ORFStart > 0):
+        if ((seenStart or openLeft) and ORFStart is not None and
+                length - ORFStart > 0):
             yield AAReadORF(self, ORFStart, length, openLeft, True)
 
     def gor4(self):

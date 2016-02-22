@@ -1,3 +1,5 @@
+import six
+
 from Bio.File import as_handle
 from Bio.SeqIO.QualityIO import FastqGeneralIterator
 
@@ -15,7 +17,10 @@ class FastqReads(Reads):
     def __init__(self, file_, readClass=DNARead):
         self.file_ = file_
         self.readClass = readClass
-        Reads.__init__(self)
+        if six.PY3:
+            super().__init__()
+        else:
+            Reads.__init__(self)
 
     def iter(self):
         """

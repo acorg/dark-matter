@@ -1,5 +1,7 @@
-from Bio import SeqIO
+import six
 from hashlib import md5
+
+from Bio import SeqIO
 
 from dark.reads import Reads, DNARead
 
@@ -100,7 +102,10 @@ class FastaReads(Reads):
         # read the file we'd return Reads.iter(self) to re-iterate over the
         # sequences already added from the file.
         self._upperCase = upperCase
-        Reads.__init__(self)
+        if six.PY3:
+            super().__init__()
+        else:
+            Reads.__init__(self)
 
     def iter(self):
         """
