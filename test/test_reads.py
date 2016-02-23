@@ -1431,6 +1431,29 @@ class TestSSAARead(TestCase):
         self.assertEqual(SSAARead('id', 'FRML', 'HESB'),
                          SSAARead('id', 'LMRF', 'BSEH')[::-1])
 
+    def testToString(self):
+        """
+        toString must return the expected 2 FASTA records.
+        """
+        self.assertEqual(
+            '>id-1234\n'
+            'FFMM\n'
+            '>id-1234:structure\n'
+            'HHHH\n',
+            SSAARead('id-1234', 'FFMM', 'HHHH').toString())
+
+    def testToStringWithStructureSuffix(self):
+        """
+        toString must return the expected 2 FASTA records when given a
+        specific structure id suffix.
+        """
+        self.assertEqual(
+            '>id-12\n'
+            'FFMM\n'
+            '>id-12:x\n'
+            'HHHH\n',
+            SSAARead('id-12', 'FFMM', 'HHHH').toString(structureSuffix=':x'))
+
 
 class TestTranslatedRead(TestCase):
     """

@@ -424,6 +424,20 @@ class SSAARead(AARead):
         structure = None if self.structure is None else self.structure[item]
         return self.__class__(self.id, sequence, structure)
 
+    def toString(self, structureSuffix=':structure'):
+        """
+        Convert the read to a string in PDB format (sequence & structure). This
+        consists of two FASTA records, one for the sequence then one for the
+        structure.
+
+        @param structureSuffix: The C{str} suffix to append to the read id
+            for the second FASTA record, containing the structure information.
+        @return: A C{str} representing the read sequence and structure in PDB
+            FASTA format.
+        """
+        return '>%s\n%s\n>%s%s\n%s\n' % (
+            self.id, self.sequence, self.id, structureSuffix, self.structure)
+
 
 class TranslatedRead(AARead):
     """
