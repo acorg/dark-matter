@@ -1454,6 +1454,28 @@ class TestSSAARead(TestCase):
             'HHHH\n',
             SSAARead('id-12', 'FFMM', 'HHHH').toString(structureSuffix=':x'))
 
+    def testToStringWithExplicitFastaFormat(self):
+        """
+        toString must return the expected 2 FASTA records when 'fasta' is
+        passed as the C{format_} argument.
+        """
+        self.assertEqual(
+            '>id-1234\n'
+            'FFMM\n'
+            '>id-1234:structure\n'
+            'HHHH\n',
+            SSAARead('id-1234', 'FFMM', 'HHHH').toString(format_='fasta'))
+
+    def testToStringWithNonFastaFormat(self):
+        """
+        toString must raise ValueError when something other than 'fasta' is
+        passed as the C{format_} argument.
+        """
+        read = SSAARead('id-1234', 'FFMM', 'HHHH')
+        error = "^Format must be 'fasta'\."
+        six.assertRaisesRegex(
+            self, ValueError, error, read.toString, format_='pasta')
+
 
 class TestTranslatedRead(TestCase):
     """
