@@ -6,7 +6,8 @@ from dark.aa import (
     ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
     NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
-    find, AminoAcid, propertiesForSequence, PROPERTY_CLUSTERS)
+    find, AminoAcid, clustersForSequence, propertiesForSequence,
+    PROPERTY_CLUSTERS)
 from dark.reads import AARead
 
 
@@ -624,3 +625,111 @@ class TestPropertiesForSequence(TestCase):
             },
             propertiesForSequence(read, ['composition', 'hydropathy'],
                                   missingAAValue=-1.5))
+
+
+class TestClustersForSequence(TestCase):
+    """
+    Tests for the clustersForSequence function in aa.py
+    """
+    def testUnknownProperty(self):
+        """
+        A C{ValueError} must be raised if an unknown property name is passed.
+        """
+        error = 'Unknown property: xxx'
+        read = AARead('id', 'RRR')
+        six.assertRaisesRegex(self, ValueError, error,
+                              clustersForSequence, read, ['xxx'])
+
+    def testNoProperties(self):
+        """
+        If no properties are wanted, an empty dict must be returned.
+        """
+        read = AARead('id', 'RRR')
+        self.assertEqual({}, clustersForSequence(read, []))
+
+    def testOnePropertyEmptySequence(self):
+        """
+        If one property is wanted but the sequence is empty, a dict with the
+        property must be returned, and have an empty list value.
+        """
+        read = AARead('id', '')
+        self.assertEqual(
+            {
+                'hydropathy': [],
+            },
+            clustersForSequence(read, ['hydropathy']))
+
+    def testPropertyNameIsLowercased(self):
+        """
+        The property name must be lower-cased in the result.
+        """
+        read = AARead('id', '')
+        self.assertTrue('hydropathy' in
+                        clustersForSequence(read, ['HYDROPATHY']))
+
+    def testOneProperty(self):
+        """
+        If one property is wanted, a dict with the property must be returned,
+        and have the expected property cluster number.
+        """
+        read = AARead('id', 'AI')
+        self.assertEqual(
+            {
+                'hydropathy': [3, 4],
+            },
+            clustersForSequence(read, ['hydropathy']))
+
+    def testTwoProperties(self):
+        """
+        If two properties are wanted, a dict with the properties must be
+        returned, and have the expected property cluster numbers.
+        """
+        read = AARead('id', 'AI')
+        self.assertEqual(
+            {
+                'composition': [1, 1],
+                'hydropathy': [3, 4],
+            },
+            clustersForSequence(read, ['composition', 'hydropathy']))
+
+    def testDuplicatedPropertyName(self):
+        """
+        If a property name is mentioned more than once, a dict with the
+        wanted properties must be returned, and have the expected property
+        cluster numbers.
+        """
+        read = AARead('id', 'AI')
+        self.assertEqual(
+            {
+                'composition': [1, 1],
+                'hydropathy': [3, 4],
+            },
+            clustersForSequence(read, ['composition',
+                                       'hydropathy', 'hydropathy']))
+
+    def testMissingAminoAcid(self):
+        """
+        If an unknown amino acid appears in the sequence, its property cluster
+        must be the default (0).
+        """
+        read = AARead('id', 'XX')
+        self.assertEqual(
+            {
+                'composition': [0, 0],
+                'hydropathy': [0, 0],
+            },
+            clustersForSequence(read, ['composition', 'hydropathy']))
+
+    def testMissingAminoAcidWithNonDefaultMissingValue(self):
+        """
+        If an unknown amino acid appears in the sequence, its property cluster
+        must be the missing AA value that was passed.
+        """
+        read = AARead('id', 'XX')
+        self.assertEqual(
+            {
+                'composition': [10, 10],
+                'hydropathy': [10, 10],
+            },
+            clustersForSequence(read, ['composition', 'hydropathy'],
+                                missingAAValue=10))

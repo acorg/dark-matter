@@ -757,26 +757,29 @@ def find(s):
             PROPERTY_CLUSTERS[abbrev1])
 
 
-def propertiesForSequence(sequence, propertyNames, missingAAValue=-1.1):
+def _propertiesOrClustersForSequence(sequence, propertyNames, propertyValues,
+                                     missingAAValue):
     """
-    Extract amino acid property values for a sequence.
+    Extract amino acid property values or cluster numbers for a sequence.
 
     @param sequence: An C{AARead} (or a subclass) instance.
     @param propertyNames: An iterable of C{str} property names (each of which
-        must be a key of a key in the dark.aa.PROPERTY_DETAILS dict).
+        must be a key of a key in the C{propertyValues} C{dict}).
+    @param propertyValues: A C{dict} in the form of C{PROPERTY_DETAILS} or
+        C{PROPERTY_CLUSTERS} (see above).
     @param missingAAValue: A C{float} value to use for properties when an AA
         (e.g., 'X') is not known.
     @raise ValueError: If an unknown property is given in C{propertyNames}.
     @return: A C{dict} keyed by (lowercase) property name, with values that are
-        C{list}s of the corresponding property value according to sequence
-        position.
+        C{list}s of the corresponding property value in C{propertyValues} in
+        order of sequence position.
     """
     propertyNames = sorted(map(str.lower, set(propertyNames)))
 
     # Make sure all mentioned property names exist for at least one AA.
     knownProperties = set()
-    for properties in PROPERTY_DETAILS.values():
-        knownProperties.update(properties)
+    for names in propertyValues.values():
+        knownProperties.update(names)
     unknown = set(propertyNames) - knownProperties
     if unknown:
         raise ValueError(
@@ -788,13 +791,50 @@ def propertiesForSequence(sequence, propertyNames, missingAAValue=-1.1):
 
     for propertyName in propertyNames:
         result[propertyName] = values = []
+        append = values.append
         for aa in aas:
             try:
-                properties = PROPERTY_DETAILS[aa]
+                properties = propertyValues[aa]
             except KeyError:
                 # No such AA.
-                values.append(missingAAValue)
+                append(missingAAValue)
             else:
-                values.append(properties[propertyName])
+                append(properties[propertyName])
 
     return result
+
+
+def propertiesForSequence(sequence, propertyNames, missingAAValue=-1.1):
+    """
+    Extract amino acid property values for a sequence.
+
+    @param sequence: An C{AARead} (or a subclass) instance.
+    @param propertyNames: An iterable of C{str} property names (each of which
+        must be a key of a key in the C{dark.aa.PROPERTY_DETAILS} C{dict}).
+    @param missingAAValue: A C{float} value to use for properties when an AA
+        (e.g., 'X') is not known.
+    @raise ValueError: If an unknown property is given in C{propertyNames}.
+    @return: A C{dict} keyed by (lowercase) property name, with values that are
+        C{list}s of the corresponding property value according to sequence
+        position.
+    """
+    return _propertiesOrClustersForSequence(
+        sequence, propertyNames, PROPERTY_DETAILS, missingAAValue)
+
+
+def clustersForSequence(sequence, propertyNames, missingAAValue=0):
+    """
+    Extract amino acid property cluster numbers for a sequence.
+
+    @param sequence: An C{AARead} (or a subclass) instance.
+    @param propertyNames: An iterable of C{str} property names (each of which
+        must be a key of a key in the C{dark.aa.PROPERTY_CLUSTERS} C{dict}).
+    @param missingAAValue: An C{int} value to use for properties when an AA
+        (e.g., 'X') is not known.
+    @raise ValueError: If an unknown property is given in C{propertyNames}.
+    @return: A C{dict} keyed by (lowercase) property name, with values that are
+        C{list}s of the corresponding property cluster number according to
+        sequence position.
+    """
+    return _propertiesOrClustersForSequence(
+        sequence, propertyNames, PROPERTY_CLUSTERS, missingAAValue)
