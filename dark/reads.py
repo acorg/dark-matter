@@ -448,8 +448,8 @@ class SSAARead(AARead):
 
 class SSAAReadWithX(SSAARead):
     """
-    Hold information and methods to work with SS AA reads allowing an
-    'X' characters to appear in sequences.
+    Hold information and methods to work with C{SSAARead}s allowing 'X'
+    characters to appear in sequences.
     """
     ALPHABET = set(AA_LETTERS + ['X'])
 
