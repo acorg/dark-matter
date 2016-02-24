@@ -425,6 +425,14 @@ class SSAARead(AARead):
         return self.__class__(self.id, sequence, structure)
 
 
+class SSAAReadWithX(SSAARead):
+    """
+    Hold information and methods to work with SS AA reads allowing an
+    'X' characters to appear in sequences.
+    """
+    ALPHABET = set(AA_LETTERS + ['X'])
+
+
 class TranslatedRead(AARead):
     """
     Hold information about one DNA->AA translation of a Read.
