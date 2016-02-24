@@ -13,7 +13,7 @@ from os import stat
 from .mocking import mockOpen
 from dark.reads import (
     Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
-    AAReadWithX, SSAARead)
+    AAReadWithX, SSAARead, SSAAReadWithX)
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
@@ -1348,88 +1348,108 @@ class TestAAReadORF(TestCase):
         self.assertEqual('id-[3:4]', read.id)
 
 
-class TestSSAARead(TestCase):
+class _TestSSAAReadMixin(object):
     """
-    Tests for the SSAARead class.
+    Mixin class with tests for the SSAARead and SSAAReadWithX classes.
     """
-    def testSSAAReadCorrectAttributes(self):
+    def testCorrectAttributes(self):
         """
-        An SSAARead must have the correct attributes.
+        An SSAARead (or SSAAReadWithX) must have the correct attributes.
         """
-        read = SSAARead('id', 'AFGGCED', 'HHH  HH')
+        read = self.CLASS('id', 'AFGGCED', 'HHH  HH')
         self.assertEqual('id', read.id)
         self.assertEqual('AFGGCED', read.sequence)
         self.assertEqual('HHH  HH', read.structure)
         self.assertIs(None, read.quality)
 
-    def testReadsWithSSAAReads(self):
+    def testReads(self):
         """
-        It must be possible to make a dark.Reads object out of SSAAReads,
-        and the result must have the correct length.
+        It must be possible to make a dark.Reads object out of SSAARead
+        (or SSAAReadWithX) instances, and the result must have the correct
+        length.
         """
         reads = Reads()
-        reads.add(SSAARead('id1', 'AFGGCED', 'HHHHHHH'))
-        reads.add(SSAARead('id2', 'AFGGKLL', 'HHHHIII'))
+        reads.add(self.CLASS('id1', 'AFGGCED', 'HHHHHHH'))
+        reads.add(self.CLASS('id2', 'AFGGKLL', 'HHHHIII'))
         self.assertEqual(2, len(reads))
 
     def testGetitemReturnsNewRead(self):
         """
-        __getitem__ must return a new SSAARead instance.
+        __getitem__ must return a new instance of the correct class.
         """
-        self.assertIs(SSAARead, SSAARead('id', 'ACGT', 'HHHH')[0:3].__class__)
+        self.assertIs(self.CLASS,
+                      self.CLASS('id', 'ACGT', 'HHHH')[0:3].__class__)
 
     def testGetitemId(self):
         """
-        __getitem__ must return a new SSAARead instance with the same read id.
+        __getitem__ must return a new instance with the same read id.
         """
-        self.assertEqual('id-12', SSAARead('id-12', 'FFRR', 'HHHH')[0:3].id)
+        self.assertEqual('id-12', self.CLASS('id-12', 'FFRR', 'HHHH')[0:3].id)
 
     def testGetitemSequence(self):
         """
-        __getitem__ must return an SSAA Read instance with the expected
-        sequence.
+        __getitem__ must return a new instance with the expected sequence.
         """
-        self.assertEqual('RM', SSAARead('id', 'FRML', 'HHHH')[1:3].sequence)
+        self.assertEqual('RM', self.CLASS('id', 'FRML', 'HHHH')[1:3].sequence)
 
     def testGetitemStructure(self):
         """
-        __getitem__ must return an SSAARead instance with the expected
-        structure string.
+        __getitem__ must return a new instance with the expected structure.
         """
-        self.assertEqual('HE', SSAARead('id', 'FFRR', 'HEIS')[0:2].structure)
+        self.assertEqual('HE', self.CLASS('id', 'FFRR', 'HEIS')[0:2].structure)
 
     def testGetitemLength(self):
         """
-        __getitem__ must return an SSAARead instance of the expected length.
+        __getitem__ must return a new instance of the expected length.
         """
-        self.assertEqual(3, len(SSAARead('id-1234', 'FFMM', 'HHHH')[0:3]))
+        self.assertEqual(3, len(self.CLASS('id-1234', 'FFMM', 'HHHH')[0:3]))
 
     def testGetitemSingleIndex(self):
         """
-        A single-index __getitem__ must return a length-one SSAARead.
+        A single-index __getitem__ must return a length-one instance.
         """
-        self.assertEqual(1, len(SSAARead('id', 'FRFR', 'HHHH')[0]))
+        self.assertEqual(1, len(self.CLASS('id', 'FRFR', 'HHHH')[0]))
 
     def testGetitemFullCopy(self):
         """
         A full copy __getitem__ must return the expected result.
         """
-        self.assertEqual(SSAARead('id', 'RRFF', 'HEIH'),
-                         SSAARead('id', 'RRFF', 'HEIH')[:])
+        self.assertEqual(self.CLASS('id', 'RRFF', 'HEIH'),
+                         self.CLASS('id', 'RRFF', 'HEIH')[:])
 
     def testGetitemWithStep(self):
         """
         A stepped __getitem__ must return the expected result.
         """
-        self.assertEqual(SSAARead('id', 'FR', 'HS'),
-                         SSAARead('id', 'FMRL', 'HESE')[::2])
+        self.assertEqual(self.CLASS('id', 'FR', 'HS'),
+                         self.CLASS('id', 'FMRL', 'HESE')[::2])
 
     def testGetitemReversed(self):
         """
         A reverse copy __getitem__ must return the expected result.
         """
-        self.assertEqual(SSAARead('id', 'FRML', 'HESB'),
-                         SSAARead('id', 'LMRF', 'BSEH')[::-1])
+        self.assertEqual(self.CLASS('id', 'FRML', 'HESB'),
+                         self.CLASS('id', 'LMRF', 'BSEH')[::-1])
+
+
+class TestSSAARead(TestCase, _TestSSAAReadMixin):
+    """
+    Tests for the SSAARead class.
+    """
+    CLASS = SSAARead
+
+
+class TestSSAAReadWithX(TestCase, _TestSSAAReadMixin):
+    """
+    Tests for the SSAAReadWithX class.
+    """
+    CLASS = SSAAReadWithX
+
+    def testSequenceContainingX(self):
+        """
+        An SSAAReadWithX must be able to contain an 'X' character.
+        """
+        self.assertEqual('AFGX', SSAAReadWithX('id', 'AFGX', 'HHHH').sequence)
 
     def testToString(self):
         """

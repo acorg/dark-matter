@@ -446,6 +446,14 @@ class SSAARead(AARead):
             raise ValueError("Format must be 'fasta'.")
 
 
+class SSAAReadWithX(SSAARead):
+    """
+    Hold information and methods to work with C{SSAARead}s allowing 'X'
+    characters to appear in sequences.
+    """
+    ALPHABET = set(AA_LETTERS + ['X'])
+
+
 class TranslatedRead(AARead):
     """
     Hold information about one DNA->AA translation of a Read.
