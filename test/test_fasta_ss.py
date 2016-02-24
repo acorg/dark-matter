@@ -40,6 +40,20 @@ class TestSSFastaReads(TestCase):
             six.assertRaisesRegex(self, ValueError, error, list,
                                   SSFastaReads('x.fasta'))
 
+    def testUnequalSequenceAndStructureLengths(self):
+        """
+        Trying to parse a PDB FASTA file that has a sequence whose structure
+        is of a different length must raise a ValueError.
+        """
+        data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--',
+                          '>seq2', 'REAA', '>str2', 'HH'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            error = ("Sequence 'seq2' length \(4\) is not equal to structure "
+                     "'str2' length \(2\) in input file 'x\.fasta'\.$")
+            six.assertRaisesRegex(self, ValueError, error, list,
+                                  SSFastaReads('x.fasta'))
+
     def testOneRead(self):
         """
         A PDB FASTA file with one read must be read properly.
