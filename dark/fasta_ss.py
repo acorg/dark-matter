@@ -47,6 +47,10 @@ class SSFastaReads(Reads):
         """
         Iterate over the sequences in self.file_, yielding each as an
         instance of the desired read class.
+
+        @raise ValueError: If the input file has an odd number of records or
+            if any sequence has a different length than its predicted
+            secondary structure.
         """
         checkAlphabet = self._checkAlphabet
         upperCase = self._upperCase
@@ -65,6 +69,14 @@ class SSFastaReads(Reads):
             except StopIteration:
                 raise ValueError('Structure file %r has an odd number of '
                                  'records.' % self._file)
+
+            if len(structureRecord) != len(record):
+                raise ValueError(
+                    'Sequence %r length (%d) is not equal to structure %r '
+                    'length (%d) in input file %r.' % (
+                        record.description, len(record),
+                        structureRecord.description, len(structureRecord),
+                        self._file))
 
             if upperCase:
                 read = self._readClass(record.description,
