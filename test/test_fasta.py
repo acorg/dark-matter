@@ -435,6 +435,46 @@ class TestFastaReads(TestCase):
             reads = list(FastaReads('filename.fasta', readClass=AARead))
             self.assertEqual([AARead('id1', 'actgs')], reads)
 
+    def testFilterRandomSubsetOfZeroFromZeroReads(self):
+        """
+        It must be possible to select a random subset of zero reads from a set
+        of zero reads, where the read count is provided to C{filter} via the
+        C{trueLength} argument.
+        """
+        data = ''
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = FastaReads('filename.fasta')
+            result = list(reads.filter(randomSubset=0, trueLength=0))
+            self.assertEqual([], result)
+
+    def testFilterRandomSubsetOfTwoFromTwoReads(self):
+        """
+        It must be possible to select a random subset of two reads from a set
+        of two reads, where the read count is provided to C{filter} via the
+        C{trueLength} argument.
+        """
+        data = '\n'.join(['>id1', 'ACGT', '>id2', 'TGCA'])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = FastaReads('filename.fasta')
+            result = list(reads.filter(randomSubset=2, trueLength=2))
+            self.assertEqual([Read('id1', 'ACGT'), Read('id2', 'TGCA')],
+                             result)
+
+    def testFilterRandomSubsetOfOneFromTenReads(self):
+        """
+        It must be possible to select a random subset of one read from a set
+        of ten reads, where the read count is provided to C{filter} via the
+        C{trueLength} argument.
+        """
+        data = '\n'.join(['>id', 'ACGT'] * 10)
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = FastaReads('filename.fasta')
+            result = list(reads.filter(randomSubset=1, trueLength=10))
+            self.assertEqual(1, len(result))
+
 
 class TestCombineReads(TestCase):
     """

@@ -2125,6 +2125,84 @@ class TestReads(TestCase):
         result = reads.filter(modifier=modifier)
         self.assertEqual([Read('xxx', 'ATCG')], list(result))
 
+    def testFilterRandomSubsetSizeZeroNoReads(self):
+        """
+        Asking for a random subset of length zero must work as expected when
+        there are no reads in the Reads instance.
+        """
+        self.assertEqual([], list(Reads().filter(randomSubset=0)))
+
+    def testFilterRandomSubsetSizeZeroTwoReads(self):
+        """
+        Asking for a random subset of length zero from a set of two reads must
+        work as expected.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads = Reads([read1, read2])
+        result = reads.filter(randomSubset=0)
+        self.assertEqual([], list(result))
+
+    def testFilterRandomSubsetOfZeroReads(self):
+        """
+        Asking for a non-zero random subset of a set of zero reads must work
+        as expected.
+        """
+        reads = Reads()
+        result = reads.filter(randomSubset=5)
+        self.assertEqual([], list(result))
+
+    def testFilterRandomSubsetOfOneFromOneRead(self):
+        """
+        Asking for a size one random subset of a set of one read must work
+        as expected.
+        """
+        read = Read('id', 'ATCG')
+        reads = Reads([read])
+        result = reads.filter(randomSubset=1)
+        self.assertEqual([read], list(result))
+
+    def testFilterRandomSubsetOfFiveFromOneRead(self):
+        """
+        Asking for a size five random subset of a set of one read must work
+        as expected.
+        """
+        read = Read('id', 'ATCG')
+        reads = Reads([read])
+        result = reads.filter(randomSubset=5)
+        self.assertEqual([read], list(result))
+
+    def testFilterRandomSubsetOfFiveFromFiveReads(self):
+        """
+        Asking for a size five random subset of a set of five read must work
+        as expected.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATCG')
+        read4 = Read('id4', 'ATCG')
+        read5 = Read('id5', 'ATCG')
+        reads = Reads([read1, read2, read3, read4, read5])
+        result = reads.filter(randomSubset=5)
+        self.assertEqual([read1, read2, read3, read4, read5], list(result))
+
+    def testFilterRandomSubsetOfTwoFromFiveReads(self):
+        """
+        Asking for a size two random subset of a set of five read must return
+        two (different) reads.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATCG')
+        read4 = Read('id4', 'ATCG')
+        read5 = Read('id5', 'ATCG')
+        reads = Reads([read1, read2, read3, read4, read5])
+        result = reads.filter(randomSubset=2)
+        self.assertEqual(2, len(set(result)))
+
+    # Tests for random subset filtering in which a trueLength argument is
+    # passed can be found in test_fasta.py
+
 
 class TestSummarizePosition(TestCase):
     """
