@@ -3,6 +3,7 @@ from os import unlink
 from collections import Counter
 from itertools import chain
 from hashlib import md5
+from random import uniform
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -516,8 +517,20 @@ class Reads(object):
         self._length += 1
 
     def __iter__(self):
-        # Reset self._length because __iter__ may be called more than once.
+        """
+        Iterate through all the reads.
+
+        As a side effect, calculate our length (the number of reads in this
+        collection of reads).
+
+        @return: A generator that yields reads. The returned read type depends
+            on the kind of reads that were added to this instance.
+        """
+        # Set/reset self._length to 0 because __iter__ may be called more than
+        # once.  If we don't set it to 0, a second call to __iter__ would
+        # cause it to continue to be incremented from its original value.
         self._length = 0
+
         for read in chain(self.iter(), self.additionalReads):
             self._length += 1
             yield read
@@ -525,6 +538,13 @@ class Reads(object):
     def iter(self):
         """
         Placeholder to allow subclasses to provide reads.
+
+        The idea here is that reads in this class and its subclasses can come
+        from multiple sources. The first is reads that are added to the
+        instance via the C{add} method. The (optional) second reads are those
+        that are, for example, extracted from a file. E.g., the
+        C{dark.reads.fasta.FastaReads} class (a subclass of C{Reads}) overrides
+        this C{iter} method to provide reads from a file.
         """
         return []
 
@@ -566,13 +586,13 @@ class Reads(object):
                whitelist=None, blacklist=None,
                titleRegex=None, negativeTitleRegex=None,
                truncateTitlesAfter=None, indices=None, head=None,
-               removeDuplicates=False, modifier=None):
+               removeDuplicates=False, modifier=None, randomSubset=None,
+               trueLength=None):
         """
         Filter a set of reads to produce a matching subset.
 
         Note: there are many additional filtering options that could be added,
-        e.g., filtering on read id (whitelist, blacklist, regex, etc), GC %,
-        and quality.
+        e.g., on complexity fraction, on GC %, on quality, etc.
 
         @param minLength: The minimum acceptable length.
         @param maxLength: The maximum acceptable length.
@@ -598,6 +618,41 @@ class Reads(object):
             that read is passed through the filter. If it returns C{None},
             the read is omitted. Such a function can be used to do customized
             filtering, to change sequence ids, etc.
+        @param randomSubset: If not C{None}, an C{int} giving the number of
+            sequences that should be returned. These will be selected at
+            random, using an algorithm that does a single pass over the data
+            and which needs to know (in advance) the total number of reads.
+            Because a C{Reads} instance does not always know its length, it is
+            possible to specify the number of reads by passing a C{trueLength}
+            argument. Note that the random selection is done before any other
+            filtering. Due to this, if you want to extract a random subset of
+            the reads filtered in another way, it will be best to call filter
+            twice rather than doing both types of filtering in one step. E.g.,
+            you very likely should do this:
+                reads.filter(maxLength=100).filter(randomSubset=20)
+            rather than this:
+                reads.filter(maxLength=100, randomSubset=20)
+            The second version will extract a random subset of 20 reads and
+            only return those that have length <= 100, so your result may have
+            less than 20 reads. The former version extracts reads of the
+            desired length and then takes 20 reads at random from that set, so
+            you'll always get 20 raeds in your result, assuming there are at
+            least that many reads satisfying the length filter.
+        @param trueLength: The C{int} number of reads in this C{Reads}
+            instance. Under normal circumstances it will not be necessary to
+            pass this argument. However in some cases a subclass (e.g., with
+            C{dark.fasta.FastaReads}) does not know its length until its data
+            has been read from disk. In such cases, it is not possible to
+            choose a random subset without keeping the subset in memory (which
+            is undesirable). See
+            https://en.wikipedia.org/wiki/Reservoir_sampling for one approach
+            when the set size is unknown. However, it is possible to filter a
+            random subset in a single pass over the data without keeping the
+            set in memory if the set size is known. C{trueLength} makes it
+            possible to pass the actual number of reads (this will obviously
+            need to be known via some other mechanism). If C{None}, the length
+            of the C{Reads} instance is used (but may be inaccurate in some
+            cases, as above).
         @return: A new C{Reads} instance, with reads filtered as requested.
         """
         return Reads(self._filter(
@@ -605,13 +660,15 @@ class Reads(object):
             whitelist=whitelist, blacklist=blacklist, titleRegex=titleRegex,
             negativeTitleRegex=negativeTitleRegex,
             truncateTitlesAfter=truncateTitlesAfter, indices=indices,
-            head=head, removeDuplicates=removeDuplicates, modifier=modifier))
+            head=head, removeDuplicates=removeDuplicates, modifier=modifier,
+            randomSubset=randomSubset, trueLength=trueLength))
 
     def _filter(self, minLength=None, maxLength=None, removeGaps=False,
                 whitelist=None, blacklist=None,
                 titleRegex=None, negativeTitleRegex=None,
                 truncateTitlesAfter=None, indices=None, head=None,
-                removeDuplicates=False, modifier=None):
+                removeDuplicates=False, modifier=None, randomSubset=None,
+                trueLength=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -631,7 +688,21 @@ class Reads(object):
         if removeDuplicates:
             sequencesSeen = set()
 
+        if randomSubset is not None and trueLength is None:
+            trueLength = self._length
+
+        yieldCount = 0
+
         for readIndex, read in enumerate(self):
+
+            if randomSubset is not None:
+                if yieldCount == randomSubset:
+                    # The random subset has already been fully returned.
+                    # There's no point in going any further through the input.
+                    return
+                elif uniform(0.0, 1.0) > ((randomSubset - yieldCount) /
+                                          (trueLength - readIndex)):
+                    continue
 
             if head is not None and readIndex == head:
                 # We're completely done.
@@ -666,6 +737,7 @@ class Reads(object):
                     read = modified
 
             yield read
+            yieldCount += 1
 
     def summarizePosition(self, index):
         """
