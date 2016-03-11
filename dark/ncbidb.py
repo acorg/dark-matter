@@ -12,5 +12,5 @@ def getSequence(title, db='nt'):
     """
     titleId = title.split(' ', 1)[0]
     fasta = subprocess.check_output(
-        ['blastdbcmd', '-entry', titleId, '-db', db])
+        ['blastdbcmd', '-entry', titleId, '-db', db]).decode('ascii')
     return SeqIO.read(StringIO(fasta), 'fasta')
