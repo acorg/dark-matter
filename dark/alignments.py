@@ -181,8 +181,9 @@ class ReadsAlignments(object):
         @param truncateTitlesAfter: A string that titles will be truncated
             beyond. If a truncated title has already been seen, that title will
             be elided.
-        @param taxonomy: A C{str} of the taxonomic group on which should be
-            filtered. eg 'Vira' will filter on viruses.
+        @param taxonomy: Either a C{str} name or an C{int} id of the taxonomic
+            group on which should be filtered. eg 'Vira' will filter on
+            viruses, while 11118 will filter on Coronaviridae.
         @param readIdRegex: A case-sensitive regex C{str} that read ids must
             match.
         @return: C{self}.
@@ -256,7 +257,7 @@ class ReadsAlignments(object):
         else:
             titleFilter = None
 
-        if taxonomy:
+        if taxonomy is not None:
             lineageFetcher = LineageFetcher()
 
         if readIdRegex is not None:
@@ -301,13 +302,14 @@ class ReadsAlignments(object):
                 else:
                     continue
 
-            if taxonomy:
+            if taxonomy is not None:
                 wantedAlignments = []
                 for alignment in readAlignments:
                     lineage = lineageFetcher.lineage(alignment.subjectTitle)
                     if lineage:
-                        if taxonomy in lineage:
-                            wantedAlignments.append(alignment)
+                        for taxonomyIdAndScientificName in lineage:
+                            if taxonomy in taxonomyIdAndScientificName:
+                                wantedAlignments.append(alignment)
                     else:
                         # No lineage info was found. Keep the alignment
                         # since we can't rule it out.  We could add another

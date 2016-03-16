@@ -52,7 +52,7 @@ if __name__ == '__main__':
         'expression at any level.')
 
     parser.add_argument(
-        '--taxonomy', type=str, required=True,
+        '--taxonomy', required=True,
         help='The regex to match the taxonomy on. Case is ignored.')
 
     parser.add_argument(
@@ -60,7 +60,7 @@ if __name__ == '__main__':
         help='If True, only write sequences whose taxonomy does not match.')
 
     parser.add_argument(
-        '--detailsFile', metavar='FILE', type=str, default=None,
+        '--detailsFile', metavar='FILE', default=None,
         help='The name of a file to save taxonomy details to')
 
     args = parser.parse_args()
@@ -90,8 +90,8 @@ if __name__ == '__main__':
         fasta = read.toString('fasta')
         taxonomy = lineageFetcher.lineage(read.id)
         if taxonomy:
-            for level in taxonomy:
-                if regexp.match(level):
+            for taxonomyId, scientificName in taxonomy:
+                if regexp.match(scientificName):
                     details(True, read.id, taxonomy)
                     if not args.invert:
                         saveCount += 1
