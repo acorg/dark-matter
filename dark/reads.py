@@ -587,7 +587,7 @@ class Reads(object):
                titleRegex=None, negativeTitleRegex=None,
                truncateTitlesAfter=None, indices=None, head=None,
                removeDuplicates=False, modifier=None, randomSubset=None,
-               trueLength=None):
+               trueLength=None, sampleFraction=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -653,22 +653,38 @@ class Reads(object):
             need to be known via some other mechanism). If C{None}, the length
             of the C{Reads} instance is used (but may be inaccurate in some
             cases, as above).
+        @param sampleFraction: If not C{None}, a [0.0, 1.0] C{float} indicating
+            a fraction of the reads that should be allowed to pass through the
+            filter. The sample size will only be approximately the product of
+            the C{sampleFraction} and the number of reads. The sample is taken
+            at random. If you try to combine this filter with C{randomSubset}
+            a C{ValueError} will be raised. If you need both filters, run them
+            one after another.
+        @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
+            specified.
         @return: A new C{Reads} instance, with reads filtered as requested.
         """
+
+        # TODO, when/if needed: make it possible to pass a seed for the RNG
+        # when randomSubset or sampleFraction are used. Also possible is to
+        # save and restore the state of the RNG and/or to optionally add
+        # 'seed=XXX' to the end of the id of the first read, etc.
+
         return Reads(self._filter(
             minLength=minLength, maxLength=maxLength, removeGaps=removeGaps,
             whitelist=whitelist, blacklist=blacklist, titleRegex=titleRegex,
             negativeTitleRegex=negativeTitleRegex,
             truncateTitlesAfter=truncateTitlesAfter, indices=indices,
             head=head, removeDuplicates=removeDuplicates, modifier=modifier,
-            randomSubset=randomSubset, trueLength=trueLength))
+            randomSubset=randomSubset, trueLength=trueLength,
+            sampleFraction=sampleFraction))
 
     def _filter(self, minLength=None, maxLength=None, removeGaps=False,
                 whitelist=None, blacklist=None,
                 titleRegex=None, negativeTitleRegex=None,
                 truncateTitlesAfter=None, indices=None, head=None,
                 removeDuplicates=False, modifier=None, randomSubset=None,
-                trueLength=None):
+                trueLength=None, sampleFraction=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -676,6 +692,12 @@ class Reads(object):
 
         @return: A generator that yields C{Read} instances.
         """
+
+        if randomSubset is not None and sampleFraction is not None:
+            raise ValueError('randomSubset and sampleFraction cannot be '
+                             'used simultaneously in a filter. Call filter '
+                             'twice instead.')
+
         if (whitelist or blacklist or titleRegex or negativeTitleRegex or
                 truncateTitlesAfter):
             titleFilter = TitleFilter(
@@ -688,12 +710,28 @@ class Reads(object):
         if removeDuplicates:
             sequencesSeen = set()
 
+        if sampleFraction is not None:
+            if sampleFraction == 0.0:
+                # The filter returns nothing.
+                return
+            elif sampleFraction == 1.0:
+                # Passing 1.0 can be treated the same as passing no value.
+                # This makes the loop code simpler.
+                sampleFraction = None
+
         if randomSubset is not None and trueLength is None:
             trueLength = self._length
 
         yieldCount = 0
 
         for readIndex, read in enumerate(self):
+
+            if (sampleFraction is not None and
+                    uniform(0.0, 1.0) > sampleFraction):
+                # Note that we don't have to worry about the 0.0 or 1.0
+                # cases in the above if, as they have been dealt with
+                # before the loop.
+                continue
 
             if randomSubset is not None:
                 if yieldCount == randomSubset:
