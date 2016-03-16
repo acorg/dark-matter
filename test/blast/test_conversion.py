@@ -8,7 +8,11 @@ except ImportError:
 
 from ..mocking import mockOpen
 
-from dark.blast.conversion import XMLRecordsReader
+from json import dumps
+
+from dark.blast.conversion import XMLRecordsReader, JSONRecordsReader
+from dark.reads import Reads, DNARead
+
 
 RECORD = """\
 <?xml version="1.0"?>
@@ -160,3 +164,270 @@ class TestXMLRecordsReader(TestCase):
             record1, record2 = list(reader.records())
             self.assertEqual(0, len(record1.alignments))
             self.assertEqual(2, len(record2.alignments))
+
+_JSON_RECORDS = [
+    {
+        'application': 'BLASTN',
+        'effective_search_space': 16800583950.0,
+        'num_sequences_in_database': 7194,
+        'version': '2.2.30+',
+        'query_letters': 101,
+        'database_letters': None,
+        'gap_penalties': [
+            5,
+            2,
+        ],
+        'database': 'virus-refseq-20160316',
+        'database_sequences': 7194,
+        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+        'hsps_prelim_gapped_attemped': None,
+        'sc_mismatch': -3,
+        'effective_hsp_length': 26,
+        'threshold': None,
+        'num_seqs_better_e': None,
+        'num_hits': None,
+        'hsps_no_gap': None,
+        'hsps_gapped': None,
+        'matrix': '',
+        'database_length': 224194830,
+        'sc_match': 2,
+        'gap_trigger': [
+            None,
+            None,
+        ],
+        'num_good_extends': None,
+        'ka_params': [
+            0.625,
+            0.41,
+            0.78,
+        ],
+        'gap_x_dropoff_final': [
+            None,
+            None,
+        ],
+        'effective_search_space_used': None,
+        'date': '',
+        'query_id': 'Query_1',
+        'database_name': [],
+        'num_sequences': None,
+        'effective_database_length': None,
+        'reference': 'Stephen F. Altschul, ...',
+        'dropoff_1st_pass': [
+            None,
+            None,
+        ],
+        'hsps_prelim_gapped': None,
+        'frameshift': [
+            None,
+            None,
+        ],
+        'window_size': None,
+        'query_length': 101,
+        'num_letters_in_database': 224194830,
+        'gapped': 0,
+        'gap_x_dropoff': [
+            None,
+            None,
+        ],
+        'blast_cutoff': [
+            None,
+            None,
+        ],
+        'posted_date': [],
+        'effective_query_length': None,
+        'ka_params_gap': [
+            None,
+            None,
+            None,
+        ]
+    },
+    {
+        'alignments': [
+            {
+                'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
+                'length': 15225,
+                'hsps': [
+                    {
+                        'sbjct_start': 5548,
+                        'sbjct_end': 5450,
+                        'bits': 165.393,
+                        'frame': [
+                            1,
+                            -1,
+                        ],
+                        'query_start': 1,
+                        'expect': 2.73597e-40,
+                        'query_end': 99,
+                        'sbjct': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
+                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
+                                  'GTTCTAATGTGGTTG'),
+                        'query': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
+                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
+                                  'GTTTTGTTGTGGTTG'),
+                    }
+                ]
+            }
+        ],
+        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA'
+    },
+    {
+        'alignments': [
+            {
+                'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
+                'length': 15225,
+                'hsps': [
+                    {
+                        'sbjct_start': 12320,
+                        'sbjct_end': 12220,
+                        'bits': 178.016,
+                        'frame': [
+                            1,
+                            -1,
+                        ],
+                        'query_start': 1,
+                        'expect': 4.33545e-44,
+                        'query_end': 101,
+                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
+                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
+                                  'ATAATTATACCACTGGC'),
+                        'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
+                                  'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
+                                  'ATAATTATACCACTGGC'),
+                    }
+                ]
+            },
+            {
+                'title': 'gi|9629367|ref|NC_001803.1| RSV',
+                'length': 15191,
+                'hsps': [
+                    {
+                        'sbjct_start': 12279,
+                        'sbjct_end': 12179,
+                        'bits': 123.915,
+                        'frame': [
+                            1,
+                            -1,
+                        ],
+                        'query_start': 1,
+                        'expect': 8.37678e-28,
+                        'query_end': 101,
+                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
+                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
+                                  'ATGATTATGCCACTAGC'),
+                        'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
+                                  'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
+                                  'ATAATTATACCACTGGC'),
+                    }
+                ]
+            },
+            {
+                'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
+                'length': 15140,
+                'hsps': [
+                    {
+                        'sbjct_start': 12213,
+                        'sbjct_end': 12119,
+                        'bits': 87.848,
+                        'frame': [
+                            1,
+                            -1,
+                        ],
+                        'query_start': 2,
+                        'expect': 6.03169e-17,
+                        'query_end': 98,
+                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
+                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
+                                  'TTATTATACCACT'),
+                        'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
+                                  'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
+                                  'TAATTATACCACT'),
+                    }
+                ]
+            }
+        ],
+        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+    },
+    {
+        'alignments': [],
+        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA'
+    },
+    {
+        'alignments': [],
+        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA'
+    }
+
+]
+
+JSON = '\n'.join(dumps(record) for record in _JSON_RECORDS) + '\n'
+
+
+class TestJSONRecordsReader(TestCase):
+    """
+    Test the JSONRecordsReader class.
+    """
+
+    # TODO: This class is quite incomplete. It was added long after the
+    # original code was written, due to laziness at the time. Additional
+    # aspects of the returned alignments should be tested.
+
+    def testCorrectNumberOfAlignments(self):
+        """
+        A JSONRecordsReader must return the expected number of alignments.
+        """
+        reads = Reads([
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
+                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
+                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
+                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
+                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
+        ])
+
+        mockOpener = mockOpen(read_data=JSON)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = JSONRecordsReader('file.json')
+            alignments = list(reader.readAlignments(reads))
+            self.assertEqual(4, len(alignments))
+
+    def testCorrectNumberOfAlignmentsWhenReadIdsAreAbbreviated(self):
+        """
+        A JSONRecordsReader must return the expected number of alignments
+        when read ids are truncated at the first space. That is, the BLAST
+        output has query names that are long and which contain a space but
+        the reads in the FASTA have just the first part of those names (up to
+        the first space).
+        """
+        reads = Reads([
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234',
+                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
+                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287',
+                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
+                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488',
+                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
+                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
+            DNARead(
+                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512',
+                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
+                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
+        ])
+
+        mockOpener = mockOpen(read_data=JSON)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = JSONRecordsReader('file.json')
+            alignments = list(reader.readAlignments(reads))
+            self.assertEqual(4, len(alignments))
