@@ -41,13 +41,23 @@ class TestLineageFetcher(TestCase):
         """
         title = 'gi|5|gb|EU375804.1| Merkel cell polyomavirus'
 
-        db = FakeDbConnection([[15], [2], ['Merkel cell polyomavirus'],
-                               [3], ['Polyomavirus'], [2],
-                               ['dsDNA viruses'], [1], ['Vira']])
+        db = FakeDbConnection([
+            [15], ['Merkel cell polyomavirus'],
+            [4], ['Polyomavirus'],
+            [3], ['dsDNA viruses'],
+            [2], ['Vira'],
+            [1],
+        ])
         cursor = db.cursor()
 
         lineageFetcher = LineageFetcher(db=db, cursor=cursor)
 
         lineage = lineageFetcher.lineage(title)
-        self.assertEqual(['Merkel cell polyomavirus', 'Polyomavirus',
-                          'dsDNA viruses', 'Vira'], lineage)
+        self.assertEqual(
+            [
+                (15, 'Merkel cell polyomavirus'),
+                (4, 'Polyomavirus'),
+                (3, 'dsDNA viruses'),
+                (2, 'Vira'),
+            ],
+            lineage)
