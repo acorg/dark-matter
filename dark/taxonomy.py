@@ -13,7 +13,7 @@ class LineageFetcher(object):
 
     def lineage(self, title):
         """
-        For a give title, gets the lineage information from taxonomy database.
+        Get lineage information from the taxonomy database for a given title.
 
         @param title: A C{str} sequence title (e.g., from a BLAST hit). Of the
             form 'gi|63148399|gb|DQ011818.1| Description...'. It is the gi
