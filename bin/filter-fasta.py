@@ -61,6 +61,20 @@ if __name__ == '__main__':
         help=('If True, duplicate sequences will be removed. The first '
               'occurrence is kept.'))
 
+    # See the docstring for dark.reads.Reads.filter for more detail on
+    # randomSubset.
+    parser.add_argument(
+        '--randomSubset', type=int, default=None,
+        help=('An integer giving the number of sequences that should be kept. '
+              'These will be selected at random.'))
+
+    # See the docstring for dark.reads.Reads.filter for more detail on
+    # trueLength.
+    parser.add_argument(
+        '--trueLength', type=int, default=None,
+        help=('The number of reads in the FASTA input. Only to be used with '
+              'randomSubset'))
+
     args = parser.parse_args()
     kept = 0
     reads = FastaReads(sys.stdin, checkAlphabet=False)
@@ -75,7 +89,8 @@ if __name__ == '__main__':
             negativeTitleRegex=args.negativeTitleRegex,
             truncateTitlesAfter=args.truncateTitlesAfter,
             indices=set(args.indices) if args.indices else None,
-            head=args.head, removeDuplicates=args.removeDuplicates):
+            head=args.head, removeDuplicates=args.removeDuplicates,
+            randomSubset=args.randomSubset, trueLength=args.trueLength):
         kept += 1
         print(seq.toString('fasta'), end='')
 
