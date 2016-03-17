@@ -4,6 +4,7 @@
 # git checkout pypy-4.0.1
 # pypy setup.py install
 biopython==1.64
+bz2file==0.98
 discover==0.4.0
 ipython==2.2.0
 mock==1.0.1
