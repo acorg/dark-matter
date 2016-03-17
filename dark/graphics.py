@@ -4,9 +4,31 @@ from stat import S_ISDIR
 from math import ceil
 from collections import defaultdict
 from time import ctime, time
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib import gridspec, patches
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    import platform
+    if platform.python_implementation() == 'PyPy':
+        # PyPy doesn't have a version of matplotlib. Make fake classes and
+        # a Line2D function and that raise if used. This allows us to use
+        # other 'dark' code that happens to import dark.mutations but not
+        # use the functions that rely on matplotlib.
+        class plt(object):
+            def __getattr__(self, _):
+                raise NotImplementedError(
+                    'matplotlib is not supported under pypy')
+
+        gridspec = patches = plt
+
+        def Line2D(*args, **kwargs):
+            raise NotImplementedError('matplotlib is not supported under pypy')
+    else:
+        raise
+else:
+    from matplotlib.lines import Line2D
+    from matplotlib import gridspec, patches
+
 import numpy as np
 
 from dark.aa import propertiesForSequence, clustersForSequence

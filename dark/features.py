@@ -1,5 +1,20 @@
 import numpy as np
-import matplotlib.pyplot as plt
+
+try:
+    from matplotlib import pyplot as plt
+except ImportError:
+    import platform
+    if platform.python_implementation() == 'PyPy':
+        # PyPy doesn't have a version of matplotlib. Make fake classes and
+        # a Line2D function and that raise if used. This allows us to use
+        # other 'dark' code that happens to import dark.mutations but not
+        # use the functions that rely on matplotlib.
+        class plt(object):
+            def __getattr__(self, _):
+                raise NotImplementedError(
+                    'matplotlib is not supported under pypy')
+    else:
+        raise
 
 from dark.entrez import getSequence
 
