@@ -45,24 +45,16 @@ one created above by `git clone`) to your shell's `PYTHONPATH`.
 
 # Using pypy
 
-Things are a little more awkward to set up using pypy, due to the building
-of matplotlib. Here are instructions for brew and virtualenv (first install
-those two and make and activate a virtualenv):
+If you are using pypy 5.0.0 (or later, presumably):
 
 ```sh
-$ git clone https://github.com/acorg/dark-matter
-$ cd dark-matter
-$ python setup.py install
 $ pip install -r requirements-pypy.txt
 ```
 
-Then install the pypy-specific version of matplotlib:
-
-```sh
-$ git clone git@github.com:mattip/matplotlib.git  # This might take a while
-$ cd matplotlib
-$ python setup.py install
-```
+If you're still on pypy 4, comment out the
+`git+https://bitbucket.org/pypy/numpy.git` line in `requirements-pypy.txt`
+and follow the instructions in that file to install `numpy`. Then run the
+`pip install` command above.
 
 # Install a taxonomy database (optional)
 

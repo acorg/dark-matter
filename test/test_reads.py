@@ -1,6 +1,7 @@
 import six
 from six.moves import builtins
 from unittest import TestCase
+from random import seed
 
 try:
     from unittest.mock import patch, call
@@ -2174,7 +2175,7 @@ class TestReads(TestCase):
 
     def testFilterRandomSubsetOfFiveFromFiveReads(self):
         """
-        Asking for a size five random subset of a set of five read must work
+        Asking for a size five random subset of a set of five reads must work
         as expected.
         """
         read1 = Read('id1', 'ATCG')
@@ -2188,7 +2189,7 @@ class TestReads(TestCase):
 
     def testFilterRandomSubsetOfTwoFromFiveReads(self):
         """
-        Asking for a size two random subset of a set of five read must return
+        Asking for a size two random subset of a set of five reads must return
         two (different) reads.
         """
         read1 = Read('id1', 'ATCG')
@@ -2202,6 +2203,55 @@ class TestReads(TestCase):
 
     # Tests for random subset filtering in which a trueLength argument is
     # passed can be found in test_fasta.py
+
+    def testSampleFractionAndRandomSubsetRaisesValueError(self):
+        """
+        Asking for filtering of a sample fraction and a random subset at the
+        same time must raise a ValueError.
+        """
+        reads = Reads()
+        error = ("^randomSubset and sampleFraction cannot be used "
+                 "simultaneously in a filter\. Call filter twice instead\.$")
+        six.assertRaisesRegex(self, ValueError, error, reads.filter,
+                              sampleFraction=0.1, randomSubset=3)
+
+    def testSampleFractionZero(self):
+        """
+        Asking for a sample fraction of 0.0 from a set of five reads must
+        return the empty list.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATCG')
+        read4 = Read('id4', 'ATCG')
+        read5 = Read('id5', 'ATCG')
+        reads = Reads([read1, read2, read3, read4, read5])
+        result = reads.filter(sampleFraction=0.0)
+        self.assertEqual(0, len(list(result)))
+
+    def testSampleFractionOne(self):
+        """
+        Asking for a sample fraction of 1.0 from a set of five reads must
+        return all reads.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATCG')
+        read4 = Read('id4', 'ATCG')
+        read5 = Read('id5', 'ATCG')
+        reads = Reads([read1, read2, read3, read4, read5])
+        result = reads.filter(sampleFraction=1.0)
+        self.assertEqual([read1, read2, read3, read4, read5], list(result))
+
+    def testSampleFractionPointOne(self):
+        """
+        Asking for a sample fraction of 0.1 from a set of 100 reads must
+        return 11 reads (given a particular random seed value).
+        """
+        seed(1)
+        reads = Reads([Read('id1', 'ATCG')] * 100)
+        result = reads.filter(sampleFraction=0.1)
+        self.assertEqual(11, len(list(result)))
 
 
 class TestSummarizePosition(TestCase):
