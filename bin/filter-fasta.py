@@ -75,6 +75,13 @@ if __name__ == '__main__':
         help=('The number of reads in the FASTA input. Only to be used with '
               'randomSubset'))
 
+    parser.add_argument(
+        '--sampleFraction', type=float, default=None,
+        help=('A [0.0, 1.0] C{float} indicating a fraction of the reads that '
+              'should be allowed to pass through the filter. The sample size '
+              'will only be approximately the product of the sample fraction '
+              'and the number of reads. The sample is taken at random.'))
+
     args = parser.parse_args()
     kept = 0
     reads = FastaReads(sys.stdin, checkAlphabet=False)
@@ -90,7 +97,8 @@ if __name__ == '__main__':
             truncateTitlesAfter=args.truncateTitlesAfter,
             indices=set(args.indices) if args.indices else None,
             head=args.head, removeDuplicates=args.removeDuplicates,
-            randomSubset=args.randomSubset, trueLength=args.trueLength):
+            randomSubset=args.randomSubset, trueLength=args.trueLength,
+            sampleFraction=args.sampleFraction):
         kept += 1
         print(seq.toString('fasta'), end='')
 
