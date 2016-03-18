@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 
 from dark.fasta import FastaReads
+from dark.fastq import FastqReads
 
 
 if __name__ == '__main__':
@@ -13,6 +14,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=('Given FASTA on stdin and a set of filtering criteria ',
                      'write filtered FASTA to stdout.'))
+
+    parser.add_argument(
+        '--fastq', action='store_true', default=False,
+        help=("If specified, input will be treated as FASTQ not FASTA"))
 
     parser.add_argument(
         '--minLength', type=int,
@@ -83,8 +88,15 @@ if __name__ == '__main__':
               'and the number of reads. The sample is taken at random.'))
 
     args = parser.parse_args()
+
+    if args.fastq:
+        # TODO: FastqReads should take a checkAlphabet argument, in the way
+        # that FastaReads does.
+        reads = FastqReads(sys.stdin)
+    else:
+        reads = FastaReads(sys.stdin, checkAlphabet=False)
+
     kept = 0
-    reads = FastaReads(sys.stdin, checkAlphabet=False)
 
     for seq in reads.filter(
             minLength=args.minLength,
