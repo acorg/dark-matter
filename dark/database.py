@@ -1,6 +1,6 @@
-from mysql import connector
-
 from os import environ
+
+from mysql import connector
 
 
 def getDatabaseConnection():

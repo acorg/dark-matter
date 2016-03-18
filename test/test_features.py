@@ -1,6 +1,23 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from unittest import TestCase
+from unittest import TestCase, skipUnless
+
+try:
+    from matplotlib import pyplot as plt
+except ImportError:
+    import platform
+    if platform.python_implementation() == 'PyPy':
+        havePlt = False
+        # PyPy doesn't have a version of matplotlib. Make a fake class that
+        # raises if used.
+
+        class plt(object):
+            def __getattr__(self, _):
+                raise NotImplementedError(
+                    'matplotlib is not supported under pypy')
+    else:
+        raise
+else:
+    havePlt = True
 
 try:
     from unittest.mock import call, MagicMock, ANY
@@ -123,6 +140,9 @@ class Test_Feature(TestCase):
                          feature.legendLabel())
 
 
+# We can't test anything that uses a FeatureList under pypy because
+# dark.features makes use of matplotlib.
+@skipUnless(havePlt, 'matplotlib not supported under pypy')
 class Test_FeatureList(TestCase):
     """
     Tests of the C{FeatureList} class.
@@ -267,6 +287,7 @@ class Test_FeatureList(TestCase):
         self.assertEqual(1, len(featureList))
         self.assertTrue(featureList[0].subfeature)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testColors(self):
         """
         If the sequence fetcher returns a record with 3 features, each
@@ -300,6 +321,7 @@ class Test_FeatureAdder(TestCase):
         featureAdder = _FeatureAdder()
         self.assertFalse(featureAdder.tooManyFeaturesToPlot)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testTitle(self):
         """
         A L{_FeatureAdder} must set the title of its figure.
@@ -312,6 +334,7 @@ class Test_FeatureAdder(TestCase):
         fig.set_title.assert_called_with('Target sequence features',
                                          fontsize=16)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testYTicks(self):
         """
         A L{_FeatureAdder} must set the title of its figure.
@@ -323,6 +346,7 @@ class Test_FeatureAdder(TestCase):
         featureAdder.add(fig, 'title', 0, 100, sequenceFetcher=fetcher)
         fig.set_yticks.assert_called_with([])
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testOffline(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns C{None},
@@ -340,6 +364,7 @@ class Test_FeatureAdder(TestCase):
                                     fontsize=20)
         fig.axis.assert_called_with([0, 300, -1, 1])
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testNoFeatures(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns no features
@@ -362,6 +387,7 @@ class Test_FeatureAdder(TestCase):
         fig.axis.assert_called_with([0, 300, -1, 1])
         self.assertEqual([], result)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testOneFeatureRaisesNotImplementedError(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
@@ -382,6 +408,7 @@ class Test_FeatureAdder(TestCase):
         self.assertRaises(NotImplementedError, featureAdder.add, fig, 'title',
                           0, 300, sequenceFetcher=fetcher)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testTooManyFeatures(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns too many
@@ -416,6 +443,7 @@ class TestProteinFeatureAdder(TestCase):
     Tests of the C{ProteinFeatureAdder} class.
     """
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testUnwantedFeature(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature
@@ -436,6 +464,7 @@ class TestProteinFeatureAdder(TestCase):
         self.assertEqual([], fig.plot.call_args_list)
         self.assertEqual([], result)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testOneFeature(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
@@ -472,6 +501,7 @@ class TestNucleotideFeatureAdder(TestCase):
     Tests of the C{NucleotideFeatureAdder} class.
     """
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testUnwantedFeature(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature
@@ -492,6 +522,7 @@ class TestNucleotideFeatureAdder(TestCase):
         self.assertEqual([], fig.plot.call_args_list)
         self.assertEqual([], result)
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testOneFeature(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
@@ -523,6 +554,7 @@ class TestNucleotideFeatureAdder(TestCase):
         self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(1, len(result))
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testOneFeatureAdjusted(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
@@ -558,6 +590,7 @@ class TestNucleotideFeatureAdder(TestCase):
         self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(1, len(result))
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testSubfeaturesAreMovedDown(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
@@ -594,6 +627,7 @@ class TestNucleotideFeatureAdder(TestCase):
         self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(2, len(result))
 
+    @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testPolyproteinsAreMovedUp(self):
         """
         If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
