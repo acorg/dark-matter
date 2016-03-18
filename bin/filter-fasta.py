@@ -20,6 +20,12 @@ if __name__ == '__main__':
         help=("If specified, input will be treated as FASTQ not FASTA"))
 
     parser.add_argument(
+        '--saveAs', default=None, choices=('fasta', 'fastq'),
+        help=('The output format. The default is to match the input format, '
+              'so there is usually no need to specify this option. It can be '
+              'used to force conversion from FASTQ to FASTA'))
+
+    parser.add_argument(
         '--minLength', type=int,
         help='The minimum sequence length')
 
@@ -89,6 +95,16 @@ if __name__ == '__main__':
     else:
         reads = FastaReads(sys.stdin, checkAlphabet=False)
 
+    if args.saveAs is None:
+        saveAs = 'fastq' if args.fastq else 'fasta'
+    else:
+        saveAs = args.saveAs
+
+        if saveAs == 'fastq' and not args.fastq:
+            raise ValueError(
+                'You have specified --saveAs fastq without using --fastq to '
+                'indicate that the input is FASTQ. Please be explicit.')
+
     kept = 0
 
     for seq in reads.filter(
@@ -104,6 +120,6 @@ if __name__ == '__main__':
             head=args.head, removeDuplicates=args.removeDuplicates,
             randomSubset=args.randomSubset, trueLength=args.trueLength):
         kept += 1
-        print(seq.toString('fasta'), end='')
+        print(seq.toString(format_=saveAs), end='')
 
     print('Read %d sequences, kept %d.' % (len(reads), kept), file=sys.stderr)
