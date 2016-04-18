@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 
 from dark.fasta import FastaReads
+from dark.fasta_ss import SSFastaReads
 from dark.fastq import FastqReads
 
 
@@ -16,8 +17,8 @@ if __name__ == '__main__':
                      'write filtered FASTA to stdout.'))
 
     parser.add_argument(
-        '--fastq', action='store_true', default=False,
-        help=("If specified, input will be treated as FASTQ not FASTA"))
+        '--readClass', default='fasta', choices=('fasta', 'fastq', 'ss-fasta'),
+        help=("If specified, give the input FASTA type"))
 
     parser.add_argument(
         '--saveAs', default=None, choices=('fasta', 'fastq'),
@@ -95,12 +96,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.fastq:
+    if args.readClass == 'fastq':
         # TODO: FastqReads should take a checkAlphabet argument, in the way
         # that FastaReads does.
         reads = FastqReads(sys.stdin)
-    else:
+    elif args.readClass == 'fasta':
         reads = FastaReads(sys.stdin, checkAlphabet=False)
+    else:
+        reads = SSFastaReads(sys.stdin, checkAlphabet=False)
 
     if args.saveAs is None:
         saveAs = 'fastq' if args.fastq else 'fasta'
