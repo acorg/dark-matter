@@ -106,7 +106,7 @@ if __name__ == '__main__':
         reads = SSFastaReads(sys.stdin, checkAlphabet=False)
 
     if args.saveAs is None:
-        saveAs = 'fastq' if args.fastq else 'fasta'
+        saveAs = 'fastq' if args.readClass == 'fastq' else 'fasta'
     else:
         saveAs = args.saveAs
 
