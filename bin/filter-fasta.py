@@ -110,10 +110,11 @@ if __name__ == '__main__':
     else:
         saveAs = args.saveAs
 
-        if saveAs == 'fastq' and not args.fastq:
+        if saveAs == 'fastq' and args.readClass != 'fastq':
             raise ValueError(
-                'You have specified --saveAs fastq without using --fastq to '
-                'indicate that the input is FASTQ. Please be explicit.')
+                'You have specified --saveAs fastq without using --readClass '
+                'fastq to indicate that the input is FASTQ. Please be '
+                'explicit.')
 
     kept = 0
 
