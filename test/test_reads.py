@@ -1432,6 +1432,62 @@ class _TestSSAAReadMixin(object):
         self.assertEqual(self.CLASS('id', 'FRML', 'HESB'),
                          self.CLASS('id', 'LMRF', 'BSEH')[::-1])
 
+    def testToString(self):
+        """
+        toString must return the expected 2 FASTA records (one of which is
+        the structure information).
+        """
+        self.assertEqual(
+            '>id-1234\n'
+            'FFMM\n'
+            '>id-1234:structure\n'
+            'HHHH\n',
+            self.CLASS('id-1234', 'FFMM', 'HHHH').toString())
+
+    def testToStringWithStructureSuffix(self):
+        """
+        toString must return the expected 2 FASTA records when given a
+        specific structure id suffix.
+        """
+        self.assertEqual(
+            '>id-12\n'
+            'FFMM\n'
+            '>id-12:x\n'
+            'HHHH\n',
+            self.CLASS('id-12', 'FFMM', 'HHHH').toString(structureSuffix=':x'))
+
+    def testToStringWithExplicitFastaSSFormat(self):
+        """
+        toString must return the expected 2 FASTA records when 'fasta-ss' is
+        passed as the C{format_} argument.
+        """
+        self.assertEqual(
+            '>id-1234\n'
+            'FFMM\n'
+            '>id-1234:structure\n'
+            'HHHH\n',
+            self.CLASS('id-1234', 'FFMM', 'HHHH').toString(format_='fasta-ss'))
+
+    def testToStringWithExplicitFastaFormat(self):
+        """
+        toString must return normal FASTA when 'fasta' is passed as the
+        C{format_} argument.
+        """
+        self.assertEqual(
+            '>id-1234\n'
+            'FFMM\n',
+            self.CLASS('id-1234', 'FFMM', 'HHHH').toString(format_='fasta'))
+
+    def testToStringWithUnknownFormat(self):
+        """
+        toString must raise ValueError when something other than 'fasta' or
+        'fasta-ss' is passed as the C{format_} argument.
+        """
+        read = self.CLASS('id-1234', 'FFMM', 'HHHH')
+        error = "^Format must be either 'fasta' or 'fastq'\."
+        six.assertRaisesRegex(
+            self, ValueError, error, read.toString, format_='pasta')
+
 
 class TestSSAARead(TestCase, _TestSSAAReadMixin):
     """
@@ -1451,51 +1507,6 @@ class TestSSAAReadWithX(TestCase, _TestSSAAReadMixin):
         An SSAAReadWithX must be able to contain an 'X' character.
         """
         self.assertEqual('AFGX', SSAAReadWithX('id', 'AFGX', 'HHHH').sequence)
-
-    def testToString(self):
-        """
-        toString must return the expected 2 FASTA records.
-        """
-        self.assertEqual(
-            '>id-1234\n'
-            'FFMM\n'
-            '>id-1234:structure\n'
-            'HHHH\n',
-            SSAARead('id-1234', 'FFMM', 'HHHH').toString())
-
-    def testToStringWithStructureSuffix(self):
-        """
-        toString must return the expected 2 FASTA records when given a
-        specific structure id suffix.
-        """
-        self.assertEqual(
-            '>id-12\n'
-            'FFMM\n'
-            '>id-12:x\n'
-            'HHHH\n',
-            SSAARead('id-12', 'FFMM', 'HHHH').toString(structureSuffix=':x'))
-
-    def testToStringWithExplicitFastaFormat(self):
-        """
-        toString must return the expected 2 FASTA records when 'fasta' is
-        passed as the C{format_} argument.
-        """
-        self.assertEqual(
-            '>id-1234\n'
-            'FFMM\n'
-            '>id-1234:structure\n'
-            'HHHH\n',
-            SSAARead('id-1234', 'FFMM', 'HHHH').toString(format_='fasta'))
-
-    def testToStringWithNonFastaFormat(self):
-        """
-        toString must raise ValueError when something other than 'fasta' is
-        passed as the C{format_} argument.
-        """
-        read = SSAARead('id-1234', 'FFMM', 'HHHH')
-        error = "^Format must be 'fasta'\."
-        six.assertRaisesRegex(
-            self, ValueError, error, read.toString, format_='pasta')
 
 
 class TestTranslatedRead(TestCase):
