@@ -17,11 +17,11 @@ if __name__ == '__main__':
                      'write filtered FASTA to stdout.'))
 
     parser.add_argument(
-        '--readClass', default='fasta', choices=('fasta', 'fastq', 'ss-fasta'),
+        '--readClass', default='fasta', choices=('fasta', 'fastq', 'fasta-ss'),
         help=("If specified, give the input FASTA type"))
 
     parser.add_argument(
-        '--saveAs', default=None, choices=('fasta', 'fastq'),
+        '--saveAs', default=None, choices=('fasta', 'fastq', 'fasta-ss'),
         help=('The output format. The default is to match the input format, '
               'so there is usually no need to specify this option. It can be '
               'used to force conversion from FASTQ to FASTA'))
@@ -103,18 +103,26 @@ if __name__ == '__main__':
     elif args.readClass == 'fasta':
         reads = FastaReads(sys.stdin, checkAlphabet=False)
     else:
+        # args.readClass must be fasta-ss due to the 'choices' argument
+        # passed to parser.add_argument value above.
+        assert args.readClass == 'fasta-ss'
         reads = SSFastaReads(sys.stdin, checkAlphabet=False)
 
-    if args.saveAs is None:
-        saveAs = 'fastq' if args.readClass == 'fastq' else 'fasta'
-    else:
-        saveAs = args.saveAs
+    saveAs = args.saveAs or args.readClass
 
-        if saveAs == 'fastq' and args.readClass != 'fastq':
-            raise ValueError(
-                'You have specified --saveAs fastq without using --readClass '
-                'fastq to indicate that the input is FASTQ. Please be '
-                'explicit.')
+    # Check for incompatible read/write formats. We can't write FASTQ
+    # unless we have FASTQ on input (else we won't have quality
+    # information), and we can't write PDB FASTA with secondary structure
+    # information unless we have that on input.
+    if saveAs == 'fastq' and args.readClass != 'fastq':
+        raise ValueError(
+            'You have specified --saveAs fastq without using --readClass '
+            'fastq to indicate that the input is FASTQ. Please be explicit.')
+    elif saveAs == 'fasta-ss' and args.readClass != 'fasta-ss':
+        raise ValueError(
+            'You have specified --saveAs fasta-ss without using --readClass '
+            'fasta-ss to indicate that the input is PDB FASTA. Please be '
+            'explicit.')
 
     kept = 0
 
