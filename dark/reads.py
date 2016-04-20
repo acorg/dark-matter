@@ -247,8 +247,8 @@ class RNARead(_NucleotideRead):
 
 # Keep a single GOR4 instance that can be used by all AA reads. This saves us
 # from re-scanning the GOR IV secondary structure database every time we make
-# an AARead instance.
-_GOR4 = GOR4()
+# an AARead instance. This will be initialized when it's first needed.
+_GOR4 = None
 
 
 class AARead(Read):
@@ -347,6 +347,11 @@ class AARead(Read):
             C{sequence}. The C{float} values are the probabilities assigned,
             in order, to Helix, Beta Strand, Coil.
         """
+        # Initialize the GOR4 singleton, if necessary.
+        global _GOR4
+        if _GOR4 is None:
+            _GOR4 = GOR4()
+
         return _GOR4.predict(self.sequence)
 
 
