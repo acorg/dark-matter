@@ -296,6 +296,21 @@ class TestRead(TestCase):
         self.assertEqual(hash(Read('id', 'AA', '!!')),
                          hash(Read('id', 'AA', '!!')))
 
+    def testHashViaSet(self):
+        """
+        If two identical reads are put into a set, the set must have size one.
+        """
+        read = Read('id', 'AA', '!!')
+        self.assertEqual(1, len(set([read, read])))
+
+    def testHashViaDict(self):
+        """
+        If two identical reads are used as keys in a dict, the dict must have
+        size one.
+        """
+        read = Read('id', 'AA', '!!')
+        self.assertEqual(1, len(dict.fromkeys([read, read])))
+
     def testLowComplexityFractionEmptySequence(self):
         """
         A read with an empty sequence must return a zero result from its
@@ -1598,6 +1613,44 @@ class _TestSSAAReadMixin(object):
                 'sequence': 'ACGT',
                 'structure': 'HHEE',
             }))
+
+    def testHashDiffersIfIdDiffers(self):
+        """
+        The __hash__ value for two reads must differ if their ids differ.
+        """
+        self.assertNotEqual(hash(self.CLASS('id1', 'AA', 'HH')),
+                            hash(self.CLASS('id2', 'AA', 'HH')))
+
+    def testHashDiffersIfSequenceDiffers(self):
+        """
+        The __hash__ value for two reads must differ if their sequence strings
+        differ.
+        """
+        self.assertNotEqual(hash(self.CLASS('id', 'MMR', 'HH')),
+                            hash(self.CLASS('id', 'MMF', 'HH')))
+
+    def testHashDiffersIfStructureDiffers(self):
+        """
+        The __hash__ value for two reads must differ if their structure strings
+        differ.
+        """
+        self.assertNotEqual(hash(self.CLASS('id', 'AA', 'HH')),
+                            hash(self.CLASS('id', 'AA', 'HE')))
+
+    def testHashViaSet(self):
+        """
+        If two identical reads are put into a set, the set must have size one.
+        """
+        read = self.CLASS('id', 'AA', 'HH')
+        self.assertEqual(1, len(set([read, read])))
+
+    def testHashViaDict(self):
+        """
+        If two identical reads are used as keys in a dict, the dict must have
+        size one.
+        """
+        read = self.CLASS('id', 'AA', 'HH')
+        self.assertEqual(1, len(dict.fromkeys([read, read])))
 
 
 class TestSSAARead(TestCase, _TestSSAAReadMixin):

@@ -49,7 +49,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.30',
+      version='1.0.31',
       packages=['dark'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
