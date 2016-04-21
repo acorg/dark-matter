@@ -14,7 +14,7 @@ from os import stat
 from .mocking import mockOpen
 from dark.reads import (
     Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
-    AAReadWithX, SSAARead, SSAAReadWithX)
+    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
@@ -163,6 +163,57 @@ class TestRead(TestCase):
         """
         read = Read('id', 'ACGT', '!@#$')
         self.assertEqual('@id\nACGT\n+id\n!@#$\n', read.toString('fastq'))
+
+    def testToDict(self):
+        """
+        toDict must return the correct dictionary.
+        """
+        read = Read('id3', 'ACGT', '!!2&')
+        self.assertEqual(
+            {
+                'id': 'id3',
+                'sequence': 'ACGT',
+                'quality': '!!2&',
+            },
+            read.toDict())
+
+    def testToDictNoQuality(self):
+        """
+        toDict must return the correct dictionary when the read has no quality
+        string.
+        """
+        read = Read('id3', 'ACGT')
+        self.assertEqual(
+            {
+                'id': 'id3',
+                'sequence': 'ACGT',
+                'quality': None,
+            },
+            read.toDict())
+
+    def testFromDict(self):
+        """
+        fromDict must return the expected instance.
+        """
+        self.assertEqual(
+            Read('id3', 'ACGT', '!!2&'),
+            Read.fromDict({
+                'id': 'id3',
+                'sequence': 'ACGT',
+                'quality': '!!2&',
+            }))
+
+    def testFromDictNoQuality(self):
+        """
+        fromDict must return the expected instance when the dictionary has no
+        quality key.
+        """
+        self.assertEqual(
+            Read('id3', 'ACGT'),
+            Read.fromDict({
+                'id': 'id3',
+                'sequence': 'ACGT',
+            }))
 
     def testEqualityWithDifferingIds(self):
         """
@@ -370,7 +421,7 @@ class TestRead(TestCase):
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
 
-    def testcheckAlphabetwithReadMustBePermissive(self):
+    def testCheckAlphabetwithReadMustBePermissive(self):
         """
         The checkAlphabet function must be permissive if a dark.Read is
         passed.
@@ -378,7 +429,7 @@ class TestRead(TestCase):
         read = Read('id', 'ARSTGATGCASASASASASAS')
         self.assertEqual(set('ACGSRT'), read.checkAlphabet())
 
-    def testcheckAlphabetAAReadMatchingReturnTrue(self):
+    def testCheckAlphabetAAReadMatchingReturnTrue(self):
         """
         If an AA read with an AARead readClass is passed in, the checkAlphabet
         function must return the alphabet of the sequence.
@@ -386,7 +437,7 @@ class TestRead(TestCase):
         read = AARead('id', 'ARSTGATGCASASASASASAS')
         self.assertEqual(set('ACGSRT'), read.checkAlphabet())
 
-    def testcheckAlphabetDNAReadMatchingReturnTrue(self):
+    def testCheckAlphabetDNAReadMatchingReturnTrue(self):
         """
         If a DNA read with a DNARead readClass is passed in, the checkAlphabet
         function must return the alphabet of the sequence.
@@ -394,7 +445,7 @@ class TestRead(TestCase):
         read = DNARead('id', 'AAATTAACGGGCCTAGG')
         self.assertEqual(set('ACTG'), read.checkAlphabet())
 
-    def testcheckAlphabetAAReadNotMatchingRaise(self):
+    def testCheckAlphabetAAReadNotMatchingRaise(self):
         """
         If an AA read with a DNARead readClass is passed in, the checkAlphabet
         function must raise an IndexError.
@@ -403,7 +454,7 @@ class TestRead(TestCase):
         error = "It looks like a DNA sequence has been passed to AARead()."
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
-    def testcheckAlphabetDNAReadNotMatchingRaise(self):
+    def testCheckAlphabetDNAReadNotMatchingRaise(self):
         """
         If a DNA read with an AARead readClass is passed in, the checkAlphabet
         function must raise an IndexError.
@@ -1348,6 +1399,41 @@ class TestAAReadORF(TestCase):
         read = AAReadORF(originalRead, 3, 4, False, False)
         self.assertEqual('id-[3:4]', read.id)
 
+    def testToDict(self):
+        """
+        toDict must return the correct dictionary.
+        """
+        originalRead = AARead('id3', 'ACGT', '!!2&')
+        read = AAReadORF(originalRead, 1, 3, True, False)
+        self.assertEqual(
+            {
+                'id': 'id3-(1:3]',
+                'sequence': 'CG',
+                'quality': '!2',
+                'start': 1,
+                'stop': 3,
+                'openLeft': True,
+                'openRight': False,
+            },
+            read.toDict())
+
+    def testFromDict(self):
+        """
+        fromDict must return the expected instance.
+        """
+        originalRead = AARead('id3', 'ACGT', '!!2&')
+        self.assertEqual(
+            AAReadORF(originalRead, 1, 3, True, False),
+            AAReadORF.fromDict({
+                'id': 'id3-(1:3]',
+                'sequence': 'CG',
+                'quality': '!2',
+                'start': 1,
+                'stop': 3,
+                'openLeft': True,
+                'openRight': False,
+            }))
+
 
 class _TestSSAAReadMixin(object):
     """
@@ -1488,6 +1574,31 @@ class _TestSSAAReadMixin(object):
         six.assertRaisesRegex(
             self, ValueError, error, read.toString, format_='pasta')
 
+    def testToDict(self):
+        """
+        toDict must return the correct dictionary.
+        """
+        read = SSAARead('id3', 'ACGT', 'HHEE')
+        self.assertEqual(
+            {
+                'id': 'id3',
+                'sequence': 'ACGT',
+                'structure': 'HHEE',
+            },
+            read.toDict())
+
+    def testFromDict(self):
+        """
+        fromDict must return the expected instance.
+        """
+        self.assertEqual(
+            SSAARead('id3', 'ACGT', 'HHEE'),
+            SSAARead.fromDict({
+                'id': 'id3',
+                'sequence': 'ACGT',
+                'structure': 'HHEE',
+            }))
+
 
 class TestSSAARead(TestCase, _TestSSAAReadMixin):
     """
@@ -1594,6 +1705,54 @@ class TestTranslatedRead(TestCase):
         read = Read('id', 'acctaggttgtttag')
         translated = TranslatedRead(read, 'T*MVV*', 0)
         self.assertEqual(2, translated.maximumORFLength())
+
+    def testToDict(self):
+        """
+        toDict must return the correct dictionary.
+        """
+        originalRead = AARead('id3', 'ACGT', '!!2&')
+        read = TranslatedRead(originalRead, 'MMMM', 0, True)
+        self.assertEqual(
+            {
+                'id': 'id3-frame0rc',
+                'sequence': 'MMMM',
+                'quality': None,
+                'frame': 0,
+                'reverseComplemented': True,
+            },
+            read.toDict())
+
+    def testFromDict(self):
+        """
+        fromDict must return the expected instance.
+        """
+        originalRead = AARead('id3', 'ACGT')
+        self.assertEqual(
+            TranslatedRead(originalRead, 'MMMM', 0, True),
+            TranslatedRead.fromDict({
+                'id': 'id3-frame0rc',
+                'sequence': 'MMMM',
+                'quality': None,
+                'frame': 0,
+                'reverseComplemented': True,
+            }))
+
+
+class TestReadClassNameToClass(TestCase):
+    """
+    Test that the light.reads.readClassNameToClass dictionary is correct.
+    """
+    def testNames(self):
+        self.assertEqual(9, len(readClassNameToClass))
+        self.assertIs(AARead, readClassNameToClass['AARead'])
+        self.assertIs(AAReadORF, readClassNameToClass['AAReadORF'])
+        self.assertIs(AAReadWithX, readClassNameToClass['AAReadWithX'])
+        self.assertIs(DNARead, readClassNameToClass['DNARead'])
+        self.assertIs(RNARead, readClassNameToClass['RNARead'])
+        self.assertIs(Read, readClassNameToClass['Read'])
+        self.assertIs(SSAARead, readClassNameToClass['SSAARead'])
+        self.assertIs(SSAAReadWithX, readClassNameToClass['SSAAReadWithX'])
+        self.assertIs(TranslatedRead, readClassNameToClass['TranslatedRead'])
 
 
 class TestReads(TestCase):

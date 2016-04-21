@@ -106,6 +106,30 @@ class Read(object):
         else:
             raise ValueError("Format must be either 'fasta' or 'fastq'.")
 
+    def toDict(self):
+        """
+        Get information about this read in a dictionary.
+
+        @return: A C{dict} with keys/values for the attributes of self.
+        """
+        return {
+            'id': self.id,
+            'sequence': self.sequence,
+            'quality': self.quality,
+        }
+
+    @classmethod
+    def fromDict(cls, d):
+        """
+        Create a new instance from attribute values provided in a dictionary.
+
+        @param d: A C{dict} with keys/values for the attributes of a new
+            instance of this class. Keys 'id' and 'sequence' with C{str} values
+            must be provided. A 'quality' C{str} key is optional.
+        @return: A new instance of this class, with values taken from C{d}.
+        """
+        return cls(d['id'], d['sequence'], d.get('quality'))
+
     def lowComplexityFraction(self):
         """
         What fraction of a read's bases are in low-complexity regions?
@@ -395,11 +419,59 @@ class AAReadORF(AARead):
                                   '(' if openLeft else '[',
                                   start, stop,
                                   ')' if openRight else ']')
-        AARead.__init__(self, newId, originalRead.sequence[start:stop])
+        if originalRead.quality:
+            AARead.__init__(self, newId, originalRead.sequence[start:stop],
+                            originalRead.quality[start:stop])
+        else:
+            AARead.__init__(self, newId, originalRead.sequence[start:stop])
         self.start = start
         self.stop = stop
         self.openLeft = openLeft
         self.openRight = openRight
+
+    def toDict(self):
+        """
+        Get information about this read in a dictionary.
+
+        @return: A C{dict} with keys/values for the attributes of self.
+        """
+        if six.PY3:
+            result = super().toDict()
+        else:
+            result = AARead.toDict()
+
+        result.update({
+            'start': self.start,
+            'stop': self.stop,
+            'openLeft': self.openLeft,
+            'openRight': self.openRight,
+        })
+
+        return result
+
+    @classmethod
+    def fromDict(cls, d):
+        """
+        Create a new instance from attribute values provided in a dictionary.
+
+        @param d: A C{dict} with keys/values for the attributes of a new
+            instance of this class. Keys 'id' and 'sequence' with C{str} values
+            must be provided. A 'quality' C{str} key is optional. Keys 'start'
+            and 'stop' must have C{int} values. Keys 'openLeft' and 'openRight'
+            are C{bool}, all keys are as described in the docstring for this
+            class.
+        @return: A new instance of this class, with values taken from C{d}.
+        """
+        # Make a dummy instance whose attributes we can set explicitly.
+        new = cls(AARead('', ''), 0, 0, True, True)
+        new.id = d['id']
+        new.sequence = d['sequence']
+        new.quality = d.get('quality')
+        new.start = d['start']
+        new.stop = d['stop']
+        new.openLeft = d['openLeft']
+        new.openRight = d['openRight']
+        return new
 
 
 class SSAARead(AARead):
@@ -455,6 +527,30 @@ class SSAARead(AARead):
             else:
                 return AARead.toString(self, format_=format_)
 
+    def toDict(self):
+        """
+        Get information about this read in a dictionary.
+
+        @return: A C{dict} with keys/values for the attributes of self.
+        """
+        return {
+            'id': self.id,
+            'sequence': self.sequence,
+            'structure': self.structure,
+        }
+
+    @classmethod
+    def fromDict(cls, d):
+        """
+        Create a new instance from attribute values provided in a dictionary.
+
+        @param d: A C{dict} with keys/values for the attributes of a new
+            instance of this class. Keys 'id', 'sequence', and 'structure'
+            with C{str} values must be provided.
+        @return: A new instance of this class, with values taken from C{d}.
+        """
+        return cls(d['id'], d['sequence'], d['structure'])
+
 
 class SSAAReadWithX(SSAARead):
     """
@@ -493,6 +589,45 @@ class TranslatedRead(AARead):
     def __ne__(self, other):
         return not self == other
 
+    def toDict(self):
+        """
+        Get information about this read in a dictionary.
+
+        @return: A C{dict} with keys/values for the attributes of self.
+        """
+        if six.PY3:
+            result = super().toDict()
+        else:
+            result = AARead.toDict()
+
+        result.update({
+            'frame': self.frame,
+            'reverseComplemented': self.reverseComplemented,
+        })
+
+        return result
+
+    @classmethod
+    def fromDict(cls, d):
+        """
+        Create a new instance from attribute values provided in a dictionary.
+
+        @param d: A C{dict} with keys/values for the attributes of a new
+            instance of this class. Keys 'id' and 'sequence' with C{str} values
+            must be provided. A 'quality' C{str} key is optional. Key 'frame'
+            must have an C{int} value. Key 'reverseComplemented' must be a
+            C{bool}, all keys are as described in the docstring for this class.
+        @return: A new instance of this class, with values taken from C{d}.
+        """
+        # Make a dummy instance whose attributes we can set explicitly.
+        new = cls(AARead('', ''), 0, True)
+        new.id = d['id']
+        new.sequence = d['sequence']
+        new.quality = d.get('quality')
+        new.frame = d['frame']
+        new.reverseComplemented = d['reverseComplemented']
+        return new
+
     def maximumORFLength(self):
         """
         Return the length of the longest (possibly partial) ORF in a translated
@@ -500,6 +635,21 @@ class TranslatedRead(AARead):
         why the length is just a lower bound.
         """
         return max(len(orf) for orf in self.ORFs())
+
+
+# Provide a mapping from all read class names to read classes. This can be
+# useful in deserialization.
+readClassNameToClass = {
+    'AARead': AARead,
+    'AAReadORF': AAReadORF,
+    'AAReadWithX': AAReadWithX,
+    'DNARead': DNARead,
+    'RNARead': RNARead,
+    'Read': Read,
+    'SSAARead': SSAARead,
+    'SSAAReadWithX': SSAAReadWithX,
+    'TranslatedRead': TranslatedRead,
+}
 
 
 class Reads(object):
