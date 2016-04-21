@@ -497,6 +497,16 @@ class SSAARead(AARead):
                 self.sequence == other.sequence and
                 self.structure == other.structure)
 
+    def __hash__(self):
+        """
+        Calculate a hash key for a read.
+
+        @return: The C{int} hash key for the read.
+        """
+        return hash(md5(self.id.encode('UTF-8') + b'\0' +
+                        self.sequence.encode('UTF-8') + b'\0' +
+                        self.structure.encode('UTF-8')).digest())
+
     def __getitem__(self, item):
         sequence = self.sequence[item]
         structure = None if self.structure is None else self.structure[item]
