@@ -89,9 +89,10 @@ class Read(object):
         """
         Convert the read to a string format.
 
-        @param format_: Either 'fasta' or 'fastq'.
+        @param format_: Either 'fasta', 'fastq' or 'fasta-ss'.
         @raise ValueError: if C{format_} is 'fastq' and the read has no quality
-            information, or if an unknown format is requested.
+            information, if C{format_} is 'fasta-ss' and the read has no
+            structure information, or if an unknown format is requested.
         @return: A C{str} representing the read in the requested format.
         """
         if format_ == 'fasta':
@@ -104,7 +105,8 @@ class Read(object):
                 return '@%s\n%s\n+%s\n%s\n' % (
                     self.id, self.sequence, self.id, self.quality)
         else:
-            raise ValueError("Format must be either 'fasta' or 'fastq'.")
+            raise ValueError("Format must be either 'fasta', 'fastq' or "
+                             "'fasta-ss'.")
 
     def toDict(self):
         """
@@ -729,7 +731,8 @@ class Reads(object):
 
         @param filename: Either a C{str} file name to save into (the file will
             be overwritten) or an open file descriptor (e.g., sys.stdout).
-        @param format_: A C{str} format to save as, either 'fasta' or 'fastq'.
+        @param format_: A C{str} format to save as, either 'fasta', 'fastq' or
+            'fasta-ss'.
         @raise ValueError: if C{format_} is 'fastq' and a read with no quality
             is present, or if an unknown format is requested.
         @return: C{self} in case our caller wants to chain the result into
