@@ -44,7 +44,7 @@ class GOR4(object):
         @param sequence: A C{str} sequence of amino acids.
         @return: A C{dict} with 'predictions' and 'probabilities' keys.
             The 'predictions' value is a C{str} of letters from {'H', 'E',
-            'C'} for Helix, Beta Strand, Coil.  The probabilities value is
+            'C'} for Helix, Beta Strand, Coil.  The 'probabilities' value is
             a C{list} of C{float} triples, one for each amino acid in
             C{sequence}. The C{float} values are the probabilities assigned,
             in order, to Helix, Beta Strand, Coil.

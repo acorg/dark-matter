@@ -25,8 +25,8 @@ from dark.gor4 import GOR4
 gor4 = GOR4()
 result = gor4.predict('DKATIPSESPFAAAEVADGAIVVDIAKMKYETP')
 
-print 'Predicted secondary structure', result['predictions']
-print 'Prediction probabilities', result['probabilities']
+print('Predicted secondary structure', result['predictions'])
+print('Prediction probabilities', result['probabilities'])
 ```
 
 For detailed usage examples, see the tests in `test/test_gor4.py`.
