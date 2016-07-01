@@ -5,7 +5,7 @@ import dark
 
 _DATA_DIR = join(dirname(dark.__file__), 'data', 'gor4')
 _SEQUENCES = join(_DATA_DIR, 'new-gor4.seq')
-_SECONDARY = join(_DATA_DIR, 'new-gor4.267.obs')
+_SECONDARY = join(_DATA_DIR, 'new-gor4.obs')
 
 
 class GOR4(object):
