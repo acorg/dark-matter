@@ -539,13 +539,21 @@ class TestPropertyDetailsRaw(TestCase):
                 'aliphaticity', 'aromaticity', 'composition',
                 'hydrogenation', 'hydropathy', 'hydroxythiolation',
                 'iep', 'polar requirement', 'polarity', 'volume'],
-                sorted(propertyNames.keys()))
+                sorted(propertyNames))
 
     def testAliphaticity(self):
         """
         Aliphaticity of Alanin must have the right value.
         """
         self.assertEqual(0.239, PROPERTY_DETAILS_RAW['A']['aliphaticity'])
+
+    def testValuesMustBeFloats(self):
+        """
+        Each key in PROPERTY_DETAILS_RAW must have a dict whose values are
+        all floats.
+        """
+        for properties in PROPERTY_DETAILS_RAW.values():
+            self.assertTrue(all(type(v) is float for v in properties.values()))
 
 
 class TestPropertiesForSequence(TestCase):
