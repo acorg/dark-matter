@@ -418,7 +418,7 @@ each property.
 
 PROPERTY_DETAILS_RAW = {
     'A': {
-        'alipathicity': 0.239,
+        'aliphaticity': 0.239,
         'aromaticity': -0.11,
         'composition': 0,
         'hydrogenation': 0.33,
@@ -430,7 +430,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 31,
     },
     'C': {
-        'alipathicity': 0.22,
+        'aliphaticity': 0.22,
         'aromaticity': -0.184,
         'composition': 2.75,
         'hydrogenation': 0.074,
@@ -442,7 +442,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 55,
     },
     'D': {
-        'alipathicity': 0.171,
+        'aliphaticity': 0.171,
         'aromaticity': -0.285,
         'composition': 1.38,
         'hydrogenation': -0.371,
@@ -454,7 +454,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 54,
     },
     'E': {
-        'alipathicity': 0.187,
+        'aliphaticity': 0.187,
         'aromaticity': -0.246,
         'composition': 0.92,
         'hydrogenation': -0.409,
@@ -466,7 +466,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 83,
     },
     'F': {
-        'alipathicity': 0.234,
+        'aliphaticity': 0.234,
         'aromaticity': 0.438,
         'composition': 0,
         'hydrogenation': -0.011,
@@ -478,7 +478,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 132,
     },
     'G': {
-        'alipathicity': 0.16,
+        'aliphaticity': 0.16,
         'aromaticity': -0.073,
         'composition': 0.74,
         'hydrogenation': 0.37,
@@ -490,7 +490,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 3,
     },
     'H': {
-        'alipathicity': 0.205,
+        'aliphaticity': 0.205,
         'aromaticity': 0.32,
         'composition': 0.58,
         'hydrogenation': -0.078,
@@ -502,7 +502,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 96,
     },
     'I': {
-        'alipathicity': 0.273,
+        'aliphaticity': 0.273,
         'aromaticity': 0.001,
         'composition': 0,
         'hydrogenation': 0.149,
@@ -514,7 +514,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 111,
     },
     'K': {
-        'alipathicity': 0.228,
+        'aliphaticity': 0.228,
         'aromaticity': 0.049,
         'composition': 0.33,
         'hydrogenation': -0.075,
@@ -526,7 +526,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 119,
     },
     'L': {
-        'alipathicity': 0.281,
+        'aliphaticity': 0.281,
         'aromaticity': -0.008,
         'composition': 0,
         'hydrogenation': 0.129,
@@ -538,7 +538,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 111,
     },
     'M': {
-        'alipathicity': 0.253,
+        'aliphaticity': 0.253,
         'aromaticity': -0.041,
         'composition': 0,
         'hydrogenation': -0.092,
@@ -550,7 +550,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 105,
     },
     'N': {
-        'alipathicity': 0.249,
+        'aliphaticity': 0.249,
         'aromaticity': -0.136,
         'composition': 1.33,
         'hydrogenation': -0.233,
@@ -562,7 +562,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 56,
     },
     'P': {
-        'alipathicity': 0.165,
+        'aliphaticity': 0.165,
         'aromaticity': -0.016,
         'composition': 0.39,
         'hydrogenation': 0.37,
@@ -574,7 +574,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 32.5,
     },
     'Q': {
-        'alipathicity': 0.26,
+        'aliphaticity': 0.26,
         'aromaticity': -0.067,
         'composition': 0.89,
         'hydrogenation': -0.254,
@@ -586,7 +586,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 85,
     },
     'R': {
-        'alipathicity': 0.211,
+        'aliphaticity': 0.211,
         'aromaticity': 0.079,
         'composition': 0.65,
         'hydrogenation': -0.176,
@@ -598,7 +598,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 124,
     },
     'S': {
-        'alipathicity': 0.236,
+        'aliphaticity': 0.236,
         'aromaticity': -0.153,
         'composition': 1.42,
         'hydrogenation': 0.022,
@@ -610,7 +610,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 32,
     },
     'T': {
-        'alipathicity': 0.213,
+        'aliphaticity': 0.213,
         'aromaticity': -0.208,
         'composition': 0.71,
         'hydrogenation': 0.136,
@@ -622,7 +622,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 61,
     },
     'V': {
-        'alipathicity': 0.255,
+        'aliphaticity': 0.255,
         'aromaticity': -0.155,
         'composition': 0,
         'hydrogenation': 0.245,
@@ -634,7 +634,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 84,
     },
     'W': {
-        'alipathicity': 0.183,
+        'aliphaticity': 0.183,
         'aromaticity': 0.493,
         'composition': 0.13,
         'hydrogenation': -0.011,
@@ -646,7 +646,7 @@ PROPERTY_DETAILS_RAW = {
         'volume': 170,
     },
     'Y': {
-        'alipathicity': 0.193,
+        'aliphaticity': 0.193,
         'aromaticity': 0.183,
         'composition': 0.2,
         'hydrogenation': -0.138,
