@@ -7,7 +7,7 @@ from dark.aa import (
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
     NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
     find, AminoAcid, clustersForSequence, propertiesForSequence,
-    PROPERTY_CLUSTERS)
+    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW)
 from dark.reads import AARead
 
 
@@ -517,6 +517,43 @@ class TestPropertyClusters(TestCase):
         for propertiesDict in PROPERTY_CLUSTERS.values():
             for clusterNr in propertiesDict.values():
                 self.assertIn(clusterNr, {1, 2, 3, 4, 5})
+
+
+class TestPropertyDetailsRaw(TestCase):
+    """
+    Tests for the PROPERTY_DETAILS_RAW dict.
+    """
+    def testPropertyDetailsRawKeys(self):
+        """
+        The PROPERTY_DETAILS_RAW dict must contain the right keys.
+        """
+        self.assertEqual(AA_LETTERS, sorted(PROPERTY_DETAILS_RAW.keys()))
+
+    def testNumberOfValues(self):
+        """
+        Each key in PROPERTY_DETAILS_RAW must have a dict with 10 elements in
+        it as the value.
+        """
+        for propertyNames in PROPERTY_DETAILS_RAW.values():
+            self.assertEqual([
+                'aliphaticity', 'aromaticity', 'composition',
+                'hydrogenation', 'hydropathy', 'hydroxythiolation',
+                'iep', 'polar requirement', 'polarity', 'volume'],
+                sorted(propertyNames))
+
+    def testAliphaticity(self):
+        """
+        Aliphaticity of Alanin must have the right value.
+        """
+        self.assertEqual(0.239, PROPERTY_DETAILS_RAW['A']['aliphaticity'])
+
+    def testValuesMustBeFloats(self):
+        """
+        Each key in PROPERTY_DETAILS_RAW must have a dict whose values are
+        all floats.
+        """
+        for properties in PROPERTY_DETAILS_RAW.values():
+            self.assertTrue(all(type(v) is float for v in properties.values()))
 
 
 class TestPropertiesForSequence(TestCase):
