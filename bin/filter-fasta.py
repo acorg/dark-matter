@@ -13,7 +13,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description=('Given FASTA on stdin and a set of filtering criteria ',
+        description=('Given FASTA on stdin and a set of filtering criteria '
                      'write filtered FASTA to stdout.'))
 
     parser.add_argument(
