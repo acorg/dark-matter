@@ -47,7 +47,7 @@ def splitFASTA(params):
     sequences into files named 0.fasta, 1.fasta, etc. with
     params['seqsPerJob'] sequences per file.
     """
-    assert params['fastaFile'][-1] == 'a', ('You must specify a file in ',
+    assert params['fastaFile'][-1] == 'a', ('You must specify a file in '
                                             'fasta-format that ends in '
                                             '.fasta')
 
