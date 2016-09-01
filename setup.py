@@ -49,8 +49,8 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.33',
-      packages=['dark'],
+      version='1.0.34',
+      packages=['dark', 'dark.blast'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
       download_url='https://github.com/acorg/dark-matter',
