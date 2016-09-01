@@ -44,7 +44,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description=('Given FASTA on stdin, look for a primer sequence ',
+        description=('Given FASTA on stdin, look for a primer sequence '
                      'and write trimmed FASTA (after the primer) to stdout.'))
 
     parser.add_argument('primer', type=str, help='the primer sequence')
