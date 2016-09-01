@@ -20,7 +20,7 @@ if __name__ == '__main__':
                      'known adaptors'))
 
     parser.add_argument(
-        'adaptors', type=str, nargs='+', metavar='adaptor',
+        'adaptors', nargs='+', metavar='adaptor',
         help='the set of adaptors that were used in sequencing')
 
     args = parser.parse_args()

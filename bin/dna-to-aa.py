@@ -29,8 +29,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--type', type=str, default='dna',
-        choices=['dna', 'rna'],
+        '--type', default='dna', choices=['dna', 'rna'],
         help='The type of the bases in the stdin FASTA.')
 
     parser.add_argument(
