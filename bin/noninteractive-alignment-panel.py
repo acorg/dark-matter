@@ -224,7 +224,7 @@ if __name__ == '__main__':
         print('\n'.join(titlesAlignments.sortTitles('maxScore')))
         sys.exit(0)
 
-    alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=True,
+    alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=False,
                    outputDir=args.outputDir,
                    idList=parseColors(args.color) if args.color else None,
                    equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
