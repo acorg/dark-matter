@@ -16,7 +16,7 @@ mock==1.0.1
 #
 # Then (assuming you get version 2.1.3):
 #
-#   tar xz mysql-connector-python-2.1.3.tar.gz
+#   tar xzf mysql-connector-python-2.1.3.tar.gz
 #   cd mysql-connector-python-2.1.3
 #   python setup.py install
 #
