@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', type=str, nargs='+',
+        '--json', metavar='BLAST-JSON-file', type=str, nargs='+',
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
@@ -186,8 +186,16 @@ if __name__ == '__main__':
         '--logBase', type=float, default=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
         help='The base of the logarithm to use if logLinearXAxis is True')
 
+    parser.add_argument(
+        '--checkAlphabet', type=int, default=None,
+        help=('An integer, indicating how many bases or amino acids at the '
+              'start of sequences should have their alphabet checked. If not '
+              'specified, all bases are checked.'))
+
     args = parser.parse_args()
-    readsAlignments = BlastReadsAlignments(FastaReads(args.fasta), args.json)
+    readsAlignments = BlastReadsAlignments(
+        FastaReads(args.fasta, checkAlphabet=args.checkAlphabet),
+        args.json)
 
     readsAlignments.filter(
         minSequenceLen=args.minSequenceLen,
