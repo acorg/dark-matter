@@ -440,7 +440,7 @@ class AAReadORF(AARead):
         if six.PY3:
             result = super().toDict()
         else:
-            result = AARead.toDict()
+            result = AARead.toDict(self)
 
         result.update({
             'start': self.start,
@@ -610,7 +610,7 @@ class TranslatedRead(AARead):
         if six.PY3:
             result = super().toDict()
         else:
-            result = AARead.toDict()
+            result = AARead.toDict(self)
 
         result.update({
             'frame': self.frame,
