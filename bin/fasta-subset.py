@@ -21,12 +21,10 @@ if __name__ == '__main__':
         'for the given sequence ids.')
 
     parser.add_argument(
-        'ids', type=str, default=None, nargs='*',
-        help='Wanted read ids.')
+        'ids', default=None, nargs='*', help='Wanted read ids.')
 
     parser.add_argument(
-        '--readIdFile', type=str, default=None,
-        help='A file of wanted read ids.')
+        '--readIdFile', default=None, help='A file of wanted read ids.')
 
     args = parser.parse_args()
     wanted = set()

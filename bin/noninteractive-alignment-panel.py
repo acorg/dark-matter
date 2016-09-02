@@ -59,11 +59,11 @@ if __name__ == '__main__':
 
     # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
-        '--json', metavar='BLAST-JSON-file', type=str, nargs='+',
+        '--json', metavar='BLAST-JSON-file', nargs='+',
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
-        '--fasta', metavar='FASTA-file', type=str, required=True,
+        '--fasta', metavar='FASTA-file', required=True,
         help='the FASTA file of sequences that were given to BLAST.')
 
     # Args for filtering on ReadsAlignments.
@@ -90,23 +90,23 @@ if __name__ == '__main__':
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
     parser.add_argument(
-        '--whitelist', type=str, nargs='+', default=None,
+        '--whitelist', nargs='+', default=None,
         help='sequence titles that should be whitelisted')
 
     parser.add_argument(
-        '--blacklist', type=str, nargs='+', default=None,
+        '--blacklist', nargs='+', default=None,
         help='sequence titles that should be blacklisted')
 
     parser.add_argument(
-        '--titleRegex', type=str, default=None,
+        '--titleRegex', default=None,
         help='a regex that sequence titles must match.')
 
     parser.add_argument(
-        '--negativeTitleRegex', type=str, default=None,
+        '--negativeTitleRegex', default=None,
         help='a regex that sequence titles must not match.')
 
     parser.add_argument(
-        '--truncateTitlesAfter', type=str, default=None,
+        '--truncateTitlesAfter', default=None,
         help=('a string that titles will be truncated beyond. If the '
               'truncated version of a title has already been seen, '
               'that title will be skipped.'))
@@ -120,7 +120,7 @@ if __name__ == '__main__':
         help='sequences of greater length will be elided.')
 
     parser.add_argument(
-        '--taxonomy', type=str, default=None,
+        '--taxonomy', default=None,
         help='a string of the taxonomic group on which should be '
         'filtered. eg "Vira" will filter on viruses.')
 
@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
     # Args for the alignment panel
     parser.add_argument(
-        '--sortOn', type=str, default='maxScore',
+        '--sortOn', default='maxScore',
         choices=['maxScore', 'medianScore', 'readCount', 'length', 'title'],
         help='The attribute to sort subplots on.')
 
@@ -157,11 +157,11 @@ if __name__ == '__main__':
         'the score.')
 
     parser.add_argument(
-        '--outputDir', type=str, default=None,
+        '--outputDir', default=None,
         help='Specifies a directory to write the HTML summary to.')
 
     parser.add_argument(
-        '--color', type=str, action='append',
+        '--color', action='append',
         help='a string which has a color as the first element and readIds '
         'or a fastafile as the following element(s), separated by spaces.')
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         'the same range.')
 
     parser.add_argument(
-        '--xRange', type=str, default='subject',
+        '--xRange', default='subject',
         choices=['reads', 'subject'],
         help='Set the X axis range to show either the subject or the extent '
         'of the reads that hit the subject.')
