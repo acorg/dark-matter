@@ -258,7 +258,7 @@ if __name__ == '__main__':
         description='Given a FASTA file, write an HTCondor job spec for BLAST',
         epilog=EPILOG)
     parser.add_argument(
-        'fasta', metavar='FASTA-file', type=str,
+        'fasta', metavar='FASTA-file',
         help='the FASTA file of sequences to BLAST.')
     parser.add_argument(
         '--seqs-per-blast', metavar='N',
@@ -266,28 +266,28 @@ if __name__ == '__main__':
         help='the number (>0) of sequences to pass to BLAST on each run.')
     parser.add_argument(
         '--blast-db-name', metavar='BLAST-database-name',
-        type=str, default=DEFAULT_BLAST_DB, dest='db',
+        default=DEFAULT_BLAST_DB, dest='db',
         help='the BLAST database to run against.')
     parser.add_argument(
         '--email', metavar='name@host',
-        type=str, default=DEFAULT_EMAIL, dest='email',
+        default=DEFAULT_EMAIL, dest='email',
         help='the email address to send the job completed message to.')
     parser.add_argument(
         '--blast-executable-name', metavar='BLAST-executable-name',
-        type=str, default=DEFAULT_BLAST_EXECUTABLE_NAME, dest='executableName',
+        default=DEFAULT_BLAST_EXECUTABLE_NAME, dest='executableName',
         choices=['blastn', 'blastp', 'blastx', 'tblastn', 'tblastx'],
         help='the name of the BLAST executable to run.')
     parser.add_argument(
         '--blast-executable-dir', metavar='/path/to/BLAST/executables',
-        type=str, default=DEFAULT_BLAST_EXECUTABLE_DIR, dest='executableDir',
+        default=DEFAULT_BLAST_EXECUTABLE_DIR, dest='executableDir',
         help='the directories that hold the BLAST executables.')
     parser.add_argument(
         '--blast-db-dir', metavar='/BLAST/db/directory',
-        type=str, default=DEFAULT_BLAST_DB_DIR, dest='dbDir',
+        default=DEFAULT_BLAST_DB_DIR, dest='dbDir',
         help='the directory where your BLAST database files live.')
     parser.add_argument(
         '--blast-args', metavar='args...',
-        type=str, default=DEFAULT_BLAST_ARGS, dest='blastArgs',
+        default=DEFAULT_BLAST_ARGS, dest='blastArgs',
         help='additional arguments to pass to BLAST (e.g., "--task blastn".')
 
     args = parser.parse_args()

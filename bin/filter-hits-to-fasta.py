@@ -30,11 +30,11 @@ if __name__ == '__main__':
 
     # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', type=str, nargs='+',
+        'json', metavar='BLAST-JSON-file', nargs='+',
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
-        '--fasta', metavar='FASTA-file', type=str, required=True,
+        '--fasta', metavar='FASTA-file', required=True,
         help='the FASTA file of sequences that were given to BLAST.')
 
     # Args for filtering on ReadsAlignments.
@@ -61,23 +61,23 @@ if __name__ == '__main__':
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
     parser.add_argument(
-        '--whitelist', type=str, nargs='+', default=None,
+        '--whitelist', nargs='+', default=None,
         help='sequence titles that should be whitelisted')
 
     parser.add_argument(
-        '--blacklist', type=str, nargs='+', default=None,
+        '--blacklist', nargs='+', default=None,
         help='sequence titles that should be blacklisted')
 
     parser.add_argument(
-        '--titleRegex', type=str, default=None,
+        '--titleRegex', default=None,
         help='a regex that sequence titles must match.')
 
     parser.add_argument(
-        '--negativeTitleRegex', type=str, default=None,
+        '--negativeTitleRegex', default=None,
         help='a regex that sequence titles must not match.')
 
     parser.add_argument(
-        '--truncateTitlesAfter', type=str, default=None,
+        '--truncateTitlesAfter', default=None,
         help='a string that titles will be truncated beyond. If a truncated '
         'title has already been seen, that title will be skipped.')
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         help='sequences of greater length will be elided.')
 
     parser.add_argument(
-        '--taxonomy', type=str, default=None,
+        '--taxonomy', default=None,
         help='a string of the taxonomic group on which should be '
         'filtered. eg "Vira" will filter on viruses.')
 
