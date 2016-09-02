@@ -28,8 +28,7 @@ if __name__ == '__main__':
         'excluding sequences of low complexity.')
 
     parser.add_argument(
-        'fasta', type=str,
-        help='The FASTA file to read.')
+        'fasta', help='The FASTA file to read.')
 
     parser.add_argument(
         '--maxLowComplexity', metavar='FRAC', type=float, default=0.1,
@@ -37,7 +36,7 @@ if __name__ == '__main__':
         'level will be filtered out.')
 
     parser.add_argument(
-        '--rejectFile', metavar='FILE', type=str, default=None,
+        '--rejectFile', metavar='FILE', default=None,
         help='The name of a file to save rejected sequences to.')
 
     args = parser.parse_args()

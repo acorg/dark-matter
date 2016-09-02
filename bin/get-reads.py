@@ -59,15 +59,14 @@ if __name__ == '__main__':
                 'bitRange, print the reads that are within the given Ranges.'))
 
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', type=str, nargs='+',
+        'json', metavar='BLAST-JSON-file', nargs='+',
         help='the JSON file of BLAST output.')
 
     parser.add_argument(
-        'fasta', metavar='fastaFile', type=str,
-        help='the FASTA file of BLAST input.')
+        'fasta', metavar='fastaFile', help='the FASTA file of BLAST input.')
 
     parser.add_argument(
-        'title', metavar='SEQUENCE-TITLE', type=str,
+        'title', metavar='SEQUENCE-TITLE',
         help='The title of the subject sequence.')
 
     parser.add_argument(

@@ -107,7 +107,7 @@ if __name__ == '__main__':
                      'write FASTA files split by adaptor'))
 
     parser.add_argument(
-        'adaptors', type=str, nargs='+', metavar='adaptor',
+        'adaptors', nargs='+', metavar='adaptor',
         help='the set of adaptors that were used in sequencing')
 
     parser.add_argument(
@@ -122,7 +122,7 @@ if __name__ == '__main__':
              'mapped to in an attempt to find its nearest known adaptor.')
 
     parser.add_argument(
-        '--outputPrefix', metavar='prefix', type=str, default='MID-',
+        '--outputPrefix', metavar='prefix', default='MID-',
         help='the prefix to use for newly created FASTA files')
 
     parser.add_argument(

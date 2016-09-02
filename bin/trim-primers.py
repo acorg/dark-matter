@@ -47,7 +47,7 @@ if __name__ == '__main__':
         description=('Given FASTA on stdin, look for a primer sequence '
                      'and write trimmed FASTA (after the primer) to stdout.'))
 
-    parser.add_argument('primer', type=str, help='the primer sequence')
+    parser.add_argument('primer', help='the primer sequence')
     parser.add_argument('--verbose', type=bool, default=False,
                         help='If True, print information on found primers')
 

@@ -24,7 +24,7 @@ if __name__ == '__main__':
         'If not given, sequences will be read from stdin.')
 
     parser.add_argument(
-        '--format', type=str, default='fasta', choices=['fasta', 'fastq'],
+        '--format', default='fasta', choices=['fasta', 'fastq'],
         help='The format of the input.')
 
     args = parser.parse_args()
