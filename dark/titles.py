@@ -290,10 +290,12 @@ class TitlesAlignments(dict):
                                  maxTitles)
             else:
                 # There are too many titles. Make a sorted list of them so
-                # we loop through them in the desired order and can break
-                # early in the for loop below. We can't just take the first
-                # maxTitles titles from the sorted list as some of those
-                # titles may be discarded by the filter.
+                # we loop through them (below) in the desired order and can
+                # break when/if we've reached the maximum. We can't just
+                # take the first maxTitles titles from the sorted list now,
+                # as some of those titles might later be discarded by the
+                # filter and then we'd return a result with fewer titles
+                # than we should.
                 titles = self.sortTitles(sortOn)
         else:
             titles = self.keys()
