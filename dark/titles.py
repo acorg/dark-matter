@@ -243,7 +243,8 @@ class TitlesAlignments(dict):
             self[title] = titleAlignments
 
     def filter(self, minMatchingReads=None, minMedianScore=None,
-               withScoreBetterThan=None, minNewReads=None, minCoverage=None):
+               withScoreBetterThan=None, minNewReads=None, minCoverage=None,
+               maxTitles=None, sortOn='maxScore'):
         """
         Filter the titles in self to create another TitlesAlignments.
 
@@ -259,6 +260,14 @@ class TitlesAlignments(dict):
             different (and therefore interesting).
         @param minCoverage: The C{float} minimum fraction of the title sequence
             that must be matched by at least one read.
+        @param maxTitles: A non-negative C{int} maximum number of titles to
+            keep. If more titles than this are present, titles will be sorted
+            (according to C{sortOn}) and only the best will be retained
+        @param sortOn: A C{str} attribute to sort on, used only if C{maxTitles}
+            is not C{None}. See the C{sortTitles} method below for the legal
+            values.
+        @raise: C{ValueError} if C{maxTitles} is less than zero or the value of
+            C{sortOn} is unknown.
         @return: A new L{TitlesAlignments} instance containing only the
             matching titles.
         """
@@ -275,7 +284,26 @@ class TitlesAlignments(dict):
             self.readsAlignments, self.scoreClass, self.readSetFilter,
             importReadsAlignmentsTitles=False)
 
-        for title, titleAlignments in self.items():
+        if maxTitles is not None and len(self) > maxTitles:
+            if maxTitles < 0:
+                raise ValueError('maxTitles (%r) cannot be negative.' %
+                                 maxTitles)
+            else:
+                # There are too many titles. Make a sorted list of them so
+                # we loop through them in the desired order and can break
+                # early in the for loop below. We can't just take the first
+                # maxTitles titles from the sorted list as some of those
+                # titles may be discarded by the filter.
+                titles = self.sortTitles(sortOn)
+        else:
+            titles = self.keys()
+
+        for title in titles:
+            # Test max titles up front, as it may be zero.
+            if maxTitles is not None and len(result) == maxTitles:
+                break
+
+            titleAlignments = self[title]
             if (minMatchingReads is not None and
                     titleAlignments.readCount() < minMatchingReads):
                 continue
@@ -303,6 +331,7 @@ class TitlesAlignments(dict):
                 continue
 
             result.addTitle(title, titleAlignments)
+
         return result
 
     def hsps(self):

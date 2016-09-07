@@ -53,14 +53,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Non-interactively generate an alignment panel',
-        epilog='Given a FASTA sequence file, a JSON BLAST output files, '
-        'and filtering criteria, produce an alignment panel.'
-    )
+        epilog=('Given a FASTA sequence file, a JSON BLAST output files, '
+                'and filtering criteria, produce an alignment panel.'))
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
-        help='If True, just print the number of interesting matches, but do '
-        'not create the alignment panel.')
+        help=('If True, just print the number of interesting matches, but do '
+              'not create the alignment panel.'))
 
     # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
@@ -83,12 +82,12 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--oneAlignmentPerRead', default=False, action='store_true',
-        help='If C{True}, only keep the best alignment for each read.')
+        help='If True, only keep the best alignment for each read.')
 
     parser.add_argument(
         '--scoreCutoff', type=float, default=None,
-        help=('A float score. Matches with scores worse than '
-              'this will be ignored.'))
+        help=('A float score. Matches with scores worse than this will be '
+              'ignored.'))
 
     parser.add_argument(
         '--maxHspsPerHit', type=int, default=None,
@@ -126,8 +125,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--taxonomy', default=None,
-        help='a string of the taxonomic group on which should be '
-        'filtered. eg "Vira" will filter on viruses.')
+        help=('a string of the taxonomic group on which should be '
+              'filtered. eg "Vira" will filter on viruses.'))
 
     # Args for filtering on TitlesAlignments.
     parser.add_argument(
@@ -136,19 +135,26 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--minMedianScore', type=float, default=None,
-        help='sequences that are matched with a median score that is '
-        'worse will be elided.')
+        help=('sequences that are matched with a median score that is '
+              'worse will be elided.'))
 
     parser.add_argument(
         '--withScoreBetterThan', type=float, default=None,
-        help='sequences that are matched without at least one score '
-        'at least this good will be elided.')
+        help=('sequences that are matched without at least one score '
+              'at least this good will be elided.'))
 
     parser.add_argument(
         '--minNewReads', type=float, default=None,
-        help='The fraction of its reads by which a new read set must differ '
-        'from all previously seen read sets in order to be considered '
-        'acceptably different.')
+        help=('The fraction of its reads by which a new read set must differ '
+              'from all previously seen read sets in order to be considered '
+              'acceptably different.'))
+
+    parser.add_argument(
+        '--maxTitles', type=int, default=None,
+        help=('The maximum number of titles to keep. If more titles than '
+              'this result from the filtering, titles will be sorted '
+              '(according to the --sortOn value) and only the best will be '
+              'retained.'))
 
     # Args for the alignment panel
     parser.add_argument(
@@ -158,8 +164,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--rankValues', type=bool, default=False,
-        help='If True, display reads with a Y axis coord that is the rank of '
-        'the score.')
+        help=('If True, display reads with a Y axis coord that is the rank of '
+              'the score.'))
 
     parser.add_argument(
         '--outputDir', default=None,
@@ -167,25 +173,26 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--color', action='append',
-        help='a string which has a color as the first element and readIds '
-        'or a fastafile as the following element(s), separated by spaces.')
+        help=('a string which has a color as the first element and readIds '
+              'or a fastafile as the following element(s), separated by '
+              'spaces.'))
 
     parser.add_argument(
         '--equalizeXAxes', default=False, action='store_true',
-        help='If True, all alignment graphs will have their X axes drawn with '
-        'the same range.')
+        help=('If True, all alignment graphs will have their X axes drawn '
+              'with the same range.'))
 
     parser.add_argument(
         '--xRange', default='subject',
         choices=['reads', 'subject'],
-        help='Set the X axis range to show either the subject or the extent '
-        'of the reads that hit the subject.')
+        help=('Set the X axis range to show either the subject or the extent '
+              'of the reads that hit the subject.'))
 
     parser.add_argument(
         '--logLinearXAxis', default=False, action='store_true',
-        help='If True, convert read offsets so that empty regions in the '
-        'alignment panel plots will only be as wide as their logged actual '
-        'values')
+        help=('If True, convert read offsets so that empty regions in the '
+              'alignment panel plots will only be as wide as their logged '
+              'actual values'))
 
     parser.add_argument(
         '--logBase', type=float, default=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
@@ -198,6 +205,7 @@ if __name__ == '__main__':
               'specified, all bases are checked.'))
 
     args = parser.parse_args()
+
     readsAlignments = BlastReadsAlignments(
         FastaReads(args.fasta, checkAlphabet=args.checkAlphabet),
         args.json)
@@ -221,15 +229,16 @@ if __name__ == '__main__':
         minMatchingReads=args.minMatchingReads,
         minMedianScore=args.minMedianScore,
         withScoreBetterThan=args.withScoreBetterThan,
-        minNewReads=args.minNewReads)
+        minNewReads=args.minNewReads, maxTitles=args.maxTitles,
+        sortOn=args.sortOn)
 
     nTitles = len(titlesAlignments)
     print('Found %d interesting title%s.' % (nTitles,
                                              '' if nTitles == 1 else 's'))
 
     if args.earlyExit:
-        print('Matched titles (sorted by best score, descending):')
-        print('\n'.join(titlesAlignments.sortTitles('maxScore')))
+        print('Matched titles (sorted by %s):' % args.sortOn)
+        print('\n'.join(titlesAlignments.sortTitles(args.sortOn)))
         sys.exit(0)
 
     alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=False,

@@ -537,6 +537,108 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 ],
                 sorted(result.keys()))
 
+    def testMaxTitlesNegative(self):
+        """
+        The filter function must raise a ValueError if maxTitles is less than
+        zero.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            error = '^maxTitles \(-1\) cannot be negative\.$'
+            six.assertRaisesRegex(self, ValueError, error,
+                                  titlesAlignments.filter, maxTitles=-1)
+
+    def testUnknownSortOn(self):
+        """
+        The filter function must raise a ValueError if the passed sortOn
+        value isn't recognized.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            error = ('^Sort attribute must be one of "length", "maxScore", '
+                     '"medianScore", "readCount", "title"\.$')
+            six.assertRaisesRegex(self, ValueError, error,
+                                  titlesAlignments.filter, maxTitles=0,
+                                  sortOn='unknown')
+
+    def testMaxTitlesZero(self):
+        """
+        The filter function must return an empty result when maxTitles is zero.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(maxTitles=0, sortOn='maxScore')
+            self.assertEqual(0, len(result))
+
+    def testMaxTitlesOne(self):
+        """
+        The filter function must return just the best title when maxTitles
+        is one.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(maxTitles=1, sortOn='maxScore')
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55',
+                ],
+                sorted(result.keys()))
+
+    def testMaxTitlesTwoSortOnLength(self):
+        """
+        The filter function must return the two titles whose sequences are the
+        longest when maxTitles is 2 and sortOn is 'length'.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(maxTitles=2, sortOn='length')
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55',
+                ],
+                sorted(result.keys()))
+
 
 class TestTitleSorting(TestCase):
     """
