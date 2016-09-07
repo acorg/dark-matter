@@ -227,6 +227,10 @@ if __name__ == '__main__':
     print('Found %d interesting title%s.' % (nTitles,
                                              '' if nTitles == 1 else 's'))
 
+    if nTitles == 0:
+        print('No alignment panel generated due to no matching titles.')
+        sys.exit(0)
+
     if args.earlyExit:
         print('Matched titles (sorted by best score, descending):')
         print('\n'.join(titlesAlignments.sortTitles('maxScore')))
