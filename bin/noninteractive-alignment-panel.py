@@ -14,15 +14,15 @@ import sys
 import argparse
 from collections import defaultdict
 
-from dark.fasta import FastaReads
-from dark.blast.alignments import BlastReadsAlignments
-from dark.titles import TitlesAlignments
-from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
-
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
 import matplotlib
 matplotlib.use('PDF')
+
+from dark.fasta import FastaReads
+from dark.blast.alignments import BlastReadsAlignments
+from dark.titles import TitlesAlignments
+from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
 
 
 def parseColors(colors):
