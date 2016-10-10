@@ -262,7 +262,7 @@ class TitlesAlignments(dict):
             that must be matched by at least one read.
         @param maxTitles: A non-negative C{int} maximum number of titles to
             keep. If more titles than this are present, titles will be sorted
-            (according to C{sortOn}) and only the best will be retained
+            (according to C{sortOn}) and only the best will be retained.
         @param sortOn: A C{str} attribute to sort on, used only if C{maxTitles}
             is not C{None}. See the C{sortTitles} method below for the legal
             values.
