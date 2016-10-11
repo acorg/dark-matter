@@ -14,15 +14,15 @@ import sys
 import argparse
 from collections import defaultdict
 
-from dark.fasta import FastaReads
-from dark.blast.alignments import BlastReadsAlignments
-from dark.titles import TitlesAlignments
-from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
-
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
 import matplotlib
 matplotlib.use('PDF')
+
+from dark.fasta import FastaReads
+from dark.blast.alignments import BlastReadsAlignments
+from dark.titles import TitlesAlignments
+from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
 
 
 def parseColors(colors):
@@ -235,6 +235,10 @@ if __name__ == '__main__':
     nTitles = len(titlesAlignments)
     print('Found %d interesting title%s.' % (nTitles,
                                              '' if nTitles == 1 else 's'))
+
+    if nTitles == 0:
+        print('No alignment panel generated due to no matching titles.')
+        sys.exit(0)
 
     if args.earlyExit:
         print('Matched titles (sorted by %s):' % args.sortOn)
