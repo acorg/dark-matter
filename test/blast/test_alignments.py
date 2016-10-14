@@ -381,8 +381,8 @@ class TestBlastReadsAlignments(TestCase):
                 mockMethod.return_value = SeqIO.read(
                     StringIO('>id1 Description\nAA\n'), 'fasta')
                 sequence = readsAlignments.getSubjectSequence('title')
-                self.assertEqual('AA', str(sequence.seq))
-                self.assertEqual('id1 Description', sequence.description)
+                self.assertEqual('id1 Description', sequence.id)
+                self.assertEqual('AA', str(sequence.sequence))
 
     def testHsps(self):
         """

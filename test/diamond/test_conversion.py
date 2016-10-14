@@ -44,12 +44,17 @@ class TestDiamondTabularFormatReader(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             list(reader.records())
-            expectedRef = ('Buchfink et al., Fast and Sensitive Protein '
-                           'Alignment using DIAMOND, Nature Methods, 12, '
-                           '59–60 (2015)')
-            self.assertEqual('DIAMOND', reader.params['application'])
-            self.assertEqual('v0.8.23', reader.params['version'])
-            self.assertEqual(expectedRef, reader.params['reference'])
+            self.assertEqual('DIAMOND', reader.application)
+            self.assertEqual(
+                {
+                    'reference': (
+                        'Buchfink et al., Fast and Sensitive Protein '
+                        'Alignment using DIAMOND, Nature Methods, 12, '
+                        '59–60 (2015)'),
+                    'task': 'blastx',
+                    'version': 'v0.8.23',
+                },
+                reader.params)
 
     def testDiamondInput(self):
         """
@@ -98,7 +103,7 @@ _JSON_RECORDS = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA'
+        'query': 'id1'
     },
     {
         'alignments': [
@@ -175,15 +180,15 @@ _JSON_RECORDS = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+        'query': 'id2'
     },
     {
         'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA'
+        'query': 'id3'
     },
     {
         'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA'
+        'query': 'id4'
     }
 
 ]
@@ -223,7 +228,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA'
+        'query': 'id1'
     },
     {
         'alignments': [
@@ -300,11 +305,11 @@ _JSON_RECORDS_ONE_MIDDLE = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+        'query': 'id2'
     },
     {
         'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA'
+        'query': 'id4'
     }
 
 ]
@@ -344,7 +349,7 @@ _JSON_RECORDS_ONE_END = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA'
+        'query': 'id1'
     },
     {
         'alignments': [
@@ -421,11 +426,11 @@ _JSON_RECORDS_ONE_END = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+        'query': 'id2'
     },
     {
         'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA'
+        'query': 'id3'
     },
 
 ]
@@ -513,15 +518,15 @@ _JSON_RECORDS_ONE_START = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+        'query': 'id2'
     },
     {
         'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA'
+        'query': 'id3'
     },
     {
         'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA'
+        'query': 'id4'
     }
 
 ]
@@ -561,7 +566,7 @@ _JSON_RECORDS_TWO_END = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA'
+        'query': 'id1'
     },
     {
         'alignments': [
@@ -638,20 +643,29 @@ _JSON_RECORDS_TWO_END = [
                 ]
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+        'query': 'id2'
     }
 
 ]
 
-JSON = '\n'.join(dumps(record) for record in _JSON_RECORDS) + '\n'
-JSON_ONE_MIDDLE = '\n'.join(dumps(record) for record in
-                            _JSON_RECORDS_ONE_MIDDLE) + '\n'
-JSON_ONE_END = '\n'.join(dumps(record) for record in
-                         _JSON_RECORDS_ONE_END) + '\n'
-JSON_ONE_START = '\n'.join(dumps(record) for record in
-                           _JSON_RECORDS_ONE_START) + '\n'
-JSON_TWO_END = '\n'.join(dumps(record) for record in
-                         _JSON_RECORDS_TWO_END) + '\n'
+
+def _recordsToStr(records):
+    """
+    Convert a list of DIAMOND JSON records to a string.
+
+    @param records: A C{list} of C{dict}s as would be found in our per-line
+        JSON conversion of DIAMOND's tabular output.
+    @return: A C{str} suitable for use in a test simulating reading input
+        containing our per-line JSON.
+    """
+    return '\n'.join(dumps(record) for record in records) + '\n'
+
+
+JSON = _recordsToStr(_JSON_RECORDS)
+JSON_ONE_MIDDLE = _recordsToStr(_JSON_RECORDS_ONE_MIDDLE)
+JSON_ONE_END = _recordsToStr(_JSON_RECORDS_ONE_END)
+JSON_ONE_START = _recordsToStr(_JSON_RECORDS_ONE_START)
+JSON_TWO_END = _recordsToStr(_JSON_RECORDS_TWO_END)
 
 
 class TestJSONRecordsReader(TestCase):
@@ -664,19 +678,19 @@ class TestJSONRecordsReader(TestCase):
         """
         reads = Reads([
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+                'id1',
                 'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
                 'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+                'id2',
                 'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
                 'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+                'id3',
                 'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
                 'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+                'id4',
                 'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
@@ -694,19 +708,19 @@ class TestJSONRecordsReader(TestCase):
         """
         reads = Reads([
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+                'id1',
                 'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
                 'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+                'id2',
                 'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
                 'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+                'id3',
                 'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
                 'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+                'id4',
                 'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
@@ -720,23 +734,24 @@ class TestJSONRecordsReader(TestCase):
     def testCorrectNumberOfAlignmentsMatchMissingEnd(self):
         """
         A JSONRecordsReader must return the expected number of alignments, if
-        the last read has no matches.
+        the last read has no matches.  (That read will not be examined by the
+        JSONRecordsReader.)
         """
         reads = Reads([
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+                'id1',
                 'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
                 'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+                'id2',
                 'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
                 'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+                'id3',
                 'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
                 'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+                'id4',
                 'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
@@ -745,7 +760,7 @@ class TestJSONRecordsReader(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
-            self.assertEqual(4, len(alignments))
+            self.assertEqual(3, len(alignments))
 
     def testCorrectNumberOfAlignmentsMatchMissingStart(self):
         """
@@ -754,19 +769,19 @@ class TestJSONRecordsReader(TestCase):
         """
         reads = Reads([
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+                'id1',
                 'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
                 'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+                'id2',
                 'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
                 'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+                'id3',
                 'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
                 'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+                'id4',
                 'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
@@ -780,23 +795,24 @@ class TestJSONRecordsReader(TestCase):
     def testCorrectNumberOfAlignmentsTwoMatchesMissingEnd(self):
         """
         A JSONRecordsReader must return the expected number of alignments, if
-        two reads at the end don't have any matches.
+        two reads at the end don't have any matches. (Those reads will not be
+        examined by the JSONRecordsReader.)
         """
         reads = Reads([
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+                'id1',
                 'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
                 'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+                'id2',
                 'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
                 'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+                'id3',
                 'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
                 'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
             AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+                'id4',
                 'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
@@ -805,37 +821,4 @@ class TestJSONRecordsReader(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
-            self.assertEqual(4, len(alignments))
-
-    def testCorrectNumberOfAlignmentsWhenReadIdsAreAbbreviated(self):
-        """
-        A JSONRecordsReader must return the expected number of alignments
-        when read ids are truncated at the first space. That is, the DIAMOND
-        output has query names that are long and which contain a space but
-        the reads in the FASTA have just the first part of those names (up to
-        the first space).
-        """
-        reads = Reads([
-            AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234',
-                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
-                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
-            AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287',
-                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
-                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
-            AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488',
-                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
-                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
-            AARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512',
-                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
-                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
-        ])
-
-        mockOpener = mockOpen(read_data=JSON)
-        with patch.object(builtins, 'open', mockOpener):
-            reader = JSONRecordsReader('file.json')
-            alignments = list(reader.readAlignments(reads))
-            self.assertEqual(4, len(alignments))
+            self.assertEqual(2, len(alignments))

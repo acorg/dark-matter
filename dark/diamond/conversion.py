@@ -15,28 +15,33 @@ from dark.diamond.hsp import normalizeHSP
 class DiamondTabularFormatReader(object):
     """
     Provide a method that yields parsed tabular records from a file. Store and
-    make accessible the global BLAST parameters.
-    Make sure you run DIAMOND with the right output flags set. The flags are:
-    qseqid, sseqid, bitscore, evalue, qframe, qseq, qstart, qend, sseq, sstart,
-    send, slen.
+    make accessible the global DIAMOND parameters.
 
-    @param filename: A C{str} filename or an open file pointer, containing XML
-        BLAST records.
+    Make sure you run DIAMOND with the right output format. You must use:
+        --outfmt "6 qseqid sseqid bitscore evalue qframe qseq qstart qend sseq
+                    sstart send slen"
+
+    @param filename: A C{str} filename or an open file pointer, containing
+        DIAMOND tabular records.
     """
 
     def __init__(self, filename):
         self._filename = filename
+        self.application = 'DIAMOND'
         self.params = {
-            'application': 'DIAMOND',
-            'version': 'v0.8.23',
             'reference': ('Buchfink et al., Fast and Sensitive Protein '
                           'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
-                          '(2015)')
+                          '(2015)'),
+            'task': 'blastx',  # TODO: Add support for blastp, if needed.
+            'version': 'v0.8.23',
         }
 
     def records(self):
         """
-        Parse the DIAMOND output file and yield records.
+        Parse the DIAMOND output and yield records.
+
+        @return: A generator that produces C{dict}s containing 'alignments' and
+            'query' C{str} keys.
         """
         with as_handle(self._filename) as fp:
             previousQseqid = None
@@ -45,24 +50,24 @@ class DiamondTabularFormatReader(object):
             for line in fp:
                 (qseqid, sseqid, bitscore, evalue, qframe, qseq, qstart, qend,
                  sseq, sstart, send, slen) = line.split('\t')
+                hsp = {
+                    'bits': float(bitscore),
+                    'expect': float(evalue),
+                    'frame': int(qframe),
+                    'query': qseq,
+                    'query_start': int(qstart),
+                    'query_end': int(qend),
+                    'sbjct': sseq,
+                    'sbjct_start': int(sstart),
+                    'sbjct_end': int(send),
+                }
                 if previousQseqid == qseqid:
                     # We have already started accumulating alignments for this
                     # query.
                     if sseqid not in subjectsSeen:
-                        # We have not seen this subject before, so this is
-                        # a new alignment.
+                        # We have not seen this subject before, so this is a
+                        # new alignment.
                         subjectsSeen.add(sseqid)
-                        hsp = {
-                            'bits': float(bitscore),
-                            'expect': float(evalue),
-                            'frame': int(qframe),
-                            'query': qseq,
-                            'query_start': int(qstart),
-                            'query_end': int(qend),
-                            'sbjct': sseq,
-                            'sbjct_start': int(sstart),
-                            'sbjct_end': int(send),
-                        }
                         alignment = {
                             'hsps': [hsp],
                             'length': int(slen),
@@ -72,42 +77,19 @@ class DiamondTabularFormatReader(object):
                     else:
                         # We have already seen this subject, so this is another
                         # HSP in an already existing alignment.
-                        hsp = {
-                            'bits': float(bitscore),
-                            'expect': float(evalue),
-                            'frame': int(qframe),
-                            'query': qseq,
-                            'query_start': int(qstart),
-                            'query_end': int(qend),
-                            'sbjct': sseq,
-                            'sbjct_start': int(sstart),
-                            'sbjct_end': int(send),
-                        }
                         for alignment in record['alignments']:
                             if alignment['title'] == sseqid:
                                 alignment['hsps'].append(hsp)
+                                break
                 else:
-                    # all alignments for the previous qseqid have been seen. If
-                    # this is not the first record, yield it and start
-                    # accumulating the alignments for the current qseqid.
+                    # All alignments for the previous query id (if any)
+                    # have been seen.
                     if previousQseqid is not None:
-                        subjectsSeen = {}
                         yield record
-                        record = {}
 
-                    # start building up the new record
+                    # Start building up the new record.
+                    record = {}
                     subjectsSeen = {sseqid}
-                    hsp = {
-                        'bits': float(bitscore),
-                        'expect': float(evalue),
-                        'frame': int(qframe),
-                        'query': qseq,
-                        'query_start': int(qstart),
-                        'query_end': int(qend),
-                        'sbjct': sseq,
-                        'sbjct_start': int(sstart),
-                        'sbjct_end': int(send),
-                    }
                     alignment = {
                         'hsps': [hsp],
                         'length': int(slen),
@@ -117,8 +99,10 @@ class DiamondTabularFormatReader(object):
                     record['query'] = qseqid
 
                     previousQseqid = qseqid
-            # Yield the last record.
-            yield record
+
+            # Yield the last record, if any.
+            if record:
+                yield record
 
     def saveAsJSON(self, fp):
         """
@@ -260,26 +244,30 @@ class JSONRecordsReader(object):
                         'Line is %r.' %
                         (lineNumber, self._filename, e, line[:-1]))
                 else:
-                    try:
-                        read = next(reads)
-                    except StopIteration:
-                        raise ValueError(
-                            'Read generator failed to yield read number %d '
-                            'during parsing of DIAMOND file %r.' %
-                            (lineNumber - 1, self._filename))
-                    else:
-                        while read.id != record['query']:
-                            record = {'alignments': [], 'query': read.id}
-                            alignments = self._dictToAlignments(record, read)
-                            yield ReadAlignments(read, alignments)
+                    while True:
+                        # Iterate through the input reads until we find the
+                        # one that matches this DIAMOND record.
+                        try:
                             read = next(reads)
-                        alignments = self._dictToAlignments(record, read)
-                        yield ReadAlignments(read, alignments)
-
-            for read in reads:
-                record = {'alignments': [], 'query': read.id}
-                alignments = self._dictToAlignments(record, read)
-                yield ReadAlignments(read, alignments)
+                        except StopIteration:
+                            raise ValueError(
+                                'Read generator failed to yield a read '
+                                'with id %r as found in record number %d '
+                                'during parsing of DIAMOND output file %r.' %
+                                (record['query'], lineNumber - 1,
+                                 self._filename))
+                        else:
+                            if read.id == record['query']:
+                                alignments = self._dictToAlignments(record,
+                                                                    read)
+                                yield ReadAlignments(read, alignments)
+                                break
+                            else:
+                                # This is an input read that received no
+                                # matches from DIAMOND. So it does not
+                                # appear in the DIAMOND output. Emit an
+                                # empty ReadAlignments for it.
+                                yield ReadAlignments(read, [])
 
         finally:
             self._fp.close()

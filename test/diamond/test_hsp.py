@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.blast.hsp import normalizeHSP
+from dark.diamond.hsp import normalizeHSP
 
 
 class Frame(object):
@@ -13,7 +13,7 @@ class FakeHSP(dict):
     def __init__(self, subjectStart, subjectEnd, readStart, readEnd, frame,
                  hit='', read=''):
         """
-        A fake HSP class (with 1-based offsets, as are used in BLAST).
+        A fake HSP class (with 1-based offsets, as are used in DIAMOND).
         """
         self['sbjct_start'] = subjectStart
         self['sbjct_end'] = subjectEnd
@@ -28,7 +28,7 @@ class FakeHSP(dict):
         #
         #   assert abs(subjectEnd - subjectStart) == abs(readEnd - readStart)
         #
-        # That's because BLAST might find a match that requires a gap in
+        # That's because DIAMOND might find a match that requires a gap in
         # the read or in the hit. The indices that it reports do not
         # include the gap and so the differences in the lengths of the
         # sections of the read and hit may not be the same.

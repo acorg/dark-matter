@@ -103,6 +103,8 @@ def normalizeHSP(hsp, readLen, blastApplication):
     subjectEnd = sbjct_end
 
     if blastApplication == 'blastx':
+        # TODO: investigate this for DIAMOND.
+
         # In Blastx output, hit offsets are based on protein sequence
         # length but queries (and the reported offsets) are nucleotide.
         # Convert the read offsets to protein because we will plot against
