@@ -1,6 +1,10 @@
 # Sample DIAMOND parameters.
 PARAMS = {
     'application': 'DIAMOND',
+    'reference': ('Buchfink et al., Fast and Sensitive Protein Alignment '
+                  'using DIAMOND, Nature Methods, 12, 59–60 (2015)'),
+    'task': 'blastx',
+    'version': 'v0.8.23',
 }
 
 RECORD0 = {
@@ -13,10 +17,10 @@ RECORD0 = {
                     'bits': 20,
                     'sbjct_end': 15400,
                     'expect': 1e-11,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 15362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 15390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }
@@ -30,10 +34,10 @@ RECORD0 = {
                     'bits': 25,
                     'sbjct_end': 12400,
                     'expect': 1e-10,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 12362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 12390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }
@@ -53,10 +57,10 @@ RECORD1 = {
                     'bits': 20,
                     'sbjct_end': 11400,
                     'expect': 1e-8,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 11362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 11390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }
@@ -70,10 +74,10 @@ RECORD1 = {
                     'bits': 20,
                     'sbjct_end': 10400,
                     'expect': 1e-7,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 10362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 10390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }
@@ -93,10 +97,10 @@ RECORD2 = {
                     'bits': 20,
                     'sbjct_end': 1400,
                     'expect': 1e-6,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 1362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 1390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }
@@ -117,10 +121,10 @@ RECORD3 = {
                     'bits': 20,
                     'sbjct_end': 1400,
                     'expect': 1e-5,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 1362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 1390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }
@@ -140,10 +144,10 @@ RECORD4 = {
                     'bits': 10,
                     'sbjct_end': 1400,
                     'expect': 1e-3,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 1362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 1390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 },
@@ -151,10 +155,10 @@ RECORD4 = {
                     'bits': 5,
                     'sbjct_end': 1400,
                     'expect': 1e-2,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 1362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 1390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 },
@@ -162,10 +166,10 @@ RECORD4 = {
                     'bits': 3,
                     'sbjct_end': 1400,
                     'expect': 0.0,
-                    'sbjct': 'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA',
-                    'sbjct_start': 1362,
+                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct_start': 1390,
                     'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
-                    'frame': [1, 1],
+                    'frame': 1,
                     'query_end': 68,
                     'query_start': 28
                 }

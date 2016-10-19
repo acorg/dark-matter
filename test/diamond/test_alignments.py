@@ -22,7 +22,7 @@ from dark.reads import Read, Reads
 from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.diamond.alignments import (
-    DiamondReadsAlignments,  ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
+    DiamondReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
 
 
@@ -500,38 +500,42 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             "query": "H6E8I1T01BFUH9",
             "alignments": [
                 {
-                    "length": 2885,
+                    "length": 961,
                     "hsps": [
                         {
-                            "sbjct_end": 2506,
-                            "expect": 1.25854e-43,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
-                            "bits": 182.092,
+                            "bits": 150,
                             "query_start": 362
-                        }
+                        },
                     ],
                     "title": "Merkel1"
                 },
                 {
-                    "length": 2220,
+                    "length": 740,
                     "hsps": [
                         {
-                            "sbjct_end": 1841,
-                            "expect": 1.25854e-43,
-                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
-                            "sbjct_start": 1942,
-                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 180,
                             "query_start": 362
                         }
                     ],
-                    "title":"Merkel2"
+                    "title": "Merkel2"
                 }
             ]
         }
@@ -546,7 +550,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             result = list(readsAlignments.filter(oneAlignmentPerRead=True))
             self.assertEqual(1, len(result))
             self.assertEqual(1, len(result[0]))
-            self.assertEqual('Merkel1', result[0][0].subjectTitle)
+            self.assertEqual('Merkel2', result[0][0].subjectTitle)
 
     def testScoreCutoffRemovesEntireAlignment_Bits(self):
         """
@@ -558,32 +562,36 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             "query": "H6E8I1T01BFUH9",
             "alignments": [
                 {
-                    "length": 2885,
+                    "length": 961,
                     "hsps": [
                         {
-                            "sbjct_end": 2506,
+                            "sbjct_end": 869,
                             "expect": 1.25854e-10,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 150,
                             "query_start": 362
-                        }
+                        },
                     ],
                     "title": "Merkel1"
                 },
                 {
-                    "length": 2220,
+                    "length": 740,
                     "hsps": [
                         {
-                            "sbjct_end": 1841,
-                            "expect": 1.25854e-43,
-                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
-                            "sbjct_start": 1942,
-                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 180,
                             "query_start": 362
@@ -616,32 +624,36 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             "query": "H6E8I1T01BFUH9",
             "alignments": [
                 {
-                    "length": 2885,
+                    "length": 961,
                     "hsps": [
                         {
-                            "sbjct_end": 2506,
-                            "expect": 1.25e-10,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 150,
                             "query_start": 362
-                        }
+                        },
                     ],
                     "title": "Merkel1"
                 },
                 {
-                    "length": 2220,
+                    "length": 740,
                     "hsps": [
                         {
-                            "sbjct_end": 1841,
-                            "expect": 1.25e-30,
-                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
-                            "sbjct_start": 1942,
-                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 180,
                             "query_start": 362
@@ -675,26 +687,30 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             "query": "H6E8I1T01BFUH9",
             "alignments": [
                 {
-                    "length": 2885,
+                    "length": 961,
                     "hsps": [
                         {
-                            "sbjct_end": 2506,
+                            "sbjct_end": 869,
                             "expect": 1.25854e-10,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 150,
                             "query_start": 362
                         },
                         {
-                            "sbjct_end": 2506,
+                            "sbjct_end": 869,
                             "expect": 1.25e-20,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 170,
                             "query_start": 362
@@ -703,15 +719,17 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                     "title": "Merkel1"
                 },
                 {
-                    "length": 2220,
+                    "length": 740,
                     "hsps": [
                         {
-                            "sbjct_end": 1841,
+                            "sbjct_end": 647,
                             "expect": 1.25e-43,
-                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
-                            "sbjct_start": 1942,
-                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 180,
                             "query_start": 362
@@ -750,26 +768,30 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             "query": "H6E8I1T01BFUH9",
             "alignments": [
                 {
-                    "length": 2885,
+                    "length": 961,
                     "hsps": [
                         {
-                            "sbjct_end": 2506,
-                            "expect": 1.25e-10,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 150,
                             "query_start": 362
                         },
                         {
-                            "sbjct_end": 2506,
+                            "sbjct_end": 869,
                             "expect": 1.25e-20,
-                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
-                            "sbjct_start": 2607,
-                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 170,
                             "query_start": 362
@@ -778,15 +800,17 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                     "title": "Merkel1"
                 },
                 {
-                    "length": 2220,
+                    "length": 740,
                     "hsps": [
                         {
-                            "sbjct_end": 1841,
-                            "expect": 1.25e-30,
-                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
-                            "sbjct_start": 1942,
-                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
-                            "frame": [1, -1],
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
                             "query_end": 462,
                             "bits": 180,
                             "query_start": 362
@@ -814,7 +838,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
 
             # The second alignment should also be present.
             self.assertEqual(1, len(result[0][1].hsps))
-            self.assertEqual(LSP(1.25e-30), result[0][1].hsps[0])
+            self.assertEqual(LSP(1.25e-43), result[0][1].hsps[0])
 
     def testTitleByRegexCaseInvariant(self):
         """

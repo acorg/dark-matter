@@ -74,28 +74,24 @@ _JSON_RECORDS = [
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
                       'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
-                      '(2015)')
+                      '(2015)'),
+        'task': 'blastx',
     },
     {
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 5548,
-                        'sbjct_end': 5450,
+                        'sbjct_start': 1817,
+                        'sbjct_end': 1849,
                         'bits': 165.393,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
                         'query_end': 99,
-                        'sbjct': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
-                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
-                                  'GTTCTAATGTGGTTG'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
                                   'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
                                   'GTTTTGTTGTGGTTG'),
@@ -109,22 +105,17 @@ _JSON_RECORDS = [
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 12320,
-                        'sbjct_end': 12220,
+                        'sbjct_start': 4074,
+                        'sbjct_end': 4106,
                         'bits': 178.016,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -133,22 +124,17 @@ _JSON_RECORDS = [
             },
             {
                 'title': 'gi|9629367|ref|NC_001803.1| RSV',
-                'length': 15191,
+                'length': 5063,
                 'hsps': [
                     {
-                        'sbjct_start': 12279,
-                        'sbjct_end': 12179,
+                        'sbjct_start': 4062,
+                        'sbjct_end': 4094,
                         'bits': 123.915,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
-                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
-                                  'ATGATTATGCCACTAGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -157,22 +143,17 @@ _JSON_RECORDS = [
             },
             {
                 'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
-                'length': 15140,
+                'length': 5046,
                 'hsps': [
                     {
-                        'sbjct_start': 12213,
-                        'sbjct_end': 12119,
+                        'sbjct_start': 4039,
+                        'sbjct_end': 4070,
                         'bits': 87.848,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
                         'query_end': 98,
-                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
-                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
-                                  'TTATTATACCACT'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
                                   'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
                                   'TAATTATACCACT'),
@@ -199,28 +180,24 @@ _JSON_RECORDS_ONE_MIDDLE = [
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
                       'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
-                      '(2015)')
+                      '(2015)'),
+        'task': 'blastx',
     },
     {
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 5548,
-                        'sbjct_end': 5450,
+                        'sbjct_start': 1817,
+                        'sbjct_end': 1849,
                         'bits': 165.393,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
                         'query_end': 99,
-                        'sbjct': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
-                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
-                                  'GTTCTAATGTGGTTG'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
                                   'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
                                   'GTTTTGTTGTGGTTG'),
@@ -234,22 +211,17 @@ _JSON_RECORDS_ONE_MIDDLE = [
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 12320,
-                        'sbjct_end': 12220,
+                        'sbjct_start': 4074,
+                        'sbjct_end': 4106,
                         'bits': 178.016,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -258,22 +230,17 @@ _JSON_RECORDS_ONE_MIDDLE = [
             },
             {
                 'title': 'gi|9629367|ref|NC_001803.1| RSV',
-                'length': 15191,
+                'length': 5063,
                 'hsps': [
                     {
-                        'sbjct_start': 12279,
-                        'sbjct_end': 12179,
+                        'sbjct_start': 4062,
+                        'sbjct_end': 4094,
                         'bits': 123.915,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
-                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
-                                  'ATGATTATGCCACTAGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -282,22 +249,17 @@ _JSON_RECORDS_ONE_MIDDLE = [
             },
             {
                 'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
-                'length': 15140,
+                'length': 5046,
                 'hsps': [
                     {
-                        'sbjct_start': 12213,
-                        'sbjct_end': 12119,
+                        'sbjct_start': 4039,
+                        'sbjct_end': 4070,
                         'bits': 87.848,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
                         'query_end': 98,
-                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
-                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
-                                  'TTATTATACCACT'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
                                   'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
                                   'TAATTATACCACT'),
@@ -320,28 +282,24 @@ _JSON_RECORDS_ONE_END = [
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
                       'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
-                      '(2015)')
+                      '(2015)'),
+        'task': 'blastx',
     },
     {
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 5548,
-                        'sbjct_end': 5450,
+                        'sbjct_start': 1817,
+                        'sbjct_end': 1849,
                         'bits': 165.393,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
                         'query_end': 99,
-                        'sbjct': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
-                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
-                                  'GTTCTAATGTGGTTG'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
                                   'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
                                   'GTTTTGTTGTGGTTG'),
@@ -355,22 +313,17 @@ _JSON_RECORDS_ONE_END = [
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 12320,
-                        'sbjct_end': 12220,
+                        'sbjct_start': 4074,
+                        'sbjct_end': 4106,
                         'bits': 178.016,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -379,22 +332,17 @@ _JSON_RECORDS_ONE_END = [
             },
             {
                 'title': 'gi|9629367|ref|NC_001803.1| RSV',
-                'length': 15191,
+                'length': 5063,
                 'hsps': [
                     {
-                        'sbjct_start': 12279,
-                        'sbjct_end': 12179,
+                        'sbjct_start': 4062,
+                        'sbjct_end': 4094,
                         'bits': 123.915,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
-                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
-                                  'ATGATTATGCCACTAGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -403,22 +351,17 @@ _JSON_RECORDS_ONE_END = [
             },
             {
                 'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
-                'length': 15140,
+                'length': 5046,
                 'hsps': [
                     {
-                        'sbjct_start': 12213,
-                        'sbjct_end': 12119,
+                        'sbjct_start': 4039,
+                        'sbjct_end': 4070,
                         'bits': 87.848,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
                         'query_end': 98,
-                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
-                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
-                                  'TTATTATACCACT'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
                                   'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
                                   'TAATTATACCACT'),
@@ -441,28 +384,24 @@ _JSON_RECORDS_ONE_START = [
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
                       'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
-                      '(2015)')
+                      '(2015)'),
+        'task': 'blastx',
     },
     {
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 12320,
-                        'sbjct_end': 12220,
+                        'sbjct_start': 4074,
+                        'sbjct_end': 4106,
                         'bits': 178.016,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -471,22 +410,17 @@ _JSON_RECORDS_ONE_START = [
             },
             {
                 'title': 'gi|9629367|ref|NC_001803.1| RSV',
-                'length': 15191,
+                'length': 5063,
                 'hsps': [
                     {
-                        'sbjct_start': 12279,
-                        'sbjct_end': 12179,
+                        'sbjct_start': 4062,
+                        'sbjct_end': 4094,
                         'bits': 123.915,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
-                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
-                                  'ATGATTATGCCACTAGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -495,22 +429,17 @@ _JSON_RECORDS_ONE_START = [
             },
             {
                 'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
-                'length': 15140,
+                'length': 5046,
                 'hsps': [
                     {
-                        'sbjct_start': 12213,
-                        'sbjct_end': 12119,
+                        'sbjct_start': 4039,
+                        'sbjct_end': 4070,
                         'bits': 87.848,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
                         'query_end': 98,
-                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
-                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
-                                  'TTATTATACCACT'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
                                   'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
                                   'TAATTATACCACT'),
@@ -537,28 +466,24 @@ _JSON_RECORDS_TWO_END = [
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
                       'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
-                      '(2015)')
+                      '(2015)'),
+        'task': 'blastx',
     },
     {
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 5548,
-                        'sbjct_end': 5450,
+                        'sbjct_start': 1817,
+                        'sbjct_end': 1849,
                         'bits': 165.393,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
                         'query_end': 99,
-                        'sbjct': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
-                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
-                                  'GTTCTAATGTGGTTG'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
                                   'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
                                   'GTTTTGTTGTGGTTG'),
@@ -572,22 +497,17 @@ _JSON_RECORDS_TWO_END = [
         'alignments': [
             {
                 'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
+                'length': 5075,
                 'hsps': [
                     {
-                        'sbjct_start': 12320,
-                        'sbjct_end': 12220,
+                        'sbjct_start': 4074,
+                        'sbjct_end': 4106,
                         'bits': 178.016,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -596,22 +516,17 @@ _JSON_RECORDS_TWO_END = [
             },
             {
                 'title': 'gi|9629367|ref|NC_001803.1| RSV',
-                'length': 15191,
+                'length': 5063,
                 'hsps': [
                     {
-                        'sbjct_start': 12279,
-                        'sbjct_end': 12179,
+                        'sbjct_start': 4062,
+                        'sbjct_end': 4094,
                         'bits': 123.915,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
                         'query_end': 101,
-                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
-                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
-                                  'ATGATTATGCCACTAGC'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
                                   'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
                                   'ATAATTATACCACTGGC'),
@@ -620,22 +535,17 @@ _JSON_RECORDS_TWO_END = [
             },
             {
                 'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
-                'length': 15140,
+                'length': 5046,
                 'hsps': [
                     {
-                        'sbjct_start': 12213,
-                        'sbjct_end': 12119,
+                        'sbjct_start': 4039,
+                        'sbjct_end': 4070,
                         'bits': 87.848,
-                        'frame': [
-                            1,
-                            -1,
-                        ],
+                        'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
                         'query_end': 98,
-                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
-                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
-                                  'TTATTATACCACT'),
+                        'sbjct': ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'),
                         'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
                                   'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
                                   'TAATTATACCACT'),
@@ -644,7 +554,7 @@ _JSON_RECORDS_TWO_END = [
             }
         ],
         'query': 'id2'
-    }
+    },
 
 ]
 

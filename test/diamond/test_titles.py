@@ -549,7 +549,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             # To understand why the following produces the result it does,
             # you need to look at the HSP coverage in sample_data.py and
             # calculate the coverage by hand.
-            result = titlesAlignments.filter(minCoverage=0.0011)
+            result = titlesAlignments.filter(minCoverage=0.0003)
             self.assertEqual(
                 [
                     'gi|887699|gb|DQ37780 Cowpox virus 15',

@@ -135,7 +135,7 @@ class JSONRecordsReader(object):
             self._hspClass = LSP
 
         self._open(filename)
-        self.diamondTask = self.params.applicationParams['task']
+        self.diamondTask = self.params['task']
 
     def _open(self, filename):
         """

@@ -56,19 +56,19 @@ class DiamondReadsAlignments(ReadsAlignments):
         self._subjectTitleToSubject = None
         self.randomizeZeroEValues = randomizeZeroEValues
 
-        # Prepare application parameters in order to initialize self.
+        # Prepare diamondTask parameters in order to initialize self.
         self._reader = self._getReader(self.filenames[0], scoreClass)
-        application = self._reader.application
+        diamondTask = self._reader.diamondTask
         diamondParams = copy.deepcopy(self._reader.params)
         scoreTitle = ('Bit score' if scoreClass is HigherIsBetterScore
                       else '$- log_{10}(e)$')
 
-        applicationParams = ReadsAlignmentsParams(
-            application, diamondParams,
+        diamondTaskParams = ReadsAlignmentsParams(
+            diamondTask, diamondParams,
             subjectIsNucleotides=False,  # DIAMOND dbs are always protein.
             scoreTitle=scoreTitle)
 
-        ReadsAlignments.__init__(self, reads, applicationParams,
+        ReadsAlignments.__init__(self, reads, diamondTaskParams,
                                  scoreClass=scoreClass)
 
     def _getReader(self, filename, scoreClass):
