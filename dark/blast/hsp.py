@@ -17,9 +17,9 @@ def normalizeHSP(hsp, readLen, blastApplication):
     slicing etc.  We must be careful to convert from the 1-based offsets
     found in BLAST output properly.
 
-    hsp['frame'] is a (read, hit) 2-tuple, with both values coming from
+    hsp['frame'] is a (query, subject) 2-tuple, with both values coming from
     {-3, -2, -1, 1, 2, 3}. The sign indicates negative or positive sense
-    (i.e., the direction of reading through the read or hit to get the
+    (i.e., the direction of reading through the query or subject to get the
     alignment). The value is the nucleotide match offset modulo 3, plus one
     (i.e., it tells us which of the 3 possible reading frames is used in
     the match). The value is redundant because that information could also

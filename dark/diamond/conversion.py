@@ -135,7 +135,7 @@ class JSONRecordsReader(object):
             self._hspClass = LSP
 
         self._open(filename)
-        self.application = self.params['application'].lower()
+        self.diamondTask = self.params.applicationParams['task']
 
     def _open(self, filename):
         """
@@ -199,17 +199,16 @@ class JSONRecordsReader(object):
             for diamondHsp in diamondAlignment['hsps']:
                 score = getScore(diamondHsp)
                 normalized = normalizeHSP(diamondHsp, len(read),
-                                          self.application)
+                                          self.diamondTask)
                 hsp = self._hspClass(
                     score,
                     readStart=normalized['readStart'],
                     readEnd=normalized['readEnd'],
                     readStartInSubject=normalized['readStartInSubject'],
                     readEndInSubject=normalized['readEndInSubject'],
-                    readFrame=diamondHsp['frame'][0],
+                    readFrame=diamondHsp['frame'],
                     subjectStart=normalized['subjectStart'],
                     subjectEnd=normalized['subjectEnd'],
-                    subjectFrame=diamondHsp['frame'][1],
                     readMatchedSequence=diamondHsp['query'],
                     subjectMatchedSequence=diamondHsp['sbjct'])
 

@@ -4,7 +4,7 @@ def printHSP(hsp, indent=''):
         print('%s%s: %s' % (indent, attr, hsp[attr]))
 
 
-def normalizeHSP(hsp, readLen, blastApplication):
+def normalizeHSP(hsp, readLen, diamondTask):
     """
     Examine the sense of an HSP and return information about where the
     read and the alignment (match) begin and end.  Return a dict with keys
@@ -15,11 +15,11 @@ def normalizeHSP(hsp, readLen, blastApplication):
 
     In the returned object, all indices are suitable for Python string
     slicing etc.  We must be careful to convert from the 1-based offsets
-    found in BLAST output properly.
+    found in DIAMOND output properly.
 
-    hsp['frame'] is a (read, hit) 2-tuple, with both values coming from
+    hsp['frame'] is a (query, subject) 2-tuple, with both values coming from
     {-3, -2, -1, 1, 2, 3}. The sign indicates negative or positive sense
-    (i.e., the direction of reading through the read or hit to get the
+    (i.e., the direction of reading through the query or subject to get the
     alignment). The value is the nucleotide match offset modulo 3, plus one
     (i.e., it tells us which of the 3 possible reading frames is used in
     the match). The value is redundant because that information could also
@@ -31,11 +31,11 @@ def normalizeHSP(hsp, readLen, blastApplication):
     match, it may protrude to the left of the hit. Similarly, the returned
     readEndInSubject can be greater than the subjectEnd.
 
-    @param hsp: an HSP in the form of a C{dict}, built from a BLAST record.
+    @param hsp: an HSP in the form of a C{dict}, built from a DIAMOND record.
         All passed hsp offsets are 1-based.
     @param readLen: the length of the read sequence.
-    @param blastApplication: The C{str} command line program that was
-        run (e.g., 'blastn', 'blastx').
+    @param diamondTask: The C{str} command line program that was
+        run (e.g., 'blastp', 'blastx').
 
     """
 
@@ -60,40 +60,26 @@ def normalizeHSP(hsp, readLen, blastApplication):
         else:
             raise AssertionError()
 
-    readPositive = hsp['frame'][0] > 0
-    hitPositive = hsp['frame'][1] > 0
+    readPositive = hsp['frame'] > 0
 
     # The following variable names with underscores match the names of
     # attributes BioPython uses and the values (1-based) match those
-    # reported by BLAST.
+    # reported by DIAMOND.
     read_start = hsp['query_start']
     read_end = hsp['query_end']
     sbjct_start = hsp['sbjct_start']
     sbjct_end = hsp['sbjct_end']
 
-    # When the read is positive, BLASTN and TBLASTX give read offsets
-    # ascending.
-    #
-    # TBLASTX reports negative read sense with indices ascending.
-    # BLASTN does not report negative read sense.
-    #
-    # In all cases the read offsets should be ascending.
+    # Read offsets should be ascending.
     if read_start > read_end:
         debugPrint(locals(),
                    'Assertion "read_start <= read_end" failed. Read '
                    'positive is %s. read_start = %d, read_end = %d' %
                    (readPositive, read_start, read_end))
 
-    if hitPositive:
-        # Make sure indices are ascending.
-        if sbjct_start > sbjct_end:
-            debugPrint(locals())
-    else:
-        # Hit is negative. Its indices will be ascending for TBLASTX
-        # output but descending for BLASTN :-( Make sure we have them
-        # ascending.
-        if sbjct_start > sbjct_end:
-            sbjct_start, sbjct_end = sbjct_end, sbjct_start
+    # Make sure subject indices are ascending.
+    if sbjct_start > sbjct_end:
+        debugPrint(locals())
 
     # Now that we have asserted what we can about the original HSP values
     # and gotten them into ascending order, make some sane 0-based offsets.
@@ -102,9 +88,7 @@ def normalizeHSP(hsp, readLen, blastApplication):
     subjectStart = sbjct_start - 1
     subjectEnd = sbjct_end
 
-    if blastApplication == 'blastx':
-        # TODO: investigate this for DIAMOND.
-
+    if diamondTask == 'blastx':
         # In Blastx output, hit offsets are based on protein sequence
         # length but queries (and the reported offsets) are nucleotide.
         # Convert the read offsets to protein because we will plot against
@@ -122,12 +106,13 @@ def normalizeHSP(hsp, readLen, blastApplication):
     subjectLength = subjectEnd - subjectStart
     readLength = readEndInSubject - readStartInSubject
 
+    # TODO: DIAMOND output check.
     hitGaps = hsp['sbjct'].count('-')
     readGaps = hsp['query'].count('-')
 
     # Sanity check that the length of the matches in the hit and read
     # are identical, taking into account gaps in either (indicated by '-'
-    # characters in the match sequences, as returned by BLAST).
+    # characters in the match sequences, as returned by DIAMOND).
     subjectLengthWithGaps = subjectLength + hitGaps
     readLengthWithGaps = readLength + readGaps
     if subjectLengthWithGaps != readLengthWithGaps:
@@ -136,26 +121,18 @@ def normalizeHSP(hsp, readLen, blastApplication):
                    'length (%d)' % (subjectLengthWithGaps,
                                     readLengthWithGaps))
 
-    # TODO: check the mod 3 value of the start offsets.
-
     # Calculate read indices. These are indices relative to the hit!
 
     # unmatchedReadLeft is the number of read bases that will be sticking
-    # out to the left of the start of the hit in our plots.
+    # out to the left of the start of the subject in our plots.
     if readPositive:
         unmatchedReadLeft = readStartInSubject
     else:
         unmatchedReadLeft = readLen - readEndInSubject
 
-    # Set the read offsets based on the direction the match with the
-    # hit takes.
-    if hitPositive:
-        readStartInSubject = subjectStart - unmatchedReadLeft
-        readEndInSubject = readStartInSubject + readLen + readGaps
-    else:
-        readEndInSubject = subjectEnd + unmatchedReadLeft
-
-        readStartInSubject = readEndInSubject - readLen - readGaps
+    # Set the read offsets.
+    readStartInSubject = subjectStart - unmatchedReadLeft
+    readEndInSubject = readStartInSubject + readLen + readGaps
 
     # Final sanity checks.
     if readStartInSubject > subjectStart:
