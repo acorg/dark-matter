@@ -94,7 +94,7 @@ class FastaReads(Reads):
     """
     def __init__(self, _files, readClass=DNARead, checkAlphabet=None,
                  upperCase=False):
-        self._files = [_files] if isinstance(_files, string_types) else _files
+        self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
         self._checkAlphabet = checkAlphabet
         # TODO: It would be better if upperCase were an argument that could

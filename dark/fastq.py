@@ -16,7 +16,7 @@ class FastqReads(Reads):
     @param readClass: The class of read that should be yielded by iter.
     """
     def __init__(self, _files, readClass=DNARead):
-        self._files = [_files] if isinstance(_files, string_types) else _files
+        self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self.readClass = readClass
         if PY3:
             super().__init__()
