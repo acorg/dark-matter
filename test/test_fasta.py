@@ -1,4 +1,5 @@
 import six
+import bz2
 from six.moves import builtins
 from six import StringIO
 from unittest import TestCase
@@ -14,6 +15,27 @@ from .mocking import mockOpen
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
                         FastaReads, combineReads)
+
+
+class BZ2(object):
+    """
+    A BZ2File mock.
+    """
+    def __init__(self, data):
+        self._data = data
+        self._index = 0
+
+    def readline(self):
+        self._index += 1
+        try:
+            return self._data[self._index - 1]
+        except IndexError:
+            return None
+
+    def __iter__(self):
+        index = self._index
+        self._index = len(self._data)
+        return iter(self._data[index:])
 
 
 class FastaDeDup(TestCase):
@@ -348,15 +370,17 @@ class TestFastaReads(TestCase):
         its sequences have the correct alphabet and to raise ValueError if not.
         A non-alphabetic character in the first read must be detected.
         """
-        data = StringIO('\n'.join([
+        data = '\n'.join([
             '>one',
             'at-at',
-        ]))
+        ])
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
                  "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
-        six.assertRaisesRegex(self, ValueError, error, list,
-                              FastaReads(data, AARead))
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            six.assertRaisesRegex(self, ValueError, error, list,
+                                  FastaReads(data, AARead))
 
     def testAlphabetIsCheckedAndRaisesValueErrorOnSecondRead(self):
         """
@@ -364,29 +388,33 @@ class TestFastaReads(TestCase):
         its sequences have the correct alphabet and to raise ValueError if not.
         A non-alphabetic character in the second read must be detected.
         """
-        data = StringIO('\n'.join([
+        data = '\n'.join([
             '>one',
             'atat',
             '>two',
             'at-at',
-        ]))
+        ])
+        mockOpener = mockOpen(read_data=data)
         error = ("^Read alphabet \('-AT'\) is not a subset of expected "
                  "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
                  "AARead\.$")
-        six.assertRaisesRegex(self, ValueError, error, list,
-                              FastaReads(data, AARead))
+        with patch.object(builtins, 'open', mockOpener):
+            six.assertRaisesRegex(self, ValueError, error, list,
+                                  FastaReads(data, AARead))
 
     def testDisableAlphabetChecking(self):
         """
         It must be possible to have a FastaReads instance not do alphabet
         checking, if requested (by passing checkAlphabet=0).
         """
-        data = StringIO('\n'.join([
+        data = '\n'.join([
             '>one',
             'at-at',
-        ]))
-        self.assertEqual(1, len(list(FastaReads(data, AARead,
-                                                checkAlphabet=0))))
+        ])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            self.assertEqual(1, len(list(FastaReads(data, AARead,
+                                                    checkAlphabet=0))))
 
     def testOnlyCheckSomeAlphabets(self):
         """
@@ -394,15 +422,17 @@ class TestFastaReads(TestCase):
         reads checked. A non-alphabetic character in a later read must not
         stop that read from being processed.
         """
-        data = StringIO('\n'.join([
+        data = '\n'.join([
             '>one',
             'atat',
             '>two',
             'at-at',
-        ]))
-        reads = list(FastaReads(data, AARead, checkAlphabet=1))
-        self.assertEqual(2, len(reads))
-        self.assertEqual('at-at', reads[1].sequence)
+        ])
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = list(FastaReads(data, AARead, checkAlphabet=1))
+            self.assertEqual(2, len(reads))
+            self.assertEqual('at-at', reads[1].sequence)
 
     def testConvertLowerToUpperCaseIfSpecifiedAARead(self):
         """
@@ -474,6 +504,38 @@ class TestFastaReads(TestCase):
             reads = FastaReads('filename.fasta')
             result = list(reads.filter(randomSubset=1, trueLength=10))
             self.assertEqual(1, len(result))
+
+    def testTwoFiles(self):
+        """
+        It must be possible to read from two FASTA files.
+        """
+        class SideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename):
+                if self.count == 0:
+                    self.test.assertEqual('file1.fasta.bz2', filename)
+                    self.count += 1
+                    return BZ2(['>id1\n', 'ACTG\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('file2.fasta.bz2', filename)
+                    self.count += 1
+                    return BZ2(['>id2\n', 'CAGT\n'])
+                else:
+                    self.fail('We are only supposed to be called twice!')
+
+        sideEffect = SideEffect(self)
+        with patch.object(bz2, 'BZ2File') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            reads = FastaReads(['file1.fasta.bz2', 'file2.fasta.bz2'])
+            self.assertEqual(
+                [
+                    DNARead('id1', 'ACTG'),
+                    DNARead('id2', 'CAGT'),
+                ],
+                list(reads))
 
 
 class TestCombineReads(TestCase):

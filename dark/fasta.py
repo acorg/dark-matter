@@ -1,9 +1,10 @@
-import six
+from six import PY3, string_types
 from hashlib import md5
 
 from Bio import SeqIO
 
 from dark.reads import Reads, DNARead
+from dark.utils import asHandle
 
 
 def fastaToList(fastaFilename):
@@ -81,17 +82,19 @@ class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
 
-    @param _file: A C{str} file name or file handle, containing
-        sequences in FASTA format,
+    @param _files: Either a single C{str} file name or file handle, or a
+        C{list} of (possibly mixed) C{str} file names or file handles. Each
+        file / file handle must contain sequences in FASTA format.
     @param readClass: The class of read that should be yielded by iter.
     @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
         will be done on all reads. If an C{int}, only that many reads will be
         checked. (Pass zero to have no checks done.)
-    @param upperCase: If C{True}, reads will be converted to upper case.
+    @param upperCase: If C{True}, read sequences will be converted to upper
+        case.
     """
-    def __init__(self, _file, readClass=DNARead, checkAlphabet=None,
+    def __init__(self, _files, readClass=DNARead, checkAlphabet=None,
                  upperCase=False):
-        self._file = _file
+        self._files = [_files] if isinstance(_files, string_types) else _files
         self._readClass = readClass
         self._checkAlphabet = checkAlphabet
         # TODO: It would be better if upperCase were an argument that could
@@ -102,26 +105,30 @@ class FastaReads(Reads):
         # read the file we'd return Reads.iter(self) to re-iterate over the
         # sequences already added from the file.
         self._upperCase = upperCase
-        if six.PY3:
+        if PY3:
             super().__init__()
         else:
             Reads.__init__(self)
 
     def iter(self):
         """
-        Iterate over the sequences in self.file_, yielding each as an
-        instance of the desired read class.
+        Iterate over the sequences in the files in self.files_, yielding each
+        as an instance of the desired read class.
         """
         checkAlphabet = self._checkAlphabet
-        for count, seq in enumerate(SeqIO.parse(self._file, 'fasta')):
-            if self._upperCase:
-                read = self._readClass(seq.description,
-                                       str(seq.seq.upper()))
-            else:
-                read = self._readClass(seq.description, str(seq.seq))
-            if checkAlphabet is None or count < checkAlphabet:
-                read.checkAlphabet(count=None)
-            yield read
+        count = 0
+        for _file in self._files:
+            with asHandle(_file) as fp:
+                for seq in SeqIO.parse(fp, 'fasta'):
+                    if self._upperCase:
+                        read = self._readClass(seq.description,
+                                               str(seq.seq.upper()))
+                    else:
+                        read = self._readClass(seq.description, str(seq.seq))
+                    if checkAlphabet is None or count < checkAlphabet:
+                        read.checkAlphabet(count=None)
+                    yield read
+                    count += 1
 
 
 def combineReads(filename, sequences, readClass=DNARead,
