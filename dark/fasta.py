@@ -1,4 +1,4 @@
-from six import PY3, string_types
+from six import PY3
 from hashlib import md5
 
 from Bio import SeqIO
