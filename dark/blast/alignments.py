@@ -6,7 +6,10 @@ from dark.score import HigherIsBetterScore
 from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
+# ncbidb has to be imported as below so that ncbidb.getSequence can be
+# patched by our test suite.
 from dark import ncbidb
+from dark.reads import AARead, DNARead
 from dark.utils import numericallySortFilenames
 
 ZERO_EVALUE_UPPER_RANDOM_INCREMENT = 150
@@ -127,16 +130,24 @@ class BlastReadsAlignments(ReadsAlignments):
 
     def getSubjectSequence(self, title):
         """
-        Obtain information about a subject sequence, given its title.
+        Obtain information about a subject sequence given its title.
 
         @param title: A C{str} sequence title from a BLAST hit. Of the form
             'gi|63148399|gb|DQ011818.1| Description...'.
-        @return: A C{SeqIO.read} instance.
+        @return: An C{AARead} or C{DNARead} instance, depending on the type of
+            BLAST database in use.
         """
         # Look up the title in the database that was given to BLAST on the
         # command line.
-        return ncbidb.getSequence(
-            title, self.params.applicationParams['database'])
+        seq = ncbidb.getSequence(title,
+                                 self.params.applicationParams['database'])
+
+        if self.params.application in {'blastp', 'blastx'}:
+            readClass = AARead
+        else:
+            readClass = DNARead
+
+        return readClass(seq.description, seq.seq)
 
     def adjustHspsForPlotting(self, titleAlignments):
         """

@@ -390,9 +390,9 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 readsAx.add_line(line)
 
     if showOrfs:
-        orfs.addORFs(orfAx, sequence.seq, minX, maxX, adjustOffset)
+        orfs.addORFs(orfAx, sequence.sequence, minX, maxX, adjustOffset)
         orfs.addReversedORFs(orfReversedAx,
-                             sequence.reverse_complement().seq,
+                             sequence.reverseComplement().sequence,
                              minX, maxX, adjustOffset)
 
     if showFeatures:
@@ -447,7 +447,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         figure.suptitle(
             '%s\nLength %d %s, %d read%s, %d HSP%s.' %
             (
-                sequence.description,
+                sequence.id,
                 len(sequence), 'nt' if subjectIsNucleotides else 'aa',
                 readCount, '' if readCount == 1 else 's',
                 hspCount, '' if hspCount == 1 else 's'
