@@ -36,8 +36,6 @@ class FakeHSP(dict):
 class Old_ReadPositiveHitPositive(TestCase):
     """
     Tests for normalizeHSP when the hit start is less than the hit end.
-
-    NOTE: Please don't add any tests below. Use the Template based tests above.
     """
 
     frame = Frame(read=1)
