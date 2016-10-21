@@ -30,3 +30,7 @@ clean:
 
 clobber: clean
 	rm -fr .tox
+
+# The upload target requires that you have access rights to PYPI.
+upload:
+	python setup.py sdist upload
