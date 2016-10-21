@@ -102,22 +102,22 @@ def median(l):
 
 
 @contextmanager
-def asHandle(handleish, mode='r'):
+def asHandle(fileNameOrHandle, mode='r'):
     """
     Decorator for file opening that makes it easy to open compressed files.
     Based on L{Bio.File.as_handle}.
 
-    @param handleish: Either a C{str} or a file handle.
+    @param fileNameOrHandle: Either a C{str} or a file handle.
     @return: A generator that can be turned into a context manager via
         L{contextlib.contextmanager}.
     """
-    if isinstance(handleish, six.string_types):
-        if handleish.endswith('.gz'):
-            yield gzip.GzipFile(handleish)
-        elif handleish.endswith('.bz2'):
-            yield bz2.BZ2File(handleish)
+    if isinstance(fileNameOrHandle, six.string_types):
+        if fileNameOrHandle.endswith('.gz'):
+            yield gzip.GzipFile(fileNameOrHandle)
+        elif fileNameOrHandle.endswith('.bz2'):
+            yield bz2.BZ2File(fileNameOrHandle)
         else:
-            with open(handleish) as fp:
+            with open(fileNameOrHandle) as fp:
                 yield fp
     else:
-        yield handleish
+        yield fileNameOrHandle

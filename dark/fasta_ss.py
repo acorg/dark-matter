@@ -24,8 +24,8 @@ class SSFastaReads(Reads):
     alignment with the sequence.
 
     @param _files: Either a single C{str} file name or file handle, or a
-        C{list} of (possibly mixed) C{str} file names or file handles. Each
-        file / file handle must contain sequences in FASTA format.
+        C{list} of C{str} file names and/or file handles. Each file or file
+        handle must contain sequences in PDB FASTA format (see above).
     @param readClass: The class of read that should be yielded by iter. This
         must accept 3 C{str} arguments: an id, the sequence, the structure.
     @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
