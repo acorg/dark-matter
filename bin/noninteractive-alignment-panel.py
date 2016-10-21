@@ -64,11 +64,11 @@ if __name__ == '__main__':
     # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
         '--json', metavar='BLAST-JSON-file', nargs='+',
-        help='the JSON file of BLAST output.')
+        help='the JSON file(s) of BLAST output.')
 
     parser.add_argument(
-        '--fasta', metavar='FASTA-file', required=True,
-        help='the FASTA file of sequences that were given to BLAST.')
+        '--fasta', metavar='FASTA-file', nargs='+',
+        help='the FASTA file(s) of sequences that were given to BLAST.')
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(

@@ -1,7 +1,11 @@
 from __future__ import division
 
 import string
+import six
+import bz2
+import gzip
 from os.path import basename
+from contextlib import contextmanager
 
 
 def numericallySortFilenames(names):
@@ -95,3 +99,25 @@ def median(l):
         raise ValueError('arg is an empty sequence')
     else:
         return _median(l)
+
+
+@contextmanager
+def asHandle(fileNameOrHandle, mode='r'):
+    """
+    Decorator for file opening that makes it easy to open compressed files.
+    Based on L{Bio.File.as_handle}.
+
+    @param fileNameOrHandle: Either a C{str} or a file handle.
+    @return: A generator that can be turned into a context manager via
+        L{contextlib.contextmanager}.
+    """
+    if isinstance(fileNameOrHandle, six.string_types):
+        if fileNameOrHandle.endswith('.gz'):
+            yield gzip.GzipFile(fileNameOrHandle)
+        elif fileNameOrHandle.endswith('.bz2'):
+            yield bz2.BZ2File(fileNameOrHandle)
+        else:
+            with open(fileNameOrHandle) as fp:
+                yield fp
+    else:
+        yield fileNameOrHandle
