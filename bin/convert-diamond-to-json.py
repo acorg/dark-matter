@@ -42,5 +42,5 @@ if __name__ == '__main__':
         fp = open(args.json, 'w') if args.json else sys.stdout
 
     reader = DiamondTabularFormatReader(args.diamond)
-    reader.saveAsJSON(fp)
+    reader.saveAsJSON(fp, writeBytes=args.bzip2)
     fp.close()
