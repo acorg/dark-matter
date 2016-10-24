@@ -2,73 +2,78 @@ from random import uniform
 from math import log10
 import copy
 
+from dark.alignments import (
+    ReadsAlignments, ReadAlignments, ReadsAlignmentsParams)
+from dark.diamond.conversion import JSONRecordsReader
+from dark.fasta import FastaReads
+from dark.reads import AARead
 from dark.score import HigherIsBetterScore
-from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
-from dark.blast.conversion import JSONRecordsReader
-from dark.blast.params import checkCompatibleParams
-# ncbidb has to be imported as below so that ncbidb.getSequence can be
-# patched by our test suite.
-from dark import ncbidb
-from dark.reads import AARead, DNARead
 from dark.utils import numericallySortFilenames
 
 ZERO_EVALUE_UPPER_RANDOM_INCREMENT = 150
 
 
-class BlastReadsAlignments(ReadsAlignments):
+class DiamondReadsAlignments(ReadsAlignments):
     """
-    Hold information about a set of BLAST records.
+    Hold information about a set of DIAMOND records.
 
     @param reads: A L{dark.reads.Reads} instance providing the sequences that
-        were given to BLAST as queries. Note that the order of the reads
-        *MUST* match the order of the records in the BLAST output files.
-    @param blastFilenames: Either a single C{str} filename or a C{list} of
-        C{str} file names containing BLAST output. Files can either be XML
-        (-outfmt 5) BLAST output file or our smaller (possibly bzip2
-        compressed) converted JSON equivalent produced by
-        C{bin/convert-blast-xml-to-json.py} from a BLAST XML file.
+        were given to DIAMOND as queries. Note that the order of the reads
+        *MUST* match the order of the records in the DIAMOND output files.
+    @param filenames: Either a single C{str} filename or a C{list} of C{str}
+        file names containing our (possibly bzip2 compressed) per-line JSON
+        produced by C{bin/convert-diamond-to-json.py} from DIAMOND XML output.
+    @param filenames: Either a single C{str} filename or a C{list} of C{str}
+        file names containing our (possibly bzip2 compressed) per-line JSON
+        produced by C{bin/convert-diamond-to-json.py} from DIAMOND XML output.
+    @param databaseFilename: A C{str} holding the name of the file used to
+        make the DIAMOND database.
     @param scoreClass: A class to hold and compare scores (see scores.py).
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e-values, pass LowerIsBetterScore instead.
-    @param sortBlastFilenames: A C{bool}. If C{True}, C{blastFilenames} will be
+    @param sortFilenames: A C{bool}. If C{True}, C{filenames} will be
         sorted by numeric prefix (using L{numericallySortFilenames}) before
         being read. This can be used to conveniently sort the files produced
         by our HTCondor jobs.
     @param randomizeZeroEValues: If C{True}, e-values that are zero will be set
         to a random (very good) value.
-    @raises ValueError: if a file type is not recognized, if the number of
-        reads does not match the number of records found in the BLAST result
-        files, or if BLAST parameters in all files do not match.
+    @raises ValueError: if a file type is not recognized, or if the number of
+        reads does not match the number of records found in the DIAMOND result
+        files.
     """
 
-    def __init__(self, reads, blastFilenames, scoreClass=HigherIsBetterScore,
-                 sortBlastFilenames=True, randomizeZeroEValues=True):
-        if type(blastFilenames) == str:
-            blastFilenames = [blastFilenames]
-        if sortBlastFilenames:
-            self.blastFilenames = numericallySortFilenames(blastFilenames)
+    def __init__(self, reads, filenames, databaseFilename,
+                 scoreClass=HigherIsBetterScore, sortFilenames=True,
+                 randomizeZeroEValues=True):
+        if type(filenames) == str:
+            filenames = [filenames]
+        if sortFilenames:
+            self.filenames = numericallySortFilenames(filenames)
         else:
-            self.blastFilenames = blastFilenames
+            self.filenames = filenames
+
+        self._databaseFilename = databaseFilename
+        self._subjectTitleToSubject = None
         self.randomizeZeroEValues = randomizeZeroEValues
 
-        # Prepare application parameters in order to initialize self.
-        self._reader = self._getReader(self.blastFilenames[0], scoreClass)
-        application = self._reader.application
-        blastParams = copy.deepcopy(self._reader.params)
-        subjectIsNucleotides = application != 'blastx'
+        # Prepare diamondTask parameters in order to initialize self.
+        self._reader = self._getReader(self.filenames[0], scoreClass)
+        diamondTask = self._reader.diamondTask
+        diamondParams = copy.deepcopy(self._reader.params)
         scoreTitle = ('Bit score' if scoreClass is HigherIsBetterScore
                       else '$- log_{10}(e)$')
 
-        applicationParams = ReadsAlignmentsParams(
-            application, blastParams,
-            subjectIsNucleotides=subjectIsNucleotides, scoreTitle=scoreTitle)
+        diamondTaskParams = ReadsAlignmentsParams(
+            diamondTask, diamondParams,
+            subjectIsNucleotides=False,  # DIAMOND dbs are always protein.
+            scoreTitle=scoreTitle)
 
-        ReadsAlignments.__init__(self, reads, applicationParams,
+        ReadsAlignments.__init__(self, reads, diamondTaskParams,
                                  scoreClass=scoreClass)
 
     def _getReader(self, filename, scoreClass):
         """
-        Obtain a JSON record reader for BLAST records.
+        Obtain a JSON record reader for DIAMOND records.
 
         @param filename: The C{str} file name holding the JSON.
         @param scoreClass: A class to hold and compare scores (see scores.py).
@@ -77,14 +82,11 @@ class BlastReadsAlignments(ReadsAlignments):
             return JSONRecordsReader(filename, scoreClass)
         else:
             raise ValueError(
-                'Unknown BLAST record file suffix for file %r.' % filename)
+                'Unknown DIAMOND record file suffix for file %r.' % filename)
 
     def iter(self):
         """
-        Extract BLAST records and yield C{ReadAlignments} instances.
-
-        For each file except the first, check that the BLAST parameters are
-        compatible with those found (above, in __init__) in the first file.
+        Extract DIAMOND records and yield C{ReadAlignments} instances.
 
         @return: A generator that yields C{ReadAlignments} instances.
         """
@@ -93,61 +95,40 @@ class BlastReadsAlignments(ReadsAlignments):
         # makes testing easier, since open() is then only called once for
         # each input file.
 
-        count = 0
-        reader = self._reader
         reads = iter(self.reads)
         first = True
 
-        for blastFilename in self.blastFilenames:
+        for filename in self.filenames:
             if first:
-                # No need to check params in the first file. We already read
-                # them in and stored them in __init__.
+                # The first file has already been opened, in __init__.
                 first = False
+                reader = self._reader
             else:
-                reader = self._getReader(blastFilename, self.scoreClass)
-                differences = checkCompatibleParams(
-                    self.params.applicationParams, reader.params)
-                if differences:
-                    raise ValueError(
-                        'Incompatible BLAST parameters found. The parameters '
-                        'in %s differ from those originally found in %s. %s' %
-                        (blastFilename, self.blastFilenames[0], differences))
+                reader = self._getReader(filename, self.scoreClass)
 
             for readAlignments in reader.readAlignments(reads):
-                count += 1
                 yield readAlignments
 
-        # Make sure all reads were used.
-        try:
-            read = next(reads)
-        except StopIteration:
-            pass
-        else:
-            raise ValueError(
-                'Reads iterator contained more reads than the number of BLAST '
-                'records found (%d). First unknown read id is %r.' %
-                (count, read.id))
+        # Any remaining query reads must have had no subject matches.
+        for read in reads:
+            yield ReadAlignments(read, [])
 
     def getSubjectSequence(self, title):
         """
         Obtain information about a subject sequence given its title.
 
-        @param title: A C{str} sequence title from a BLAST hit. Of the form
-            'gi|63148399|gb|DQ011818.1| Description...'.
-        @return: An C{AARead} or C{DNARead} instance, depending on the type of
-            BLAST database in use.
+        @param title: A C{str} sequence title from a DIAMOND hit.
+        @raise KeyError: If the C{title} is not present in the DIAMOND
+            database.
+        @return: An C{AARead} instance.
         """
-        # Look up the title in the database that was given to BLAST on the
-        # command line.
-        seq = ncbidb.getSequence(title,
-                                 self.params.applicationParams['database'])
+        if self._subjectTitleToSubject is None:
+            titles = {}
+            for read in FastaReads(self._databaseFilename, readClass=AARead):
+                titles[read.id] = read
+            self._subjectTitleToSubject = titles
 
-        if self.params.application in {'blastp', 'blastx'}:
-            readClass = AARead
-        else:
-            readClass = DNARead
-
-        return readClass(seq.description, seq.seq)
+        return self._subjectTitleToSubject[title]
 
     def adjustHspsForPlotting(self, titleAlignments):
         """
