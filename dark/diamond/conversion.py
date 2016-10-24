@@ -18,7 +18,7 @@ class DiamondTabularFormatReader(object):
     make accessible the global DIAMOND parameters.
 
     Make sure you run DIAMOND with the right output format. You must use:
-        --outfmt "6 qseqid sseqid bitscore evalue qframe qseq qstart qend sseq
+        --outfmt "6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
                     sstart send slen"
 
     @param filename: A C{str} filename or an open file pointer, containing

@@ -14,7 +14,7 @@ if __name__ == '__main__':
         epilog=('Give a DIAMOND tabular file and convert it to JSON, '
                 'optionally compressing the output. You *must* invoke '
                 'DIAMOND with the following output specification: '
-                '--outfmt "6 qseqid sseqid bitscore evalue qframe qseq '
+                '--outfmt "6 qtitle stitle bitscore evalue qframe qseq '
                 'qstart qend sseq sstart send slen".'
                 'Note that only each line of the output is JSON (the full '
                 'output is not valid JSON by itself).')
