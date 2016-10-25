@@ -1,5 +1,8 @@
 from six.moves import builtins
 from unittest import TestCase
+from io import BytesIO, StringIO
+import bz2file
+from bz2 import compress
 
 try:
     from unittest.mock import patch
@@ -29,6 +32,206 @@ BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307
 BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343
 """
 
+DIAMOND_RECORDS_DUMPED = '\n'.join([
+    dumps({
+        "reference": ("Buchfink et al., Fast and Sensitive "
+                      "Protein Alignment using DIAMOND, Nature Methods, "
+                      "12, 59-60 (2015)"),
+        "task": "blastx",
+        "version": "v0.8.23"
+    }, sort_keys=True),
+    dumps({
+        "alignments": [
+            {
+                "hsps": [
+                    {
+                        "bits": 29.6,
+                        "expect": 0.003,
+                        "frame": 1,
+                        "query": "EFII",
+                        "query_end": 295,
+                        "query_start": 178,
+                        "sbjct": "SSSEV",
+                        "sbjct_end": 285,
+                        "sbjct_start": 175
+                    }
+                ],
+                "length": 295,
+                "title": "INSV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "expect": 0.008,
+                        "frame": 1,
+                        "query": "KLL",
+                        "query_end": 37,
+                        "query_start": 7,
+                        "sbjct": "ITRV",
+                        "sbjct_end": 39,
+                        "sbjct_start": 9
+                    }
+                ],
+                "length": 300,
+                "title": "CASV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "expect": 0.009,
+                        "frame": 1,
+                        "query": "IKSKL",
+                        "query_end": 35,
+                        "query_start": 7,
+                        "sbjct": "EETSR",
+                        "sbjct_end": 37,
+                        "sbjct_start": 9
+                    },
+                    {
+                        "bits": 23.5,
+                        "expect": 0.21,
+                        "frame": 1,
+                        "query": "TIMSVV",
+                        "query_end": 240,
+                        "query_start": 177,
+                        "sbjct": "DDMV",
+                        "sbjct_end": 235,
+                        "sbjct_start": 179
+                    }
+                ],
+                "length": 293,
+                "title": "GoldenGate"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 25.0,
+                        "expect": 0.084,
+                        "frame": 1,
+                        "query": "LHVNYL",
+                        "query_end": 203,
+                        "query_start": 1,
+                        "sbjct": "DEELKA",
+                        "sbjct_end": 210,
+                        "sbjct_start": 2
+                    },
+                    {
+                        "bits": 18.5,
+                        "expect": 9.1,
+                        "frame": 1,
+                        "query": "SEIICEVLK",
+                        "query_end": 257,
+                        "query_start": 226,
+                        "sbjct": "VETVAQ",
+                        "sbjct_end": 45,
+                        "sbjct_start": 20
+                    }
+                ],
+                "length": 290,
+                "title": "InfluenzaC"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 24.6,
+                        "expect": 0.11,
+                        "frame": 1,
+                        "query": "YSCFT-NSEK",
+                        "query_end": 276,
+                        "query_start": 176,
+                        "sbjct": "LGKRMFC",
+                        "sbjct_end": 243,
+                        "sbjct_start": 152
+                    }
+                ],
+                "length": 270,
+                "title": "FERV"
+            }
+        ],
+        "query": "ACC94"
+    }, sort_keys=True),
+    dumps({
+        "alignments": [
+            {
+                "hsps": [
+                    {
+                        "bits": 634.0,
+                        "expect": 0.0,
+                        "frame": 1,
+                        "query": "GEPFSVYG",
+                        "query_end": 306,
+                        "query_start": 1,
+                        "sbjct": "NIYGEP",
+                        "sbjct_end": 306,
+                        "sbjct_start": 1
+                    }
+                ],
+                "length": 306,
+                "title": "AKAV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 401.0,
+                        "expect": 7e-143,
+                        "frame": 1,
+                        "query": "PFSVYGRF",
+                        "query_end": 306,
+                        "query_start": 1,
+                        "sbjct": "GEPMS",
+                        "sbjct_end": 294,
+                        "sbjct_start": 1
+                    }
+                ],
+                "length": 294,
+                "title": "WYOV"
+            }
+        ],
+        "query": "AKAV"
+    }, sort_keys=True),
+    dumps({
+        "alignments": [
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "expect": 0.008,
+                        "frame": 1,
+                        "query": "PKELHGLI",
+                        "query_end": 118,
+                        "query_start": 14,
+                        "sbjct": "SLKSKE",
+                        "sbjct_end": 131,
+                        "sbjct_start": 15
+                    }
+                ],
+                "length": 307,
+                "title": "TAIV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "expect": 0.009,
+                        "frame": 1,
+                        "query": "CRPTF",
+                        "query_end": 293,
+                        "query_start": 4,
+                        "sbjct": "EFVFIY",
+                        "sbjct_end": 342,
+                        "sbjct_start": 6
+                    }
+                ],
+                "length": 343,
+                "title": "SouthBay"
+            }
+        ],
+        "query": "BHAV"
+    }, sort_keys=True)
+]) + '\n'
+
 
 class TestDiamondTabularFormatReader(TestCase):
     """
@@ -50,7 +253,7 @@ class TestDiamondTabularFormatReader(TestCase):
                     'reference': (
                         'Buchfink et al., Fast and Sensitive Protein '
                         'Alignment using DIAMOND, Nature Methods, 12, '
-                        '59–60 (2015)'),
+                        '59-60 (2015)'),
                     'task': 'blastx',
                     'version': 'v0.8.23',
                 },
@@ -68,12 +271,40 @@ class TestDiamondTabularFormatReader(TestCase):
             self.assertEqual(2, len(akav['alignments']))
             self.assertEqual(2, len(bhav['alignments']))
 
+    def testSaveAsJSON(self):
+        """
+        A DiamondTabularFormatReader must be able to save itself as JSON.
+        """
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = DiamondTabularFormatReader('file.txt')
+            fp = StringIO()
+            reader.saveAsJSON(fp)
+            self.assertEqual(DIAMOND_RECORDS_DUMPED, fp.getvalue())
+
+    def testSaveAsJSONBzip2(self):
+        """
+        A DiamondTabularFormatReader must be able to save itself as bzip2'd
+        JSON.
+        """
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = DiamondTabularFormatReader('file.txt')
+            data = BytesIO()
+            fp = bz2file.BZ2File(data, 'w')
+            reader.saveAsJSON(fp, writeBytes=True)
+            fp.close()
+            self.assertEqual(
+                compress(DIAMOND_RECORDS_DUMPED.encode('UTF-8')),
+                data.getvalue())
+
+
 _JSON_RECORDS = [
     {
         'application': 'DIAMOND',
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                      'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
+                      'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                       '(2015)'),
         'task': 'blastx',
     },
@@ -179,7 +410,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
         'application': 'DIAMOND',
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                      'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
+                      'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                       '(2015)'),
         'task': 'blastx',
     },
@@ -281,7 +512,7 @@ _JSON_RECORDS_ONE_END = [
         'application': 'DIAMOND',
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                      'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
+                      'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                       '(2015)'),
         'task': 'blastx',
     },
@@ -383,7 +614,7 @@ _JSON_RECORDS_ONE_START = [
         'application': 'DIAMOND',
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                      'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
+                      'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                       '(2015)'),
         'task': 'blastx',
     },
@@ -465,7 +696,7 @@ _JSON_RECORDS_TWO_END = [
         'application': 'DIAMOND',
         'version': 'v0.8.23',
         'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                      'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
+                      'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                       '(2015)'),
         'task': 'blastx',
     },

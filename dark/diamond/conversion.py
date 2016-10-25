@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import six
 import bz2
 from json import dumps, loads
 from operator import itemgetter
@@ -18,8 +19,8 @@ class DiamondTabularFormatReader(object):
     make accessible the global DIAMOND parameters.
 
     Make sure you run DIAMOND with the right output format. You must use:
-        --outfmt "6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
-                    sstart send slen"
+        --outfmt 6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
+                   sstart send slen
 
     @param filename: A C{str} filename or an open file pointer, containing
         DIAMOND tabular records.
@@ -30,7 +31,7 @@ class DiamondTabularFormatReader(object):
         self.application = 'DIAMOND'
         self.params = {
             'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                          'Alignment using DIAMOND, Nature Methods, 12, 59–60 '
+                          'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                           '(2015)'),
             'task': 'blastx',  # TODO: Add support for blastp, if needed.
             'version': 'v0.8.23',
@@ -104,16 +105,27 @@ class DiamondTabularFormatReader(object):
             if record:
                 yield record
 
-    def saveAsJSON(self, fp):
+    def saveAsJSON(self, fp, writeBytes=False):
         """
         Write the records out as JSON. The first JSON object saved contains
         information about the DIAMOND algorithm.
 
         @param fp: A C{str} file pointer to write to.
+        @param writeBytes: If C{True}, the JSON will be written out as bytes
+            (not strings). This is required when we are writing to a BZ2 file.
         """
-        print(dumps(self.params, separators=(',', ':')), file=fp)
-        for record in self.records():
-            print(dumps(record, separators=(',', ':')), file=fp)
+        if writeBytes:
+            fp.write(dumps(self.params, sort_keys=True).encode('UTF-8'))
+            fp.write(b'\n')
+            for record in self.records():
+                fp.write(dumps(record, sort_keys=True).encode('UTF-8'))
+                fp.write(b'\n')
+        else:
+            fp.write(six.u(dumps(self.params, sort_keys=True)))
+            fp.write(six.u('\n'))
+            for record in self.records():
+                fp.write(six.u(dumps(record, sort_keys=True)))
+                fp.write(six.u('\n'))
 
 
 class JSONRecordsReader(object):
@@ -251,7 +263,7 @@ class JSONRecordsReader(object):
                         except StopIteration:
                             raise ValueError(
                                 'Read generator failed to yield a read '
-                                'with id %r as found in record number %d '
+                                'with id \'%s\' as found in record number %d '
                                 'during parsing of DIAMOND output file %r.' %
                                 (record['query'], lineNumber - 1,
                                  self._filename))

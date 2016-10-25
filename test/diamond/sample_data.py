@@ -2,7 +2,7 @@
 PARAMS = {
     'application': 'DIAMOND',
     'reference': ('Buchfink et al., Fast and Sensitive Protein Alignment '
-                  'using DIAMOND, Nature Methods, 12, 59–60 (2015)'),
+                  'using DIAMOND, Nature Methods, 12, 59-60 (2015)'),
     'task': 'blastx',
     'version': 'v0.8.23',
 }

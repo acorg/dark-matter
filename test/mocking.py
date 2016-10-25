@@ -124,3 +124,33 @@ def mockOpen(mock=None, read_data=''):
 
     mock.return_value = handle
     return mock
+
+
+class File(object):
+    """
+    A file mock.
+    """
+    def __init__(self, data):
+        self._data = data
+        self._index = 0
+
+    def close(self):
+        pass
+
+    def readline(self):
+        self._index += 1
+        try:
+            return self._data[self._index - 1]
+        except IndexError:
+            return ''
+
+    def __iter__(self):
+        index = self._index
+        self._index = len(self._data)
+        return iter(self._data[index:])
+
+    def __exit__(self, *args):
+        pass
+
+    def __enter__(self):
+        return self
