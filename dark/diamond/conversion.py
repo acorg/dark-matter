@@ -160,7 +160,10 @@ class JSONRecordsReader(object):
             'application' key.
         """
         if filename.endswith('.bz2'):
-            self._fp = bz2.BZ2File(filename)
+            if six.PY3:
+                self._fp = bz2.open(filename, mode='rt', encoding='UTF-8')
+            else:
+                self._fp = bz2.BZ2File(filename)
         else:
             self._fp = open(filename)
 

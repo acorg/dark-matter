@@ -148,7 +148,7 @@ class File(object):
 
     def __iter__(self):
         index = self._index
-        self._index = len(self._data)
+        self._index = 0
         return iter(self._data[index:])
 
     def __exit__(self, *args):
