@@ -19,8 +19,8 @@ class DiamondTabularFormatReader(object):
     make accessible the global DIAMOND parameters.
 
     Make sure you run DIAMOND with the right output format. You must use:
-        --outfmt "6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
-                    sstart send slen"
+        --outfmt 6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
+                   sstart send slen
 
     @param filename: A C{str} filename or an open file pointer, containing
         DIAMOND tabular records.
@@ -263,7 +263,7 @@ class JSONRecordsReader(object):
                         except StopIteration:
                             raise ValueError(
                                 'Read generator failed to yield a read '
-                                'with id %r as found in record number %d '
+                                'with id \'%s\' as found in record number %d '
                                 'during parsing of DIAMOND output file %r.' %
                                 (record['query'], lineNumber - 1,
                                  self._filename))

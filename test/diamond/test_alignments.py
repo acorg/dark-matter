@@ -13,9 +13,7 @@ try:
 except ImportError:
     from mock import patch
 
-from six import StringIO
-
-from ..mocking import mockOpen
+from ..mocking import mockOpen, File
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
@@ -24,27 +22,6 @@ from dark.score import LowerIsBetterScore
 from dark.diamond.alignments import (
     DiamondReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
-
-
-class BZ2(object):
-    """
-    A BZ2File mock.
-    """
-    def __init__(self, data):
-        self._data = data
-        self._index = 0
-
-    def close(self):
-        pass
-
-    def readline(self):
-        self._index += 1
-        return self._data[self._index - 1]
-
-    def __iter__(self):
-        index = self._index
-        self._index = len(self._data)
-        return iter(self._data[index:])
 
 
 class TestDiamondReadsAlignments(TestCase):
@@ -215,7 +192,7 @@ class TestDiamondReadsAlignments(TestCase):
         If a compressed (bz2) JSON file contains a parameters section and one
         record, it must be read correctly.
         """
-        result = BZ2([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+        result = File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
 
         with patch.object(bz2, 'BZ2File') as mockMethod:
             mockMethod.return_value = result
@@ -240,9 +217,9 @@ class TestDiamondReadsAlignments(TestCase):
             def sideEffect(self, _ignoredFilename):
                 if self.first:
                     self.first = False
-                    return BZ2([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
                 else:
-                    return BZ2([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
 
         sideEffect = SideEffect()
         with patch.object(bz2, 'BZ2File') as mockMethod:
@@ -275,14 +252,14 @@ class TestDiamondReadsAlignments(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('1.json.bz2', filename)
                     self.count += 1
-                    return BZ2([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
                 elif self.count == 1:
                     self.test.assertEqual('2.json.bz2', filename)
                     self.count += 1
-                    return BZ2([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
                 else:
                     self.test.assertEqual('3.json.bz2', filename)
-                    return BZ2([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
 
         sideEffect = SideEffect(self)
         with patch.object(bz2, 'BZ2File') as mockMethod:
@@ -318,18 +295,16 @@ class TestDiamondReadsAlignments(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('file.json', filename)
                     self.count += 1
-                    return BZ2([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
                 elif self.count == 1:
-                    self.test.assertEqual('database.fasta', filename)
                     self.count += 1
-                    return StringIO('>id1 Description\nAA\n')
+                    return File(['>id1 Description', 'AA\n'])
                 else:
                     self.fail('Unexpected third call to open.')
 
         sideEffect = SideEffect(self)
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
-        with patch.object(builtins, 'open', mockOpener) as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(reads, 'file.json',
@@ -365,7 +340,7 @@ class TestDiamondReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that non-zero
         evalues are converted to the positive value of their negative exponent.
         """
-        result = lambda a: BZ2([
+        result = lambda a: File([
             dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
             dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
             dumps(deepcopy(RECORD3)) + '\n'])
@@ -392,7 +367,7 @@ class TestDiamondReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that zero
         evalues are set randomly high.
         """
-        result = lambda a: BZ2([
+        result = lambda a: File([
             dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
             dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
             dumps(deepcopy(RECORD3)) + '\n', dumps(deepcopy(RECORD4)) + '\n'])
@@ -1272,7 +1247,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         """
         It must be possible to clear any filtering that has been applied.
         """
-        result = lambda a: BZ2([
+        result = lambda a: File([
             dumps(PARAMS) + '\n', dumps(RECORD0) + '\n',
             dumps(RECORD1) + '\n', dumps(RECORD2) + '\n'])
 
