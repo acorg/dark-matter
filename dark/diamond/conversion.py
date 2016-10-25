@@ -30,6 +30,7 @@ class DiamondTabularFormatReader(object):
         self._filename = filename
         self.application = 'DIAMOND'
         self.params = {
+            'application': self.application,
             'reference': ('Buchfink et al., Fast and Sensitive Protein '
                           'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
                           '(2015)'),
@@ -177,12 +178,6 @@ class JSONRecordsReader(object):
             raise ValueError(
                 'Could not convert first line of %r to JSON (%s). '
                 'Line is %r.' % (self._filename, e, line[:-1]))
-        else:
-            if 'application' not in self.params:
-                raise ValueError(
-                    '%r appears to be an old JSON file with no DIAMOND global '
-                    'parameters. Please re-run convert-diamond-to-json.py '
-                    'to convert it to the newest format.' % self._filename)
 
     def _dictToAlignments(self, diamondDict, read):
         """
