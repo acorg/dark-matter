@@ -2,7 +2,7 @@
 
 """
 Given a BLAST or DIAMOND JSON output files, the corresponding FASTA (or
-FASTQ) sequence files, and interesting criteria, produce an alignment
+FASTQ) sequence files, and filtering criteria, produce an alignment
 panel.
 
 Run with --help for help.
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         description='Non-interactively generate an alignment panel',
         epilog=('Given BLAST or DIAMOND JSON output files, the '
                 'corresponding FASTA (or FASTQ) sequence files, and '
-                'interesting criteria, produce an alignment panel.'))
+                'filtering  criteria, produce an alignment panel.'))
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
