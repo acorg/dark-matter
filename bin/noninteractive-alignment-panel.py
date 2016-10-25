@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 """
-Given a JSON BLAST output file, a FASTA sequence file, and interesting
-criteria, produce an alignment panel.
+Given a BLAST or DIAMOND JSON output files, the corresponding FASTA (or
+FASTQ) sequence files, and filtering criteria, produce an alignment
+panel.
 
 Run with --help for help.
 """
@@ -19,8 +20,6 @@ from collections import defaultdict
 import matplotlib
 matplotlib.use('PDF')
 
-from dark.fasta import FastaReads
-from dark.blast.alignments import BlastReadsAlignments
 from dark.titles import TitlesAlignments
 from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
 
@@ -53,22 +52,40 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Non-interactively generate an alignment panel',
-        epilog=('Given a FASTA sequence file, a JSON BLAST output files, '
-                'and filtering criteria, produce an alignment panel.'))
+        epilog=('Given BLAST or DIAMOND JSON output files, the '
+                'corresponding FASTA (or FASTQ) sequence files, and '
+                'filtering  criteria, produce an alignment panel.'))
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
         help=('If True, just print the number of interesting matches, but do '
               'not create the alignment panel.'))
 
-    # Args for the JSON BLAST and FASTA files.
     parser.add_argument(
-        '--json', metavar='BLAST-JSON-file', nargs='+',
-        help='the JSON file(s) of BLAST output.')
+        '--matcher', default='blast', choices=('blast', 'diamond'),
+        help='The matching algorithm that was used to produce the JSON.')
 
     parser.add_argument(
+        '--json', metavar='JSON-file', nargs='+',
+        help='the JSON file(s) of BLAST or DIAMOND output.')
+
+    # A mutually exclusive group for either FASTA or FASTQ files.
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
         '--fasta', metavar='FASTA-file', nargs='+',
-        help='the FASTA file(s) of sequences that were given to BLAST.')
+        help=('the FASTA file(s) of sequences that were given to BLAST '
+              'or DIAMOND.'))
+
+    group.add_argument(
+        '--fastq', metavar='FASTQ-file', nargs='+',
+        help=('the FASTQ file(s) of sequences that were given to BLAST '
+              'or DIAMOND.'))
+
+    # Args specific to DIAMOND
+    parser.add_argument(
+        '--diamondDatabaseFilename', default=None,
+        help='The filename of the DIAMOND database.')
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(
@@ -159,7 +176,7 @@ if __name__ == '__main__':
     # Args for the alignment panel
     parser.add_argument(
         '--sortOn', default='maxScore',
-        choices=['maxScore', 'medianScore', 'readCount', 'length', 'title'],
+        choices=('maxScore', 'medianScore', 'readCount', 'length', 'title'),
         help='The attribute to sort subplots on.')
 
     parser.add_argument(
@@ -184,7 +201,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--xRange', default='subject',
-        choices=['reads', 'subject'],
+        choices=('reads', 'subject'),
         help=('Set the X axis range to show either the subject or the extent '
               'of the reads that hit the subject.'))
 
@@ -206,9 +223,31 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    readsAlignments = BlastReadsAlignments(
-        FastaReads(args.fasta, checkAlphabet=args.checkAlphabet),
-        args.json)
+    # TODO: Add a --readClass option in case we want to process AA queries.
+    if args.fasta:
+        from dark.fasta import FastaReads
+        reads = FastaReads(args.fasta, checkAlphabet=args.checkAlphabet)
+    else:
+        if args.checkAlphabet is not None:
+            print('--checkAlphabet is currently not supported for FASTQ reads',
+                  file=sys.stderr)
+            sys.exit(1)
+
+        from dark.fastq import FastqReads
+        reads = FastqReads(args.fastq)
+
+    if args.matcher == 'blast':
+        from dark.blast.alignments import BlastReadsAlignments
+        readsAlignments = BlastReadsAlignments(reads, args.json)
+    else:
+        if args.diamondDatabaseFilename is None:
+            print('--diamondDatabaseFilename must be used with --matcher '
+                  'diamond', file=sys.stderr)
+            sys.exit(1)
+
+        from dark.diamond.alignments import DiamondReadsAlignments
+        readsAlignments = DiamondReadsAlignments(reads, args.json,
+                                                 args.diamondDatabaseFilename)
 
     readsAlignments.filter(
         minSequenceLen=args.minSequenceLen,

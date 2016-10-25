@@ -129,6 +129,8 @@ def mockOpen(mock=None, read_data=''):
 class File(object):
     """
     A file mock.
+
+    @param data: A C{list} of C{str} lines the file should contain.
     """
     def __init__(self, data):
         self._data = data
