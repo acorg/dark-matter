@@ -112,7 +112,7 @@ class DiamondTabularFormatReader(object):
 
         @param fp: A C{str} file pointer to write to.
         @param writeBytes: If C{True}, the JSON will be written out as bytes
-            (not strings). This is required when fp is a bz2file.BZ2File.
+            (not strings). This is required when we are writing to a BZ2 file.
         """
         if writeBytes:
             fp.write(dumps(self.params, sort_keys=True).encode('UTF-8'))
