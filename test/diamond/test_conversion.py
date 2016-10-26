@@ -32,6 +32,10 @@ BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307
 BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343
 """
 
+DIAMOND_RECORDS_SPACES = """\
+ACC 94	IN SV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295
+"""
+
 DIAMOND_RECORDS_DUMPED = '\n'.join([
     dumps({
         "application": "DIAMOND",
@@ -300,6 +304,17 @@ class TestDiamondTabularFormatReader(TestCase):
                 compress(DIAMOND_RECORDS_DUMPED.encode('UTF-8')),
                 data.getvalue())
 
+    def testSpacesMustBePreserved(self):
+        """
+        If there are spaces in the query title or subject titles, the spaces
+        must be preserved.
+        """
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_SPACES)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = DiamondTabularFormatReader('file.txt')
+            acc94 = list(reader.records())
+            self.assertEqual('ACC 94', acc94[0]['query'])
+            self.assertEqual('IN SV', acc94[0]['alignments'][0]['title'])
 
 _JSON_RECORDS = [
     {
@@ -724,7 +739,7 @@ _JSON_RECORDS_TWO_END = [
                 ]
             }
         ],
-        'query': 'id1'
+        'query': 'id1 1'
     },
     {
         'alignments': [
@@ -786,7 +801,7 @@ _JSON_RECORDS_TWO_END = [
                 ]
             }
         ],
-        'query': 'id2'
+        'query': 'id2 2'
     },
 
 ]
@@ -943,19 +958,19 @@ class TestJSONRecordsReader(TestCase):
         """
         reads = Reads([
             AARead(
-                'id1',
+                'id1 1',
                 'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
                 'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
             AARead(
-                'id2',
+                'id2 2',
                 'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
                 'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
             AARead(
-                'id3',
+                'id3 3',
                 'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
                 'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
             AARead(
-                'id4',
+                'id4 4',
                 'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
@@ -965,3 +980,33 @@ class TestJSONRecordsReader(TestCase):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
             self.assertEqual(2, len(alignments))
+
+    def testSpacesMustBePreserved(self):
+        """
+        A JSONRecordsReader must return the right query and subject titles,
+        even if they have spaces.
+        """
+        reads = Reads([
+            AARead(
+                'id1 1',
+                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
+                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
+            AARead(
+                'id2 2',
+                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
+                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
+            AARead(
+                'id3 3',
+                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
+                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
+            AARead(
+                'id4 4',
+                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
+                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
+        ])
+
+        mockOpener = mockOpen(read_data=JSON_TWO_END)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = JSONRecordsReader('file.json')
+            alignment = list(reader.readAlignments(reads))[0]
+            self.assertEqual('id1 1', alignment.read.id)
