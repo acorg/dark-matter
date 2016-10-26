@@ -1,5 +1,3 @@
-import bz2
-
 from six.moves import builtins
 
 from dark.reads import AARead, DNARead, RNARead
@@ -12,28 +10,7 @@ try:
 except ImportError:
     from mock import patch
 
-from .mocking import mockOpen
-
-
-class BZ2(object):
-    """
-    A BZ2File mock.
-    """
-    def __init__(self, data):
-        self._data = data
-        self._index = 0
-
-    def readline(self):
-        self._index += 1
-        try:
-            return self._data[self._index - 1]
-        except IndexError:
-            return None
-
-    def __iter__(self):
-        index = self._index
-        self._index = len(self._data)
-        return iter(self._data[index:])
+from .mocking import mockOpen, File
 
 
 class TestFastqReads(TestCase):
@@ -129,20 +106,20 @@ class TestFastqReads(TestCase):
 
             def sideEffect(self, filename):
                 if self.count == 0:
-                    self.test.assertEqual('file1.fastq.bz2', filename)
+                    self.test.assertEqual('file1.fastq', filename)
                     self.count += 1
-                    return BZ2(['@id1\n', 'ACTG\n', '+\n', '!!!!\n'])
+                    return File(['@id1\n', 'ACTG\n', '+\n', '!!!!\n'])
                 elif self.count == 1:
-                    self.test.assertEqual('file2.fastq.bz2', filename)
+                    self.test.assertEqual('file2.fastq', filename)
                     self.count += 1
-                    return BZ2(['@id2\n', 'CAGT\n', '+\n', '!!!!\n'])
+                    return File(['@id2\n', 'CAGT\n', '+\n', '!!!!\n'])
                 else:
                     self.fail('We are only supposed to be called twice!')
 
         sideEffect = SideEffect(self)
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
-            reads = FastqReads(['file1.fastq.bz2', 'file2.fastq.bz2'])
+            reads = FastqReads(['file1.fastq', 'file2.fastq'])
             self.assertEqual(
                 [
                     DNARead('id1', 'ACTG', '!!!!'),

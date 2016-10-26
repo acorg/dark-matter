@@ -135,9 +135,16 @@ class File(object):
     def __init__(self, data):
         self._data = data
         self._index = 0
+        self._closed = False
 
     def close(self):
-        pass
+        self._closed = True
+
+    def closed(self):
+        return self._closed
+
+    def read(self):
+        return ''.join(self._data)
 
     def readline(self):
         self._index += 1
@@ -156,3 +163,15 @@ class File(object):
 
     def __enter__(self):
         return self
+
+    def readable(self):
+        return True
+
+    def writable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return 0

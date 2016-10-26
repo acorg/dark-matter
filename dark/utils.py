@@ -113,9 +113,15 @@ def asHandle(fileNameOrHandle, mode='r'):
     """
     if isinstance(fileNameOrHandle, six.string_types):
         if fileNameOrHandle.endswith('.gz'):
-            yield gzip.GzipFile(fileNameOrHandle)
+            if six.PY3:
+                yield gzip.open(fileNameOrHandle, mode='rt', encoding='UTF-8')
+            else:
+                yield gzip.GzipFile(fileNameOrHandle)
         elif fileNameOrHandle.endswith('.bz2'):
-            yield bz2.BZ2File(fileNameOrHandle)
+            if six.PY3:
+                yield bz2.open(fileNameOrHandle, mode='rt', encoding='UTF-8')
+            else:
+                yield bz2.BZ2File(fileNameOrHandle)
         else:
             with open(fileNameOrHandle) as fp:
                 yield fp

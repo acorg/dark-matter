@@ -1,5 +1,4 @@
 import six
-import bz2
 from six.moves import builtins
 from unittest import TestCase
 
@@ -8,31 +7,10 @@ try:
 except ImportError:
     from mock import patch
 
-from .mocking import mockOpen
+from .mocking import mockOpen, File
 
 from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
-
-
-class BZ2(object):
-    """
-    A BZ2File mock.
-    """
-    def __init__(self, data):
-        self._data = data
-        self._index = 0
-
-    def readline(self):
-        self._index += 1
-        try:
-            return self._data[self._index - 1]
-        except IndexError:
-            return None
-
-    def __iter__(self):
-        index = self._index
-        self._index = len(self._data)
-        return iter(self._data[index:])
 
 
 class TestSSFastaReads(TestCase):
@@ -225,22 +203,22 @@ class TestSSFastaReads(TestCase):
                 self.test = test
                 self.count = 0
 
-            def sideEffect(self, filename):
+            def sideEffect(self, filename, **kwargs):
                 if self.count == 0:
-                    self.test.assertEqual('file1.fasta.bz2', filename)
+                    self.test.assertEqual('file1.fasta', filename)
                     self.count += 1
-                    return BZ2(['>id1\n', 'ACTG\n', '>id1\n', 'hhhh\n'])
+                    return File(['>id1\n', 'ACTG\n', '>id1\n', 'hhhh\n'])
                 elif self.count == 1:
-                    self.test.assertEqual('file2.fasta.bz2', filename)
+                    self.test.assertEqual('file2.fasta', filename)
                     self.count += 1
-                    return BZ2(['>id2\n', 'CAGT\n', '>id2\n', 'eeee\n'])
+                    return File(['>id2\n', 'CAGT\n', '>id2\n', 'eeee\n'])
                 else:
                     self.fail('We are only supposed to be called twice!')
 
         sideEffect = SideEffect(self)
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
-            reads = SSFastaReads(['file1.fasta.bz2', 'file2.fasta.bz2'])
+            reads = SSFastaReads(['file1.fasta', 'file2.fasta'])
             self.assertEqual(
                 [
                     SSAARead('id1', 'ACTG', 'hhhh'),
