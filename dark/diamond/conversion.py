@@ -46,11 +46,11 @@ class DiamondTabularFormatReader(object):
             'query' C{str} keys.
         """
         with as_handle(self._filename) as fp:
-            previousQseqid = None
+            previousQtitle = None
             subjectsSeen = {}
             record = {}
             for line in fp:
-                (qseqid, sseqid, bitscore, evalue, qframe, qseq, qstart, qend,
+                (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend,
                  sseq, sstart, send, slen) = line.split('\t')
                 hsp = {
                     'bits': float(bitscore),
@@ -63,44 +63,44 @@ class DiamondTabularFormatReader(object):
                     'sbjct_start': int(sstart),
                     'sbjct_end': int(send),
                 }
-                if previousQseqid == qseqid:
+                if previousQtitle == qtitle:
                     # We have already started accumulating alignments for this
                     # query.
-                    if sseqid not in subjectsSeen:
+                    if stitle not in subjectsSeen:
                         # We have not seen this subject before, so this is a
                         # new alignment.
-                        subjectsSeen.add(sseqid)
+                        subjectsSeen.add(stitle)
                         alignment = {
                             'hsps': [hsp],
                             'length': int(slen),
-                            'title': sseqid,
+                            'title': stitle,
                         }
                         record['alignments'].append(alignment)
                     else:
                         # We have already seen this subject, so this is another
                         # HSP in an already existing alignment.
                         for alignment in record['alignments']:
-                            if alignment['title'] == sseqid:
+                            if alignment['title'] == stitle:
                                 alignment['hsps'].append(hsp)
                                 break
                 else:
                     # All alignments for the previous query id (if any)
                     # have been seen.
-                    if previousQseqid is not None:
+                    if previousQtitle is not None:
                         yield record
 
                     # Start building up the new record.
                     record = {}
-                    subjectsSeen = {sseqid}
+                    subjectsSeen = {stitle}
                     alignment = {
                         'hsps': [hsp],
                         'length': int(slen),
-                        'title': sseqid,
+                        'title': stitle,
                     }
                     record['alignments'] = [alignment]
-                    record['query'] = qseqid
+                    record['query'] = qtitle
 
-                    previousQseqid = qseqid
+                    previousQtitle = qtitle
 
             # Yield the last record, if any.
             if record:
