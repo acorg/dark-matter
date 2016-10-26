@@ -34,6 +34,7 @@ BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343
 
 DIAMOND_RECORDS_DUMPED = '\n'.join([
     dumps({
+        "application": "DIAMOND",
         "reference": ("Buchfink et al., Fast and Sensitive "
                       "Protein Alignment using DIAMOND, Nature Methods, "
                       "12, 59-60 (2015)"),
@@ -250,6 +251,7 @@ class TestDiamondTabularFormatReader(TestCase):
             self.assertEqual('DIAMOND', reader.application)
             self.assertEqual(
                 {
+                    'application': 'DIAMOND',
                     'reference': (
                         'Buchfink et al., Fast and Sensitive Protein '
                         'Alignment using DIAMOND, Nature Methods, 12, '

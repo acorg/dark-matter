@@ -4,7 +4,6 @@ import six
 import platform
 from six.moves import builtins
 from copy import deepcopy
-import bz2
 from json import dumps
 from unittest import TestCase
 
@@ -209,33 +208,32 @@ class TestBlastReadsAlignments(TestCase):
             six.assertRaisesRegex(self, ValueError, error, list,
                                   readsAlignments)
 
-    def testOneCompressedJSONInput(self):
+    def testOneJSONInput(self):
         """
-        If a compressed (bz2) JSON file contains a parameters section and one
-        record, it must be read correctly.
+        If a JSON file contains a parameters section and one record, it must
+        be read correctly.
         """
         result = File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
 
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.return_value = result
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            readsAlignments = BlastReadsAlignments(reads, 'file.json.bz2')
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual(1, len(list(readsAlignments)))
 
-    def testTwoCompressedJSONInputs(self):
+    def testTwoJSONInputs(self):
         """
-        If two compressed (bz2) JSON files are passed to
-        L{BlastReadsAlignments} each with a parameters section and one
-        record, both records must be read correctly and the result should
-        have 2 records.
+        If two JSON files are passed to L{BlastReadsAlignments} each with a
+        parameters section and one record, both records must be read correctly
+        and the result should have 2 records.
         """
 
         class SideEffect(object):
             def __init__(self):
                 self.first = True
 
-            def sideEffect(self, _ignoredFilename):
+            def sideEffect(self, _ignoredFilename, **kwargs):
                 if self.first:
                     self.first = False
                     return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
@@ -243,46 +241,45 @@ class TestBlastReadsAlignments(TestCase):
                     return File([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
 
         sideEffect = SideEffect()
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             readsAlignments = BlastReadsAlignments(
-                reads, ['file1.json.bz2', 'file2.json.bz2'])
+                reads, ['file1.json', 'file2.json'])
             result = list(readsAlignments)
             self.assertEqual(2, len(result))
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual('id1', result[1].read.id)
 
-    def testThreeCompressedJSONInputs(self):
+    def testThreeJSONInputs(self):
         """
-        If three compressed (bz2) JSON files are passed to
-        L{BlastReadsAlignments} with names that have a numeric prefix and
-        each with a parameters section and one record, all records must be
-        read correctly and the result should have 3 records in the correct
-        order.
+        If three JSON files are passed to L{BlastReadsAlignments} with names
+        that have a numeric prefix and each with a parameters section and one
+        record, all records must be read correctly and the result should have
+        3 records in the correct order.
         """
         class SideEffect(object):
             def __init__(self, test):
                 self.test = test
                 self.count = 0
 
-            def sideEffect(self, filename):
+            def sideEffect(self, filename, **kwargs):
                 if self.count == 0:
-                    self.test.assertEqual('1.json.bz2', filename)
+                    self.test.assertEqual('1.json', filename)
                     self.count += 1
                     return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
                 elif self.count == 1:
-                    self.test.assertEqual('2.json.bz2', filename)
+                    self.test.assertEqual('2.json', filename)
                     self.count += 1
                     return File([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
                 else:
-                    self.test.assertEqual('3.json.bz2', filename)
+                    self.test.assertEqual('3.json', filename)
                     return File([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
 
         sideEffect = SideEffect(self)
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -293,7 +290,7 @@ class TestBlastReadsAlignments(TestCase):
             # sorted before they are opened. The sorting of the names is
             # verified in the SideEffect class, above.
             readsAlignments = BlastReadsAlignments(
-                reads, ['3.json.bz2', '1.json.bz2', '2.json.bz2'])
+                reads, ['3.json', '1.json', '2.json'])
             result = list(readsAlignments)
             self.assertEqual(3, len(result))
             self.assertEqual('id0', result[0].read.id)
@@ -321,7 +318,7 @@ class TestBlastReadsAlignments(TestCase):
                     return File([dumps(params) + '\n', dumps(RECORD1) + '\n'])
 
         sideEffect = SideEffect()
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -329,8 +326,8 @@ class TestBlastReadsAlignments(TestCase):
             if six.PY3:
                 error = (
                     "^Incompatible BLAST parameters found\. The parameters "
-                    "in file2\.json\.bz2 differ from those originally found "
-                    "in file1\.json\.bz2. Summary of differences:\n\tParam "
+                    "in file2\.json differ from those originally found "
+                    "in file1\.json. Summary of differences:\n\tParam "
                     "'application' initial value 'BLASTN' differs from "
                     "later value 'Skype'$")
             else:
@@ -338,12 +335,12 @@ class TestBlastReadsAlignments(TestCase):
                 # message. In Python 3 all strings are unicode.
                 error = (
                     "^Incompatible BLAST parameters found\. The parameters "
-                    "in file2\.json\.bz2 differ from those originally found "
-                    "in file1\.json\.bz2. Summary of differences:\n\tParam "
+                    "in file2\.json differ from those originally found "
+                    "in file1\.json. Summary of differences:\n\tParam "
                     "u'application' initial value u'BLASTN' differs from "
                     "later value u'Skype'$")
             readsAlignments = BlastReadsAlignments(
-                reads, ['file1.json.bz2', 'file2.json.bz2'])
+                reads, ['file1.json', 'file2.json'])
             six.assertRaisesRegex(self, ValueError, error, list,
                                   readsAlignments)
 
@@ -389,12 +386,12 @@ class TestBlastReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that non-zero
         evalues are converted to the positive value of their negative exponent.
         """
-        result = lambda a: File([
+        result = lambda a, **kwargs: File([
             dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
             dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
             dumps(deepcopy(RECORD3)) + '\n'])
 
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -402,7 +399,7 @@ class TestBlastReadsAlignments(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = BlastReadsAlignments(
-                reads, 'file.json.bz2', scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
             titleAlignments = titlesAlignments[title]
@@ -415,12 +412,12 @@ class TestBlastReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that zero
         evalues are set randomly high.
         """
-        result = lambda a: File([
+        result = lambda a, **kwargs: File([
             dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
             dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
             dumps(deepcopy(RECORD3)) + '\n', dumps(deepcopy(RECORD4)) + '\n'])
 
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -429,7 +426,7 @@ class TestBlastReadsAlignments(TestCase):
             reads.add(Read('id3', 'A' * 70))
             reads.add(Read('id4', 'A' * 70))
             readsAlignments = BlastReadsAlignments(
-                reads, 'file.json.bz2', scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
             titleAlignments = titlesAlignments[title]
@@ -1245,13 +1242,13 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             dumps(PARAMS) + '\n', dumps(RECORD0) + '\n',
             dumps(RECORD1) + '\n', dumps(RECORD2) + '\n'])
 
-        with patch.object(bz2, 'BZ2File') as mockMethod:
+        with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            readsAlignments = BlastReadsAlignments(reads, 'file.json.bz2')
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
             self.assertEqual(3, len(list(readsAlignments)))
             readsAlignments.filter(minStart=9000)
             readsAlignments.filter(maxStop=12000)
