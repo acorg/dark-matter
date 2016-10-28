@@ -1,6 +1,7 @@
 from time import time
 from collections import defaultdict
 
+# TODO: Some of these imported functions are no longer in utils.py!
 from dark.utils import findHits, getSequence, summarizeHits, printHSP, report
 
 

@@ -120,6 +120,16 @@ def normalizeHSP(hsp, readLen, blastApplication):
     subjectLength = subjectEnd - subjectStart
     readLength = readEndInSubject - readStartInSubject
 
+    # NOTE: readLength (above) is a really bad name. It's actually going to
+    # hold the length of the match in the query. I don't know why
+    # readEndInSubject - readStartInSubject is used (I mean why those two
+    # variables are not named readEnd and readStart). Maybe someone made a
+    # find and replace editing error which changed their names. Anyway, the
+    # readLength variable is confusingly named because this function is
+    # passed a 'readLen' argument, which does happen to be the full length
+    # of the read.  This should be cleaned up. See ../diamond/hsp.py for
+    # something cleaner.
+
     hitGaps = hsp['sbjct'].count('-')
     readGaps = hsp['query'].count('-')
 

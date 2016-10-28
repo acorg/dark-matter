@@ -1,150 +1,202 @@
-def printHSP(hsp, indent=''):
+from __future__ import division, print_function
+import sys
+
+
+def _debugPrint(hsp, queryLen, localDict, msg=''):
+    """
+    Print debugging information showing the local variables used during
+    a call to normalizeHSP and the hsp and then raise an C{AssertionError}.
+
+    @param hsp: The HSP C{dict} passed to normalizeHSP.
+    @param queryLen: the length of the query sequence.
+    @param localDict: A C{dict} of local variables (as produced by locals()).
+    @param msg: A C{str} message to raise C{AssertionError} with.
+    @raise AssertionError: unconditionally.
+    """
+    print('normalizeHSP error:', file=sys.stderr)
+    print('  queryLen: %d' % queryLen, file=sys.stderr)
+
+    print('  Original HSP:', file=sys.stderr)
     for attr in ['bits', 'expect', 'frame', 'query_end', 'query_start',
                  'sbjct', 'query', 'sbjct_end', 'sbjct_start']:
-        print('%s%s: %s' % (indent, attr, hsp[attr]))
+        print('    %s: %s' % (attr, hsp[attr]), file=sys.stderr)
+
+    print('  Local variables:', file=sys.stderr)
+    for var in sorted(localDict):
+        if var != 'hsp':
+            print('    %s: %s' % (var, localDict[var]), file=sys.stderr)
+
+    raise AssertionError(msg)
 
 
-def normalizeHSP(hsp, readLen, diamondTask):
+def _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
+                 queryStartInSubject, queryEndInSubject, hsp, queryLen,
+                 subjectGaps, queryGaps, localDict):
     """
-    Examine the sense of an HSP and return information about where the
-    read and the alignment (match) begin and end.  Return a dict with keys
-    that allow the read and the alignment to be displayed relative to the
-    hit orientation (i.e., with start < stop for both the read and the
-    match). The returned read indices are offsets into the hit. I.e.,
-    they indicate where on the hit the read lies.
+    Perform some sanity checks on an HSP. Call _debugPrint on any error.
+
+    @param subjectStart: The 0-based C{int} start offset of the match in the
+        subject.
+    @param subjectEnd: The 0-based C{int} end offset of the match in the
+        subject.
+    @param queryStart: The 0-based C{int} start offset of the match in the
+        query.
+    @param queryEnd: The 0-based C{int} end offset of the match in the query.
+    @param queryStartInSubject: The 0-based C{int} offset of where the query
+        starts in the subject.
+    @param queryEndInSubject: The 0-based C{int} offset of where the query
+        ends in the subject.
+    @param hsp: The HSP C{dict} passed to normalizeHSP.
+    @param queryLen: the C{int} length of the query sequence.
+    @param subjectGaps: the C{int} number of gaps in the subject.
+    @param queryGaps: the C{int} number of gaps in the query.
+    @param localDict: A C{dict} of local variables from our caller (as
+        produced by locals()).
+    """
+    # Subject indices must always be ascending.
+    if subjectStart >= subjectEnd:
+        _debugPrint(hsp, queryLen, localDict, 'subjectStart >= subjectEnd')
+
+    subjectMatchLength = subjectEnd - subjectStart
+    queryMatchLength = queryEnd - queryStart
+
+    # Sanity check that the length of the matches in the subject and query
+    # are identical, taking into account gaps in either (indicated by '-'
+    # characters in the match sequences, as returned by DIAMOND).
+    subjectMatchLengthWithGaps = subjectMatchLength + subjectGaps
+    queryMatchLengthWithGaps = queryMatchLength + queryGaps
+    if subjectMatchLengthWithGaps != queryMatchLengthWithGaps:
+        _debugPrint(hsp, queryLen, localDict,
+                    'Including gaps, subject match length (%d) != Query match '
+                    'length (%d)' % (subjectMatchLengthWithGaps,
+                                     queryMatchLengthWithGaps))
+
+    if queryStartInSubject > subjectStart:
+        _debugPrint(hsp, queryLen, localDict,
+                    'queryStartInSubject (%d) > subjectStart (%d)' %
+                    (queryStartInSubject, subjectStart))
+    if queryEndInSubject < subjectEnd:
+        _debugPrint(hsp, queryLen, localDict,
+                    'queryEndInSubject (%d) < subjectEnd (%d)' %
+                    (queryEndInSubject, subjectEnd))
+
+
+def normalizeHSP(hsp, queryLen, diamondTask):
+    """
+    Examine an HSP and return information about where the query and the
+    alignment (match) begin and end.  Return a dict with keys that allow
+    the query and the alignment to be displayed relative to the subject
+    orientation (i.e., with start < stop for both the query and the
+    match). The returned readStartInSubject and readEndInSubject indices
+    are offsets into the subject. I.e., they indicate where in the subject
+    the query falls.
 
     In the returned object, all indices are suitable for Python string
     slicing etc.  We must be careful to convert from the 1-based offsets
     found in DIAMOND output properly.
 
-    hsp['frame'] is a (query, subject) 2-tuple, with both values coming from
-    {-3, -2, -1, 1, 2, 3}. The sign indicates negative or positive sense
-    (i.e., the direction of reading through the query or subject to get the
-    alignment). The value is the nucleotide match offset modulo 3, plus one
-    (i.e., it tells us which of the 3 possible reading frames is used in
-    the match). The value is redundant because that information could also
-    be obtained from the mod 3 value of the match offset.
+    hsp['frame'] is a value from {-3, -2, -1, 1, 2, 3}. The sign indicates
+    negative or positive sense (i.e., the direction of reading through the
+    query to get the alignment). The frame value is the nucleotide match offset
+    modulo 3, plus one (i.e., it tells us which of the 3 possible query reading
+    frames was used in the match).
 
     NOTE: the returned readStartInSubject value may be negative.  We consider
-    the hit sequence to start at offset 0.  So if the read string has
+    the subject sequence to start at offset 0.  So if the query string has
     sufficient additional nucleotides before the start of the alignment
-    match, it may protrude to the left of the hit. Similarly, the returned
+    match, it may protrude to the left of the subject. Similarly, the returned
     readEndInSubject can be greater than the subjectEnd.
 
     @param hsp: an HSP in the form of a C{dict}, built from a DIAMOND record.
-        All passed hsp offsets are 1-based.
-    @param readLen: the length of the read sequence.
-    @param diamondTask: The C{str} command line program that was
-        run (e.g., 'blastp', 'blastx').
-
+        All passed offsets are 1-based.
+    @param queryLen: the length of the query sequence.
+    @param diamondTask: The C{str} command-line matching algorithm that was
+        run (either 'blastx' or 'blastp').
+    @return: A C{dict} with C{str} keys and C{int} offset values. Keys are
+            readStart
+            readEnd
+            readStartInSubject
+            readEndInSubject
+            subjectStart
+            subjectEnd
+        The returned offset values are all zero-based.
     """
 
-    def debugPrint(locals, msg=None):
-        """
-        Print debugging information showing the local variables from
-        a call to normalizeHSP and then raise an C{AssertionError}.
+    # TODO: DIAMOND does not show gaps yet. When they start doing that, the
+    # following might have to be changed (or we might have to ask it to
+    # output attributes with different names).
+    subjectGaps = hsp['sbjct'].count('-')
+    queryGaps = hsp['query'].count('-')
 
-        @param locals: A C{dict} of local variables.
-        @param msg: A C{str} message to raise C{AssertionError} with.
-        """
-        print('normalizeHSP error:')
-        print('  readLen: %d' % readLen)
-        for var in sorted(locals.keys()):
-            if var in ('debugPrint', 'hsp'):
-                continue
-            print('  %s: %s' % (var, locals[var]))
-        print('  Original HSP:')
-        printHSP(hsp, '    ')
-        if msg:
-            raise AssertionError(msg)
+    # Make some variables using Python's standard string indexing (start
+    # offset included, end offset not). No calculations in this function
+    # are done with the original 1-based HSP variables.
+    queryStart = hsp['query_start'] - 1
+    queryEnd = hsp['query_end']
+    subjectStart = hsp['sbjct_start'] - 1
+    subjectEnd = hsp['sbjct_end']
+
+    queryReversed = hsp['frame'] < 0
+
+    # Query offsets must be ascending, unless we're looking at blastx output
+    # and the query was reversed for the match.
+    if queryStart >= queryEnd:
+        if diamondTask == 'blastx' and queryReversed:
+            # Compute new query start and end indices, based on their
+            # distance from the end of the string.
+            #
+            # Above we took one off the start index, so we need to undo
+            # that (because the start is actually the end). We didn't take
+            # one off the end index, and need to do that now (because the
+            # end is actually the start).
+            queryStart = queryLen - (queryStart + 1)
+            queryEnd = queryLen - (queryEnd - 1)
         else:
-            raise AssertionError()
-
-    readPositive = hsp['frame'] > 0
-
-    # The following variable names with underscores match the names of
-    # attributes BioPython uses and the values (1-based) match those
-    # reported by DIAMOND.
-    read_start = hsp['query_start']
-    read_end = hsp['query_end']
-    sbjct_start = hsp['sbjct_start']
-    sbjct_end = hsp['sbjct_end']
-
-    # Read offsets should be ascending.
-    if read_start > read_end:
-        debugPrint(locals(),
-                   'Assertion "read_start <= read_end" failed. Read '
-                   'positive is %s. read_start = %d, read_end = %d' %
-                   (readPositive, read_start, read_end))
-
-    # Make sure subject indices are ascending.
-    if sbjct_start > sbjct_end:
-        debugPrint(locals())
-
-    # Now that we have asserted what we can about the original HSP values
-    # and gotten them into ascending order, make some sane 0-based offsets.
-    readStartInSubject = read_start - 1
-    readEndInSubject = read_end
-    subjectStart = sbjct_start - 1
-    subjectEnd = sbjct_end
+            _debugPrint(hsp, queryLen, locals(), 'queryStart >= queryEnd')
 
     if diamondTask == 'blastx':
-        # In Blastx output, hit offsets are based on protein sequence
-        # length but queries (and the reported offsets) are nucleotide.
-        # Convert the read offsets to protein because we will plot against
-        # the hit (protein).
+        # In DIAMOND blastx output, subject offsets are based on protein
+        # sequence length but queries (and the reported offsets) are
+        # nucleotide.  Convert the query offsets to protein because we will
+        # plot against the subject (protein).
         #
-        # Note that readStartInSubject and readEndInSubject may not be 0 mod
-        # 3. They are offsets into the read string giving the position of
-        # the AA, which depends on the translation frame.
-        readStartInSubject = int(readStartInSubject / 3)
-        readEndInSubject = int(readEndInSubject / 3)
+        # Convert queryLen and the query nucleotide start and end offsets
+        # to valid for the query after translation. When translating,
+        # DIAMOND may ignore some nucleotides at the start and also at end
+        # of the original DNA query. At the start this is due to the frame
+        # in use, and at the end it is due to taking three nucleotides at a
+        # time to form codons.
+        #
+        # So, for example, a query of 6 nucleotides that is translated in
+        # frame 2 (i.e., the translation starts from the second nucleotide)
+        # will have length 1 as an AA sequence. The first nucleotide is
+        # ignored due to the frame and the last two due to there not being
+        # enough final nucleotides to make another codon.
+        #
+        # In the following, the subtraction accounts for the first form of
+        # loss and the integer division for the second.
+        initiallyIgnored = abs(hsp['frame']) - 1
+        queryLen = (queryLen - initiallyIgnored) // 3
+        queryStart = (queryStart - initiallyIgnored) // 3
+        queryEnd = (queryEnd - initiallyIgnored) // 3
 
-    # No operations on original 1-based HSP variables (with underscores)
-    # should appear beyond this point.
+    # unmatchedQueryLeft is the number of query bases that will extend
+    # to the left of the start of the subject in our plots.
+    unmatchedQueryLeft = queryStart
 
-    subjectLength = subjectEnd - subjectStart
-    readLength = readEndInSubject - readStartInSubject
+    # Set the query offsets into the subject.
+    queryStartInSubject = subjectStart - unmatchedQueryLeft
+    queryEndInSubject = queryStartInSubject + queryLen + queryGaps
 
-    # TODO: DIAMOND output check.
-    hitGaps = hsp['sbjct'].count('-')
-    readGaps = hsp['query'].count('-')
-
-    # Sanity check that the length of the matches in the hit and read
-    # are identical, taking into account gaps in either (indicated by '-'
-    # characters in the match sequences, as returned by DIAMOND).
-    subjectLengthWithGaps = subjectLength + hitGaps
-    readLengthWithGaps = readLength + readGaps
-    if subjectLengthWithGaps != readLengthWithGaps:
-        debugPrint(locals(),
-                   'Including gaps, hit match length (%d) != Read match '
-                   'length (%d)' % (subjectLengthWithGaps,
-                                    readLengthWithGaps))
-
-    # Calculate read indices. These are indices relative to the hit!
-
-    # unmatchedReadLeft is the number of read bases that will be sticking
-    # out to the left of the start of the subject in our plots.
-    if readPositive:
-        unmatchedReadLeft = readStartInSubject
-    else:
-        unmatchedReadLeft = readLen - readEndInSubject
-
-    # Set the read offsets.
-    readStartInSubject = subjectStart - unmatchedReadLeft
-    readEndInSubject = readStartInSubject + readLen + readGaps
-
-    # Final sanity checks.
-    if readStartInSubject > subjectStart:
-        debugPrint(locals(), 'readStartInSubject > subjectStart')
-    if readEndInSubject < subjectEnd:
-        debugPrint(locals(), 'readEndInSubject < subjectEnd')
+    _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
+                 queryStartInSubject, queryEndInSubject, hsp, queryLen,
+                 subjectGaps, queryGaps, locals())
 
     return {
-        'readStart': read_start - 1,
-        'readEnd': read_end,
-        'readStartInSubject': readStartInSubject,
-        'readEndInSubject': readEndInSubject,
+        'readStart': queryStart,
+        'readEnd': queryEnd,
+        'readStartInSubject': queryStartInSubject,
+        'readEndInSubject': queryEndInSubject,
         'subjectStart': subjectStart,
         'subjectEnd': subjectEnd,
     }

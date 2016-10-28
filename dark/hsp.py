@@ -91,7 +91,7 @@ class _Base(object):
 class HSP(_Base):
     """
     Holds information about a high-scoring pair from a read alignment.
-    Comparisons are done as for BLAST bit scores (higher is better).
+    Comparisons are done as for BLAST or DIAMOND bit scores (higher is better).
 
     @param score: The numeric score of this HSP.
     """
@@ -104,7 +104,7 @@ class HSP(_Base):
 class LSP(_Base):
     """
     Holds information about a low-scoring pair from a read alignment.
-    Comparisons are done as for BLAST e-values (smaller is better).
+    Comparisons are done as for BLAST or DIAMOND e-values (smaller is better).
 
     @param score: The numeric score of this LSP.
     """
