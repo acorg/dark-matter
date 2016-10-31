@@ -1,6 +1,8 @@
 from __future__ import division, print_function
 import sys
 
+from dark.btop import countGaps
+
 
 def _debugPrint(hsp, queryLen, localDict, msg=''):
     """
@@ -17,9 +19,9 @@ def _debugPrint(hsp, queryLen, localDict, msg=''):
     print('  queryLen: %d' % queryLen, file=sys.stderr)
 
     print('  Original HSP:', file=sys.stderr)
-    for attr in ['bits', 'expect', 'frame', 'query_end', 'query_start',
+    for attr in ['bits', 'btop', 'expect', 'frame', 'query_end', 'query_start',
                  'sbjct', 'query', 'sbjct_end', 'sbjct_start']:
-        print('    %s: %s' % (attr, hsp[attr]), file=sys.stderr)
+        print('    %s: %r' % (attr, hsp[attr]), file=sys.stderr)
 
     print('  Local variables:', file=sys.stderr)
     for var in sorted(localDict):
@@ -61,8 +63,7 @@ def _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
     queryMatchLength = queryEnd - queryStart
 
     # Sanity check that the length of the matches in the subject and query
-    # are identical, taking into account gaps in either (indicated by '-'
-    # characters in the match sequences, as returned by DIAMOND).
+    # are identical, taking into account gaps in both.
     subjectMatchLengthWithGaps = subjectMatchLength + subjectGaps
     queryMatchLengthWithGaps = queryMatchLength + queryGaps
     if subjectMatchLengthWithGaps != queryMatchLengthWithGaps:
@@ -122,11 +123,7 @@ def normalizeHSP(hsp, queryLen, diamondTask):
         The returned offset values are all zero-based.
     """
 
-    # TODO: DIAMOND does not show gaps yet. When they start doing that, the
-    # following might have to be changed (or we might have to ask it to
-    # output attributes with different names).
-    subjectGaps = hsp['sbjct'].count('-')
-    queryGaps = hsp['query'].count('-')
+    queryGaps, subjectGaps = countGaps(hsp['btop'])
 
     # Make some variables using Python's standard string indexing (start
     # offset included, end offset not). No calculations in this function

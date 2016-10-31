@@ -20,7 +20,7 @@ class DiamondTabularFormatReader(object):
 
     Make sure you run DIAMOND with the right output format. You must use:
         --outfmt 6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
-                   sstart send slen
+                   sstart send slen btop
 
     @param filename: A C{str} filename or an open file pointer, containing
         DIAMOND tabular records.
@@ -50,10 +50,12 @@ class DiamondTabularFormatReader(object):
             subjectsSeen = {}
             record = {}
             for line in fp:
+                line = line[:-1]
                 (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend,
-                 sseq, sstart, send, slen) = line.split('\t')
+                 sseq, sstart, send, slen, btop) = line.split('\t')
                 hsp = {
                     'bits': float(bitscore),
+                    'btop': btop,
                     'expect': float(evalue),
                     'frame': int(qframe),
                     'query': qseq,

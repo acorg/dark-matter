@@ -14,15 +14,16 @@ RECORD0 = {
             'length': 37000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 20,
                     'sbjct_end': 15400,
                     'expect': 1e-11,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 15390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
@@ -31,15 +32,16 @@ RECORD0 = {
             'length': 38000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 25,
                     'sbjct_end': 12400,
                     'expect': 1e-10,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 12390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Squirrelpox virus 55',
@@ -54,15 +56,16 @@ RECORD1 = {
             'length': 35000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 20,
                     'sbjct_end': 11400,
                     'expect': 1e-8,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 11390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Monkeypox virus 456',
@@ -71,15 +74,16 @@ RECORD1 = {
             'length': 35000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 20,
                     'sbjct_end': 10400,
                     'expect': 1e-7,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAA-AAAAAA',
                     'sbjct_start': 10390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
@@ -94,15 +98,16 @@ RECORD2 = {
             'length': 30000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 20,
                     'sbjct_end': 1400,
                     'expect': 1e-6,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 1390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Cowpox virus 15',
@@ -118,15 +123,16 @@ RECORD3 = {
             'length': 30000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 20,
                     'sbjct_end': 1400,
                     'expect': 1e-5,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 1390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Cowpox virus 15',
@@ -141,37 +147,40 @@ RECORD4 = {
             'length': 30000,
             'hsps': [
                 {
+                    'btop': '',
                     'bits': 10,
                     'sbjct_end': 1400,
                     'expect': 1e-3,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 1390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 },
                 {
+                    'btop': '',
                     'bits': 5,
                     'sbjct_end': 1400,
                     'expect': 1e-2,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 1390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 },
                 {
+                    'btop': '',
                     'bits': 3,
                     'sbjct_end': 1400,
                     'expect': 0.0,
-                    'sbjct': 'AAAAA--AA-AAAA',
+                    'sbjct': 'AAAAAAAAAAA',
                     'sbjct_start': 1390,
-                    'query': 'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA',
+                    'query': 'TACCCTGCGGCCCGCTACGGCTGGTCTCCATTT',
                     'frame': 1,
                     'query_end': 68,
-                    'query_start': 28
+                    'query_start': 36
                 }
             ],
             'title': 'gi|887699|gb|DQ37780 Cowpox virus 15',

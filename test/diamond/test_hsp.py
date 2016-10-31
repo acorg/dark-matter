@@ -5,7 +5,7 @@ from dark.diamond.hsp import normalizeHSP
 
 class FakeHSP(dict):
     def __init__(self, subjectStart, subjectEnd, queryStart, queryEnd, frame,
-                 subject='', query='', bitscore=None, evalue=None):
+                 subject='', query='', bitscore=None, evalue=None, btop=''):
         """
         A fake HSP class with 1-based offsets and key names as used by DIAMOND.
         """
@@ -29,6 +29,7 @@ class FakeHSP(dict):
         self['query'] = query
         self['bits'] = bitscore
         self['expect'] = evalue
+        self['btop'] = btop
 
 
 class TestBlastxFramePlus1(TestCase):
