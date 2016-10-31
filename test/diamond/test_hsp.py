@@ -1890,3 +1890,100 @@ class TestBlastxFramePlus2WithGaps(TestCase):
             'readStartInSubject': 1,
             'readEndInSubject': 5,
         }, normalized)
+
+
+class TestBlastxFrameMinus1WithGaps(TestCase):
+    """
+    Tests for normalizeHSP for DIAMOND blastx output when frame=-1 (i.e., the
+    query matches in the order it was given to DIAMOND, and the translation
+    frame starts at the second nucleotide) and with gaps.
+    """
+
+    # All query offsets and lengths must be in terms of nucleotides.
+    # Subject offsets are in terms of protein AA sequences.  This is how
+    # DIAMOND reports those offsets.
+    #
+    # In the little diagrams in the docstrings below, the first line is the
+    # subject and the second the query. Dots indicate where the matched
+    # region is. The queries are shown translated so as to line up properly
+    # with the subjects. Gaps are shown as a hyphen.
+
+    def testIdenticalWithQueryGap(self):
+        """
+        The subject start and end are identical to those of the translated
+        query, given one gap in the query.
+
+             ....
+             .-..
+        """
+        hsp = FakeHSP(subjectStart=1, subjectEnd=4, queryStart=10, queryEnd=2,
+                      frame=-1, btop='1-K2')
+        normalized = normalizeHSP(hsp, 10, 'blastx')
+        self.assertEqual({
+            'subjectStart': 0,
+            'subjectEnd': 4,
+            'readStart': 0,
+            'readEnd': 3,
+            'readStartInSubject': 0,
+            'readEndInSubject': 4,
+        }, normalized)
+
+    def testIdenticalWithTwoQueryGaps(self):
+        """
+        The subject start and end are identical to those of the translated
+        query, given two gaps in the query.
+
+             ....
+             .--.
+        """
+        hsp = FakeHSP(subjectStart=1, subjectEnd=4, queryStart=7, queryEnd=2,
+                      frame=-1, btop='1-K-K1')
+        normalized = normalizeHSP(hsp, 7, 'blastx')
+        self.assertEqual({
+            'subjectStart': 0,
+            'subjectEnd': 4,
+            'readStart': 0,
+            'readEnd': 2,
+            'readStartInSubject': 0,
+            'readEndInSubject': 4,
+        }, normalized)
+
+    def testIdenticalWithSubjectGap(self):
+        """
+        The subject start and end are identical to those of the translated
+        query, given one gap in the subject.
+
+             .-..
+             ....
+        """
+        hsp = FakeHSP(subjectStart=1, subjectEnd=3, queryStart=13, queryEnd=2,
+                      frame=-1, btop='1K-2')
+        normalized = normalizeHSP(hsp, 13, 'blastx')
+        self.assertEqual({
+            'subjectStart': 0,
+            'subjectEnd': 3,
+            'readStart': 0,
+            'readEnd': 4,
+            'readStartInSubject': 0,
+            'readEndInSubject': 4,
+        }, normalized)
+
+    def testIdenticalWithTwoSubjectGaps(self):
+        """
+        The subject start and end are identical to those of the translated
+        query, given two gaps in the subject.
+
+             .--.
+             ....
+        """
+        hsp = FakeHSP(subjectStart=1, subjectEnd=2, queryStart=13, queryEnd=2,
+                      frame=-1, btop='1K-K-1')
+        normalized = normalizeHSP(hsp, 13, 'blastx')
+        self.assertEqual({
+            'subjectStart': 0,
+            'subjectEnd': 2,
+            'readStart': 0,
+            'readEnd': 4,
+            'readStartInSubject': 0,
+            'readEndInSubject': 4,
+        }, normalized)
