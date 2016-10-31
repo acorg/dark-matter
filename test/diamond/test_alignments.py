@@ -483,6 +483,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 150,
+                            "btop": "",
                             "query_start": 362
                         },
                     ],
@@ -502,6 +503,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 180,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],
@@ -545,6 +547,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 150,
+                            "btop": "",
                             "query_start": 362
                         },
                     ],
@@ -564,6 +567,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 180,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],
@@ -607,6 +611,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 150,
+                            "btop": "",
                             "query_start": 362
                         },
                     ],
@@ -626,6 +631,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 180,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],
@@ -670,6 +676,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 150,
+                            "btop": "",
                             "query_start": 362
                         },
                         {
@@ -683,6 +690,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 170,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],
@@ -702,6 +710,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 180,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],
@@ -751,6 +760,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 150,
+                            "btop": "",
                             "query_start": 362
                         },
                         {
@@ -764,6 +774,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 170,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],
@@ -783,6 +794,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
                             "frame": 1,
                             "query_end": 462,
                             "bits": 180,
+                            "btop": "",
                             "query_start": 362
                         }
                     ],

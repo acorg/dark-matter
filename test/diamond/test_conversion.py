@@ -18,22 +18,28 @@ from dark.diamond.conversion import (JSONRecordsReader,
 from dark.reads import Reads, AARead
 
 
+# The 13 fields expected in the DIAMOND output we parse are:
+#
+# qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend, sseq, sstart,
+# send, slen, btop
+#
+# See the --outfmt section of 'diamond help' for detail on these directives.
 DIAMOND_RECORDS = """\
-ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295
-ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300
-ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293
-ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293
-ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290
-ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290
-ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270
-AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306
-AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294
-BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307
-BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343
+ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
+ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3
+ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5
+ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6
+ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6
+ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290	9
+ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270	10
+AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306	8
+AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294	8
+BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8
+BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5
 """
 
-DIAMOND_RECORDS_SPACES = """\
-ACC 94	IN SV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295
+DIAMOND_RECORD_WITH_SPACES = """\
+ACC 94	IN SV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
 """
 
 DIAMOND_RECORDS_DUMPED = '\n'.join([
@@ -51,6 +57,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 29.6,
+                        "btop": "4",
                         "expect": 0.003,
                         "frame": 1,
                         "query": "EFII",
@@ -68,6 +75,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 28.1,
+                        "btop": "3",
                         "expect": 0.008,
                         "frame": 1,
                         "query": "KLL",
@@ -85,6 +93,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 28.1,
+                        "btop": "5",
                         "expect": 0.009,
                         "frame": 1,
                         "query": "IKSKL",
@@ -96,6 +105,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                     },
                     {
                         "bits": 23.5,
+                        "btop": "6",
                         "expect": 0.21,
                         "frame": 1,
                         "query": "TIMSVV",
@@ -113,6 +123,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 25.0,
+                        "btop": "6",
                         "expect": 0.084,
                         "frame": 1,
                         "query": "LHVNYL",
@@ -124,6 +135,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                     },
                     {
                         "bits": 18.5,
+                        "btop": "9",
                         "expect": 9.1,
                         "frame": 1,
                         "query": "SEIICEVLK",
@@ -141,6 +153,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 24.6,
+                        "btop": "10",
                         "expect": 0.11,
                         "frame": 1,
                         "query": "YSCFT-NSEK",
@@ -163,6 +176,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 634.0,
+                        "btop": "8",
                         "expect": 0.0,
                         "frame": 1,
                         "query": "GEPFSVYG",
@@ -180,6 +194,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 401.0,
+                        "btop": "8",
                         "expect": 7e-143,
                         "frame": 1,
                         "query": "PFSVYGRF",
@@ -202,6 +217,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 28.1,
+                        "btop": "8",
                         "expect": 0.008,
                         "frame": 1,
                         "query": "PKELHGLI",
@@ -219,6 +235,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                 "hsps": [
                     {
                         "bits": 28.1,
+                        "btop": "5",
                         "expect": 0.009,
                         "frame": 1,
                         "query": "CRPTF",
@@ -286,6 +303,7 @@ class TestDiamondTabularFormatReader(TestCase):
             reader = DiamondTabularFormatReader('file.txt')
             fp = StringIO()
             reader.saveAsJSON(fp)
+            self.maxDiff = None
             self.assertEqual(DIAMOND_RECORDS_DUMPED, fp.getvalue())
 
     def testSaveAsJSONBzip2(self):
@@ -309,7 +327,7 @@ class TestDiamondTabularFormatReader(TestCase):
         If there are spaces in the query title or subject titles, the spaces
         must be preserved.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_SPACES)
+        mockOpener = mockOpen(read_data=DIAMOND_RECORD_WITH_SPACES)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             acc94 = list(reader.records())
@@ -335,6 +353,7 @@ _JSON_RECORDS = [
                         'sbjct_start': 1817,
                         'sbjct_end': 1849,
                         'bits': 165.393,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
@@ -359,6 +378,7 @@ _JSON_RECORDS = [
                         'sbjct_start': 4074,
                         'sbjct_end': 4106,
                         'bits': 178.016,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
@@ -378,6 +398,7 @@ _JSON_RECORDS = [
                         'sbjct_start': 4062,
                         'sbjct_end': 4094,
                         'bits': 123.915,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
@@ -397,6 +418,7 @@ _JSON_RECORDS = [
                         'sbjct_start': 4039,
                         'sbjct_end': 4070,
                         'bits': 87.848,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
@@ -441,6 +463,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
                         'sbjct_start': 1817,
                         'sbjct_end': 1849,
                         'bits': 165.393,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
@@ -465,6 +488,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
                         'sbjct_start': 4074,
                         'sbjct_end': 4106,
                         'bits': 178.016,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
@@ -484,6 +508,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
                         'sbjct_start': 4062,
                         'sbjct_end': 4094,
                         'bits': 123.915,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
@@ -503,6 +528,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
                         'sbjct_start': 4039,
                         'sbjct_end': 4070,
                         'bits': 87.848,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
@@ -543,6 +569,7 @@ _JSON_RECORDS_ONE_END = [
                         'sbjct_start': 1817,
                         'sbjct_end': 1849,
                         'bits': 165.393,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
@@ -567,6 +594,7 @@ _JSON_RECORDS_ONE_END = [
                         'sbjct_start': 4074,
                         'sbjct_end': 4106,
                         'bits': 178.016,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
@@ -586,6 +614,7 @@ _JSON_RECORDS_ONE_END = [
                         'sbjct_start': 4062,
                         'sbjct_end': 4094,
                         'bits': 123.915,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
@@ -605,6 +634,7 @@ _JSON_RECORDS_ONE_END = [
                         'sbjct_start': 4039,
                         'sbjct_end': 4070,
                         'bits': 87.848,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
@@ -645,6 +675,7 @@ _JSON_RECORDS_ONE_START = [
                         'sbjct_start': 4074,
                         'sbjct_end': 4106,
                         'bits': 178.016,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
@@ -664,6 +695,7 @@ _JSON_RECORDS_ONE_START = [
                         'sbjct_start': 4062,
                         'sbjct_end': 4094,
                         'bits': 123.915,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
@@ -683,6 +715,7 @@ _JSON_RECORDS_ONE_START = [
                         'sbjct_start': 4039,
                         'sbjct_end': 4070,
                         'bits': 87.848,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,
@@ -727,6 +760,7 @@ _JSON_RECORDS_TWO_END = [
                         'sbjct_start': 1817,
                         'sbjct_end': 1849,
                         'bits': 165.393,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 2.73597e-40,
@@ -751,6 +785,7 @@ _JSON_RECORDS_TWO_END = [
                         'sbjct_start': 4074,
                         'sbjct_end': 4106,
                         'bits': 178.016,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 4.33545e-44,
@@ -770,6 +805,7 @@ _JSON_RECORDS_TWO_END = [
                         'sbjct_start': 4062,
                         'sbjct_end': 4094,
                         'bits': 123.915,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 1,
                         'expect': 8.37678e-28,
@@ -789,6 +825,7 @@ _JSON_RECORDS_TWO_END = [
                         'sbjct_start': 4039,
                         'sbjct_end': 4070,
                         'bits': 87.848,
+                        'btop': '',
                         'frame': 1,
                         'query_start': 2,
                         'expect': 6.03169e-17,

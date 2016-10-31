@@ -15,7 +15,7 @@ if __name__ == '__main__':
                 'optionally compressing the output. You *must* invoke '
                 'DIAMOND with the following output specification: '
                 '--outfmt 6 qtitle stitle bitscore evalue qframe qseq '
-                'qstart qend sseq sstart send slen'
+                'qstart qend sseq sstart send slen btop'
                 'Note that only each line of the output is JSON (the full '
                 'output is not valid JSON by itself).')
     )
