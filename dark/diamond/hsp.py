@@ -83,13 +83,11 @@ def _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
 
 def normalizeHSP(hsp, queryLen, diamondTask):
     """
-    Examine an HSP and return information about where the query and the
-    alignment (match) begin and end.  Return a dict with keys that allow
-    the query and the alignment to be displayed relative to the subject
-    orientation (i.e., with start < stop for both the query and the
-    match). The returned readStartInSubject and readEndInSubject indices
-    are offsets into the subject. I.e., they indicate where in the subject
-    the query falls.
+    Examine an HSP and return information about where the query and subject
+    match begins and ends.  Return a dict with keys that allow the query to
+    be displayed against the subject. The returned readStartInSubject and
+    readEndInSubject indices are offsets into the subject. I.e., they
+    indicate where in the subject the query falls.
 
     In the returned object, all indices are suitable for Python string
     slicing etc.  We must be careful to convert from the 1-based offsets

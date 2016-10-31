@@ -6,12 +6,11 @@ def printHSP(hsp, indent=''):
 
 def normalizeHSP(hsp, readLen, blastApplication):
     """
-    Examine the sense of an HSP and return information about where the
-    read and the alignment (match) begin and end.  Return a dict with keys
-    that allow the read and the alignment to be displayed relative to the
-    hit orientation (i.e., with start < stop for both the read and the
-    match). The returned read indices are offsets into the hit. I.e.,
-    they indicate where on the hit the read lies.
+    Examine an HSP and return information about where the query and subject
+    match begins and ends.  Return a dict with keys that allow the query to
+    be displayed against the subject. The returned readStartInSubject and
+    readEndInSubject indices are offsets into the subject. I.e., they
+    indicate where in the subject the query falls.
 
     In the returned object, all indices are suitable for Python string
     slicing etc.  We must be careful to convert from the 1-based offsets
