@@ -80,6 +80,19 @@ class TestParseBtop(TestCase):
         """
         self.assertEqual([54], list(parseBtop('54')))
 
+    def testOneNumberThatIsZero(self):
+        """
+        An argument that is just the number zero must give the expected result.
+        """
+        self.assertEqual([0], list(parseBtop('0')))
+
+    def testOneNumberWithLeadingZeroes(self):
+        """
+        An argument that is just one number with leading zeroes must give the
+        expected result.
+        """
+        self.assertEqual([54], list(parseBtop('0054')))
+
     def testOneQuerySubjectPair(self):
         """
         An argument that is a single query/subject letter pair must give the

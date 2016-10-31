@@ -8,7 +8,7 @@ def parseBtop(s):
         in C{s}.
     """
     isdigit = str.isdigit
-    value = 0
+    value = None
     queryLetter = None
     for offset, char in enumerate(s):
         if isdigit(char):
@@ -17,11 +17,11 @@ def parseBtop(s):
                     'btop string %r has a query letter %r at offset %d with '
                     'no corresponding subject letter' %
                     (s, queryLetter, offset - 1))
-            value = value * 10 + int(char)
+            value = int(char) if value is None else value * 10 + int(char)
         else:
-            if value:
+            if value is not None:
                 yield value
-                value = 0
+                value = None
                 queryLetter = char
             else:
                 if queryLetter is None:
@@ -38,7 +38,7 @@ def parseBtop(s):
                     yield (queryLetter, char)
                     queryLetter = None
 
-    if value:
+    if value is not None:
         yield value
     elif queryLetter is not None:
         raise ValueError('btop string %r has a trailing query letter %r with '
