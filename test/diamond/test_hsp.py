@@ -1895,8 +1895,8 @@ class TestBlastxFramePlus2WithGaps(TestCase):
 class TestBlastxFrameMinus1WithGaps(TestCase):
     """
     Tests for normalizeHSP for DIAMOND blastx output when frame=-1 (i.e., the
-    query matches in the order it was given to DIAMOND, and the translation
-    frame starts at the second nucleotide) and with gaps.
+    query matches in the reverse (complemented) order it was given to DIAMOND,
+    and the translation frame starts at the last nucleotide) and with gaps.
     """
 
     # All query offsets and lengths must be in terms of nucleotides.
