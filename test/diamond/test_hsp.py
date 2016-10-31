@@ -1157,7 +1157,7 @@ class TestBlastxFramePlus1WithGaps(TestCase):
     def testQueryExtendsLeftWithQueryAndSubjectGap(self):
         """
         The translated query extends to the left of the subject and the query
-        and subject have a gap.
+        and subject have gaps.
 
                ..-.
              qq.-..
@@ -1277,7 +1277,7 @@ class TestBlastxFramePlus1WithGaps(TestCase):
     def testQueryExtendsRightWithQueryAndSubjectGap(self):
         """
         The translated query extends to the right of the subject and the
-        query and subject both have a gap.
+        query and subject both have gaps.
 
                ..-.
                .-..qq
@@ -1297,7 +1297,7 @@ class TestBlastxFramePlus1WithGaps(TestCase):
     def testQueryExtendsRightAndLeftWithQueryGap(self):
         """
         The translated query extends to the right and left of the subject and
-        the query and the query has a gap.
+        the query has a gap.
 
                 ....
               qq.-..q
@@ -1317,7 +1317,7 @@ class TestBlastxFramePlus1WithGaps(TestCase):
     def testQueryExtendsRightAndLeftWithSubjectGap(self):
         """
         The translated query extends to the right and left of the subject and
-        the query and the subject has a gap.
+        the subject has a gap.
 
                 .-..
               qq....q
@@ -1330,6 +1330,26 @@ class TestBlastxFramePlus1WithGaps(TestCase):
             'subjectEnd': 3,
             'readStart': 2,
             'readEnd': 6,
+            'readStartInSubject': -2,
+            'readEndInSubject': 5,
+        }, normalized)
+
+    def testQueryExtendsRightAndLeftWithQueryAndSubjectGap(self):
+        """
+        The translated query extends to the right and left of the subject and
+        the query and the subject have gaps.
+
+                .-..
+              qq..-.q
+        """
+        hsp = FakeHSP(subjectStart=1, subjectEnd=3, queryStart=7, queryEnd=15,
+                      frame=1, btop='1K--K1')
+        normalized = normalizeHSP(hsp, 18, 'blastx')
+        self.assertEqual({
+            'subjectStart': 0,
+            'subjectEnd': 3,
+            'readStart': 2,
+            'readEnd': 5,
             'readStartInSubject': -2,
             'readEndInSubject': 5,
         }, normalized)
