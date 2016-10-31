@@ -159,11 +159,11 @@ def normalizeHSP(hsp, queryLen, diamondTask):
         # plot against the subject (protein).
         #
         # Convert queryLen and the query nucleotide start and end offsets
-        # to valid for the query after translation. When translating,
-        # DIAMOND may ignore some nucleotides at the start and also at end
-        # of the original DNA query. At the start this is due to the frame
-        # in use, and at the end it is due to taking three nucleotides at a
-        # time to form codons.
+        # to be valid for the query after translation to AAs. When
+        # translating, DIAMOND may ignore some nucleotides at the start
+        # and/or the end of the original DNA query. At the start this is
+        # due to the frame in use, and at the end it is due to always using
+        # three nucleotides at a time to form codons.
         #
         # So, for example, a query of 6 nucleotides that is translated in
         # frame 2 (i.e., the translation starts from the second nucleotide)
