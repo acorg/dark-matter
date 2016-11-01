@@ -20,6 +20,9 @@ from collections import defaultdict
 import matplotlib
 matplotlib.use('PDF')
 
+# These imports are here because dark.graphics imports matplotlib.pyplot
+# and we need to set the matplotlib backend before that import. So please
+# don't move these imports higher in this file.
 from dark.titles import TitlesAlignments
 from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
 
@@ -82,10 +85,11 @@ if __name__ == '__main__':
         help=('the FASTQ file(s) of sequences that were given to BLAST '
               'or DIAMOND.'))
 
-    # Args specific to DIAMOND
+    # Args specific to DIAMOND.
     parser.add_argument(
-        '--diamondDatabaseFilename', default=None,
-        help='The filename of the DIAMOND database.')
+        '--diamondDatabaseFastaFilename', default=None,
+        help=('The filename of the FASTA file used to make the DIAMOND '
+              'database.'))
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(
@@ -221,6 +225,11 @@ if __name__ == '__main__':
               'start of sequences should have their alphabet checked. If not '
               'specified, all bases are checked.'))
 
+    parser.add_argument(
+        '--showFeatures', default=False, action='store_true',
+        help=('If specified, look up features for the individual images in '
+              'the alignment panel.'))
+
     args = parser.parse_args()
 
     # TODO: Add a --readClass option in case we want to process AA queries.
@@ -240,14 +249,14 @@ if __name__ == '__main__':
         from dark.blast.alignments import BlastReadsAlignments
         readsAlignments = BlastReadsAlignments(reads, args.json)
     else:
-        if args.diamondDatabaseFilename is None:
-            print('--diamondDatabaseFilename must be used with --matcher '
+        if args.diamondDatabaseFastaFilename is None:
+            print('--diamondDatabaseFastaFilename must be used with --matcher '
                   'diamond', file=sys.stderr)
             sys.exit(1)
 
         from dark.diamond.alignments import DiamondReadsAlignments
-        readsAlignments = DiamondReadsAlignments(reads, args.json,
-                                                 args.diamondDatabaseFilename)
+        readsAlignments = DiamondReadsAlignments(
+            reads, args.json, args.diamondDatabaseFastaFilename)
 
     readsAlignments.filter(
         minSequenceLen=args.minSequenceLen,
@@ -288,4 +297,5 @@ if __name__ == '__main__':
                    outputDir=args.outputDir,
                    idList=parseColors(args.color) if args.color else None,
                    equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
-                   logLinearXAxis=args.logLinearXAxis, logBase=args.logBase)
+                   logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
+                   showFeatures=args.showFeatures)
