@@ -542,15 +542,9 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         titleAlignments = titlesAlignments[title]
         row, col = next(coords)
         print('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
-        if interactive:
-            graphInfo = alignmentGraph(
-                titlesAlignments, title, addQueryLines=True,
-                showFeatures=showFeatures, rankScores=rankScores,
-                logLinearXAxis=logLinearXAxis, logBase=logBase,
-                colorQueryBases=False, createFigure=False, showFigure=False,
-                readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange,
-                showOrfs=False)
 
+        # If we are writing data to a file too, create a separate file with
+        # a plot (this will be linked from the summary HTML).
         if outputDir:
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
@@ -561,10 +555,19 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
                 colorQueryBases=False, showFigure=False, imageFile=imageFile,
                 quiet=True, idList=idList, xRange=xRange, showOrfs=True)
 
-            # Close the image plot, otherwise it will be displayed when we
+            # Close the image plot, otherwise it will be displayed if we
             # call plt.show below.
             plt.close()
             htmlOutput.addImage(imageBasename, title, graphInfo)
+
+        # Add a small plot to the alignment panel.
+        graphInfo = alignmentGraph(
+            titlesAlignments, title, addQueryLines=True,
+            showFeatures=showFeatures, rankScores=rankScores,
+            logLinearXAxis=logLinearXAxis, logBase=logBase,
+            colorQueryBases=False, createFigure=False, showFigure=False,
+            readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange,
+            showOrfs=False)
 
         allGraphInfo[title] = graphInfo
         readCount = titleAlignments.readCount()
