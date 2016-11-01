@@ -482,7 +482,8 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
 def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
                    outputDir=None, idList=False, equalizeXAxes=False,
                    xRange='subject', logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankScores=False):
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankScores=False,
+                   showFeatures=True):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -507,6 +508,8 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         C{True}.
     @param: rankScores: If C{True}, change the scores for the reads for each
         title to be their rank (worst to best).
+    @param showFeatures: if C{True}, look online for features of the subject
+        sequences.
     """
 
     assert xRange in ('subject', 'reads'), (
@@ -542,7 +545,7 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         if interactive:
             graphInfo = alignmentGraph(
                 titlesAlignments, title, addQueryLines=True,
-                showFeatures=False, rankScores=rankScores,
+                showFeatures=showFeatures, rankScores=rankScores,
                 logLinearXAxis=logLinearXAxis, logBase=logBase,
                 colorQueryBases=False, createFigure=False, showFigure=False,
                 readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange,
@@ -552,11 +555,11 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
             imageBasename = '%d.png' % i
             imageFile = '%s/%s' % (outputDir, imageBasename)
             graphInfo = alignmentGraph(
-                titlesAlignments, title, addQueryLines=True, showFeatures=True,
-                rankScores=rankScores, logLinearXAxis=logLinearXAxis,
-                logBase=logBase, colorQueryBases=False, showFigure=False,
-                imageFile=imageFile, quiet=True, idList=idList, xRange=xRange,
-                showOrfs=True)
+                titlesAlignments, title, addQueryLines=True,
+                showFeatures=showFeatures, rankScores=rankScores,
+                logLinearXAxis=logLinearXAxis, logBase=logBase,
+                colorQueryBases=False, showFigure=False, imageFile=imageFile,
+                quiet=True, idList=idList, xRange=xRange, showOrfs=True)
 
             # Close the image plot, otherwise it will be displayed when we
             # call plt.show below.
