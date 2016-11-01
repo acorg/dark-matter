@@ -6,7 +6,7 @@ from dark.alignments import (
     ReadsAlignments, ReadAlignments, ReadsAlignmentsParams)
 from dark.diamond.conversion import JSONRecordsReader
 from dark.fasta import FastaReads
-from dark.reads import AARead
+from dark.reads import AAReadWithX
 from dark.score import HigherIsBetterScore
 from dark.utils import numericallySortFilenames
 
@@ -124,7 +124,8 @@ class DiamondReadsAlignments(ReadsAlignments):
         """
         if self._subjectTitleToSubject is None:
             titles = {}
-            for read in FastaReads(self._databaseFilename, readClass=AARead):
+            for read in FastaReads(self._databaseFilename,
+                                   readClass=AAReadWithX):
                 titles[read.id] = read
             self._subjectTitleToSubject = titles
 
