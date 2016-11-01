@@ -177,6 +177,11 @@ if __name__ == '__main__':
               '(according to the --sortOn value) and only the best will be '
               'retained.'))
 
+    parser.add_argument(
+        '--minCoverage', type=float, default=None,
+        help=('The (0.0 to 1.0) minimum fraction of a subject sequence that '
+              'must be matched by at least one read.'))
+
     # Args for the alignment panel
     parser.add_argument(
         '--sortOn', default='maxScore',
@@ -278,7 +283,7 @@ if __name__ == '__main__':
         minMedianScore=args.minMedianScore,
         withScoreBetterThan=args.withScoreBetterThan,
         minNewReads=args.minNewReads, maxTitles=args.maxTitles,
-        sortOn=args.sortOn)
+        sortOn=args.sortOn, minCoverage=args.minCoverage)
 
     nTitles = len(titlesAlignments)
     print('Found %d interesting title%s.' % (nTitles,
