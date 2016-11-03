@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 """
-Given a BLAST or DIAMOND JSON output files, the corresponding FASTA (or
-FASTQ) sequence files, and filtering criteria, produce an alignment
-panel.
+Given a BLAST or DIAMOND JSON output files, the corresponding FASTA (or FASTQ)
+sequence files, and filtering criteria, produce a summary of matched titles
+and (optionally) an alignment panel.
 
 Run with --help for help.
 """
@@ -286,16 +286,17 @@ if __name__ == '__main__':
         sortOn=args.sortOn, minCoverage=args.minCoverage)
 
     nTitles = len(titlesAlignments)
-    print('Found %d interesting title%s.' % (nTitles,
-                                             '' if nTitles == 1 else 's'))
+    print('Found %d interesting title%s.' %
+          (nTitles, '' if nTitles == 1 else 's'), file=sys.stderr)
 
-    if nTitles == 0:
-        print('No alignment panel generated due to no matching titles.')
-        sys.exit(0)
+    print(titlesAlignments.tabSeparatedSummary(sortBy=args.sortOn))
 
     if args.earlyExit:
-        print('Matched titles (sorted by %s):' % args.sortOn)
-        print('\n'.join(titlesAlignments.sortTitles(args.sortOn)))
+        sys.exit(0)
+
+    if nTitles == 0:
+        print('No alignment panel generated due to no matching titles.',
+              file=sys.stderr)
         sys.exit(0)
 
     alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=False,

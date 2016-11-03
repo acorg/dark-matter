@@ -254,7 +254,6 @@ class TestTitlesAlignments(TestCase):
         mockOpener = mockOpen(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n'))
-        self.maxDiff = None
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -305,7 +304,37 @@ class TestTitlesAlignments(TestCase):
                             'gi|887699|gb|DQ37780 Squirrelpox virus 55'),
                     },
                 ],
-                list(titlesAlignments.summary(by='title')))
+                list(titlesAlignments.summary(sortOn='title')))
+
+    def testTabSeparatedSummary(self):
+        """
+        The summary function must return the correct result.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            readsAlignments = DiamondReadsAlignments(reads, 'f.json', 'db')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            summary = titlesAlignments.tabSeparatedSummary(sortOn='title')
+            expected = (
+                '0.000297\t'
+                '20.000000\t'
+                '20.000000\t'
+                '1\t'
+                '1\t'
+                '37000\t'
+                'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
+                '\n'
+                '0.000289\t'
+                '25.000000\t'
+                '25.000000\t'
+                '1\t'
+                '1\t'
+                '38000\t'
+                'gi|887699|gb|DQ37780 Squirrelpox virus 55')
+            self.assertEqual(expected, summary)
 
 
 class TestTitlesAlignmentsFiltering(TestCase):
