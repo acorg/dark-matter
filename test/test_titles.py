@@ -655,6 +655,41 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
             },
             titleAlignments.residueCounts())
 
+    def testSummaryWhenEmpty(self):
+        """
+        If summary is called on an instance of TitleAlignments with no
+        alignments a ValueError must be raised.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        error = '^max\(\) arg is an empty sequence$'
+        six.assertRaisesRegex(self, ValueError, error, titleAlignments.summary)
+
+    def testSummary(self):
+        """
+        The summary method must return the correct result.
+        """
+        titleAlignments = TitleAlignments('subject title', 10)
+        titleAlignments.addAlignment(
+            TitleAlignment(Read('id1', 'ACGT'), [
+                HSP(30, subjectStart=0, subjectEnd=2),
+            ]))
+        titleAlignments.addAlignment(
+            TitleAlignment(Read('id2', 'ACGT'), [
+                HSP(55, subjectStart=2, subjectEnd=4),
+                HSP(40, subjectStart=8, subjectEnd=9),
+            ]))
+        self.assertEqual(
+            {
+                'bestScore': 55,
+                'coverage': 0.5,
+                'hspCount': 3,
+                'medianScore': 40,
+                'readCount': 2,
+                'subjectLength': 10,
+                'subjectTitle': 'subject title',
+            },
+            titleAlignments.summary())
+
 
 class TestTitleAlignmentsLSP(TestCase):
     """

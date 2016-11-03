@@ -62,7 +62,7 @@ class TitleAlignments(list):
 
     def reads(self):
         """
-        Find the set of reads matching a this title.
+        Find the set of reads matching this title.
 
         @return: An instance of C{dark.reads.Reads}.
         """
@@ -192,6 +192,30 @@ class TitleAlignments(list):
                     counts[subjectOffset][convert(residue)] += 1
 
         return counts
+
+    def summary(self):
+        """
+        Summarize the alignments for this subject.
+
+        @return: A C{dict} with C{str} keys:
+            bestScore: The C{float} best score of the matching reads.
+            coverage: The C{float} fraction of the subject genome that is
+                matched by at least one read.
+            hspCount: The C{int} number of hsps that match the subject.
+            medianScore: The C{float} median score of the matching reads.
+            readCount: The C{int} number of reads that match the subject.
+            subjectLength: The C{int} length of the subject.
+            subjectTitle: The C{str} title of the subject.
+        """
+        return {
+            'bestScore': self.bestHsp().score.score,
+            'coverage': self.coverage(),
+            'hspCount': self.hspCount(),
+            'medianScore': self.medianScore(),
+            'readCount': self.readCount(),
+            'subjectLength': self.subjectLength,
+            'subjectTitle': self.subjectTitle,
+        }
 
 
 class TitlesAlignments(dict):
@@ -351,6 +375,7 @@ class TitlesAlignments(dict):
 
         @param by: A C{str}, one of 'length', 'maxScore', 'medianScore',
             'readCount', or 'title'.
+        @raise ValueError: If an unknown C{by} value is given.
         @return: A sorted C{list} of titles.
         """
         # First sort titles by the secondary key, which is always the title.
@@ -377,3 +402,19 @@ class TitlesAlignments(dict):
 
         raise ValueError('Sort attribute must be one of "length", "maxScore", '
                          '"medianScore", "readCount", "title".')
+
+    def summary(self, sortBy=None):
+        """
+        Summarize all the alignments for this title.
+
+        @param sortBy: A C{str}, one of 'length', 'maxScore', 'medianScore',
+            'readCount', or 'title'.
+        @raise ValueError: If an unknown C{sortBy} value is given.
+        @return: A generator that yields C{dict} instances as produced by
+            C{TitleAlignments} (see class earlier in this file), sorted by
+            C{sortBy}.
+        """
+        titles = self if sortBy is None else self.sortTitles(sortBy)
+
+        for title in titles:
+            yield self[title].summary()

@@ -247,6 +247,66 @@ class TestTitlesAlignments(TestCase):
                 sorted([HSP(20), HSP(25), HSP(20), HSP(20), HSP(20)]),
                 sorted(result))
 
+    def testSummary(self):
+        """
+        The summary function must return the correct result.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n'))
+        self.maxDiff = None
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
+                                                     'database.fasta')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            self.assertEqual(
+                [
+                    {
+                        'bestScore': 20.0,
+                        'coverage': 0.00031428571428571427,
+                        'hspCount': 1,
+                        'medianScore': 20.0,
+                        'readCount': 1,
+                        'subjectLength': 35000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Monkeypox virus 456'),
+                    },
+                    {
+                        'bestScore': 20.0,
+                        'coverage': 0.00031428571428571427,
+                        'hspCount': 1,
+                        'medianScore': 20.0,
+                        'readCount': 1,
+                        'subjectLength': 35000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.'),
+                    },
+                    {
+                        'bestScore': 20.0,
+                        'coverage': 0.0002972972972972973,
+                        'hspCount': 1,
+                        'medianScore': 20.0,
+                        'readCount': 1,
+                        'subjectLength': 37000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'),
+                    },
+                    {
+                        'bestScore': 25.0,
+                        'coverage': 0.00028947368421052634,
+                        'hspCount': 1,
+                        'medianScore': 25.0,
+                        'readCount': 1,
+                        'subjectLength': 38000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Squirrelpox virus 55'),
+                    },
+                ],
+                list(titlesAlignments.summary(by='title')))
+
 
 class TestTitlesAlignmentsFiltering(TestCase):
     """
