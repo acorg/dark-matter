@@ -278,8 +278,7 @@ class TestDiamondReadsAlignments(TestCase):
 
     def testGetSubjectSequence(self):
         """
-        The getSubjectSequence function must return a correct C{SeqIO.read}
-        instance.
+        The getSubjectSequence function must return a correct read instance.
         """
         class SideEffect(object):
             def __init__(self, test):
