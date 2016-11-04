@@ -523,8 +523,9 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
     cols = 5
     rows = int(len(titles) / cols) + (0 if len(titles) % cols == 0 else 1)
     figure, ax = plt.subplots(rows, cols, squeeze=False)
-    report('Plotting %d titles in %dx%d grid, sorted on %s' %
-           (len(titles), rows, cols, sortOn))
+    if interactive:
+        report('Plotting %d titles in %dx%d grid, sorted on %s' %
+               (len(titles), rows, cols, sortOn))
     allGraphInfo = {}
 
     if outputDir:
@@ -642,7 +643,9 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
     if interactive:
         figure.show()
     stop = time()
-    report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
+    if interactive:
+        report('Alignment panel generated in %.3f mins.' %
+               ((stop - start) / 60.0))
 
 
 def scoreGraph(titlesAlignments, find=None, showTitles=False, figureWidth=5,
