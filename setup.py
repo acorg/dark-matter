@@ -31,6 +31,7 @@ scripts = [
     'bin/get-features.py',
     'bin/get-reads.py',
     'bin/graph-evalues.py',
+    'bin/group-summary-proteins.py',
     'bin/local-align.py',
     'bin/noninteractive-alignment-panel.py',
     'bin/position-summary.py',
@@ -50,7 +51,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.60',
+      version='1.0.61',
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
