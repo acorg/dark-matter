@@ -541,7 +541,8 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
     for i, title in enumerate(titles):
         titleAlignments = titlesAlignments[title]
         row, col = next(coords)
-        print('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
+        if interactive:
+            print('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
 
         # If we are writing data to a file too, create a separate file with
         # a plot (this will be linked from the summary HTML).

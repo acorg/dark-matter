@@ -289,7 +289,8 @@ if __name__ == '__main__':
     print('Found %d interesting title%s.' %
           (nTitles, '' if nTitles == 1 else 's'), file=sys.stderr)
 
-    print(titlesAlignments.tabSeparatedSummary(sortOn=args.sortOn))
+    if nTitles:
+        print(titlesAlignments.tabSeparatedSummary(sortOn=args.sortOn))
 
     if args.earlyExit:
         sys.exit(0)
