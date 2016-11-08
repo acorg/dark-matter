@@ -11,9 +11,9 @@ gi|820945251|ref|YP_009137096.1| envelope glycoprotein H [Human herpesvirus 1]
 gi|820945301|ref|YP_009137146.1| virion protein US10 [Human herpesvirus 1]
 gi|820945229|ref|YP_009137074.1| ubiquitin E3 ligase ICP0 [Human herpesvirus 1]
 
-In this case, those three matched subjects are actually proteins from the same
-virus. This script will gather all those matches under their common "Human
-herpesvirus 1" title and print them together.
+In this case, those three matched subjects are proteins from the same virus.
+This script will gather those matches under their common "Human herpesvirus 1"
+title and print them together.
 
 Reads from standard input, writes to standard output.
 """
@@ -30,7 +30,7 @@ SUBJECT_RE = re.compile('^([^\[]+)\[([^\]]+)\]$')
 subjectTitles = defaultdict(list)
 proteinsWithNoSubject = []
 
-for proteinLine in sys.stdin:
+for index, proteinLine in enumerate(sys.stdin):
     proteinLine = proteinLine[:-1]
     (coverage, medianScore, bestScore, readCount, hspCount, subjectLength,
      subjectTitle) = proteinLine.split('\t')
@@ -41,6 +41,7 @@ for proteinLine in sys.stdin:
         subjectTitle = match.group(2)
         subjectTitles[subjectTitle].append({
             'coverage': float(coverage),
+            'index': index,
             'medianScore': float(medianScore),
             'bestScore': float(bestScore),
             'readCount': int(readCount),
@@ -64,6 +65,6 @@ for subjectTitle in sorted(subjectTitles):
     proteinMatches.sort(key=titleGetter)
     for proteinMatch in proteinMatches:
         print('  %(coverage)f\t%(medianScore)f\t%(bestScore)f\t'
-              '%(readCount)d\t%(hspCount)d\t%(proteinTitle)s' %
+              '%(readCount)d\t%(hspCount)d\t%(index)d\t%(proteinTitle)s' %
               proteinMatch)
     print()
