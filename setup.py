@@ -32,6 +32,8 @@ scripts = [
     'bin/get-reads.py',
     'bin/graph-evalues.py',
     'bin/group-summary-proteins.py',
+    'bin/group-summary-viruses.py',
+    'bin/group-summary-viruses-html.py',
     'bin/local-align.py',
     'bin/noninteractive-alignment-panel.py',
     'bin/position-summary.py',
@@ -51,7 +53,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.64',
+      version='1.0.65',
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
