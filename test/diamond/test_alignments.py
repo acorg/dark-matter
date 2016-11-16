@@ -15,7 +15,7 @@ except ImportError:
 from ..mocking import mockOpen, File
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
-from dark.reads import Read, Reads
+from dark.reads import Read, Reads, AAReadWithX
 from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.diamond.alignments import (
@@ -278,7 +278,8 @@ class TestDiamondReadsAlignments(TestCase):
 
     def testGetSubjectSequence(self):
         """
-        The getSubjectSequence function must return a correct read instance.
+        The getSubjectSequence function must return an AAReadWithX instance
+        with a string sequence.
         """
         class SideEffect(object):
             def __init__(self, test):
@@ -304,6 +305,8 @@ class TestDiamondReadsAlignments(TestCase):
             readsAlignments = DiamondReadsAlignments(reads, 'file.json',
                                                      'database.fasta')
             subject = readsAlignments.getSubjectSequence('id1 Description')
+            self.assertIsInstance(subject, AAReadWithX)
+            self.assertIsInstance(subject.sequence, str)
             self.assertEqual('id1 Description', subject.id)
             self.assertEqual('AA', subject.sequence)
 

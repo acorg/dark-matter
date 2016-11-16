@@ -18,7 +18,7 @@ from Bio import SeqIO
 from ..mocking import mockOpen, File
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
-from dark.reads import Read, Reads
+from dark.reads import Read, Reads, DNARead
 from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import (
@@ -346,8 +346,8 @@ class TestBlastReadsAlignments(TestCase):
 
     def testGetSubjectSequence(self):
         """
-        The getSubjectSequence function must return a correct C{SeqIO.read}
-        instance.
+        The getSubjectSequence function must return a correct C{DNARead}
+        instance with a 'sequence' attribute that is a string.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
@@ -357,8 +357,29 @@ class TestBlastReadsAlignments(TestCase):
                 mockMethod.return_value = SeqIO.read(
                     StringIO('>id1 Description\nAA\n'), 'fasta')
                 sequence = readsAlignments.getSubjectSequence('title')
+                self.assertIsInstance(sequence, DNARead)
+                self.assertIsInstance(sequence.sequence, str)
                 self.assertEqual('id1 Description', sequence.id)
-                self.assertEqual('AA', str(sequence.sequence))
+                self.assertEqual('AA', sequence.sequence)
+
+    def testGetSubjectSequenceThenReverseComplement(self):
+        """
+        It must be possible to call reverseComplement on the return
+        result of getSubjectSequence and obtain a correct C{DNARead} result.
+        """
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            with patch.object(ncbidb, 'getSequence') as mockMethod:
+                mockMethod.return_value = SeqIO.read(
+                    StringIO('>id1 Description\nACGAT\n'), 'fasta')
+                sequence = readsAlignments.getSubjectSequence('title')
+                rc = sequence.reverseComplement()
+                self.assertIsInstance(rc, DNARead)
+                self.assertIsInstance(rc.sequence, str)
+                self.assertEqual('id1 Description', rc.id)
+                self.assertEqual('ATCGT', rc.sequence)
 
     def testHsps(self):
         """
