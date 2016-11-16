@@ -362,6 +362,25 @@ class TestBlastReadsAlignments(TestCase):
                 self.assertEqual('id1 Description', sequence.id)
                 self.assertEqual('AA', sequence.sequence)
 
+    def testGetSubjectSequenceThenReverseComplement(self):
+        """
+        It must be possible to call reverseComplement on the return
+        result of getSubjectSequence and obtain a correct C{DNARead} result.
+        """
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            with patch.object(ncbidb, 'getSequence') as mockMethod:
+                mockMethod.return_value = SeqIO.read(
+                    StringIO('>id1 Description\nACGAT\n'), 'fasta')
+                sequence = readsAlignments.getSubjectSequence('title')
+                rc = sequence.reverseComplement()
+                self.assertIsInstance(rc, DNARead)
+                self.assertIsInstance(rc.sequence, str)
+                self.assertEqual('id1 Description', rc.id)
+                self.assertEqual('ATCGT', rc.sequence)
+
     def testHsps(self):
         """
         The hsps function must yield the HSPs.
