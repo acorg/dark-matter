@@ -39,8 +39,8 @@ def parseColors(colors, args):
         should be displayed with the corresponding color. Note that if read
         ids contain spaces you will need to use the latter (i.e. FASTA/Q file
         name) approach because C{args.colors} is split on whitespace.
-    @param args: The argparse C{Namespace} instance holding the parsed command
-        line arguments.
+    @param args: The argparse C{Namespace} instance holding the other parsed
+        command line arguments.
     @return: A C{dict} whose keys are colors and whose values are sets of
         read ids.
     """
@@ -211,9 +211,9 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--color', action='append',
-        help=('a string which has a color as the first element and readIds '
-              'or a fastafile as the following element(s), separated by '
-              'spaces.'))
+        help=('a string which has a color as the first element and read ids '
+              'and/or FASTA file names as the following element(s), separated '
+              'by spaces.'))
 
     parser.add_argument(
         '--equalizeXAxes', default=False, action='store_true',
@@ -309,9 +309,10 @@ if __name__ == '__main__':
               file=sys.stderr)
         sys.exit(0)
 
+    idList = parseColors(args.color, args) if args.color else None
+
     alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=False,
-                   outputDir=args.outputDir,
-                   idList=parseColors(args.color) if args.color else None,
+                   outputDir=args.outputDir, idList=idList,
                    equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
                    logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
                    showFeatures=args.showFeatures)
