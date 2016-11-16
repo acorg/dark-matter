@@ -253,6 +253,41 @@ class TestBlastReadsAlignments(TestCase):
             self.assertEqual('id0', result[0].read.id)
             self.assertEqual('id1', result[1].read.id)
 
+    def testTwoJSONInputsWithSubjectInCommon(self):
+        """
+        If two JSON files are passed to L{BlastReadsAlignments} with a matched
+        subject in common, the title should be in the alignments for both
+        reads.
+        """
+
+        class SideEffect(object):
+            def __init__(self):
+                self.first = True
+
+            def sideEffect(self, _ignoredFilename, **kwargs):
+                if self.first:
+                    self.first = False
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
+                else:
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD3) + '\n'])
+
+        sideEffect = SideEffect()
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            reads = Reads()
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(
+                reads, ['file1.json', 'file2.json'])
+            result = list(readsAlignments)
+            self.assertEqual(2, len(result))
+            self.assertEqual('id2', result[0].read.id)
+            self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
+                             result[0][0].subjectTitle)
+            self.assertEqual('id3', result[1].read.id)
+            self.assertEqual('gi|887699|gb|DQ37780 Cowpox virus 15',
+                             result[1][0].subjectTitle)
+
     def testThreeJSONInputs(self):
         """
         If three JSON files are passed to L{BlastReadsAlignments} with names

@@ -9,7 +9,7 @@ except ImportError:
 
 from six.moves import builtins
 
-from ..mocking import mockOpen
+from ..mocking import mockOpen, File
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
@@ -236,6 +236,48 @@ class TestTitlesAlignments(TestCase):
             self.assertEqual(
                 sorted([HSP(20), HSP(25), HSP(20), HSP(20), HSP(20)]),
                 sorted(result))
+
+    def testTwoJSONInputsWithSubjectInCommon(self):
+        """
+        If two JSON files are passed to L{BlastReadsAlignments} with a matched
+        subject in common and a TitlesAlignments is made, the title in the
+        TitlesAlignments must have information from both reads, including the
+        correct HSP scores.
+        """
+
+        class SideEffect(object):
+            def __init__(self):
+                self.first = True
+
+            def sideEffect(self, _ignoredFilename, **kwargs):
+                if self.first:
+                    self.first = False
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
+                else:
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD4) + '\n'])
+
+        title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
+
+        sideEffect = SideEffect()
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            reads = Reads()
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id4', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(
+                reads, ['file1.json', 'file2.json'])
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            titleAlignments = titlesAlignments[title]
+            self.assertEqual(title, titleAlignments.subjectTitle)
+            self.assertEqual(4, titleAlignments.hspCount())
+            self.assertEqual('id2', titleAlignments[0].read.id)
+            self.assertEqual('id4', titleAlignments[1].read.id)
+            # First matching read has one HSP.
+            self.assertEqual(HSP(20), titleAlignments[0].hsps[0])
+            # Second matching read has three HSPs.
+            self.assertEqual(HSP(10), titleAlignments[1].hsps[0])
+            self.assertEqual(HSP(5), titleAlignments[1].hsps[1])
+            self.assertEqual(HSP(3), titleAlignments[1].hsps[2])
 
 
 class TestTitlesAlignmentsFiltering(TestCase):
