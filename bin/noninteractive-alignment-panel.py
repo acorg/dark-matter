@@ -14,6 +14,7 @@ import os
 import sys
 import argparse
 from collections import defaultdict
+from itertools import chain
 
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
@@ -81,19 +82,19 @@ if __name__ == '__main__':
         help='The matching algorithm that was used to produce the JSON.')
 
     parser.add_argument(
-        '--json', metavar='JSON-file', nargs='+',
-        help='the JSON file(s) of BLAST or DIAMOND output.')
+        '--json', metavar='JSON-file', nargs='+', action='append',
+        required=True, help='the JSON file(s) of BLAST or DIAMOND output.')
 
     # A mutually exclusive group for either FASTA or FASTQ files.
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument(
-        '--fasta', metavar='FASTA-file', nargs='+',
+        '--fasta', metavar='FASTA-file', nargs='+', action='append',
         help=('the FASTA file(s) of sequences that were given to BLAST '
               'or DIAMOND.'))
 
     group.add_argument(
-        '--fastq', metavar='FASTQ-file', nargs='+',
+        '--fastq', metavar='FASTQ-file', nargs='+', action='append',
         help=('the FASTQ file(s) of sequences that were given to BLAST '
               'or DIAMOND.'))
 
@@ -127,11 +128,11 @@ if __name__ == '__main__':
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
     parser.add_argument(
-        '--whitelist', nargs='+', default=None,
+        '--whitelist', nargs='+', default=None, action='append',
         help='sequence titles that should be whitelisted')
 
     parser.add_argument(
-        '--blacklist', nargs='+', default=None,
+        '--blacklist', nargs='+', default=None, action='append',
         help='sequence titles that should be blacklisted')
 
     parser.add_argument(
@@ -249,19 +250,33 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Flatten lists of lists that we get from using both nargs='+' and
+    # action='append'. We use both because it allows people to use (e.g.)
+    # --json on the command line either via "--json file1 --json file2" or
+    # "--json file1 --file2", or a combination of these. That way it's not
+    # necessary to remember which way you're supposed to use it and you also
+    # can't be hit by the subtle problem encountered in
+    # https://github.com/acorg/dark-matter/issues/453
+    jsonFiles = chain.from_iterable(args.json)
+    whitelist = (
+        set(chain.from_iterable(args.whitelist)) if args.whitelist else None)
+    blacklist = (
+        set(chain.from_iterable(args.blacklist)) if args.blacklist else None)
+
     # TODO: Add a --readClass option in case we want to process AA queries.
     if args.fasta:
-        reads = FastaReads(args.fasta, checkAlphabet=args.checkAlphabet)
+        reads = FastaReads(
+            chain.from_iterable(args.fasta), checkAlphabet=args.checkAlphabet)
     else:
         if args.checkAlphabet is not None:
             print('--checkAlphabet is currently not supported for FASTQ reads',
                   file=sys.stderr)
             sys.exit(1)
-        reads = FastqReads(args.fastq)
+        reads = FastqReads(chain.from_iterable(args.fastq))
 
     if args.matcher == 'blast':
         from dark.blast.alignments import BlastReadsAlignments
-        readsAlignments = BlastReadsAlignments(reads, args.json)
+        readsAlignments = BlastReadsAlignments(reads, jsonFiles)
     else:
         if args.diamondDatabaseFastaFilename is None:
             print('--diamondDatabaseFastaFilename must be used with --matcher '
@@ -270,22 +285,18 @@ if __name__ == '__main__':
 
         from dark.diamond.alignments import DiamondReadsAlignments
         readsAlignments = DiamondReadsAlignments(
-            reads, args.json, args.diamondDatabaseFastaFilename)
+            reads, jsonFiles, args.diamondDatabaseFastaFilename)
 
     readsAlignments.filter(
         minSequenceLen=args.minSequenceLen,
         maxSequenceLen=args.maxSequenceLen,
-        minStart=args.minStart,
-        maxStop=args.maxStop,
+        minStart=args.minStart, maxStop=args.maxStop,
         oneAlignmentPerRead=args.oneAlignmentPerRead,
         maxHspsPerHit=args.maxHspsPerHit,
         scoreCutoff=args.scoreCutoff,
-        whitelist=set(args.whitelist) if args.whitelist else None,
-        blacklist=set(args.blacklist) if args.blacklist else None,
-        titleRegex=args.titleRegex,
-        negativeTitleRegex=args.negativeTitleRegex,
-        truncateTitlesAfter=args.truncateTitlesAfter,
-        taxonomy=args.taxonomy)
+        whitelist=whitelist, blacklist=blacklist,
+        titleRegex=args.titleRegex, negativeTitleRegex=args.negativeTitleRegex,
+        truncateTitlesAfter=args.truncateTitlesAfter, taxonomy=args.taxonomy)
 
     titlesAlignments = TitlesAlignments(readsAlignments).filter(
         minMatchingReads=args.minMatchingReads,
