@@ -24,19 +24,27 @@ matplotlib.use('PDF')
 # and we need to set the matplotlib backend before that import. So please
 # don't move these imports higher in this file.
 from dark.titles import TitlesAlignments
+from dark.fasta import FastaReads
+from dark.fastq import FastqReads
 from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
 
 
-def parseColors(colors):
+def parseColors(colors, args):
     """
     Parse read id color specification.
 
     @param colors: A C{list} of C{str}s. Each item is of the form, e.g.,
         'green X Y Z...', where each of X, Y, Z, ... etc. is either a read
-        id or the name of a file containing read identifiers one per line.
+        id or the name of a FASTA or FASTQ file containing reads whose ids
+        should be displayed with the corresponding color. Note that if read
+        ids contain spaces you will need to use the latter (i.e. FASTA/Q file
+        name) approach because C{args.colors} is split on whitespace.
+    @param args: The argparse C{Namespace} instance holding the parsed command
+        line arguments.
     @return: A C{dict} whose keys are colors and whose values are sets of
         read ids.
     """
+    checkAlphabet = args.checkAlphabet
     result = defaultdict(set)
     for colorInfo in colors:
         readIds = colorInfo.split()
@@ -44,7 +52,11 @@ def parseColors(colors):
         for readId in readIds:
             if os.path.isfile(readId):
                 filename = readId
-                for read in FastaReads(filename):
+                if args.fasta:
+                    reads = FastaReads(filename, checkAlphabet=checkAlphabet)
+                else:
+                    reads = FastqReads(filename)
+                for read in reads:
                     result[color].add(read.id)
             else:
                 result[color].add(readId)
@@ -239,15 +251,12 @@ if __name__ == '__main__':
 
     # TODO: Add a --readClass option in case we want to process AA queries.
     if args.fasta:
-        from dark.fasta import FastaReads
         reads = FastaReads(args.fasta, checkAlphabet=args.checkAlphabet)
     else:
         if args.checkAlphabet is not None:
             print('--checkAlphabet is currently not supported for FASTQ reads',
                   file=sys.stderr)
             sys.exit(1)
-
-        from dark.fastq import FastqReads
         reads = FastqReads(args.fastq)
 
     if args.matcher == 'blast':
