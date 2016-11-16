@@ -147,7 +147,7 @@ class BlastReadsAlignments(ReadsAlignments):
         else:
             readClass = DNARead
 
-        return readClass(seq.description, seq.seq)
+        return readClass(seq.description, str(seq.seq))
 
     def adjustHspsForPlotting(self, titleAlignments):
         """
