@@ -257,7 +257,7 @@ if __name__ == '__main__':
     # necessary to remember which way you're supposed to use it and you also
     # can't be hit by the subtle problem encountered in
     # https://github.com/acorg/dark-matter/issues/453
-    jsonFiles = chain.from_iterable(args.json)
+    jsonFiles = list(chain.from_iterable(args.json))
     whitelist = (
         set(chain.from_iterable(args.whitelist)) if args.whitelist else None)
     blacklist = (
@@ -265,14 +265,14 @@ if __name__ == '__main__':
 
     # TODO: Add a --readClass option in case we want to process AA queries.
     if args.fasta:
-        reads = FastaReads(
-            chain.from_iterable(args.fasta), checkAlphabet=args.checkAlphabet)
+        reads = FastaReads(list(chain.from_iterable(args.fasta)),
+                           checkAlphabet=args.checkAlphabet)
     else:
         if args.checkAlphabet is not None:
             print('--checkAlphabet is currently not supported for FASTQ reads',
                   file=sys.stderr)
             sys.exit(1)
-        reads = FastqReads(chain.from_iterable(args.fastq))
+        reads = FastqReads(list(chain.from_iterable(args.fastq)))
 
     if args.matcher == 'blast':
         from dark.blast.alignments import BlastReadsAlignments
