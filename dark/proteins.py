@@ -56,9 +56,20 @@ class ProteinGrouper(object):
         self._assetDir = assetDir
         # virusTitles is a dict of dicts of lists.
         self.virusTitles = defaultdict(lambda: defaultdict(list))
-        # sampleNames will have values that hold the sample's alignment panel
-        # index.html file.
+        # sampleNames is keyed by sample name and will have values that hold
+        # the sample's alignment panel index.html file.
         self.sampleNames = {}
+
+    def _title(self):
+        """
+        Create a title summarizing the viruses and samples.
+
+        @return: A C{str} title.
+        """
+        return (
+            '%d virus%s found in %d sample%s' %
+            (len(self.virusTitles), '' if len(self.virusTitles) == 1 else 'es',
+             len(self.sampleNames), '' if len(self.sampleNames) == 1 else 's'))
 
     def addFile(self, filename, fp):
         """
@@ -116,8 +127,7 @@ class ProteinGrouper(object):
         result = []
         append = result.append
 
-        append('%d viruses found in %d samples' %
-               (len(self.virusTitles), len(self.sampleNames)))
+        append(self._title())
         append('')
 
         for virusTitle in sorted(self.virusTitles):
@@ -137,9 +147,9 @@ class ProteinGrouper(object):
                 proteins.sort(key=titleGetter)
                 for proteinMatch in proteins:
                     append(
-                        '    %(coverage)f\t%(medianScore)f\t%(bestScore)f\t'
-                        '%(readCount)d\t%(hspCount)d\t%(index)d\t'
-                        '%(proteinTitle)s'
+                        '    %(coverage).2f\t%(medianScore).2f\t'
+                        '%(bestScore).2f\t%(readCount)4d\t%(hspCount)4d\t'
+                        '%(index)3d\t%(proteinTitle)s'
                         % proteinMatch)
             append('')
 
@@ -157,13 +167,12 @@ class ProteinGrouper(object):
             '<html>',
             '<head>',
             '<title>',
-            '%d viruses found in %d samples' % (len(virusTitles),
-                                                len(sampleNames)),
+            self._title(),
             '</title>',
             '</head>',
             '<body>',
             '<style>',
-            '''
+            '''\
             body {
                 margin-left: 2%;
                 margin-right: 2%;
@@ -186,8 +195,7 @@ class ProteinGrouper(object):
             }
             .protein-list {
                 margin-top: 2px;
-            }
-            ''',
+            }''',
             '</style>',
             '</head>',
             '<body>',
@@ -195,8 +203,7 @@ class ProteinGrouper(object):
 
         append = result.append
 
-        append('<h1>%d viruses found in %d samples</h1>' %
-               (len(virusTitles), len(sampleNames)))
+        append('<h1>%s</h1>' % self._title())
 
         # Write a linked table of contents by virus.
         append('<h2>Virus index</h2>')

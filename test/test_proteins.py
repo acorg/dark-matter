@@ -74,6 +74,31 @@ class TestProteinGrouper(TestCase):
             },
             pg.virusTitles)
 
+    def testOneLineInOneFileTitle(self):
+        """
+        If a protein grouper is given one file with one line, its _title method
+        must return the expected string.
+        """
+        fp = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        pg = ProteinGrouper()
+        pg.addFile('sample-filename', fp)
+        self.assertEqual('1 virus found in 1 sample', pg._title())
+
+    def testTwoLinesInOneFileTitle(self):
+        """
+        If a protein grouper is given one file with two protein lines, each
+        from a different virus, its _title method must return the expected
+        string.
+        """
+        fp = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [X Virus]\n'
+            )
+        pg = ProteinGrouper()
+        pg.addFile('sample-filename', fp)
+        self.assertEqual('2 viruses found in 1 sample', pg._title())
+
     def testTwoLinesInOneFileSameVirus(self):
         """
         If a protein grouper is given one file with two lines from the same
@@ -221,6 +246,22 @@ class TestProteinGrouper(TestCase):
             },
             pg.virusTitles)
 
+    def testOneLineInEachOfTwoFilesSameVirusTitle(self):
+        """
+        If a protein grouper is given two files, each with one line from the
+        same virus, its _title method must return the expected string.
+        """
+        fp1 = StringIO(
+            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+        )
+        fp2 = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+        )
+        pg = ProteinGrouper()
+        pg.addFile('sample-filename-1', fp1)
+        pg.addFile('sample-filename-2', fp2)
+        self.assertEqual('1 virus found in 2 samples', pg._title())
+
     def testOneLineInEachOfTwoFilesDifferentViruses(self):
         """
         If a protein grouper is given two files, each with one line from the
@@ -274,6 +315,22 @@ class TestProteinGrouper(TestCase):
             },
             pg.virusTitles)
 
+    def testOneLineInEachOfTwoFilesDifferentVirusesTitle(self):
+        """
+        If a protein grouper is given two files, each with one line from
+        different viruses, its _title method must return the expected string.
+        """
+        fp1 = StringIO(
+            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+        )
+        fp2 = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [HBV]\n'
+        )
+        pg = ProteinGrouper()
+        pg.addFile('sample-filename-1', fp1)
+        pg.addFile('sample-filename-2', fp2)
+        self.assertEqual('2 viruses found in 2 samples', pg._title())
+
     def testNoFilesToStr(self):
         """
         If no files have been given to a protein grouper, its text string
@@ -298,7 +355,6 @@ class TestProteinGrouper(TestCase):
                 '</head>',
                 '<body>',
                 '<style>',
-                '',
                 '            body {',
                 '                margin-left: 2%;',
                 '                margin-right: 2%;',
@@ -324,7 +380,6 @@ class TestProteinGrouper(TestCase):
                 '            .protein-list {',
                 '                margin-top: 2px;',
                 '            }',
-                '            ',
                 '</style>',
                 '</head>',
                 '<body>',
@@ -339,3 +394,20 @@ class TestProteinGrouper(TestCase):
                 '</html>',
                 ]),
             pg.toHTML())
+
+    def testOneLineInOneFileToStr(self):
+        """
+        If a protein grouper is given one file with one line, its toStr method
+        must produce the expected result.
+        """
+        fp = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein X [HBV]\n')
+        pg = ProteinGrouper()
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            '1 virus found in 1 sample\n'
+            '\n'
+            'HBV (in 1 sample)\n'
+            '  sample-filename (1 protein, 5 reads)\n'
+            '    0.77\t46.60\t48.10\t   5\t   6\t  0\tgi|32|X|I4 protein X\n',
+            pg.toStr())

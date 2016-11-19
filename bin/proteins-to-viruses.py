@@ -13,9 +13,9 @@ gi|820945229|ref|YP_009137074.1| ubiquitin E3 ligase ICP0 [Human herpesvirus 1]
 
 In this case, those three matched subjects are from the same virus. This script
 will gather those matches under their common "Human herpesvirus 1" title and
-print them together.
+provides methods to print them.
 
-The script reads file *names* from standard input, and writes to standard
+The script reads *file names* from standard input, and writes to standard
 output.  Alternately, you can also provide file names on the command line.
 
 Typical usage:
