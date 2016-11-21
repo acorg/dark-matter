@@ -31,9 +31,6 @@ scripts = [
     'bin/get-features.py',
     'bin/get-reads.py',
     'bin/graph-evalues.py',
-    'bin/group-summary-proteins.py',
-    'bin/group-summary-viruses.py',
-    'bin/group-summary-viruses-html.py',
     'bin/local-align.py',
     'bin/noninteractive-alignment-panel.py',
     'bin/position-summary.py',
@@ -41,6 +38,7 @@ scripts = [
     'bin/print-blast-xml-for-derek.py',
     'bin/print-blast-xml.py',
     'bin/print-read-lengths.py',
+    'bin/proteins-to-viruses.py',
     'bin/randomize-fasta.py',
     'bin/read-blast-json.py',
     'bin/read-blast-xml.py',
@@ -53,7 +51,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.74',
+      version='1.0.75',
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
