@@ -759,7 +759,7 @@ class Reads(object):
                titleRegex=None, negativeTitleRegex=None,
                truncateTitlesAfter=None, indices=None, head=None,
                removeDuplicates=False, modifier=None, randomSubset=None,
-               trueLength=None, sampleFraction=None):
+               trueLength=None, sampleFraction=None, sequenceNumbersFile=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -832,8 +832,13 @@ class Reads(object):
             at random. If you try to combine this filter with C{randomSubset}
             a C{ValueError} will be raised. If you need both filters, run them
             one after another.
+        @param sequenceNumbersFile: If not C{None}, gives the C{str} name of a
+            file containing (1-based) sequence numbers, in ascending order,
+            one per line. Only those sequences matching the given numbers will
+            be kept.
         @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
-            specified.
+            specified or if the sequence numbers in C{sequenceNumbersFile} are
+            non-positive or not ascending.
         @return: A new C{Reads} instance, with reads filtered as requested.
         """
 
@@ -849,14 +854,16 @@ class Reads(object):
             truncateTitlesAfter=truncateTitlesAfter, indices=indices,
             head=head, removeDuplicates=removeDuplicates, modifier=modifier,
             randomSubset=randomSubset, trueLength=trueLength,
-            sampleFraction=sampleFraction))
+            sampleFraction=sampleFraction,
+            sequenceNumbersFile=sequenceNumbersFile))
 
     def _filter(self, minLength=None, maxLength=None, removeGaps=False,
                 whitelist=None, blacklist=None,
                 titleRegex=None, negativeTitleRegex=None,
                 truncateTitlesAfter=None, indices=None, head=None,
                 removeDuplicates=False, modifier=None, randomSubset=None,
-                trueLength=None, sampleFraction=None):
+                trueLength=None, sampleFraction=None,
+                sequenceNumbersFile=None):
         """
         Filter a set of reads to produce a matching subset.
 
@@ -865,10 +872,53 @@ class Reads(object):
         @return: A generator that yields C{Read} instances.
         """
 
+        def _wantedSequences(filename):
+            """
+            Read and yield integer sequence numbers from a file.
+
+            @raise ValueError: If the sequence numbers are not all positive or
+                are not ascending.
+            @return: A generator that yields C{int} sequence numbers.
+            """
+            with open(filename) as fp:
+                lastNumber = None
+                for line in fp:
+                    n = int(line)
+                    if lastNumber is None:
+                        if n < 1:
+                            raise ValueError(
+                                'First line of sequence number file %r must '
+                                'be at least 1.' % filename)
+                        lastNumber = n
+                        yield n
+                    else:
+                        if n > lastNumber:
+                            lastNumber = n
+                            yield n
+                        else:
+                            raise ValueError(
+                                'Line number file %r contains non-ascending '
+                                'numbers %d and %d.' %
+                                (filename, lastNumber, n))
+
         if randomSubset is not None and sampleFraction is not None:
             raise ValueError('randomSubset and sampleFraction cannot be '
                              'used simultaneously in a filter. Call filter '
                              'twice instead.')
+
+        if sequenceNumbersFile is None:
+            nextWantedSequenceNumber = None
+            wantedSequenceNumberGeneratorExhausted = False
+        else:
+            wantedSequenceNumerGenerator = _wantedSequences(
+                sequenceNumbersFile)
+            try:
+                nextWantedSequenceNumber = next(wantedSequenceNumerGenerator)
+            except StopIteration:
+                # There was a sequence number file, but it was empty.
+                return
+            else:
+                wantedSequenceNumberGeneratorExhausted = False
 
         if (whitelist or blacklist or titleRegex or negativeTitleRegex or
                 truncateTitlesAfter):
@@ -897,6 +947,27 @@ class Reads(object):
         yieldCount = 0
 
         for readIndex, read in enumerate(self):
+
+            if wantedSequenceNumberGeneratorExhausted:
+                return
+
+            if nextWantedSequenceNumber is not None:
+                if readIndex + 1 == nextWantedSequenceNumber:
+                    # We want this sequence.
+                    try:
+                        nextWantedSequenceNumber = next(
+                            wantedSequenceNumerGenerator)
+                    except StopIteration:
+                        # The sequence number iterator ran out of sequence
+                        # numbers.  We must let the rest of the filtering
+                        # continue for the current sequence in case we
+                        # throw it out for other reasons (as we might have
+                        # done for any of the earlier wanted sequence
+                        # numbers).
+                        wantedSequenceNumberGeneratorExhausted = True
+                else:
+                    # This sequence isn't wanted.
+                    continue
 
             if (sampleFraction is not None and
                     uniform(0.0, 1.0) > sampleFraction):

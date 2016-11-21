@@ -2476,6 +2476,84 @@ class TestReads(TestCase):
         result = reads.filter(sampleFraction=0.1)
         self.assertEqual(11, len(list(result)))
 
+    def testLineNumberFileFirstLineTooSmall(self):
+        """
+        If a line number file is passed to filter but its first line is
+        less than 1, a ValueError must be raised.
+        """
+        data = '0\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads([])
+            error = ("^First line of sequence number file 'file' must be at "
+                     "least 1\.$")
+            with six.assertRaisesRegex(self, ValueError, error):
+                reads.filter(sequenceNumbersFile='file')
+
+    def testLineNumberFileNonAscending(self):
+        """
+        If a line number file is passed to filter but it contains non-ascending
+        line numbers, a ValueError must be raised.
+        """
+        data = '2\n2\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            read1 = Read('id1', 'ATCG')
+            read2 = Read('id2', 'ATCG')
+            read3 = Read('id3', 'ATCG')
+            reads = Reads([read1, read2, read3])
+            error = ("^Line number file 'file' contains non-ascending numbers "
+                     "2 and 2\.$")
+            with six.assertRaisesRegex(self, ValueError, error):
+                reads.filter(sequenceNumbersFile='file')
+
+    def testLineNumberFileEmpty(self):
+        """
+        If an empty line number file is passed to filter, no sequences should
+        be returned.
+        """
+        data = ''
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            read1 = Read('id1', 'ATCG')
+            read2 = Read('id2', 'ATCG')
+            reads = Reads([read1, read2])
+            result = reads.filter(sequenceNumbersFile='file')
+            self.assertEqual([], list(result))
+
+    def testLineNumberFile(self):
+        """
+        If a line number file is passed to filter, the correct sequences should
+        be returned.
+        """
+        data = '1\n3\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            read1 = Read('id1', 'ATCG')
+            read2 = Read('id2', 'ATCG')
+            read3 = Read('id3', 'ATCG')
+            read4 = Read('id4', 'ATCG')
+            reads = Reads([read1, read2, read3, read4])
+            result = reads.filter(sequenceNumbersFile='file')
+            self.assertEqual([read1, read3], list(result))
+
+    def testLineNumberFileRunOutOfSequences(self):
+        """
+        If a line number file is passed to filter, and it contains numbers that
+        are bigger than the number of sequences, the correct sequences should
+        be returned.
+        """
+        data = '1\n3\n200\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            read1 = Read('id1', 'ATCG')
+            read2 = Read('id2', 'ATCG')
+            read3 = Read('id3', 'ATCG')
+            read4 = Read('id4', 'ATCG')
+            reads = Reads([read1, read2, read3, read4])
+            result = reads.filter(sequenceNumbersFile='file')
+            self.assertEqual([read1, read3], list(result))
+
 
 class TestSummarizePosition(TestCase):
     """

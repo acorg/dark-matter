@@ -94,6 +94,11 @@ if __name__ == '__main__':
               'will only be approximately the product of the sample fraction '
               'and the number of reads. The sample is taken at random.'))
 
+    parser.add_argument(
+        '--sequenceNumbersFile', default=None,
+        help=('A file of (1-based) sequence numbers to retain. Numbers must '
+              'be one per line.'))
+
     args = parser.parse_args()
 
     if args.readClass == 'fastq':
@@ -138,7 +143,8 @@ if __name__ == '__main__':
             indices=set(args.indices) if args.indices else None,
             head=args.head, removeDuplicates=args.removeDuplicates,
             randomSubset=args.randomSubset, trueLength=args.trueLength,
-            sampleFraction=args.sampleFraction):
+            sampleFraction=args.sampleFraction,
+            sequenceNumbersFile=args.sequenceNumbersFile):
         kept += 1
         print(seq.toString(format_=saveAs), end='')
 
