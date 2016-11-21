@@ -52,10 +52,10 @@ from dark.proteins import ProteinGrouper
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Group proteins by the virus they're from")
+        description="Group proteins by the virus they're from.")
 
     parser.add_argument(
-        'filenames', nargs='*', help='Sample file names to read input from')
+        'filenames', nargs='*', help='Sample file names to read input from.')
 
     parser.add_argument(
         '--sampleNameRegex', default=None,

@@ -121,6 +121,9 @@ class ProteinGrouper(object):
 
     def toStr(self):
         """
+        Produce a string representation of the virus summary.
+
+        @return: A C{str} suitable for printing.
         """
         titleGetter = itemgetter('proteinTitle')
         readCountGetter = itemgetter('readCount')
@@ -157,6 +160,9 @@ class ProteinGrouper(object):
 
     def toHTML(self):
         """
+        Produce an HTML string representation of the virus summary.
+
+        @return: An HTML C{str} suitable for printing.
         """
         titleGetter = itemgetter('proteinTitle')
         readCountGetter = itemgetter('readCount')
