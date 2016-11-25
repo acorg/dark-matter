@@ -299,7 +299,7 @@ class ProteinGrouper(object):
                     '<p class=sample>'
                     '<span class="sample-name">%s</span> '
                     '(%d protein%s, %d read%s, <a href="%s">panel</a>, '
-                    '<a href="%s">FASTA</a>)' %
+                    '<a href="%s">fasta</a>)' %
                     (sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
                      totalReads, '' if totalReads == 1 else 's',
@@ -359,7 +359,7 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample">'
                     '<span class="virus-title">%s</span> '
-                    '(%d protein%s, %d read%s, <a href="%s">FASTA</a>)' %
+                    '(%d protein%s, %d read%s, <a href="%s">fasta</a>)' %
                     (virusTitle,
                      proteinCount, '' if proteinCount == 1 else 's',
                      totalReads, '' if totalReads == 1 else 's',
