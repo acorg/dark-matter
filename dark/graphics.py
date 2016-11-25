@@ -574,9 +574,16 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         allGraphInfo[title] = graphInfo
         readCount = titleAlignments.readCount()
         hspCount = titleAlignments.hspCount()
+
+        # Make a short title for the small panel blue plot, ignoring any
+        # leading NCBI gi / accession numbers.
+        if title.startswith('gi|') and title.find(' ') > -1:
+            shortTitle = title.split(' ', 1)[1][:40]
+        else:
+            shortTitle = title[:40]
+
         plotTitle = ('%d: %s\nLength %d, %d read%s, %d HSP%s.' % (
-            i, title.split(' ', 1)[1][:40],
-            titleAlignments.subjectLength,
+            i, shortTitle, titleAlignments.subjectLength,
             readCount, '' if readCount == 1 else 's',
             hspCount, '' if hspCount == 1 else 's'))
 
