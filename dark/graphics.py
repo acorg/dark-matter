@@ -574,9 +574,14 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
         allGraphInfo[title] = graphInfo
         readCount = titleAlignments.readCount()
         hspCount = titleAlignments.hspCount()
+
+        try:
+            shortTitle = title.split(' ', 1)[1][:40]
+        except IndexError:
+            shortTitle = title[:40]
+
         plotTitle = ('%d: %s\nLength %d, %d read%s, %d HSP%s.' % (
-            i, title.split(' ', 1)[1][:40],
-            titleAlignments.subjectLength,
+            i, shortTitle, titleAlignments.subjectLength,
             readCount, '' if readCount == 1 else 's',
             hspCount, '' if hspCount == 1 else 's'))
 
