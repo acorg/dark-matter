@@ -39,7 +39,8 @@ class VirusSampleFASTA(object):
             return self._fastaFilenames[(virusIndex, sampleIndex)]
         except KeyError:
             result = Reads()
-            for proteinMatch in self._proteinGrouper[virusTitle][sampleName]:
+            for proteinMatch in self._proteinGrouper.virusTitle[
+                    virusTitle][sampleName]:
                 for read in FastaReads(proteinMatch['fastaFilename'],
                                        checkAlphabet=0):
                     result.add(read)
