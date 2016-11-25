@@ -4,7 +4,51 @@ from collections import defaultdict
 from operator import itemgetter
 from six.moves.urllib.parse import quote
 
+
+from dark.fasta import FastaReads
 from dark.html import NCBISequenceLinkURL
+from dark.reads import Reads
+
+
+class VirusSampleFASTA(object):
+    """
+    Maintain a cache of virus/sample FASTA file names, creating the FASTA
+    on demand.
+    """
+    def __init__(self, proteinGrouper):
+        self._proteinGrouper = proteinGrouper
+        self._viruses = {}
+        self._samples = {}
+        self._fastaFilenames = {}
+
+    def add(self, virusTitle, sampleName):
+        """
+        Add a a virus title, sample name combination and get its FASTA file
+        name. Write the FASTA file if it does not already exist.
+
+        @param virusTitle: A C{str} virus title.
+        @param sampleName: A C{str} sample name.
+        @return: A C{str} FASTA file name holding all the reads (without
+            duplicates) from the sample that matched the proteins in the given
+            virus.
+        """
+        virusIndex = self._viruses.setdefault(virusTitle, len(self._viruses))
+        sampleIndex = self._samples.setdefault(sampleName, len(self._samples))
+
+        try:
+            return self._fastaFilenames[(virusIndex, sampleIndex)]
+        except KeyError:
+            result = Reads()
+            for proteinMatch in self._proteinGrouper[virusTitle][sampleName]:
+                for read in FastaReads(proteinMatch['fastaFilename'],
+                                       checkAlphabet=0):
+                    result.add(read)
+            saveFilename = join(
+                proteinMatch['outDir'],
+                'virus-%d-sample-%d.fasta' % (virusIndex, sampleIndex))
+            result.filter(removeDuplicates=True).save(saveFilename)
+            self._fastaFilenames[(virusIndex, sampleIndex)] = saveFilename
+            return saveFilename
 
 
 class ProteinGrouper(object):
@@ -113,6 +157,7 @@ class ProteinGrouper(object):
                 'hspCount': int(hspCount),
                 'index': index,
                 'medianScore': float(medianScore),
+                'outDir': outDir,
                 'proteinLength': int(proteinLength),
                 'proteinTitle': proteinTitle,
                 'proteinURL': NCBISequenceLinkURL(proteinTitle),
@@ -166,6 +211,7 @@ class ProteinGrouper(object):
         """
         titleGetter = itemgetter('proteinTitle')
         readCountGetter = itemgetter('readCount')
+        virusSampleFASTA = VirusSampleFASTA(self)
         virusTitles = sorted(self.virusTitles)
         sampleNames = sorted(self.sampleNames)
 
@@ -244,17 +290,20 @@ class ProteinGrouper(object):
                  '' if sampleCount == 1 else 's',
                  self.VIRALZONE, quote(virusTitle)))
             for sampleName in sorted(samples):
+                fastaName = virusSampleFASTA.add(virusTitle, sampleName)
                 proteins = samples[sampleName]
                 proteinCount = len(proteins)
                 totalReads = sum(readCountGetter(p) for p in proteins)
                 append(
                     '<p class=sample>'
                     '<span class="sample-name">%s</span> '
-                    '(%d protein%s, %d read%s, <a href="%s">panel</a>)' %
+                    '(%d protein%s, %d read%s, <a href="%s">panel</a>, '
+                    '<a href="%s">FASTA</a>)' %
                     (sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
                      totalReads, '' if totalReads == 1 else 's',
-                     self.sampleNames[sampleName]))
+                     self.sampleNames[sampleName],
+                     fastaName))
                 proteins.sort(key=titleGetter)
                 append('<ul class="protein-list">')
                 for proteinMatch in proteins:
@@ -286,7 +335,7 @@ class ProteinGrouper(object):
 
         # Write all samples (with viruses (with proteins)).
         append('<h1>Samples by virus</h1>')
-        for sampleName in sorted(sampleNames):
+        for sampleName in sampleNames:
 
             sampleVirusTitles = set()
             for virusTitle in virusTitles:
@@ -302,16 +351,18 @@ class ProteinGrouper(object):
                  self.sampleNames[sampleName]))
 
             for virusTitle in sorted(sampleVirusTitles):
+                fastaName = virusSampleFASTA.add(virusTitle, sampleName)
                 proteins = self.virusTitles[virusTitle][sampleName]
                 proteinCount = len(proteins)
                 totalReads = sum(readCountGetter(p) for p in proteins)
                 append(
                     '<p class="sample">'
                     '<span class="virus-title">%s</span> '
-                    '(%d protein%s, %d read%s)' %
+                    '(%d protein%s, %d read%s, <a href="%s">FASTA</a>)' %
                     (virusTitle,
                      proteinCount, '' if proteinCount == 1 else 's',
-                     totalReads, '' if totalReads == 1 else 's'))
+                     totalReads, '' if totalReads == 1 else 's',
+                     fastaName))
                 proteins.sort(key=titleGetter)
                 append('<ul class="protein-list">')
                 for proteinMatch in proteins:
