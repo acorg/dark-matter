@@ -28,6 +28,8 @@ class VirusSampleFASTA(object):
     Maintain a cache of virus/sample FASTA file names, creating de-duplicaed
     FASTA files (from reads for all proteins of a virus that a sample has)
     on demand.
+
+    @param proteinGrouper: An instance of C{ProteinGrouper}.
     """
     def __init__(self, proteinGrouper):
         self._proteinGrouper = proteinGrouper
@@ -438,7 +440,6 @@ class ProteinGrouper(object):
         result.extend(proteinFieldsDescription)
 
         for sampleName in sampleNames:
-
             sampleVirusTitles = set()
             for virusTitle in virusTitles:
                 if sampleName in self.virusTitles[virusTitle]:
