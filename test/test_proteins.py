@@ -63,6 +63,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 6,
                             'index': 0,
                             'medianScore': 46.6,
+                            'outDir': 'out',
                             'proteinLength': 74,
                             'proteinTitle': 'gi|327|X|I44.6 ubiquitin',
                             'proteinURL': (
@@ -122,6 +123,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 9,
                             'index': 0,
                             'medianScore': 41.3,
+                            'outDir': 'out',
                             'proteinLength': 12,
                             'proteinTitle': 'gi|327410| protein 77',
                             'proteinURL': None,
@@ -135,6 +137,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 6,
                             'index': 1,
                             'medianScore': 46.6,
+                            'outDir': 'out',
                             'proteinLength': 74,
                             'proteinTitle': 'gi|327409| ubiquitin',
                             'proteinURL': None,
@@ -168,6 +171,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 9,
                             'index': 0,
                             'medianScore': 41.3,
+                            'outDir': 'out',
                             'proteinLength': 12,
                             'proteinTitle': 'gi|327410| protein 77',
                             'proteinURL': None,
@@ -185,6 +189,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 6,
                             'index': 1,
                             'medianScore': 46.6,
+                            'outDir': 'out',
                             'proteinLength': 74,
                             'proteinTitle': 'gi|327409| ubiquitin',
                             'proteinURL': None,
@@ -221,6 +226,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 9,
                             'index': 0,
                             'medianScore': 41.3,
+                            'outDir': 'out',
                             'proteinLength': 12,
                             'proteinTitle': 'gi|327410| protein 77',
                             'proteinURL': None,
@@ -236,6 +242,7 @@ class TestProteinGrouper(TestCase):
                             'hspCount': 6,
                             'index': 0,
                             'medianScore': 46.6,
+                            'outDir': 'out',
                             'proteinLength': 74,
                             'proteinTitle': 'gi|327409| ubiquitin',
                             'proteinURL': None,
@@ -264,8 +271,9 @@ class TestProteinGrouper(TestCase):
 
     def testOneLineInEachOfTwoFilesDifferentViruses(self):
         """
-        If a protein grouper is given two files, each with one line from the
-        different viruses, its virusTitles dict must be as expected.
+        If a protein grouper is given two files in two different directories,
+        each with one line from the different viruses, its virusTitles dict
+        must be as expected.
         """
         fp1 = StringIO(
             '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
@@ -274,20 +282,21 @@ class TestProteinGrouper(TestCase):
             '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Hepatitis B virus]\n'
         )
         pg = ProteinGrouper()
-        pg.addFile('sample-filename-1', fp1)
-        pg.addFile('sample-filename-2', fp2)
+        pg.addFile('dir-1/sample-filename-1', fp1)
+        pg.addFile('dir-2/sample-filename-2', fp2)
         self.assertEqual(
             {
                 'Lausannevirus': {
-                    'sample-filename-1': [
+                    'dir-1/sample-filename-1': [
                         {
                             'bestScore': 44.2,
-                            'bluePlotFilename': 'out/0.png',
+                            'bluePlotFilename': 'dir-1/out/0.png',
                             'coverage': 0.63,
-                            'fastaFilename': 'out/0.fasta',
+                            'fastaFilename': 'dir-1/out/0.fasta',
                             'hspCount': 9,
                             'index': 0,
                             'medianScore': 41.3,
+                            'outDir': 'dir-1/out',
                             'proteinLength': 12,
                             'proteinTitle': 'gi|327410| protein 77',
                             'proteinURL': None,
@@ -296,15 +305,16 @@ class TestProteinGrouper(TestCase):
                     ],
                 },
                 'Hepatitis B virus': {
-                    'sample-filename-2': [
+                    'dir-2/sample-filename-2': [
                         {
                             'bestScore': 48.1,
-                            'bluePlotFilename': 'out/0.png',
+                            'bluePlotFilename': 'dir-2/out/0.png',
                             'coverage': 0.77,
-                            'fastaFilename': 'out/0.fasta',
+                            'fastaFilename': 'dir-2/out/0.fasta',
                             'hspCount': 6,
                             'index': 0,
                             'medianScore': 46.6,
+                            'outDir': 'dir-2/out',
                             'proteinLength': 74,
                             'proteinTitle': 'gi|327409| ubiquitin',
                             'proteinURL': None,
