@@ -15,8 +15,6 @@ scripts = [
     'bin/codon-distance.py',
     'bin/convert-blast-xml-to-json.py',
     'bin/convert-diamond-to-json.py',
-    'bin/convert-fasta-to-one-sequence-per-line.py',
-    'bin/convert-fastq-to-fasta.py',
     'bin/convert-sam-to-fastq.sh',
     'bin/dna-to-aa.py',
     'bin/e-value-to-bit-score.py',
@@ -51,7 +49,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.77',
+      version='1.0.78',
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
