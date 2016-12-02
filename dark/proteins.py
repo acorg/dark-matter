@@ -12,8 +12,10 @@ from dark.reads import Reads
 
 class VirusSampleFASTA(object):
     """
-    Maintain a cache of virus/sample FASTA file names, creating the FASTA
-    on demand.
+    Maintain a cache of virus/sample FASTA file names, creating de-duplicated
+    FASTA on demand.
+
+    @param proteinGrouper: An instance of C{ProteinGrouper}.
     """
     def __init__(self, proteinGrouper):
         self._proteinGrouper = proteinGrouper
@@ -337,7 +339,6 @@ class ProteinGrouper(object):
         # Write all samples (with viruses (with proteins)).
         append('<h1>Samples by virus</h1>')
         for sampleName in sampleNames:
-
             sampleVirusTitles = set()
             for virusTitle in virusTitles:
                 if sampleName in self.virusTitles[virusTitle]:

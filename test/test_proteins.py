@@ -271,7 +271,7 @@ class TestProteinGrouper(TestCase):
 
     def testOneLineInEachOfTwoFilesDifferentViruses(self):
         """
-        If a protein grouper is given two files intwo different directories,
+        If a protein grouper is given two files in two different directories,
         each with one line from the different viruses, its virusTitles dict
         must be as expected.
         """
