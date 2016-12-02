@@ -114,7 +114,7 @@ class TestFastqReads(TestCase):
                     self.count += 1
                     return File(['@id2\n', 'CAGT\n', '+\n', '!!!!\n'])
                 else:
-                    self.fail('We are only supposed to be called twice!')
+                    self.test.fail('We are only supposed to be called twice!')
 
         sideEffect = SideEffect(self)
         with patch.object(builtins, 'open') as mockMethod:

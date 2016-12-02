@@ -1,7 +1,16 @@
 from unittest import TestCase
 from six import StringIO
+from six.moves import builtins
+from contextlib import contextmanager
 
-from dark.proteins import ProteinGrouper
+from dark.proteins import ProteinGrouper, VirusSampleFASTA
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
+from .mocking import File
 
 
 class TestProteinGrouper(TestCase):
@@ -54,23 +63,26 @@ class TestProteinGrouper(TestCase):
         self.assertEqual(
             {
                 'Lausannevirus': {
-                    'sample-filename': [
-                        {
-                            'bestScore': 48.1,
-                            'bluePlotFilename': 'out/0.png',
-                            'coverage': 0.77,
-                            'fastaFilename': 'out/0.fasta',
-                            'hspCount': 6,
-                            'index': 0,
-                            'medianScore': 46.6,
-                            'outDir': 'out',
-                            'proteinLength': 74,
-                            'proteinTitle': 'gi|327|X|I44.6 ubiquitin',
-                            'proteinURL': (
-                                'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
-                            'readCount': 5,
-                        },
-                    ]
+                    'sample-filename': {
+                        'proteins': [
+                            {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.77,
+                                'fastaFilename': 'out/0.fasta',
+                                'hspCount': 6,
+                                'index': 0,
+                                'medianScore': 46.6,
+                                'outDir': 'out',
+                                'proteinLength': 74,
+                                'proteinTitle': 'gi|327|X|I44.6 ubiquitin',
+                                'proteinURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
+                                'readCount': 5,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 }
             },
             pg.virusTitles)
@@ -114,36 +126,39 @@ class TestProteinGrouper(TestCase):
         self.assertEqual(
             {
                 'Lausannevirus': {
-                    'sample-filename': [
-                        {
-                            'bestScore': 44.2,
-                            'bluePlotFilename': 'out/0.png',
-                            'coverage': 0.63,
-                            'fastaFilename': 'out/0.fasta',
-                            'hspCount': 9,
-                            'index': 0,
-                            'medianScore': 41.3,
-                            'outDir': 'out',
-                            'proteinLength': 12,
-                            'proteinTitle': 'gi|327410| protein 77',
-                            'proteinURL': None,
-                            'readCount': 9,
-                        },
-                        {
-                            'bestScore': 48.1,
-                            'bluePlotFilename': 'out/1.png',
-                            'coverage': 0.77,
-                            'fastaFilename': 'out/1.fasta',
-                            'hspCount': 6,
-                            'index': 1,
-                            'medianScore': 46.6,
-                            'outDir': 'out',
-                            'proteinLength': 74,
-                            'proteinTitle': 'gi|327409| ubiquitin',
-                            'proteinURL': None,
-                            'readCount': 5,
-                        },
-                    ],
+                    'sample-filename': {
+                        'proteins': [
+                            {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'fastaFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinTitle': 'gi|327410| protein 77',
+                                'proteinURL': None,
+                                'readCount': 9,
+                            },
+                            {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'out/1.png',
+                                'coverage': 0.77,
+                                'fastaFilename': 'out/1.fasta',
+                                'hspCount': 6,
+                                'index': 1,
+                                'medianScore': 46.6,
+                                'outDir': 'out',
+                                'proteinLength': 74,
+                                'proteinTitle': 'gi|327409| ubiquitin',
+                                'proteinURL': None,
+                                'readCount': 5,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 },
             },
             pg.virusTitles)
@@ -162,40 +177,46 @@ class TestProteinGrouper(TestCase):
         self.assertEqual(
             {
                 'Lausannevirus': {
-                    'sample-filename': [
-                        {
-                            'bestScore': 44.2,
-                            'bluePlotFilename': 'out/0.png',
-                            'coverage': 0.63,
-                            'fastaFilename': 'out/0.fasta',
-                            'hspCount': 9,
-                            'index': 0,
-                            'medianScore': 41.3,
-                            'outDir': 'out',
-                            'proteinLength': 12,
-                            'proteinTitle': 'gi|327410| protein 77',
-                            'proteinURL': None,
-                            'readCount': 9,
-                        },
-                    ],
+                    'sample-filename': {
+                        'proteins': [
+                            {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'fastaFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinTitle': 'gi|327410| protein 77',
+                                'proteinURL': None,
+                                'readCount': 9,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 },
                 'Hepatitis B virus': {
-                    'sample-filename': [
-                        {
-                            'bestScore': 48.1,
-                            'bluePlotFilename': 'out/1.png',
-                            'coverage': 0.77,
-                            'fastaFilename': 'out/1.fasta',
-                            'hspCount': 6,
-                            'index': 1,
-                            'medianScore': 46.6,
-                            'outDir': 'out',
-                            'proteinLength': 74,
-                            'proteinTitle': 'gi|327409| ubiquitin',
-                            'proteinURL': None,
-                            'readCount': 5,
-                        },
-                    ],
+                    'sample-filename': {
+                        'proteins': [
+                            {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'out/1.png',
+                                'coverage': 0.77,
+                                'fastaFilename': 'out/1.fasta',
+                                'hspCount': 6,
+                                'index': 1,
+                                'medianScore': 46.6,
+                                'outDir': 'out',
+                                'proteinLength': 74,
+                                'proteinTitle': 'gi|327409| ubiquitin',
+                                'proteinURL': None,
+                                'readCount': 5,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 },
             },
             pg.virusTitles)
@@ -217,38 +238,44 @@ class TestProteinGrouper(TestCase):
         self.assertEqual(
             {
                 'Lausannevirus': {
-                    'sample-filename-1': [
-                        {
-                            'bestScore': 44.2,
-                            'bluePlotFilename': 'out/0.png',
-                            'coverage': 0.63,
-                            'fastaFilename': 'out/0.fasta',
-                            'hspCount': 9,
-                            'index': 0,
-                            'medianScore': 41.3,
-                            'outDir': 'out',
-                            'proteinLength': 12,
-                            'proteinTitle': 'gi|327410| protein 77',
-                            'proteinURL': None,
-                            'readCount': 9,
-                        },
-                    ],
-                    'sample-filename-2': [
-                        {
-                            'bestScore': 48.1,
-                            'bluePlotFilename': 'out/0.png',
-                            'coverage': 0.77,
-                            'fastaFilename': 'out/0.fasta',
-                            'hspCount': 6,
-                            'index': 0,
-                            'medianScore': 46.6,
-                            'outDir': 'out',
-                            'proteinLength': 74,
-                            'proteinTitle': 'gi|327409| ubiquitin',
-                            'proteinURL': None,
-                            'readCount': 5,
-                        },
-                    ],
+                    'sample-filename-1': {
+                        'proteins': [
+                            {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'fastaFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinTitle': 'gi|327410| protein 77',
+                                'proteinURL': None,
+                                'readCount': 9,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
+                    'sample-filename-2': {
+                        'proteins': [
+                            {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.77,
+                                'fastaFilename': 'out/0.fasta',
+                                'hspCount': 6,
+                                'index': 0,
+                                'medianScore': 46.6,
+                                'outDir': 'out',
+                                'proteinLength': 74,
+                                'proteinTitle': 'gi|327409| ubiquitin',
+                                'proteinURL': None,
+                                'readCount': 5,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 },
             },
             pg.virusTitles)
@@ -271,7 +298,7 @@ class TestProteinGrouper(TestCase):
 
     def testOneLineInEachOfTwoFilesDifferentViruses(self):
         """
-        If a protein grouper is given two files intwo different directories,
+        If a protein grouper is given two files in two different directories,
         each with one line from the different viruses, its virusTitles dict
         must be as expected.
         """
@@ -287,40 +314,46 @@ class TestProteinGrouper(TestCase):
         self.assertEqual(
             {
                 'Lausannevirus': {
-                    'dir-1/sample-filename-1': [
-                        {
-                            'bestScore': 44.2,
-                            'bluePlotFilename': 'dir-1/out/0.png',
-                            'coverage': 0.63,
-                            'fastaFilename': 'dir-1/out/0.fasta',
-                            'hspCount': 9,
-                            'index': 0,
-                            'medianScore': 41.3,
-                            'outDir': 'dir-1/out',
-                            'proteinLength': 12,
-                            'proteinTitle': 'gi|327410| protein 77',
-                            'proteinURL': None,
-                            'readCount': 9,
-                        },
-                    ],
+                    'dir-1/sample-filename-1': {
+                        'proteins': [
+                            {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'dir-1/out/0.png',
+                                'coverage': 0.63,
+                                'fastaFilename': 'dir-1/out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'dir-1/out',
+                                'proteinLength': 12,
+                                'proteinTitle': 'gi|327410| protein 77',
+                                'proteinURL': None,
+                                'readCount': 9,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 },
                 'Hepatitis B virus': {
-                    'dir-2/sample-filename-2': [
-                        {
-                            'bestScore': 48.1,
-                            'bluePlotFilename': 'dir-2/out/0.png',
-                            'coverage': 0.77,
-                            'fastaFilename': 'dir-2/out/0.fasta',
-                            'hspCount': 6,
-                            'index': 0,
-                            'medianScore': 46.6,
-                            'outDir': 'dir-2/out',
-                            'proteinLength': 74,
-                            'proteinTitle': 'gi|327409| ubiquitin',
-                            'proteinURL': None,
-                            'readCount': 5,
-                        },
-                    ],
+                    'dir-2/sample-filename-2': {
+                        'proteins': [
+                            {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'dir-2/out/0.png',
+                                'coverage': 0.77,
+                                'fastaFilename': 'dir-2/out/0.fasta',
+                                'hspCount': 6,
+                                'index': 0,
+                                'medianScore': 46.6,
+                                'outDir': 'dir-2/out',
+                                'proteinLength': 74,
+                                'proteinTitle': 'gi|327409| ubiquitin',
+                                'proteinURL': None,
+                                'readCount': 5,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
                 },
             },
             pg.virusTitles)
@@ -399,7 +432,37 @@ class TestProteinGrouper(TestCase):
                 '<h2>Sample index</h2>',
                 '</p>',
                 '<h1>Viruses by sample</h1>',
+                '<p>',
+                'In the bullet point protein lists below, there are eight '
+                'fields:',
+                '<ol>',
+                '<li>Coverage fraction.</li>',
+                '<li>Median bit score.</li>',
+                '<li>Best bit score.</li>',
+                '<li>Read count.</li>',
+                '<li>HSP count (a read can match a protein more than once).'
+                '</li>',
+                '<li>Protein length (in AAs).</li>',
+                '<li>Index (just ignore this).</li>',
+                '<li>Protein name.</li>',
+                '</ol>',
+                '</p>',
                 '<h1>Samples by virus</h1>',
+                '<p>',
+                'In the bullet point protein lists below, there are eight '
+                'fields:',
+                '<ol>',
+                '<li>Coverage fraction.</li>',
+                '<li>Median bit score.</li>',
+                '<li>Best bit score.</li>',
+                '<li>Read count.</li>',
+                '<li>HSP count (a read can match a protein more than once).'
+                '</li>',
+                '<li>Protein length (in AAs).</li>',
+                '<li>Index (just ignore this).</li>',
+                '<li>Protein name.</li>',
+                '</ol>',
+                '</p>',
                 '</body>',
                 '</html>',
                 ]),
@@ -421,3 +484,62 @@ class TestProteinGrouper(TestCase):
             '  sample-filename (1 protein, 5 reads)\n'
             '    0.77\t46.60\t48.10\t   5\t   6\t  0\tgi|32|X|I4 protein X\n',
             pg.toStr())
+
+
+class TestVirusSampleFASTA(TestCase):
+    """
+    Tests for the VirusSampleFASTA class.
+    """
+
+    def testIdenticalReadsRemoved(self):
+        """
+        If two proteins in the same virus are matched by the same read, the
+        de-duplicated FASTA for the virus must have only one copy of the
+        duplicated read.
+        """
+        class SideEffect(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('out/0.fasta', filename)
+                    self.count += 1
+                    return File(['>id1\n', 'ACTG\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('out/1.fasta', filename)
+                    self.count += 1
+                    return File(['>id1\n', 'ACTG\n', '>id2\n', 'CAGT\n'])
+                elif self.count == 2:
+                    self.test.assertEqual('out/virus-0-sample-0.fasta',
+                                          filename)
+                    self.count += 1
+                    return self.manager
+                else:
+                    self.test.fail(
+                        'We are only supposed to be called 3 times. '
+                        'Filename: %r, Args: %r, Keyword args: %r.' %
+                        (filename, args, kwargs))
+
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+        )
+        fastaIO = StringIO()
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        pg = ProteinGrouper()
+        pg.addFile('filename-1', fp)
+        virusSampleFASTA = VirusSampleFASTA(pg)
+
+        sideEffect = SideEffect(self, manager())
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
+            self.assertEqual('out/virus-0-sample-0.fasta', filename)
+            self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())

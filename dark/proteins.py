@@ -25,7 +25,8 @@ from dark.reads import Reads
 
 class VirusSampleFASTA(object):
     """
-    Maintain a cache of virus/sample FASTA file names, creating the FASTA
+    Maintain a cache of virus/sample FASTA file names, creating de-duplicaed
+    FASTA files (from reads for all proteins of a virus that a sample has)
     on demand.
     """
     def __init__(self, proteinGrouper):
@@ -255,7 +256,7 @@ class ProteinGrouper(object):
                 proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
                 totalReads = sum(readCountGetter(p) for p in proteins)
-                append('  %s (%d protein%s, %d read%s (%d unique))' %
+                append('  %s (%d protein%s, %d read%s)' %
                        (sampleName,
                         proteinCount, '' if proteinCount == 1 else 's',
                         totalReads, '' if totalReads == 1 else 's'))
@@ -325,6 +326,22 @@ class ProteinGrouper(object):
             '<body>',
         ]
 
+        proteinFieldsDescription = (
+            '<p>',
+            'In the bullet point protein lists below, there are eight fields:',
+            '<ol>',
+            '<li>Coverage fraction.</li>',
+            '<li>Median bit score.</li>',
+            '<li>Best bit score.</li>',
+            '<li>Read count.</li>',
+            '<li>HSP count (a read can match a protein more than once).</li>',
+            '<li>Protein length (in AAs).</li>',
+            '<li>Index (just ignore this).</li>',
+            '<li>Protein name.</li>',
+            '</ol>',
+            '</p>',
+        )
+
         append = result.append
 
         append('<h1>%s</h1>' % self._title())
@@ -359,6 +376,8 @@ class ProteinGrouper(object):
 
         # Write all viruses (with samples (with proteins)).
         append('<h1>Viruses by sample</h1>')
+        result.extend(proteinFieldsDescription)
+
         for virusTitle in virusTitles:
             samples = self.virusTitles[virusTitle]
             sampleCount = len(samples)
@@ -391,7 +410,8 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore).2f %(bestScore).2f '
-                        '%(readCount)4d %(hspCount)4d %(index)3d '
+                        '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
+                        '%(index)3d '
                         '</span> '
                         '<span class="protein-title">'
                         '%(proteinTitle)s'
@@ -415,6 +435,8 @@ class ProteinGrouper(object):
 
         # Write all samples (with viruses (with proteins)).
         append('<h1>Samples by virus</h1>')
+        result.extend(proteinFieldsDescription)
+
         for sampleName in sampleNames:
 
             sampleVirusTitles = set()
@@ -452,7 +474,8 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore).2f %(bestScore).2f '
-                        '%(readCount)4d %(hspCount)4d %(index)3d '
+                        '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
+                        '%(index)3d '
                         '</span> '
                         '<span class="protein-title">'
                         '%(proteinTitle)s'
