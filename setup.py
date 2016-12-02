@@ -15,8 +15,6 @@ scripts = [
     'bin/codon-distance.py',
     'bin/convert-blast-xml-to-json.py',
     'bin/convert-diamond-to-json.py',
-    'bin/convert-fasta-to-one-sequence-per-line.py',
-    'bin/convert-fastq-to-fasta.py',
     'bin/convert-sam-to-fastq.sh',
     'bin/dna-to-aa.py',
     'bin/e-value-to-bit-score.py',
