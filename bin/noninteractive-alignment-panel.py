@@ -27,7 +27,7 @@ matplotlib.use('PDF')
 from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
-from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanel
+from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
 
 
 def parseColors(colors, args):
@@ -322,8 +322,8 @@ if __name__ == '__main__':
 
     idList = parseColors(args.color, args) if args.color else None
 
-    alignmentPanel(titlesAlignments, sortOn=args.sortOn, interactive=False,
-                   outputDir=args.outputDir, idList=idList,
-                   equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
-                   logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
-                   showFeatures=args.showFeatures)
+    alignmentPanelHTML(
+        titlesAlignments, sortOn=args.sortOn, outputDir=args.outputDir,
+        idList=idList, equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
+        logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
+        showFeatures=args.showFeatures)
