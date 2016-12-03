@@ -491,13 +491,66 @@ class TestVirusSampleFASTA(TestCase):
     Tests for the VirusSampleFASTA class.
     """
 
+    def testOpenNotCalledOnRepeatedCall(self):
+        """
+        If a repeated call to virusSampleFASTA.add is made with the same
+        arguments, no file should be read because the original result value is
+        cached.
+        """
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('out/0.fasta', filename)
+                    self.count += 1
+                    return File(['>id1\n', 'ACTG\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('out/virus-0-sample-0.fasta',
+                                          filename)
+                    self.count += 1
+                    return self.manager
+                else:
+                    self.test.fail(
+                        'We are only supposed to be called twice. '
+                        'Filename: %r, Args: %r, Keyword args: %r.' %
+                        (filename, args, kwargs))
+
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+        )
+        fastaIO = StringIO()
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        pg = ProteinGrouper()
+        pg.addFile('filename-1', fp)
+        virusSampleFASTA = VirusSampleFASTA(pg)
+
+        sideEffect = Open(self, manager()).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
+            self.assertEqual('out/virus-0-sample-0.fasta', filename)
+            self.assertEqual('>id1\nACTG\n', fastaIO.getvalue())
+
+            # Repeated call. The side effect open will fail if open is
+            # called at this point.
+            filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
+            self.assertEqual('out/virus-0-sample-0.fasta', filename)
+
     def testIdenticalReadsRemoved(self):
         """
         If two proteins in the same virus are matched by the same read, the
         de-duplicated FASTA for the virus must have only one copy of the
         duplicated read.
         """
-        class SideEffect(object):
+        class Open(object):
             def __init__(self, test, manager):
                 self.test = test
                 self.manager = manager
@@ -537,9 +590,9 @@ class TestVirusSampleFASTA(TestCase):
         pg.addFile('filename-1', fp)
         virusSampleFASTA = VirusSampleFASTA(pg)
 
-        sideEffect = SideEffect(self, manager())
+        sideEffect = Open(self, manager()).sideEffect
         with patch.object(builtins, 'open') as mockMethod:
-            mockMethod.side_effect = sideEffect.sideEffect
+            mockMethod.side_effect = sideEffect
             filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
             self.assertEqual('out/virus-0-sample-0.fasta', filename)
             self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())

@@ -512,9 +512,6 @@ class ProteinGrouper(object):
         @param sampleNames: A sorted C{list} of sample names.
         @param ax: A matplotlib C{axes} instance.
         """
-        # import sys
-        # print('Making plot for %s (%d samples)' %
-        #       (virusTitle, len(sampleNames)), file=sys.stderr)
         readCounts = []
         for i, sampleName in enumerate(sampleNames):
             try:
