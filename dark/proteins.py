@@ -1,10 +1,23 @@
+from __future__ import division, print_function
+
 import re
 from os.path import dirname, join
-from collections import defaultdict
 from operator import itemgetter
 from six.moves.urllib.parse import quote
+import numpy as np
+from textwrap import fill
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    import platform
+    if platform.python_implementation() == 'PyPy':
+        raise NotImplementedError(
+            'matplotlib is not supported under pypy')
+    else:
+        raise
 
+from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads
@@ -12,8 +25,9 @@ from dark.reads import Reads
 
 class VirusSampleFASTA(object):
     """
-    Maintain a cache of virus/sample FASTA file names, creating de-duplicated
-    FASTA on demand.
+    Maintain a cache of virus/sample FASTA file names, creating de-duplicaed
+    FASTA files (from reads for all proteins of a virus that a sample has)
+    on demand.
 
     @param proteinGrouper: An instance of C{ProteinGrouper}.
     """
@@ -25,14 +39,16 @@ class VirusSampleFASTA(object):
 
     def add(self, virusTitle, sampleName):
         """
-        Add a a virus title, sample name combination and get its FASTA file
-        name. Write the FASTA file if it does not already exist.
+        Add a virus title, sample name combination and get its FASTA file
+        name and unique read count. Write the FASTA file if it does not
+        already exist. Save the unique read count into
+        C{self._proteinGrouper}.
 
         @param virusTitle: A C{str} virus title.
         @param sampleName: A C{str} sample name.
-        @return: A C{str} FASTA file name holding all the reads (without
-            duplicates) from the sample that matched the proteins in the given
-            virus.
+        @return: A C{str} giving the FASTA file name holding all the reads
+            (without duplicates) from the sample that matched the proteins in
+            the given virus.
         """
         virusIndex = self._viruses.setdefault(virusTitle, len(self._viruses))
         sampleIndex = self._samples.setdefault(sampleName, len(self._samples))
@@ -40,18 +56,41 @@ class VirusSampleFASTA(object):
         try:
             return self._fastaFilenames[(virusIndex, sampleIndex)]
         except KeyError:
-            result = Reads()
-            for proteinMatch in self._proteinGrouper.virusTitles[
-                    virusTitle][sampleName]:
-                for read in FastaReads(proteinMatch['fastaFilename'],
+            reads = Reads()
+            for protein in self._proteinGrouper.virusTitles[
+                    virusTitle][sampleName]['proteins']:
+                for read in FastaReads(protein['fastaFilename'],
                                        checkAlphabet=0):
-                    result.add(read)
+                    reads.add(read)
             saveFilename = join(
-                proteinMatch['outDir'],
+                protein['outDir'],
                 'virus-%d-sample-%d.fasta' % (virusIndex, sampleIndex))
-            result.filter(removeDuplicates=True).save(saveFilename)
+            unique = reads.filter(removeDuplicates=True)
+            unique.save(saveFilename)
+            # Save the unique count into self._proteinGrouper
+            self._proteinGrouper.virusTitles[
+                virusTitle][sampleName]['uniqueReadCount'] = len(unique)
             self._fastaFilenames[(virusIndex, sampleIndex)] = saveFilename
             return saveFilename
+
+    def lookup(self, virusTitle, sampleName):
+        """
+        Look up a virus title, sample name combination and get its FASTA file
+        name and unique read count.
+
+        This method should be used instead of C{add} in situations where
+        you want an exception to be raised if a virus/sample combination has
+        not already been passed to C{add}.
+
+        @param virusTitle: A C{str} virus title.
+        @param sampleName: A C{str} sample name.
+        @raise KeyError: If the virus title or sample name have not been seen,
+            either individually or in combination.
+        @return: A (C{str}, C{int}) tuple retrieved from self._fastaFilenames
+        """
+        virusIndex = self._viruses[virusTitle]
+        sampleIndex = self._samples[sampleName]
+        return self._fastaFilenames[(virusIndex, sampleIndex)]
 
 
 class ProteinGrouper(object):
@@ -101,11 +140,14 @@ class ProteinGrouper(object):
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
                                  else None)
         self._assetDir = assetDir
-        # virusTitles is a dict of dicts of lists.
-        self.virusTitles = defaultdict(lambda: defaultdict(list))
+        # virusTitles will be a dict of dicts of dicts. The first two keys
+        # will be a virus title and a sample name. The final dict will
+        # contain 'proteins' (a list of dicts) and 'uniqueReadCount' (an int).
+        self.virusTitles = {}
         # sampleNames is keyed by sample name and will have values that hold
         # the sample's alignment panel index.html file.
         self.sampleNames = {}
+        self.virusSampleFASTA = VirusSampleFASTA(self)
 
     def _title(self):
         """
@@ -152,7 +194,16 @@ class ProteinGrouper(object):
                 proteinTitle = titles
                 virusTitle = self.NO_VIRUS_TITLE
 
-            self.virusTitles[virusTitle][sampleName].append({
+            if virusTitle not in self.virusTitles:
+                self.virusTitles[virusTitle] = {}
+
+            if sampleName not in self.virusTitles[virusTitle]:
+                self.virusTitles[virusTitle][sampleName] = {
+                    'proteins': [],
+                    'uniqueReadCount': None,
+                }
+
+            self.virusTitles[virusTitle][sampleName]['proteins'].append({
                 'bestScore': float(bestScore),
                 'bluePlotFilename': join(outDir, '%d.png' % index),
                 'coverage': float(coverage),
@@ -167,12 +218,28 @@ class ProteinGrouper(object):
                 'readCount': int(readCount),
             })
 
+    def _computeUniqueReadCounts(self):
+        """
+        Add all virus / sample combinations to self.virusSampleFASTA.
+
+        This will make all de-duplicated FASTA files and store the number
+        of de-duplicated reads into C{self.virusTitles}.
+        """
+        for virusTitle, samples in self.virusTitles.items():
+            for sampleName in samples:
+                self.virusSampleFASTA.add(virusTitle, sampleName)
+
     def toStr(self):
         """
         Produce a string representation of the virus summary.
 
         @return: A C{str} suitable for printing.
         """
+        # Note that the string representation contains much less
+        # information than the HTML summary. E.g., it does not contain the
+        # unique (de-duplicated) read count, since that is only computed
+        # when we are making combined FASTA files of reads matching a
+        # virus.
         titleGetter = itemgetter('proteinTitle')
         readCountGetter = itemgetter('readCount')
         result = []
@@ -188,7 +255,7 @@ class ProteinGrouper(object):
                    (virusTitle,
                     sampleCount, '' if sampleCount == 1 else 's'))
             for sampleName in sorted(samples):
-                proteins = samples[sampleName]
+                proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
                 totalReads = sum(readCountGetter(p) for p in proteins)
                 append('  %s (%d protein%s, %d read%s)' %
@@ -206,15 +273,20 @@ class ProteinGrouper(object):
 
         return '\n'.join(result)
 
-    def toHTML(self):
+    def toHTML(self, virusPanelFilename=None):
         """
         Produce an HTML string representation of the virus summary.
 
+        @param virusPanelFilename: If not C{None}, a C{str} filename to write
+            a virus panel PNG image to.
         @return: An HTML C{str} suitable for printing.
         """
+        self._computeUniqueReadCounts()
+
+        if virusPanelFilename:
+            self.virusPanel(virusPanelFilename)
+
         titleGetter = itemgetter('proteinTitle')
-        readCountGetter = itemgetter('readCount')
-        virusSampleFASTA = VirusSampleFASTA(self)
         virusTitles = sorted(self.virusTitles)
         sampleNames = sorted(self.sampleNames)
 
@@ -256,9 +328,33 @@ class ProteinGrouper(object):
             '<body>',
         ]
 
+        proteinFieldsDescription = (
+            '<p>',
+            'In the bullet point protein lists below, there are eight fields:',
+            '<ol>',
+            '<li>Coverage fraction.</li>',
+            '<li>Median bit score.</li>',
+            '<li>Best bit score.</li>',
+            '<li>Read count.</li>',
+            '<li>HSP count (a read can match a protein more than once).</li>',
+            '<li>Protein length (in AAs).</li>',
+            '<li>Index (just ignore this).</li>',
+            '<li>Protein name.</li>',
+            '</ol>',
+            '</p>',
+        )
+
         append = result.append
 
         append('<h1>%s</h1>' % self._title())
+
+        if virusPanelFilename:
+            append('<p>')
+            append('<a href="%s">Panel showing read count per virus, per '
+                   'sample.</a>' % virusPanelFilename)
+            append('Red vertical bars indicate samples with an unusually high '
+                   'read count.')
+            append('</p>')
 
         # Write a linked table of contents by virus.
         append('<h2>Virus index</h2>')
@@ -282,6 +378,8 @@ class ProteinGrouper(object):
 
         # Write all viruses (with samples (with proteins)).
         append('<h1>Viruses by sample</h1>')
+        result.extend(proteinFieldsDescription)
+
         for virusTitle in virusTitles:
             samples = self.virusTitles[virusTitle]
             sampleCount = len(samples)
@@ -293,10 +391,11 @@ class ProteinGrouper(object):
                  '' if sampleCount == 1 else 's',
                  self.VIRALZONE, quote(virusTitle)))
             for sampleName in sorted(samples):
-                fastaName = virusSampleFASTA.add(virusTitle, sampleName)
-                proteins = samples[sampleName]
+                fastaName = self.virusSampleFASTA.lookup(virusTitle,
+                                                         sampleName)
+                proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
-                totalReads = sum(readCountGetter(p) for p in proteins)
+                uniqueReadCount = samples[sampleName]['uniqueReadCount']
                 append(
                     '<p class=sample>'
                     '<span class="sample-name">%s</span> '
@@ -304,9 +403,8 @@ class ProteinGrouper(object):
                     '<a href="%s">fasta</a>)' %
                     (sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
-                     totalReads, '' if totalReads == 1 else 's',
-                     self.sampleNames[sampleName],
-                     fastaName))
+                     uniqueReadCount, '' if uniqueReadCount == 1 else 's',
+                     self.sampleNames[sampleName], fastaName))
                 proteins.sort(key=titleGetter)
                 append('<ul class="protein-list">')
                 for proteinMatch in proteins:
@@ -314,7 +412,8 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore).2f %(bestScore).2f '
-                        '%(readCount)4d %(hspCount)4d %(index)3d '
+                        '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
+                        '%(index)3d '
                         '</span> '
                         '<span class="protein-title">'
                         '%(proteinTitle)s'
@@ -338,6 +437,8 @@ class ProteinGrouper(object):
 
         # Write all samples (with viruses (with proteins)).
         append('<h1>Samples by virus</h1>')
+        result.extend(proteinFieldsDescription)
+
         for sampleName in sampleNames:
             sampleVirusTitles = set()
             for virusTitle in virusTitles:
@@ -353,17 +454,19 @@ class ProteinGrouper(object):
                  self.sampleNames[sampleName]))
 
             for virusTitle in sorted(sampleVirusTitles):
-                fastaName = virusSampleFASTA.add(virusTitle, sampleName)
-                proteins = self.virusTitles[virusTitle][sampleName]
+                fastaName = self.virusSampleFASTA.lookup(virusTitle,
+                                                         sampleName)
+                proteins = self.virusTitles[virusTitle][sampleName]['proteins']
+                uniqueReadCount = self.virusTitles[
+                    virusTitle][sampleName]['uniqueReadCount']
                 proteinCount = len(proteins)
-                totalReads = sum(readCountGetter(p) for p in proteins)
                 append(
                     '<p class="sample">'
                     '<span class="virus-title">%s</span> '
                     '(%d protein%s, %d read%s, <a href="%s">fasta</a>)' %
                     (virusTitle,
                      proteinCount, '' if proteinCount == 1 else 's',
-                     totalReads, '' if totalReads == 1 else 's',
+                     uniqueReadCount, '' if uniqueReadCount == 1 else 's',
                      fastaName))
                 proteins.sort(key=titleGetter)
                 append('<ul class="protein-list">')
@@ -372,7 +475,8 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore).2f %(bestScore).2f '
-                        '%(readCount)4d %(hspCount)4d %(index)3d '
+                        '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
+                        '%(index)3d '
                         '</span> '
                         '<span class="protein-title">'
                         '%(proteinTitle)s'
@@ -398,3 +502,107 @@ class ProteinGrouper(object):
         append('</html>')
 
         return '\n'.join(result)
+
+    def _virusSamplePlot(self, virusTitle, sampleNames, ax):
+        """
+        Make an image of a graph giving virus read count (Y axis) versus
+        sample id (X axis).
+
+        @param virusTitle: A C{str} virus title.
+        @param sampleNames: A sorted C{list} of sample names.
+        @param ax: A matplotlib C{axes} instance.
+        """
+        readCounts = []
+        for i, sampleName in enumerate(sampleNames):
+            try:
+                readCount = self.virusTitles[virusTitle][sampleName][
+                    'uniqueReadCount']
+            except KeyError:
+                readCount = 0
+            readCounts.append(readCount)
+
+        highlight = 'r'
+        normal = 'gray'
+        sdMultiple = 2.5
+        minReadsForHighlighting = 10
+        highlighted = []
+
+        if len(readCounts) == 1:
+            if readCounts[0] > minReadsForHighlighting:
+                color = [highlight]
+                highlighted.append(sampleNames[0])
+            else:
+                color = [normal]
+        else:
+            mean = np.mean(readCounts)
+            sd = np.std(readCounts)
+            color = []
+            for readCount, sampleName in zip(readCounts, sampleNames):
+                if (readCount > (sdMultiple * sd) + mean and
+                        readCount >= minReadsForHighlighting):
+                    color.append(highlight)
+                    highlighted.append(sampleName)
+                else:
+                    color.append(normal)
+
+        nSamples = len(sampleNames)
+        x = np.arange(nSamples)
+        yMin = np.zeros(nSamples)
+        ax.set_xticks([])
+        ax.set_xlim((-0.5, nSamples - 0.5))
+        ax.vlines(x, yMin, readCounts, color=color)
+        if highlighted:
+            title = '%s\nIn red: %s' % (
+                virusTitle, fill(', '.join(highlighted), 50))
+        else:
+            # Add a newline to keep the first line of each title at the
+            # same place as those titles that have an "In red:" second
+            # line.
+            title = virusTitle + '\n'
+
+        ax.set_title(title, fontsize=10)
+        ax.tick_params(axis='both', which='major', labelsize=8)
+        ax.tick_params(axis='both', which='minor', labelsize=6)
+
+    def virusPanel(self, filename):
+        """
+        Make a panel of images, with each image being a graph giving virus
+        de-duplicated read count (Y axis) versus sample id (X axis).
+
+        @param filename: A C{str} file name to write the image to.
+        """
+        self._computeUniqueReadCounts()
+        virusTitles = sorted(self.virusTitles)
+        sampleNames = sorted(self.sampleNames)
+
+        cols = 5
+        rows = int(len(virusTitles) / cols) + (
+            0 if len(virusTitles) % cols == 0 else 1)
+        figure, ax = plt.subplots(rows, cols)  # , squeeze=False)
+
+        coords = dimensionalIterator((rows, cols))
+
+        for i, virusTitle in enumerate(virusTitles):
+            row, col = next(coords)
+            self._virusSamplePlot(virusTitle, sampleNames, ax[row][col])
+
+        # Hide the final panel graphs (if any) that have no content. We do
+        # this because the panel is a rectangular grid and some of the
+        # plots at the end of the last row may be unused.
+        for row, col in coords:
+            ax[row][col].axis('off')
+
+        figure.suptitle(
+            ('Per-sample read count for %d virus%s and %d sample%s.\n\nSample '
+             'name%s: %s') % (
+                 len(virusTitles),
+                 '' if len(virusTitles) == 1 else 'es',
+                 len(sampleNames),
+                 '' if len(sampleNames) == 1 else 's',
+                 '' if len(sampleNames) == 1 else 's',
+                 fill(', '.join(sampleNames), 50)),
+            fontsize=20)
+        figure.set_size_inches(5.0 * cols, 2.0 * rows, forward=True)
+        plt.subplots_adjust(hspace=0.4)
+
+        figure.savefig(filename)
