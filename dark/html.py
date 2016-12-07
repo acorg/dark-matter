@@ -1,6 +1,6 @@
-from IPython.display import HTML
+from __future__ import print_function
 
-from dark.reads import Reads
+from IPython.display import HTML
 
 
 def NCBISequenceLinkURL(title, default=None):
@@ -121,7 +121,7 @@ def summarizeTitlesByMedianScore(titlesAlignments, limit=None):
     return _sortHTML(titlesAlignments, 'medianScore', limit)
 
 
-class AlignmentPanelHTML(object):
+class AlignmentPanelHTMLWriter(object):
     """
     Produces HTML details of a rectangular panel of graphs that each
     contain an alignment graph against a given sequence. This is
@@ -142,10 +142,10 @@ class AlignmentPanelHTML(object):
             'title': title
         })
 
-    def close(self, panelFilename):
+    def close(self):
         with open('%s/index.html' % self._outputDir, 'w') as fp:
             self._writeHeader(fp)
-            self._writeBody(fp, panelFilename)
+            self._writeBody(fp)
             self._writeFooter(fp)
         with open('%s/style.css' % self._outputDir, 'w') as fp:
             self._writeCSS(fp)
@@ -154,57 +154,78 @@ class AlignmentPanelHTML(object):
         fp.write("""\
 <html>
   <head>
-    <title>woot</title>
+    <title>Read alignments for %d matched subjects</title>
     <link rel="stylesheet" type="text/css" href="style.css">
   </head>
   <body>
     <div id="content">
-""")
+        """ % len(self._images))
 
-    def _writeBody(self, fp, panelFilename):
-        fp.write("""
-      <h1>
-        Original panel image
-      </h1>
-      <p>
-        <img src="%s" class="panel"/>
-      </p>
-"""
-                 % panelFilename)
+    def _writeBody(self, fp):
+        fp.write('<h1>Read alignments for %d matched subjects</h1>\n' %
+                 len(self._images))
 
-        # Write out the summary images.
+        # Write out an alignment panel as a table.
+        cols = 6
+        fp.write('<table><tbody>\n')
+
+        for i, image in enumerate(self._images):
+            title = image['title']
+
+            if i % cols == 0:
+                fp.write('<tr>\n')
+
+            fp.write(
+                '<td><a id="small_%d"></a><a href="#big_%d"><img src="%s" '
+                'class="thumbnail"/></a></td>\n' %
+                (i, i, image['imageBasename']))
+
+            if i % cols == cols - 1:
+                fp.write('</tr>')
+
+        # Add empty cells to the final table row, and close the row, if
+        # necessary.
+        if i % cols < cols - 1:
+            while i % cols < cols - 1:
+                fp.write('<td>&nbsp;</td>\n')
+                i += 1
+            fp.write('</tr>\n')
+
+        fp.write('</tbody></table>\n')
+
+        # Write out the full images with additional detail.
         for i, image in enumerate(self._images):
             title = image['title']
             titleAlignments = self._titlesAlignments[title]
             graphInfo = image['graphInfo']
-            reads = self._writeFASTA(i, image)
+            self._writeFASTA(i, image)
             fp.write("""
-      <a id="small_%d"></a>
+      <a id="big_%d"></a>
       <h3>%d: %s</h3>
       <p>
-        <a href="#big_%d"><img src="%s" class="thumbnail"/></a>
-        Sequence length: %d base pairs.<br/>
-        Number of reads that hit overall: %d.<br/>
-        Number of HSPs: %d.<br/>
-        <a href="#big_%d">Full size image</a>.
+            Length: %d.
+            Read count: %d.
+            HSP count: %d.
+            <a href="%d.fasta">fasta</a>.
+            <a href="#small_%d">Top panel.</a>
 """
-                     % (i, i, title, i, image['imageBasename'],
+                     % (i, i, title,
                         titleAlignments.subjectLength,
                         titleAlignments.readCount(),
-                        titleAlignments.hspCount(), i))
+                        titleAlignments.hspCount(), i, i))
 
             url = NCBISequenceLinkURL(title)
             if url:
-                fp.write('<br/><a href="%s" target="_blank">NCBI info on this '
-                         'target</a>.' % url)
+                fp.write('<a href="%s" target="_blank">NCBI</a>.' % url)
 
             # Write out feature information.
             if graphInfo['features'] is None:
-                fp.write('<br/>Feature lookup was False (or we were offline).')
+                # Feature lookup was False (or we were offline).
+                pass
             elif len(graphInfo['features']) == 0:
-                fp.write('<br/>There were no features.')
+                fp.write('There were no features.')
             else:
-                fp.write('<br/><a href="%s">Features</a>' %
+                fp.write('<a href="%s">Features</a>' %
                          self._writeFeatures(i, image))
 
             # Write out the titles that this title invalidated due to its
@@ -222,25 +243,9 @@ class AlignmentPanelHTML(object):
                         fp.write('<li>%s</li>' % title)
                     fp.write('</ul>')
 
-            if len(reads):
-                fp.write('<br/>Reads: <span class="reads">%s</span>'
-                         % ', '.join(read.id for read in reads))
-
-            fp.write('<br clear="all"/></p>')
-
-        # Write out the large images.
-        for i, image in enumerate(self._images):
-            title = image['title']
-            fp.write("""
-       <a id="big_%d"></a>
-       <h3>%d: %s</h3>
-       <p>
-         <img src="%s"/>
-         <a href="#small_%d">Back to summary</a>.<br/>
-         <br clear="all"/>
-       </p>
-"""
-                     % (i, i, title, image['imageBasename'], i))
+            fp.write(
+                '</p><img src="%s" class="full-size"/>' %
+                image['imageBasename'])
 
     def _writeFooter(self, fp):
         fp.write("""\
@@ -252,19 +257,14 @@ class AlignmentPanelHTML(object):
     def _writeCSS(self, fp):
         fp.write("""\
 #content {
-  width: 90%;
+  width: 95%;
   margin: auto;
 }
 img.thumbnail {
-  height: 200px;
-  float: left;
+  height: 300px;
 }
-img.panel {
-  max-width: 1200px;
-}
-span.reads {
-  font-size: 8pt;
-  font-family: monospace;
+img.full-size {
+  height: 900px;
 }
 """)
 
@@ -274,21 +274,16 @@ span.reads {
 
         @param i: The number of the image in self._images.
         @param image: A member of self._images.
-        @return: A C{dark.reads.Reads} instance holding the reads for the
-            image title.
         """
-        reads = Reads()
-        title = image['title']
-        titleAlignments = self._titlesAlignments[title]
-        for titleAlignment in titleAlignments:
-            reads.add(titleAlignment.read)
         filename = '%s/%d.fasta' % (self._outputDir, i)
-        reads.save(filename, 'fasta')
-        return reads
+        titleAlignments = self._titlesAlignments[image['title']]
+        with open(filename, 'w') as fp:
+            for titleAlignment in titleAlignments:
+                fp.write(titleAlignment.read.toString('fasta'))
 
     def _writeFeatures(self, i, image):
         """
-        Write a txt file containing the features as a table.
+        Write a text file containing the features as a table.
 
         @param i: The number of the image in self._images.
         @param image: A member of self._images.

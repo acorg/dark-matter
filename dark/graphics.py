@@ -4,6 +4,7 @@ from stat import S_ISDIR
 from math import ceil
 from collections import defaultdict
 from time import ctime, time
+from textwrap import fill
 
 try:
     import matplotlib.pyplot as plt
@@ -11,9 +12,9 @@ except ImportError:
     import platform
     if platform.python_implementation() == 'PyPy':
         # PyPy doesn't have a version of matplotlib. Make fake classes and
-        # a Line2D function and that raise if used. This allows us to use
-        # other 'dark' code that happens to import dark.mutations but not
-        # use the functions that rely on matplotlib.
+        # a Line2D function that raises if used. This allows us to use
+        # other 'dark' code that happens to import dark.graphics but which
+        # does not use the functions that rely on matplotlib.
         class plt(object):
             def __getattr__(self, _):
                 raise NotImplementedError(
@@ -34,7 +35,7 @@ import numpy as np
 from dark.aa import propertiesForSequence, clustersForSequence
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
-from dark.html import AlignmentPanelHTML, NCBISequenceLinkURL
+from dark.html import AlignmentPanelHTMLWriter, NCBISequenceLinkURL
 from dark.intervals import ReadIntervals
 from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
 from dark import orfs
@@ -171,7 +172,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
 
     readsAlignments = titlesAlignments.readsAlignments
     subjectIsNucleotides = readsAlignments.params.subjectIsNucleotides
-    sequence = readsAlignments.getSubjectSequence(title)
+    subject = readsAlignments.getSubjectSequence(title)
 
     if showOrfs and not subjectIsNucleotides:
         # We cannot show ORFs when displaying protein plots.
@@ -206,7 +207,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     else:
         adjustOffset = lambda x: x
 
-    # It might be more efficient to only walk through all HSPs once and
+    # It would be more efficient to only walk through all HSPs once and
     # compute these values all at once, but for now this is simple and clear.
     maxY = int(ceil(titleAlignments.bestHsp().score.score))
     minY = int(titleAlignments.worstHsp().score.score)
@@ -216,7 +217,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     if xRange == 'subject':
         # We'll display a graph for the full subject range. Adjust X axis
         # min/max to make sure we cover at least zero to the sequence length.
-        maxX = max(len(sequence), maxX)
+        maxX = max(len(subject), maxX)
         minX = min(0, minX)
 
     # Swap min & max Y values, if needed, as it's possible we are dealing
@@ -390,9 +391,9 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 readsAx.add_line(line)
 
     if showOrfs:
-        orfs.addORFs(orfAx, sequence.sequence, minX, maxX, adjustOffset)
+        orfs.addORFs(orfAx, subject.sequence, minX, maxX, adjustOffset)
         orfs.addReversedORFs(orfReversedAx,
-                             sequence.reverseComplement().sequence,
+                             subject.reverseComplement().sequence,
                              minX, maxX, adjustOffset)
 
     if showFeatures:
@@ -447,8 +448,8 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         figure.suptitle(
             '%s\nLength %d %s, %d read%s, %d HSP%s.' %
             (
-                sequence.id,
-                len(sequence), 'nt' if subjectIsNucleotides else 'aa',
+                fill(subject.id, 80),
+                len(subject), 'nt' if subjectIsNucleotides else 'aa',
                 readCount, '' if readCount == 1 else 's',
                 hspCount, '' if hspCount == 1 else 's'
             ),
@@ -479,11 +480,10 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     return result
 
 
-def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
-                   outputDir=None, idList=False, equalizeXAxes=False,
-                   xRange='subject', logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankScores=False,
-                   showFeatures=True):
+def alignmentPanel(titlesAlignments, sortOn='maxScore', idList=False,
+                   equalizeXAxes=False, xRange='subject', logLinearXAxis=False,
+                   rankScores=False, showFeatures=True,
+                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -491,76 +491,42 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
     @param sortOn: The attribute to sort subplots on. Either "maxScore",
         "medianScore", "readCount", "length", or "title".
-    @param interactive: If C{True}, we are interactive and should display the
-        panel using figure.show etc.
-    @param outputDir: If not None, specifies a directory to write an HTML
-        summary to. If the directory does not exist it will be created.
-    @param idList: a dictionary. Keys are colors and values are lists of read
+    @param idList: A dictionary. Keys are colors and values are lists of read
         ids that should be colored using that color.
-    @param equalizeXAxes: if C{True}, adjust the X axis on each alignment plot
+    @param equalizeXAxes: If C{True}, adjust the X axis on each alignment plot
         to be the same.
-    @param xRange: set to either 'subject' or 'reads' to indicate the range of
+    @param xRange: Set to either 'subject' or 'reads' to indicate the range of
         the X axis.
-    @param logLinearXAxis: if C{True}, convert read offsets so that empty
+    @param logLinearXAxis: If C{True}, convert read offsets so that empty
         regions in the plots we're preparing will only be as wide as their
         logged actual values.
-    @param logBase: The base of the logarithm to use if logLinearXAxis is
-        C{True}.
+    @param logBase: The logarithm base to use if logLinearXAxis is C{True}.
     @param: rankScores: If C{True}, change the scores for the reads for each
         title to be their rank (worst to best).
-    @param showFeatures: if C{True}, look online for features of the subject
+    @param showFeatures: If C{True}, look online for features of the subject
         sequences.
+    @raise ValueError: If C{outputDir} exists but is not a directory or if
+        C{xRange} is not "subject" or "reads".
     """
 
-    assert xRange in ('subject', 'reads'), (
-        'xRange must be either "subject" or "reads".')
-
-    if not (interactive or outputDir):
-        raise ValueError('Either interactive or outputDir must be True')
+    if xRange not in ('subject', 'reads'):
+        raise ValueError('xRange must be either "subject" or "reads".')
 
     start = time()
     titles = titlesAlignments.sortTitles(sortOn)
     cols = 5
     rows = int(len(titles) / cols) + (0 if len(titles) % cols == 0 else 1)
     figure, ax = plt.subplots(rows, cols, squeeze=False)
-    if interactive:
-        report('Plotting %d titles in %dx%d grid, sorted on %s' %
-               (len(titles), rows, cols, sortOn))
     allGraphInfo = {}
-
-    if outputDir:
-        if os.access(outputDir, os.F_OK):
-            # outputDir exists. Check it's a directory.
-            mode = os.stat(outputDir).st_mode
-            assert S_ISDIR(mode), "%r is not a directory." % outputDir
-        else:
-            os.mkdir(outputDir)
-        htmlOutput = AlignmentPanelHTML(outputDir, titlesAlignments)
-
     coords = dimensionalIterator((rows, cols))
+
+    report('Plotting %d titles in %dx%d grid, sorted on %s' %
+           (len(titles), rows, cols, sortOn))
 
     for i, title in enumerate(titles):
         titleAlignments = titlesAlignments[title]
         row, col = next(coords)
-        if interactive:
-            print('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
-
-        # If we are writing data to a file too, create a separate file with
-        # a plot (this will be linked from the summary HTML).
-        if outputDir:
-            imageBasename = '%d.png' % i
-            imageFile = '%s/%s' % (outputDir, imageBasename)
-            graphInfo = alignmentGraph(
-                titlesAlignments, title, addQueryLines=True,
-                showFeatures=showFeatures, rankScores=rankScores,
-                logLinearXAxis=logLinearXAxis, logBase=logBase,
-                colorQueryBases=False, showFigure=False, imageFile=imageFile,
-                quiet=True, idList=idList, xRange=xRange, showOrfs=True)
-
-            # Close the image plot, otherwise it will be displayed if we
-            # call plt.show below.
-            plt.close()
-            htmlOutput.addImage(imageBasename, title, graphInfo)
+        report('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
 
         # Add a small plot to the alignment panel.
         graphInfo = alignmentGraph(
@@ -643,16 +609,80 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', interactive=True,
                      titlesAlignments.readsAlignments.params.scoreTitle,
                      int(minY), int(maxY)), fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
-    if outputDir:
-        panelFilename = 'alignment-panel.png'
-        figure.savefig('%s/%s' % (outputDir, panelFilename))
-        htmlOutput.close(panelFilename)
-    if interactive:
-        figure.show()
+    figure.show()
     stop = time()
-    if interactive:
-        report('Alignment panel generated in %.3f mins.' %
-               ((stop - start) / 60.0))
+    report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
+
+
+def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
+                       outputDir=None, idList=False, equalizeXAxes=False,
+                       xRange='subject', logLinearXAxis=False,
+                       logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+                       rankScores=False, showFeatures=True):
+    """
+    Produces an HTML index file in C{outputDir} and a collection of alignment
+    graphs and FASTA files to summarize the information in C{titlesAlignments}.
+
+    @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
+    @param sortOn: The attribute to sort subplots on. Either "maxScore",
+        "medianScore", "readCount", "length", or "title".
+    @param outputDir: Specifies a C{str} directory to write the HTML to. If
+        the directory does not exist it will be created.
+    @param idList: A dictionary. Keys are colors and values are lists of read
+        ids that should be colored using that color.
+    @param equalizeXAxes: If C{True}, adjust the X axis on each alignment plot
+        to be the same.
+    @param xRange: Set to either 'subject' or 'reads' to indicate the range of
+        the X axis.
+    @param logLinearXAxis: If C{True}, convert read offsets so that empty
+        regions in the plots we're preparing will only be as wide as their
+        logged actual values.
+    @param logBase: The logarithm base to use if logLinearXAxis is C{True}.
+    @param: rankScores: If C{True}, change the scores for the reads for each
+        title to be their rank (worst to best).
+    @param showFeatures: If C{True}, look online for features of the subject
+        sequences.
+    @raise TypeError: If C{outputDir} is C{None}.
+    @raise ValueError: If C{outputDir} exists but is not a directory or if
+        C{xRange} is not "subject" or "reads".
+    """
+
+    if xRange not in ('subject', 'reads'):
+        raise ValueError('xRange must be either "subject" or "reads".')
+
+    if equalizeXAxes:
+        raise NotImplementedError('This feature is not yet implemented.')
+
+    titles = titlesAlignments.sortTitles(sortOn)
+
+    if os.access(outputDir, os.F_OK):
+        # outputDir exists. Check it's a directory.
+        if not S_ISDIR(os.stat(outputDir).st_mode):
+            raise ValueError("%r is not a directory." % outputDir)
+    else:
+        os.mkdir(outputDir)
+
+    htmlWriter = AlignmentPanelHTMLWriter(outputDir, titlesAlignments)
+
+    for i, title in enumerate(titles):
+        # titleAlignments = titlesAlignments[title]
+
+        # If we are writing data to a file too, create a separate file with
+        # a plot (this will be linked from the summary HTML).
+        imageBasename = '%d.png' % i
+        imageFile = '%s/%s' % (outputDir, imageBasename)
+        graphInfo = alignmentGraph(
+            titlesAlignments, title, addQueryLines=True,
+            showFeatures=showFeatures, rankScores=rankScores,
+            logLinearXAxis=logLinearXAxis, logBase=logBase,
+            colorQueryBases=False, showFigure=False, imageFile=imageFile,
+            quiet=True, idList=idList, xRange=xRange, showOrfs=True)
+
+        # Close the image plot to make sure memory is flushed.
+        plt.close()
+        htmlWriter.addImage(imageBasename, title, graphInfo)
+
+    htmlWriter.close()
 
 
 def scoreGraph(titlesAlignments, find=None, showTitles=False, figureWidth=5,
