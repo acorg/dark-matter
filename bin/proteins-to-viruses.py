@@ -46,6 +46,15 @@ from __future__ import print_function
 import argparse
 import sys
 
+# It's not clear that the PDF backend is the right choice here, but it
+# works (i.e., the generation of PNG images works fine).
+import matplotlib
+matplotlib.use('PDF')
+
+# These imports are here because dark.proteins imports matplotlib.pyplot
+# and we need to set the matplotlib backend before the import. So please
+# don't move this import higher in this file.
+
 from dark.proteins import ProteinGrouper
 
 
@@ -66,6 +75,11 @@ if __name__ == '__main__':
               'be used as the sample name.'))
 
     parser.add_argument(
+        '--virusPanelFilename', default=None,
+        help=('An (optional) filename to write a virus-sample panel PNG '
+              'image to.'))
+
+    parser.add_argument(
         '--html', default=False, action='store_true',
         help='If specified, output HTML instead of plain text.')
 
@@ -82,4 +96,7 @@ if __name__ == '__main__':
         with open(filename) as fp:
             grouper.addFile(filename, fp)
 
-    print(grouper.toHTML() if args.html else grouper.toStr())
+    if args.html:
+        print(grouper.toHTML(args.virusPanelFilename))
+    else:
+        print(grouper.toStr())
