@@ -1,7 +1,7 @@
 import six
 from os import unlink
+from functools import total_ordering
 from collections import Counter
-from itertools import chain
 from hashlib import md5
 from random import uniform
 
@@ -31,6 +31,7 @@ def _makeComplementTable(complementData):
     return ''.join(map(chr, table))
 
 
+@total_ordering
 class Read(object):
     """
     Hold information about a single read.
@@ -62,6 +63,10 @@ class Read(object):
 
     def __ne__(self, other):
         return not self == other
+
+    def __lt__(self, other):
+        return ((self.id, self.sequence, self.quality) <
+                (other.id, other.sequence, other.quality))
 
     def __len__(self):
         return len(self.sequence)
@@ -649,6 +654,280 @@ class TranslatedRead(AARead):
         return max(len(orf) for orf in self.ORFs())
 
 
+class ReadFilter(object):
+    """
+    Create a function that can be used to filter a set of reads to produce a
+    desired subset.
+
+    Note: there are many additional filtering options that could be added,
+    e.g., on complexity fraction, on GC %, on quality, etc.
+
+    @param minLength: The minimum acceptable length.
+    @param maxLength: The maximum acceptable length.
+    @param removeGaps: If C{True} remove all gaps ('-' characters) from the
+        read sequences.
+    @param whitelist: If not C{None}, a set of exact read ids that are
+        always acceptable (though other characteristics, such as length,
+        of a whitelisted id may rule it out).
+    @param blacklist: If not C{None}, a set of exact read ids that are
+        never acceptable.
+    @param titleRegex: A regex that read ids must match.
+    @param negativeTitleRegex: A regex that read ids must not match.
+    @param truncateTitlesAfter: A string that read ids will be truncated
+        beyond. If the truncated version of an id has already been seen,
+        that sequence will be skipped.
+    @param indices: Either C{None} or a set of C{int} indices corresponding
+        to reads that are wanted. Indexing starts at zero.
+    @param head: If not C{None}, the C{int} number of sequences at the
+        start of the reads to return. Later sequences are skipped.
+    @param removeDuplicates: If C{True} remove duplicated sequences.
+    @param modifier: If not C{None}, a function that is passed a read
+        and which either returns a read or C{None}. If it returns a read,
+        that read is passed through the filter. If it returns C{None},
+        the read is omitted. Such a function can be used to do customized
+        filtering, to change sequence ids, etc.
+    @param randomSubset: If not C{None}, an C{int} giving the number of
+        sequences that should be returned. These will be selected at
+        random, using an algorithm that does a single pass over the data
+        and which needs to know (in advance) the total number of reads.
+        Because a C{Reads} instance does not always know its length, it is
+        possible to specify the number of reads by passing a C{trueLength}
+        argument. Note that the random selection is done before any other
+        filtering. Due to this, if you want to extract a random subset of
+        the reads filtered in another way, it will be best to call filter
+        twice rather than doing both types of filtering in one step. E.g.,
+        you very likely should do this:
+            reads.filter(maxLength=100).filter(randomSubset=20)
+        rather than this:
+            reads.filter(maxLength=100, randomSubset=20)
+        The second version will extract a random subset of 20 reads and
+        only return those that have length <= 100, so your result may have
+        less than 20 reads. The former version extracts reads of the
+        desired length and then takes 20 reads at random from that set, so
+        you'll always get 20 raeds in your result, assuming there are at
+        least that many reads satisfying the length filter.
+    @param trueLength: The C{int} number of reads in this C{Reads} instance.
+        Under normal circumstances it will not be necessary to pass this
+        argument. However in some cases a subclass (e.g., with
+        C{dark.fasta.FastaReads}) does not know its length until its data
+        has been read from disk. In such cases, it is not possible to
+        choose a random subset without keeping the subset in memory (which
+        is undesirable). See
+        https://en.wikipedia.org/wiki/Reservoir_sampling for one approach
+        when the set size is unknown. However, it is possible to filter a
+        random subset in a single pass over the data without keeping the
+        set in memory if the set size is known. C{trueLength} makes it
+        possible to pass the actual number of reads (this will obviously
+        need to be obtained via some other mechanism).
+    @param sampleFraction: If not C{None}, a [0.0, 1.0] C{float} indicating
+        a fraction of the reads that should be allowed to pass through the
+        filter. The sample size will only be approximately the product of
+        the C{sampleFraction} and the number of reads. The sample is taken
+        at random. If you try to combine this filter with C{randomSubset}
+        a C{ValueError} will be raised. If you need both filters, run them
+        one after another.
+    @param sequenceNumbersFile: If not C{None}, gives the C{str} name of a
+        file containing (1-based) sequence numbers, in ascending order,
+        one per line. Only those sequences matching the given numbers will
+        be kept.
+    @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
+        specified, or if C{randomSubset} is specified but C{trueLength} is not,
+        or if the sequence numbers in C{sequenceNumbersFile} are
+        non-positive or not ascending.
+    """
+
+    # TODO, when/if needed: make it possible to pass a seed for the RNG
+    # when randomSubset or sampleFraction are used. Also possible is to
+    # save and restore the state of the RNG and/or to optionally add
+    # 'seed=XXX' to the end of the id of the first read, etc.
+
+    def __init__(self, minLength=None, maxLength=None, removeGaps=False,
+                 whitelist=None, blacklist=None,
+                 titleRegex=None, negativeTitleRegex=None,
+                 truncateTitlesAfter=None, indices=None, head=None,
+                 removeDuplicates=False, modifier=None, randomSubset=None,
+                 trueLength=None, sampleFraction=None,
+                 sequenceNumbersFile=None):
+
+        if randomSubset is not None:
+            if sampleFraction is not None:
+                raise ValueError('randomSubset and sampleFraction cannot be '
+                                 'used simultaneously in a filter. Make two '
+                                 'read filters instead.')
+
+            if trueLength is None:
+                raise ValueError('trueLength must be supplied if randomSubset '
+                                 'is specified.')
+
+        self.minLength = minLength
+        self.maxLength = maxLength
+        self.removeGaps = removeGaps
+        self.indices = indices
+        self.head = head
+        self.removeDuplicates = removeDuplicates
+        self.modifier = modifier
+        self.randomSubset = randomSubset
+        self.trueLength = trueLength
+
+        self.alwaysFalse = False
+        self.yieldCount = 0
+        self.readIndex = -1
+
+        def _wantedSequences(filename):
+            """
+            Read and yield integer sequence numbers from a file.
+
+            @raise ValueError: If the sequence numbers are not all positive or
+                are not ascending.
+            @return: A generator that yields C{int} sequence numbers.
+            """
+            with open(filename) as fp:
+                lastNumber = None
+                for line in fp:
+                    n = int(line)
+                    if lastNumber is None:
+                        if n < 1:
+                            raise ValueError(
+                                'First line of sequence number file %r must '
+                                'be at least 1.' % filename)
+                        lastNumber = n
+                        yield n
+                    else:
+                        if n > lastNumber:
+                            lastNumber = n
+                            yield n
+                        else:
+                            raise ValueError(
+                                'Line number file %r contains non-ascending '
+                                'numbers %d and %d.' %
+                                (filename, lastNumber, n))
+
+        self.wantedSequenceNumberGeneratorExhausted = False
+        self.nextWantedSequenceNumber = None
+
+        if sequenceNumbersFile is not None:
+            self.wantedSequenceNumberGenerator = _wantedSequences(
+                sequenceNumbersFile)
+            try:
+                self.nextWantedSequenceNumber = next(
+                    self.wantedSequenceNumberGenerator)
+            except StopIteration:
+                # There was a sequence number file, but it was empty. So no
+                # reads will ever be accepted.
+                self.alwaysFalse = True
+
+        if (whitelist or blacklist or titleRegex or negativeTitleRegex or
+                truncateTitlesAfter):
+            self.titleFilter = TitleFilter(
+                whitelist=whitelist, blacklist=blacklist,
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
+                truncateAfter=truncateTitlesAfter)
+        else:
+            self.titleFilter = None
+
+        if removeDuplicates:
+            self.sequencesSeen = set()
+
+        if sampleFraction is not None:
+            if sampleFraction == 0.0:
+                # The filter method should always return False.
+                self.alwaysFalse = True
+            elif sampleFraction == 1.0:
+                # Passing 1.0 can be treated the same as passing no value.
+                # This makes the filter code below simpler.
+                sampleFraction = None
+        self.sampleFraction = sampleFraction
+
+    def filter(self, read):
+        """
+        Check if a read passes the filter.
+
+        @param read: A C{Read} instance.
+        @return: C{read} if C{read} passes the filter, C{False} if not.
+        """
+        self.readIndex += 1
+
+        if self.alwaysFalse:
+            return False
+
+        if self.wantedSequenceNumberGeneratorExhausted:
+            return False
+
+        if self.nextWantedSequenceNumber is not None:
+            if self.readIndex + 1 == self.nextWantedSequenceNumber:
+                # We want this sequence.
+                try:
+                    self.nextWantedSequenceNumber = next(
+                        self.wantedSequenceNumberGenerator)
+                except StopIteration:
+                    # The sequence number iterator ran out of sequence
+                    # numbers.  We must let the rest of the filtering
+                    # continue for the current sequence in case we
+                    # throw it out for other reasons (as we might have
+                    # done for any of the earlier wanted sequence
+                    # numbers).
+                    self.wantedSequenceNumberGeneratorExhausted = True
+            else:
+                # This sequence isn't one of the ones that's wanted.
+                return False
+
+        if (self.sampleFraction is not None and
+                uniform(0.0, 1.0) > self.sampleFraction):
+            # Note that we don't have to worry about the 0.0 or 1.0
+            # cases in the above 'if', as they have been dealt with
+            # in self.__init__.
+            return False
+
+        if self.randomSubset is not None:
+            if self.yieldCount == self.randomSubset:
+                # The random subset has already been fully returned.
+                # There's no point in going any further through the input.
+                self.alwaysFalse = True
+                return False
+            elif uniform(0.0, 1.0) > ((self.randomSubset - self.yieldCount) /
+                                      (self.trueLength - self.readIndex)):
+                return False
+
+        if self.head is not None and self.readIndex == self.head:
+            # We're completely done.
+            self.alwaysFalse = True
+            return False
+
+        readLen = len(read)
+        if ((self.minLength is not None and readLen < self.minLength) or
+                (self.maxLength is not None and readLen > self.maxLength)):
+            return False
+
+        if self.removeGaps:
+            # TODO: There's a bug here. The sequence can be shortened but
+            # the quality string (if any) is not. See
+            # https://github.com/acorg/dark-matter/issues/479
+            sequence = read.sequence.replace('-', '')
+            read = read.__class__(read.id, sequence, read.quality)
+
+        if (self.titleFilter and
+                self.titleFilter.accept(read.id) == TitleFilter.REJECT):
+            return False
+
+        if self.indices is not None and self.readIndex not in self.indices:
+            return False
+
+        if self.removeDuplicates:
+            if read.sequence in self.sequencesSeen:
+                return False
+            self.sequencesSeen.add(read.sequence)
+
+        if self.modifier:
+            modified = self.modifier(read)
+            if modified is None:
+                return False
+            else:
+                read = modified
+
+        self.yieldCount += 1
+        return read
+
+
 # Provide a mapping from all read class names to read classes. This can be
 # useful in deserialization.
 readClassNameToClass = {
@@ -670,22 +949,28 @@ class Reads(object):
 
     @param initialReads: If not C{None}, an iterable of C{Read} (or C{Read}
         subclass) instances.
+    @param filterFunc: A function that takes a C{Read} instance and returns
+        either the read (if it is acceptable to the filter) or C{False}.
     """
 
-    def __init__(self, initialReads=None):
-        self.additionalReads = []
+    def __init__(self, initialReads=None, filterFunc=lambda read: read):
+        self._initialReads = initialReads
+        self._filterFunc = filterFunc
+        self._additionalReads = []
         self._length = 0
-        if initialReads is not None:
-            list(map(self.add, initialReads))
+        # self._iterated will be set to True after we have first iterated.
+        self._iterated = False
 
     def add(self, read):
         """
-        Add a read to this collection of reads.
+        Add a read to this collection of reads, unless filtering rules it out.
 
         @param read: A C{Read} instance.
         """
-        self.additionalReads.append(read)
-        self._length += 1
+        filteredRead = self._filterFunc(read)
+        if filteredRead is not False:
+            self._additionalReads.append(filteredRead)
+            self._length += 1
 
     def __iter__(self):
         """
@@ -694,35 +979,66 @@ class Reads(object):
         As a side effect, calculate our length (the number of reads in this
         collection of reads).
 
-        @return: A generator that yields reads. The returned read type depends
+        @return: A generator that yields reads. The returned read types depends
             on the kind of reads that were added to this instance.
         """
-        # Set/reset self._length to 0 because __iter__ may be called more than
-        # once.  If we don't set it to 0, a second call to __iter__ would
-        # cause it to continue to be incremented from its original value.
-        self._length = 0
-
-        for read in chain(self.iter(), self.additionalReads):
-            self._length += 1
+        # First return any reads that were added via our 'add' method.
+        # These have already been filtered and are already accounted for in
+        # self._length.
+        for read in self._additionalReads:
             yield read
+
+        # Next, any reads (filtered) we were originally given. Note that we
+        # have to use 'is' in the following 'if' because self._initialReads
+        # may be a Reads instance whose __len__ evaluates to 0 (which would
+        # cause 'if self._initialReads' to be considered False. This will
+        # happen if the initial reads object has not yet been enumerated.
+        if self._initialReads is not None:
+            for read in self._initialReads:
+                filteredRead = self._filterFunc(read)
+                if filteredRead is not False:
+                    if not self._iterated:
+                        self._length += 1
+                    yield filteredRead
+
+        # Finally, any reads (filtered) provided by a subclass.
+        for read in self.iter():
+            filteredRead = self._filterFunc(read)
+            if filteredRead is not False:
+                if not self._iterated:
+                    self._length += 1
+                yield filteredRead
+
+        self._iterated = True
 
     def iter(self):
         """
         Placeholder to allow subclasses to provide reads.
 
-        The idea here is that reads in this class and its subclasses can come
-        from multiple sources. The first is reads that are added to the
-        instance via the C{add} method. The (optional) second reads are those
-        that are, for example, extracted from a file. E.g., the
-        C{dark.reads.fasta.FastaReads} class (a subclass of C{Reads}) overrides
-        this C{iter} method to provide reads from a file.
+        These might be extracted from a file. E.g., the
+        C{dark.reads.fasta.FastaReads} class (a subclass of C{Reads})
+        overrides this method to provide reads from a file.
+
+        @return: An iterable of C{Read} instances.
         """
         return []
 
     def __len__(self):
         # Note that __len__ reflects the number of reads that are currently
         # known.  If self.__iter__ has not been exhausted, we will not know
-        # the true number of reads.
+        # the true number of reads. Also, once we have fully iterated, our
+        # length will no longer be updated (except when self.add is
+        # used). So if the iter method of a subclass happens to return a
+        # different number of reads a second time it is called, our length
+        # will still give the total length as counted during the original
+        # call to iter. If we didn't do things this way, we'd need to reset
+        # self._length in __iter__, which would also make len() return
+        # differing results (this could be much worse - imagine if len()
+        # were called during the second iteration, or if the second
+        # iteration is never exhausted). As it stands, __len__ can only be
+        # confusing if a subclass has an iter method and that method is
+        # called more than once and it doesn't always return the same
+        # value. That's possible, but not very likely.
         return self._length
 
     def save(self, filename, format_='fasta'):
@@ -754,271 +1070,19 @@ class Reads(object):
                 filename.write(read.toString(format_))
         return self
 
-    def filter(self, minLength=None, maxLength=None, removeGaps=False,
-               whitelist=None, blacklist=None,
-               titleRegex=None, negativeTitleRegex=None,
-               truncateTitlesAfter=None, indices=None, head=None,
-               removeDuplicates=False, modifier=None, randomSubset=None,
-               trueLength=None, sampleFraction=None, sequenceNumbersFile=None):
+    def filter(self, **kwargs):
         """
         Filter a set of reads to produce a matching subset.
 
-        Note: there are many additional filtering options that could be added,
-        e.g., on complexity fraction, on GC %, on quality, etc.
+        This is just a convenience method to allow people to chain
+        filters to an existing set of reads.
 
-        @param minLength: The minimum acceptable length.
-        @param maxLength: The maximum acceptable length.
-        @param removeGaps: If C{True} remove all gaps ('-' characters) from the
-            read sequences.
-        @param whitelist: If not C{None}, a set of exact read ids that are
-            always acceptable (though other characteristics, such as length,
-            of a whitelisted id may rule it out).
-        @param blacklist: If not C{None}, a set of exact read ids that are
-            never acceptable.
-        @param titleRegex: A regex that read ids must match.
-        @param negativeTitleRegex: A regex that read ids must not match.
-        @param truncateTitlesAfter: A string that read ids will be truncated
-            beyond. If the truncated version of an id has already been seen,
-            that sequence will be skipped.
-        @param indices: Either C{None} or a set of C{int} indices corresponding
-            to reads that are wanted. Indexing starts at zero.
-        @param head: If not C{None}, the C{int} number of sequences at the
-            start of the reads to return. Later sequences are skipped.
-        @param removeDuplicates: If C{True} remove duplicated sequences.
-        @param modifier: If not C{None}, a function that is passed a read
-            and which either returns a read or C{None}. If it returns a read,
-            that read is passed through the filter. If it returns C{None},
-            the read is omitted. Such a function can be used to do customized
-            filtering, to change sequence ids, etc.
-        @param randomSubset: If not C{None}, an C{int} giving the number of
-            sequences that should be returned. These will be selected at
-            random, using an algorithm that does a single pass over the data
-            and which needs to know (in advance) the total number of reads.
-            Because a C{Reads} instance does not always know its length, it is
-            possible to specify the number of reads by passing a C{trueLength}
-            argument. Note that the random selection is done before any other
-            filtering. Due to this, if you want to extract a random subset of
-            the reads filtered in another way, it will be best to call filter
-            twice rather than doing both types of filtering in one step. E.g.,
-            you very likely should do this:
-                reads.filter(maxLength=100).filter(randomSubset=20)
-            rather than this:
-                reads.filter(maxLength=100, randomSubset=20)
-            The second version will extract a random subset of 20 reads and
-            only return those that have length <= 100, so your result may have
-            less than 20 reads. The former version extracts reads of the
-            desired length and then takes 20 reads at random from that set, so
-            you'll always get 20 raeds in your result, assuming there are at
-            least that many reads satisfying the length filter.
-        @param trueLength: The C{int} number of reads in this C{Reads}
-            instance. Under normal circumstances it will not be necessary to
-            pass this argument. However in some cases a subclass (e.g., with
-            C{dark.fasta.FastaReads}) does not know its length until its data
-            has been read from disk. In such cases, it is not possible to
-            choose a random subset without keeping the subset in memory (which
-            is undesirable). See
-            https://en.wikipedia.org/wiki/Reservoir_sampling for one approach
-            when the set size is unknown. However, it is possible to filter a
-            random subset in a single pass over the data without keeping the
-            set in memory if the set size is known. C{trueLength} makes it
-            possible to pass the actual number of reads (this will obviously
-            need to be known via some other mechanism). If C{None}, the length
-            of the C{Reads} instance is used (but may be inaccurate in some
-            cases, as above).
-        @param sampleFraction: If not C{None}, a [0.0, 1.0] C{float} indicating
-            a fraction of the reads that should be allowed to pass through the
-            filter. The sample size will only be approximately the product of
-            the C{sampleFraction} and the number of reads. The sample is taken
-            at random. If you try to combine this filter with C{randomSubset}
-            a C{ValueError} will be raised. If you need both filters, run them
-            one after another.
-        @param sequenceNumbersFile: If not C{None}, gives the C{str} name of a
-            file containing (1-based) sequence numbers, in ascending order,
-            one per line. Only those sequences matching the given numbers will
-            be kept.
-        @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
-            specified or if the sequence numbers in C{sequenceNumbersFile} are
-            non-positive or not ascending.
-        @return: A new C{Reads} instance, with reads filtered as requested.
+        @param kwargs: Keyword arguments, as accepted by C{ReadFilter}.
+        @return: A new C{Reads} instance, with reads the reads from C{self}
+            filtered as requested.
         """
-
-        # TODO, when/if needed: make it possible to pass a seed for the RNG
-        # when randomSubset or sampleFraction are used. Also possible is to
-        # save and restore the state of the RNG and/or to optionally add
-        # 'seed=XXX' to the end of the id of the first read, etc.
-
-        return Reads(self._filter(
-            minLength=minLength, maxLength=maxLength, removeGaps=removeGaps,
-            whitelist=whitelist, blacklist=blacklist, titleRegex=titleRegex,
-            negativeTitleRegex=negativeTitleRegex,
-            truncateTitlesAfter=truncateTitlesAfter, indices=indices,
-            head=head, removeDuplicates=removeDuplicates, modifier=modifier,
-            randomSubset=randomSubset, trueLength=trueLength,
-            sampleFraction=sampleFraction,
-            sequenceNumbersFile=sequenceNumbersFile))
-
-    def _filter(self, minLength=None, maxLength=None, removeGaps=False,
-                whitelist=None, blacklist=None,
-                titleRegex=None, negativeTitleRegex=None,
-                truncateTitlesAfter=None, indices=None, head=None,
-                removeDuplicates=False, modifier=None, randomSubset=None,
-                trueLength=None, sampleFraction=None,
-                sequenceNumbersFile=None):
-        """
-        Filter a set of reads to produce a matching subset.
-
-        See docstring for self.filter (above) for parameter docs.
-
-        @return: A generator that yields C{Read} instances.
-        """
-
-        def _wantedSequences(filename):
-            """
-            Read and yield integer sequence numbers from a file.
-
-            @raise ValueError: If the sequence numbers are not all positive or
-                are not ascending.
-            @return: A generator that yields C{int} sequence numbers.
-            """
-            with open(filename) as fp:
-                lastNumber = None
-                for line in fp:
-                    n = int(line)
-                    if lastNumber is None:
-                        if n < 1:
-                            raise ValueError(
-                                'First line of sequence number file %r must '
-                                'be at least 1.' % filename)
-                        lastNumber = n
-                        yield n
-                    else:
-                        if n > lastNumber:
-                            lastNumber = n
-                            yield n
-                        else:
-                            raise ValueError(
-                                'Line number file %r contains non-ascending '
-                                'numbers %d and %d.' %
-                                (filename, lastNumber, n))
-
-        if randomSubset is not None and sampleFraction is not None:
-            raise ValueError('randomSubset and sampleFraction cannot be '
-                             'used simultaneously in a filter. Call filter '
-                             'twice instead.')
-
-        if sequenceNumbersFile is None:
-            nextWantedSequenceNumber = None
-            wantedSequenceNumberGeneratorExhausted = False
-        else:
-            wantedSequenceNumerGenerator = _wantedSequences(
-                sequenceNumbersFile)
-            try:
-                nextWantedSequenceNumber = next(wantedSequenceNumerGenerator)
-            except StopIteration:
-                # There was a sequence number file, but it was empty.
-                return
-            else:
-                wantedSequenceNumberGeneratorExhausted = False
-
-        if (whitelist or blacklist or titleRegex or negativeTitleRegex or
-                truncateTitlesAfter):
-            titleFilter = TitleFilter(
-                whitelist=whitelist, blacklist=blacklist,
-                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
-                truncateAfter=truncateTitlesAfter)
-        else:
-            titleFilter = None
-
-        if removeDuplicates:
-            sequencesSeen = set()
-
-        if sampleFraction is not None:
-            if sampleFraction == 0.0:
-                # The filter returns nothing.
-                return
-            elif sampleFraction == 1.0:
-                # Passing 1.0 can be treated the same as passing no value.
-                # This makes the loop code simpler.
-                sampleFraction = None
-
-        if randomSubset is not None and trueLength is None:
-            trueLength = self._length
-
-        yieldCount = 0
-
-        for readIndex, read in enumerate(self):
-
-            if wantedSequenceNumberGeneratorExhausted:
-                return
-
-            if nextWantedSequenceNumber is not None:
-                if readIndex + 1 == nextWantedSequenceNumber:
-                    # We want this sequence.
-                    try:
-                        nextWantedSequenceNumber = next(
-                            wantedSequenceNumerGenerator)
-                    except StopIteration:
-                        # The sequence number iterator ran out of sequence
-                        # numbers.  We must let the rest of the filtering
-                        # continue for the current sequence in case we
-                        # throw it out for other reasons (as we might have
-                        # done for any of the earlier wanted sequence
-                        # numbers).
-                        wantedSequenceNumberGeneratorExhausted = True
-                else:
-                    # This sequence isn't wanted.
-                    continue
-
-            if (sampleFraction is not None and
-                    uniform(0.0, 1.0) > sampleFraction):
-                # Note that we don't have to worry about the 0.0 or 1.0
-                # cases in the above if, as they have been dealt with
-                # before the loop.
-                continue
-
-            if randomSubset is not None:
-                if yieldCount == randomSubset:
-                    # The random subset has already been fully returned.
-                    # There's no point in going any further through the input.
-                    return
-                elif uniform(0.0, 1.0) > ((randomSubset - yieldCount) /
-                                          (trueLength - readIndex)):
-                    continue
-
-            if head is not None and readIndex == head:
-                # We're completely done.
-                return
-
-            readLen = len(read)
-            if ((minLength is not None and readLen < minLength) or
-                    (maxLength is not None and readLen > maxLength)):
-                continue
-
-            if removeGaps:
-                sequence = read.sequence.replace('-', '')
-                read = read.__class__(read.id, sequence, read.quality)
-
-            if (titleFilter and
-                    titleFilter.accept(read.id) == TitleFilter.REJECT):
-                continue
-
-            if indices is not None and readIndex not in indices:
-                continue
-
-            if removeDuplicates:
-                if read.sequence in sequencesSeen:
-                    continue
-                sequencesSeen.add(read.sequence)
-
-            if modifier:
-                modified = modifier(read)
-                if modified is None:
-                    continue
-                else:
-                    read = modified
-
-            yield read
-            yieldCount += 1
+        readFilter = ReadFilter(**kwargs)
+        return Reads(initialReads=self, filterFunc=readFilter.filter)
 
     def summarizePosition(self, index):
         """

@@ -11,7 +11,7 @@ except ImportError:
 
 from .mocking import mockOpen, File
 
-from dark.reads import Read, AARead, DNARead, RNARead, Reads
+from dark.reads import Read, AARead, DNARead, RNARead, Reads, ReadFilter
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
                         FastaReads, combineReads)
 
@@ -482,6 +482,21 @@ class TestFastaReads(TestCase):
             reads = FastaReads('filename.fasta')
             result = list(reads.filter(randomSubset=1, trueLength=10))
             self.assertEqual(1, len(result))
+
+    def testDirectFiltering(self):
+        """
+        It must be possible to directly use a ReadFilter to filter the reads
+        that end up in a FastaReads instance (from the reads that are read
+        from the input file).
+        """
+        data = '\n'.join(['>one', 'atat',
+                          '>two', 'atcg'])
+        readFilter = ReadFilter(head=1)
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = FastaReads(data, readClass=AARead,
+                               filterFunc=readFilter.filter)
+            self.assertEqual([Read('one', 'atat')], list(reads))
 
     def testTwoFiles(self):
         """

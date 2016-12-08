@@ -28,6 +28,7 @@ from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
+from dark.reads import ReadFilter
 
 
 def parseColors(colors, args):
@@ -253,9 +254,9 @@ if __name__ == '__main__':
     # Flatten lists of lists that we get from using both nargs='+' and
     # action='append'. We use both because it allows people to use (e.g.)
     # --json on the command line either via "--json file1 --json file2" or
-    # "--json file1 --file2", or a combination of these. That way it's not
-    # necessary to remember which way you're supposed to use it and you also
-    # can't be hit by the subtle problem encountered in
+    # "--json file1 file2", or a combination of these. That way it's not
+    # necessary to remember which way you're supposed to use it and you
+    # also can't be hit by the subtle problem encountered in
     # https://github.com/acorg/dark-matter/issues/453
     jsonFiles = list(chain.from_iterable(args.json))
     whitelist = (
@@ -263,16 +264,27 @@ if __name__ == '__main__':
     blacklist = (
         set(chain.from_iterable(args.blacklist)) if args.blacklist else None)
 
+    readFilter = ReadFilter(
+        minSequenceLen=args.minSequenceLen, maxSequenceLen=args.maxSequenceLen,
+        minStart=args.minStart, maxStop=args.maxStop,
+        oneAlignmentPerRead=args.oneAlignmentPerRead,
+        maxHspsPerHit=args.maxHspsPerHit, scoreCutoff=args.scoreCutoff,
+        whitelist=whitelist, blacklist=blacklist,
+        titleRegex=args.titleRegex, negativeTitleRegex=args.negativeTitleRegex,
+        truncateTitlesAfter=args.truncateTitlesAfter, taxonomy=args.taxonomy)
+
     # TODO: Add a --readClass option in case we want to process AA queries.
     if args.fasta:
         reads = FastaReads(list(chain.from_iterable(args.fasta)),
-                           checkAlphabet=args.checkAlphabet)
+                           checkAlphabet=args.checkAlphabet,
+                           filterFunc=readFilter.filter)
     else:
         if args.checkAlphabet is not None:
             print('--checkAlphabet is currently not supported for FASTQ reads',
                   file=sys.stderr)
             sys.exit(1)
-        reads = FastqReads(list(chain.from_iterable(args.fastq)))
+        reads = FastqReads(list(chain.from_iterable(args.fastq)),
+                           filterFunc=readFilter.filter)
 
     if args.matcher == 'blast':
         from dark.blast.alignments import BlastReadsAlignments
@@ -286,17 +298,6 @@ if __name__ == '__main__':
         from dark.diamond.alignments import DiamondReadsAlignments
         readsAlignments = DiamondReadsAlignments(
             reads, jsonFiles, args.diamondDatabaseFastaFilename)
-
-    readsAlignments.filter(
-        minSequenceLen=args.minSequenceLen,
-        maxSequenceLen=args.maxSequenceLen,
-        minStart=args.minStart, maxStop=args.maxStop,
-        oneAlignmentPerRead=args.oneAlignmentPerRead,
-        maxHspsPerHit=args.maxHspsPerHit,
-        scoreCutoff=args.scoreCutoff,
-        whitelist=whitelist, blacklist=blacklist,
-        titleRegex=args.titleRegex, negativeTitleRegex=args.negativeTitleRegex,
-        truncateTitlesAfter=args.truncateTitlesAfter, taxonomy=args.taxonomy)
 
     titlesAlignments = TitlesAlignments(readsAlignments).filter(
         minMatchingReads=args.minMatchingReads,

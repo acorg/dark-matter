@@ -14,7 +14,8 @@ from os import stat
 from .mocking import mockOpen
 from dark.reads import (
     Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
-    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
+    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass,
+    ReadFilter)
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
@@ -1853,8 +1854,7 @@ class TestReads(TestCase):
         """
         read1 = Read('id1', 'AT')
         read2 = Read('id2', 'AC')
-        reads = Reads([read1, read2])
-        self.assertEqual(2, len(reads))
+        reads = Reads(initialReads=[read1, read2])
         self.assertEqual([read1, read2], list(reads))
 
     def testManuallyAddedReadsLength(self):
@@ -1875,12 +1875,12 @@ class TestReads(TestCase):
         read1 = Read('id1', 'AT')
         read2 = Read('id2', 'AC')
 
-        class FastaReads(Reads):
+        class ReadsSubclass(Reads):
             def iter(self):
                 yield read1
                 yield read2
 
-        reads = FastaReads()
+        reads = ReadsSubclass()
         self.assertEqual([read1, read2], list(reads))
 
     def testSubclassLength(self):
@@ -1891,12 +1891,12 @@ class TestReads(TestCase):
         read1 = Read('id1', 'AT')
         read2 = Read('id2', 'AC')
 
-        class FastaReads(Reads):
+        class ReadsSubclass(Reads):
             def iter(self):
                 yield read1
                 yield read2
 
-        reads = FastaReads()
+        reads = ReadsSubclass()
         self.assertEqual(2, len(list(reads)))
 
     def testRepeatedIter(self):
@@ -1907,12 +1907,12 @@ class TestReads(TestCase):
         read1 = Read('id1', 'AT')
         read2 = Read('id2', 'AC')
 
-        class FastaReads(Reads):
+        class ReadsSubclass(Reads):
             def iter(self):
                 yield read1
                 yield read2
 
-        reads = FastaReads()
+        reads = ReadsSubclass()
         self.assertEqual([read1, read2], list(reads))
         self.assertEqual([read1, read2], list(reads))
 
@@ -1921,12 +1921,12 @@ class TestReads(TestCase):
         A Reads subclass with an iter method must be able to be iterated
         more than once, and following each its length must be correct.
         """
-        class FastaReads(Reads):
+        class ReadsSubclass(Reads):
             def iter(self):
                 yield Read('id1', 'AT')
                 yield Read('id2', 'AC')
 
-        reads = FastaReads()
+        reads = ReadsSubclass()
         list(reads)
         self.assertEqual(2, len(reads))
         list(reads)
@@ -1941,14 +1941,14 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         read3 = Read('id3', 'AC')
 
-        class FastaReads(Reads):
+        class ReadsSubclass(Reads):
             def iter(self):
                 yield read1
                 yield read2
 
-        reads = FastaReads()
+        reads = ReadsSubclass()
         reads.add(read3)
-        self.assertEqual([read1, read2, read3], list(reads))
+        self.assertEqual(sorted([read1, read2, read3]), sorted(reads))
 
     def testSaveWithUnknownFormat(self):
         """
@@ -2078,6 +2078,17 @@ class TestReads(TestCase):
         reads.save(fp)
         self.assertEqual('>id1\nAT\n>id2\nAC\n', fp.getvalue())
 
+
+class TestReadsFiltering(TestCase):
+    """
+    Tests of filtering dark.reads.Reads instances.
+
+    These tests use the convenience 'filter' method on the Reads class, which
+    makes a ReadFilter instance. For that reason, only the first few of the
+    tests below (those with names ending in "WithReadFilter") pass an instance
+    of the ReadFilter class to Reads().
+    """
+
     def testFilterNoArgs(self):
         """
         Filtering must return the same list when not asked to do anything.
@@ -2090,9 +2101,22 @@ class TestReads(TestCase):
         result = reads.filter()
         self.assertEqual([read1, read2], list(result))
 
+    def testFilterNoArgsWithReadFilter(self):
+        """
+        Filtering must return the same list when not asked to do anything and
+        the filter is passed directly to Reads.
+        """
+        readFilter = ReadFilter()
+        reads = Reads(filterFunc=readFilter.filter)
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        reads.add(read1)
+        reads.add(read2)
+        self.assertEqual([read1, read2], list(reads))
+
     def testFilterReturnsReadInstance(self):
         """
-        Filtering must return a C{Reads} instance.
+        The filter method must return a C{Reads} instance.
         """
         self.assertTrue(isinstance(Reads().filter(), Reads))
 
@@ -2111,7 +2135,24 @@ class TestReads(TestCase):
         reads.add(read3)
         reads.add(read4)
         result = reads.filter(minLength=3)
-        self.assertEqual(2, len(result))
+        self.assertEqual(2, len(list(result)))
+
+    def testFilteredReadsInstanceHasExpectedLengthWithReadFilter(self):
+        """
+        After filtering, the returned Reads instance must have the expected
+        length when a ReadFilter instance is passed to Reads.
+        """
+        readFilter = ReadFilter(minLength=3)
+        reads = Reads(filterFunc=readFilter.filter)
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ACG')
+        read3 = Read('id3', 'AC')
+        read4 = Read('id4', 'A')
+        reads.add(read1)
+        reads.add(read2)
+        reads.add(read3)
+        reads.add(read4)
+        self.assertEqual(2, len(list(reads)))
 
     def testFilterOnMinLength(self):
         """
@@ -2354,7 +2395,8 @@ class TestReads(TestCase):
         Asking for a random subset of length zero must work as expected when
         there are no reads in the Reads instance.
         """
-        self.assertEqual([], list(Reads().filter(randomSubset=0)))
+        self.assertEqual([],
+                         list(Reads().filter(randomSubset=0, trueLength=0)))
 
     def testFilterRandomSubsetSizeZeroTwoReads(self):
         """
@@ -2363,8 +2405,8 @@ class TestReads(TestCase):
         """
         read1 = Read('id1', 'ATCG')
         read2 = Read('id2', 'ATCG')
-        reads = Reads([read1, read2])
-        result = reads.filter(randomSubset=0)
+        reads = Reads(initialReads=[read1, read2])
+        result = reads.filter(randomSubset=0, trueLength=2)
         self.assertEqual([], list(result))
 
     def testFilterRandomSubsetOfZeroReads(self):
@@ -2373,7 +2415,7 @@ class TestReads(TestCase):
         as expected.
         """
         reads = Reads()
-        result = reads.filter(randomSubset=5)
+        result = reads.filter(randomSubset=5, trueLength=0)
         self.assertEqual([], list(result))
 
     def testFilterRandomSubsetOfOneFromOneRead(self):
@@ -2382,8 +2424,8 @@ class TestReads(TestCase):
         as expected.
         """
         read = Read('id', 'ATCG')
-        reads = Reads([read])
-        result = reads.filter(randomSubset=1)
+        reads = Reads(initialReads=[read])
+        result = reads.filter(randomSubset=1, trueLength=1)
         self.assertEqual([read], list(result))
 
     def testFilterRandomSubsetOfFiveFromOneRead(self):
@@ -2392,8 +2434,8 @@ class TestReads(TestCase):
         as expected.
         """
         read = Read('id', 'ATCG')
-        reads = Reads([read])
-        result = reads.filter(randomSubset=5)
+        reads = Reads(initialReads=[read])
+        result = reads.filter(randomSubset=5, trueLength=1)
         self.assertEqual([read], list(result))
 
     def testFilterRandomSubsetOfFiveFromFiveReads(self):
@@ -2406,8 +2448,8 @@ class TestReads(TestCase):
         read3 = Read('id3', 'ATCG')
         read4 = Read('id4', 'ATCG')
         read5 = Read('id5', 'ATCG')
-        reads = Reads([read1, read2, read3, read4, read5])
-        result = reads.filter(randomSubset=5)
+        reads = Reads(initialReads=[read1, read2, read3, read4, read5])
+        result = reads.filter(randomSubset=5, trueLength=5)
         self.assertEqual([read1, read2, read3, read4, read5], list(result))
 
     def testFilterRandomSubsetOfTwoFromFiveReads(self):
@@ -2420,12 +2462,9 @@ class TestReads(TestCase):
         read3 = Read('id3', 'ATCG')
         read4 = Read('id4', 'ATCG')
         read5 = Read('id5', 'ATCG')
-        reads = Reads([read1, read2, read3, read4, read5])
-        result = reads.filter(randomSubset=2)
+        reads = Reads(initialReads=[read1, read2, read3, read4, read5])
+        result = reads.filter(randomSubset=2, trueLength=5)
         self.assertEqual(2, len(set(result)))
-
-    # Tests for random subset filtering in which a trueLength argument is
-    # passed can be found in test_fasta.py
 
     def testSampleFractionAndRandomSubsetRaisesValueError(self):
         """
@@ -2434,9 +2473,20 @@ class TestReads(TestCase):
         """
         reads = Reads()
         error = ("^randomSubset and sampleFraction cannot be used "
-                 "simultaneously in a filter\. Call filter twice instead\.$")
+                 "simultaneously in a filter. Make two read filters "
+                 "instead\.$")
         six.assertRaisesRegex(self, ValueError, error, reads.filter,
                               sampleFraction=0.1, randomSubset=3)
+
+    def testSampleFractionAndNoTrueLengthRaisesValueError(self):
+        """
+        Asking for filtering of a sample fraction without passing a trueLength
+        must raise a ValueError.
+        """
+        reads = Reads()
+        error = "^trueLength must be supplied if randomSubset is specified\.$"
+        six.assertRaisesRegex(self, ValueError, error, reads.filter,
+                              randomSubset=3)
 
     def testSampleFractionZero(self):
         """
@@ -2448,7 +2498,7 @@ class TestReads(TestCase):
         read3 = Read('id3', 'ATCG')
         read4 = Read('id4', 'ATCG')
         read5 = Read('id5', 'ATCG')
-        reads = Reads([read1, read2, read3, read4, read5])
+        reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(sampleFraction=0.0)
         self.assertEqual(0, len(list(result)))
 
@@ -2462,7 +2512,7 @@ class TestReads(TestCase):
         read3 = Read('id3', 'ATCG')
         read4 = Read('id4', 'ATCG')
         read5 = Read('id5', 'ATCG')
-        reads = Reads([read1, read2, read3, read4, read5])
+        reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(sampleFraction=1.0)
         self.assertEqual([read1, read2, read3, read4, read5], list(result))
 
@@ -2472,7 +2522,7 @@ class TestReads(TestCase):
         return 11 reads (given a particular random seed value).
         """
         seed(1)
-        reads = Reads([Read('id1', 'ATCG')] * 100)
+        reads = Reads(initialReads=[Read('id1', 'ATCG')] * 100)
         result = reads.filter(sampleFraction=0.1)
         self.assertEqual(11, len(list(result)))
 
@@ -2501,11 +2551,13 @@ class TestReads(TestCase):
             read1 = Read('id1', 'ATCG')
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')
-            reads = Reads([read1, read2, read3])
+            reads = Reads(initialReads=[read1, read2, read3])
             error = ("^Line number file 'file' contains non-ascending numbers "
                      "2 and 2\.$")
             with six.assertRaisesRegex(self, ValueError, error):
-                reads.filter(sequenceNumbersFile='file')
+                # import pdb
+                # pdb.set_trace()
+                list(reads.filter(sequenceNumbersFile='file'))
 
     def testLineNumberFileEmpty(self):
         """
@@ -2517,7 +2569,7 @@ class TestReads(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             read1 = Read('id1', 'ATCG')
             read2 = Read('id2', 'ATCG')
-            reads = Reads([read1, read2])
+            reads = Reads(initialReads=[read1, read2])
             result = reads.filter(sequenceNumbersFile='file')
             self.assertEqual([], list(result))
 
@@ -2533,7 +2585,7 @@ class TestReads(TestCase):
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')
             read4 = Read('id4', 'ATCG')
-            reads = Reads([read1, read2, read3, read4])
+            reads = Reads(initialReads=[read1, read2, read3, read4])
             result = reads.filter(sequenceNumbersFile='file')
             self.assertEqual([read1, read3], list(result))
 
@@ -2550,7 +2602,7 @@ class TestReads(TestCase):
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')
             read4 = Read('id4', 'ATCG')
-            reads = Reads([read1, read2, read3, read4])
+            reads = Reads(initialReads=[read1, read2, read3, read4])
             result = reads.filter(sequenceNumbersFile='file')
             self.assertEqual([read1, read3], list(result))
 
