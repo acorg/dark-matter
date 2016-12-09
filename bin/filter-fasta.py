@@ -7,6 +7,7 @@ import sys
 from dark.fasta import FastaReads
 from dark.fasta_ss import SSFastaReads
 from dark.fastq import FastqReads
+from dark.reads import ReadFilter
 
 
 if __name__ == '__main__':
@@ -101,17 +102,33 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    readFilter = ReadFilter(
+        minLength=args.minLength, maxLength=args.maxLength,
+        removeGaps=args.removeGaps,
+        whitelist=set(args.whitelist) if args.whitelist else None,
+        blacklist=set(args.blacklist) if args.blacklist else None,
+        titleRegex=args.titleRegex,
+        negativeTitleRegex=args.negativeTitleRegex,
+        truncateTitlesAfter=args.truncateTitlesAfter,
+        indices=set(args.indices) if args.indices else None,
+        head=args.head, removeDuplicates=args.removeDuplicates,
+        randomSubset=args.randomSubset, trueLength=args.trueLength,
+        sampleFraction=args.sampleFraction,
+        sequenceNumbersFile=args.sequenceNumbersFile)
+
     if args.readClass == 'fastq':
         # TODO: FastqReads should take a checkAlphabet argument, in the way
         # that FastaReads does.
-        reads = FastqReads(sys.stdin)
+        reads = FastqReads(sys.stdin, filterFunc=readFilter.filter)
     elif args.readClass == 'fasta':
-        reads = FastaReads(sys.stdin, checkAlphabet=False)
+        reads = FastaReads(sys.stdin, checkAlphabet=False,
+                           filterFunc=readFilter.filter)
     else:
         # args.readClass must be fasta-ss due to the 'choices' argument
         # passed to parser.add_argument value above.
         assert args.readClass == 'fasta-ss'
-        reads = SSFastaReads(sys.stdin, checkAlphabet=False)
+        reads = SSFastaReads(sys.stdin, checkAlphabet=False,
+                             filterFunc=readFilter.filter)
 
     saveAs = args.saveAs or args.readClass
 
@@ -129,23 +146,10 @@ if __name__ == '__main__':
             'fasta-ss to indicate that the input is PDB FASTA. Please be '
             'explicit.')
 
+    write = sys.stdout.write
     kept = 0
-
-    for seq in reads.filter(
-            minLength=args.minLength,
-            maxLength=args.maxLength,
-            removeGaps=args.removeGaps,
-            whitelist=set(args.whitelist) if args.whitelist else None,
-            blacklist=set(args.blacklist) if args.blacklist else None,
-            titleRegex=args.titleRegex,
-            negativeTitleRegex=args.negativeTitleRegex,
-            truncateTitlesAfter=args.truncateTitlesAfter,
-            indices=set(args.indices) if args.indices else None,
-            head=args.head, removeDuplicates=args.removeDuplicates,
-            randomSubset=args.randomSubset, trueLength=args.trueLength,
-            sampleFraction=args.sampleFraction,
-            sequenceNumbersFile=args.sequenceNumbersFile):
+    for read in reads:
         kept += 1
-        print(seq.toString(format_=saveAs), end='')
+        write(read.toString(format_=saveAs))
 
     print('Read %d sequences, kept %d.' % (len(reads), kept), file=sys.stderr)

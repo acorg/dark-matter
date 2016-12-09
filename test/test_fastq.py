@@ -1,6 +1,6 @@
 from six.moves import builtins
 
-from dark.reads import AARead, DNARead, RNARead
+from dark.reads import AARead, DNARead, RNARead, ReadFilter
 from dark.fastq import FastqReads
 
 from unittest import TestCase
@@ -126,3 +126,18 @@ class TestFastqReads(TestCase):
                     DNARead('id2', 'CAGT', '!!!!'),
                 ],
                 list(reads))
+
+    def testDirectFiltering(self):
+        """
+        It must be possible to directly use a ReadFilter to filter the reads
+        that end up in a FastqReads instance (from the reads that are read
+        from the input file).
+        """
+        data = '\n'.join(['@one', 'atat', '+', '3333',
+                          '@two', 'atcg', '+', '4444'])
+        readFilter = ReadFilter(head=1)
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = FastqReads(data, readClass=AARead,
+                               filterFunc=readFilter.filter)
+            self.assertEqual([DNARead('one', 'atat', '3333')], list(reads))

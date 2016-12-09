@@ -9,7 +9,7 @@ except ImportError:
 
 from .mocking import mockOpen, File
 
-from dark.reads import SSAARead
+from dark.reads import SSAARead, ReadFilter
 from dark.fasta_ss import SSFastaReads
 
 
@@ -225,3 +225,18 @@ class TestSSFastaReads(TestCase):
                     SSAARead('id2', 'CAGT', 'eeee'),
                 ],
                 list(reads))
+
+    def testDirectFiltering(self):
+        """
+        It must be possible to directly use a ReadFilter to filter the reads
+        that end up in an SSFastaReads instance (from the reads that are read
+        from the input file).
+        """
+        data = '\n'.join(['>one', 'atat', '>one', 'hhhh',
+                          '>two', 'atcg', '>two', 'eeee'])
+        readFilter = ReadFilter(head=1)
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            reads = SSFastaReads(data, readClass=SSAARead,
+                                 filterFunc=readFilter.filter)
+            self.assertEqual([SSAARead('one', 'atat', 'hhhh')], list(reads))

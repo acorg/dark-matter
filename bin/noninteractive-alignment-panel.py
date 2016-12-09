@@ -253,7 +253,7 @@ if __name__ == '__main__':
     # Flatten lists of lists that we get from using both nargs='+' and
     # action='append'. We use both because it allows people to use (e.g.)
     # --json on the command line either via "--json file1 --json file2" or
-    # "--json file1 --file2", or a combination of these. That way it's not
+    # "--json file1 file2", or a combination of these. That way it's not
     # necessary to remember which way you're supposed to use it and you also
     # can't be hit by the subtle problem encountered in
     # https://github.com/acorg/dark-matter/issues/453
