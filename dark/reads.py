@@ -979,7 +979,7 @@ class Reads(object):
         As a side effect, calculate our length (the number of reads in this
         collection of reads).
 
-        @return: A generator that yields reads. The returned read types depends
+        @return: A generator that yields reads. The returned read types depend
             on the kind of reads that were added to this instance.
         """
         # First return any reads that were added via our 'add' method.
