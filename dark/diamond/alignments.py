@@ -37,6 +37,9 @@ class DiamondReadsAlignments(ReadsAlignments):
         by our HTCondor jobs.
     @param randomizeZeroEValues: If C{True}, e-values that are zero will be set
         to a random (very good) value.
+    @param filterFunc: A function that takes a C{ReadsAlignments} instance and
+        returns either a C{ReadsAlignments} instance (if the passed
+        C{ReadsAlignments} is acceptable to the filter) or C{False}.
     @raises ValueError: if a file type is not recognized, or if the number of
         reads does not match the number of records found in the DIAMOND result
         files.
@@ -44,7 +47,8 @@ class DiamondReadsAlignments(ReadsAlignments):
 
     def __init__(self, reads, filenames, databaseFilename,
                  scoreClass=HigherIsBetterScore, sortFilenames=True,
-                 randomizeZeroEValues=True):
+                 randomizeZeroEValues=True,
+                 filterFunc=lambda readsAlignments: readsAlignments):
         if type(filenames) == str:
             filenames = [filenames]
         if sortFilenames:
@@ -69,7 +73,7 @@ class DiamondReadsAlignments(ReadsAlignments):
             scoreTitle=scoreTitle)
 
         ReadsAlignments.__init__(self, reads, diamondTaskParams,
-                                 scoreClass=scoreClass)
+                                 scoreClass=scoreClass, filterFunc=filterFunc)
 
     def _getReader(self, filename, scoreClass):
         """
