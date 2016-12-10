@@ -85,6 +85,8 @@ class ReadsAlignmentsParams(object):
 
 class ReadsAlignmentsFilter(object):
     """
+    Provide a filter for C{ReadsAlignments} instances.
+
     @param limit: An C{int} limit on the number of records to read.
     @param minSequenceLen: Sequences of lesser length will be elided.
     @param maxSequenceLen: Sequences of greater length will be elided.
