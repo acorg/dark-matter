@@ -991,7 +991,7 @@ class Reads(object):
         # Next, any reads (filtered) we were originally given. Note that we
         # have to use 'is' in the following 'if' because self._initialReads
         # may be a Reads instance whose __len__ evaluates to 0 (which would
-        # cause 'if self._initialReads' to be considered False. This will
+        # cause 'if self._initialReads' to be considered False). This will
         # happen if the initial reads object has not yet been enumerated.
         if self._initialReads is not None:
             for read in self._initialReads:

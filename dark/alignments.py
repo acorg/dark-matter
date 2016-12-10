@@ -328,17 +328,13 @@ class ReadsAlignments(object):
     @param scoreClass: A class to hold and compare scores (see scores.py).
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e.g., BLAST e-values, pass LowerIsBetterScore instead.
-    @param filterFunc: A function that takes a C{ReadsAlignments} instance and
-        returns either a C{ReadsAlignments} instance (if the passed
-        C{ReadsAlignments} is acceptable to the filter) or C{False}.
     """
 
-    def __init__(self, reads, params, scoreClass=HigherIsBetterScore,
-                 filterFunc=lambda readsAlignments: readsAlignments):
+    def __init__(self, reads, params, scoreClass=HigherIsBetterScore):
         self.reads = reads
         self.params = params
         self.scoreClass = scoreClass
-        self._filterFunc = filterFunc
+        self._filters = []
 
     def getSequence(self, title):
         """
@@ -367,16 +363,20 @@ class ReadsAlignments(object):
 
     def __iter__(self):
         """
-        Iterate through all readsAlignments.
+        Iterate through all readsAlignments, yielding those that pass any
+        filters that have been added.
 
         @return: A generator that yields readsAlignments.
         """
         for readsAlignments in self.iter():
-            filteredReadsAlignments = self._filterFunc(readsAlignments)
-            if filteredReadsAlignments is not False:
-                yield filteredReadsAlignments
-
-        self._iterated = True
+            for filterFunc in self._filters:
+                filteredReadsAlignments = filterFunc(readsAlignments)
+                if filteredReadsAlignments is False:
+                    break
+                else:
+                    readsAlignments = filteredReadsAlignments
+            else:
+                yield readsAlignments
 
     def iter(self):
         """
@@ -393,17 +393,11 @@ class ReadsAlignments(object):
 
     def filter(self, **kwargs):
         """
-        Filter a readsAlignments.
-
-        This is just a convenience method to allow people to chain
-        filters to an existing readsAlignments.
+        Add a filter to this C{readsAlignments}.
 
         @param kwargs: Keyword arguments, as accepted by
             C{ReadsAlignmentsFilter}.
-        @return: A new C{ReadsAlignments} instance, with readsAlignments from
-            C{self} filtered as requested.
+        @return: C{self}
         """
-        readsAlignmentsFilter = ReadsAlignmentsFilter(**kwargs)
-        return ReadsAlignments(self.reads, self.params,
-                               scoreClass=self.scoreClass,
-                               filterFunc=readsAlignmentsFilter.filter)
+        self._filters.append(ReadsAlignmentsFilter(**kwargs).filter)
+        return self

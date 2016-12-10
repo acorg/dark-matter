@@ -36,17 +36,13 @@ class BlastReadsAlignments(ReadsAlignments):
         by our HTCondor jobs.
     @param randomizeZeroEValues: If C{True}, e-values that are zero will be set
         to a random (very good) value.
-    @param filterFunc: A function that takes a C{ReadsAlignments} instance and
-        returns either a C{ReadsAlignments} instance (if the passed
-        C{ReadsAlignments} is acceptable to the filter) or C{False}.
     @raises ValueError: if a file type is not recognized, if the number of
         reads does not match the number of records found in the BLAST result
         files, or if BLAST parameters in all files do not match.
     """
 
     def __init__(self, reads, blastFilenames, scoreClass=HigherIsBetterScore,
-                 sortBlastFilenames=True, randomizeZeroEValues=True,
-                 filterFunc=lambda readsAlignments: readsAlignments):
+                 sortBlastFilenames=True, randomizeZeroEValues=True):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
         if sortBlastFilenames:
@@ -68,7 +64,7 @@ class BlastReadsAlignments(ReadsAlignments):
             subjectIsNucleotides=subjectIsNucleotides, scoreTitle=scoreTitle)
 
         ReadsAlignments.__init__(self, reads, applicationParams,
-                                 scoreClass=scoreClass, filterFunc=filterFunc)
+                                 scoreClass=scoreClass)
 
     def _getReader(self, filename, scoreClass):
         """
@@ -99,7 +95,7 @@ class BlastReadsAlignments(ReadsAlignments):
 
         count = 0
         reader = self._reader
-        reads = self.reads
+        reads = iter(self.reads)
         first = True
 
         for blastFilename in self.blastFilenames:
