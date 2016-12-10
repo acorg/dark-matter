@@ -1,6 +1,7 @@
 import six
 from os import unlink
 from functools import total_ordering
+from itertools import chain
 from collections import Counter
 from hashlib import md5
 from random import uniform
@@ -949,67 +950,49 @@ class Reads(object):
 
     @param initialReads: If not C{None}, an iterable of C{Read} (or C{Read}
         subclass) instances.
-    @param filterFunc: A function that takes a C{Read} instance and returns
-        either the read (if it is acceptable to the filter) or C{False}.
     """
 
-    def __init__(self, initialReads=None, filterFunc=lambda read: read):
+    def __init__(self, initialReads=None):
         self._initialReads = initialReads
-        self._filterFunc = filterFunc
         self._additionalReads = []
-        self._length = 0
-        # self._iterated will be set to True after we have first iterated.
-        self._iterated = False
+        self._filters = []
+
+    def _filterRead(self, read):
+        """
+        Filter a read, according to our set of filters.
+
+        @param read: A C{Read} instance or one of its subclasses.
+        @return: C{False} if the read fails any of our filters, else the
+            C{Read} instance returned by our list of filters.
+        """
+        for filterFunc in self._filters:
+            filteredRead = filterFunc(read)
+            if filteredRead is False:
+                return False
+            else:
+                read = filteredRead
+        return read
 
     def add(self, read):
         """
-        Add a read to this collection of reads, unless filtering rules it out.
+        Add a read to this collection of reads.
 
         @param read: A C{Read} instance.
         """
-        filteredRead = self._filterFunc(read)
-        if filteredRead is not False:
-            self._additionalReads.append(filteredRead)
-            self._length += 1
+        self._additionalReads.append(read)
 
     def __iter__(self):
         """
         Iterate through all the reads.
 
-        As a side effect, calculate our length (the number of reads in this
-        collection of reads).
-
         @return: A generator that yields reads. The returned read types depend
             on the kind of reads that were added to this instance.
         """
-        # First return any reads that were added via our 'add' method.
-        # These have already been filtered and are already accounted for in
-        # self._length.
-        for read in self._additionalReads:
-            yield read
-
-        # Next, any reads (filtered) we were originally given. Note that we
-        # have to use 'is' in the following 'if' because self._initialReads
-        # may be a Reads instance whose __len__ evaluates to 0 (which would
-        # cause 'if self._initialReads' to be considered False). This will
-        # happen if the initial reads object has not yet been enumerated.
-        if self._initialReads is not None:
-            for read in self._initialReads:
-                filteredRead = self._filterFunc(read)
-                if filteredRead is not False:
-                    if not self._iterated:
-                        self._length += 1
-                    yield filteredRead
-
-        # Finally, any reads (filtered) provided by a subclass.
-        for read in self.iter():
-            filteredRead = self._filterFunc(read)
+        for read in chain(self._additionalReads, self._initialReads or [],
+                          self.iter()):
+            filteredRead = self._filterRead(read)
             if filteredRead is not False:
-                if not self._iterated:
-                    self._length += 1
                 yield filteredRead
-
-        self._iterated = True
 
     def iter(self):
         """
@@ -1023,24 +1006,6 @@ class Reads(object):
         """
         return []
 
-    def __len__(self):
-        # Note that __len__ reflects the number of reads that are currently
-        # known.  If self.__iter__ has not been exhausted, we will not know
-        # the true number of reads. Also, once we have fully iterated, our
-        # length will no longer be updated (except when self.add is
-        # used). So if the iter method of a subclass happens to return a
-        # different number of reads a second time it is called, our length
-        # will still give the total length as counted during the original
-        # call to iter. If we didn't do things this way, we'd need to reset
-        # self._length in __iter__, which would also make len() return
-        # differing results (this could be much worse - imagine if len()
-        # were called during the second iteration, or if the second
-        # iteration is never exhausted). As it stands, __len__ can only be
-        # confusing if a subclass has an iter method and that method is
-        # called more than once and it doesn't always return the same
-        # value. That's possible, but not very likely.
-        return self._length
-
     def save(self, filename, format_='fasta'):
         """
         Write the reads to C{filename} in the requested format.
@@ -1051,16 +1016,17 @@ class Reads(object):
             'fasta-ss'.
         @raise ValueError: if C{format_} is 'fastq' and a read with no quality
             is present, or if an unknown format is requested.
-        @return: C{self} in case our caller wants to chain the result into
-            another method call.
+        @return: An C{int} giving the number of reads in C{self}.
         """
         format_ = format_.lower()
+        count = 0
 
         if isinstance(filename, str):
             try:
                 with open(filename, 'w') as fp:
                     for read in self:
                         fp.write(read.toString(format_))
+                        count += 1
             except ValueError:
                 unlink(filename)
                 raise
@@ -1068,21 +1034,19 @@ class Reads(object):
             # We have a file-like object.
             for read in self:
                 filename.write(read.toString(format_))
-        return self
+                count += 1
+        return count
 
     def filter(self, **kwargs):
         """
-        Filter a set of reads to produce a matching subset.
-
-        This is just a convenience method to allow people to chain
-        filters to an existing set of reads.
+        Add a filter to this C{Reads} instance.
 
         @param kwargs: Keyword arguments, as accepted by C{ReadFilter}.
-        @return: A new C{Reads} instance, with reads the reads from C{self}
-            filtered as requested.
+        @return: C{self}
         """
         readFilter = ReadFilter(**kwargs)
-        return Reads(initialReads=self, filterFunc=readFilter.filter)
+        self._filters.append(readFilter.filter)
+        return self
 
     def summarizePosition(self, index):
         """

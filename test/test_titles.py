@@ -97,7 +97,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         reads for the title.
         """
         titleAlignments = TitleAlignments('subject title', 55)
-        self.assertEqual(0, len(titleAlignments.reads()))
+        self.assertEqual(0, len(list(titleAlignments.reads())))
 
     def testReads(self):
         """

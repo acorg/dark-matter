@@ -7,7 +7,6 @@ import sys
 from dark.fasta import FastaReads
 from dark.fasta_ss import SSFastaReads
 from dark.fastq import FastqReads
-from dark.reads import ReadFilter
 
 
 if __name__ == '__main__':
@@ -102,7 +101,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    readFilter = ReadFilter(
+    if args.readClass == 'fastq':
+        # TODO: FastqReads should take a checkAlphabet argument, in the way
+        # that FastaReads does.
+        reads = FastqReads(sys.stdin)
+    elif args.readClass == 'fasta':
+        reads = FastaReads(sys.stdin, checkAlphabet=False)
+    else:
+        # args.readClass must be fasta-ss due to the 'choices' argument
+        # passed to parser.add_argument value above.
+        assert args.readClass == 'fasta-ss'
+        reads = SSFastaReads(sys.stdin, checkAlphabet=False)
+
+    reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,
         removeGaps=args.removeGaps,
         whitelist=set(args.whitelist) if args.whitelist else None,
@@ -115,20 +126,6 @@ if __name__ == '__main__':
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
         sequenceNumbersFile=args.sequenceNumbersFile)
-
-    if args.readClass == 'fastq':
-        # TODO: FastqReads should take a checkAlphabet argument, in the way
-        # that FastaReads does.
-        reads = FastqReads(sys.stdin, filterFunc=readFilter.filter)
-    elif args.readClass == 'fasta':
-        reads = FastaReads(sys.stdin, checkAlphabet=False,
-                           filterFunc=readFilter.filter)
-    else:
-        # args.readClass must be fasta-ss due to the 'choices' argument
-        # passed to parser.add_argument value above.
-        assert args.readClass == 'fasta-ss'
-        reads = SSFastaReads(sys.stdin, checkAlphabet=False,
-                             filterFunc=readFilter.filter)
 
     saveAs = args.saveAs or args.readClass
 

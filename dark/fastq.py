@@ -14,17 +14,14 @@ class FastqReads(Reads):
         C{list} of C{str} file names and/or file handles. Each file or file
         handle must contain sequences in FASTQ format.
     @param readClass: The class of read that should be yielded by iter.
-    @param filterFunc: A function that takes a C{Read} instance and returns
-        either the read (if it is acceptable to the filter) or C{False}.
     """
-    def __init__(self, _files, readClass=DNARead,
-                 filterFunc=lambda read: read):
+    def __init__(self, _files, readClass=DNARead):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self.readClass = readClass
         if PY3:
-            super().__init__(filterFunc=filterFunc)
+            super().__init__()
         else:
-            Reads.__init__(self, filterFunc=filterFunc)
+            Reads.__init__(self)
 
     def iter(self):
         """

@@ -65,11 +65,11 @@ class VirusSampleFASTA(object):
             saveFilename = join(
                 protein['outDir'],
                 'virus-%d-sample-%d.fasta' % (virusIndex, sampleIndex))
-            unique = reads.filter(removeDuplicates=True)
-            unique.save(saveFilename)
-            # Save the unique count into self._proteinGrouper
+            reads.filter(removeDuplicates=True)
+            nReads = reads.save(saveFilename)
+            # Save the unique read count into self._proteinGrouper
             self._proteinGrouper.virusTitles[
-                virusTitle][sampleName]['uniqueReadCount'] = len(unique)
+                virusTitle][sampleName]['uniqueReadCount'] = nReads
             self._fastaFilenames[(virusIndex, sampleIndex)] = saveFilename
             return saveFilename
 
