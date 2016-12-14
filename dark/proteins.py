@@ -578,7 +578,7 @@ class ProteinGrouper(object):
         cols = 5
         rows = int(len(virusTitles) / cols) + (
             0 if len(virusTitles) % cols == 0 else 1)
-        figure, ax = plt.subplots(rows, cols)  # , squeeze=False)
+        figure, ax = plt.subplots(rows, cols, squeeze=False)
 
         coords = dimensionalIterator((rows, cols))
 
