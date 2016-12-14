@@ -203,14 +203,11 @@ class TestReadsAlignments(TestCase):
 
     def testNotIterable(self):
         """
-        A ReadsAlignments instance must not be filterable. A subclass is
-        expected to implement __iter__.
+        Iterating an empty ReadsAlignments must result in the empty list.
         """
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
-        error = 'iter must be implemented by a subclass'
-        six.assertRaisesRegex(self, NotImplementedError, error, list,
-                              readsAlignments)
+        self.assertEqual([], list(readsAlignments))
 
     def testGetSequence(self):
         """

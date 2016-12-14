@@ -1252,30 +1252,6 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             self.assertEqual('id1', result[0].read.id)
             self.assertEqual(2, len(result[0]))
 
-    def testClearFilter(self):
-        """
-        It must be possible to clear any filtering that has been applied.
-        """
-        fp = File([
-            dumps(PARAMS) + '\n', dumps(RECORD0) + '\n',
-            dumps(RECORD1) + '\n', dumps(RECORD2) + '\n'])
-        with patch.object(builtins, 'open') as mockOpen:
-            mockOpen.return_value = fp
-            reads = Reads()
-            reads.add(Read('id0', 'A' * 70))
-            reads.add(Read('id1', 'A' * 70))
-            reads.add(Read('id2', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
-            self.assertEqual(3, len(list(readsAlignments)))
-            readsAlignments.filter(minStart=9000)
-            readsAlignments.filter(maxStop=12000)
-            readsAlignments.filter(scoreCutoff=19)
-            result = list(readsAlignments)
-            self.assertEqual(1, len(result))
-            readsAlignments.clearFilter()
-            self.assertEqual(3, len(list(readsAlignments)))
-
     def testReadIdNoMatches(self):
         """
         When filtering on alignments based on a regex for

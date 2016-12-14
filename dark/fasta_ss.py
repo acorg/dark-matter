@@ -33,19 +33,17 @@ class SSFastaReads(Reads):
         checked. (Pass zero to have no checks done.)
     @param upperCase: If C{True}, both read and structure sequences will be
         converted to upper case.
-    @param filterFunc: A function that takes a C{Read} instance and returns
-        either the read (if it is acceptable to the filter) or C{False}.
     """
     def __init__(self, _files, readClass=SSAARead, checkAlphabet=None,
-                 upperCase=False, filterFunc=lambda read: read):
+                 upperCase=False):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
         self._checkAlphabet = checkAlphabet
         self._upperCase = upperCase
         if PY3:
-            super().__init__(filterFunc=filterFunc)
+            super().__init__()
         else:
-            Reads.__init__(self, filterFunc=filterFunc)
+            Reads.__init__(self)
 
     def iter(self):
         """

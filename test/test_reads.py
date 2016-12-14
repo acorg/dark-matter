@@ -14,8 +14,7 @@ from os import stat
 from .mocking import mockOpen
 from dark.reads import (
     Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
-    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass,
-    ReadFilter)
+    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
@@ -1474,7 +1473,7 @@ class _TestSSAAReadMixin(object):
         reads = Reads()
         reads.add(self.CLASS('id1', 'AFGGCED', 'HHHHHHH'))
         reads.add(self.CLASS('id2', 'AFGGKLL', 'HHHHIII'))
-        self.assertEqual(2, len(reads))
+        self.assertEqual(2, len(list(reads)))
 
     def testGetitemReturnsNewRead(self):
         """
@@ -1826,7 +1825,7 @@ class TestReads(TestCase):
         A Reads instance with no reads must have a length of zero.
         """
         reads = Reads()
-        self.assertEqual(0, len(reads))
+        self.assertEqual(0, len(list(reads)))
 
     def testManuallyAddedReads(self):
         """
@@ -1865,7 +1864,7 @@ class TestReads(TestCase):
         reads = Reads()
         reads.add(Read('id1', 'AT'))
         reads.add(Read('id2', 'AC'))
-        self.assertEqual(2, len(reads))
+        self.assertEqual(2, len(list(reads)))
 
     def testSubclass(self):
         """
@@ -1915,22 +1914,6 @@ class TestReads(TestCase):
         reads = ReadsSubclass()
         self.assertEqual([read1, read2], list(reads))
         self.assertEqual([read1, read2], list(reads))
-
-    def testLengthAfterRepeatedIter(self):
-        """
-        A Reads subclass with an iter method must be able to be iterated
-        more than once, and following each its length must be correct.
-        """
-        class ReadsSubclass(Reads):
-            def iter(self):
-                yield Read('id1', 'AT')
-                yield Read('id2', 'AC')
-
-        reads = ReadsSubclass()
-        list(reads)
-        self.assertEqual(2, len(reads))
-        list(reads)
-        self.assertEqual(2, len(reads))
 
     def testSubclassWithAdditionalReads(self):
         """
@@ -1999,9 +1982,10 @@ class TestReads(TestCase):
         self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
                          handle.write.mock_calls)
 
-    def testSaveReturnsReadsInstance(self):
+    def testSaveReturnsReadCount(self):
         """
-        The save method on a Reads instance must return that instance.
+        The save method on a Reads instance must return the number
+        of reads in the instance.
         """
         reads = Reads()
         read1 = Read('id1', 'AT')
@@ -2011,7 +1995,7 @@ class TestReads(TestCase):
         mockOpener = mockOpen()
         with patch.object(builtins, 'open', mockOpener):
             result = reads.save('filename')
-            self.assertIs(reads, result)
+            self.assertIs(2, result)
 
     def testSaveWithUppercaseFormat(self):
         """
@@ -2084,9 +2068,11 @@ class TestReadsFiltering(TestCase):
     Tests of filtering dark.reads.Reads instances.
 
     These tests use the convenience 'filter' method on the Reads class, which
-    makes a ReadFilter instance. For that reason, only the first few of the
-    tests below (those with names ending in "WithReadFilter") pass an instance
-    of the ReadFilter class to Reads().
+    makes a ReadFilter instance. For that reason there are no explicit separate
+    tests of the C{ReadFilter} class (there probably should be, but all the
+    filtering tests below were written before the filtering code in C{Reads}
+    was pulled out into a separate C{ReadFilter} class. All forms of filtering
+    are tested.
     """
 
     def testFilterNoArgs(self):
@@ -2100,19 +2086,6 @@ class TestReadsFiltering(TestCase):
         reads.add(read2)
         result = reads.filter()
         self.assertEqual([read1, read2], list(result))
-
-    def testFilterNoArgsWithReadFilter(self):
-        """
-        Filtering must return the same list when not asked to do anything and
-        the filter is passed directly to Reads.
-        """
-        readFilter = ReadFilter()
-        reads = Reads(filterFunc=readFilter.filter)
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
-        reads.add(read1)
-        reads.add(read2)
-        self.assertEqual([read1, read2], list(reads))
 
     def testFilterReturnsReadInstance(self):
         """
@@ -2136,23 +2109,6 @@ class TestReadsFiltering(TestCase):
         reads.add(read4)
         result = reads.filter(minLength=3)
         self.assertEqual(2, len(list(result)))
-
-    def testFilteredReadsInstanceHasExpectedLengthWithReadFilter(self):
-        """
-        After filtering, the returned Reads instance must have the expected
-        length when a ReadFilter instance is passed to Reads.
-        """
-        readFilter = ReadFilter(minLength=3)
-        reads = Reads(filterFunc=readFilter.filter)
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
-        read3 = Read('id3', 'AC')
-        read4 = Read('id4', 'A')
-        reads.add(read1)
-        reads.add(read2)
-        reads.add(read3)
-        reads.add(read4)
-        self.assertEqual(2, len(list(reads)))
 
     def testFilterOnMinLength(self):
         """
