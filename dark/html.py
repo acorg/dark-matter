@@ -2,6 +2,8 @@ from __future__ import print_function
 
 from IPython.display import HTML
 
+from dark.fastq import FastqReads
+
 
 def NCBISequenceLinkURL(title, default=None):
     """
@@ -198,7 +200,7 @@ class AlignmentPanelHTMLWriter(object):
             title = image['title']
             titleAlignments = self._titlesAlignments[title]
             graphInfo = image['graphInfo']
-            self._writeFASTA(i, image)
+            readFormat = self._writeFASTA(i, image)
             fp.write("""
       <a id="big_%d"></a>
       <h3>%d: %s</h3>
@@ -206,13 +208,14 @@ class AlignmentPanelHTMLWriter(object):
             Length: %d.
             Read count: %d.
             HSP count: %d.
-            <a href="%d.fasta">fasta</a>.
+            <a href="%d.%s">%s</a>.
             <a href="#small_%d">Top panel.</a>
 """
                      % (i, i, title,
                         titleAlignments.subjectLength,
                         titleAlignments.readCount(),
-                        titleAlignments.hspCount(), i, i))
+                        titleAlignments.hspCount(), i, readFormat, readFormat,
+                        i))
 
             url = NCBISequenceLinkURL(title)
             if url:
@@ -274,12 +277,20 @@ img.full-size {
 
         @param i: The number of the image in self._images.
         @param image: A member of self._images.
+        @return: A C{str}, either 'fasta' or 'fastq' indicating the format
+            of the reads in C{self._titlesAlignments}.
         """
-        filename = '%s/%d.fasta' % (self._outputDir, i)
+        if isinstance(self._titlesAlignments.readsAlignments.reads,
+                      FastqReads):
+            format_ = 'fastq'
+        else:
+            format_ = 'fasta'
+        filename = '%s/%d.%s' % (self._outputDir, i, format_)
         titleAlignments = self._titlesAlignments[image['title']]
         with open(filename, 'w') as fp:
             for titleAlignment in titleAlignments:
-                fp.write(titleAlignment.read.toString('fasta'))
+                fp.write(titleAlignment.read.toString(format_))
+        return format_
 
     def _writeFeatures(self, i, image):
         """
