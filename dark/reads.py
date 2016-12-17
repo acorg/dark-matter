@@ -1,7 +1,6 @@
 import six
 from os import unlink
 from functools import total_ordering
-from itertools import chain
 from collections import Counter
 from hashlib import md5
 from random import uniform
@@ -956,6 +955,7 @@ class Reads(object):
         self._initialReads = initialReads
         self._additionalReads = []
         self._filters = []
+        self._iterated = False
 
     def _filterRead(self, read):
         """
@@ -988,11 +988,63 @@ class Reads(object):
         @return: A generator that yields reads. The returned read types depend
             on the kind of reads that were added to this instance.
         """
-        for read in chain(self._additionalReads, self._initialReads or [],
-                          self.iter()):
+        # self._additionalReads is a regular list.
+        for read in self._additionalReads:
             filteredRead = self._filterRead(read)
             if filteredRead is not False:
                 yield filteredRead
+
+        _unfilteredLength = len(self._additionalReads)
+
+        # self._initialReads may be a Reads instance and/or may not support
+        # len().
+        initialReads = self._initialReads or []
+        initialReadsLength = 0
+        for read in initialReads:
+            initialReadsLength += 1
+            filteredRead = self._filterRead(read)
+            if filteredRead is not False:
+                yield filteredRead
+
+        if isinstance(initialReads, Reads):
+            _unfilteredLength += initialReads.unfilteredLength()
+        else:
+            _unfilteredLength += initialReadsLength
+
+        # The value returned by self.iter() may be a Reads instance and/or
+        # may not support len().
+        subclassReads = self.iter()
+        subclassReadsLength = 0
+        for read in subclassReads:
+            subclassReadsLength += 1
+            filteredRead = self._filterRead(read)
+            if filteredRead is not False:
+                yield filteredRead
+
+        if isinstance(subclassReads, Reads):
+            _unfilteredLength += subclassReads.unfilteredLength()
+        else:
+            _unfilteredLength += subclassReadsLength
+
+        self._unfilteredLength = _unfilteredLength
+        self._iterated = True
+
+    def unfilteredLength(self):
+        """
+        Return the underlying number of reads in C{self}, irrespective of any
+        filtering that has been applied.
+
+        To obtain the number of reads in a filtered C{Reads} instance, you
+        must count the reads yourself as you iterate it.
+
+        @raises RuntimeError: If C{self} has not been fully iterated.
+        """
+        if self._iterated:
+            return self._unfilteredLength
+        else:
+            raise RuntimeError(
+                'The unfiltered length of a Reads instance is unknown until '
+                'it has been iterated.')
 
     def iter(self):
         """

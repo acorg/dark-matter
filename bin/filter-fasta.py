@@ -145,9 +145,12 @@ if __name__ == '__main__':
 
     write = sys.stdout.write
     kept = 0
-    count = 0
-    for count, read in enumerate(reads):
+    for read in reads:
         kept += 1
         write(read.toString(format_=saveAs))
 
-    print('Read %d sequences, kept %d.' % (count, kept), file=sys.stderr)
+    total = reads.unfilteredLength()
+
+    print('Read %d sequences, kept %d (%.2f%%).' %
+          (total, kept, 0.0 if total == 0 else kept / total),
+          file=sys.stderr)
