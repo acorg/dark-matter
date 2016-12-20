@@ -151,6 +151,6 @@ if __name__ == '__main__':
 
     total = reads.unfilteredLength()
 
-    print('Read %d sequences, kept %d (%.2f%%).' %
-          (total, kept, 0.0 if total == 0 else kept / total),
-          file=sys.stderr)
+    print('Read %d sequence%s, kept %d (%.2f%%).' %
+          (total, '' if total == 1 else 's', kept,
+           0.0 if total == 0 else kept / total), file=sys.stderr)
