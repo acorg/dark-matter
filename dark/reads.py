@@ -1038,6 +1038,7 @@ class Reads(object):
         must count the reads yourself as you iterate it.
 
         @raises RuntimeError: If C{self} has not been fully iterated.
+        @return: The C{int} number of reads in C{self}.
         """
         if self._iterated:
             return self._unfilteredLength
