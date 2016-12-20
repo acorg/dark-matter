@@ -2062,6 +2062,169 @@ class TestReads(TestCase):
         reads.save(fp)
         self.assertEqual('>id1\nAT\n>id2\nAC\n', fp.getvalue())
 
+    def testUnfilteredLengthBeforeIterating(self):
+        """
+        A Reads instance must raise RuntimeError if its unfilteredLength method
+        is called before it has been iterated.
+        """
+        reads = Reads()
+        error = ('^The unfiltered length of a Reads instance is unknown until '
+                 'it has been iterated\.$')
+        six.assertRaisesRegex(self, RuntimeError, error,
+                              reads.unfilteredLength)
+
+    def testUnfilteredLengthNoReads(self):
+        """
+        A Reads instance with no reads must have an unfiltered length of zero.
+        """
+        reads = Reads()
+        list(reads)
+        self.assertEqual(0, reads.unfilteredLength())
+
+    def testUnfilteredLengthAdditionalReads(self):
+        """
+        A Reads instance that has been added to manually must have the correct
+        unfiltered length.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        list(reads)
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthAdditionalReadsAfterFiltering(self):
+        """
+        A Reads instance that has been added to manually and then filtered must
+        have the correct (original) unfiltered length and the filtered list it
+        returns must be correct.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+        reads.add(read1)
+        reads.add(read2)
+        reads.filter(minLength=3)
+        self.assertEqual([read1], list(reads))
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialReads(self):
+        """
+        A Reads instance that has been given reads initially must have the
+        correct unfiltered length.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        reads = Reads([read1, read2])
+        list(reads)
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialReadsAfterFiltering(self):
+        """
+        A Reads instance that has been given reads intially and then filtered
+        must have the correct (original) unfiltered length and the filtered
+        list it returns must be correct.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+        reads = Reads([read1, read2])
+        reads.filter(minLength=3)
+        self.assertEqual([read1], list(reads))
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialReadsIsReads(self):
+        """
+        A Reads instance that has been given another filtered Reads instance
+        intially must have the correct (original) unfiltered length and the
+        filtered list it returns must be correct.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+        initialReads = Reads([read1, read2])
+        initialReads.filter(minLength=3)
+
+        reads = Reads(initialReads)
+        self.assertEqual([read1], list(reads))
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialReadsIsReadsWithAdditional(self):
+        """
+        A Reads instance that has been given another filtered Reads instance
+        intially and then an additional read must have the correct (original)
+        unfiltered length and the filtered list it returns must be correct.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+        initialReads = Reads([read1, read2])
+        initialReads.filter(minLength=3)
+
+        read3 = Read('id3', 'AC')
+        reads = Reads(initialReads)
+        reads.add(read3)
+        self.assertEqual(sorted((read1, read3)), sorted(reads))
+        self.assertEqual(3, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialSubclassWithNoLen(self):
+        """
+        If a Reads instance is given a Reads subclass (with no __len__)
+        instance intially, it must have the correct (original)
+        unfiltered length and the filtered list it returns must be correct.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+
+        class Subclass(Reads):
+            def iter(self):
+                yield read1
+                yield read2
+
+        reads = Reads(Subclass())
+        self.assertEqual(sorted((read1, read2)), sorted(reads))
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialSubclassThenFiltered(self):
+        """
+        If a Reads instance is given a Reads subclass instance intially and is
+        then filtered, it must have the correct (original) unfiltered length
+        and the filtered list it returns must be correct.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+
+        class Subclass(Reads):
+            def iter(self):
+                yield read1
+                yield read2
+
+        reads = Reads(Subclass())
+        reads.filter(maxLength=3)
+        self.assertEqual([read2], sorted(reads))
+        self.assertEqual(2, reads.unfilteredLength())
+
+    def testUnfilteredLengthInitialSubclassWithAdditionalThenFiltered(self):
+        """
+        If a Reads instance is given a Reads subclass instance that has been
+        added to intially and is then filtered, it must have the correct
+        (original) unfiltered length and the filtered list it returns must be
+        correct.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'AC')
+        read3 = Read('id3', 'AC')
+
+        class Subclass(Reads):
+            def iter(self):
+                yield read1
+                yield read2
+
+        initial = Subclass()
+        initial.add(read3)
+        reads = Reads(initial)
+        reads.filter(maxLength=3)
+        self.assertEqual(sorted([read2, read3]), sorted(reads))
+        self.assertEqual(3, reads.unfilteredLength())
+
 
 class TestReadsFiltering(TestCase):
     """

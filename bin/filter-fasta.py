@@ -149,4 +149,8 @@ if __name__ == '__main__':
         kept += 1
         write(read.toString(format_=saveAs))
 
-    print('Read %d sequences, kept %d.' % (len(reads), kept), file=sys.stderr)
+    total = reads.unfilteredLength()
+
+    print('Read %d sequence%s, kept %d (%.2f%%).' %
+          (total, '' if total == 1 else 's', kept,
+           0.0 if total == 0 else kept / total), file=sys.stderr)
