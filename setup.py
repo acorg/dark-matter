@@ -19,8 +19,10 @@ scripts = [
     'bin/dna-to-aa.py',
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
+    'bin/fasta-lengths.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
+    'bin/fasta-to-phylip.py'
     'bin/filter-fasta-by-complexity.py',
     'bin/filter-fasta-by-taxonomy.py',
     'bin/filter-fasta.py',
@@ -42,6 +44,7 @@ scripts = [
     'bin/read-blast-xml.py',
     'bin/sff-to-fastq.py',
     'bin/split-fasta-by-adaptors.py',
+    'bin/summarize-fasta-bases.py',
     'bin/summarize-reads.py',
     'bin/trim-primers.py',
     'bin/trim-reads.py',
