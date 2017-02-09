@@ -119,7 +119,7 @@ class ProteinGrouper(object):
     #   protease; Endonuclease; Reverse transcriptase] [Carnation etched ring
     #   virus]
     #
-    # Unfortunately the regex doesn't find the vius title when the protein
+    # Unfortunately the regex doesn't find the virus title when the protein
     # title has nested [...] sections, as in this example:
     #
     #   gi|224808893|ref|YP_002643049.1| replication-associated protein [Tomato
