@@ -730,10 +730,15 @@ class ReadFilter(object):
         file containing (1-based) sequence numbers, in ascending order,
         one per line. Only those sequences matching the given numbers will
         be kept.
+    @keepIndices: A set of C{int} 0-based indices in sequences that should
+        be kept. If C{None} (the default), all indices are kept.
+    @removeIndices: A set of C{int} 0-based indices in sequences that should
+        be removed. If C{None} (the default), no indices are removed.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
-        non-positive or not ascending.
+        non-positive or not ascending, or if both C{keepIndices} and
+        C{removeIndices} are given.
     """
 
     # TODO, when/if needed: make it possible to pass a seed for the RNG
@@ -747,7 +752,8 @@ class ReadFilter(object):
                  truncateTitlesAfter=None, indices=None, head=None,
                  removeDuplicates=False, modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
-                 sequenceNumbersFile=None):
+                 sequenceNumbersFile=None, keepIndices=None,
+                 removeIndices=None):
 
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -768,6 +774,13 @@ class ReadFilter(object):
         self.modifier = modifier
         self.randomSubset = randomSubset
         self.trueLength = trueLength
+
+        if keepIndices and removeIndices:
+            raise ValueError(
+                'Cannot simultaneously filter using keepIndices and '
+                'removeIndices. Call filter twice in succession instead.')
+        self.keepIndices = keepIndices
+        self.removeIndices = removeIndices
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -923,6 +936,42 @@ class ReadFilter(object):
                 return False
             else:
                 read = modified
+
+        if self.keepIndices:
+            keepIndices = self.keepIndices
+            newSequence = []
+            if read.quality:
+                newQuality = []
+                for index, (base, quality) in enumerate(zip(read.sequence,
+                                                            read.quality)):
+                    if index in keepIndices:
+                        newSequence.append(base)
+                        newQuality.append(quality)
+                read = read.__class__(read.id, ''.join(newSequence),
+                                      ''.join(newQuality))
+            else:
+                for index, base in enumerate(read.sequence):
+                    if index in keepIndices:
+                        newSequence.append(base)
+                read = read.__class__(read.id, ''.join(newSequence))
+
+        if self.removeIndices:
+            removeIndices = self.removeIndices
+            newSequence = []
+            if read.quality:
+                newQuality = []
+                for index, (base, quality) in enumerate(zip(read.sequence,
+                                                            read.quality)):
+                    if index not in removeIndices:
+                        newSequence.append(base)
+                        newQuality.append(quality)
+                read = read.__class__(read.id, ''.join(newSequence),
+                                      ''.join(newQuality))
+            else:
+                for index, base in enumerate(read.sequence):
+                    if index not in removeIndices:
+                        newSequence.append(base)
+                read = read.__class__(read.id, ''.join(newSequence))
 
         self.yieldCount += 1
         return read

@@ -7,6 +7,7 @@ import sys
 from dark.fasta import FastaReads
 from dark.fasta_ss import SSFastaReads
 from dark.fastq import FastqReads
+from dark.utils import parseRangeString
 
 
 if __name__ == '__main__':
@@ -99,6 +100,21 @@ if __name__ == '__main__':
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
+    # A mutually exclusive group for either --keepIndices or --removeIndices.
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
+        '--keepIndices',
+        help=('Specify 1-based indices to keep. All other sequence indices '
+              'will be removed. The indices must be given in the form e.g., '
+              '24,100-200,260'))
+
+    group.add_argument(
+        '--removeIndices',
+        help=('Specify 1-based indices to remove. All other sequence indices '
+              'will be kept. The indices must be given in the form e.g., '
+              '24,100-200,260'))
+
     args = parser.parse_args()
 
     if args.readClass == 'fastq':
@@ -113,6 +129,14 @@ if __name__ == '__main__':
         assert args.readClass == 'fasta-ss'
         reads = SSFastaReads(sys.stdin, checkAlphabet=False)
 
+    keepIndices = (
+        parseRangeString(args.keepIndices, convertToZeroBased=True)
+        if args.keepIndices else None)
+
+    removeIndices = (
+        parseRangeString(args.removeIndices, convertToZeroBased=True)
+        if args.removeIndices else None)
+
     reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,
         removeGaps=args.removeGaps,
@@ -125,7 +149,8 @@ if __name__ == '__main__':
         head=args.head, removeDuplicates=args.removeDuplicates,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
-        sequenceNumbersFile=args.sequenceNumbersFile)
+        sequenceNumbersFile=args.sequenceNumbersFile,
+        keepIndices=keepIndices, removeIndices=removeIndices)
 
     saveAs = args.saveAs or args.readClass
 

@@ -2674,8 +2674,6 @@ class TestReadsFiltering(TestCase):
             error = ("^Line number file 'file' contains non-ascending numbers "
                      "2 and 2\.$")
             with six.assertRaisesRegex(self, ValueError, error):
-                # import pdb
-                # pdb.set_trace()
                 list(reads.filter(sequenceNumbersFile='file'))
 
     def testLineNumberFileEmpty(self):
@@ -2724,6 +2722,103 @@ class TestReadsFiltering(TestCase):
             reads = Reads(initialReads=[read1, read2, read3, read4])
             result = reads.filter(sequenceNumbersFile='file')
             self.assertEqual([read1, read3], list(result))
+
+    def testKeepIndices(self):
+        """
+        If only a certain set of indices should be kept, the correct sequences
+        should be returned.
+        """
+        read1 = Read('id1', 'ATCGAT')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATC')
+        read4 = Read('id4', 'AT')
+        reads = Reads(initialReads=[read1, read2, read3, read4])
+        result = reads.filter(keepIndices={1, 2})
+        self.assertEqual(
+            [
+                Read('id1', 'TC'),
+                Read('id2', 'TC'),
+                Read('id3', 'TC'),
+                Read('id4', 'T'),
+            ],
+            list(result))
+
+    def testKeepIndicesWithQuality(self):
+        """
+        If only a certain set of indices should be kept, the correct sequences
+        should be returned, including a modified quality string.
+        """
+        reads = Reads(initialReads=[Read('id1', 'ATCGAT', '123456')])
+        result = reads.filter(keepIndices={1, 2})
+        self.assertEqual([Read('id1', 'TC', '23')], list(result))
+
+    def testKeepIndicesOutOfRange(self):
+        """
+        If only a certain set of indices should be kept, but the kept indices
+        are higher than the length of the input sequences, the correct
+        (empty) sequences should be returned.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCGCC')
+        reads = Reads(initialReads=[read1, read2])
+        result = reads.filter(keepIndices={100, 200})
+        self.assertEqual(
+            [
+                Read('id1', ''),
+                Read('id2', ''),
+            ],
+            list(result))
+
+    def testRemoveIndices(self):
+        """
+        If a certain set of indices should be removed, the correct sequences
+        should be returned.
+        """
+        read1 = Read('id1', 'ATCGCC')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATC')
+        read4 = Read('id4', 'A')
+        reads = Reads(initialReads=[read1, read2, read3, read4])
+        result = reads.filter(removeIndices={1, 2})
+        self.assertEqual(
+            [
+                Read('id1', 'AGCC'),
+                Read('id2', 'AG'),
+                Read('id3', 'A'),
+                Read('id4', 'A'),
+            ],
+            list(result))
+
+    def testRemoveIndicesWithQuality(self):
+        """
+        If a certain set of indices should be removed, the correct sequences
+        should be returned, including a modified quality string.
+        """
+        reads = Reads(initialReads=[Read('id1', 'ATCGAT', '123456')])
+        result = reads.filter(removeIndices={1, 2})
+        self.assertEqual([Read('id1', 'AGAT', '1456')], list(result))
+
+    def testRemoveIndicesOutOfRange(self):
+        """
+        If a certain set of indices should be removed, but the indices
+        are higher than the length of the input sequences, the correct
+        (full) sequences should be returned.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCGAA')
+        reads = Reads(initialReads=[read1, read2])
+        result = reads.filter(removeIndices={100, 200})
+        self.assertEqual([read1, read2], list(result))
+
+    def testRemoveAndKeepIndices(self):
+        """
+        Passing a keepIndices and a removeIndices set to reads.filter
+        must result in a ValueError.
+        """
+        error = ('^Cannot simultaneously filter using keepIndices and '
+                 'removeIndices. Call filter twice in succession instead\.$')
+        six.assertRaisesRegex(self, ValueError, error, Reads().filter,
+                              keepIndices={4}, removeIndices={5})
 
 
 class TestSummarizePosition(TestCase):
