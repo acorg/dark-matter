@@ -219,6 +219,36 @@ class Read(object):
                              ''.join(sorted(self.ALPHABET)),
                              str(self.__class__.__name__)))
 
+    def newFromIndices(self, indices, exclude=False):
+        """
+        Create a new read from self, with only certain indices.
+
+        @param indices: A set of C{int} 0-based indices in sequences that
+            should be kept. If C{None} (the default), all indices are kept.
+        @param exclude: If C{True} the C{indices} will be excluded, not
+            included.
+        """
+        if exclude:
+            indices = set(range(len(self))) - indices
+
+        newSequence = []
+        if self.quality:
+            newQuality = []
+            for index, (base, quality) in enumerate(zip(self.sequence,
+                                                        self.quality)):
+                if index in indices:
+                    newSequence.append(base)
+                    newQuality.append(quality)
+            read = self.__class__(self.id, ''.join(newSequence),
+                                  ''.join(newQuality))
+        else:
+            for index, base in enumerate(self.sequence):
+                if index in indices:
+                    newSequence.append(base)
+            read = self.__class__(self.id, ''.join(newSequence))
+
+        return read
+
 
 class _NucleotideRead(Read):
     """
@@ -491,6 +521,7 @@ class SSAARead(AARead):
     @param id: A C{str} describing the read.
     @param sequence: A C{str} of sequence information.
     @param structure: A C{str} of structure information.
+    @raise ValueError: If the sequence and structure lengths are not the same.
     """
     def __init__(self, id, sequence, structure):
         if six.PY3:
@@ -498,6 +529,11 @@ class SSAARead(AARead):
         else:
             AARead.__init__(self, id, sequence)
         self.structure = structure
+
+        if len(sequence) != len(structure):
+            raise ValueError(
+                'Invalid read: sequence length (%d) != structure length (%d)' %
+                (len(sequence), len(structure)))
 
     def __eq__(self, other):
         return (self.id == other.id and
@@ -567,6 +603,30 @@ class SSAARead(AARead):
         @return: A new instance of this class, with values taken from C{d}.
         """
         return cls(d['id'], d['sequence'], d['structure'])
+
+    def newFromIndices(self, indices, exclude=False):
+        """
+        Create a new read from self, with only certain indices.
+
+        @param indices: A set of C{int} 0-based indices in sequences that
+            should be kept. If C{None} (the default), all indices are kept.
+        @param exclude: If C{True} the C{indices} will be excluded, not
+            included.
+        """
+        if exclude:
+            indices = set(range(len(self))) - indices
+
+        newSequence = []
+        newStructure = []
+        for index, (base, structure) in enumerate(zip(self.sequence,
+                                                      self.structure)):
+            if index in indices:
+                newSequence.append(base)
+                newStructure.append(structure)
+        read = self.__class__(self.id, ''.join(newSequence),
+                              ''.join(newStructure))
+
+        return read
 
 
 class SSAAReadWithX(SSAARead):
@@ -937,41 +997,12 @@ class ReadFilter(object):
             else:
                 read = modified
 
-        if self.keepIndices:
-            keepIndices = self.keepIndices
-            newSequence = []
-            if read.quality:
-                newQuality = []
-                for index, (base, quality) in enumerate(zip(read.sequence,
-                                                            read.quality)):
-                    if index in keepIndices:
-                        newSequence.append(base)
-                        newQuality.append(quality)
-                read = read.__class__(read.id, ''.join(newSequence),
-                                      ''.join(newQuality))
-            else:
-                for index, base in enumerate(read.sequence):
-                    if index in keepIndices:
-                        newSequence.append(base)
-                read = read.__class__(read.id, ''.join(newSequence))
-
-        if self.removeIndices:
-            removeIndices = self.removeIndices
-            newSequence = []
-            if read.quality:
-                newQuality = []
-                for index, (base, quality) in enumerate(zip(read.sequence,
-                                                            read.quality)):
-                    if index not in removeIndices:
-                        newSequence.append(base)
-                        newQuality.append(quality)
-                read = read.__class__(read.id, ''.join(newSequence),
-                                      ''.join(newQuality))
-            else:
-                for index, base in enumerate(read.sequence):
-                    if index not in removeIndices:
-                        newSequence.append(base)
-                read = read.__class__(read.id, ''.join(newSequence))
+        # is not None has to be used in the following, to allow the empty
+        # set to be processed properly.
+        if self.keepIndices is not None:
+            read = read.newFromIndices(self.keepIndices)
+        elif self.removeIndices is not None:
+            read = read.newFromIndices(self.removeIndices, True)
 
         self.yieldCount += 1
         return read

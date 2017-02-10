@@ -1,5 +1,6 @@
 import six
 from six.moves import builtins
+from six import StringIO
 from unittest import TestCase
 from random import seed
 
@@ -8,7 +9,6 @@ try:
 except ImportError:
     from mock import patch, call
 
-from six import StringIO
 from os import stat
 
 from .mocking import mockOpen
@@ -478,6 +478,94 @@ class TestRead(TestCase):
         error = ("Read alphabet \('ACGRST'\) is not a subset of expected "
                  "alphabet \('ACGT'\) for read class DNARead.")
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
+
+    def testKeepIndices(self):
+        """
+        If only a certain set of indices should be kept, newFromIndices should
+        return a read with the correct sequence.
+        """
+        self.assertEqual(Read('id1', 'TC'),
+                         Read('id1', 'ATCGAT').newFromIndices({1, 2}))
+
+    def testKeepIndicesNoIndices(self):
+        """
+        If only the empty set of indices should be kept, newFromIndices should
+        return a read with the correct (empty) sequence.
+        """
+        self.assertEqual(Read('id1', ''),
+                         Read('id1', 'ATCGAT').newFromIndices(set()))
+
+    def testKeepIndicesAllIndices(self):
+        """
+        If all indices should be kept, newFromIndices should return a read with
+        the correct (full) sequence.
+        """
+        self.assertEqual(Read('id1', 'ATCGAT'),
+                         Read('id1', 'ATCGAT').newFromIndices(set(range(6))))
+
+    def testKeepIndicesWithQuality(self):
+        """
+        If only a certain set of indices should be kept, newFromIndices should
+        return a read with the correct sequence and quality.
+        """
+        self.assertEqual(Read('id1', 'TC', '23'),
+                         Read('id1', 'ATCGAT', '123456').newFromIndices(
+                             {1, 2}))
+
+    def testKeepIndicesOutOfRange(self):
+        """
+        If only a certain set of indices should be kept, but the kept indices
+        are higher than the length of the input sequences, newFromIndices
+        should return a read with the correct (empty) sequence.
+        """
+        self.assertEqual(Read('id1', ''),
+                         Read('id1', 'ATCGAT').newFromIndices({100, 200}))
+
+    def testRemoveIndices(self):
+        """
+        If only a certain set of indices should be removed, newFromIndices
+        should return a read with the correct sequence.
+        """
+        self.assertEqual(Read('id1', 'AGAT'),
+                         Read('id1', 'ATCGAT').newFromIndices({1, 2},
+                                                              exclude=True))
+
+    def testRemoveIndicesNoIndices(self):
+        """
+        If no indices should be removed, newFromIndices should return a read
+        with the correct (full) sequence.
+        """
+        self.assertEqual(Read('id1', 'ATCGAT'),
+                         Read('id1', 'ATCGAT').newFromIndices(set(),
+                                                              exclude=True))
+
+    def testRemoveIndicesAllIndices(self):
+        """
+        If all indices should be removed, newFromIndices should return a read
+        with the correct (empty) sequence.
+        """
+        self.assertEqual(Read('id1', ''),
+                         Read('id1', 'ATCGAT').newFromIndices(set(range(6)),
+                                                              exclude=True))
+
+    def testRemoveIndicesWithQuality(self):
+        """
+        If only a certain set of indices should be removed, newFromIndices
+        should return a read with the correct sequence and quality.
+        """
+        self.assertEqual(Read('id1', 'AGAT', '1456'),
+                         Read('id1', 'ATCGAT', '123456').newFromIndices(
+                             {1, 2}, exclude=True))
+
+    def testRemoveIndicesOutOfRange(self):
+        """
+        If only a certain set of indices should be removed, but the removed
+        indices are higher than the length of the input sequences,
+        newFromIndices should return a read with the correct (full) sequence.
+        """
+        self.assertEqual(Read('id1', 'ATCGAT'),
+                         Read('id1', 'ATCGAT').newFromIndices({100, 200},
+                                                              exclude=True))
 
 
 class TestDNARead(TestCase):
@@ -1454,6 +1542,16 @@ class _TestSSAAReadMixin(object):
     """
     Mixin class with tests for the SSAARead and SSAAReadWithX classes.
     """
+    def testSequenceLengthMatchesStructureLength(self):
+        """
+        An SSAARead (or SSAAReadWithX) must have sequence and structure
+        lengths that are the same.
+        """
+        error = (
+            '^Invalid read: sequence length \(4\) != structure length \(3\)$')
+        with six.assertRaisesRegex(self, ValueError, error):
+            self.CLASS('id', 'ACGT', '!!!')
+
     def testCorrectAttributes(self):
         """
         An SSAARead (or SSAAReadWithX) must have the correct attributes.
@@ -1626,8 +1724,8 @@ class _TestSSAAReadMixin(object):
         The __hash__ value for two reads must differ if their sequence strings
         differ.
         """
-        self.assertNotEqual(hash(self.CLASS('id', 'MMR', 'HH')),
-                            hash(self.CLASS('id', 'MMF', 'HH')))
+        self.assertNotEqual(hash(self.CLASS('id', 'MMR', 'HHH')),
+                            hash(self.CLASS('id', 'MMF', 'HHH')))
 
     def testHashDiffersIfStructureDiffers(self):
         """
@@ -1651,6 +1749,80 @@ class _TestSSAAReadMixin(object):
         """
         read = self.CLASS('id', 'AA', 'HH')
         self.assertEqual(1, len(dict.fromkeys([read, read])))
+
+    def testKeepIndices(self):
+        """
+        If only a certain set of indices should be kept, newFromIndices should
+        return a read with the correct sequence.
+        """
+        self.assertEqual(self.CLASS('id1', 'TC', 'HG'),
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCX').newFromIndices(
+                             {1, 2}))
+
+    def testKeepIndicesNoIndices(self):
+        """
+        If an empty set of indices should be kept, newFromIndices should
+        return a read with the correct (empty) sequence.
+        """
+        self.assertEqual(self.CLASS('id1', '', ''),
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromIndices(
+                             set()))
+
+    def testKeepIndicesAllIndices(self):
+        """
+        If all indices should be kept, newFromIndices should return a read
+        with the correct (full) sequence.
+        """
+        self.assertEqual(self.CLASS('id1', 'ATCGAT', 'CHGCCC'),
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromIndices(
+                             set(range(6))))
+
+    def testKeepIndicesOutOfRange(self):
+        """
+        If only a certain set of indices should be kept, but the kept indices
+        are higher than the length of the input sequences, newFromIndices
+        should return a read with the correct (empty) sequence.
+        """
+        self.assertEqual(self.CLASS('id1', '', ''),
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromIndices(
+                             {100, 200}))
+
+    def testRemoveIndices(self):
+        """
+        If only a certain set of indices should be removed, newFromIndices
+        should return a read with the correct sequence.
+        """
+        self.assertEqual(self.CLASS('id1', 'AGAT', 'CSHG'),
+                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromIndices(
+                             {1, 2}, exclude=True))
+
+    def testRemoveIndicesNoIndices(self):
+        """
+        If the empty set of indices should be removed, newFromIndices
+        should return a read with the correct (full) sequence.
+        """
+        self.assertEqual(self.CLASS('id1', 'ATCGAT', 'CXXSHG'),
+                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromIndices(
+                             set(), exclude=True))
+
+    def testRemoveIndicesAllIndices(self):
+        """
+        If all indices should be removed, newFromIndices should return a read
+        with the correct (empty) sequence.
+        """
+        self.assertEqual(self.CLASS('id1', '', ''),
+                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromIndices(
+                             set(range(6)), exclude=True))
+
+    def testRemoveIndicesOutOfRange(self):
+        """
+        If only a certain set of indices should be removed, but the removed
+        indices are higher than the length of the input sequences,
+        newFromIndices should return a read with the correct (full) sequence.
+        """
+        self.assertEqual(self.CLASS('id1', 'ATCGAT', 'HGSTCC'),
+                         self.CLASS('id1', 'ATCGAT', 'HGSTCC').newFromIndices(
+                             {100, 200}, exclude=True))
 
 
 class TestSSAARead(TestCase, _TestSSAAReadMixin):
@@ -2743,6 +2915,39 @@ class TestReadsFiltering(TestCase):
             ],
             list(result))
 
+    def testKeepIndicesNoIndices(self):
+        """
+        If the empty set of indices should be kept, the correct (empty)
+        sequences should be returned.
+        """
+        read1 = Read('id1', 'ATCGAT')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATC')
+        read4 = Read('id4', 'AT')
+        reads = Reads(initialReads=[read1, read2, read3, read4])
+        result = reads.filter(keepIndices=set())
+        self.assertEqual(
+            [
+                Read('id1', ''),
+                Read('id2', ''),
+                Read('id3', ''),
+                Read('id4', ''),
+            ],
+            list(result))
+
+    def testKeepIndicesAllIndices(self):
+        """
+        If the set of all indices should be kept, the correct (full) sequences
+        should be returned.
+        """
+        read1 = Read('id1', 'ATCGAT')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATC')
+        read4 = Read('id4', 'AT')
+        reads = Reads(initialReads=[read1, read2, read3, read4])
+        result = reads.filter(keepIndices=set(range(6)))
+        self.assertEqual([read1, read2, read3, read4], list(result))
+
     def testKeepIndicesWithQuality(self):
         """
         If only a certain set of indices should be kept, the correct sequences
@@ -2786,6 +2991,40 @@ class TestReadsFiltering(TestCase):
                 Read('id2', 'AG'),
                 Read('id3', 'A'),
                 Read('id4', 'A'),
+            ],
+            list(result))
+
+    def testRemoveIndicesNoIndices(self):
+        """
+        If the empty set of indices should be removed, the correct (full)
+        sequences should be returned.
+        """
+        read1 = Read('id1', 'ATCGCC')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATC')
+        read4 = Read('id4', 'A')
+        reads = Reads(initialReads=[read1, read2, read3, read4])
+        result = reads.filter(removeIndices=set())
+        self.assertEqual([read1, read2, read3, read4],
+                         list(result))
+
+    def testRemoveIndicesAllIndices(self):
+        """
+        If the full set of indices should be removed, the correct (empty)
+        sequences should be returned.
+        """
+        read1 = Read('id1', 'ATCGCC')
+        read2 = Read('id2', 'ATCG')
+        read3 = Read('id3', 'ATC')
+        read4 = Read('id4', 'A')
+        reads = Reads(initialReads=[read1, read2, read3, read4])
+        result = reads.filter(removeIndices=set(range(6)))
+        self.assertEqual(
+            [
+                Read('id1', ''),
+                Read('id2', ''),
+                Read('id3', ''),
+                Read('id4', ''),
             ],
             list(result))
 
