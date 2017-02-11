@@ -110,10 +110,22 @@ if __name__ == '__main__':
               '24,100-200,260'))
 
     group.add_argument(
+        '--keepIndicesFile',
+        help=('Specify a file containing 1-based indices to keep. All other '
+              'sequence indices will be removed. Lines in the file must be '
+              'given in the form e.g., 24,100-200,260'))
+
+    group.add_argument(
         '--removeIndices',
         help=('Specify 1-based indices to remove. All other sequence indices '
               'will be kept. The indices must be given in the form e.g., '
               '24,100-200,260'))
+
+    group.add_argument(
+        '--removeIndicesFile',
+        help=('Specify a file containing 1-based indices to remove. All other '
+              'sequence indices will be kept. Lines in the file must be given '
+              'in the form e.g., 24,100-200,260'))
 
     args = parser.parse_args()
 
@@ -133,9 +145,33 @@ if __name__ == '__main__':
         parseRangeString(args.keepIndices, convertToZeroBased=True)
         if args.keepIndices else None)
 
+    if args.keepIndicesFile:
+        keepIndices = keepIndices or set()
+        with open(args.keepIndicesFile) as fp:
+            for lineNumber, line in enumerate(fp):
+                try:
+                    keepIndices.update(
+                        parseRangeString(line, convertToZeroBased=True))
+                except ValueError as e:
+                    raise ValueError(
+                        'Keep indices file %r line %d could not be parsed: %s'
+                        % (args.keepIndicesFile, lineNumber, e))
+
     removeIndices = (
         parseRangeString(args.removeIndices, convertToZeroBased=True)
         if args.removeIndices else None)
+
+    if args.removeIndicesFile:
+        removeIndices = removeIndices or set()
+        with open(args.removeIndicesFile) as fp:
+            for lineNumber, line in enumerate(fp):
+                try:
+                    removeIndices.update(
+                        parseRangeString(line, convertToZeroBased=True))
+                except ValueError as e:
+                    raise ValueError(
+                        'Remove indices file %r line %d parse error: %s'
+                        % (args.removeIndicesFile, lineNumber, e))
 
     reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,

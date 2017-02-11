@@ -197,11 +197,53 @@ class TestParseRangeString(TestCase):
         """
         self.assertEqual({6}, parseRangeString('6'))
 
+    def testSingleNumberSpaceBefore(self):
+        """
+        A single number preceeded by whitespace must result in the expected
+        set.
+        """
+        self.assertEqual({6}, parseRangeString('  6'))
+
+    def testSingleNumberSpaceAfter(self):
+        """
+        A single number followed by whitespace must result in the expected
+        set.
+        """
+        self.assertEqual({6}, parseRangeString('6  '))
+
+    def testSingleNumberSpaceBeforeAndAfter(self):
+        """
+        A single number preceeded and followed by whitespace must result in
+        the expected set.
+        """
+        self.assertEqual({6}, parseRangeString(' 6  '))
+
     def testSingleRange(self):
         """
         A single range must result in the expected set.
         """
         self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6-10'))
+
+    def testSingleRangeWithSpaceBeforeHyphen(self):
+        """
+        A single range with a space before the hyphen must result in the
+        expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6 -10'))
+
+    def testSingleRangeWithSpaceAfterHyphen(self):
+        """
+        A single range with a space after the hyphen must result in the
+        expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6- 10'))
+
+    def testSingleRangeWithSpaceBeforeAfterHyphen(self):
+        """
+        A single range with spaces before and after the hyphen must result in
+        the expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6 - 10'))
 
     def testTwoRanges(self):
         """

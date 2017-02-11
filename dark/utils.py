@@ -130,7 +130,7 @@ def asHandle(fileNameOrHandle, mode='r'):
         yield fileNameOrHandle
 
 
-_rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
+_rangeRegex = compile(r'^\s*(\d+)(?:\s*-\s*(\d+))?\s*$')
 
 
 def parseRangeString(s, convertToZeroBased=False):

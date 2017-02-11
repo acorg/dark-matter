@@ -19,6 +19,7 @@ scripts = [
     'bin/dna-to-aa.py',
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
+    'bin/fasta-base-indices.py',
     'bin/fasta-lengths.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
