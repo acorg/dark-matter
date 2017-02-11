@@ -997,12 +997,12 @@ class ReadFilter(object):
             else:
                 read = modified
 
-        # is not None has to be used in the following, to allow the empty
-        # set to be processed properly.
+        # We have to use 'is not None' in the following tests so the empty set
+        # is processed properly.
         if self.keepIndices is not None:
             read = read.newFromIndices(self.keepIndices)
         elif self.removeIndices is not None:
-            read = read.newFromIndices(self.removeIndices, True)
+            read = read.newFromIndices(self.removeIndices, exclude=True)
 
         self.yieldCount += 1
         return read
