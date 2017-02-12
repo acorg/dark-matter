@@ -1,3 +1,4 @@
+import sys
 import six
 from os import unlink
 from functools import total_ordering
@@ -9,7 +10,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
-from dark.aa import AA_LETTERS
+from dark.aa import AA_LETTERS, NAMES as AA_NAMES
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 from dark.gor4 import GOR4
@@ -1022,6 +1023,24 @@ readClassNameToClass = {
     'TranslatedRead': TranslatedRead,
 }
 
+_DNA = set('ACGT')
+_RNA = set('ACGU')
+_AA = set(AA_NAMES)
+
+# Map read class names to the set of unambiguous sequence bases (loosely
+# speaking).
+unambiguousBases = {
+    'AARead': _AA,
+    'AAReadORF': _AA,
+    'AAReadWithX': _AA,
+    'DNARead': _DNA,
+    'RNARead': _RNA,
+    'Read': _DNA,
+    'SSAARead': _AA,
+    'SSAAReadWithX': _AA,
+    'TranslatedRead': _AA,
+}
+
 
 class Reads(object):
     """
@@ -1202,3 +1221,107 @@ class Reads(object):
             'excludedCount': excludedCount,
             'countAtPosition': countAtPosition
         }
+
+    def indicesMatching(self, targets, matchCase, any_):
+        """
+        Find indices that match a given set of target sequence bases.
+
+        @param targets: A C{set} of sequence bases to look for.
+        @param matchCase: If C{True}, case will be considered in matching.
+        @param any_: If C{True}, return indices that match in any read. Else
+            return indices that match in all reads.
+        @return: A C{set} of 0-based indices that indicate where the target
+            bases occur in our reads. An index will be in this set if any of
+            our reads has any of the target bases in that location.
+        """
+        # If case is unimportant, we convert everything (target bases and
+        # sequences, as we read them) to lower case.
+        if not matchCase:
+            targets = set(map(str.lower, targets))
+
+        result = set() if any_ else None
+        for read in self:
+            sequence = read.sequence if matchCase else read.sequence.lower()
+            matches = set(index for (index, base) in enumerate(sequence)
+                          if base in targets)
+            if any_:
+                result |= matches
+            else:
+                if result is None:
+                    result = matches
+                else:
+                    result &= matches
+                # We can exit early if we run out of possible indices.
+                if not result:
+                    break
+
+        # Make sure we don't return None.
+        return result or set()
+
+
+def addFASTACommandLineOptions(parser):
+    """
+    Add standard command-line options to an argparse parser.
+
+    @param parser: An C{argparse.ArgumentParser} instance.
+    """
+
+    parser.add_argument(
+        '--fastaFile', type=open, default=sys.stdin,
+        help=('The name of the FASTA input file. Standard input will be read '
+              'if no file name is given.'))
+
+    parser.add_argument(
+        '--readClass', default='DNARead', choices=readClassNameToClass,
+        help='If specified, give the type of the reads in the input.')
+
+    parser.add_argument(
+        '--checkAlphabet', type=int, default=None,
+        help=('An integer, indicating how many bases or amino acids at the '
+              'start of sequences should have their alphabet checked. If not '
+              'specified, all bases are checked.'))
+
+    # A mutually exclusive group for either --fasta, --fastq, or --fasta-ss
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
+        '--fasta',
+        help=('If specified, input will be treated as FASTA. This is the '
+              'default.'))
+
+    group.add_argument(
+        '--fastq', help='If specified, input will be treated as FASTQ.')
+
+    group.add_argument(
+        '--fasta-ss', dest='fasta_ss',
+        help=('If specified, input will be treated as PDB FASTA '
+              '(i.e., regular FASTA with each sequence followed by its '
+              'structure).'))
+
+
+def parseFASTACommandLineOptions(args):
+    """
+    Examine parsed command-line options and return a Reads instance.
+
+    @param args: An argparse namespace, as returned by the argparse
+        C{parse_args} function.
+    @return: A C{Reads} subclass instance, depending on the type of FASTA file
+        given.
+    """
+    # Set default FASTA type.
+    if not (args.fasta or args.fastq or args.fasta_ss):
+        args.fasta = True
+
+    readClass = readClassNameToClass[args.readClass]
+
+    if args.fasta:
+        from dark.fasta import FastaReads
+        return FastaReads(args.fastaFile, readClass=readClass,
+                          checkAlphabet=args.checkAlphabet)
+    elif args.fastq:
+        from dark.fastq import FastqReads
+        return FastqReads(args.fastaFile, readClass=readClass)
+    else:
+        from dark.fasta_ss import SSFastaReads
+        return SSFastaReads(args.fastaFile, readClass=readClass,
+                            checkAlphabet=args.checkAlphabet)

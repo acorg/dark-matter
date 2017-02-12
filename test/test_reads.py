@@ -3,22 +3,21 @@ from six.moves import builtins
 from six import StringIO
 from unittest import TestCase
 from random import seed
+from os import stat
 
 try:
     from unittest.mock import patch, call
 except ImportError:
     from mock import patch, call
-
-from os import stat
-
 from .mocking import mockOpen
-from dark.reads import (
-    Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
-    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
+
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
 from dark.hsp import HSP
+from dark.reads import (
+    Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
+    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
 
 
 class TestRead(TestCase):
@@ -3112,3 +3111,105 @@ class TestSummarizePosition(TestCase):
         reads.add(Read('id3', 'aataaaaaa'))
         result = reads.summarizePosition(2)
         self.assertEqual({'a': 1, 't': 2}, result['countAtPosition'])
+
+
+class TestIndicesMatching(TestCase):
+    """
+    Tests for the Reads.indicesMatching method.
+    """
+    def testNoMatches(self):
+        """
+        If no reads match the target bases, indicesMatching must return the
+        empty set.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaaaa'))
+        result = reads.indicesMatching({'b'}, matchCase=True, any_=True)
+        self.assertEqual(set(), result)
+
+    def testAllMatches(self):
+        """
+        If a read's indices all match the target bases, indicesMatching must
+        return the full set of indices.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaga'))
+        result = reads.indicesMatching({'a', 'g'}, matchCase=True, any_=True)
+        self.assertEqual(set(range(5)), result)
+
+    def testPartialMatch(self):
+        """
+        If some of a read's indices all match the target bases, indicesMatching
+        must return the expected set of indices.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaga'))
+        result = reads.indicesMatching({'a'}, matchCase=True, any_=True)
+        self.assertEqual({0, 1, 2, 4}, result)
+
+    def testMatchCase(self):
+        """
+        If only some of a read's indices all match the target bases with
+        matching case, indicesMatching must return the expected set of indices.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aAAga'))
+        result = reads.indicesMatching({'a'}, matchCase=True, any_=False)
+        self.assertEqual({0, 4}, result)
+
+    def testIgnoreCase(self):
+        """
+        If only some of a read's indices all match the target bases with
+        matching case, indicesMatching must return the expected set of indices
+        when we tell it to ignore case.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aAAga'))
+        result = reads.indicesMatching({'a'}, matchCase=False, any_=False)
+        self.assertEqual({0, 1, 2, 4}, result)
+
+    def testMultipleReadsAny(self):
+        """
+        If multiple reads are given, indicesMatching must return the expected
+        set of indices when we pass any_=True.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaga'))
+        reads.add(Read('id2', 'caata'))
+        result = reads.indicesMatching({'c', 'g'}, matchCase=False, any_=True)
+        self.assertEqual({0, 3}, result)
+
+    def testMultipleReadsAll(self):
+        """
+        If multiple reads are given, indicesMatching must return the expected
+        set of indices when we pass any_=False.
+        """
+        reads = Reads()
+        reads.add(Read('id1', 'aaaga'))
+        reads.add(Read('id2', 'caaga'))
+        result = reads.indicesMatching({'c', 'g'}, matchCase=False, any_=False)
+        self.assertEqual({3}, result)
+
+    def testMultipleReadsAllWithDifferingLengths(self):
+        """
+        If multiple reads are given, indicesMatching must return the expected
+        set of indices when we pass any_=False and the reads have differing
+        lengths.
+        """
+        reads = Reads()
+        reads.add(Read('id2', 'caa-agt-'))
+        reads.add(Read('id1', '-aa-a'))
+        result = reads.indicesMatching({'-'}, matchCase=False, any_=False)
+        self.assertEqual({3}, result)
+
+    def testMultipleReadsAnyWithDifferingLengths(self):
+        """
+        If multiple reads are given, indicesMatching must return the expected
+        set of indices when we pass any_=True and the reads have differing
+        lengths.
+        """
+        reads = Reads()
+        reads.add(Read('id2', 'caa-agt-'))
+        reads.add(Read('id1', '-aa-a'))
+        result = reads.indicesMatching({'-'}, matchCase=False, any_=True)
+        self.assertEqual({0, 3, 7}, result)

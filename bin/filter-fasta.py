@@ -134,12 +134,12 @@ if __name__ == '__main__':
         # that FastaReads does.
         reads = FastqReads(sys.stdin)
     elif args.readClass == 'fasta':
-        reads = FastaReads(sys.stdin, checkAlphabet=False)
+        reads = FastaReads(sys.stdin, checkAlphabet=0)
     else:
         # args.readClass must be fasta-ss due to the 'choices' argument
         # passed to parser.add_argument value above.
         assert args.readClass == 'fasta-ss'
-        reads = SSFastaReads(sys.stdin, checkAlphabet=False)
+        reads = SSFastaReads(sys.stdin, checkAlphabet=0)
 
     keepIndices = (
         parseRangeString(args.keepIndices, convertToZeroBased=True)
