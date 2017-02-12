@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import sys
 import os
 import argparse
 
@@ -60,8 +61,16 @@ else:
     targets = set(args.bases)
 
 indices = reads.indicesMatching(targets, args.matchCase, args.any)
+nIndices = len(indices)
 
-if indices:
+if nIndices:
     separator = ' ' if os.isatty(1) else '\n'
     # Add one to indices to maximize happy humans.
     print(separator.join(map(lambda x: str(x + 1), sorted(indices))))
+
+print('Found %d %s where %s a base from the set {%s}.' %
+      (nIndices,
+       'index' if nIndices == 1 else 'indices',
+       'any sequence has' if args.any else 'all sequences have',
+       ', '.join(sorted(targets))),
+      file=sys.stderr)
