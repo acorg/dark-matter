@@ -17,8 +17,7 @@ import argparse
 
 from Bio.Data.CodonTable import TranslationError
 
-from dark.reads import DNARead, RNARead
-from dark.fasta import FastaReads
+from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
 if __name__ == '__main__':
@@ -29,22 +28,13 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--type', default='dna', choices=['dna', 'rna'],
-        help='The type of the bases in the stdin FASTA.')
-
-    parser.add_argument(
         '--minORFLength', metavar='LEN', type=int, default=None,
         help='Translations to AA that do not contain an ORF of at least '
         'this length will not be produced.')
 
+    addFASTACommandLineOptions(parser)
     args = parser.parse_args()
-
-    if args.type == 'dna':
-        readClass = DNARead
-    else:
-        readClass = RNARead
-
-    reads = FastaReads(sys.stdin, readClass)
+    reads = parseFASTACommandLineOptions(args)
     write = sys.stdout.write
     minORFLength = args.minORFLength
 

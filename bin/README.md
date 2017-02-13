@@ -21,9 +21,9 @@ that may not be apparent are:
   cannot simply and reliably differentiate between quality strings and
   lines that have sequences or ids. But with
 
-  `filter-fasta.py --readClass fastq < filename.fastq | awk 'NR % 4 == 1 {...}'`
+  `filter-fasta.py --fastq < filename.fastq | awk 'NR % 4 == 1 {...}'`
 
   this becomes trivial.
 * It is also easy to convert FASTQ to FASTA:
 
-  `filter-fasta.py --readClass fastq --saveAs fasta < filename.fastq`
+  `filter-fasta.py --fastq --saveAs fasta < filename.fastq`

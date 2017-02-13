@@ -46,9 +46,7 @@ parser.add_argument(
           'all sequences.'))
 
 addFASTACommandLineOptions(parser)
-
 args = parser.parse_args()
-
 reads = parseFASTACommandLineOptions(args)
 
 if args.bases is None:

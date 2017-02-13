@@ -22,8 +22,8 @@ import matplotlib
 matplotlib.use('PDF')
 
 # These imports are here because dark.graphics imports matplotlib.pyplot
-# and we need to set the matplotlib backend before that import. So please
-# don't move these imports higher in this file.
+# and we need to set the matplotlib backend (see above) before that import
+# happens. So please don't move these imports higher in this file.
 from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
@@ -65,6 +65,12 @@ def parseColors(colors, args):
 
 
 if __name__ == '__main__':
+
+    # We do not use the addFASTACommandLineOptions and
+    # parseFASTACommandLineOptions utility functions below because we allow
+    # multiple FASTA or FASTQ files on the command line, which we specify
+    # by --fasta and --fastq. And those names clash with the option names
+    # used by those utility functions.
 
     parser = argparse.ArgumentParser(
         description='Non-interactively generate an alignment panel',
@@ -263,7 +269,8 @@ if __name__ == '__main__':
     blacklist = (
         set(chain.from_iterable(args.blacklist)) if args.blacklist else None)
 
-    # TODO: Add a --readClass option in case we want to process AA queries.
+    # TODO: Add a --readClass command-line option in case we want to
+    # process FASTA containing AA sequences.
     if args.fasta:
         reads = FastaReads(list(chain.from_iterable(args.fasta)),
                            checkAlphabet=args.checkAlphabet)

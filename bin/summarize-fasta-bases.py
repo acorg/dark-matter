@@ -2,14 +2,11 @@
 
 from __future__ import print_function
 
-import sys
 from collections import defaultdict
 from math import log10
 
 from dark.aa import NAMES
-from dark.fasta import FastaReads
-from dark.fasta_ss import SSFastaReads
-from dark.fastq import FastqReads
+from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.summarize import sequenceCategoryLengths
 
 
@@ -26,10 +23,6 @@ if __name__ == '__main__':
         help='The type of the bases in the input.')
 
     parser.add_argument(
-        '--readClass', default='fasta', choices=('fasta', 'fastq', 'fasta-ss'),
-        help='If specified, give the input FASTA type.')
-
-    parser.add_argument(
         '--minLength', default=1, type=int,
         help=('If specified, stretches of reads that are less than this '
               'length will not be reported but will be summarized by an '
@@ -39,19 +32,9 @@ if __name__ == '__main__':
         '--concise', action='store_true', default=False,
         help='If specified, do not show the individual sequence regions.')
 
+    addFASTACommandLineOptions(parser)
     args = parser.parse_args()
-
-    if args.readClass == 'fastq':
-        # TODO: FastqReads should take a checkAlphabet argument, in the way
-        # that FastaReads does.
-        reads = FastqReads(sys.stdin)
-    elif args.readClass == 'fasta':
-        reads = FastaReads(sys.stdin, checkAlphabet=False)
-    else:
-        # args.readClass must be fasta-ss due to the 'choices' argument
-        # passed to parser.add_argument value above.
-        assert args.readClass == 'fasta-ss'
-        reads = SSFastaReads(sys.stdin, checkAlphabet=False)
+    reads = parseFASTACommandLineOptions(args)
 
     if args.baseType == 'nucl':
         categories = {
