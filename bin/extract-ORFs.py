@@ -21,44 +21,33 @@ import argparse
 
 from Bio.Data.CodonTable import TranslationError
 
-from dark.fasta import FastaReads
-from dark.reads import AARead, RNARead, DNARead
-
-TYPE = {
-    'aa': AARead,
-    'dna': DNARead,
-    'rna': RNARead,
-}
+from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Convert DNA or AA FASTA to AA ORF-only FASTA',
-        epilog='Given DNA or AA FASTA on stdin, output AA ORF-only FASTA to '
-        'stdout. Optionally, filter by minimum required ORF length and allow '
-        'the output of short ORFs that are open.'
-    )
+        epilog=('Given DNA or AA FASTA on stdin, output AA ORF-only FASTA to '
+                'stdout. Optionally, filter by minimum required ORF length '
+                'and allow the output of short ORFs that are open.'))
 
     parser.add_argument(
         '--allowOpenORFs', default=False, action='store_true',
-        help='If True, ORFs that do not meet the length requirement '
-        '(as specified by --minORFLength) will be output as long as '
-        'they are open.')
+        help=('If True, ORFs that do not meet the length requirement '
+              '(as specified by --minORFLength) will be output as long as '
+              'they are open.'))
 
     parser.add_argument(
         '--minORFLength', metavar='LEN', type=int, default=None,
         help='Only ORFs of at least this length will be written to stdout.')
 
-    parser.add_argument(
-        '--type', default='dna', choices=TYPE.keys(),
-        help='The type of the bases in the stdin FASTA.')
+    addFASTACommandLineOptions(parser)
 
     args = parser.parse_args()
+    allowOpenORFs = args.allowOpenORFs
     write = sys.stdout.write
     minORFLength = args.minORFLength
-    allowOpenORFs = args.allowOpenORFs
-
-    reads = FastaReads(sys.stdin, readClass=TYPE[args.type])
+    reads = parseFASTACommandLineOptions(args)
 
     for read in reads:
         if args.type == 'aa':
