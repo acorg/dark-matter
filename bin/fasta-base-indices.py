@@ -11,9 +11,9 @@ from dark.reads import (
 
 parser = argparse.ArgumentParser(
     description=(
-        'Given FASTA on stdin, and bases to look for, write the 1-based '
-        'indices of where the bases occur in all sequences to standard '
-        'output. If standard output is a terminal these will be '
+        'Given FASTA on standard input, and bases to look for, write the '
+        '1-based indices of where the bases occur in all sequences to '
+        'standard output. If standard output is a terminal, these will be '
         'space separated, else newline separated. Use --any to print '
         'indices that match any sequence.'),
     epilog=(
