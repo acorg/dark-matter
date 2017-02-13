@@ -1,3 +1,4 @@
+import sys
 import six
 from os import unlink
 from functools import total_ordering
@@ -9,7 +10,7 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
-from dark.aa import AA_LETTERS
+from dark.aa import AA_LETTERS, NAMES as AA_NAMES
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 from dark.gor4 import GOR4
@@ -218,6 +219,36 @@ class Read(object):
                              ''.join(sorted(readLetters)),
                              ''.join(sorted(self.ALPHABET)),
                              str(self.__class__.__name__)))
+
+    def newFromIndices(self, indices, exclude=False):
+        """
+        Create a new read from self, with only certain indices.
+
+        @param indices: A set of C{int} 0-based indices in sequences that
+            should be kept. If C{None} (the default), all indices are kept.
+        @param exclude: If C{True} the C{indices} will be excluded, not
+            included.
+        """
+        if exclude:
+            indices = set(range(len(self))) - indices
+
+        newSequence = []
+        if self.quality:
+            newQuality = []
+            for index, (base, quality) in enumerate(zip(self.sequence,
+                                                        self.quality)):
+                if index in indices:
+                    newSequence.append(base)
+                    newQuality.append(quality)
+            read = self.__class__(self.id, ''.join(newSequence),
+                                  ''.join(newQuality))
+        else:
+            for index, base in enumerate(self.sequence):
+                if index in indices:
+                    newSequence.append(base)
+            read = self.__class__(self.id, ''.join(newSequence))
+
+        return read
 
 
 class _NucleotideRead(Read):
@@ -491,6 +522,7 @@ class SSAARead(AARead):
     @param id: A C{str} describing the read.
     @param sequence: A C{str} of sequence information.
     @param structure: A C{str} of structure information.
+    @raise ValueError: If the sequence and structure lengths are not the same.
     """
     def __init__(self, id, sequence, structure):
         if six.PY3:
@@ -498,6 +530,11 @@ class SSAARead(AARead):
         else:
             AARead.__init__(self, id, sequence)
         self.structure = structure
+
+        if len(sequence) != len(structure):
+            raise ValueError(
+                'Invalid read: sequence length (%d) != structure length (%d)' %
+                (len(sequence), len(structure)))
 
     def __eq__(self, other):
         return (self.id == other.id and
@@ -567,6 +604,30 @@ class SSAARead(AARead):
         @return: A new instance of this class, with values taken from C{d}.
         """
         return cls(d['id'], d['sequence'], d['structure'])
+
+    def newFromIndices(self, indices, exclude=False):
+        """
+        Create a new read from self, with only certain indices.
+
+        @param indices: A set of C{int} 0-based indices in sequences that
+            should be kept. If C{None} (the default), all indices are kept.
+        @param exclude: If C{True} the C{indices} will be excluded, not
+            included.
+        """
+        if exclude:
+            indices = set(range(len(self))) - indices
+
+        newSequence = []
+        newStructure = []
+        for index, (base, structure) in enumerate(zip(self.sequence,
+                                                      self.structure)):
+            if index in indices:
+                newSequence.append(base)
+                newStructure.append(structure)
+        read = self.__class__(self.id, ''.join(newSequence),
+                              ''.join(newStructure))
+
+        return read
 
 
 class SSAAReadWithX(SSAARead):
@@ -730,10 +791,15 @@ class ReadFilter(object):
         file containing (1-based) sequence numbers, in ascending order,
         one per line. Only those sequences matching the given numbers will
         be kept.
+    @keepIndices: A set of C{int} 0-based indices in sequences that should
+        be kept. If C{None} (the default), all indices are kept.
+    @removeIndices: A set of C{int} 0-based indices in sequences that should
+        be removed. If C{None} (the default), no indices are removed.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
-        non-positive or not ascending.
+        non-positive or not ascending, or if both C{keepIndices} and
+        C{removeIndices} are given.
     """
 
     # TODO, when/if needed: make it possible to pass a seed for the RNG
@@ -747,7 +813,8 @@ class ReadFilter(object):
                  truncateTitlesAfter=None, indices=None, head=None,
                  removeDuplicates=False, modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
-                 sequenceNumbersFile=None):
+                 sequenceNumbersFile=None, keepIndices=None,
+                 removeIndices=None):
 
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -768,6 +835,13 @@ class ReadFilter(object):
         self.modifier = modifier
         self.randomSubset = randomSubset
         self.trueLength = trueLength
+
+        if keepIndices and removeIndices:
+            raise ValueError(
+                'Cannot simultaneously filter using keepIndices and '
+                'removeIndices. Call filter twice in succession instead.')
+        self.keepIndices = keepIndices
+        self.removeIndices = removeIndices
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -924,6 +998,13 @@ class ReadFilter(object):
             else:
                 read = modified
 
+        # We have to use 'is not None' in the following tests so the empty set
+        # is processed properly.
+        if self.keepIndices is not None:
+            read = read.newFromIndices(self.keepIndices)
+        elif self.removeIndices is not None:
+            read = read.newFromIndices(self.removeIndices, exclude=True)
+
         self.yieldCount += 1
         return read
 
@@ -940,6 +1021,24 @@ readClassNameToClass = {
     'SSAARead': SSAARead,
     'SSAAReadWithX': SSAAReadWithX,
     'TranslatedRead': TranslatedRead,
+}
+
+_DNA = set('ACGT')
+_RNA = set('ACGU')
+_AA = set(AA_NAMES)
+
+# Map read class names to the set of unambiguous sequence bases (loosely
+# speaking).
+unambiguousBases = {
+    'AARead': _AA,
+    'AAReadORF': _AA,
+    'AAReadWithX': _AA,
+    'DNARead': _DNA,
+    'RNARead': _RNA,
+    'Read': _DNA,
+    'SSAARead': _AA,
+    'SSAAReadWithX': _AA,
+    'TranslatedRead': _AA,
 }
 
 
@@ -1122,3 +1221,107 @@ class Reads(object):
             'excludedCount': excludedCount,
             'countAtPosition': countAtPosition
         }
+
+    def indicesMatching(self, targets, matchCase, any_):
+        """
+        Find indices that match a given set of target sequence bases.
+
+        @param targets: A C{set} of sequence bases to look for.
+        @param matchCase: If C{True}, case will be considered in matching.
+        @param any_: If C{True}, return indices that match in any read. Else
+            return indices that match in all reads.
+        @return: A C{set} of 0-based indices that indicate where the target
+            bases occur in our reads. An index will be in this set if any of
+            our reads has any of the target bases in that location.
+        """
+        # If case is unimportant, we convert everything (target bases and
+        # sequences, as we read them) to lower case.
+        if not matchCase:
+            targets = set(map(str.lower, targets))
+
+        result = set() if any_ else None
+        for read in self:
+            sequence = read.sequence if matchCase else read.sequence.lower()
+            matches = set(index for (index, base) in enumerate(sequence)
+                          if base in targets)
+            if any_:
+                result |= matches
+            else:
+                if result is None:
+                    result = matches
+                else:
+                    result &= matches
+                # We can exit early if we run out of possible indices.
+                if not result:
+                    break
+
+        # Make sure we don't return None.
+        return result or set()
+
+
+def addFASTACommandLineOptions(parser):
+    """
+    Add standard command-line options to an argparse parser.
+
+    @param parser: An C{argparse.ArgumentParser} instance.
+    """
+
+    parser.add_argument(
+        '--fastaFile', type=open, default=sys.stdin,
+        help=('The name of the FASTA input file. Standard input will be read '
+              'if no file name is given.'))
+
+    parser.add_argument(
+        '--readClass', default='DNARead', choices=readClassNameToClass,
+        help='If specified, give the type of the reads in the input.')
+
+    parser.add_argument(
+        '--checkAlphabet', type=int, default=None,
+        help=('An integer, indicating how many bases or amino acids at the '
+              'start of sequences should have their alphabet checked. If not '
+              'specified, all bases are checked.'))
+
+    # A mutually exclusive group for either --fasta, --fastq, or --fasta-ss
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
+        '--fasta',
+        help=('If specified, input will be treated as FASTA. This is the '
+              'default.'))
+
+    group.add_argument(
+        '--fastq', help='If specified, input will be treated as FASTQ.')
+
+    group.add_argument(
+        '--fasta-ss', dest='fasta_ss',
+        help=('If specified, input will be treated as PDB FASTA '
+              '(i.e., regular FASTA with each sequence followed by its '
+              'structure).'))
+
+
+def parseFASTACommandLineOptions(args):
+    """
+    Examine parsed command-line options and return a Reads instance.
+
+    @param args: An argparse namespace, as returned by the argparse
+        C{parse_args} function.
+    @return: A C{Reads} subclass instance, depending on the type of FASTA file
+        given.
+    """
+    # Set default FASTA type.
+    if not (args.fasta or args.fastq or args.fasta_ss):
+        args.fasta = True
+
+    readClass = readClassNameToClass[args.readClass]
+
+    if args.fasta:
+        from dark.fasta import FastaReads
+        return FastaReads(args.fastaFile, readClass=readClass,
+                          checkAlphabet=args.checkAlphabet)
+    elif args.fastq:
+        from dark.fastq import FastqReads
+        return FastqReads(args.fastaFile, readClass=readClass)
+    else:
+        from dark.fasta_ss import SSFastaReads
+        return SSFastaReads(args.fastaFile, readClass=readClass,
+                            checkAlphabet=args.checkAlphabet)

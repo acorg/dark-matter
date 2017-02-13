@@ -3,6 +3,7 @@ import bz2
 import gzip
 from six.moves import builtins
 from unittest import TestCase
+from six import assertRaisesRegex
 
 try:
     from unittest.mock import patch
@@ -11,7 +12,8 @@ except ImportError:
 
 from .mocking import mockOpen, File
 
-from dark.utils import numericallySortFilenames, median, asHandle
+from dark.utils import (
+    numericallySortFilenames, median, asHandle, parseRangeString)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -81,7 +83,7 @@ class TestMedian(TestCase):
         An empty list must cause median to raise ValueError.
         """
         error = '^arg is an empty sequence$'
-        six.assertRaisesRegex(self, ValueError, error, median, [])
+        assertRaisesRegex(self, ValueError, error, median, [])
 
     def testMedianOfOne(self):
         """
@@ -175,3 +177,103 @@ class TestAsHandle(TestCase):
             mockMethod.return_value = result
             with asHandle('file.gz') as fp:
                 self.assertEqual('xxx', fp.read())
+
+
+class TestParseRangeString(TestCase):
+    """
+    Check that the parseRangeString function works as expected.
+    """
+    def testEmptyString(self):
+        """
+        An empty string must produce an empty set of indices.
+        """
+        error = ("^Illegal range ''. Ranges must single numbers or "
+                 "number-number\\.$")
+        assertRaisesRegex(self, ValueError, error, parseRangeString, '')
+
+    def testSingleNumber(self):
+        """
+        A single number must result in the expected set.
+        """
+        self.assertEqual({6}, parseRangeString('6'))
+
+    def testSingleNumberSpaceBefore(self):
+        """
+        A single number preceeded by whitespace must result in the expected
+        set.
+        """
+        self.assertEqual({6}, parseRangeString('  6'))
+
+    def testSingleNumberSpaceAfter(self):
+        """
+        A single number followed by whitespace must result in the expected
+        set.
+        """
+        self.assertEqual({6}, parseRangeString('6  '))
+
+    def testSingleNumberSpaceBeforeAndAfter(self):
+        """
+        A single number preceeded and followed by whitespace must result in
+        the expected set.
+        """
+        self.assertEqual({6}, parseRangeString(' 6  '))
+
+    def testSingleRange(self):
+        """
+        A single range must result in the expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6-10'))
+
+    def testSingleRangeWithSpaceBeforeHyphen(self):
+        """
+        A single range with a space before the hyphen must result in the
+        expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6 -10'))
+
+    def testSingleRangeWithSpaceAfterHyphen(self):
+        """
+        A single range with a space after the hyphen must result in the
+        expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6- 10'))
+
+    def testSingleRangeWithSpaceBeforeAfterHyphen(self):
+        """
+        A single range with spaces before and after the hyphen must result in
+        the expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6 - 10'))
+
+    def testTwoRanges(self):
+        """
+        Two ranges must result in the expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6-8,9-10'))
+
+    def testTwoOverlappingRanges(self):
+        """
+        Two overlapping ranges must result in the expected set.
+        """
+        self.assertEqual({6, 7, 8, 9, 10}, parseRangeString('6-9,7-10'))
+
+    def testTwoRangesAndANumber(self):
+        """
+        Two ranges and a number must result in the expected set.
+        """
+        self.assertEqual({6, 7, 8, 10}, parseRangeString('6-8,10'))
+
+    def testTwoRangesAndTwoNumbers(self):
+        """
+        Two ranges and two numbers must result in the expected set.
+        """
+        self.assertEqual({4, 6, 7, 8, 9, 10, 11, 12},
+                         parseRangeString('6-8,9,10-12,4'))
+
+    def testZeroConversion(self):
+        """
+        If we ask for zero conversion, the result must be as expected.
+        """
+        self.assertEqual({3, 5, 6, 7, 8, 9, 10, 11},
+                         parseRangeString('6-8,9,10-12,4',
+                                          convertToZeroBased=True))

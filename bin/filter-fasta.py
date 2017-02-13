@@ -7,6 +7,7 @@ import sys
 from dark.fasta import FastaReads
 from dark.fasta_ss import SSFastaReads
 from dark.fastq import FastqReads
+from dark.utils import parseRangeString
 
 
 if __name__ == '__main__':
@@ -99,6 +100,33 @@ if __name__ == '__main__':
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
+    # A mutually exclusive group for either --keepIndices or --removeIndices.
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
+        '--keepIndices',
+        help=('Specify 1-based indices to keep. All other sequence indices '
+              'will be removed. The indices must be given in the form e.g., '
+              '24,100-200,260'))
+
+    group.add_argument(
+        '--keepIndicesFile',
+        help=('Specify a file containing 1-based indices to keep. All other '
+              'sequence indices will be removed. Lines in the file must be '
+              'given in the form e.g., 24,100-200,260'))
+
+    group.add_argument(
+        '--removeIndices',
+        help=('Specify 1-based indices to remove. All other sequence indices '
+              'will be kept. The indices must be given in the form e.g., '
+              '24,100-200,260'))
+
+    group.add_argument(
+        '--removeIndicesFile',
+        help=('Specify a file containing 1-based indices to remove. All other '
+              'sequence indices will be kept. Lines in the file must be given '
+              'in the form e.g., 24,100-200,260'))
+
     args = parser.parse_args()
 
     if args.readClass == 'fastq':
@@ -106,12 +134,44 @@ if __name__ == '__main__':
         # that FastaReads does.
         reads = FastqReads(sys.stdin)
     elif args.readClass == 'fasta':
-        reads = FastaReads(sys.stdin, checkAlphabet=False)
+        reads = FastaReads(sys.stdin, checkAlphabet=0)
     else:
         # args.readClass must be fasta-ss due to the 'choices' argument
         # passed to parser.add_argument value above.
         assert args.readClass == 'fasta-ss'
-        reads = SSFastaReads(sys.stdin, checkAlphabet=False)
+        reads = SSFastaReads(sys.stdin, checkAlphabet=0)
+
+    keepIndices = (
+        parseRangeString(args.keepIndices, convertToZeroBased=True)
+        if args.keepIndices else None)
+
+    if args.keepIndicesFile:
+        keepIndices = keepIndices or set()
+        with open(args.keepIndicesFile) as fp:
+            for lineNumber, line in enumerate(fp):
+                try:
+                    keepIndices.update(
+                        parseRangeString(line, convertToZeroBased=True))
+                except ValueError as e:
+                    raise ValueError(
+                        'Keep indices file %r line %d could not be parsed: %s'
+                        % (args.keepIndicesFile, lineNumber, e))
+
+    removeIndices = (
+        parseRangeString(args.removeIndices, convertToZeroBased=True)
+        if args.removeIndices else None)
+
+    if args.removeIndicesFile:
+        removeIndices = removeIndices or set()
+        with open(args.removeIndicesFile) as fp:
+            for lineNumber, line in enumerate(fp):
+                try:
+                    removeIndices.update(
+                        parseRangeString(line, convertToZeroBased=True))
+                except ValueError as e:
+                    raise ValueError(
+                        'Remove indices file %r line %d parse error: %s'
+                        % (args.removeIndicesFile, lineNumber, e))
 
     reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,
@@ -125,7 +185,8 @@ if __name__ == '__main__':
         head=args.head, removeDuplicates=args.removeDuplicates,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
-        sequenceNumbersFile=args.sequenceNumbersFile)
+        sequenceNumbersFile=args.sequenceNumbersFile,
+        keepIndices=keepIndices, removeIndices=removeIndices)
 
     saveAs = args.saveAs or args.readClass
 

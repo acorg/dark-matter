@@ -19,6 +19,7 @@ scripts = [
     'bin/dna-to-aa.py',
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
+    'bin/fasta-base-indices.py',
     'bin/fasta-lengths.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
@@ -52,7 +53,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.94',
+      version='1.0.95',
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
