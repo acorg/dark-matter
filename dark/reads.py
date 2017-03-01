@@ -1194,10 +1194,19 @@ class Reads(object):
         Add a filter to this C{Reads} instance.
 
         @param kwargs: Keyword arguments, as accepted by C{ReadFilter}.
-        @return: C{self}
+        @return: C{self}.
         """
         readFilter = ReadFilter(**kwargs)
         self._filters.append(readFilter.filter)
+        return self
+
+    def clearFilters(self):
+        """
+        Clear all filters on this C{Reads} instance.
+
+        @return: C{self}.
+        """
+        self._filters = []
         return self
 
     def summarizePosition(self, index):
