@@ -1,4 +1,3 @@
-import six
 from six.moves import builtins
 from six import StringIO
 from unittest import TestCase
@@ -341,76 +340,6 @@ class TestFastaReads(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = list(FastaReads('filename.fasta', RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
-
-    def testAlphabetIsCheckedAndRaisesValueErrorOnFirstRead(self):
-        """
-        The default behavior of a FastaReads instance is to check to ensure
-        its sequences have the correct alphabet and to raise ValueError if not.
-        A non-alphabetic character in the first read must be detected.
-        """
-        data = '\n'.join([
-            '>one',
-            'at-at',
-        ])
-        error = ("^Read alphabet \('-AT'\) is not a subset of expected "
-                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
-                 "AARead\.$")
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            six.assertRaisesRegex(self, ValueError, error, list,
-                                  FastaReads(data, AARead))
-
-    def testAlphabetIsCheckedAndRaisesValueErrorOnSecondRead(self):
-        """
-        The default behavior of a FastaReads instance is to check to ensure
-        its sequences have the correct alphabet and to raise ValueError if not.
-        A non-alphabetic character in the second read must be detected.
-        """
-        data = '\n'.join([
-            '>one',
-            'atat',
-            '>two',
-            'at-at',
-        ])
-        mockOpener = mockOpen(read_data=data)
-        error = ("^Read alphabet \('-AT'\) is not a subset of expected "
-                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
-                 "AARead\.$")
-        with patch.object(builtins, 'open', mockOpener):
-            six.assertRaisesRegex(self, ValueError, error, list,
-                                  FastaReads(data, AARead))
-
-    def testDisableAlphabetChecking(self):
-        """
-        It must be possible to have a FastaReads instance not do alphabet
-        checking, if requested (by passing checkAlphabet=0).
-        """
-        data = '\n'.join([
-            '>one',
-            'at-at',
-        ])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            self.assertEqual(1, len(list(FastaReads(data, AARead,
-                                                    checkAlphabet=0))))
-
-    def testOnlyCheckSomeAlphabets(self):
-        """
-        It must be possible to have the alphabets of only a certain number of
-        reads checked. A non-alphabetic character in a later read must not
-        stop that read from being processed.
-        """
-        data = '\n'.join([
-            '>one',
-            'atat',
-            '>two',
-            'at-at',
-        ])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            reads = list(FastaReads(data, AARead, checkAlphabet=1))
-            self.assertEqual(2, len(reads))
-            self.assertEqual('at-at', reads[1].sequence)
 
     def testConvertLowerToUpperCaseIfSpecifiedAARead(self):
         """

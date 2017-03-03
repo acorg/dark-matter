@@ -86,17 +86,12 @@ class FastaReads(Reads):
         C{list} of C{str} file names and/or file handles. Each file or file
         handle must contain sequences in FASTA format.
     @param readClass: The class of read that should be yielded by iter.
-    @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
-        will be done on all reads. If an C{int}, only that many reads will be
-        checked. (Pass zero to have no checks done.)
     @param upperCase: If C{True}, read sequences will be converted to upper
         case.
     """
-    def __init__(self, _files, readClass=DNARead, checkAlphabet=None,
-                 upperCase=False):
+    def __init__(self, _files, readClass=DNARead, upperCase=False):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
-        self._checkAlphabet = checkAlphabet
         # TODO: It would be better if upperCase were an argument that could
         # be passed to Reads.__init__ and that could do the uppercasing in
         # its add method (as opposed to using it below in our iter method).
@@ -115,7 +110,6 @@ class FastaReads(Reads):
         Iterate over the sequences in the files in self.files_, yielding each
         as an instance of the desired read class.
         """
-        checkAlphabet = self._checkAlphabet
         count = 0
         for _file in self._files:
             with asHandle(_file) as fp:
@@ -125,8 +119,6 @@ class FastaReads(Reads):
                                                str(seq.seq.upper()))
                     else:
                         read = self._readClass(seq.description, str(seq.seq))
-                    if checkAlphabet is None or count < checkAlphabet:
-                        read.checkAlphabet(count=None)
                     yield read
                     count += 1
 
@@ -171,7 +163,6 @@ def combineReads(filename, sequences, readClass=DNARead,
             if upperCase:
                 sequence = sequence.upper()
             read = readClass(readId, sequence)
-            read.checkAlphabet()
             reads.add(read)
 
     return reads

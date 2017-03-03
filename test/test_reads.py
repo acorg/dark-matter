@@ -437,8 +437,8 @@ class TestRead(TestCase):
 
     def testCheckAlphabetwithReadMustBePermissive(self):
         """
-        The checkAlphabet function must be permissive if a dark.Read is
-        passed.
+        The checkAlphabet function must return the expected alphabet if a
+        dark.Read is passed.
         """
         read = Read('id', 'ARSTGATGCASASASASASAS')
         self.assertEqual(set('ACGSRT'), read.checkAlphabet())

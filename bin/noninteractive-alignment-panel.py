@@ -45,7 +45,6 @@ def parseColors(colors, args):
     @return: A C{dict} whose keys are colors and whose values are sets of
         read ids.
     """
-    checkAlphabet = args.checkAlphabet
     result = defaultdict(set)
     for colorInfo in colors:
         readIds = colorInfo.split()
@@ -54,7 +53,7 @@ def parseColors(colors, args):
             if os.path.isfile(readId):
                 filename = readId
                 if args.fasta:
-                    reads = FastaReads(filename, checkAlphabet=checkAlphabet)
+                    reads = FastaReads(filename)
                 else:
                     reads = FastqReads(filename)
                 for read in reads:
@@ -244,12 +243,6 @@ if __name__ == '__main__':
         help='The base of the logarithm to use if logLinearXAxis is True')
 
     parser.add_argument(
-        '--checkAlphabet', type=int, default=None,
-        help=('An integer, indicating how many bases or amino acids at the '
-              'start of sequences should have their alphabet checked. If not '
-              'specified, all bases are checked.'))
-
-    parser.add_argument(
         '--showFeatures', default=False, action='store_true',
         help=('If specified, look up features for the individual images in '
               'the alignment panel.'))
@@ -272,13 +265,8 @@ if __name__ == '__main__':
     # TODO: Add a --readClass command-line option in case we want to
     # process FASTA containing AA sequences.
     if args.fasta:
-        reads = FastaReads(list(chain.from_iterable(args.fasta)),
-                           checkAlphabet=args.checkAlphabet)
+        reads = FastaReads(list(chain.from_iterable(args.fasta)))
     else:
-        if args.checkAlphabet is not None:
-            print('--checkAlphabet is currently not supported for FASTQ reads',
-                  file=sys.stderr)
-            sys.exit(1)
         reads = FastqReads(list(chain.from_iterable(args.fastq)))
 
     if args.matcher == 'blast':
