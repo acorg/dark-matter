@@ -31,7 +31,7 @@ parser.add_argument(
     '--bases',
     help=('The sequence bases whose indices should be printed. If not '
           'specified, this will be the defined set of bases for the input '
-          'sequence type (i.e., "ACGT" for DNA) This will have the effect of '
+          'sequence type (i.e., "ACGT" for DNA). This will have the effect of '
           'printing the indices for which any sequence has an ambiguous or '
           'missing base.'))
 

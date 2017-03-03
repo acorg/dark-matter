@@ -1194,10 +1194,19 @@ class Reads(object):
         Add a filter to this C{Reads} instance.
 
         @param kwargs: Keyword arguments, as accepted by C{ReadFilter}.
-        @return: C{self}
+        @return: C{self}.
         """
         readFilter = ReadFilter(**kwargs)
         self._filters.append(readFilter.filter)
+        return self
+
+    def clearFilters(self):
+        """
+        Clear all filters on this C{Reads} instance.
+
+        @return: C{self}.
+        """
+        self._filters = []
         return self
 
     def summarizePosition(self, index):
@@ -1285,15 +1294,16 @@ def addFASTACommandLineOptions(parser):
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
-        '--fasta',
+        '--fasta', default=False, action='store_true',
         help=('If specified, input will be treated as FASTA. This is the '
               'default.'))
 
     group.add_argument(
-        '--fastq', help='If specified, input will be treated as FASTQ.')
+        '--fastq', default=False, action='store_true',
+        help='If specified, input will be treated as FASTQ.')
 
     group.add_argument(
-        '--fasta-ss', dest='fasta_ss',
+        '--fasta-ss', dest='fasta_ss', default=False, action='store_true',
         help=('If specified, input will be treated as PDB FASTA '
               '(i.e., regular FASTA with each sequence followed by its '
               'structure).'))
