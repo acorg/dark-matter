@@ -1284,12 +1284,6 @@ def addFASTACommandLineOptions(parser):
         '--readClass', default='DNARead', choices=readClassNameToClass,
         help='If specified, give the type of the reads in the input.')
 
-    parser.add_argument(
-        '--checkAlphabet', type=int, default=None,
-        help=('An integer, indicating how many bases or amino acids at the '
-              'start of sequences should have their alphabet checked. If not '
-              'specified, all bases are checked.'))
-
     # A mutually exclusive group for either --fasta, --fastq, or --fasta-ss
     group = parser.add_mutually_exclusive_group()
 
@@ -1326,12 +1320,10 @@ def parseFASTACommandLineOptions(args):
 
     if args.fasta:
         from dark.fasta import FastaReads
-        return FastaReads(args.fastaFile, readClass=readClass,
-                          checkAlphabet=args.checkAlphabet)
+        return FastaReads(args.fastaFile, readClass=readClass)
     elif args.fastq:
         from dark.fastq import FastqReads
         return FastqReads(args.fastaFile, readClass=readClass)
     else:
         from dark.fasta_ss import SSFastaReads
-        return SSFastaReads(args.fastaFile, readClass=readClass,
-                            checkAlphabet=args.checkAlphabet)
+        return SSFastaReads(args.fastaFile, readClass=readClass)

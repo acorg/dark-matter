@@ -59,8 +59,7 @@ class VirusSampleFASTA(object):
             reads = Reads()
             for protein in self._proteinGrouper.virusTitles[
                     virusTitle][sampleName]['proteins']:
-                for read in FastaReads(protein['fastaFilename'],
-                                       checkAlphabet=0):
+                for read in FastaReads(protein['fastaFilename']):
                     reads.add(read)
             saveFilename = join(
                 protein['outDir'],
