@@ -9,15 +9,16 @@ try:
     from unittest.mock import patch, call
 except ImportError:
     from mock import patch, call
-from .mocking import mockOpen
+from .mocking import mockOpen, File
 
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
+from dark.fasta import FastaReads
 from dark.hsp import HSP
 from dark.reads import (
-    Read, TranslatedRead, Reads, DNARead, RNARead, AARead, AAReadORF,
-    AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
+    Read, TranslatedRead, Reads, ReadsInRAM, DNARead, RNARead, AARead,
+    AAReadORF, AAReadWithX, SSAARead, SSAAReadWithX, readClassNameToClass)
 
 
 class TestRead(TestCase):
@@ -3068,6 +3069,122 @@ class TestReadsFiltering(TestCase):
                  'removeIndices. Call filter twice in succession instead\.$')
         six.assertRaisesRegex(self, ValueError, error, Reads().filter,
                               keepIndices={4}, removeIndices={5})
+
+
+class TestReadsInRAM(TestCase):
+    """
+    Test the ReadsInRAM class.
+    """
+
+    def testNoReads(self):
+        """
+        A ReadsInRAM instance with no reads must return an empty iterator.
+        """
+        reads = ReadsInRAM()
+        self.assertEqual([], list(reads))
+
+    def testAdd(self):
+        """
+        It must be possible to add reads to a ReadsInRAM instance.
+        """
+        reads = ReadsInRAM()
+        read = Read('id', 'ACGT')
+        reads.add(read)
+        self.assertEqual([read], list(reads))
+
+    def testOneReadLength(self):
+        """
+        A ReadsInRAM instance with one read must have length one.
+        """
+        read1 = Read('id1', 'ATCG')
+        reads = ReadsInRAM([read1])
+        self.assertEqual(1, len(reads))
+
+    def testOneReadList(self):
+        """
+        A ReadsInRAM instance with one read must iterate as expected.
+        """
+        read1 = Read('id1', 'ATCG')
+        reads = ReadsInRAM([read1])
+        self.assertEqual([read1], list(reads))
+
+    def testOneReadIndex(self):
+        """
+        A ReadsInRAM instance with one read must be able to be indexed.
+        """
+        read1 = Read('id1', 'ATCG')
+        reads = ReadsInRAM([read1])
+        self.assertEqual(read1, reads[0])
+
+    def testTwoReadsLength(self):
+        """
+        A ReadsInRAM instance with two reads must have length one.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads = ReadsInRAM([read1, read2])
+        self.assertEqual(2, len(reads))
+
+    def testTwoReadsList(self):
+        """
+        A ReadsInRAM instance with two reads must iterate as expected.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads = ReadsInRAM([read1, read2])
+        self.assertEqual([read1, read2], list(reads))
+
+    def testTwoReadsIndex(self):
+        """
+        A ReadsInRAM instance with two reads must be able to be indexed.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads = ReadsInRAM([read1, read2])
+        self.assertEqual(read1, reads[0])
+        self.assertEqual(read2, reads[1])
+
+    def testFromReads(self):
+        """
+        A ReadsInRAM instance must be able to initialize itself from a Reads
+        instance.
+        """
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads = Reads([read1, read2])
+        readsInRAM = ReadsInRAM(reads)
+        self.assertEqual(2, len(readsInRAM))
+        self.assertEqual(read1, readsInRAM[0])
+        self.assertEqual(read2, readsInRAM[1])
+
+    def testFastaFile(self):
+        """
+        A ReadsInRAM instance should be able to be initialized from a
+        FastaReads instance and be iterated twice without the underlying file
+        being opened twice.
+        """
+        class SideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('file1.fasta', filename)
+                    self.count += 1
+                    return File(['>id1\n', 'ACTG\n', '>id2\n', 'AA\n'])
+                else:
+                    self.test.fail('We are only supposed to be called once!')
+
+        sideEffect = SideEffect(self)
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            reads = FastaReads('file1.fasta')
+            readsInRAM = ReadsInRAM(reads)
+            expected = [Read('id1', 'ACTG'), Read('id2', 'AA')]
+            self.assertEqual(expected, list(readsInRAM))
+            self.assertEqual(expected, list(readsInRAM))
+            self.assertEqual(1, sideEffect.count)
 
 
 class TestSummarizePosition(TestCase):
