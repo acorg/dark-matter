@@ -3186,6 +3186,16 @@ class TestReadsInRAM(TestCase):
             self.assertEqual(expected, list(readsInRAM))
             self.assertEqual(1, sideEffect.count)
 
+    def testSetItem(self):
+        """
+        It must be possible to set a value for a ReadsInRAM index.
+        """
+        read1 = Read('id1', 'ATCG')
+        reads = ReadsInRAM([read1])
+        read2 = Read('id2', 'ATCG')
+        reads[0] = read2
+        self.assertEqual(read2, reads[0])
+
 
 class TestSummarizePosition(TestCase):
     """
