@@ -161,6 +161,16 @@ class TitleAlignments(list):
             intervals.add(hsp.subjectStart, hsp.subjectEnd)
         return intervals.coverage()
 
+    def baseCoverage(self):
+        """
+        For each base in the title sequence, return a count of how many times
+        that base is covered by a read.
+        """
+        intervals = ReadIntervals(self.subjectLength)
+        for hsp in self.hsps():
+            intervals.add(hsp.subjectStart, hsp.subjectEnd)
+        return intervals.baseCoverage()
+
     def residueCounts(self, convertCaseTo='upper'):
         """
         Count residue frequencies at all sequence locations matched by reads.
@@ -384,7 +394,7 @@ class TitlesAlignments(dict):
         # Then sort on the primary key (if any).
         if by == 'length':
             return sorted(
-                titles,  reverse=True,
+                titles, reverse=True,
                 key=lambda title: self[title].subjectLength)
         if by == 'maxScore':
             return sorted(
