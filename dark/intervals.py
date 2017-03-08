@@ -1,4 +1,5 @@
 from math import log
+from collections import Counter
 
 
 class ReadIntervals(object):
@@ -86,6 +87,20 @@ class ReadIntervals(object):
                 # outside the target.
                 coverage += (min(end, self._targetLength) - max(0, start))
         return float(coverage) / self._targetLength
+
+    def baseCoverage(self):
+        """
+        For each base in the subject, return a count of how many times that
+        base is covered by a read.
+
+        @return: a C{Counter} where the keys are the positions on the subject
+            and the value the number of time that position is covered by a
+            read.
+        """
+        baseCoverages = Counter()
+        for interval in self._intervals:
+            baseCoverages.update(list(range(interval[0], interval[1])))
+        return baseCoverages
 
 
 class OffsetAdjuster(object):

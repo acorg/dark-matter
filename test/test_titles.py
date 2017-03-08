@@ -4,6 +4,7 @@
 #       tests below test the simpler dark.titles classes, TitleAlignment
 #       and TitleAlignments.
 
+from collections import Counter
 import six
 import warnings
 import platform
@@ -355,6 +356,38 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(0.3, titleAlignments.coverage())
+
+    def testFullBaseCoverage(self):
+        """
+        The baseCoverage method must return the correct result when the title
+        is fully covered by its reads.
+        """
+        hsp1 = HSP(7, subjectStart=0, subjectEnd=5)
+        hsp2 = HSP(8, subjectStart=5, subjectEnd=10)
+        titleAlignments = TitleAlignments('subject title', 10)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        self.assertEqual(c, titleAlignments.baseCoverage())
+
+    def testBaseCoverage(self):
+        """
+        The baseCoverage method must return the correct results when the title
+        is partially covered by its reads.
+        """
+        hsp1 = HSP(7, subjectStart=1, subjectEnd=2)
+        hsp2 = HSP(15, subjectStart=3, subjectEnd=4)
+        hsp3 = HSP(21, subjectStart=5, subjectEnd=6)
+        titleAlignments = TitleAlignments('subject title', 10)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        c = Counter([1, 3, 5])
+        self.assertEqual(c, titleAlignments.baseCoverage())
 
     def testResidueCountsNoReads(self):
         """
