@@ -267,23 +267,24 @@ class TestReadIntervals(TestCase):
         """
         ri = ReadIntervals(10)
         ri.add(-2, 10)
-        c = Counter([-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         self.assertEqual(c, ri.baseCoverage())
 
     def testOneIntervalCoveringAllExtendingRightBaseCoverage(self):
         """
         If there is a single interval that spans the whole hit, including
-        going beyond the hit to the right, coverage should return 1.0.
+        going beyond the hit to the right, baseCoverage should return the
+        correct result.
         """
         ri = ReadIntervals(10)
         ri.add(0, 12)
-        c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+        c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         self.assertEqual(c, ri.baseCoverage())
 
     def testOneIntervalStartingAtZeroBaseCoverage(self):
         """
         If there is a single interval that starts at zero but doesn't
-        cover the whole hit, coverage should return the correct result.
+        cover the whole hit, baseCoverage should return the correct result.
         """
         ri = ReadIntervals(10)
         ri.add(0, 5)

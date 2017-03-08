@@ -389,6 +389,24 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         c = Counter([1, 3, 5])
         self.assertEqual(c, titleAlignments.baseCoverage())
 
+    def testBaseCoverageOverlap(self):
+        """
+        The baseCoverage method must return the correct results when the title
+        is partially covered by its reads that overlap.
+        """
+        hsp1 = HSP(7, subjectStart=1, subjectEnd=2)
+        hsp2 = HSP(15, subjectStart=3, subjectEnd=6)
+        hsp3 = HSP(21, subjectStart=5, subjectEnd=6)
+        titleAlignments = TitleAlignments('subject title', 10)
+        read = Read('id1', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        read = Read('id2', 'AAA')
+        titleAlignment = TitleAlignment(read, [hsp3])
+        titleAlignments.addAlignment(titleAlignment)
+        c = Counter([1, 3, 4, 5, 5])
+        self.assertEqual(c, titleAlignments.baseCoverage())
+
     def testResidueCountsNoReads(self):
         """
         When a title has no reads aligned to it, the residueCounts method

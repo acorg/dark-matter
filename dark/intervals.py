@@ -99,7 +99,15 @@ class ReadIntervals(object):
         """
         baseCoverages = Counter()
         for interval in self._intervals:
-            baseCoverages.update(list(range(interval[0], interval[1])))
+            if interval[0] < 0:
+                start = 0
+            else:
+                start = interval[0]
+            if interval[1] > self._targetLength:
+                end = self._targetLength
+            else:
+                end = interval[1]
+            baseCoverages.update(range(start, end))
         return baseCoverages
 
 
