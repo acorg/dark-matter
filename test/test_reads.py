@@ -437,8 +437,8 @@ class TestRead(TestCase):
 
     def testCheckAlphabetwithReadMustBePermissive(self):
         """
-        The checkAlphabet function must be permissive if a dark.Read is
-        passed.
+        The checkAlphabet function must return the expected alphabet if a
+        dark.Read is passed.
         """
         read = Read('id', 'ARSTGATGCASASASASASAS')
         self.assertEqual(set('ACGSRT'), read.checkAlphabet())
@@ -2443,6 +2443,17 @@ class TestReadsFiltering(TestCase):
         reads.add(read4)
         result = reads.filter(minLength=3)
         self.assertEqual(2, len(list(result)))
+
+    def testAddFiltersThenClearfilters(self):
+        """
+        If filters are added and then all filters are cleared, the result must
+        be the same as the reads that were originally added.
+        """
+        initial = [Read('id1', 'ATCG'), Read('id2', 'ACG'), Read('id3', 'AC'),
+                   Read('id4', 'A')]
+        reads = Reads(initial)
+        result = reads.filter(minLength=3).filter(maxLength=3).clearFilters()
+        self.assertEqual(initial, list(result))
 
     def testFilterOnMinLength(self):
         """

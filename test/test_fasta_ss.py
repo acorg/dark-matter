@@ -113,64 +113,8 @@ class TestSSFastaReads(TestCase):
         data = '\n'.join(['>seq1', 'RRRR', '>str1', 'HHHH'])
         mockOpener = mockOpen(read_data=data)
         with patch.object(builtins, 'open', mockOpener):
-            reads = list(SSFastaReads(data, readClass=ReadClass,
-                                      checkAlphabet=0))
+            reads = list(SSFastaReads(data, readClass=ReadClass))
             self.assertTrue(isinstance(reads[0], ReadClass))
-
-    def testAlphabetIsCheckedAndRaisesValueErrorOnFirstRead(self):
-        """
-        The default behavior of a SSFastaReads instance is to check to ensure
-        its sequences have the correct alphabet and to raise ValueError if not.
-        A non-alphabetic character in the first read must be detected.
-        """
-        data = '\n'.join(['>seq1', 'at-at', '>str1', 'HH-HH'])
-        error = ("^Read alphabet \('-AT'\) is not a subset of expected "
-                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
-                 "SSAARead\.$")
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            six.assertRaisesRegex(self, ValueError, error, list,
-                                  SSFastaReads(data))
-
-    def testAlphabetIsCheckedAndRaisesValueErrorOnSecondRead(self):
-        """
-        The default behavior of a SSFastaReads instance is to check to ensure
-        its sequences have the correct alphabet and to raise ValueError if not.
-        A non-alphabetic character in the second read must be detected.
-        """
-        data = '\n'.join(['>seq1', 'rrrr', '>str1', 'hhhh',
-                          '>seq2', 'a-at', '>str2', 'hhhh'])
-        error = ("^Read alphabet \('-AT'\) is not a subset of expected "
-                 "alphabet \('ACDEFGHIKLMNPQRSTVWY'\) for read class "
-                 "SSAARead\.$")
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            six.assertRaisesRegex(self, ValueError, error, list,
-                                  SSFastaReads(data))
-
-    def testDisableAlphabetChecking(self):
-        """
-        It must be possible to have a SSFastaReads instance not do alphabet
-        checking, if requested (by passing checkAlphabet=0).
-        """
-        data = '\n'.join(['>seq1', 'rr-rr', '>str1', 'hh-hh'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            self.assertEqual(1, len(list(SSFastaReads(data, checkAlphabet=0))))
-
-    def testOnlyCheckSomeAlphabets(self):
-        """
-        It must be possible to have the alphabets of only a certain number of
-        reads checked. A non-alphabetic character in a later read must not
-        stop that read from being processed.
-        """
-        data = '\n'.join(['>seq1', 'rrrr', '>str1', 'hhhh',
-                          '>seq2', 'r-rr', '>str2', 'h-hh'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
-            reads = list(SSFastaReads(data, checkAlphabet=1))
-            self.assertEqual(2, len(reads))
-            self.assertEqual('r-rr', reads[1].sequence)
 
     def testConvertLowerToUpperCaseIfSpecified(self):
         """

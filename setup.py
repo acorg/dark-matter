@@ -20,10 +20,12 @@ scripts = [
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
     'bin/fasta-base-indices.py',
+    'bin/fasta-ids.py',
     'bin/fasta-lengths.py',
+    'bin/fasta-sequences.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
-    'bin/fasta-to-phylip.py'
+    'bin/fasta-to-phylip.py',
     'bin/filter-fasta-by-complexity.py',
     'bin/filter-fasta-by-taxonomy.py',
     'bin/filter-fasta.py',
@@ -53,7 +55,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.96',
+      version='1.0.102',
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',

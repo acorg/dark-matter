@@ -28,17 +28,12 @@ class SSFastaReads(Reads):
         handle must contain sequences in PDB FASTA format (see above).
     @param readClass: The class of read that should be yielded by iter. This
         must accept 3 C{str} arguments: an id, the sequence, the structure.
-    @param checkAlphabet: An C{int} or C{None}. If C{None}, alphabet checking
-        will be done on all reads. If an C{int}, only that many reads will be
-        checked. (Pass zero to have no checks done.)
     @param upperCase: If C{True}, both read and structure sequences will be
         converted to upper case.
     """
-    def __init__(self, _files, readClass=SSAARead, checkAlphabet=None,
-                 upperCase=False):
+    def __init__(self, _files, readClass=SSAARead, upperCase=False):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
-        self._checkAlphabet = checkAlphabet
         self._upperCase = upperCase
         if PY3:
             super().__init__()
@@ -54,9 +49,7 @@ class SSFastaReads(Reads):
             if any sequence has a different length than its predicted
             secondary structure.
         """
-        checkAlphabet = self._checkAlphabet
         upperCase = self._upperCase
-        count = 0
         for _file in self._files:
             with asHandle(_file) as fp:
                 records = SeqIO.parse(fp, 'fasta')
@@ -65,8 +58,6 @@ class SSFastaReads(Reads):
                         record = next(records)
                     except StopIteration:
                         break
-
-                    count += 1
 
                     try:
                         structureRecord = next(records)
@@ -91,8 +82,5 @@ class SSFastaReads(Reads):
                         read = self._readClass(record.description,
                                                str(record.seq),
                                                str(structureRecord.seq))
-
-                    if checkAlphabet is None or count < checkAlphabet:
-                        read.checkAlphabet(count=None)
 
                     yield read

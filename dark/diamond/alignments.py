@@ -125,7 +125,7 @@ class DiamondReadsAlignments(ReadsAlignments):
         if self._subjectTitleToSubject is None:
             titles = {}
             for read in FastaReads(self._databaseFilename,
-                                   readClass=AAReadWithX, checkAlphabet=0):
+                                   readClass=AAReadWithX):
                 titles[read.id] = read
             self._subjectTitleToSubject = titles
 
