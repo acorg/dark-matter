@@ -1268,6 +1268,48 @@ class Reads(object):
         return result or set()
 
 
+class ReadsInRAM(Reads):
+    """
+    Maintain a collection of sequence reads in RAM.
+
+    @param initialReads: If not C{None}, an iterable of C{Read} (or a C{Read}
+        subclass) instances.
+    """
+
+    # This class provides some C{list} like methods (len and indexing) but
+    # is not an actual list or list subclass. That's because we want to inherit
+    # the methods of C{Reads}, and I considered it too messy to use double
+    # inheritance. If you want a real list, you can just call C{list} on a
+    # C{Reads} or C{ReadsInRAM} instance.
+
+    def __init__(self, initialReads=None):
+        if six.PY3:
+            super().__init__(initialReads)
+        else:
+            Reads.__init__(self, initialReads)
+
+        # Read all initial reads into memory.
+        if initialReads:
+            for read in initialReads:
+                self.add(read)
+
+        # Set self._iterated to True in case someone calls unfilteredLength
+        # (see Reads).
+        self._iterated = True
+
+    def __len__(self):
+        return self._additionalReads.__len__()
+
+    def __getitem__(self, item):
+        return self._additionalReads.__getitem__(item)
+
+    def __setitem__(self, item, value):
+        return self._additionalReads.__setitem__(item, value)
+
+    def __iter__(self):
+        return self._additionalReads.__iter__()
+
+
 def addFASTACommandLineOptions(parser):
     """
     Add standard command-line options to an argparse parser.
