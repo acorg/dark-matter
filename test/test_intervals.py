@@ -231,97 +231,97 @@ class TestReadIntervals(TestCase):
             list(ri.walk()))
 
     # The following tests have the same setup as above, but they test the
-    # baseCoverage() method.
+    # coverageCounts() method.
 
-    def testEmptyBaseCoverageOnZeroLengthSequence(self):
+    def testEmptyCoverageCountsOnZeroLengthSequence(self):
         """
-        When no intervals are added, baseCoverage should return an empty
+        When no intervals are added, coverageCounts should return an empty
         Counter.
         """
         ri = ReadIntervals(0)
-        self.assertEqual(Counter(), ri.baseCoverage())
+        self.assertEqual({}, ri.coverageCounts())
 
-    def testEmptyBaseCoverage(self):
+    def testEmptyCoverageCounts(self):
         """
-        When no intervals are added, baseCoverage should return an empty
+        When no intervals are added, coverageCounts should return an empty
         Counter.
         """
         ri = ReadIntervals(100)
-        self.assertEqual(Counter(), ri.baseCoverage())
+        self.assertEqual({}, ri.coverageCounts())
 
-    def testOneIntervalExactCoveringBaseCoverage(self):
+    def testOneIntervalExactCoveringCoverageCounts(self):
         """
         If there is a single interval that spans the whole hit exactly,
-        baseCoverage should return the correct result.
+        coverageCounts should return the correct result.
         """
         ri = ReadIntervals(10)
         ri.add(0, 10)
         c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
-    def testOneIntervalCoveringAllExtendingLeftBaseCoverage(self):
+    def testOneIntervalCoveringAllExtendingLeftCoverageCounts(self):
         """
         If there is a single interval that spans the whole hit, including
-        going negative to the left, baseCoverage should return the correct
+        going negative to the left, coverageCounts should return the correct
         result.
         """
         ri = ReadIntervals(10)
         ri.add(-2, 10)
         c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
-    def testOneIntervalCoveringAllExtendingRightBaseCoverage(self):
+    def testOneIntervalCoveringAllExtendingRightCoverageCounts(self):
         """
         If there is a single interval that spans the whole hit, including
-        going beyond the hit to the right, baseCoverage should return the
+        going beyond the hit to the right, coverageCounts should return the
         correct result.
         """
         ri = ReadIntervals(10)
         ri.add(0, 12)
         c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
-    def testOneIntervalStartingAtZeroBaseCoverage(self):
+    def testOneIntervalStartingAtZeroCoverageCounts(self):
         """
         If there is a single interval that starts at zero but doesn't
-        cover the whole hit, baseCoverage should return the correct result.
+        cover the whole hit, coverageCounts should return the correct result.
         """
         ri = ReadIntervals(10)
         ri.add(0, 5)
         c = Counter([0, 1, 2, 3, 4])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
-    def testOneIntervalEndingAtHitEndBaseCoverage(self):
+    def testOneIntervalEndingAtHitEndCoverageCounts(self):
         """
         If there is a single interval that ends at the end of the hit
-        but doesn't start at zero, baseCoverage should return the correct
+        but doesn't start at zero, coverageCounts should return the correct
         result.
         """
         ri = ReadIntervals(10)
         ri.add(5, 10)
         c = Counter([5, 6, 7, 8, 9])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
-    def testOneIntervalInMiddleBaseCoverage(self):
+    def testOneIntervalInMiddleCoverageCounts(self):
         """
-        If there is a single interval in the middle of the hit, baseCoverage
+        If there is a single interval in the middle of the hit, coverageCounts
         should return the correct result.
         """
         ri = ReadIntervals(10)
         ri.add(5, 6)
         c = Counter([5])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
-    def testTwoOverlappingIntervalsInMiddleBaseCoverage(self):
+    def testTwoOverlappingIntervalsInMiddleCoverageCounts(self):
         """
         If there are two overlapping intervals in the middle of the hit,
-        baseCoverage should return the correct result.
+        coverageCounts should return the correct result.
         """
         ri = ReadIntervals(10)
         ri.add(5, 7)
         ri.add(6, 8)
         c = Counter([5, 6, 6, 7])
-        self.assertEqual(c, ri.baseCoverage())
+        self.assertEqual(c, ri.coverageCounts())
 
     # The following tests have the same setup as above, but they test the
     # coverage() method.

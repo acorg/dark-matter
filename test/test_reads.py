@@ -397,6 +397,23 @@ class TestRead(TestCase):
                           (1, 'T', True)],
                          list(read.walkHSP(hsp)))
 
+    def testWalkHSPLeftOverhangingMatchNoWhiskers(self):
+        """
+        If the HSP specifies that the entire read matches the subject, and
+        also extends to the left of the subject, walkHSP must return the
+        correct results when it is told to not include whiskers.
+
+        Subject:       GT.....
+        Read:        ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=2, readEnd=4, readStartInSubject=-2,
+                  readEndInSubject=2, subjectStart=0, subjectEnd=2,
+                  readMatchedSequence='GT', subjectMatchedSequence='GT')
+        self.assertEqual([(0, 'G', True),
+                          (1, 'T', True)],
+                         list(read.walkHSP(hsp, includeWhiskers=False)))
+
     def testWalkHSPRightOverhangingMatch(self):
         """
         If the HSP specifies that the entire read matches the subject, and
@@ -416,6 +433,23 @@ class TestRead(TestCase):
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
 
+    def testWalkHSPRightOverhangingMatchNoWhiskers(self):
+        """
+        If the HSP specifies that the entire read matches the subject, and
+        also extends to the right of the subject, walkHSP must return the
+        correct results when it is told to not include whiskers.
+
+        Subject:       AC
+        Read:          ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=0, readEnd=2, readStartInSubject=10,
+                  readEndInSubject=14, subjectStart=10, subjectEnd=12,
+                  readMatchedSequence='AC', subjectMatchedSequence='AC')
+        self.assertEqual([(10, 'A', True),
+                          (11, 'C', True)],
+                         list(read.walkHSP(hsp, includeWhiskers=False)))
+
     def testWalkHSPLeftAndRightOverhangingMatch(self):
         """
         If the HSP specifies that the read matches the entire subject, and
@@ -434,6 +468,23 @@ class TestRead(TestCase):
                           (12, 'G', True),
                           (13, 'T', False)],
                          list(read.walkHSP(hsp)))
+
+    def testWalkHSPLeftAndRightOverhangingMatchNoWhiskers(self):
+        """
+        If the HSP specifies that the read matches the entire subject, and
+        also extends to both the left and right of the subject, walkHSP must
+        return the correct results when it is told to not include whiskers.
+
+        Subject:        CG
+        Read:          ACGT
+        """
+        read = Read('id', 'ACGT')
+        hsp = HSP(33, readStart=1, readEnd=3, readStartInSubject=10,
+                  readEndInSubject=14, subjectStart=11, subjectEnd=13,
+                  readMatchedSequence='CG', subjectMatchedSequence='CG')
+        self.assertEqual([(11, 'C', True),
+                          (12, 'G', True)],
+                         list(read.walkHSP(hsp, includeWhiskers=False)))
 
     def testCheckAlphabetwithReadMustBePermissive(self):
         """

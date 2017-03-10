@@ -357,9 +357,9 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(0.3, titleAlignments.coverage())
 
-    def testFullBaseCoverage(self):
+    def testFullCoverageCounts(self):
         """
-        The baseCoverage method must return the correct result when the title
+        The coverageCounts method must return the correct result when the title
         is fully covered by its reads.
         """
         hsp1 = HSP(7, subjectStart=0, subjectEnd=5)
@@ -369,12 +369,12 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        self.assertEqual(c, titleAlignments.baseCoverage())
+        self.assertEqual(c, titleAlignments.coverageCounts())
 
-    def testBaseCoverage(self):
+    def testCoverageCounts(self):
         """
-        The baseCoverage method must return the correct results when the title
-        is partially covered by its reads.
+        The coverageCounts method must return the correct results when the
+        title is partially covered by its reads.
         """
         hsp1 = HSP(7, subjectStart=1, subjectEnd=2)
         hsp2 = HSP(15, subjectStart=3, subjectEnd=4)
@@ -387,12 +387,12 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         c = Counter([1, 3, 5])
-        self.assertEqual(c, titleAlignments.baseCoverage())
+        self.assertEqual(c, titleAlignments.coverageCounts())
 
-    def testBaseCoverageOverlap(self):
+    def testCoverageCountsOverlap(self):
         """
-        The baseCoverage method must return the correct results when the title
-        is partially covered by its reads that overlap.
+        The coverageCounts method must return the correct results when the
+        title is partially covered by its reads that overlap.
         """
         hsp1 = HSP(7, subjectStart=1, subjectEnd=2)
         hsp2 = HSP(15, subjectStart=3, subjectEnd=6)
@@ -405,12 +405,99 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         c = Counter([1, 3, 4, 5, 5])
-        self.assertEqual(c, titleAlignments.baseCoverage())
+        self.assertEqual(c, titleAlignments.coverageCounts())
+
+    def testCoverageInfoNoReads(self):
+        """
+        When a title has no reads aligned to it, the coverageInfo method
+        must return an empty result.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        coverage = titleAlignments.coverageInfo()
+        self.assertEqual({}, coverage)
+
+    def testCoverageInfoOneReadWithOneHSP(self):
+        """
+        When a title has one read with one HSP aligned to it, the coverageInfo
+        method must return just the indices and bases from that read.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        hsp = HSP(15, subjectStart=3, subjectEnd=6, readMatchedSequence='CGT')
+        read = Read('id1', 'AAACGT')
+        titleAlignment = TitleAlignment(read, [hsp])
+        titleAlignments.addAlignment(titleAlignment)
+        coverage = titleAlignments.coverageInfo()
+        self.assertEqual(
+            {
+                3: [(15, 'C')],
+                4: [(15, 'G')],
+                5: [(15, 'T')],
+            },
+            coverage)
+
+    def testCoverageInfoOneReadWithTwoHSPs(self):
+        """
+        When a title has one read with two HSPs aligned to it, the coverageInfo
+        method must return the correct indices and bases from that read.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+        hsp1 = HSP(15, subjectStart=1, subjectEnd=4, readMatchedSequence='A-A')
+        hsp2 = HSP(10, subjectStart=3, subjectEnd=6, readMatchedSequence='CGT')
+        read = Read('id1', 'AAACGT')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+        coverage = titleAlignments.coverageInfo()
+        self.assertEqual(
+            {
+                1: [(15, 'A')],
+                2: [(15, '-')],
+                3: [(15, 'A'), (10, 'C')],
+                4: [(10, 'G')],
+                5: [(10, 'T')],
+            },
+            coverage)
+
+    def testCoverageInfoTwoReadsWithThreeHSPs(self):
+        """
+        When a title has two reads (one with two HSPs, one with one) aligned
+        to it, the coverageInfo method must return the correct indices and
+        bases from the read.
+        """
+        titleAlignments = TitleAlignments('subject title', 55)
+
+        # First read.
+        hsp1 = HSP(15, subjectStart=1, subjectEnd=4, readMatchedSequence='A-A')
+        hsp2 = HSP(10, subjectStart=3, subjectEnd=6, readMatchedSequence='CGT')
+        read = Read('id1', 'AAACGT')
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments.addAlignment(titleAlignment)
+
+        # Second read.
+        hsp1 = HSP(20, subjectStart=5, subjectEnd=10,
+                   readMatchedSequence='CGGTA')
+        read = Read('id2', 'AAACGTCGGTAAAA')
+        titleAlignment = TitleAlignment(read, [hsp1])
+        titleAlignments.addAlignment(titleAlignment)
+
+        coverage = titleAlignments.coverageInfo()
+        self.assertEqual(
+            {
+                1: [(15, 'A')],
+                2: [(15, '-')],
+                3: [(15, 'A'), (10, 'C')],
+                4: [(10, 'G')],
+                5: [(10, 'T'), (20, 'C')],
+                6: [(20, 'G')],
+                7: [(20, 'G')],
+                8: [(20, 'T')],
+                9: [(20, 'A')],
+            },
+            coverage)
 
     def testResidueCountsNoReads(self):
         """
         When a title has no reads aligned to it, the residueCounts method
-        must retrun an empty result.
+        must return an empty result.
         """
         titleAlignments = TitleAlignments('subject title', 55)
         counts = titleAlignments.residueCounts()

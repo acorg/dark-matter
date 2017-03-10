@@ -88,20 +88,20 @@ class ReadIntervals(object):
                 coverage += (min(end, self._targetLength) - max(0, start))
         return float(coverage) / self._targetLength
 
-    def baseCoverage(self):
+    def coverageCounts(self):
         """
-        For each base in the subject, return a count of how many times that
-        base is covered by a read.
+        For each location in the subject, return a count of how many times that
+        location is covered by a read.
 
-        @return: a C{Counter} where the keys are the positions on the subject
-            and the value the number of time that position is covered by a
-            read.
+        @return: a C{Counter} where the keys are the C{int} locations on the
+            subject and the value is the number of times the location is
+            covered by a read.
         """
-        baseCoverages = Counter()
+        coverageCounts = Counter()
         for start, end in self._intervals:
-            baseCoverages.update(range(max(0, start),
-                                       min(self._targetLength, end)))
-        return baseCoverages
+            coverageCounts.update(range(max(0, start),
+                                        min(self._targetLength, end)))
+        return coverageCounts
 
 
 class OffsetAdjuster(object):

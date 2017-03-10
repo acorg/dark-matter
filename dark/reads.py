@@ -154,11 +154,13 @@ class Read(object):
         else:
             return 0.0
 
-    def walkHSP(self, hsp):
+    def walkHSP(self, hsp, includeWhiskers=True):
         """
         Provide information about exactly how a read matches a subject, as
         specified by C{hsp}.
 
+        @param includeWhiskers: If C{True} yield information from the
+            (possibly empty) non-matching ends of the read.
         @return: A generator that yields (offset, residue, inMatch) tuples.
             The offset is the offset into the matched subject. The residue is
             the base in the read (which might be '-' to indicate a gap in the
@@ -173,24 +175,27 @@ class Read(object):
         # dark.hsp._Base class in hsp.py
 
         # Left whisker.
-        readOffset = 0
-        subjectOffset = hsp.readStartInSubject
-        while subjectOffset < hsp.subjectStart:
-            yield (subjectOffset, self.sequence[readOffset], False)
-            readOffset += 1
-            subjectOffset += 1
+        if includeWhiskers:
+            readOffset = 0
+            subjectOffset = hsp.readStartInSubject
+            while subjectOffset < hsp.subjectStart:
+                yield (subjectOffset, self.sequence[readOffset], False)
+                readOffset += 1
+                subjectOffset += 1
 
         # Match.
-        for matchOffset, residue in enumerate(hsp.readMatchedSequence):
-            yield (subjectOffset + matchOffset, residue, True)
+        for subjectOffset, residue in enumerate(hsp.readMatchedSequence,
+                                                start=hsp.subjectStart):
+            yield (subjectOffset, residue, True)
 
         # Right whisker.
-        readOffset = hsp.readEnd
-        subjectOffset = hsp.subjectEnd
-        while subjectOffset < hsp.readEndInSubject:
-            yield (subjectOffset, self.sequence[readOffset], False)
-            readOffset += 1
-            subjectOffset += 1
+        if includeWhiskers:
+            readOffset = hsp.readEnd
+            subjectOffset = hsp.subjectEnd
+            while subjectOffset < hsp.readEndInSubject:
+                yield (subjectOffset, self.sequence[readOffset], False)
+                readOffset += 1
+                subjectOffset += 1
 
     def checkAlphabet(self, count=10):
         """
