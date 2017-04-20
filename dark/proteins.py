@@ -19,63 +19,73 @@ except ImportError:
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
+from dark.fastq import FastqReads
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads
 
 
-class VirusSampleFASTA(object):
+class VirusSampleFiles(object):
     """
-    Maintain a cache of virus/sample FASTA file names, creating de-duplicaed
-    FASTA files (from reads for all proteins of a virus that a sample has)
-    on demand.
+    Maintain a cache of virus/sample FASTA/FASTQ file names, creating
+    de-duplicated FASTA/FASTQ files (from reads for all proteins of a virus
+    that a sample has), on demand.
 
     @param proteinGrouper: An instance of C{ProteinGrouper}.
+    @param format_: A C{str}, either 'fasta' or 'fastq' indicating the format
+        of the files containing the reads matching proteins.
+    @raise ValueError: If C{format_} is unknown.
     """
-    def __init__(self, proteinGrouper):
+    def __init__(self, proteinGrouper, format_='fasta'):
         self._proteinGrouper = proteinGrouper
+        if format_ in ('fasta', 'fastq'):
+            self._format = format_
+            self._readsClass = FastaReads if format_ == 'fasta' else FastqReads
+        else:
+            raise ValueError("format_ must be either 'fasta' or 'fastq'.")
         self._viruses = {}
         self._samples = {}
-        self._fastaFilenames = {}
+        self._readsFilenames = {}
 
     def add(self, virusTitle, sampleName):
         """
-        Add a virus title, sample name combination and get its FASTA file
-        name and unique read count. Write the FASTA file if it does not
+        Add a virus title, sample name combination and get its FASTA/FASTQ file
+        name and unique read count. Write the FASTA/FASTQ file if it does not
         already exist. Save the unique read count into
         C{self._proteinGrouper}.
 
         @param virusTitle: A C{str} virus title.
         @param sampleName: A C{str} sample name.
-        @return: A C{str} giving the FASTA file name holding all the reads
-            (without duplicates) from the sample that matched the proteins in
-            the given virus.
+        @return: A C{str} giving the FASTA/FASTQ file name holding all the
+            reads (without duplicates) from the sample that matched the
+            proteins in the given virus.
         """
         virusIndex = self._viruses.setdefault(virusTitle, len(self._viruses))
         sampleIndex = self._samples.setdefault(sampleName, len(self._samples))
 
         try:
-            return self._fastaFilenames[(virusIndex, sampleIndex)]
+            return self._readsFilenames[(virusIndex, sampleIndex)]
         except KeyError:
             reads = Reads()
             for protein in self._proteinGrouper.virusTitles[
                     virusTitle][sampleName]['proteins']:
-                for read in FastaReads(protein['fastaFilename']):
+                for read in self._readsClass(protein['readsFilename']):
                     reads.add(read)
             saveFilename = join(
                 protein['outDir'],
-                'virus-%d-sample-%d.fasta' % (virusIndex, sampleIndex))
+                'virus-%d-sample-%d.%s' % (virusIndex, sampleIndex,
+                                           self._format))
             reads.filter(removeDuplicates=True)
-            nReads = reads.save(saveFilename)
+            nReads = reads.save(saveFilename, format_=self._format)
             # Save the unique read count into self._proteinGrouper
             self._proteinGrouper.virusTitles[
                 virusTitle][sampleName]['uniqueReadCount'] = nReads
-            self._fastaFilenames[(virusIndex, sampleIndex)] = saveFilename
+            self._readsFilenames[(virusIndex, sampleIndex)] = saveFilename
             return saveFilename
 
     def lookup(self, virusTitle, sampleName):
         """
-        Look up a virus title, sample name combination and get its FASTA file
-        name and unique read count.
+        Look up a virus title, sample name combination and get its FASTA/FASTQ
+        file name and unique read count.
 
         This method should be used instead of C{add} in situations where
         you want an exception to be raised if a virus/sample combination has
@@ -85,11 +95,11 @@ class VirusSampleFASTA(object):
         @param sampleName: A C{str} sample name.
         @raise KeyError: If the virus title or sample name have not been seen,
             either individually or in combination.
-        @return: A (C{str}, C{int}) tuple retrieved from self._fastaFilenames
+        @return: A (C{str}, C{int}) tuple retrieved from self._readsFilenames
         """
         virusIndex = self._viruses[virusTitle]
         sampleIndex = self._samples[sampleName]
-        return self._fastaFilenames[(virusIndex, sampleIndex)]
+        return self._readsFilenames[(virusIndex, sampleIndex)]
 
 
 class ProteinGrouper(object):
@@ -98,13 +108,16 @@ class ProteinGrouper(object):
 
     @param assetDir: The C{str} directory name where
         C{noninteractive-alignment-panel.py} put its HTML, blue plot and
-        alignment panel images, and FASTA files. This must be relative
+        alignment panel images, and FASTA or FASTQ files. This must be relative
         to the filenames that will later be passed to C{addFile}.
     @param sampleNameRegex: A C{str} regular expression that can be used to
         extract a short sample name from full file names subsequently passed
         to C{self.addFile}. The regular expression must have a matching group
         (delimited by parentheses) to capture the part of the file name that
         should be used as the sample name.
+    @param format_: A C{str}, either 'fasta' or 'fastq' indicating the format
+        of the files containing the reads matching proteins.
+    @raise ValueError: If C{format_} is unknown.
     """
 
     # The following regex is deliberately greedy (using .*) to consume the
@@ -135,10 +148,14 @@ class ProteinGrouper(object):
 
     VIRALZONE = 'http://viralzone.expasy.org/cgi-bin/viralzone/search?query='
 
-    def __init__(self, assetDir='out', sampleNameRegex=None):
+    def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta'):
+        self._assetDir = assetDir
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
                                  else None)
-        self._assetDir = assetDir
+        if format_ in ('fasta', 'fastq'):
+            self._format = format_
+        else:
+            raise ValueError("format_ must be either 'fasta' or 'fastq'.")
         # virusTitles will be a dict of dicts of dicts. The first two keys
         # will be a virus title and a sample name. The final dict will
         # contain 'proteins' (a list of dicts) and 'uniqueReadCount' (an int).
@@ -146,7 +163,7 @@ class ProteinGrouper(object):
         # sampleNames is keyed by sample name and will have values that hold
         # the sample's alignment panel index.html file.
         self.sampleNames = {}
-        self.virusSampleFASTA = VirusSampleFASTA(self)
+        self.virusSampleFiles = VirusSampleFiles(self, format_=format_)
 
     def _title(self):
         """
@@ -206,7 +223,7 @@ class ProteinGrouper(object):
                 'bestScore': float(bestScore),
                 'bluePlotFilename': join(outDir, '%d.png' % index),
                 'coverage': float(coverage),
-                'fastaFilename': join(outDir, '%d.fasta' % index),
+                'readsFilename': join(outDir, '%d.%s' % (index, self._format)),
                 'hspCount': int(hspCount),
                 'index': index,
                 'medianScore': float(medianScore),
@@ -219,14 +236,14 @@ class ProteinGrouper(object):
 
     def _computeUniqueReadCounts(self):
         """
-        Add all virus / sample combinations to self.virusSampleFASTA.
+        Add all virus / sample combinations to self.virusSampleFiles.
 
-        This will make all de-duplicated FASTA files and store the number
+        This will make all de-duplicated FASTA/FASTQ files and store the number
         of de-duplicated reads into C{self.virusTitles}.
         """
         for virusTitle, samples in self.virusTitles.items():
             for sampleName in samples:
-                self.virusSampleFASTA.add(virusTitle, sampleName)
+                self.virusSampleFiles.add(virusTitle, sampleName)
 
     def toStr(self):
         """
@@ -390,20 +407,21 @@ class ProteinGrouper(object):
                  '' if sampleCount == 1 else 's',
                  self.VIRALZONE, quote(virusTitle)))
             for sampleName in sorted(samples):
-                fastaName = self.virusSampleFASTA.lookup(virusTitle,
-                                                         sampleName)
+                readsFileName = self.virusSampleFiles.lookup(virusTitle,
+                                                             sampleName)
                 proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
                 uniqueReadCount = samples[sampleName]['uniqueReadCount']
                 append(
                     '<p class=sample>'
                     '<span class="sample-name">%s</span> '
-                    '(%d protein%s, %d read%s, <a href="%s">panel</a>, '
-                    '<a href="%s">fasta</a>)' %
+                    '(%d protein%s, <a href="%s">%d read%s</a>, '
+                    '<a href="%s">panel</a>)' %
                     (sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
+                     readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's',
-                     self.sampleNames[sampleName], fastaName))
+                     self.sampleNames[sampleName]))
                 proteins.sort(key=titleGetter)
                 append('<ul class="protein-list">')
                 for proteinMatch in proteins:
@@ -418,7 +436,7 @@ class ProteinGrouper(object):
                         '%(proteinTitle)s'
                         '</span> '
                         '(<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(fastaFilename)s">fasta</a>'
+                        '<a href="%(readsFilename)s">reads</a>'
                         % proteinMatch)
 
                     if proteinMatch['proteinURL']:
@@ -453,8 +471,8 @@ class ProteinGrouper(object):
                  self.sampleNames[sampleName]))
 
             for virusTitle in sorted(sampleVirusTitles):
-                fastaName = self.virusSampleFASTA.lookup(virusTitle,
-                                                         sampleName)
+                readsFileName = self.virusSampleFiles.lookup(virusTitle,
+                                                             sampleName)
                 proteins = self.virusTitles[virusTitle][sampleName]['proteins']
                 uniqueReadCount = self.virusTitles[
                     virusTitle][sampleName]['uniqueReadCount']
@@ -462,11 +480,11 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample">'
                     '<span class="virus-title">%s</span> '
-                    '(%d protein%s, %d read%s, <a href="%s">fasta</a>)' %
+                    '(%d protein%s, <a href="%s">%d read%s</a>)' %
                     (virusTitle,
                      proteinCount, '' if proteinCount == 1 else 's',
-                     uniqueReadCount, '' if uniqueReadCount == 1 else 's',
-                     fastaName))
+                     readsFileName,
+                     uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
                 proteins.sort(key=titleGetter)
                 append('<ul class="protein-list">')
                 for proteinMatch in proteins:
@@ -481,7 +499,7 @@ class ProteinGrouper(object):
                         '%(proteinTitle)s'
                         '</span> '
                         '(<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(fastaFilename)s">fasta</a>'
+                        '<a href="%(readsFilename)s">reads</a>'
                         % proteinMatch)
 
                     if proteinMatch['proteinURL']:

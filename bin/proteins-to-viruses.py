@@ -83,9 +83,16 @@ if __name__ == '__main__':
         '--html', default=False, action='store_true',
         help='If specified, output HTML instead of plain text.')
 
+    parser.add_argument(
+        '--format', default='fasta', choices=('fasta', 'fastq'),
+        help=('Give the format of the sequence files written by '
+              'noninteractive-alignment-panel.py when it created the '
+              'summary-proteins files given on output.'))
+
     args = parser.parse_args()
 
-    grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex)
+    grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
+                             format_=args.format)
 
     if args.filenames:
         filenames = args.filenames
