@@ -1,9 +1,9 @@
 from unittest import TestCase
-from six import StringIO
+from six import StringIO, assertRaisesRegex
 from six.moves import builtins
 from contextlib import contextmanager
 
-from dark.proteins import ProteinGrouper, VirusSampleFASTA
+from dark.proteins import ProteinGrouper, VirusSampleFiles
 
 try:
     from unittest.mock import patch
@@ -17,6 +17,15 @@ class TestProteinGrouper(TestCase):
     """
     Tests for the dark.proteins.ProteinGrouper class
     """
+
+    def testUnknownFormat(self):
+        """
+        Passing an unknown format argument must result in a ValueError
+        being raised.
+        """
+        error = "^format_ must be either 'fasta' or 'fastq'\.$"
+        assertRaisesRegex(self, ValueError, error, ProteinGrouper,
+                          format_='unknown')
 
     def testNoAssetDir(self):
         """
@@ -69,7 +78,43 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.77,
-                                'fastaFilename': 'out/0.fasta',
+                                'readsFilename': 'out/0.fasta',
+                                'hspCount': 6,
+                                'index': 0,
+                                'medianScore': 46.6,
+                                'outDir': 'out',
+                                'proteinLength': 74,
+                                'proteinTitle': 'gi|327|X|I44.6 ubiquitin',
+                                'proteinURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
+                                'readCount': 5,
+                            },
+                        ],
+                        'uniqueReadCount': None,
+                    },
+                }
+            },
+            pg.virusTitles)
+
+    def testOneLineInOneFileFASTQ(self):
+        """
+        If a protein grouper is given one file with one line, its virusTitles
+        dict must be as expected, including for a FASTQ file.
+        """
+        fp = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        pg = ProteinGrouper(format_='fastq')
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            {
+                'Lausannevirus': {
+                    'sample-filename': {
+                        'proteins': [
+                            {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.77,
+                                'readsFilename': 'out/0.fastq',
                                 'hspCount': 6,
                                 'index': 0,
                                 'medianScore': 46.6,
@@ -132,7 +177,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.63,
-                                'fastaFilename': 'out/0.fasta',
+                                'readsFilename': 'out/0.fasta',
                                 'hspCount': 9,
                                 'index': 0,
                                 'medianScore': 41.3,
@@ -146,7 +191,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/1.png',
                                 'coverage': 0.77,
-                                'fastaFilename': 'out/1.fasta',
+                                'readsFilename': 'out/1.fasta',
                                 'hspCount': 6,
                                 'index': 1,
                                 'medianScore': 46.6,
@@ -183,7 +228,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.63,
-                                'fastaFilename': 'out/0.fasta',
+                                'readsFilename': 'out/0.fasta',
                                 'hspCount': 9,
                                 'index': 0,
                                 'medianScore': 41.3,
@@ -204,7 +249,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/1.png',
                                 'coverage': 0.77,
-                                'fastaFilename': 'out/1.fasta',
+                                'readsFilename': 'out/1.fasta',
                                 'hspCount': 6,
                                 'index': 1,
                                 'medianScore': 46.6,
@@ -244,7 +289,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.63,
-                                'fastaFilename': 'out/0.fasta',
+                                'readsFilename': 'out/0.fasta',
                                 'hspCount': 9,
                                 'index': 0,
                                 'medianScore': 41.3,
@@ -263,7 +308,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.77,
-                                'fastaFilename': 'out/0.fasta',
+                                'readsFilename': 'out/0.fasta',
                                 'hspCount': 6,
                                 'index': 0,
                                 'medianScore': 46.6,
@@ -320,7 +365,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'dir-1/out/0.png',
                                 'coverage': 0.63,
-                                'fastaFilename': 'dir-1/out/0.fasta',
+                                'readsFilename': 'dir-1/out/0.fasta',
                                 'hspCount': 9,
                                 'index': 0,
                                 'medianScore': 41.3,
@@ -341,7 +386,7 @@ class TestProteinGrouper(TestCase):
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'dir-2/out/0.png',
                                 'coverage': 0.77,
-                                'fastaFilename': 'dir-2/out/0.fasta',
+                                'readsFilename': 'dir-2/out/0.fasta',
                                 'hspCount': 6,
                                 'index': 0,
                                 'medianScore': 46.6,
@@ -486,14 +531,24 @@ class TestProteinGrouper(TestCase):
             pg.toStr())
 
 
-class TestVirusSampleFASTA(TestCase):
+class TestVirusSampleFiles(TestCase):
     """
-    Tests for the VirusSampleFASTA class.
+    Tests for the VirusSampleFiles class.
     """
+
+    def testUnknownFormat(self):
+        """
+        Passing an unknown format argument must result in a ValueError
+        being raised.
+        """
+        pg = ProteinGrouper()
+        error = "^format_ must be either 'fasta' or 'fastq'\.$"
+        assertRaisesRegex(self, ValueError, error, VirusSampleFiles,
+                          pg, format_='unknown')
 
     def testOpenNotCalledOnRepeatedCall(self):
         """
-        If a repeated call to virusSampleFASTA.add is made with the same
+        If a repeated call to virusSampleFiles.add is made with the same
         arguments, no file should be read because the original result value is
         cached.
         """
@@ -530,18 +585,18 @@ class TestVirusSampleFASTA(TestCase):
 
         pg = ProteinGrouper()
         pg.addFile('filename-1', fp)
-        virusSampleFASTA = VirusSampleFASTA(pg)
+        virusSampleFiles = VirusSampleFiles(pg)
 
         sideEffect = Open(self, manager()).sideEffect
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect
-            filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
+            filename = virusSampleFiles.add('Lausannevirus', 'filename-1')
             self.assertEqual('out/virus-0-sample-0.fasta', filename)
             self.assertEqual('>id1\nACTG\n', fastaIO.getvalue())
 
             # Repeated call. The side effect open will fail if open is
             # called at this point.
-            filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
+            filename = virusSampleFiles.add('Lausannevirus', 'filename-1')
             self.assertEqual('out/virus-0-sample-0.fasta', filename)
 
     def testIdenticalReadsRemoved(self):
@@ -588,11 +643,11 @@ class TestVirusSampleFASTA(TestCase):
 
         pg = ProteinGrouper()
         pg.addFile('filename-1', fp)
-        virusSampleFASTA = VirusSampleFASTA(pg)
+        virusSampleFiles = VirusSampleFiles(pg)
 
         sideEffect = Open(self, manager()).sideEffect
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect
-            filename = virusSampleFASTA.add('Lausannevirus', 'filename-1')
+            filename = virusSampleFiles.add('Lausannevirus', 'filename-1')
             self.assertEqual('out/virus-0-sample-0.fasta', filename)
             self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())
