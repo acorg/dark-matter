@@ -1,6 +1,5 @@
 from collections import defaultdict, Counter
 
-from dark.reads import Reads
 from dark.utils import median
 from dark.filter import ReadSetFilter
 from dark.intervals import ReadIntervals
@@ -29,7 +28,7 @@ class TitleAlignment(object):
     Hold information about a read's HSPs for a title alignment.
 
     @param read: The C{Read} that aligned.
-    @param hsps: A C{list} of L{dark.hsp.HSP} (or subclass) instance.
+    @param hsps: A C{list} of L{dark.hsp.HSP} (or subclass) instances.
     """
 
     def __init__(self, read, hsps):
@@ -64,12 +63,10 @@ class TitleAlignments(list):
         """
         Find the set of reads matching this title.
 
-        @return: An instance of C{dark.reads.Reads}.
+        @return: A generator that yields C{dark.reads.Read} instances (or one
+            of its subclasses).
         """
-        reads = Reads()
-        for alignment in self:
-            reads.add(alignment.read)
-        return reads
+        return (alignment.read for alignment in self)
 
     def readCount(self):
         """
@@ -161,15 +158,36 @@ class TitleAlignments(list):
             intervals.add(hsp.subjectStart, hsp.subjectEnd)
         return intervals.coverage()
 
-    def baseCoverage(self):
+    def coverageCounts(self):
         """
-        For each base in the title sequence, return a count of how many times
-        that base is covered by a read.
+        For each location in the title sequence, return a count of how many
+        times that location is covered by a read.
         """
         intervals = ReadIntervals(self.subjectLength)
         for hsp in self.hsps():
             intervals.add(hsp.subjectStart, hsp.subjectEnd)
-        return intervals.baseCoverage()
+        return intervals.coverageCounts()
+
+    def coverageInfo(self):
+        """
+        Return information about the bases found at each location in our title
+        sequence.
+
+        @return: A C{dict} whose keys are C{int} subject offsets and whose
+            values are unsorted lists of (score, base) 2-tuples, giving all the
+            bases from reads that matched the subject at subject location,
+            along with the bit score of the matching read.
+        """
+        result = defaultdict(list)
+
+        for titleAlignment in self:
+            for hsp in titleAlignment.hsps:
+                score = hsp.score.score
+                for (subjectOffset, base, _) in titleAlignment.read.walkHSP(
+                        hsp, includeWhiskers=False):
+                    result[subjectOffset].append((score, base))
+
+        return result
 
     def residueCounts(self, convertCaseTo='upper'):
         """
