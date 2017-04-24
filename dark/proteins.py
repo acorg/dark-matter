@@ -260,7 +260,6 @@ class ProteinGrouper(object):
         @raise ValueError: If information for a virus/protein/sample
             combination is given more than once.
         """
-
         if self._sampleNameRegex:
             match = self._sampleNameRegex.search(filename)
             if match:

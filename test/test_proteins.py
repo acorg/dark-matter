@@ -112,7 +112,7 @@ class TestGetVirusProteinCounts(TestCase):
 
 class TestProteinGrouper(TestCase):
     """
-    Tests for the dark.proteins.ProteinGrouper class
+    Tests for the dark.proteins.ProteinGrouper class.
     """
 
     def testUnknownFormat(self):
