@@ -2,25 +2,28 @@
 
 """
 Read protein match output produced by noninteractive-alignment-panel.py and
-group it by virus.
+group it by pathogen (either virus or bacteria).
 
 This is currently only useful when you are matching against a subject protein
-database whose titles have a virus name in square brackets, like this:
+database whose titles have a pathogen name in square brackets, like this:
 
 gi|820945251|ref|YP_009137096.1| envelope glycoprotein H [Human herpesvirus 1]
 gi|820945301|ref|YP_009137146.1| virion protein US10 [Human herpesvirus 1]
 gi|820945229|ref|YP_009137074.1| ubiquitin E3 ligase ICP0 [Human herpesvirus 1]
 
-In this case, those three matched subjects are from the same virus. This script
-will gather those matches under their common "Human herpesvirus 1" title and
-provides methods to print them.
+In this case, those three matched subjects are from the same pathogen. This
+script will gather those matches under their common "Human herpesvirus 1"
+title and provides methods to print them.
+
+Files with names in this format are provided by NCBI for their viral and
+bacterial refseq protein FASTA.
 
 The script reads *file names* from standard input, and writes to standard
 output.  Alternately, you can also provide file names on the command line.
 
 Typical usage:
 
-  $ find . -name summary-proteins | group-summary-proteins.py \
+  $ find . -name summary-proteins | proteins-to-pathogens.py \
         --sampleNameRegex '(Sample_\d+)/' --html > index.html
 
 Input files must contain lines in the following format:
@@ -39,7 +42,7 @@ Fields must be whitespace separated. The seven fields are:
     Read count
     HSP count
     Protein length
-    Protein title (may contain whitespace)
+    Title (in the format "protein name [pathogen name]")
 """
 
 from __future__ import print_function
@@ -61,7 +64,7 @@ from dark.proteins import ProteinGrouper
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Group proteins by the virus they're from.")
+        description="Group proteins by the pathogen they're from.")
 
     parser.add_argument(
         'filenames', nargs='*', help='Sample file names to read input from.')
@@ -71,12 +74,12 @@ if __name__ == '__main__':
         help=('An (optional) regular expression that can be used to extract a '
               'short sample name from full sample file name.  The regular '
               'expression must have a matching group (delimited by '
-              'parentheses) to capture the part of the file name that should '
-              'be used as the sample name.'))
+              'parentheses) that captures the part of the file name that '
+              'should be used as the sample name.'))
 
     parser.add_argument(
-        '--virusPanelFilename', default=None,
-        help=('An (optional) filename to write a virus-sample panel PNG '
+        '--pathogenPanelFilename', default=None,
+        help=('An (optional) filename to write a pathogen-sample panel PNG '
               'image to.'))
 
     parser.add_argument(
@@ -92,19 +95,24 @@ if __name__ == '__main__':
     parser.add_argument(
         '--proteinFastaFilename', '--pff',
         help=('An (optional) filename giving the name of the FASTA file '
-              'with the protein AA sequences with their associated viruses in '
-              'square brackets. This is the format used by NCBI for the viral '
-              'protein files. If given, the contents of this file will be '
-              'used to determine how many proteins each matched virus has. '
-              'This makes it much easier to spot significant matches (as '
-              'opposed to those where, say, just one protein from a virus is '
-              'matched).'))
+              'with the protein AA sequences with their associated pathogens '
+              'in square brackets. This is the format used by NCBI for '
+              'bacterial and viral reference sequence protein files. If '
+              'given, the contents of this file will be used to determine how '
+              'many proteins each matched pathogen has. This makes it much '
+              'easier to spot significant matches (as opposed to those where, '
+              'say, just one protein from a pathogen is matched).'))
 
     parser.add_argument(
         '--minProteinFraction', type=float, default=0.0,
-        help=('The minimum fraction of proteins in a virus that must be '
-              'matched by at least one sample in order for that virus to '
+        help=('The minimum fraction of proteins in a pathogen that must be '
+              'matched by at least one sample in order for that pathogen to '
               'be displayed.'))
+
+    parser.add_argument(
+        '--pathogenType', default='viral', choices=('bacterial', 'viral'),
+        help=('Specify the pathogen type. This option only affects the '
+              'language used in HTML output.'))
 
     args = parser.parse_args()
 
@@ -122,7 +130,8 @@ if __name__ == '__main__':
             grouper.addFile(filename, fp)
 
     if args.html:
-        print(grouper.toHTML(args.virusPanelFilename,
-                             minProteinFraction=args.minProteinFraction))
+        print(grouper.toHTML(args.pathogenPanelFilename,
+                             minProteinFraction=args.minProteinFraction,
+                             pathogenType=args.pathogenType))
     else:
         print(grouper.toStr())
