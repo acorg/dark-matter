@@ -414,11 +414,23 @@ class ProteinGrouper(object):
                 border-style: inset;
                 border-width: 1px;
             }
+            p.virus {
+                margin-top: 10px;
+                margin-bottom: 3px;
+            }
+            p.sample {
+                margin-top: 10px;
+                margin-bottom: 3px;
+            }
             .significant {
                 color: red;
                 margin-right: 2px;
             }
             .sample {
+                margin-top: 5px;
+                margin-bottom: 2px;
+            }
+            ul {
                 margin-bottom: 2px;
             }
             .indented {
@@ -544,8 +556,9 @@ class ProteinGrouper(object):
             virusProteinCount = self._virusProteinCount[virusTitle]
             append(
                 '<a id="virus-%s"></a>'
-                '<span class="virus-title"><a href="%s%s">%s</a></span>'
-                '%s, was matched by %d sample%s:' %
+                '<p class="virus"><span class="virus-title">'
+                '<a href="%s%s">%s</a></span>'
+                '%s, was matched by %d sample%s:</p>' %
                 (virusTitle, self.VIRALZONE, quote(virusTitle),
                  virusTitle,
                  ((' (with %d protein%s)' %
@@ -570,7 +583,7 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample indented">'
                     '%sSample <a href="#sample-%s">%s</a> '
-                    '(%d protein%s, <a href="%s">%d read%s</a>, '
+                    '(%d protein%s, <a href="%s">%d de-duplicated read%s</a>, '
                     '<a href="%s">panel</a>):</p>' %
                     (highlight, sampleName, sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
@@ -620,9 +633,9 @@ class ProteinGrouper(object):
 
             append(
                 '<a id="sample-%s"></a>'
-                'Sample <span class="sample-name">%s</span> '
+                '<p class="sample">Sample <span class="sample-name">%s</span> '
                 'matched proteins from %d virus%s, '
-                '<a href="%s">panel</a>:<br/>' %
+                '<a href="%s">panel</a>:</p>' %
                 (sampleName, sampleName, len(sampleVirusTitles),
                  '' if len(sampleVirusTitles) == 1 else 'es',
                  self.sampleNames[sampleName]))
@@ -651,7 +664,7 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample indented">'
                     '%s<a href="#virus-%s">%s</a> %s, '
-                    '<a href="%s">%d read%s</a>:</p>' %
+                    '<a href="%s">%d de-duplicated read%s</a>:</p>' %
                     (highlight, virusTitle, virusTitle,
                      proteinCountStr, readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
