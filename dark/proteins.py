@@ -6,6 +6,7 @@ from operator import itemgetter
 from six.moves.urllib.parse import quote
 import numpy as np
 from textwrap import fill
+from collections import Counter
 
 try:
     import matplotlib.pyplot as plt
@@ -22,6 +23,75 @@ from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads
+
+# The following regex is deliberately greedy (using .*) to consume the
+# whole protein title before backtracking to find the last [virus title]
+# section. That way, it will match just the last [virus title] in a
+# protein. This avoids situations in which two [...] delimited substrings
+# are present in a protein name (in which case we just want the last).
+# E.g., the following is a complete protein name:
+#
+#   gi|19919894|ref|NP_612577.1| Enzymatic polyprotein [Contains: Aspartic
+#   protease; Endonuclease; Reverse transcriptase] [Carnation etched ring
+#   virus]
+#
+# Unfortunately the regex doesn't find the virus title when the protein
+# title has nested [...] sections, as in this example:
+#
+#   gi|224808893|ref|YP_002643049.1| replication-associated protein [Tomato
+#   leaf curl Nigeria virus-[Nigeria:2006]]
+#
+# I decided not to worry about nested [...] sections (there are only 2
+# instances that I know of).
+_VIRUS_RE = re.compile('^(.*)\[([^\]]+)\]$')
+
+# The virus title assigned to proteins whose title strings cannot be parsed
+# for a virus title (see previous comment).  Do not use '<', '>' or any
+# other HTML special chars in the following.
+_NO_VIRUS_TITLE = '[no virus name found in protein title]'
+
+
+def splitTitles(titles):
+    """
+    Split a title like "Protein name [virus name]" into two pieces using
+    the final square brackets to delimit the virus name.
+
+    @param titles: A C{str} protein and virus title.
+    @return: A 2-C{tuple} giving the C{str} protein title and C{str} virus
+        title. If C{titles} cannot be split on square brackets, it is
+        returned as the first tuple element, followed by _NO_VIRUS_TITLE.
+    """
+    match = _VIRUS_RE.match(titles)
+    if match:
+        proteinTitle = match.group(1).strip()
+        virusTitle = match.group(2).strip()
+    else:
+        proteinTitle = titles
+        virusTitle = _NO_VIRUS_TITLE
+
+    return proteinTitle, virusTitle
+
+
+def getVirusProteinCounts(filename):
+    """
+    Get the number of proteins for each virus in C{filename}.
+
+    @param filename: Either C{None} or a C{str} FASTA file name. If C{None}
+        an empty C{Counter} is returned. If a FASTA file name is given, its
+        sequence ids should have the format used in the NCBI viral protein
+        file, in which the protein name is followed by the virus name in
+        square brackets.
+    @return: A C{Counter} keyed by C{str} virus name, whose values are C{int}s
+        with the count of the number of proteins for the virus.
+    """
+    result = Counter()
+    if filename:
+        for protein in FastaReads(filename):
+            _, virusTitle = splitTitles(protein.id)
+            if virusTitle != _NO_VIRUS_TITLE:
+                result[virusTitle] += 1
+
+    return result
 
 
 class VirusSampleFiles(object):
@@ -66,12 +136,12 @@ class VirusSampleFiles(object):
             return self._readsFilenames[(virusIndex, sampleIndex)]
         except KeyError:
             reads = Reads()
-            for protein in self._proteinGrouper.virusTitles[
-                    virusTitle][sampleName]['proteins']:
-                for read in self._readsClass(protein['readsFilename']):
+            for proteinMatch in self._proteinGrouper.virusTitles[
+                    virusTitle][sampleName]['proteins'].values():
+                for read in self._readsClass(proteinMatch['readsFilename']):
                     reads.add(read)
             saveFilename = join(
-                protein['outDir'],
+                proteinMatch['outDir'],
                 'virus-%d-sample-%d.%s' % (virusIndex, sampleIndex,
                                            self._format))
             reads.filter(removeDuplicates=True)
@@ -117,38 +187,18 @@ class ProteinGrouper(object):
         should be used as the sample name.
     @param format_: A C{str}, either 'fasta' or 'fastq' indicating the format
         of the files containing the reads matching proteins.
+    @param proteinFastaFilename: If not C{None}, a C{str} filename giving the
+        name of the FASTA file with the protein AA sequences with their
+        associated viruses in square brackets. This is the format used by NCBI
+        for the viral protein files. If given, the contents of this file will
+        be used to determine how many proteins each matched virus has.
     @raise ValueError: If C{format_} is unknown.
     """
 
-    # The following regex is deliberately greedy (using .*) to consume the
-    # whole protein title before backtracking to find the last [virus title]
-    # section. That way, it will match just the last [virus title] in a
-    # protein. This avoids situations in which two [...] delimited substrings
-    # are present in a protein name (in which case we just want the last).
-    # E.g., the following is a complete protein name:
-    #
-    #   gi|19919894|ref|NP_612577.1| Enzymatic polyprotein [Contains: Aspartic
-    #   protease; Endonuclease; Reverse transcriptase] [Carnation etched ring
-    #   virus]
-    #
-    # Unfortunately the regex doesn't find the virus title when the protein
-    # title has nested [...] sections, as in this example:
-    #
-    #   gi|224808893|ref|YP_002643049.1| replication-associated protein [Tomato
-    #   leaf curl Nigeria virus-[Nigeria:2006]]
-    #
-    # I decided not to worry about nested [...] sections (there are only 2
-    # instances that I know of).
-    VIRUS_RE = re.compile('^(.*)\[([^\]]+)\]$')
-
-    # The virus title assigned to proteins whose title strings cannot be parsed
-    # for a virus title (see previous comment).  Do not use '<', '>' or any
-    # other HTML special chars in the following.
-    NO_VIRUS_TITLE = '[no virus name found in protein title]'
-
     VIRALZONE = 'http://viralzone.expasy.org/cgi-bin/viralzone/search?query='
 
-    def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta'):
+    def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta',
+                 proteinFastaFilename=None):
         self._assetDir = assetDir
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
                                  else None)
@@ -156,6 +206,9 @@ class ProteinGrouper(object):
             self._format = format_
         else:
             raise ValueError("format_ must be either 'fasta' or 'fastq'.")
+
+        self._virusProteinCount = getVirusProteinCounts(proteinFastaFilename)
+
         # virusTitles will be a dict of dicts of dicts. The first two keys
         # will be a virus title and a sample name. The final dict will
         # contain 'proteins' (a list of dicts) and 'uniqueReadCount' (an int).
@@ -172,9 +225,31 @@ class ProteinGrouper(object):
         @return: A C{str} title.
         """
         return (
-            '%d virus%s found in %d sample%s' %
-            (len(self.virusTitles), '' if len(self.virusTitles) == 1 else 'es',
-             len(self.sampleNames), '' if len(self.sampleNames) == 1 else 's'))
+            'Overall, proteins from %d virus%s were found in %d sample%s.' %
+            (len(self.virusTitles),
+             '' if len(self.virusTitles) == 1 else 'es',
+             len(self.sampleNames),
+             '' if len(self.sampleNames) == 1 else 's'))
+
+    def maxProteinFraction(self, virusTitle):
+        """
+        Get the fraction of a virus' proteins matched by any sample that
+        matches the virus.
+
+        @param virusTitle: A C{str} virus title.
+        @return: The C{float} maximum fraction of a virus' proteins that is
+            matched by any sample. If the number of proteins for the virus is
+            unknown, return 1.0 (i.e., assume all proteins are matched).
+        """
+
+        proteinCount = self._virusProteinCount[virusTitle]
+        if proteinCount:
+            maxMatches = max(
+                len(sample['proteins'])
+                for sample in self.virusTitles[virusTitle].values())
+            return maxMatches / proteinCount
+        else:
+            return 1.0
 
     def addFile(self, filename, fp):
         """
@@ -182,8 +257,9 @@ class ProteinGrouper(object):
 
         @param filename: A C{str} file name.
         @param fp: An open file pointer to read the file's data from.
+        @raise ValueError: If information for a virus/protein/sample
+            combination is given more than once.
         """
-
         if self._sampleNameRegex:
             match = self._sampleNameRegex.search(filename)
             if match:
@@ -202,24 +278,27 @@ class ProteinGrouper(object):
             (coverage, medianScore, bestScore, readCount, hspCount,
              proteinLength, titles) = proteinLine.split(None, 6)
 
-            match = self.VIRUS_RE.match(titles)
-            if match:
-                proteinTitle = match.group(1).strip()
-                virusTitle = match.group(2)
-            else:
-                proteinTitle = titles
-                virusTitle = self.NO_VIRUS_TITLE
+            proteinTitle, virusTitle = splitTitles(titles)
 
             if virusTitle not in self.virusTitles:
                 self.virusTitles[virusTitle] = {}
 
             if sampleName not in self.virusTitles[virusTitle]:
                 self.virusTitles[virusTitle][sampleName] = {
-                    'proteins': [],
+                    'proteins': {},
                     'uniqueReadCount': None,
                 }
 
-            self.virusTitles[virusTitle][sampleName]['proteins'].append({
+            proteins = self.virusTitles[virusTitle][sampleName]['proteins']
+
+            # We should only receive one line of information for a given
+            # virus/sample/protein combination.
+            if proteinTitle in proteins:
+                raise ValueError(
+                    'Protein %r already seen for virus %r sample %r.' %
+                    (proteinTitle, virusTitle, sampleName))
+
+            proteins[proteinTitle] = {
                 'bestScore': float(bestScore),
                 'bluePlotFilename': join(outDir, '%d.png' % index),
                 'coverage': float(coverage),
@@ -232,7 +311,7 @@ class ProteinGrouper(object):
                 'proteinTitle': proteinTitle,
                 'proteinURL': NCBISequenceLinkURL(proteinTitle),
                 'readCount': int(readCount),
-            })
+            }
 
     def _computeUniqueReadCounts(self):
         """
@@ -256,7 +335,6 @@ class ProteinGrouper(object):
         # unique (de-duplicated) read count, since that is only computed
         # when we are making combined FASTA files of reads matching a
         # virus.
-        titleGetter = itemgetter('proteinTitle')
         readCountGetter = itemgetter('readCount')
         result = []
         append = result.append
@@ -273,45 +351,51 @@ class ProteinGrouper(object):
             for sampleName in sorted(samples):
                 proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
-                totalReads = sum(readCountGetter(p) for p in proteins)
+                totalReads = sum(readCountGetter(p) for p in proteins.values())
                 append('  %s (%d protein%s, %d read%s)' %
                        (sampleName,
                         proteinCount, '' if proteinCount == 1 else 's',
                         totalReads, '' if totalReads == 1 else 's'))
-                proteins.sort(key=titleGetter)
-                for proteinMatch in proteins:
+                for proteinTitle in sorted(proteins):
                     append(
                         '    %(coverage).2f\t%(medianScore).2f\t'
                         '%(bestScore).2f\t%(readCount)4d\t%(hspCount)4d\t'
                         '%(index)3d\t%(proteinTitle)s'
-                        % proteinMatch)
+                        % proteins[proteinTitle])
             append('')
 
         return '\n'.join(result)
 
-    def toHTML(self, virusPanelFilename=None):
+    def toHTML(self, virusPanelFilename=None, minProteinFraction=0.0):
         """
         Produce an HTML string representation of the virus summary.
 
         @param virusPanelFilename: If not C{None}, a C{str} filename to write
             a virus panel PNG image to.
+        @param minProteinFraction: The C{float} minimum fraction of proteins
+            in a virus that must be matched by at least one sample in order for
+            that virus to be displayed.
         @return: An HTML C{str} suitable for printing.
         """
+        highlightSymbol = '&starf;'
         self._computeUniqueReadCounts()
 
         if virusPanelFilename:
             self.virusPanel(virusPanelFilename)
 
-        titleGetter = itemgetter('proteinTitle')
-        virusTitles = sorted(self.virusTitles)
+        virusTitles = sorted(
+            virusTitle for virusTitle in self.virusTitles
+            if self.maxProteinFraction(virusTitle) >= minProteinFraction)
+        nVirusTitles = len(virusTitles)
         sampleNames = sorted(self.sampleNames)
 
         result = [
             '<html>',
             '<head>',
             '<title>',
-            self._title(),
+            'Summary of viruses',
             '</title>',
+            '<meta charset="UTF-8">',
             '</head>',
             '<body>',
             '<style>',
@@ -320,11 +404,47 @@ class ProteinGrouper(object):
                 margin-left: 2%;
                 margin-right: 2%;
             }
+            hr {
+                display: block;
+                margin-top: 0.5em;
+                margin-bottom: 0.5em;
+                margin-left: auto;
+                margin-right: auto;
+                border-style: inset;
+                border-width: 1px;
+            }
+            p.virus {
+                margin-top: 10px;
+                margin-bottom: 3px;
+            }
+            p.sample {
+                margin-top: 10px;
+                margin-bottom: 3px;
+            }
+            .significant {
+                color: red;
+                margin-right: 2px;
+            }
             .sample {
+                margin-top: 5px;
                 margin-bottom: 2px;
             }
+            ul {
+                margin-bottom: 2px;
+            }
+            .indented {
+                margin-left: 2em;
+            }
             .sample-name {
-                color: red;
+                font-size: 125%;
+                font-weight: bold;
+            }
+            .virus-title {
+                font-size: 125%;
+                font-weight: bold;
+            }
+            .index-title {
+                font-weight: bold;
             }
             .index {
                 font-size: small;
@@ -346,7 +466,7 @@ class ProteinGrouper(object):
 
         proteinFieldsDescription = (
             '<p>',
-            'In the bullet point protein lists below, there are eight fields:',
+            'In all bullet point protein lists below, there are eight fields:',
             '<ol>',
             '<li>Coverage fraction.</li>',
             '<li>Median bit score.</li>',
@@ -362,7 +482,36 @@ class ProteinGrouper(object):
 
         append = result.append
 
-        append('<h1>%s</h1>' % self._title())
+        append('<h1>Summary of viruses</h1>')
+        append('<p>')
+        append(self._title())
+
+        if self._virusProteinCount:
+            percent = minProteinFraction * 100.0
+            if nVirusTitles < len(self.virusTitles):
+                if nVirusTitles == 1:
+                    append('Virus protein fraction filtering has been '
+                           'applied, so information on only 1 virus is '
+                           'displayed. This is the only virus for which at '
+                           'least one sample matches at least %.2f%% of the '
+                           'viral proteins.' % percent)
+                else:
+                    append('Virus protein fraction filtering has been '
+                           'applied, so information on only %d viruses is '
+                           'displayed. These are the only viruses for which '
+                           'at least one sample matches at least %.2f%% of '
+                           'the viral proteins.' % (nVirusTitles, percent))
+            else:
+                append('Virus protein fraction filtering has been applied, '
+                       'but all viruses have at least %.2f%% of their '
+                       'proteins matched by at least one sample.')
+
+            append('Samples that match a virus (and viruses with a matching '
+                   'sample) with at least this protein fraction are '
+                   'highlighted using <span class="significant">%s</span>.' %
+                   highlightSymbol)
+
+        append('</p>')
 
         if virusPanelFilename:
             append('<p>')
@@ -372,59 +521,77 @@ class ProteinGrouper(object):
                    'read count.')
             append('</p>')
 
+        result.extend(proteinFieldsDescription)
+
         # Write a linked table of contents by virus.
-        append('<h2>Virus index</h2>')
-        append('<p class="index">')
+        append('<p><span class="index-title">Virus index:</span>')
+        append('<span class="index">')
         for virusTitle in virusTitles:
             append('<a href="#virus-%s">%s</a>' % (virusTitle, virusTitle))
             append('&middot;')
-        # Get rid of final middle dot.
+        # Get rid of final middle dot and add a period.
         result.pop()
-        append('</p>')
+        result[-1] += '.'
+        append('</span></p>')
 
         # Write a linked table of contents by sample.
-        append('<h2>Sample index</h2>')
-        append('<p class="index">')
+        append('<p><span class="index-title">Sample index:</span>')
+        append('<span class="index">')
         for sampleName in sampleNames:
             append('<a href="#sample-%s">%s</a>' % (sampleName, sampleName))
             append('&middot;')
-        # Get rid of final middle dot.
+        # Get rid of final middle dot and add a period.
         result.pop()
-        append('</p>')
+        result[-1] += '.'
+        append('</span></p>')
 
         # Write all viruses (with samples (with proteins)).
+        append('<hr>')
         append('<h1>Viruses by sample</h1>')
-        result.extend(proteinFieldsDescription)
 
         for virusTitle in virusTitles:
             samples = self.virusTitles[virusTitle]
             sampleCount = len(samples)
+            virusProteinCount = self._virusProteinCount[virusTitle]
             append(
-                '<a id="virus-%s">'
-                '<h2 class="virus"><span class="virus-title">%s</span> '
-                '(in %d sample%s, <a href="%s%s">viralzone</a>)</h2>' %
-                (virusTitle, virusTitle, sampleCount,
-                 '' if sampleCount == 1 else 's',
-                 self.VIRALZONE, quote(virusTitle)))
+                '<a id="virus-%s"></a>'
+                '<p class="virus"><span class="virus-title">'
+                '<a href="%s%s">%s</a></span>'
+                '%s, was matched by %d sample%s:</p>' %
+                (virusTitle, self.VIRALZONE, quote(virusTitle),
+                 virusTitle,
+                 ((' (with %d protein%s)' %
+                   (virusProteinCount, '' if virusProteinCount == 1 else 's'))
+                  if virusProteinCount else ''),
+                 sampleCount,
+                 '' if sampleCount == 1 else 's'))
             for sampleName in sorted(samples):
                 readsFileName = self.virusSampleFiles.lookup(virusTitle,
                                                              sampleName)
                 proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
                 uniqueReadCount = samples[sampleName]['uniqueReadCount']
+                if virusProteinCount and (
+                        proteinCount / virusProteinCount >=
+                        minProteinFraction):
+                    highlight = ('<span class="significant">%s</span>' %
+                                 highlightSymbol)
+                else:
+                    highlight = ''
+
                 append(
-                    '<p class=sample>'
-                    '<span class="sample-name">%s</span> '
-                    '(%d protein%s, <a href="%s">%d read%s</a>, '
-                    '<a href="%s">panel</a>)' %
-                    (sampleName,
+                    '<p class="sample indented">'
+                    '%sSample <a href="#sample-%s">%s</a> '
+                    '(%d protein%s, <a href="%s">%d de-duplicated read%s</a>, '
+                    '<a href="%s">panel</a>):</p>' %
+                    (highlight, sampleName, sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
                      readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's',
                      self.sampleNames[sampleName]))
-                proteins.sort(key=titleGetter)
-                append('<ul class="protein-list">')
-                for proteinMatch in proteins:
+                append('<ul class="protein-list indented">')
+                for proteinTitle in sorted(proteins):
+                    proteinMatch = proteins[proteinTitle]
                     append(
                         '<li>'
                         '<span class="stats">'
@@ -450,22 +617,24 @@ class ProteinGrouper(object):
                     append('</li>')
 
                 append('</ul>')
-                append('</p>')
 
         # Write all samples (with viruses (with proteins)).
+        append('<hr>')
         append('<h1>Samples by virus</h1>')
-        result.extend(proteinFieldsDescription)
 
         for sampleName in sampleNames:
             sampleVirusTitles = set()
             for virusTitle in virusTitles:
-                if sampleName in self.virusTitles[virusTitle]:
+                if (sampleName in self.virusTitles[virusTitle] and
+                        self.maxProteinFraction(virusTitle) >=
+                        minProteinFraction):
                     sampleVirusTitles.add(virusTitle)
 
             append(
-                '<a id="sample-%s">'
-                '<h2 class="sample"><span class="sample-name">%s</span> '
-                '(has proteins from %d virus%s, <a href="%s">panel</a>)</h2>' %
+                '<a id="sample-%s"></a>'
+                '<p class="sample">Sample <span class="sample-name">%s</span> '
+                'matched proteins from %d virus%s, '
+                '<a href="%s">panel</a>:</p>' %
                 (sampleName, sampleName, len(sampleVirusTitles),
                  '' if len(sampleVirusTitles) == 1 else 'es',
                  self.sampleNames[sampleName]))
@@ -477,17 +646,30 @@ class ProteinGrouper(object):
                 uniqueReadCount = self.virusTitles[
                     virusTitle][sampleName]['uniqueReadCount']
                 proteinCount = len(proteins)
+                virusProteinCount = self._virusProteinCount[virusTitle]
+
+                highlight = ''
+                if virusProteinCount:
+                    proteinCountStr = '%d/%d protein%s' % (
+                        proteinCount, virusProteinCount,
+                        '' if virusProteinCount == 1 else 's')
+                    if proteinCount / virusProteinCount >= minProteinFraction:
+                        highlight = ('<span class="significant">%s</span>' %
+                                     highlightSymbol)
+                else:
+                    proteinCountStr = '%d protein%s' % (
+                        proteinCount, '' if proteinCount == 1 else 's')
+
                 append(
-                    '<p class="sample">'
-                    '<span class="virus-title">%s</span> '
-                    '(%d protein%s, <a href="%s">%d read%s</a>)' %
-                    (virusTitle,
-                     proteinCount, '' if proteinCount == 1 else 's',
-                     readsFileName,
+                    '<p class="sample indented">'
+                    '%s<a href="#virus-%s">%s</a> %s, '
+                    '<a href="%s">%d de-duplicated read%s</a>:</p>' %
+                    (highlight, virusTitle, virusTitle,
+                     proteinCountStr, readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
-                proteins.sort(key=titleGetter)
-                append('<ul class="protein-list">')
-                for proteinMatch in proteins:
+                append('<ul class="protein-list indented">')
+                for proteinTitle in sorted(proteins):
+                    proteinMatch = proteins[proteinTitle]
                     append(
                         '<li>'
                         '<span class="stats">'
@@ -513,7 +695,6 @@ class ProteinGrouper(object):
                     append('</li>')
 
                 append('</ul>')
-                append('</p>')
 
         append('</body>')
         append('</html>')

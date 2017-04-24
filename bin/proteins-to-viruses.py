@@ -89,10 +89,28 @@ if __name__ == '__main__':
               'noninteractive-alignment-panel.py when it created the '
               'summary-proteins files given on output.'))
 
+    parser.add_argument(
+        '--proteinFastaFilename', '--pff',
+        help=('An (optional) filename giving the name of the FASTA file '
+              'with the protein AA sequences with their associated viruses in '
+              'square brackets. This is the format used by NCBI for the viral '
+              'protein files. If given, the contents of this file will be '
+              'used to determine how many proteins each matched virus has. '
+              'This makes it much easier to spot significant matches (as '
+              'opposed to those where, say, just one protein from a virus is '
+              'matched).'))
+
+    parser.add_argument(
+        '--minProteinFraction', type=float, default=0.0,
+        help=('The minimum fraction of proteins in a virus that must be '
+              'matched by at least one sample in order for that virus to '
+              'be displayed.'))
+
     args = parser.parse_args()
 
     grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
-                             format_=args.format)
+                             format_=args.format,
+                             proteinFastaFilename=args.proteinFastaFilename)
 
     if args.filenames:
         filenames = args.filenames
@@ -104,6 +122,7 @@ if __name__ == '__main__':
             grouper.addFile(filename, fp)
 
     if args.html:
-        print(grouper.toHTML(args.virusPanelFilename))
+        print(grouper.toHTML(args.virusPanelFilename,
+                             minProteinFraction=args.minProteinFraction))
     else:
         print(grouper.toStr())
