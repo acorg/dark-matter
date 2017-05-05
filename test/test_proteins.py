@@ -709,27 +709,23 @@ class TestPathogenSampleFiles(TestCase):
             def __init__(self, test, manager):
                 self.test = test
                 self.manager = manager
-                self.count = 0
+                self.expectedFilenames = {'out/0.fasta', 'out/1.fasta',
+                                          'out/pathogen-0-sample-0.fasta'}
 
             def sideEffect(self, filename, *args, **kwargs):
-                if self.count == 0:
-                    self.test.assertEqual('out/0.fasta', filename)
-                    self.count += 1
-                    return File(['>id1\n', 'ACTG\n'])
-                elif self.count == 1:
-                    self.test.assertEqual('out/1.fasta', filename)
-                    self.count += 1
-                    return File(['>id1\n', 'ACTG\n', '>id2\n', 'CAGT\n'])
-                elif self.count == 2:
-                    self.test.assertEqual('out/pathogen-0-sample-0.fasta',
-                                          filename)
-                    self.count += 1
-                    return self.manager
-                else:
+                try:
+                    self.expectedFilenames.remove(filename)
+                except KeyError:
                     self.test.fail(
-                        'We are only supposed to be called 3 times. '
-                        'Filename: %r, Args: %r, Keyword args: %r.' %
-                        (filename, args, kwargs))
+                        'Open called with unexpected filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+                else:
+                    if filename == 'out/0.fasta':
+                        return File(['>id1\n', 'ACTG\n'])
+                    elif filename == 'out/1.fasta':
+                        return File(['>id1\n', 'ACTG\n', '>id2\n', 'CAGT\n'])
+                    else:
+                        return self.manager
 
         fp = StringIO(
             '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
@@ -745,9 +741,12 @@ class TestPathogenSampleFiles(TestCase):
         pg.addFile('filename-1', fp)
         pathogenSampleFiles = PathogenSampleFiles(pg)
 
-        sideEffect = Open(self, manager()).sideEffect
+        opener = Open(self, manager())
         with patch.object(builtins, 'open') as mockMethod:
-            mockMethod.side_effect = sideEffect
+            mockMethod.side_effect = opener.sideEffect
             filename = pathogenSampleFiles.add('Lausannevirus', 'filename-1')
-            self.assertEqual('out/pathogen-0-sample-0.fasta', filename)
-            self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())
+
+        self.assertEqual('out/pathogen-0-sample-0.fasta', filename)
+        self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())
+        # Make sure all expected filenames were seen by the mocked open.
+        self.assertEqual(set(), opener.expectedFilenames)
