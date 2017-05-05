@@ -1,7 +1,11 @@
+from __future__ import print_function
+
 from six.moves import builtins
-from six import StringIO
+from io import BytesIO
+
 from unittest import TestCase
 from Bio import SeqIO
+from contextlib import contextmanager
 
 try:
     from unittest.mock import patch
@@ -12,7 +16,8 @@ from .mocking import mockOpen, File
 
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
-                        FastaReads, combineReads)
+                        FastaReads, FastaFaiReads, combineReads)
+from dark.utils import StringIO
 
 
 class FastaDeDup(TestCase):
@@ -443,6 +448,66 @@ class TestFastaReads(TestCase):
                     DNARead('id2', 'CAGT'),
                 ],
                 list(reads))
+
+
+class TestFastaFaiReads(TestCase):
+    """
+    Tests for the L{dark.fasta.FastaFaiReads} class.
+    """
+
+    def testEmpty(self):
+        """
+        An empty FASTA file results in an empty iterator.
+        """
+        mockOpener = mockOpen()
+        with patch.object(builtins, 'open', mockOpener):
+            # reads = FastaFaiReads('filename.fasta')
+            # self.assertEqual([], list(reads))
+            pass
+
+    def testOneRead(self):
+        """
+        It must be possible to access a FASTA file with one read like a dict.
+        """
+
+        fastaIO = StringIO()
+
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return BytesIO(b'>id1\nACTG\n')
+                elif self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n')
+                elif self.count == 2:
+                    self.count += 1
+                    return self.manager
+                elif self.count == 3:
+                    self.count += 1
+                    value = fastaIO.getvalue()
+                    return StringIO(value)
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        sideEffect = Open(self, manager()).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            reads = FastaFaiReads('filename.fasta')
+            self.assertEqual(DNARead('id1', 'ACTG'), reads['id1'])
 
 
 class TestCombineReads(TestCase):

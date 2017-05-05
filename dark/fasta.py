@@ -164,14 +164,14 @@ class FastaFaiReads(Reads):
         as an instance of the desired read class.
         """
         if self._upperCase:
-            for id_, sequence in self._fasta.items():
-                yield self._readClass(id_, str(sequence))
+            for id_ in self._fasta:
+                yield self._readClass(id_, str(self._fasta[id_]).upper())
         else:
-            for id_, sequence in self._fasta.items():
-                yield self._readClass(id_, str(sequence.upper()))
+            for id_ in self._fasta:
+                yield self._readClass(id_, str(self._fasta[id_]))
 
     def __getitem__(self, id_):
-        return self._readClass(id_, self._fasta[id_])
+        return self._readClass(str(id_), str(self._fasta[id_]))
 
 
 def combineReads(filename, sequences, readClass=DNARead,

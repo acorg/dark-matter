@@ -6,6 +6,7 @@ matplotlib==1.4.3
 --allow-external mysql-connector-python
 mysql-connector-python==2.0.3
 numpy==1.8.1
+pyfaidx>=0.4.8.5
 pyzmq==14.3.1
 simplejson==3.5.3
 six==1.10.0

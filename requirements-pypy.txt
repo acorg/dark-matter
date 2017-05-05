@@ -34,6 +34,7 @@ mock==1.0.1
 #   python setup.py install
 #
 pep8==1.5.7
+pyfaidx>=0.4.8.5
 pyflakes==0.8.1
 pyzmq==14.3.1
 reportlab==3.1.44

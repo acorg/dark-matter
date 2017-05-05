@@ -166,3 +166,22 @@ def parseRangeString(s, convertToZeroBased=False):
                 'number-number.' % _range)
 
     return result
+
+
+if six.PY3:
+    from six import StringIO
+else:
+    from six import StringIO as sixStringIO
+
+    class StringIO(sixStringIO):
+        """
+        A StringIO class that can be used as a context manager, seeing as the
+        six.StringIO class does not provide __enter__ and __exit__ methods
+        under Python 2.
+        """
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self.close()
+            return False
