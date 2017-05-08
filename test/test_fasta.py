@@ -1,7 +1,9 @@
 from six.moves import builtins
-from six import StringIO
+from io import BytesIO
+
 from unittest import TestCase
 from Bio import SeqIO
+from contextlib import contextmanager
 
 try:
     from unittest.mock import patch
@@ -12,7 +14,8 @@ from .mocking import mockOpen, File
 
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
-                        FastaReads, combineReads)
+                        FastaReads, FastaFaiReads, combineReads)
+from dark.utils import StringIO
 
 
 class FastaDeDup(TestCase):
@@ -443,6 +446,148 @@ class TestFastaReads(TestCase):
                     DNARead('id2', 'CAGT'),
                 ],
                 list(reads))
+
+
+class TestFastaFaiReads(TestCase):
+    """
+    Tests for the L{dark.fasta.FastaFaiReads} class.
+    """
+    def testMissingKey(self):
+        """
+        If a non-existent sequence id is looked up, a KeyError must be raised.
+        """
+
+        pyfaidxIndex = StringIO()
+
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return BytesIO(b'>id1\nACTG\n')
+                elif self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n')
+                elif self.count == 2:
+                    self.count += 1
+                    return self.manager
+                elif self.count == 3:
+                    self.count += 1
+                    return StringIO(pyfaidxIndex.getvalue())
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        @contextmanager
+        def manager():
+            yield pyfaidxIndex
+
+        sideEffect = Open(self, manager()).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            reads = FastaFaiReads('filename.fasta')
+            error = "^'id2 not in filename\.fasta\.'"
+            with self.assertRaisesRegexp(KeyError, error):
+                reads['id2']
+
+    def testOneRead(self):
+        """
+        It must be possible to access a FASTA file with one read like a dict.
+        """
+
+        pyfaidxIndex = StringIO()
+
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return BytesIO(b'>id1\nACTG\n')
+                elif self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n')
+                elif self.count == 2:
+                    self.count += 1
+                    return self.manager
+                elif self.count == 3:
+                    self.count += 1
+                    return StringIO(pyfaidxIndex.getvalue())
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        @contextmanager
+        def manager():
+            yield pyfaidxIndex
+
+        sideEffect = Open(self, manager()).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            reads = FastaFaiReads('filename.fasta')
+            self.assertEqual(DNARead('id1', 'ACTG'), reads['id1'])
+            # Check that the fai index was built correctly.
+            self.assertEqual(pyfaidxIndex.getvalue(), 'id1\t4\t5\t4\t5\n')
+
+    def testTwoReads(self):
+        """
+        It must be possible to access a FASTA file with two reads like a dict.
+        """
+
+        pyfaidxIndex = StringIO()
+
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return BytesIO(b'>id1\nACTG\n>id2\nAACCTTGG\n')
+                elif self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                elif self.count == 2:
+                    self.count += 1
+                    return self.manager
+                elif self.count == 3:
+                    self.count += 1
+                    return StringIO(pyfaidxIndex.getvalue())
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        @contextmanager
+        def manager():
+            yield pyfaidxIndex
+
+        sideEffect = Open(self, manager()).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            reads = FastaFaiReads('filename.fasta')
+            self.assertEqual(DNARead('id1', 'ACTG'), reads['id1'])
+            self.assertEqual(DNARead('id2', 'AACCTTGG'), reads['id2'])
+            # Check that the fai index was built correctly.
+            self.assertEqual(pyfaidxIndex.getvalue(),
+                             'id1\t4\t5\t4\t5\nid2\t8\t15\t8\t9\n')
 
 
 class TestCombineReads(TestCase):
