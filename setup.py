@@ -2,6 +2,24 @@
 
 from setuptools import setup
 
+
+# Modified from http://stackoverflow.com/questions/2058802/
+# how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package
+def version():
+    import os
+    import re
+
+    init = os.path.join('dark', '__init__.py')
+    with open(init) as fp:
+        initData = fp.read()
+    match = re.search(r"^__version__ = ['\"]([^'\"]+)['\"]",
+                      initData, re.M)
+    if match:
+        return match.group(1)
+    else:
+        raise RuntimeError('Unable to find version string in %r.' % init)
+
+
 # Explicitly list bin scripts to be installed, seeing as I have a few local
 # bin files that are not (yet) part of the distribution.
 scripts = [
@@ -16,6 +34,7 @@ scripts = [
     'bin/convert-blast-xml-to-json.py',
     'bin/convert-diamond-to-json.py',
     'bin/convert-sam-to-fastq.sh',
+    'bin/dark-matter-version.py',
     'bin/dna-to-aa.py',
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
@@ -55,7 +74,7 @@ scripts = [
 ]
 
 setup(name='dark-matter',
-      version='1.0.107',
+      version=version(),
       packages=['dark', 'dark.blast', 'dark.diamond'],
       include_package_data=True,
       url='https://github.com/acorg/dark-matter',
