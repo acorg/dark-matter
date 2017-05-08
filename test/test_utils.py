@@ -13,7 +13,7 @@ except ImportError:
 from .mocking import mockOpen, File
 
 from dark.utils import (
-    numericallySortFilenames, median, asHandle, parseRangeString)
+    numericallySortFilenames, median, asHandle, parseRangeString, StringIO)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -277,3 +277,39 @@ class TestParseRangeString(TestCase):
         self.assertEqual({3, 5, 6, 7, 8, 9, 10, 11},
                          parseRangeString('6-8,9,10-12,4',
                                           convertToZeroBased=True))
+
+
+class TestStringIO(TestCase):
+    """
+    Tests for our StringIO class.
+    """
+    def testInitiallyEmpty(self):
+        """
+        A StringIO instance must initially be empty.
+        """
+        self.assertEqual('', StringIO().getvalue())
+
+    def testWriteRead(self):
+        """
+        It must be possible to write and read to/from a StringIO instance as
+        normal.
+        """
+        s = StringIO()
+        s.write('hey')
+        self.assertEqual('hey', s.getvalue())
+
+    def testInitializedRead(self):
+        """
+        It must be possible to read from a StringIO instance that is
+        initialized on creation.
+        """
+        s = StringIO('hey')
+        self.assertEqual('hey', s.getvalue())
+
+    def testContextManager(self):
+        """
+        It must be possible to use a StringIO instance as a context manager.
+        """
+        with StringIO() as s:
+            s.write('hey')
+            self.assertEqual('hey', s.getvalue())
