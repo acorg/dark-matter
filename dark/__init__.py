@@ -5,4 +5,4 @@ if sys.version_info < (2, 7):
 
 # Note that the version string must have the following format, otherwise it
 # will not be found by the version() function in ../setup.py
-__version__ = '1.0.109'
+__version__ = '1.0.110'

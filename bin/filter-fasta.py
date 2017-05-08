@@ -16,6 +16,10 @@ if __name__ == '__main__':
                      'write filtered FASTA to stdout.'))
 
     parser.add_argument(
+        '--quiet', action='store_true', default=False,
+        help=('If True, do not print the final sequence summary.'))
+
+    parser.add_argument(
         '--saveAs', default=None, choices=('fasta', 'fastq', 'fasta-ss'),
         help=('The output format. The default is to match the input format, '
               'so there is usually no need to specify this option. It can be '
@@ -199,6 +203,7 @@ if __name__ == '__main__':
 
     total = reads.unfilteredLength()
 
-    print('Read %d sequence%s, kept %d (%.2f%%).' %
-          (total, '' if total == 1 else 's', kept,
-           0.0 if total == 0 else kept / total * 100.0), file=sys.stderr)
+    if not args.quiet:
+        print('Read %d sequence%s, kept %d (%.2f%%).' %
+              (total, '' if total == 1 else 's', kept,
+               0.0 if total == 0 else kept / total * 100.0), file=sys.stderr)
