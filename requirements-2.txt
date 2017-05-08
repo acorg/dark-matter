@@ -21,6 +21,6 @@ mock==1.0.1
 #   python setup.py install
 #
 numpy==1.8.1
-pyfaidx>=0.4.8.5
+pyfaidx>=0.4.8.4
 simplejson==3.5.3
 six==1.10.0

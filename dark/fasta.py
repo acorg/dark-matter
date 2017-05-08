@@ -126,7 +126,7 @@ class FastaReads(Reads):
 
 class FastaFaiReads(Reads):
     """
-    Subclass of L{dark.reads.Reads} also providing dictionary-like access to
+    Subclass of L{dark.reads.Reads} that provides dictionary-like access to
     FASTA reads using the pyfaidx module.
 
     @param filename: The C{str} name of a file containing FASTA. This may be an
