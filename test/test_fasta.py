@@ -3,7 +3,7 @@ from io import BytesIO
 import os
 
 from unittest import TestCase
-from Bio import SeqIO
+from Bio import SeqIO, bgzf
 from contextlib import contextmanager
 
 try:
@@ -761,6 +761,15 @@ class TestSqliteIndex(TestCase):
         self.assertEqual(1, index._getFileNumber('filename.fasta'))
         index.close()
 
+    def testBZ2File(self):
+        """"
+        Trying to add a .bz2 file must result in a ValueError.
+        """
+        index = SqliteIndex(':memory:')
+        error = ('^Compressed FASTA is only supported in BGZF format\. Use '
+                 'bgzip to compresss your FASTA\.$')
+        self.assertRaisesRegexp(ValueError, error, index.addFile, 'file.bz2')
+
     def testAddOneFile(self):
         """"
         Test the creation of an index with sequences added from one file.
@@ -1131,4 +1140,83 @@ class TestSqliteIndex(TestCase):
             result = index['id1']
             self.assertTrue(isinstance(result, AARead))
             self.assertEqual(AARead('id1', 'MM'), result)
+            index.close()
+
+    def testDictLookupGzipDataWithBGZsuffix(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected read when the index file is in BGZF format and has a .bgz
+        suffix.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count <= 1:
+                    self.test.assertEqual('filename.fasta.bgz', filename)
+                    self.count += 1
+                    writerIO = BytesIO()
+                    writer = bgzf.BgzfWriter(fileobj=writerIO)
+                    writer.write(b'>id0\nAC\n')
+                    writer.flush()
+                    fileobj = BytesIO(writerIO.getvalue())
+                    fileobj.mode = 'rb'
+                    return bgzf.BgzfReader(fileobj=fileobj)
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(bgzf, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename.fasta.bgz')
+            self.assertEqual(DNARead('id0', 'AC'), index['id0'])
+            index.close()
+
+    def testDictLookupGzipData(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected reads when sequences span multiple lines of the input file,
+        and include lines ending in \n and \r\n and have been compressed with
+        bgzip, including when sequences are more than 64K bytes into the input
+        file.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count <= 4:
+                    self.test.assertEqual('filename.fasta.gz', filename)
+                    self.count += 1
+                    writerIO = BytesIO()
+                    writer = bgzf.BgzfWriter(fileobj=writerIO)
+                    writer.write(
+                        b'>id0\nAC\n' +
+                        b'>id1\n' + (b'A' * 70000) + b'\n' +
+                        b'>id2\r\nACTG\r\nCCCC\r\nGGG\r\n' +
+                        b'>id3\nAACCTG\n')
+                    writer.flush()
+                    fileobj = BytesIO(writerIO.getvalue())
+                    fileobj.mode = 'rb'
+                    return bgzf.BgzfReader(fileobj=fileobj)
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(bgzf, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename.fasta.gz')
+            self.assertEqual(DNARead('id0', 'AC'), index['id0'])
+            self.assertEqual(DNARead('id1', 'A' * 70000), index['id1'])
+            self.assertEqual(DNARead('id2', 'ACTGCCCCGGG'), index['id2'])
+            self.assertEqual(DNARead('id3', 'AACCTG'), index['id3'])
             index.close()
