@@ -1,5 +1,7 @@
 from six import PY3
 from hashlib import md5
+import sqlite3
+import os
 
 from Bio import SeqIO
 from pyfaidx import Fasta
@@ -217,3 +219,202 @@ def combineReads(filename, sequences, readClass=DNARead,
             reads.add(read)
 
     return reads
+
+
+class SqliteIndex(object):
+    """
+    Create an Sqlite3 database holding FASTA sequence ids, file names, and
+    offsets for fast random dictionary-like access.
+
+    @param dbFilename: A C{str} file name containing an sqlite3 database. If
+        the file does not exist it will be created. The special string
+        ":memory:" can be used to create an in-memory database.
+    @param readClass: The class of read that should be returned by __getitem__.
+    @param fastaDirectory: A C{str} directory where the indexed FASTA files
+        can be found. If provided, this directory is only used by __getitem__,
+        which will combine it with the basename of the files given to
+        C{addFile} to locate the FASTA.
+    """
+    def __init__(self, dbFilename, readClass=DNARead, fastaDirectory=None):
+        self._readClass = readClass
+        self._fastaDirectory = fastaDirectory
+        creating = dbFilename == ':memory:' or not os.path.exists(dbFilename)
+        self._connection = sqlite3.connect(dbFilename)
+        if creating:
+            # Create a new database.
+            cur = self._connection.cursor()
+            cur.executescript('''
+                CREATE TABLE files (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name VARCHAR UNIQUE
+                );
+
+                CREATE TABLE sequences (
+                    id VARCHAR UNIQUE PRIMARY KEY,
+                    fileNumber INTEGER,
+                    offset INTEGER
+                );
+            ''')
+            self._connection.commit()
+
+    def _getFilename(self, fileNumber):
+        """
+        Given a file number, get its name (if any).
+
+        @param fileNumber: An C{int} file number.
+        @return: A C{str} file name or C{None} if a file with that number
+            has not been added.
+        """
+        cur = self._connection.cursor()
+        cur.execute('SELECT name FROM files WHERE id = ?', (fileNumber,))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        else:
+            return row[0]
+
+    def _getFileNumber(self, filename):
+        """
+        Given a file name, get its file number (if any).
+
+        @param filename: A C{str} file name.
+        @return: An C{int} file number or C{None} if no file with that name
+            has been added.
+        """
+        cur = self._connection.cursor()
+        cur.execute('SELECT id FROM files WHERE name = ?', (filename,))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        else:
+            return row[0]
+
+    def _addFilename(self, filename):
+        """
+        Add a new file name.
+
+        @param filename: A C{str} file name.
+        @raise ValueError: If a file with this name has already been added.
+        @return: The C{int} id of the newly added file.
+        """
+        cur = self._connection.cursor()
+        try:
+            cur.execute('INSERT INTO files(name) VALUES (?)', (filename,))
+        except sqlite3.IntegrityError as e:
+            if str(e).find('UNIQUE constraint failed') > -1:
+                raise ValueError('Duplicate file name: %r' % filename)
+            else:
+                raise
+        else:
+            fileNumber = cur.lastrowid
+            self._connection.commit()
+            return fileNumber
+
+    def addFile(self, filename):
+        """
+        Add a new FASTA file of sequences.
+
+        @param filename: A C{str} file name, with the file in FASTA format.
+            This file must (obviously) exist at indexing time. When __getitem__
+            is used to access sequences, it is possible to provide a
+            C{fastaDirectory} argument to our C{__init__} to indicate the
+            directory containing the original FASTA files, in which case the
+            basename of the file here provided in C{filename} is used to find
+            the file in the given directory. This allows the construction of a
+            sqlite database from the shell in one directory and its use
+            programmatically from another directory.
+        @raise ValueError: If a file with this name has already been added or
+            if the file contains a sequence whose id has already been seen.
+        @return: The C{int} number of sequences added from the file.
+        """
+        fileNumber = self._addFilename(filename)
+        connection = self._connection
+        count = 0
+        try:
+            with connection:
+                with open(filename) as fp:
+                    offset = 0
+                    for line in fp:
+                        offset += len(line)
+                        if line[0] == '>':
+                            count += 1
+                            id_ = line[1:].rstrip(' \t\n\r')
+                            connection.execute(
+                                'INSERT INTO sequences(id, fileNumber, '
+                                'offset) VALUES (?, ?, ?)',
+                                (id_, fileNumber, offset))
+        except sqlite3.IntegrityError as e:
+            if str(e).find('UNIQUE constraint failed') > -1:
+                original = self._find(id_)
+                if original is None:
+                    # The id must have appeared twice in the current file,
+                    # because we could not look it up in the database
+                    # (i.e., it was INSERTed but not committed).
+                    raise ValueError(
+                        "FASTA sequence id '%s' found twice in file '%s'." %
+                        (id_, filename))
+                else:
+                    origFilename, _ = original
+                    raise ValueError(
+                        "FASTA sequence id '%s', found in file '%s', was "
+                        "previously added from file '%s'." %
+                        (id_, filename, origFilename))
+            else:
+                raise
+        else:
+            return count
+
+    def _find(self, id_):
+        """
+        Find the filename and offset of a sequence, given its id.
+
+        @param id_: A C{str} sequence id.
+        @return: A 2-tuple, containing the C{str} file name and C{int} offset
+            within that file of the sequence.
+        """
+        cur = self._connection.cursor()
+        cur.execute(
+            'SELECT fileNumber, offset FROM sequences WHERE id = ?', (id_,))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        else:
+            return self._getFilename(row[0]), row[1]
+
+    def __getitem__(self, id_):
+        """
+        Return a read, given its id.
+
+        @param id_: A C{str} sequence id.
+        @raise KeyError: If C{id_} is not a known sequence.
+        @return: A read of our read class.
+        """
+        location = self._find(id_)
+        if location is None:
+            raise KeyError('Unknown sequence: %r' % id_)
+        else:
+            filename, offset = location
+            # If a FASTA directory was provided, look for the FASTA files
+            # there, otherwise use the filename that was given to addFile.
+            if self._fastaDirectory:
+                filename = os.path.join(self._fastaDirectory,
+                                        os.path.basename(filename))
+            sequence = ''
+            with open(filename) as fp:
+                fp.seek(offset)
+                while True:
+                    line = fp.readline()
+                    if not line:
+                        # EOF
+                        break
+                    elif line[0] == '>':
+                        # We found the next sequence identifier.
+                        break
+                    else:
+                        sequence += line.rstrip('\n\r')
+
+            return self._readClass(id_, sequence)
+
+    def close(self):
+        self._connection.close()
+        self._connection = None

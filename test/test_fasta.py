@@ -1,5 +1,6 @@
 from six.moves import builtins
 from io import BytesIO
+import os
 
 from unittest import TestCase
 from Bio import SeqIO
@@ -14,7 +15,7 @@ from .mocking import mockOpen, File
 
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
-                        FastaReads, FastaFaiReads, combineReads)
+                        FastaReads, FastaFaiReads, combineReads, SqliteIndex)
 from dark.utils import StringIO
 
 
@@ -699,3 +700,435 @@ class TestCombineReads(TestCase):
                                       readClass=RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
             self.assertTrue(isinstance(reads[1], RNARead))
+
+
+class TestSqliteIndex(TestCase):
+    """
+    Tests for the SqliteIndex class.
+    """
+    def testAddFilename(self):
+        """"
+        Test the internal _addFilename method.
+        """
+        index = SqliteIndex(':memory:')
+        self.assertEqual(1, index._addFilename('filename1.fasta'))
+        self.assertEqual(2, index._addFilename('filename2.fasta'))
+        index.close()
+
+    def testAddDuplicateFilename(self):
+        """"
+        When _addFilename is called twice with the same name, a ValueError
+        must be raised.
+        """
+        index = SqliteIndex(':memory:')
+        self.assertEqual(1, index._addFilename('f.fas'))
+        error = "^Duplicate file name: 'f.fas'$"
+        self.assertRaisesRegexp(ValueError, error, index._addFilename, 'f.fas')
+
+    def testGetNonexistentFilename(self):
+        """"
+        If the internal _getFilename method is called with a file number that
+        has not been added, it must return None.
+        """
+        index = SqliteIndex(':memory:')
+        self.assertEqual(None, index._getFilename(1))
+        index.close()
+
+    def testGetFilename(self):
+        """"
+        The internal _getFilename method must return the expected result.
+        """
+        index = SqliteIndex(':memory:')
+        self.assertEqual(1, index._addFilename('filename.fasta'))
+        self.assertEqual('filename.fasta', index._getFilename(1))
+        index.close()
+
+    def testGetNonexistentFileNumber(self):
+        """"
+        If the internal _getFileNumber method is called with a file whose name
+        has not been added, it must return None.
+        """
+        index = SqliteIndex(':memory:')
+        self.assertEqual(None, index._getFileNumber('filename.fasta'))
+        index.close()
+
+    def testGetFileNumber(self):
+        """"
+        The internal _getFileNumber method must return the expected result.
+        """
+        index = SqliteIndex(':memory:')
+        self.assertEqual(1, index._addFilename('filename.fasta'))
+        self.assertEqual(1, index._getFileNumber('filename.fasta'))
+        index.close()
+
+    def testAddOneFile(self):
+        """"
+        Test the creation of an index with sequences added from one file.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            self.assertEqual(2, index.addFile('filename.fasta'))
+            index.close()
+
+    def testAddFileWithDuplicateSequence(self):
+        """"
+        If a sequence id is duplicated in a FASTA file, a ValueError must be
+        raised.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id1\nAACCTTGG\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            error = ("^FASTA sequence id 'id1' found twice in file "
+                     "'filename.fasta'\.$")
+            self.assertRaisesRegexp(ValueError, error, index.addFile,
+                                    'filename.fasta')
+            index.close()
+
+    def testAddFilesWithDuplicateSequence(self):
+        """"
+        If a sequence id occurs in more than one FASTA file, a ValueError must
+        be raised.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename1.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                elif self.count == 1:
+                    self.test.assertEqual('filename2.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id2\nAAACCC\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename1.fasta')
+            error = ("^FASTA sequence id 'id2', found in file "
+                     "'filename2\.fasta', was previously added from file "
+                     "'filename1\.fasta'\.$")
+            self.assertRaisesRegexp(ValueError, error, index.addFile,
+                                    'filename2.fasta')
+            index.close()
+
+    def testAddDuplicateFile(self):
+        """"
+        If a filename is passed to addFile more than once, a ValueError must
+        be raised.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            self.assertEqual(2, index.addFile('filename.fasta'))
+            error = "^Duplicate file name: 'filename.fasta'$"
+            self.assertRaisesRegexp(ValueError, error, index._addFilename,
+                                    'filename.fasta')
+            index.close()
+
+    def testFind(self):
+        """"
+        The _find method must return the expected filename and offset.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename.fasta')
+            self.assertEqual(('filename.fasta', 5), index._find('id1'))
+            self.assertEqual(('filename.fasta', 15), index._find('id2'))
+            index.close()
+
+    def testFindWithTwoFiles(self):
+        """"
+        The _find method must return the expected filename and offset when
+        sequences are added from two files.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename1.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                elif self.count == 1:
+                    self.test.assertEqual('filename2.fasta', filename)
+                    self.count += 1
+                    return StringIO('>sequence3\nAAACCC\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename1.fasta')
+            index.addFile('filename2.fasta')
+            self.assertEqual(('filename1.fasta', 5), index._find('id1'))
+            self.assertEqual(('filename1.fasta', 15), index._find('id2'))
+            self.assertEqual(('filename2.fasta', 11), index._find('sequence3'))
+            index.close()
+
+    def testDictLookupSequenceCrossesNewlines(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected read when the sequence spans multiple lines of the input file,
+        including lines ending in \n and \r\n.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0 or self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\r\nCCCC\nGGG\n>id2\nAACCTG\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename.fasta')
+            self.assertEqual(DNARead('id1', 'ACTGCCCCGGG'), index['id1'])
+            index.close()
+
+    def testDictLookupWithFastaDirectory(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected read, obtained from the expected file name, when a FASTA base
+        directory is specified.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('/tmp/f.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\r\nCCCC\nGGG\n>id2\nAACCTG\n')
+                if self.count == 1:
+                    self.test.assertEqual(
+                        os.path.join('/usr/local/fasta', 'f.fasta'), filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\r\nCCCC\nGGG\n>id2\nAACCTG\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:', fastaDirectory='/usr/local/fasta')
+            index.addFile('/tmp/f.fasta')
+            self.assertEqual(DNARead('id1', 'ACTGCCCCGGG'), index['id1'])
+            index.close()
+
+    def testDictLookupSequenceLastInFile(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected read when the sequence spans multiple lines and is the last
+        one in the input file.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0 or self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\r\nCCCC\n>id2\nAACCTG\nAAA\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename.fasta')
+            self.assertEqual(DNARead('id2', 'AACCTGAAA'), index['id2'])
+            index.close()
+
+    def testDictLookupSequenceMiddleOfThree(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected read when the sequence spans multiple lines and is the middle
+        one of three sequences in the input file.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0 or self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO(
+                        '>id1\nACTG\nCCCC\n>id2\nAACCTG\nAAA\n>id3\nAAA\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename.fasta')
+            self.assertEqual(DNARead('id2', 'AACCTGAAA'), index['id2'])
+            index.close()
+
+    def testDictLookupWithTwoFiles(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected reads when sequences are added from two files.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0 or self.count == 2 or self.count == 3:
+                    self.test.assertEqual('filename1.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nACTG\n>id2\nAACCTTGG\n')
+                elif self.count == 1 or self.count == 4:
+                    self.test.assertEqual('filename2.fasta', filename)
+                    self.count += 1
+                    return StringIO('>seq3\nAAACCC\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:')
+            index.addFile('filename1.fasta')
+            index.addFile('filename2.fasta')
+            self.assertEqual(DNARead('id1', 'ACTG'), index['id1'])
+            self.assertEqual(DNARead('id2', 'AACCTTGG'), index['id2'])
+            self.assertEqual(DNARead('seq3', 'AAACCC'), index['seq3'])
+            index.close()
+
+    def testDictLookupSpecificReadClass(self):
+        """"
+        The __getitem__ method (i.e., dictionary-like lookup) must return the
+        expected read type.
+        """
+        class Open(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if self.count == 0 or self.count == 1:
+                    self.test.assertEqual('filename.fasta', filename)
+                    self.count += 1
+                    return StringIO('>id1\nMM\n>id2\n')
+                else:
+                    self.test.fail(
+                        'Open called too many times. Filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        sideEffect = Open(self).sideEffect
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect
+            index = SqliteIndex(':memory:', readClass=AARead)
+            index.addFile('filename.fasta')
+            result = index['id1']
+            self.assertTrue(isinstance(result, AARead))
+            self.assertEqual(AARead('id1', 'MM'), result)
+            index.close()
