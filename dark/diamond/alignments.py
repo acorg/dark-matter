@@ -5,7 +5,7 @@ import copy
 from dark.alignments import (
     ReadsAlignments, ReadAlignments, ReadsAlignmentsParams)
 from dark.diamond.conversion import JSONRecordsReader
-from dark.fasta import FastaReads
+from dark.fasta import FastaReads, SqliteIndex
 from dark.reads import AAReadWithX
 from dark.score import HigherIsBetterScore
 from dark.utils import numericallySortFilenames
@@ -26,8 +26,16 @@ class DiamondReadsAlignments(ReadsAlignments):
     @param filenames: Either a single C{str} filename or a C{list} of C{str}
         file names containing our (possibly bzip2 compressed) per-line JSON
         produced by C{bin/convert-diamond-to-json.py} from DIAMOND XML output.
-    @param databaseFilename: A C{str} holding the name of the file used to
-        make the DIAMOND database.
+    @param databaseFilename: A C{str} holding the name of the FASTA file used
+        to make the DIAMOND database. Cannot be used with
+        C{sqliteDatabaseFilename}.
+    @param databaseDirectory: The directory where the FASTA file
+        used to make the DIAMOND database can be found. This argument is only
+        useful when sqliteDatabaseFilename is specified.
+    @param sqliteDatabaseFilename: A C{str} holding the name of the sqlite3
+        database file made from the FASTA used to make the DIAMOND database
+        (Use ../../bin/make-fasta-database.py to construct such a database).
+        Cannot be used with C{databaseFilename}.
     @param scoreClass: A class to hold and compare scores (see scores.py).
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e-values, pass LowerIsBetterScore instead.
@@ -39,12 +47,22 @@ class DiamondReadsAlignments(ReadsAlignments):
         to a random (very good) value.
     @raises ValueError: if a file type is not recognized, or if the number of
         reads does not match the number of records found in the DIAMOND result
-        files.
+        files, or if neither (or both) of databaseFilename and
+        sqliteDatabaseFilename are given.
     """
 
-    def __init__(self, reads, filenames, databaseFilename,
+    def __init__(self, reads, filenames, databaseFilename=None,
+                 databaseDirectory=None, sqliteDatabaseFilename=None,
                  scoreClass=HigherIsBetterScore, sortFilenames=True,
                  randomizeZeroEValues=True):
+        if databaseFilename is None and sqliteDatabaseFilename is None:
+            raise ValueError(
+                'Either databaseFilename or sqliteDatabaseFilename must be '
+                'provided to %s' % self.__class__.__name__)
+        elif not (databaseFilename is None or sqliteDatabaseFilename is None):
+            raise ValueError(
+                'databaseFilename and sqliteDatabaseFilename cannot both be '
+                'provided to %s' % self.__class__.__name__)
         if type(filenames) == str:
             filenames = [filenames]
         if sortFilenames:
@@ -53,6 +71,8 @@ class DiamondReadsAlignments(ReadsAlignments):
             self.filenames = filenames
 
         self._databaseFilename = databaseFilename
+        self._sqliteDatabaseFilename = sqliteDatabaseFilename
+        self._databaseDirectory = databaseDirectory
         self._subjectTitleToSubject = None
         self.randomizeZeroEValues = randomizeZeroEValues
 
@@ -120,14 +140,22 @@ class DiamondReadsAlignments(ReadsAlignments):
         @param title: A C{str} sequence title from a DIAMOND hit.
         @raise KeyError: If the C{title} is not present in the DIAMOND
             database.
-        @return: An C{AARead} instance.
+        @return: An C{AAReadWithX} instance.
         """
         if self._subjectTitleToSubject is None:
-            titles = {}
-            for read in FastaReads(self._databaseFilename,
-                                   readClass=AAReadWithX):
-                titles[read.id] = read
-            self._subjectTitleToSubject = titles
+            if self._databaseFilename is None:
+                # An Sqlite3 database is used to look up subjects.
+                self._subjectTitleToSubject = SqliteIndex(
+                    self._sqliteDatabaseFilename,
+                    fastaDirectory=self._databaseDirectory,
+                    readClass=AAReadWithX)
+            else:
+                # Build a dict to look up subjects.
+                titles = {}
+                for read in FastaReads(self._databaseFilename,
+                                       readClass=AAReadWithX):
+                    titles[read.id] = read
+                self._subjectTitleToSubject = titles
 
         return self._subjectTitleToSubject[title]
 
