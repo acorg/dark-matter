@@ -31,7 +31,10 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--fasta', metavar='FASTA-file', nargs='+', action='append',
-        required=True, help='the FASTA file(s) to make the database from.')
+        required=True,
+        help=('the FASTA file(s) to make the database from. These may be '
+              'uncompressed, or compressed with bgzip (from samtools), with '
+              'a .gz suffix.'))
 
     args = parser.parse_args()
 
