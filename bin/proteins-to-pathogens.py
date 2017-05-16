@@ -48,6 +48,7 @@ Fields must be whitespace separated. The seven fields are:
 from __future__ import print_function
 import argparse
 import sys
+from itertools import chain
 
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
@@ -93,8 +94,8 @@ if __name__ == '__main__':
               'summary-proteins files given on output.'))
 
     parser.add_argument(
-        '--proteinFastaFilename', '--pff',
-        help=('An (optional) filename giving the name of the FASTA file '
+        '--proteinFastaFilename', '--pff', nargs='+', action='append',
+        help=('Optional filename(s) giving the name of the FASTA file(s) '
               'with the protein AA sequences with their associated pathogens '
               'in square brackets. This is the format used by NCBI for '
               'bacterial and viral reference sequence protein files. If '
@@ -116,9 +117,22 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.proteinFastaFilename:
+        # Flatten lists of lists that we get from using both nargs='+' and
+        # action='append'. We use both because it allows people to use
+        # (e.g.)  --pff on the command line either via "--pff file1 --pff
+        # file2" or "--pff file1 file2", or a combination of these. That
+        # way it's not necessary to remember which way you're supposed to
+        # use it and you also can't be hit by the subtle problem
+        # encountered in https://github.com/acorg/dark-matter/issues/453
+        proteinFastaFilenames = list(chain.from_iterable(
+            args.proteinFastaFilename))
+    else:
+        proteinFastaFilenames = None
+
     grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
-                             proteinFastaFilename=args.proteinFastaFilename)
+                             proteinFastaFilenames=proteinFastaFilenames)
 
     if args.filenames:
         filenames = args.filenames
