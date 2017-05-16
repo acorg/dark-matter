@@ -106,8 +106,46 @@ class TestGetPathogenProteinCounts(TestCase):
                     'pathogen 1': 2,
                     'pathogen 2': 1,
                 },
-                getPathogenProteinCounts('filename.fasta'))
+                getPathogenProteinCounts(['filename.fasta']))
             self.assertEqual(1, sideEffect.count)
+
+    def testExpectedWithTwoFiles(self):
+        """
+        getPathogenProteinCounts must return the expected result when details
+        are read from two FASTA files.
+        """
+        class SideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, **kwargs):
+                if self.count == 0:
+                    self.test.assertEqual('filename1.fasta', filename)
+                    self.count += 1
+                    return File(['>protein 1 [pathogen 1]\n',
+                                 'ACTG\n',
+                                 '>protein 3 [pathogen 2]\n',
+                                 'AA\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('filename2.fasta', filename)
+                    self.count += 1
+                    return File(['>protein 2 [pathogen 1]\n',
+                                 'AA\n'])
+                else:
+                    self.test.fail('We are only supposed to be called twice!')
+
+        sideEffect = SideEffect(self)
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            self.assertEqual(
+                {
+                    'pathogen 1': 2,
+                    'pathogen 2': 1,
+                },
+                getPathogenProteinCounts(
+                    ['filename1.fasta', 'filename2.fasta']))
+            self.assertEqual(2, sideEffect.count)
 
 
 class TestProteinGrouper(TestCase):
@@ -606,7 +644,7 @@ class TestProteinGrouper(TestCase):
         sideEffect = SideEffect(self)
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
-            pg = ProteinGrouper(proteinFastaFilename='proteins.fasta')
+            pg = ProteinGrouper(proteinFastaFilenames=['proteins.fasta'])
             self.assertEqual(1, sideEffect.count)
 
             fp = StringIO(

@@ -72,24 +72,25 @@ def splitNames(names):
     return proteinName, pathogenName
 
 
-def getPathogenProteinCounts(filename):
+def getPathogenProteinCounts(filenames):
     """
-    Get the number of proteins for each pathogen in C{filename}.
+    Get the number of proteins for each pathogen in C{filenames}.
 
-    @param filename: Either C{None} or a C{str} FASTA file name. If C{None}
-        an empty C{Counter} is returned. If a FASTA file name is given, its
-        sequence ids should have the format used in the NCBI bacterial and
-        viral protein reference sequence files, in which the protein name is
-        followed by the pathogen name in square brackets.
+    @param filenames: Either C{None} or a C{list} of C{str} FASTA file names.
+        If C{None} an empty C{Counter} is returned. If FASTA file names are
+        given, their sequence ids should have the format used in the NCBI
+        bacterial and viral protein reference sequence files, in which the
+        protein name is followed by the pathogen name in square brackets.
     @return: A C{Counter} keyed by C{str} pathogen name, whose values are
         C{int}s with the count of the number of proteins for the pathogen.
     """
     result = Counter()
-    if filename:
-        for protein in FastaReads(filename):
-            _, pathogenName = splitNames(protein.id)
-            if pathogenName != _NO_PATHOGEN_NAME:
-                result[pathogenName] += 1
+    if filenames:
+        for filename in filenames:
+            for protein in FastaReads(filename):
+                _, pathogenName = splitNames(protein.id)
+                if pathogenName != _NO_PATHOGEN_NAME:
+                    result[pathogenName] += 1
 
     return result
 
@@ -188,10 +189,10 @@ class ProteinGrouper(object):
         should be used as the sample name.
     @param format_: A C{str}, either 'fasta' or 'fastq' indicating the format
         of the files containing the reads matching proteins.
-    @param proteinFastaFilename: If not C{None}, a C{str} filename giving the
-        name of the FASTA file with the protein AA sequences with their
-        associated pathogens in square brackets. This is the format used by
-        NCBI for the bacterial and viral reference sequence protein files.
+    @param proteinFastaFilenames: If not C{None}, a C{list} of C{str} filenames
+        giving the name of the FASTA file with the protein AA sequences with
+        their associated pathogens in square brackets. This is the format used
+        by NCBI for the bacterial and viral reference sequence protein files.
         If given, the contents of this file will be used to determine how many
         proteins each matched pathogen has.
     @raise ValueError: If C{format_} is unknown.
@@ -200,7 +201,7 @@ class ProteinGrouper(object):
     VIRALZONE = 'http://viralzone.expasy.org/cgi-bin/viralzone/search?query='
 
     def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta',
-                 proteinFastaFilename=None):
+                 proteinFastaFilenames=None):
         self._assetDir = assetDir
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
                                  else None)
@@ -210,7 +211,7 @@ class ProteinGrouper(object):
             raise ValueError("format_ must be either 'fasta' or 'fastq'.")
 
         self._pathogenProteinCount = getPathogenProteinCounts(
-            proteinFastaFilename)
+            proteinFastaFilenames)
 
         # pathogenNames will be a dict of dicts of dicts. The first two keys
         # will be a pathogen name and a sample name. The final dict will
