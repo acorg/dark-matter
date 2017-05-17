@@ -14,7 +14,6 @@ import sys
 import argparse
 from itertools import chain
 
-from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 
