@@ -549,6 +549,117 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result[0]))
             self.assertEqual('Merkel2', result[0][0].subjectTitle)
 
+    def testMaxZeroAlignmentsPerRead(self):
+        """
+        If L{BlastReadsAlignments} is asked to deliver only reads that have at
+        most zero alignments, a read with no alignments must be allowed
+        through but a read with one alignment must be filtered out.
+        """
+        record1 = {
+            "query": "read1",
+            "alignments": [],
+        }
+
+        record2 = {
+            "query": "read2",
+            "alignments": [
+                {
+                    "length": 961,
+                    "hsps": [
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 150,
+                            "btop": "",
+                            "query_start": 362
+                        },
+                    ],
+                    "title": "Merkel1"
+                },
+            ],
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record1) + '\n' +
+                              dumps(record2) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('read1', 'A' * 500))
+            reads.add(Read('read2', 'G' * 500))
+            readsAlignments = DiamondReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            result = list(readsAlignments.filter(maxAlignmentsPerRead=0))
+            self.assertEqual(1, len(result))
+            self.assertEqual('read1', result[0].read.id)
+
+    def testMaxOneAlignmentPerRead(self):
+        """
+        If L{BlastReadsAlignments} is asked to deliver only reads that have at
+        most one alignment, a read with two alignments must be filtered out.
+        """
+        record = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 961,
+                    "hsps": [
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 150,
+                            "btop": "",
+                            "query_start": 362
+                        },
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 740,
+                    "hsps": [
+                        {
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 180,
+                            "btop": "",
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
+            readsAlignments = DiamondReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            result = list(readsAlignments.filter(maxAlignmentsPerRead=1))
+            self.assertEqual(0, len(result))
+
     def testScoreCutoffRemovesEntireAlignment_Bits(self):
         """
         If the L{DiamondReadsAlignments} filter function is supposed to filter

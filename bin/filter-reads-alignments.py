@@ -2,65 +2,21 @@
 
 """
 Given a BLAST or DIAMOND JSON output files, the corresponding FASTA (or FASTQ)
-sequence files, and filtering criteria, produce a summary of matched titles
-and (optionally) an alignment panel.
+sequence files, and filtering criteria, filter the reads according to given
+criteria and write them to standard output.
 
 Run with --help for help.
 """
 
 from __future__ import print_function
 
-import os
 import sys
 import argparse
-from collections import defaultdict
 from itertools import chain
 
-# It's not clear that the PDF backend is the right choice here, but it
-# works (i.e., the generation of PNG images works fine).
-import matplotlib
-matplotlib.use('PDF')
-
-# These imports are here because dark.graphics imports matplotlib.pyplot
-# and we need to set the matplotlib backend (see above) before that import
-# happens. So please don't move these imports higher in this file.
 from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
-from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
-
-
-def parseColors(colors, args):
-    """
-    Parse read id color specification.
-
-    @param colors: A C{list} of C{str}s. Each item is of the form, e.g.,
-        'green X Y Z...', where each of X, Y, Z, ... etc. is either a read
-        id or the name of a FASTA or FASTQ file containing reads whose ids
-        should be displayed with the corresponding color. Note that if read
-        ids contain spaces you will need to use the latter (i.e. FASTA/Q file
-        name) approach because C{args.colors} is split on whitespace.
-    @param args: The argparse C{Namespace} instance holding the other parsed
-        command line arguments.
-    @return: A C{dict} whose keys are colors and whose values are sets of
-        read ids.
-    """
-    result = defaultdict(set)
-    for colorInfo in colors:
-        readIds = colorInfo.split()
-        color = readIds.pop(0)
-        for readId in readIds:
-            if os.path.isfile(readId):
-                filename = readId
-                if args.fasta:
-                    reads = FastaReads(filename)
-                else:
-                    reads = FastqReads(filename)
-                for read in reads:
-                    result[color].add(read.id)
-            else:
-                result[color].add(readId)
-    return result
 
 
 if __name__ == '__main__':
@@ -72,15 +28,10 @@ if __name__ == '__main__':
     # used by those utility functions.
 
     parser = argparse.ArgumentParser(
-        description='Non-interactively generate an alignment panel',
+        description='Filter reads alignments to select a subset of reads',
         epilog=('Given BLAST or DIAMOND JSON output files, the '
                 'corresponding FASTA (or FASTQ) sequence files, and '
-                'filtering  criteria, produce an alignment panel.'))
-
-    parser.add_argument(
-        '--earlyExit', default=False, action='store_true',
-        help=('If True, just print the number of interesting matches, but do '
-              'not create the alignment panel.'))
+                'filtering  criteria, print a subset of matching reads.'))
 
     parser.add_argument(
         '--matcher', default='blast', choices=('blast', 'diamond'),
@@ -191,86 +142,6 @@ if __name__ == '__main__':
         help=('a string of the taxonomic group on which should be '
               'filtered. eg "Vira" will filter on viruses.'))
 
-    # Args for filtering on TitlesAlignments.
-    parser.add_argument(
-        '--minMatchingReads', type=int, default=None,
-        help='sequences that are matched by fewer reads will be elided.')
-
-    parser.add_argument(
-        '--minMedianScore', type=float, default=None,
-        help=('sequences that are matched with a median score that is '
-              'worse will be elided.'))
-
-    parser.add_argument(
-        '--withScoreBetterThan', type=float, default=None,
-        help=('sequences that are matched without at least one score '
-              'at least this good will be elided.'))
-
-    parser.add_argument(
-        '--minNewReads', type=float, default=None,
-        help=('The fraction of its reads by which a new read set must differ '
-              'from all previously seen read sets in order to be considered '
-              'acceptably different.'))
-
-    parser.add_argument(
-        '--maxTitles', type=int, default=None,
-        help=('The maximum number of titles to keep. If more titles than '
-              'this result from the filtering, titles will be sorted '
-              '(according to the --sortOn value) and only the best will be '
-              'retained.'))
-
-    parser.add_argument(
-        '--minCoverage', type=float, default=None,
-        help=('The (0.0 to 1.0) minimum fraction of a subject sequence that '
-              'must be matched by at least one read.'))
-
-    # Args for the alignment panel
-    parser.add_argument(
-        '--sortOn', default='maxScore',
-        choices=('maxScore', 'medianScore', 'readCount', 'length', 'title'),
-        help='The attribute to sort subplots on.')
-
-    parser.add_argument(
-        '--rankValues', type=bool, default=False,
-        help=('If True, display reads with a Y axis coord that is the rank of '
-              'the score.'))
-
-    parser.add_argument(
-        '--outputDir', default=None,
-        help='Specifies a directory to write the HTML summary to.')
-
-    parser.add_argument(
-        '--color', action='append',
-        help=('a string which has a color as the first element and read ids '
-              'and/or FASTA file names as the following element(s), separated '
-              'by spaces.'))
-
-    parser.add_argument(
-        '--equalizeXAxes', default=False, action='store_true',
-        help=('If True, all alignment graphs will have their X axes drawn '
-              'with the same range.'))
-
-    parser.add_argument(
-        '--xRange', default='subject',
-        choices=('reads', 'subject'),
-        help=('Set the X axis range to show either the subject or the extent '
-              'of the reads that hit the subject.'))
-
-    parser.add_argument(
-        '--logLinearXAxis', default=False, action='store_true',
-        help=('If True, convert read offsets so that empty regions in the '
-              'alignment panel plots will only be as wide as their logged '
-              'actual values'))
-
-    parser.add_argument(
-        '--logBase', type=float, default=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-        help='The base of the logarithm to use if logLinearXAxis is True')
-
-    parser.add_argument(
-        '--showFeatures', default=False, action='store_true',
-        help=('If specified, look up features for the individual images in '
-              'the alignment panel.'))
-
     args = parser.parse_args()
 
     # Flatten lists of lists that we get from using both nargs='+' and
@@ -329,32 +200,7 @@ if __name__ == '__main__':
         titleRegex=args.titleRegex, negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter, taxonomy=args.taxonomy)
 
-    titlesAlignments = TitlesAlignments(readsAlignments).filter(
-        minMatchingReads=args.minMatchingReads,
-        minMedianScore=args.minMedianScore,
-        withScoreBetterThan=args.withScoreBetterThan,
-        minNewReads=args.minNewReads, maxTitles=args.maxTitles,
-        sortOn=args.sortOn, minCoverage=args.minCoverage)
+    format_ = 'fasta' if args.fasta else 'fastq'
 
-    nTitles = len(titlesAlignments)
-    print('Found %d interesting title%s.' %
-          (nTitles, '' if nTitles == 1 else 's'), file=sys.stderr)
-
-    if nTitles:
-        print(titlesAlignments.tabSeparatedSummary(sortOn=args.sortOn))
-
-    if args.earlyExit:
-        sys.exit(0)
-
-    if nTitles == 0:
-        print('No alignment panel generated due to no matching titles.',
-              file=sys.stderr)
-        sys.exit(0)
-
-    idList = parseColors(args.color, args) if args.color else None
-
-    alignmentPanelHTML(
-        titlesAlignments, sortOn=args.sortOn, outputDir=args.outputDir,
-        idList=idList, equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
-        logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
-        showFeatures=args.showFeatures)
+    for readAlignments in readsAlignments:
+        print(readAlignments.read.toStr(format_=format_))

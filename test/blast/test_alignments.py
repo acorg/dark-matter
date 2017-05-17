@@ -618,6 +618,106 @@ class TestBlastReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result[0]))
             self.assertEqual('Merkel1', result[0][0].subjectTitle)
 
+    def testMaxZeroAlignmentsPerRead(self):
+        """
+        If L{BlastReadsAlignments} is asked to deliver only reads that have at
+        most zero alignments, a read with no alignments must be allowed
+        through but a read with one alignment must be filtered out.
+        """
+        record1 = {
+            "query": "read1",
+            "alignments": [],
+        }
+
+        record2 = {
+            "query": "read2",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+            ],
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record1) + '\n' +
+                              dumps(record2) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('read1', 'A' * 500))
+            reads.add(Read('read2', 'G' * 500))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(maxAlignmentsPerRead=0))
+            self.assertEqual(1, len(result))
+            self.assertEqual('read1', result[0].read.id)
+
+    def testMaxOneAlignmentPerRead(self):
+        """
+        If L{BlastReadsAlignments} is asked to deliver only reads that have at
+        most one alignment, a read with two alignments must be filtered out.
+        """
+        record = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 2885,
+                    "hsps": [
+                        {
+                            "sbjct_end": 2506,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATGAATAAAATAATCATTAGCAGTAACAA",
+                            "sbjct_start": 2607,
+                            "query": "AATCCAGGGAATAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 182.092,
+                            "query_start": 362
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 2220,
+                    "hsps": [
+                        {
+                            "sbjct_end": 1841,
+                            "expect": 1.25854e-43,
+                            "sbjct": "AATCCAGGGAATCTAATAAAATAATCAA",
+                            "sbjct_start": 1942,
+                            "query": "AATCCAGGGAATCTTAAA-TAATCATTAGCAGTAACAA",
+                            "frame": [1, -1],
+                            "query_end": 462,
+                            "bits": 180,
+                            "query_start": 362
+                        }
+                    ],
+                    "title":"Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            result = list(readsAlignments.filter(maxAlignmentsPerRead=1))
+            self.assertEqual(0, len(result))
+
     def testScoreCutoffRemovesEntireAlignment_Bits(self):
         """
         If the L{BlastReadsAlignments} filter function is supposed to filter on
