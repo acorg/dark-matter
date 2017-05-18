@@ -88,6 +88,11 @@ class ReadsAlignmentsFilter(object):
     Provide a filter for C{ReadsAlignments} instances.
 
     @param limit: An C{int} limit on the number of records to read.
+    @param maxAlignmentsPerRead: An C{int} limit on the number of alignments a
+        read may have in order not to be filtered out. Reads with a greater
+        number of alignments will be elided. Pass 0 to filter out reads that
+        did not match (i.e., align to) any subjects. Use C{None} for no
+        max alignments filtering.
     @param minSequenceLen: Sequences of lesser length will be elided.
     @param maxSequenceLen: Sequences of greater length will be elided.
     @param minStart: HSPs that start before this offset in the matched
@@ -117,7 +122,8 @@ class ReadsAlignmentsFilter(object):
         match.
     @return: C{self}.
     """
-    def __init__(self, limit=None, minSequenceLen=None, maxSequenceLen=None,
+    def __init__(self, limit=None, maxAlignmentsPerRead=None,
+                 minSequenceLen=None, maxSequenceLen=None,
                  minStart=None, maxStop=None,
                  oneAlignmentPerRead=False, maxHspsPerHit=None,
                  scoreCutoff=None, whitelist=None, blacklist=None,
@@ -125,6 +131,7 @@ class ReadsAlignmentsFilter(object):
                  truncateTitlesAfter=None, taxonomy=None, readIdRegex=None):
 
         self.limit = limit
+        self.maxAlignmentsPerRead = maxAlignmentsPerRead
         self.minSequenceLen = minSequenceLen
         self.maxSequenceLen = maxSequenceLen
         self.minStart = minStart
@@ -159,7 +166,7 @@ class ReadsAlignmentsFilter(object):
 
     def filter(self, readAlignments):
         """
-        Filter a reads alignment.
+        Filter a read's alignments.
 
         @param readAlignments: A C{ReadAlignments} instance.
         @return: A C{ReadAlignments} instance if the passed
@@ -192,6 +199,11 @@ class ReadsAlignmentsFilter(object):
         # Alignment-only (i.e., non-HSP based) filtering.
         #
         if self.limit is not None and self.count == self.limit:
+            return False
+
+        # Does the read have too many alignments?
+        if (self.maxAlignmentsPerRead is not None and
+                len(readAlignments) > self.maxAlignmentsPerRead):
             return False
 
         # Filter on the read id.
