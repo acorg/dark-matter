@@ -167,6 +167,7 @@ if __name__ == '__main__':
         from dark.blast.alignments import BlastReadsAlignments
         readsAlignments = BlastReadsAlignments(reads, jsonFiles)
     else:
+        # Must be 'diamond' (due to parser.add_argument 'choices' argument).
         if (args.diamondDatabaseFastaFilename is None and
                 args.diamondSqliteDatabaseFilename is None):
             print('Either --diamondDatabaseFastaFilename or '
