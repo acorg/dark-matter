@@ -209,13 +209,13 @@ class TestReadsAlignments(TestCase):
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
         self.assertEqual([], list(readsAlignments))
 
-    def testGetSequence(self):
+    def testGetSubjectSequence(self):
         """
-        A ReadsAlignments instance will not implement getSequence. Subclasses
-        are expected to implement it.
+        A ReadsAlignments instance will not implement getSubjectSequence.
+        Subclasses are expected to implement it.
         """
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
         error = 'getSequence must be implemented by a subclass'
         six.assertRaisesRegex(self, NotImplementedError, error,
-                              readsAlignments.getSequence, 'title')
+                              readsAlignments.getSubjectSequence, 'title')

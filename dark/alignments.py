@@ -350,19 +350,21 @@ class ReadsAlignments(object):
         self.scoreClass = scoreClass
         self._filters = []
 
-    def getSequence(self, title):
+    def getSubjectSequence(self, title):
         """
         Obtain information about a sequence given its title.
 
         Must be implemented by a subclass, e.g., see
         L{blast.alignments.BlastReadsAlignments}.
 
-        @param title: A C{str} sequence title from a BLAST match. Of the form
+        @param title: A C{str} sequence title from a BLAST or DIAMOND (etc.)
+            match. Usually of the form
             'gi|63148399|gb|DQ011818.1| Description...'.
-        @return: A C{SeqIO.read} instance.
+        @raise NotImplementedError: This method must be implemented by a
+            subclass.
         """
-        raise NotImplementedError('getSequence must be implemented by a '
-                                  'subclass')
+        raise NotImplementedError('getSubjectSequence must be implemented by '
+                                  'a subclass')
 
     def hsps(self):
         """
