@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 
-"""
-Given a BLAST or DIAMOND JSON output files, the corresponding FASTA (or FASTQ)
-sequence files, and filtering criteria, filter the reads according to given
-criteria and write them to standard output.
-
-Run with --help for help.
-"""
-
 from __future__ import print_function
 
 import sys
@@ -27,29 +19,31 @@ if __name__ == '__main__':
     # used by those utility functions.
 
     parser = argparse.ArgumentParser(
-        description='Filter reads alignments to select a subset of reads',
-        epilog=('Given BLAST or DIAMOND JSON output files, the '
-                'corresponding FASTA (or FASTQ) sequence files, and '
-                'filtering  criteria, print a subset of matching reads.'))
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=('Filter reads alignments to select a subset of reads. ',
+                     'Given BLAST or DIAMOND JSON output files and the '
+                     'FASTA (or FASTQ) query sequence files given to BLAST or '
+                     'DIAMOND, and some filtering criteria, print the input '
+                     'reads that pass the filtering.'))
 
     parser.add_argument(
         '--matcher', default='blast', choices=('blast', 'diamond'),
         help='The matching algorithm that was used to produce the JSON.')
 
     parser.add_argument(
-        '--json', metavar='JSON-file', nargs='+', action='append',
+        '--json', metavar='FILE.JSON[.BZ2]', nargs='+', action='append',
         required=True, help='the JSON file(s) of BLAST or DIAMOND output.')
 
     # A mutually exclusive group for either FASTA or FASTQ files.
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument(
-        '--fasta', metavar='FASTA-file', nargs='+', action='append',
+        '--fasta', metavar='FILE.FASTA', nargs='+', action='append',
         help=('the FASTA file(s) of sequences that were given to BLAST '
               'or DIAMOND.'))
 
     group.add_argument(
-        '--fastq', metavar='FASTQ-file', nargs='+', action='append',
+        '--fastq', metavar='FILE.FASTQ', nargs='+', action='append',
         help=('the FASTQ file(s) of sequences that were given to BLAST '
               'or DIAMOND.'))
 
@@ -60,32 +54,32 @@ if __name__ == '__main__':
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
-        '--diamondDatabaseFastaFilename',
+        '--diamondDatabaseFastaFilename', metavar='FILE.FASTA',
         help=('The filename of the FASTA file used to make the DIAMOND '
               'database. If --matcher diamond is used, either this argument '
               'or --diamondSqliteDatabaseFilename must be specified.'))
 
     group.add_argument(
-        '--diamondSqliteDatabaseFilename',
+        '--diamondSqliteDatabaseFilename', metavar='FILE.SQL',
         help=('The filename of the sqlite3 database file of FASTA metadata, '
               'made from the FASTA that was used to make the DIAMOND '
               'database. If --matcher diamond is used, either this argument '
               'or --diamondDatabaseFilename must be specified.'))
 
     parser.add_argument(
-        '--diamondDatabaseFastaDirectory',
+        '--diamondDatabaseFastaDirectory', metavar='DIR',
         help=('The directory where the FASTA file used to make the DIAMOND '
               'database can be found. This argument is only useful when '
               '--diamondSqliteDatabaseFilename is specified.'))
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(
-        '--minStart', type=int, default=None,
+        '--minStart', type=int, metavar='OFFSET',
         help='Reads that start before this subject offset should not be '
         'shown.')
 
     parser.add_argument(
-        '--maxStop', type=int, default=None,
+        '--maxStop', type=int, metavar='OFFSET',
         help='Reads that end after this subject offset should not be shown.')
 
     parser.add_argument(
@@ -93,53 +87,54 @@ if __name__ == '__main__':
         help='If True, only keep the best alignment for each read.')
 
     parser.add_argument(
-        '--maxAlignmentsPerRead', type=int, default=None,
+        '--maxAlignmentsPerRead', type=int, metavar='N',
         help=('Reads with more than this many alignments will be elided. Pass '
               'zero to only keep reads with no matches (alignments).'))
 
     parser.add_argument(
-        '--scoreCutoff', type=float, default=None,
+        '--scoreCutoff', type=float, metavar='SCORE',
         help=('A float score. Matches with scores worse than this will be '
               'ignored.'))
 
     parser.add_argument(
-        '--maxHspsPerHit', type=int, default=None,
-        help='A numeric max number of HSPs to show for each hit on hitId.')
+        '--maxHspsPerHit', type=int, metavar='N',
+        help=('A numeric maximum number of HSPs to keep for each subject '
+              'match.'))
 
     parser.add_argument(
-        '--whitelist', nargs='+', default=None, action='append',
-        help='sequence titles that should be whitelisted')
+        '--whitelist', nargs='+', action='append',
+        metavar='TITLE', help='subject titles that should be whitelisted')
 
     parser.add_argument(
-        '--blacklist', nargs='+', default=None, action='append',
-        help='sequence titles that should be blacklisted')
+        '--blacklist', nargs='+', action='append',
+        metavar='TITLE', help='subject titles that should be blacklisted')
 
     parser.add_argument(
-        '--titleRegex', default=None,
-        help='a regex that sequence titles must match.')
+        '--titleRegex', metavar='TITLE-REGEX',
+        help='a regex that subject titles must match.')
 
     parser.add_argument(
-        '--negativeTitleRegex', default=None,
-        help='a regex that sequence titles must not match.')
+        '--negativeTitleRegex', metavar='TITLE-REGEX',
+        help='a regex that subject titles must not match.')
 
     parser.add_argument(
-        '--truncateTitlesAfter', default=None,
-        help=('a string that titles will be truncated beyond. If the '
+        '--truncateTitlesAfter',
+        help=('a string that subject titles will be truncated beyond. If the '
               'truncated version of a title has already been seen, '
               'that title will be skipped.'))
 
     parser.add_argument(
-        '--minSequenceLen', type=int, default=None,
-        help='sequences of lesser length will be elided.')
+        '--minSequenceLen', type=int, metavar='N',
+        help='subjects of lesser length will be elided.')
 
     parser.add_argument(
-        '--maxSequenceLen', type=int, default=None,
-        help='sequences of greater length will be elided.')
+        '--maxSequenceLen', type=int, metavar='N',
+        help='subjects of greater length will be elided.')
 
     parser.add_argument(
-        '--taxonomy', default=None,
-        help=('a string of the taxonomic group on which should be '
-              'filtered. eg "Vira" will filter on viruses.'))
+        '--taxonomy', metavar='NAME',
+        help=('the taxonomic group that subjects must match '
+              'E.g., "Vira" will filter on viruses.'))
 
     args = parser.parse_args()
 
@@ -201,6 +196,7 @@ if __name__ == '__main__':
         truncateTitlesAfter=args.truncateTitlesAfter, taxonomy=args.taxonomy)
 
     format_ = 'fasta' if args.fasta else 'fastq'
+    write = sys.stdout.write
 
     for readAlignments in readsAlignments:
-        print(readAlignments.read.toStr(format_=format_))
+        write(readAlignments.read.toString(format_=format_))

@@ -216,6 +216,6 @@ class TestReadsAlignments(TestCase):
         """
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, 'applicationName', None)
-        error = 'getSequence must be implemented by a subclass'
+        error = 'getSubjectSequence must be implemented by a subclass'
         six.assertRaisesRegex(self, NotImplementedError, error,
                               readsAlignments.getSubjectSequence, 'title')
