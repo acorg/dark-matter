@@ -189,18 +189,8 @@ class JSONRecordsReader(object):
         @param diamondDict: A C{dict}, from records().
         @param read: A C{Read} instance, containing the read that DIAMOND used
             to create this record.
-        @raise ValueError: If the query id in the DIAMOND dictionary does not
-            match the id of the read.
         @return: A C{list} of L{dark.alignment.Alignment} instances.
         """
-        if (diamondDict['query'] != read.id and
-                diamondDict['query'].split()[0] != read.id):
-            raise ValueError(
-                'The reads you have provided do not match the DIAMOND output: '
-                'DIAMOND record query id (%s) does not match the id of the '
-                'supposedly corresponding read (%s).' %
-                (diamondDict['query'], read.id))
-
         alignments = []
         getScore = itemgetter('bits' if self._hspClass is HSP else 'expect')
 
@@ -255,6 +245,7 @@ class JSONRecordsReader(object):
                         'Line is %r.' %
                         (lineNumber, self._filename, e, line[:-1]))
                 else:
+                    recordTitle = record['query']
                     while True:
                         # Iterate through the input reads until we find the
                         # one that matches this DIAMOND record.
@@ -265,19 +256,25 @@ class JSONRecordsReader(object):
                                 'Read generator failed to yield a read '
                                 'with id \'%s\' as found in record number %d '
                                 'during parsing of DIAMOND output file %r.' %
-                                (record['query'], lineNumber - 1,
-                                 self._filename))
+                                (recordTitle, lineNumber - 1, self._filename))
                         else:
-                            if read.id == record['query']:
+                            # Look for an exact read id / subject title match.
+                            # If that doesn't work, allow for the case where
+                            # the JSON record has a truncated query (i.e.,
+                            # read) id. This covers the situation where a tool
+                            # we use (e.g., bwa mem) unconditionally does this
+                            # truncation in the output it writes.
+                            if (read.id == recordTitle or
+                                    read.id.split()[0] == recordTitle):
                                 alignments = self._dictToAlignments(record,
                                                                     read)
                                 yield ReadAlignments(read, alignments)
                                 break
                             else:
-                                # This is an input read that received no
-                                # matches from DIAMOND. So it does not
-                                # appear in the DIAMOND output. Emit an
-                                # empty ReadAlignments for it.
+                                # This is an input read that had no DIAMOND
+                                # matches. So it does not appear in the
+                                # DIAMOND's output. Yield an empty
+                                # ReadAlignments for it.
                                 yield ReadAlignments(read, [])
 
         finally:
