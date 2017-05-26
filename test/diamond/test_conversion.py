@@ -334,6 +334,7 @@ class TestDiamondTabularFormatReader(TestCase):
             self.assertEqual('ACC 94', acc94[0]['query'])
             self.assertEqual('IN SV', acc94[0]['alignments'][0]['title'])
 
+
 _JSON_RECORDS = [
     {
         'application': 'DIAMOND',
@@ -440,8 +441,7 @@ _JSON_RECORDS = [
     {
         'alignments': [],
         'query': 'id4'
-    }
-
+    },
 ]
 
 _JSON_RECORDS_ONE_MIDDLE = [
@@ -546,8 +546,7 @@ _JSON_RECORDS_ONE_MIDDLE = [
     {
         'alignments': [],
         'query': 'id4'
-    }
-
+    },
 ]
 
 _JSON_RECORDS_ONE_END = [
@@ -653,7 +652,6 @@ _JSON_RECORDS_ONE_END = [
         'alignments': [],
         'query': 'id3'
     },
-
 ]
 
 _JSON_RECORDS_ONE_START = [
@@ -737,8 +735,7 @@ _JSON_RECORDS_ONE_START = [
     {
         'alignments': [],
         'query': 'id4'
-    }
-
+    },
 ]
 
 _JSON_RECORDS_TWO_END = [
@@ -840,7 +837,6 @@ _JSON_RECORDS_TWO_END = [
         ],
         'query': 'id2 2'
     },
-
 ]
 
 
@@ -1043,6 +1039,38 @@ class TestJSONRecordsReader(TestCase):
         ])
 
         mockOpener = mockOpen(read_data=JSON_TWO_END)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = JSONRecordsReader('file.json')
+            alignment = list(reader.readAlignments(reads))[0]
+            self.assertEqual('id1 1', alignment.read.id)
+
+    def testSpaceInReadIdNotInJSONRecord(self):
+        """
+        A JSONRecordsReader must return the right query and subject titles,
+        when the read ids have spaces in them but the titles in the JSON have
+        been truncated at the first space (as in the SAM format output of the
+        BWA 'mem' command).
+        """
+        reads = Reads([
+            AARead(
+                'id1 1',
+                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
+                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
+            AARead(
+                'id2 2',
+                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
+                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
+            AARead(
+                'id3 3',
+                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
+                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
+            AARead(
+                'id4 4',
+                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
+                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
+        ])
+
+        mockOpener = mockOpen(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignment = list(reader.readAlignments(reads))[0]
