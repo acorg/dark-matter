@@ -737,6 +737,10 @@ class ReadFilter(object):
         of a whitelisted id may rule it out).
     @param blacklist: If not C{None}, a set of exact read ids that are
         never acceptable.
+    @param whitelistFile: If not C{None}, a C{str} filename containing lines
+        that give exact ids that are always acceptable.
+    @param blacklistFile: If not C{None}, a C{str} filename containing lines
+        that give exact ids that are never acceptable.
     @param titleRegex: A regex that read ids must match.
     @param negativeTitleRegex: A regex that read ids must not match.
     @param truncateTitlesAfter: A string that read ids will be truncated
@@ -814,6 +818,7 @@ class ReadFilter(object):
 
     def __init__(self, minLength=None, maxLength=None, removeGaps=False,
                  whitelist=None, blacklist=None,
+                 whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
                  truncateTitlesAfter=None, indices=None, head=None,
                  removeDuplicates=False, modifier=None, randomSubset=None,
@@ -895,10 +900,11 @@ class ReadFilter(object):
                 # reads will ever be accepted.
                 self.alwaysFalse = True
 
-        if (whitelist or blacklist or titleRegex or negativeTitleRegex or
-                truncateTitlesAfter):
+        if (whitelist or blacklist or whitelistFile or blacklistFile or
+                titleRegex or negativeTitleRegex or truncateTitlesAfter):
             self.titleFilter = TitleFilter(
                 whitelist=whitelist, blacklist=blacklist,
+                whitelistFile=whitelistFile, blacklistFile=blacklistFile,
                 positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
                 truncateAfter=truncateTitlesAfter)
         else:

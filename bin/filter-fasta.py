@@ -20,7 +20,7 @@ if __name__ == '__main__':
         help=('If True, do not print the final sequence summary.'))
 
     parser.add_argument(
-        '--saveAs', default=None, choices=('fasta', 'fastq', 'fasta-ss'),
+        '--saveAs', choices=('fasta', 'fastq', 'fasta-ss'),
         help=('The output format. The default is to match the input format, '
               'so there is usually no need to specify this option. It can be '
               'used to force conversion from FASTQ to FASTA'))
@@ -38,33 +38,42 @@ if __name__ == '__main__':
         help=("If True, gap ('-') characters in sequences will be removed."))
 
     parser.add_argument(
-        '--whitelist', action='append', default=None,
+        '--whitelist', action='append',
         help='sequence titles (ids) that should be whitelisted')
 
     parser.add_argument(
-        '--blacklist', action='append', default=None,
+        '--blacklist', action='append',
         help='sequence titles (ids) that should be blacklisted')
 
     parser.add_argument(
-        '--titleRegex', default=None,
-        help='a regex that sequence titles (ids) must match.')
+        '--whitelistFile',
+        help=('the name of a file that contains sequence titles (ids) that '
+              'should be whitelisted, one per line'))
 
     parser.add_argument(
-        '--negativeTitleRegex', default=None,
+        '--blacklistFile',
+        help=('the name of a file that contains sequence titles (ids) that '
+              'should be blacklisted, one per line'))
+
+    parser.add_argument(
+        '--titleRegex', help='a regex that sequence titles (ids) must match.')
+
+    parser.add_argument(
+        '--negativeTitleRegex',
         help='a regex that sequence titles (ids) must not match.')
 
     parser.add_argument(
-        '--truncateTitlesAfter', default=None,
+        '--truncateTitlesAfter',
         help=('a string that sequence titles (ids) will be truncated beyond. '
               'If the truncated version of a title has already been seen, '
               'that title will be skipped.'))
 
     parser.add_argument(
-        '--indices', type=int, action='append', default=None,
+        '--indices', type=int, action='append',
         help='sequence indices that should be returned (zero based)')
 
     parser.add_argument(
-        '--head', type=int, default=None, metavar='N',
+        '--head', type=int, metavar='N',
         help='only the first N sequences will be printed.')
 
     parser.add_argument(
@@ -75,26 +84,26 @@ if __name__ == '__main__':
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.
     parser.add_argument(
-        '--randomSubset', type=int, default=None,
+        '--randomSubset', type=int,
         help=('An integer giving the number of sequences that should be kept. '
               'These will be selected at random.'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # trueLength.
     parser.add_argument(
-        '--trueLength', type=int, default=None,
+        '--trueLength', type=int,
         help=('The number of reads in the FASTA input. Only to be used with '
               'randomSubset'))
 
     parser.add_argument(
-        '--sampleFraction', type=float, default=None,
+        '--sampleFraction', type=float,
         help=('A [0.0, 1.0] C{float} indicating a fraction of the reads that '
               'should be allowed to pass through the filter. The sample size '
               'will only be approximately the product of the sample fraction '
               'and the number of reads. The sample is taken at random.'))
 
     parser.add_argument(
-        '--sequenceNumbersFile', default=None,
+        '--sequenceNumbersFile',
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
@@ -166,6 +175,7 @@ if __name__ == '__main__':
         removeGaps=args.removeGaps,
         whitelist=set(args.whitelist) if args.whitelist else None,
         blacklist=set(args.blacklist) if args.blacklist else None,
+        whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter,

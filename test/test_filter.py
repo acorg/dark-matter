@@ -1,4 +1,12 @@
+from six.moves import builtins
 from unittest import TestCase
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
+from .mocking import mockOpen
 
 from dark.filter import ReadSetFilter, TitleFilter
 from dark.reads import Read
@@ -115,6 +123,32 @@ class TitleFilterTest(TestCase):
         tf = TitleFilter(blacklist=['never ok'], positiveRegex='ok')
         self.assertEqual(TitleFilter.REJECT, tf.accept('never ok'))
 
+    def testBlacklistFile(self):
+        """
+        Testing for acceptance against a title filter with a blacklist file.
+        """
+        data = '\n'.join(['id1', 'id2']) + '\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            tf = TitleFilter(blacklistFile='black.txt')
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id1'))
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id2'))
+            self.assertEqual(TitleFilter.DEFAULT_ACCEPT, tf.accept('id3'))
+
+    def testBlacklistFileAndBlacklist(self):
+        """
+        Testing for acceptance against a title filter with a blacklist file and
+        some specific other blacklist titles.
+        """
+        data = '\n'.join(['id1', 'id2']) + '\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            tf = TitleFilter(blacklistFile='black.txt', blacklist=set(['id3']))
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id1'))
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id2'))
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id3'))
+            self.assertEqual(TitleFilter.DEFAULT_ACCEPT, tf.accept('id4'))
+
     def testWhitelistTakesPrecedenceOverBlacklist(self):
         """
         Testing for acceptance against a title filter with a whitelist
@@ -133,6 +167,35 @@ class TitleFilterTest(TestCase):
         self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('always ok'))
         self.assertEqual(TitleFilter.REJECT, tf.accept('always not ok'))
         self.assertEqual(TitleFilter.REJECT, tf.accept('rubbish'))
+
+    def testWhitelistFileOnly(self):
+        """
+        Testing for acceptance against a title filter with a whitelist file
+        and a negative regex that matches everything.
+        """
+        data = '\n'.join(['id1', 'id2']) + '\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            tf = TitleFilter(whitelistFile='white.txt', negativeRegex='.')
+            self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id1'))
+            self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id2'))
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id3'))
+
+    def testWhitelistFileAndWhitelistOnly(self):
+        """
+        Testing for acceptance against a title filter with a whitelist file
+        and some specific whitelist titles, with a negative regex that matches
+        everything.
+        """
+        data = '\n'.join(['id1', 'id2']) + '\n'
+        mockOpener = mockOpen(read_data=data)
+        with patch.object(builtins, 'open', mockOpener):
+            tf = TitleFilter(whitelistFile='white.txt', whitelist=set(['id3']),
+                             negativeRegex='.')
+            self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id1'))
+            self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id2'))
+            self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id3'))
+            self.assertEqual(TitleFilter.REJECT, tf.accept('id4'))
 
 
 class ReadSetTest(TestCase):

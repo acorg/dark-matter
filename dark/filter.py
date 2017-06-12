@@ -9,14 +9,18 @@ class TitleFilter(object):
     """
     Provide an acceptance test for sequence titles.
 
-    @param whitelist: If not C{None}, a set of exact titles that are always
+    @param whitelist: If not C{None}, a C{set} of exact titles that are always
         acceptable.
-    @param blacklist: If not C{None}, a set of exact titles that are never
+    @param blacklist: If not C{None}, a C{set} of exact titles that are never
         acceptable.
-    @param positiveRegex: If not C{None}, a regex that sequence titles must
-        match.
-    @param negativeRegex: If not C{None}, a regex that sequence titles must
-        not match.
+    @param whitelistFile: If not C{None}, a C{str} filename containing lines
+        that give exact titles that are always acceptable.
+    @param blacklistFile: If not C{None}, a C{str} filename containing lines
+        that give exact titles that are never acceptable.
+    @param positiveRegex: If not C{None}, a C{str} regex that sequence titles
+        must match (case is ignored).
+    @param negativeRegex: If not C{None}, a C{str} regex that sequence titles
+        must not match (case is ignored).
     @param truncateAfter: A C{str} that titles will be truncated beyond. If
         a truncated title has already been seen, that title will no longer
         be acceptable.
@@ -26,10 +30,23 @@ class TitleFilter(object):
     WHITELIST_ACCEPT = 1
     DEFAULT_ACCEPT = 2
 
-    def __init__(self, whitelist=None, blacklist=None, positiveRegex=None,
-                 negativeRegex=None, truncateAfter=None):
+    def __init__(self, whitelist=None, blacklist=None,
+                 whitelistFile=None, blacklistFile=None,
+                 positiveRegex=None, negativeRegex=None, truncateAfter=None):
+        whitelist = whitelist or set()
+        if whitelistFile:
+            with open(whitelistFile) as fp:
+                for line in fp:
+                    whitelist.add(line[:-1])
         self._whitelist = whitelist
+
+        blacklist = blacklist or set()
+        if blacklistFile:
+            with open(blacklistFile) as fp:
+                for line in fp:
+                    blacklist.add(line[:-1])
         self._blacklist = blacklist
+
         if truncateAfter is None:
             self._truncated = None
         else:
@@ -67,9 +84,11 @@ class TitleFilter(object):
         if self._blacklist and title in self._blacklist:
             return self.REJECT
 
+        # If we have a positive regex but we don't match it, reject.
         if self._positiveRegex and self._positiveRegex.search(title) is None:
             return self.REJECT
 
+        # If we have a negative regex and we do match it, reject.
         if (self._negativeRegex and
                 self._negativeRegex.search(title) is not None):
             return self.REJECT
