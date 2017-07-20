@@ -827,7 +827,7 @@ class TestPathogenSampleFiles(TestCase):
         opener = Open(self, manager())
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = opener.sideEffect
-            pg = ProteinGrouper(saveReadLengths=True)
+            pg = ProteinGrouper()
             pg.addFile('filename-1', fp)
             pathogenSampleFiles = PathogenSampleFiles(pg)
             pathogenSampleFiles.add('Lausannevirus', 'filename-1')
@@ -847,7 +847,6 @@ class TestPathogenSampleFiles(TestCase):
                         'proteinName': 'gi|327409| ubiquitin',
                         'proteinURL': None,
                         'readCount': 5,
-                        'readLengths': [2, 7],
                         'readsFilename': 'out/1.fasta',
                     },
                     'gi|327410| protein 77': {
@@ -862,7 +861,6 @@ class TestPathogenSampleFiles(TestCase):
                         'proteinName': 'gi|327410| protein 77',
                         'proteinURL': None,
                         'readCount': 9,
-                        'readLengths': [4],
                         'readsFilename': 'out/0.fasta',
                     }
                 },
@@ -915,6 +913,7 @@ class TestPathogenSampleFiles(TestCase):
 
         # Read lengths must be saved correctly.
         proteins = pg.pathogenNames['Lausannevirus']['filename-1']['proteins']
-        self.assertEqual([4], proteins['gi|327410| protein 77']['readLengths'])
-        self.assertEqual([2, 7],
+        self.assertEqual((4,),
+                         proteins['gi|327410| protein 77']['readLengths'])
+        self.assertEqual((2, 7),
                          proteins['gi|327409| ubiquitin']['readLengths'])

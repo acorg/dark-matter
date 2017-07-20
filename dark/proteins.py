@@ -325,8 +325,8 @@ class ProteinGrouper(object):
             if self._saveReadLengths:
                 readsClass = (FastaReads if self._format == 'fasta'
                               else FastqReads)
-                proteins[proteinName]['readLengths'] = [
-                    len(read) for read in readsClass(readsFilename)]
+                proteins[proteinName]['readLengths'] = tuple(
+                    len(read) for read in readsClass(readsFilename))
 
     def _computeUniqueReadCounts(self):
         """
