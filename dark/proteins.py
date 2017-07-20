@@ -497,7 +497,7 @@ class ProteinGrouper(object):
             '<li>Read count.</li>',
             '<li>HSP count (a read can match a protein more than once).</li>',
             '<li>Protein length (in AAs).</li>',
-            '<li>Index (just ignore this).</li>'
+            '<li>Index (just ignore this).</li>',
         ]
 
         if self._saveReadLengths:
