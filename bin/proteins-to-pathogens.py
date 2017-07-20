@@ -153,6 +153,6 @@ if __name__ == '__main__':
         print(grouper.toHTML(args.pathogenPanelFilename,
                              minProteinFraction=args.minProteinFraction,
                              pathogenType=args.pathogenType,
-                             showReadLengths=args.showReadLengths))
+                             saveReadLengths=args.showReadLengths))
     else:
         print(grouper.toStr())
