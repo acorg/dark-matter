@@ -788,3 +788,132 @@ class TestPathogenSampleFiles(TestCase):
         self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())
         # Make sure all expected filenames were seen by the mocked open.
         self.assertEqual(set(), opener.expectedFilenames)
+
+    def testProteinsSavedCorrectly(self):
+        """
+        Information about proteins must be saved correctly in the
+        ProteinGrouper for a given pathogen/sample combination.
+        """
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.expectedFilenames = {'out/0.fasta', 'out/1.fasta',
+                                          'out/pathogen-0-sample-0.fasta'}
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if filename in self.expectedFilenames:
+                    if filename == 'out/0.fasta':
+                        return File(['>id1\n', 'ACTG\n'])
+                    elif filename == 'out/1.fasta':
+                        return File(['>id2\n', 'AC\n', '>id3\n', 'CAGTTTT\n'])
+                    else:
+                        return self.manager
+                else:
+                    self.test.fail(
+                        'Open called with unexpected filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+        )
+        fastaIO = StringIO()
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        opener = Open(self, manager())
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = opener.sideEffect
+            pg = ProteinGrouper()
+            pg.addFile('filename-1', fp)
+            pathogenSampleFiles = PathogenSampleFiles(pg)
+            pathogenSampleFiles.add('Lausannevirus', 'filename-1')
+
+        self.assertEqual(
+            {
+                'proteins': {
+                    'gi|327409| ubiquitin': {
+                        'bestScore': 48.1,
+                        'bluePlotFilename': 'out/1.png',
+                        'coverage': 0.77,
+                        'hspCount': 6,
+                        'index': 1,
+                        'medianScore': 46.6,
+                        'outDir': 'out',
+                        'proteinLength': 74,
+                        'proteinName': 'gi|327409| ubiquitin',
+                        'proteinURL': None,
+                        'readCount': 5,
+                        'readsFilename': 'out/1.fasta',
+                    },
+                    'gi|327410| protein 77': {
+                        'bestScore': 44.2,
+                        'bluePlotFilename': 'out/0.png',
+                        'coverage': 0.63,
+                        'hspCount': 9,
+                        'index': 0,
+                        'medianScore': 41.3,
+                        'outDir': 'out',
+                        'proteinLength': 12,
+                        'proteinName': 'gi|327410| protein 77',
+                        'proteinURL': None,
+                        'readCount': 9,
+                        'readsFilename': 'out/0.fasta',
+                    }
+                },
+                'uniqueReadCount': 3,
+            },
+            pg.pathogenNames['Lausannevirus']['filename-1'])
+
+    def testReadLengthsAdded(self):
+        """
+        If saveReadLengths is True for a ProteinGrouper, read lengths must be
+        saved for each protein.
+        """
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.expectedFilenames = {'out/0.fasta', 'out/1.fasta',
+                                          'out/pathogen-0-sample-0.fasta'}
+
+            def sideEffect(self, filename, *args, **kwargs):
+                if filename in self.expectedFilenames:
+                    if filename == 'out/0.fasta':
+                        return File(['>id1\n', 'ACTG\n'])
+                    elif filename == 'out/1.fasta':
+                        return File(['>id2\n', 'AC\n', '>id3\n', 'CAGTTTT\n'])
+                    else:
+                        return self.manager
+                else:
+                    self.test.fail(
+                        'Open called with unexpected filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+        )
+        fastaIO = StringIO()
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        opener = Open(self, manager())
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = opener.sideEffect
+            pg = ProteinGrouper(saveReadLengths=True)
+            pg.addFile('filename-1', fp)
+            pathogenSampleFiles = PathogenSampleFiles(pg)
+            pathogenSampleFiles.add('Lausannevirus', 'filename-1')
+
+        # Read lengths must be saved correctly.
+        proteins = pg.pathogenNames['Lausannevirus']['filename-1']['proteins']
+        self.assertEqual((4,),
+                         proteins['gi|327410| protein 77']['readLengths'])
+        self.assertEqual((2, 7),
+                         proteins['gi|327409| ubiquitin']['readLengths'])

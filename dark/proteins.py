@@ -195,13 +195,15 @@ class ProteinGrouper(object):
         by NCBI for the bacterial and viral reference sequence protein files.
         If given, the contents of this file will be used to determine how many
         proteins each matched pathogen has.
+    @param saveReadLengths: If C{True}, save the lengths of all reads matching
+        proteins.
     @raise ValueError: If C{format_} is unknown.
     """
 
     VIRALZONE = 'http://viralzone.expasy.org/cgi-bin/viralzone/search?query='
 
     def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta',
-                 proteinFastaFilenames=None):
+                 proteinFastaFilenames=None, saveReadLengths=False):
         self._assetDir = assetDir
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
                                  else None)
@@ -209,6 +211,7 @@ class ProteinGrouper(object):
             self._format = format_
         else:
             raise ValueError("format_ must be either 'fasta' or 'fastq'.")
+        self._saveReadLengths = saveReadLengths
 
         self._pathogenProteinCount = getPathogenProteinCounts(
             proteinFastaFilenames)
@@ -302,11 +305,13 @@ class ProteinGrouper(object):
                     'Protein %r already seen for pathogen %r sample %r.' %
                     (proteinName, pathogenName, sampleName))
 
+            readsFilename = join(outDir, '%d.%s' % (index, self._format))
+
             proteins[proteinName] = {
                 'bestScore': float(bestScore),
                 'bluePlotFilename': join(outDir, '%d.png' % index),
                 'coverage': float(coverage),
-                'readsFilename': join(outDir, '%d.%s' % (index, self._format)),
+                'readsFilename': readsFilename,
                 'hspCount': int(hspCount),
                 'index': index,
                 'medianScore': float(medianScore),
@@ -316,6 +321,12 @@ class ProteinGrouper(object):
                 'proteinURL': NCBISequenceLinkURL(proteinName),
                 'readCount': int(readCount),
             }
+
+            if self._saveReadLengths:
+                readsClass = (FastaReads if self._format == 'fasta'
+                              else FastqReads)
+                proteins[proteinName]['readLengths'] = tuple(
+                    len(read) for read in readsClass(readsFilename))
 
     def _computeUniqueReadCounts(self):
         """
@@ -476,7 +487,7 @@ class ProteinGrouper(object):
             '<body>',
         ]
 
-        proteinFieldsDescription = (
+        proteinFieldsDescription = [
             '<p>',
             'In all bullet point protein lists below, there are eight fields:',
             '<ol>',
@@ -487,10 +498,17 @@ class ProteinGrouper(object):
             '<li>HSP count (a read can match a protein more than once).</li>',
             '<li>Protein length (in AAs).</li>',
             '<li>Index (just ignore this).</li>',
+        ]
+
+        if self._saveReadLengths:
+            proteinFieldsDescription.append(
+                '<li>All read lengths (in parentheses).</li>')
+
+        proteinFieldsDescription.extend([
             '<li>Protein name.</li>',
             '</ol>',
             '</p>',
-        )
+        ])
 
         append = result.append
 
@@ -616,6 +634,14 @@ class ProteinGrouper(object):
                         '%(coverage).2f %(medianScore).2f %(bestScore).2f '
                         '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
                         '%(index)3d '
+                        % proteinMatch
+                    )
+
+                    if self._saveReadLengths:
+                        append('(%s) ' % ', '.join(
+                            map(str, sorted(proteinMatch['readLengths']))))
+
+                    append(
                         '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'

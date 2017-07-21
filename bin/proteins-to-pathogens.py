@@ -71,7 +71,7 @@ if __name__ == '__main__':
         'filenames', nargs='*', help='Sample file names to read input from.')
 
     parser.add_argument(
-        '--sampleNameRegex', default=None,
+        '--sampleNameRegex',
         help=('An (optional) regular expression that can be used to extract a '
               'short sample name from full sample file name.  The regular '
               'expression must have a matching group (delimited by '
@@ -79,7 +79,7 @@ if __name__ == '__main__':
               'should be used as the sample name.'))
 
     parser.add_argument(
-        '--pathogenPanelFilename', default=None,
+        '--pathogenPanelFilename',
         help=('An (optional) filename to write a pathogen-sample panel PNG '
               'image to.'))
 
@@ -115,6 +115,12 @@ if __name__ == '__main__':
         help=('Specify the pathogen type. This option only affects the '
               'language used in HTML output.'))
 
+    parser.add_argument(
+        '--showReadLengths', default=False, action='store_true',
+        help=('If specified, the HTML output (use --html to get this) will '
+              'contain the lengths of all reads that match proteins for a '
+              'pathogen.'))
+
     args = parser.parse_args()
 
     if args.proteinFastaFilename:
@@ -146,6 +152,7 @@ if __name__ == '__main__':
     if args.html:
         print(grouper.toHTML(args.pathogenPanelFilename,
                              minProteinFraction=args.minProteinFraction,
-                             pathogenType=args.pathogenType))
+                             pathogenType=args.pathogenType,
+                             saveReadLengths=args.showReadLengths))
     else:
         print(grouper.toStr())
