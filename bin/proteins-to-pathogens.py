@@ -138,7 +138,8 @@ if __name__ == '__main__':
 
     grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
-                             proteinFastaFilenames=proteinFastaFilenames)
+                             proteinFastaFilenames=proteinFastaFilenames,
+                             saveReadLengths=args.showReadLengths)
 
     if args.filenames:
         filenames = args.filenames
@@ -152,7 +153,6 @@ if __name__ == '__main__':
     if args.html:
         print(grouper.toHTML(args.pathogenPanelFilename,
                              minProteinFraction=args.minProteinFraction,
-                             pathogenType=args.pathogenType,
-                             saveReadLengths=args.showReadLengths))
+                             pathogenType=args.pathogenType))
     else:
         print(grouper.toStr())
