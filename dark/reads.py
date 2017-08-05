@@ -750,7 +750,10 @@ class ReadFilter(object):
         to reads that are wanted. Indexing starts at zero.
     @param head: If not C{None}, the C{int} number of sequences at the
         start of the reads to return. Later sequences are skipped.
-    @param removeDuplicates: If C{True} remove duplicated sequences.
+    @param removeDuplicates: If C{True} remove duplicated reads based only on
+        sequence identity.
+    @param removeDuplicatesById: If C{True} remove duplicated reads based
+        only on read id.
     @param modifier: If not C{None}, a function that is passed a read
         and which either returns a read or C{None}. If it returns a read,
         that read is passed through the filter. If it returns C{None},
@@ -821,7 +824,8 @@ class ReadFilter(object):
                  whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
                  truncateTitlesAfter=None, indices=None, head=None,
-                 removeDuplicates=False, modifier=None, randomSubset=None,
+                 removeDuplicates=False, removeDuplicatesById=False,
+                 modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
                  sequenceNumbersFile=None, keepIndices=None,
                  removeIndices=None):
@@ -842,6 +846,7 @@ class ReadFilter(object):
         self.indices = indices
         self.head = head
         self.removeDuplicates = removeDuplicates
+        self.removeDuplicatesById = removeDuplicatesById
         self.modifier = modifier
         self.randomSubset = randomSubset
         self.trueLength = trueLength
@@ -912,6 +917,9 @@ class ReadFilter(object):
 
         if removeDuplicates:
             self.sequencesSeen = set()
+
+        if removeDuplicatesById:
+            self.idsSeen = set()
 
         if sampleFraction is not None:
             if sampleFraction == 0.0:
@@ -1001,6 +1009,11 @@ class ReadFilter(object):
             if read.sequence in self.sequencesSeen:
                 return False
             self.sequencesSeen.add(read.sequence)
+
+        if self.removeDuplicatesById:
+            if read.id in self.idsSeen:
+                return False
+            self.idsSeen.add(read.id)
 
         if self.modifier:
             modified = self.modifier(read)

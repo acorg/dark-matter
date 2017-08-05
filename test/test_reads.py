@@ -2680,7 +2680,8 @@ class TestReadsFiltering(TestCase):
 
     def testFilterDuplicates(self):
         """
-        Filtering on sequence duplicates must work correctly.
+        Filtering on sequence duplicates must work correctly. The first of a
+        set of duplicated reads is the one that should be retained.
         """
         reads = Reads()
         read1 = Read('id1', 'ATCG')
@@ -2688,6 +2689,19 @@ class TestReadsFiltering(TestCase):
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(removeDuplicates=True)
+        self.assertEqual([read1], list(result))
+
+    def testFilterDuplicatesById(self):
+        """
+        Filtering on read id duplicates must work correctly. The first of a
+        set of duplicated reads is the one that should be retained.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id1', 'ATTT')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(removeDuplicatesById=True)
         self.assertEqual([read1], list(result))
 
     def testFilterWithModifierThatOmits(self):
