@@ -78,8 +78,13 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--removeDuplicates', action='store_true', default=False,
-        help=('If True, duplicate sequences will be removed. The first '
-              'occurrence is kept.'))
+        help=('If True, duplicate reads will be removed, based only on '
+              'sequence identity. The first occurrence is kept.'))
+
+    parser.add_argument(
+        '--removeDuplicatesById', action='store_true', default=False,
+        help=('If True, duplicate reads will be removed, based only on '
+              'read id. The first occurrence is kept.'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.
@@ -181,6 +186,7 @@ if __name__ == '__main__':
         truncateTitlesAfter=args.truncateTitlesAfter,
         indices=set(args.indices) if args.indices else None,
         head=args.head, removeDuplicates=args.removeDuplicates,
+        removeDuplicatesById=args.removeDuplicatesById,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
         sequenceNumbersFile=args.sequenceNumbersFile,
