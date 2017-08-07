@@ -116,14 +116,19 @@ class FastaReads(Reads):
         count = 0
         for _file in self._files:
             with asHandle(_file) as fp:
-                for seq in SeqIO.parse(fp, 'fasta'):
-                    if self._upperCase:
+                # Duplicate some code here so as not to test
+                # self._upperCase in the loop.
+                if self._upperCase:
+                    for seq in SeqIO.parse(fp, 'fasta'):
                         read = self._readClass(seq.description,
                                                str(seq.seq.upper()))
-                    else:
+                        yield read
+                        count += 1
+                else:
+                    for seq in SeqIO.parse(fp, 'fasta'):
                         read = self._readClass(seq.description, str(seq.seq))
-                    yield read
-                    count += 1
+                        yield read
+                        count += 1
 
 
 class FastaFaiReads(Reads):
