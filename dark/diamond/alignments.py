@@ -53,7 +53,7 @@ class DiamondReadsAlignments(ReadsAlignments):
 
     def __init__(self, reads, filenames, databaseFilename=None,
                  databaseDirectory=None, sqliteDatabaseFilename=None,
-                 scoreClass=HigherIsBetterScore, sortFilenames=True,
+                 scoreClass=HigherIsBetterScore, sortFilenames=False,
                  randomizeZeroEValues=True):
         if databaseFilename is None and sqliteDatabaseFilename is None:
             raise ValueError(

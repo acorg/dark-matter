@@ -28,6 +28,7 @@ from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
+from dark.utils import numericallySortFilenames
 
 
 def parseColors(colors, args):
@@ -271,6 +272,18 @@ if __name__ == '__main__':
         help=('If specified, look up features for the individual images in '
               'the alignment panel.'))
 
+    parser.add_argument(
+        '--sortFilenames', default=False, action='store_true',
+        help=('If specified, the JSON and FASTA/Q file names will be '
+              'processed in sorted order. The sorting is based on finding '
+              'a numerical prefix in the filename. This can be useful when '
+              'processing output files produced by systems like HTCondor, '
+              'which makes files with names like 1.out, 10.out, etc. that do '
+              'not sort properly and so cannot conveniently be given to this '
+              'program along with a single FASTA/Q file (because the order of '
+              'the results in the files from HTCondor does not match the '
+              'order of sequences in the FASTA/Q file.'))
+
     args = parser.parse_args()
 
     # Flatten lists of lists that we get from using both nargs='+' and
@@ -289,13 +302,22 @@ if __name__ == '__main__':
     # TODO: Add a --readClass command-line option in case we want to
     # process FASTA containing AA sequences.
     if args.fasta:
-        reads = FastaReads(list(chain.from_iterable(args.fasta)))
+        if args.sortFilenames:
+            files = numericallySortFilenames(chain.from_iterable(args.fasta))
+        else:
+            files = list(chain.from_iterable(args.fasta))
+        reads = FastaReads(files)
     else:
-        reads = FastqReads(list(chain.from_iterable(args.fastq)))
+        if args.sortFilenames:
+            files = numericallySortFilenames(chain.from_iterable(args.fastq))
+        else:
+            files = list(chain.from_iterable(args.fastq))
+        reads = FastqReads(files)
 
     if args.matcher == 'blast':
         from dark.blast.alignments import BlastReadsAlignments
-        readsAlignments = BlastReadsAlignments(reads, jsonFiles)
+        readsAlignments = BlastReadsAlignments(
+            reads, jsonFiles, sortBlastFilenames=args.sortFilenames)
     else:
         # Must be 'diamond' (due to parser.add_argument 'choices' argument).
         if (args.diamondDatabaseFastaFilename is None and
@@ -313,7 +335,7 @@ if __name__ == '__main__':
 
         from dark.diamond.alignments import DiamondReadsAlignments
         readsAlignments = DiamondReadsAlignments(
-            reads, jsonFiles,
+            reads, jsonFiles, sortFilenames=args.sortFilenames,
             databaseFilename=args.diamondDatabaseFastaFilename,
             databaseDirectory=args.diamondDatabaseFastaDirectory,
             sqliteDatabaseFilename=args.diamondSqliteDatabaseFilename)
