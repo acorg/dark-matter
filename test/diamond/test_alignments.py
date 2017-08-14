@@ -288,10 +288,11 @@ class TestDiamondReadsAlignments(TestCase):
             reads.add(Read('id2', 'A' * 70))
 
             # Note the files are given out of order. Their names will be
-            # sorted before they are opened. The sorting of the names is
-            # verified in the SideEffect class, above.
+            # sorted before they are opened (due to sortFilenames=True).
+            # The sorting of the names is verified in the SideEffect class,
+            # above.
             readsAlignments = DiamondReadsAlignments(
-                reads, ['3.json', '1.json', '2.json'],
+                reads, ['3.json', '1.json', '2.json'], sortFilenames=True,
                 databaseFilename='database.fasta')
             result = list(readsAlignments)
             self.assertEqual(3, len(result))
