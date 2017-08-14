@@ -992,11 +992,17 @@ class ReadFilter(object):
             return False
 
         if self.removeGaps:
-            # TODO: There's a bug here. The sequence can be shortened but
-            # the quality string (if any) is not. See
-            # https://github.com/acorg/dark-matter/issues/479
-            sequence = read.sequence.replace('-', '')
-            read = read.__class__(read.id, sequence, read.quality)
+            if read.quality is None:
+                read = read.__class__(read.id, read.sequence.replace('-', ''))
+            else:
+                newSequence = []
+                newQuality = []
+                for base, quality in zip(read.sequence, read.quality):
+                    if base != '-':
+                        newSequence.append(base)
+                        newQuality.append(quality)
+                read = read.__class__(
+                    read.id, ''.join(newSequence), ''.join(newQuality))
 
         if (self.titleFilter and
                 self.titleFilter.accept(read.id) == TitleFilter.REJECT):

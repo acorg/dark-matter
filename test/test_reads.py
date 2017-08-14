@@ -2579,6 +2579,16 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(removeGaps=True)
         self.assertEqual([Read('id', 'ATCG')], list(result))
 
+    def testFilterRemoveGapsWithQuality(self):
+        """
+        Filtering must be able to remove gaps, treating the quality string
+        properly.
+        """
+        reads = Reads()
+        reads.add(Read('id', '-AT--CG-', '12345678'))
+        result = reads.filter(removeGaps=True)
+        self.assertEqual([Read('id', 'ATCG', '2367')], list(result))
+
     def testFilterNegativeRegex(self):
         """
         Filtering must be able to filter reads based on a negative regular
