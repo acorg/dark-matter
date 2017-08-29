@@ -12,6 +12,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=('Given FASTA on stdin and a set of filtering criteria '
                      'write filtered FASTA to stdout.'))
 
@@ -138,6 +139,11 @@ if __name__ == '__main__':
         help=('Specify a file containing 1-based indices to remove. All other '
               'sequence indices will be kept. Lines in the file must be given '
               'in the form e.g., 24,100-200,260'))
+    parser.add_argument(
+        '--checkResultCount', type=int,
+        help=('The number of reads expected in the output. If this number is '
+              'not seen, the script exits with status 1 and an error '
+              'message is printed unless --quiet was used.'))
 
     addFASTACommandLineOptions(parser)
     args = parser.parse_args()
@@ -223,3 +229,12 @@ if __name__ == '__main__':
         print('Read %d sequence%s, kept %d (%.2f%%).' %
               (total, '' if total == 1 else 's', kept,
                0.0 if total == 0 else kept / total * 100.0), file=sys.stderr)
+
+    if args.checkResultCount is not None:
+        if kept != args.checkResultCount:
+            if not args.quiet:
+                print('Did not write the expected %d sequence%s (wrote %d).' %
+                      (args.checkResultCount,
+                       '' if args.checkResultCount == 1 else 's', kept),
+                      file=sys.stderr)
+            sys.exit(1)
