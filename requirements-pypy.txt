@@ -43,3 +43,4 @@ simplejson==3.5.3
 tornado==4.0.1
 MySQL-python==1.2.5
 Twisted==15.5.0
+requests==2.18.4

@@ -24,3 +24,4 @@ numpy==1.8.1
 pyfaidx>=0.4.8.4
 simplejson==3.5.3
 six==1.10.0
+requests==2.18.4
