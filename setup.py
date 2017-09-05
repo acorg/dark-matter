@@ -39,6 +39,7 @@ scripts = [
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
     'bin/fasta-base-indices.py',
+    'bin/fasta-count.py',
     'bin/fasta-ids.py',
     'bin/fasta-lengths.py',
     'bin/fasta-sequences.py',
