@@ -57,6 +57,7 @@ scripts = [
     'bin/graph-evalues.py',
     'bin/local-align.py',
     'bin/make-fasta-database.py',
+    'bin/ncbi-fetch-id.py',
     'bin/noninteractive-alignment-panel.py',
     'bin/position-summary.py',
     'bin/pre-commit.sh',
