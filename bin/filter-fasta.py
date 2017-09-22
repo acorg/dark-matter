@@ -87,6 +87,12 @@ if __name__ == '__main__':
         help=('If True, duplicate reads will be removed, based only on '
               'read id. The first occurrence is kept.'))
 
+    parser.add_argument(
+        '--removeDescriptions', action='store_true', default=False,
+        help=('If True, read id descriptions will be removed. The '
+              'description is the part of a sequence id after the '
+              'first whitespace (if any).'))
+
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.
     parser.add_argument(
@@ -193,6 +199,7 @@ if __name__ == '__main__':
         indices=set(args.indices) if args.indices else None,
         head=args.head, removeDuplicates=args.removeDuplicates,
         removeDuplicatesById=args.removeDuplicatesById,
+        removeDescriptions=args.removeDescriptions,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
         sequenceNumbersFile=args.sequenceNumbersFile,
