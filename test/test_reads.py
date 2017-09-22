@@ -2714,6 +2714,29 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(removeDuplicatesById=True)
         self.assertEqual([read1], list(result))
 
+    def testFilterRemoveDescriptions(self):
+        """
+        Removing read id descriptions must work correctly.
+        """
+        read1 = Read('id1 description', 'ATCG')
+        read2 = Read('id2 another description', 'ATTT')
+        read3 = Read('id3', 'ATT')
+        reads = Reads([read1, read2, read3])
+        result = reads.filter(removeDescriptions=True)
+        self.assertEqual(['id1', 'id2', 'id3'],
+                         [read.id for read in result])
+
+    def testFilterDoNotRemoveDescriptions(self):
+        """
+        Not removing read id descriptions must work correctly.
+        """
+        read1 = Read('id1 description', 'ATCG')
+        read2 = Read('id2 another description', 'ATTT')
+        read3 = Read('id3', 'ATT')
+        reads = Reads([read1, read2, read3])
+        result = reads.filter(removeDescriptions=False)
+        self.assertEqual([read1, read2, read3], list(result))
+
     def testFilterWithModifierThatOmits(self):
         """
         Filtering with a modifier function must work correctly if the modifier

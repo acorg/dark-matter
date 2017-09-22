@@ -754,6 +754,8 @@ class ReadFilter(object):
         sequence identity.
     @param removeDuplicatesById: If C{True} remove duplicated reads based
         only on read id.
+    @param removeDescriptions: If C{True} remove the description part of read
+        ids (i.e., the part following the first whitespace).
     @param modifier: If not C{None}, a function that is passed a read
         and which either returns a read or C{None}. If it returns a read,
         that read is passed through the filter. If it returns C{None},
@@ -825,7 +827,7 @@ class ReadFilter(object):
                  titleRegex=None, negativeTitleRegex=None,
                  truncateTitlesAfter=None, indices=None, head=None,
                  removeDuplicates=False, removeDuplicatesById=False,
-                 modifier=None, randomSubset=None,
+                 removeDescriptions=False, modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
                  sequenceNumbersFile=None, keepIndices=None,
                  removeIndices=None):
@@ -847,6 +849,7 @@ class ReadFilter(object):
         self.head = head
         self.removeDuplicates = removeDuplicates
         self.removeDuplicatesById = removeDuplicatesById
+        self.removeDescriptions = removeDescriptions
         self.modifier = modifier
         self.randomSubset = randomSubset
         self.trueLength = trueLength
@@ -1034,6 +1037,9 @@ class ReadFilter(object):
             read = read.newFromIndices(self.keepIndices)
         elif self.removeIndices is not None:
             read = read.newFromIndices(self.removeIndices, exclude=True)
+
+        if self.removeDescriptions:
+            read.id = read.id.split()[0]
 
         self.yieldCount += 1
         return read
