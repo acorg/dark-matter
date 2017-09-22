@@ -6,6 +6,7 @@ from six.moves import builtins
 from copy import deepcopy
 from json import dumps
 from unittest import TestCase
+import sqlite3
 
 try:
     from unittest.mock import patch
@@ -379,10 +380,11 @@ class TestBlastReadsAlignments(TestCase):
             six.assertRaisesRegex(self, ValueError, error, list,
                                   readsAlignments)
 
-    def testGetSubjectSequence(self):
+    def testGetSubjectSequenceBlastdbcmd(self):
         """
         The getSubjectSequence function must return a correct C{DNARead}
-        instance with a 'sequence' attribute that is a string.
+        instance with a 'sequence' attribute that is a string when the
+        sequence is fetched using ncbidb.getSequence.
         """
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
@@ -396,6 +398,112 @@ class TestBlastReadsAlignments(TestCase):
                 self.assertIsInstance(sequence.sequence, str)
                 self.assertEqual('id1 Description', sequence.id)
                 self.assertEqual('AA', sequence.sequence)
+
+    def testGetSubjectSequenceFASTADatabase(self):
+        """
+        The getSubjectSequence function must return the correct C{DNARead}
+        instance when a FASTA database filename is given to the
+        BlastReadsAlignments constructor.
+        """
+        class SideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, mode='r'):
+                if self.count == 0:
+                    self.test.assertEqual('file.json', filename)
+                    self.count += 1
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                elif self.count == 1:
+                    self.count += 1
+                    return File(['>id1 Description', 'AA\n'])
+                else:
+                    self.fail('Unexpected third call to open.')
+
+        sideEffect = SideEffect(self)
+
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = sideEffect.sideEffect
+            reads = Reads()
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            subject = readsAlignments.getSubjectSequence('id1 Description')
+            self.assertIsInstance(subject, DNARead)
+            self.assertIsInstance(subject.sequence, str)
+            self.assertEqual('id1 Description', subject.id)
+            self.assertEqual('AA', subject.sequence)
+
+    @patch('os.path.exists')
+    def testGetSubjectSequenceSqliteDatabase(self, existsMock):
+        """
+        The getSubjectSequence function must return the correct C{DNARead}
+        instance when a FASTA sqlite database filename is given to the
+        BlastReadsAlignments constructor.
+        """
+
+        class ConnectSideEffect(object):
+            def __init__(self):
+                connection = sqlite3.connect(':memory:')
+                cur = connection.cursor()
+                cur.executescript('''
+                    CREATE TABLE files (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name VARCHAR UNIQUE
+                    );
+
+                    CREATE TABLE sequences (
+                        id VARCHAR UNIQUE PRIMARY KEY,
+                        fileNumber INTEGER,
+                        offset INTEGER
+                    );
+                ''')
+                cur.execute('INSERT INTO files(name) VALUES (?)',
+                            ('xxx.fasta',))
+                fileNumber = cur.lastrowid
+                cur.execute(
+                    'INSERT INTO sequences(id, '
+                    'fileNumber, offset) VALUES (?, ?, ?)',
+                    ('seqid', fileNumber, 7))
+                connection.commit()
+                self.connection = connection
+
+            def sideEffect(self, filename):
+                return self.connection
+
+        class OpenSideEffect(object):
+            def __init__(self, test):
+                self.test = test
+                self.count = 0
+
+            def sideEffect(self, filename, mode='r'):
+                if self.count == 0:
+                    self.test.assertEqual('file.json', filename)
+                    self.count += 1
+                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                elif self.count == 1:
+                    self.test.assertEqual('xxx.fasta', filename)
+                    self.count += 1
+                    return File(['>seqid\n', 'AA\n'])
+                else:
+                    self.fail('Unexpected third call to open.')
+
+        connectSideEffect = ConnectSideEffect()
+        with patch.object(sqlite3, 'connect') as mockMethod:
+            mockMethod.side_effect = connectSideEffect.sideEffect
+
+            openSideEffect = OpenSideEffect(self)
+            with patch.object(builtins, 'open') as mockMethod:
+                mockMethod.side_effect = openSideEffect.sideEffect
+
+                reads = Reads()
+                readsAlignments = BlastReadsAlignments(
+                    reads, 'file.json', sqliteDatabaseFilename='dummy')
+                subject = readsAlignments.getSubjectSequence('seqid')
+                self.assertIsInstance(subject, DNARead)
+                self.assertIsInstance(subject.sequence, str)
+                self.assertEqual('seqid', subject.id)
+                self.assertEqual('AA', subject.sequence)
 
     def testGetSubjectSequenceThenReverseComplement(self):
         """

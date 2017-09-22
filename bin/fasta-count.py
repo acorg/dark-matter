@@ -21,5 +21,4 @@ if __name__ == '__main__':
     for read in reads:
         count += 1
 
-print(count)
-
+    print(count)
