@@ -6,9 +6,7 @@ from dark.score import HigherIsBetterScore
 from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
-# ncbidb has to be imported as below so that ncbidb.getSequence can be
-# patched by our test suite.
-from dark import ncbidb
+from dark.fasta import FastaReads, SqliteIndex
 from dark.reads import AARead, DNARead
 from dark.utils import numericallySortFilenames
 
@@ -27,6 +25,16 @@ class BlastReadsAlignments(ReadsAlignments):
         (-outfmt 5) BLAST output file or our smaller (possibly bzip2
         compressed) converted JSON equivalent produced by
         C{bin/convert-blast-xml-to-json.py} from a BLAST XML file.
+    @param databaseFilename: A C{str} holding the name of the FASTA file used
+        to make the BLAST database. Cannot be used with
+        C{sqliteDatabaseFilename}.
+    @param databaseDirectory: The directory where the FASTA file
+        used to make the BLAST database can be found. This argument is only
+        useful when sqliteDatabaseFilename is specified.
+    @param sqliteDatabaseFilename: A C{str} holding the name of the sqlite3
+        database file made from the FASTA used to make the BLAST database
+        (Use ../../bin/make-fasta-database.py to construct such a database).
+        Cannot be used with C{databaseFilename}.
     @param scoreClass: A class to hold and compare scores (see scores.py).
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e-values, pass LowerIsBetterScore instead.
@@ -41,7 +49,9 @@ class BlastReadsAlignments(ReadsAlignments):
         files, or if BLAST parameters in all files do not match.
     """
 
-    def __init__(self, reads, blastFilenames, scoreClass=HigherIsBetterScore,
+    def __init__(self, reads, blastFilenames,  databaseFilename=None,
+                 databaseDirectory=None, sqliteDatabaseFilename=None,
+                 scoreClass=HigherIsBetterScore,
                  sortBlastFilenames=True, randomizeZeroEValues=True):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
@@ -49,6 +59,10 @@ class BlastReadsAlignments(ReadsAlignments):
             self.blastFilenames = numericallySortFilenames(blastFilenames)
         else:
             self.blastFilenames = blastFilenames
+        self._databaseFilename = databaseFilename
+        self._sqliteDatabaseFilename = sqliteDatabaseFilename
+        self._databaseDirectory = databaseDirectory
+        self._subjectTitleToSubject = None
         self.randomizeZeroEValues = randomizeZeroEValues
 
         # Prepare application parameters in order to initialize self.
@@ -132,22 +146,51 @@ class BlastReadsAlignments(ReadsAlignments):
         """
         Obtain information about a subject sequence given its title.
 
+        This information is cached in self._subjectTitleToSubject. It can
+        be obtained from either a) an sqlite database (given via the
+        sqliteDatabaseFilename argument to __init__), b) the FASTA that was
+        originally given to BLAST (via the databaseFilename argument), or
+        c) from the BLAST database using blastdbcmd (which can be
+        unreliable - occasionally failing to find subjects that are in its
+        database).
+
         @param title: A C{str} sequence title from a BLAST hit. Of the form
             'gi|63148399|gb|DQ011818.1| Description...'.
         @return: An C{AARead} or C{DNARead} instance, depending on the type of
             BLAST database in use.
-        """
-        # Look up the title in the database that was given to BLAST on the
-        # command line.
-        seq = ncbidb.getSequence(title,
-                                 self.params.applicationParams['database'])
 
+        """
         if self.params.application in {'blastp', 'blastx'}:
             readClass = AARead
         else:
             readClass = DNARead
 
-        return readClass(seq.description, str(seq.seq))
+        if self._subjectTitleToSubject is None:
+            if self._databaseFilename is None:
+                if self._sqliteDatabaseFilename is None:
+                    # Fall back to blastdbcmd.  ncbidb has to be imported
+                    # as below so ncbidb.getSequence can be patched by our
+                    # test suite.
+                    from dark import ncbidb
+                    seq = ncbidb.getSequence(
+                        title, self.params.applicationParams['database'])
+                    return readClass(seq.description, str(seq.seq))
+                else:
+                    # An Sqlite3 database is used to look up subjects.
+                    self._subjectTitleToSubject = SqliteIndex(
+                        self._sqliteDatabaseFilename,
+                        fastaDirectory=self._databaseDirectory,
+                        readClass=readClass)
+            else:
+                # Build an in-memory dict to look up subjects. This only
+                # works for small databases, obviously.
+                titles = {}
+                for read in FastaReads(self._databaseFilename,
+                                       readClass=readClass):
+                    titles[read.id] = read
+                self._subjectTitleToSubject = titles
+
+        return self._subjectTitleToSubject[title]
 
     def adjustHspsForPlotting(self, titleAlignments):
         """

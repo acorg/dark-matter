@@ -104,30 +104,28 @@ if __name__ == '__main__':
         help=('the FASTQ file(s) of sequences that were given to BLAST '
               'or DIAMOND.'))
 
-    # Args specific to DIAMOND.
-
-    # A group for either the DIAMOND FASTA file or a sqlite3 database
-    # of the FASTA used to make the DIAMOND database.
-    group = parser.add_mutually_exclusive_group()
-
-    group.add_argument(
-        '--diamondDatabaseFastaFilename',
-        help=('The filename of the FASTA file used to make the DIAMOND '
-              'database. If --matcher diamond is used, either this argument '
-              'or --diamondSqliteDatabaseFilename must be specified.'))
-
-    group.add_argument(
-        '--diamondSqliteDatabaseFilename',
-        help=('The filename of the sqlite3 database file of FASTA metadata, '
-              'made from the FASTA that was used to make the DIAMOND '
-              'database. If --matcher diamond is used, either this argument '
-              'or --diamondDatabaseFilename must be specified.'))
+    parser.add_argument(
+        '--databaseFastaFilename',
+        help=('The filename of the FASTA file used to make the BLAST or '
+              'DIAMOND database. If --matcher diamond is used, either this '
+              'argument or --sqliteDatabaseFilename must be specified. If '
+              '--matcher blast is used these options can be omitted, in '
+              'which case the code will fall back to using blastdbcmd, '
+              'which can be unreliable. See also --sqliteDatabaseFilename '
+              'for a way to enable fast subject lookup for either matcher.'))
 
     parser.add_argument(
-        '--diamondDatabaseFastaDirectory',
-        help=('The directory where the FASTA file used to make the DIAMOND '
-              'database can be found. This argument is only useful when '
-              '--diamondSqliteDatabaseFilename is specified.'))
+        '--sqliteDatabaseFilename',
+        help=('The filename of the sqlite3 database file of FASTA metadata, '
+              'made from the FASTA that was used to make the BLAST or DIAMOND '
+              'database. If --matcher diamond is used, either this argument '
+              'or --databaseFilename must be specified.'))
+
+    parser.add_argument(
+        '--databaseFastaDirectory',
+        help=('The directory where the FASTA file used to make the BLAST or '
+              'DIAMOND database can be found. This argument is only useful '
+              'when --sqliteDatabaseFilename is specified.'))
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(
@@ -317,28 +315,30 @@ if __name__ == '__main__':
     if args.matcher == 'blast':
         from dark.blast.alignments import BlastReadsAlignments
         readsAlignments = BlastReadsAlignments(
-            reads, jsonFiles, sortBlastFilenames=args.sortFilenames)
+            reads, jsonFiles, databaseFilename=args.databaseFastaFilename,
+            databaseDirectory=args.databaseFastaDirectory,
+            sqliteDatabaseFilename=args.sqliteDatabaseFilename,
+            sortBlastFilenames=args.sortFilenames)
     else:
         # Must be 'diamond' (due to parser.add_argument 'choices' argument).
-        if (args.diamondDatabaseFastaFilename is None and
-                args.diamondSqliteDatabaseFilename is None):
-            print('Either --diamondDatabaseFastaFilename or '
-                  '--diamondSqliteDatabaseFilename must be used with '
-                  '--matcher diamond.', file=sys.stderr)
+        if (args.databaseFastaFilename is None and
+                args.sqliteDatabaseFilename is None):
+            print('Either --databaseFastaFilename or --sqliteDatabaseFilename '
+                  'must be used with --matcher diamond.', file=sys.stderr)
             sys.exit(1)
-        elif not (args.diamondDatabaseFastaFilename is None or
-                  args.diamondSqliteDatabaseFilename is None):
-            print('--diamondDatabaseFastaFilename and '
-                  '--diamondSqliteDatabaseFilename cannot both be used with '
-                  '--matcher diamond.', file=sys.stderr)
+        elif not (args.databaseFastaFilename is None or
+                  args.sqliteDatabaseFilename is None):
+            print('--databaseFastaFilename and --sqliteDatabaseFilename '
+                  'cannot both be used with --matcher diamond.',
+                  file=sys.stderr)
             sys.exit(1)
 
         from dark.diamond.alignments import DiamondReadsAlignments
         readsAlignments = DiamondReadsAlignments(
             reads, jsonFiles, sortFilenames=args.sortFilenames,
-            databaseFilename=args.diamondDatabaseFastaFilename,
-            databaseDirectory=args.diamondDatabaseFastaDirectory,
-            sqliteDatabaseFilename=args.diamondSqliteDatabaseFilename)
+            databaseFilename=args.databaseFastaFilename,
+            databaseDirectory=args.databaseFastaDirectory,
+            sqliteDatabaseFilename=args.sqliteDatabaseFilename)
 
     readsAlignments.filter(
         maxAlignmentsPerRead=args.maxAlignmentsPerRead,

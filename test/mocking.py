@@ -175,3 +175,26 @@ class File(object):
 
     def tell(self):
         return 0
+
+    def seek(self, n):
+        """
+        Poor man's seek that only knows how to seek to offsets that are at the
+        start of a line.
+        """
+        count = 0
+        self._index = 0
+
+        while True:
+            if self._index > len(self._data):
+                raise ValueError(
+                    'Cannot seek beyond end of data')
+            elif count == n:
+                # We have arrived.
+                return
+            elif count > n:
+                raise ValueError(
+                    'Cannot seek to position that is not a line beginning')
+            else:
+                # Add on the length of the next line.
+                count += len(self._data[self._index])
+                self._index += 1
