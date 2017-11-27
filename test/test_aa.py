@@ -1,5 +1,6 @@
 import six
 from unittest import TestCase
+from itertools import product
 
 from dark.aa import (
     PROPERTIES, ALL_PROPERTIES, PROPERTY_NAMES, ACIDIC,
@@ -7,7 +8,7 @@ from dark.aa import (
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
     NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
     find, AminoAcid, clustersForSequence, propertiesForSequence,
-    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW)
+    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, START_CODON, STOP_CODONS)
 from dark.reads import AARead
 
 
@@ -180,9 +181,10 @@ class TestCodons(TestCase):
 
     def testNumberCodons(self):
         """
-        The table must contain the right number of codons.
+        The table must contain 61 codons. This is 4^3 - 3. I.e., all possible
+        combinations of 3 bases minus the three stop codons.
         """
-        self.assertEqual(44, sum(len(codons) for codons in CODONS.values()))
+        self.assertEqual(61, sum(len(codons) for codons in CODONS.values()))
 
     def testCodonLength(self):
         """
@@ -207,6 +209,56 @@ class TestCodons(TestCase):
         for codons in CODONS.values():
             self.assertFalse(
                 any(codon.title() in ABBREV3_TO_ABBREV1 for codon in codons))
+
+    def testDistinct(self):
+        """
+        All nucleotide triples must be distinct.
+        """
+        seen = set()
+        for codons in CODONS.values():
+            for codon in codons:
+                seen.add(codon)
+        self.assertEqual(61, len(seen))
+
+    def testStartCodon(self):
+        """
+        The start codon must have the expected value.
+        """
+        self.assertEqual('ATG', START_CODON)
+
+    def testStartCodonIsMethionine(self):
+        """
+        The start codon is the same as Methionine.
+        """
+        self.assertEqual((START_CODON,), CODONS['M'])
+
+    def testStopCodons(self):
+        """
+        The stop codons must have the expected value.
+        """
+        self.assertEqual(('TAA', 'TAG', 'TGA'), STOP_CODONS)
+
+    def testStopCodonsNotInCodonTable(self):
+        """
+        The stop codons must not be in the main table.
+        """
+        for stop in STOP_CODONS:
+            for codons in CODONS.values():
+                self.assertNotIn(stop, codons)
+
+    def testAllCodonsPresent(self):
+        """
+        All possible codons must be present, as either coding for an AA
+        or as a stop codon.
+        """
+        combinations = set(
+            ''.join(x) for x in product('ACGT', 'ACGT', 'ACGT'))
+        for codons in CODONS.values():
+            for codon in codons:
+                combinations.remove(codon)
+
+        # Just the stop codons should be left.
+        self.assertEqual(set(STOP_CODONS), combinations)
 
 
 class TestAminoAcid(TestCase):
@@ -252,7 +304,7 @@ class TestFind(TestCase):
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(['GCC', 'GCA'], aa.codons)
+        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
@@ -291,7 +343,7 @@ class TestFind(TestCase):
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(['GCC', 'GCA'], aa.codons)
+        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
@@ -330,7 +382,7 @@ class TestFind(TestCase):
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(['GCC', 'GCA'], aa.codons)
+        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
@@ -369,7 +421,7 @@ class TestFind(TestCase):
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(['GCC', 'GCA'], aa.codons)
+        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
@@ -409,7 +461,7 @@ class TestFind(TestCase):
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(['GCC', 'GCA'], aa.codons)
+        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
@@ -449,7 +501,7 @@ class TestFind(TestCase):
         self.assertEqual('Aspartic acid', aa.name)
         self.assertEqual('Asp', aa.abbrev3)
         self.assertEqual('D', aa.abbrev1)
-        self.assertEqual(['GAT', 'GAC'], aa.codons)
+        self.assertEqual(('GAC', 'GAT'), aa.codons)
         self.assertEqual(HYDROPHILIC | SMALL | POLAR | NEGATIVE, aa.properties)
         self.assertEqual(
             {
