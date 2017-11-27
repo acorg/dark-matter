@@ -134,30 +134,36 @@ PROPERTIES = {
 
 
 # A table with which codons translate to which amino acids.
-# Based on information from: http://wang.salk.edu/research.php
+# Based on https://en.wikipedia.org/wiki/DNA_codon_table
+#
+# Note that the trailing commas are necessary in the AAs that only have one
+# codon. If you omit them, the parentheses will not create a tuple.
 
 CODONS = {
-    'A': ['GCC', 'GCA'],
-    'C': ['TGT', 'TGC'],
-    'D': ['GAT', 'GAC'],
-    'E': ['GAA', 'GAG'],
-    'F': ['TTT', 'TTC'],
-    'G': ['GGC', 'GGA'],
-    'H': ['CAT', 'CAC'],
-    'I': ['ATC', 'ATA'],
-    'K': ['AAA', 'AAG'],
-    'L': ['TTA', 'TTG', 'CTC', 'CTA'],
-    'M': ['ATG'],
-    'N': ['AAT', 'AAC'],
-    'P': ['CCC', 'CCA'],
-    'Q': ['CAA', 'CAG'],
-    'R': ['CGC', 'CGA', 'AGA', 'AGG'],
-    'S': ['TCC', 'TCA', 'AGT', 'AGC'],
-    'T': ['ACC', 'ACA'],
-    'V': ['GTC', 'GTA'],
-    'W': ['TGG'],
-    'Y': ['TAT', 'TAC'],
+    'A': ('GCA', 'GCC', 'GCG', 'GCT',),
+    'C': ('TGC', 'TGT',),
+    'D': ('GAC', 'GAT',),
+    'E': ('GAA', 'GAG',),
+    'F': ('TTC', 'TTT',),
+    'G': ('GGA', 'GGC', 'GGG', 'GGT',),
+    'H': ('CAC', 'CAT',),
+    'I': ('ATA', 'ATC', 'ATT',),
+    'K': ('AAA', 'AAG',),
+    'L': ('CTA', 'CTC', 'CTG', 'CTT', 'TTA', 'TTG',),
+    'M': ('ATG',),
+    'N': ('AAC', 'AAT',),
+    'P': ('CCA', 'CCC', 'CCG', 'CCT',),
+    'Q': ('CAA', 'CAG',),
+    'R': ('AGA', 'AGG', 'CGA', 'CGC', 'CGG', 'CGT',),
+    'S': ('AGC', 'AGT', 'TCA', 'TCC', 'TCG', 'TCT',),
+    'T': ('ACA', 'ACC', 'ACG', 'ACT',),
+    'V': ('GTA', 'GTC', 'GTG', 'GTT',),
+    'W': ('TGG',),
+    'Y': ('TAC', 'TAT',),
 }
+
+START_CODON = 'ATG'
+STOP_CODONS = ('TAA', 'TAG', 'TGA',)
 
 
 """
