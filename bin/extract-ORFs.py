@@ -48,22 +48,27 @@ if __name__ == '__main__':
     write = sys.stdout.write
     minORFLength = args.minORFLength
     reads = parseFASTACommandLineOptions(args)
+    aa = args.readClass in ('AARead', 'AAReadORF', 'AAReadWithX', 'SSAARead',
+                            'SSAAReadWithX', 'TranslatedRead')
+
+    if aa:
+        def translations(read):
+            return (read,)
+    else:
+        def translations(read):
+            return read.translations()
 
     for read in reads:
-        if args.type == 'aa':
-            # No need to translate to AA, since our input is already AA.
-            translations = [read]
-        else:
-            translations = read.translations()
         try:
-            for translation in translations:
+            for translation in translations(read):
                 for orf in translation.ORFs():
                     if minORFLength is None or len(orf) >= minORFLength or (
                             allowOpenORFs and (orf.openLeft or orf.openRight)):
                         write(orf.toString('fasta'))
         except TranslationError as error:
-            print('Could not translate read %r sequence %r (%s).\nDid you '
-                  'forget to run %s with "--type aa"?' %
-                  (read.id, read.sequence, error, basename(sys.argv[0])),
-                  file=sys.stderr)
+            print('Could not translate read %r sequence %r (%s).' %
+                  (read.id, read.sequence, error), file=sys.stderr)
+            if not aa:
+                print('Did you forget to run %s with "--readClass AARead"?' %
+                      (basename(sys.argv[0])), file=sys.stderr)
             sys.exit(1)
