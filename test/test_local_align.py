@@ -17,6 +17,7 @@ class TestLocalAlign(TestCase):
         If the sequences do not consist of nucleotides, an exception
         must be raised.
         """
+        self.skipTest('Non-DNA raising of ValueError is disabled.')
         seq1 = SeqRecord(Seq('xxx'), id='seq1')
         seq2 = SeqRecord(Seq('yyy'), id='seq2')
         six.assertRaisesRegex(self, ValueError, 'Invalid DNA nucleotide: "X"',

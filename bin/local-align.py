@@ -10,7 +10,7 @@ from dark.local_align import LocalAlignment
 import sys
 from Bio import SeqIO
 
-if len(sys.argv) != 3 or len(sys.argv) != 8:
+if len(sys.argv) != 3 and len(sys.argv) != 8:
     print('Usage: %s filename1, filename2, (matchScore, '
           'mismatchScore, gapOpenScore, gapExtendScore, '
           'gapExtendDecay)'
@@ -39,5 +39,5 @@ else:
                                        mismatch=mismatchScore,
                                        gap=gapOpenScore,
                                        gapExtend=gapExtendScore,
-                                       gapDecay=gapExtendDecay)
+                                       gapExtendDecay=gapExtendDecay)
             print(alignment.createAlignment())

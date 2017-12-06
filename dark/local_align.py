@@ -51,12 +51,22 @@ class LocalAlignment(object):
         if len(self.seq2Seq) == 0:
             raise ValueError('Empty sequence: %s' % self.seq2ID)
 
-        for nt in self.seq1Seq:
-            if nt not in 'ACGT':
-                raise ValueError('Invalid DNA nucleotide: "%s"' % nt)
-        for nt in self.seq2Seq:
-            if nt not in 'ACGT':
-                raise ValueError('Invalid DNA nucleotide: "%s"' % nt)
+        # This checking is too strict, I (Terry) think. There is nothing in
+        # the code (at least based on a quick eyeballing) that depends on the
+        # sequences being composed only of ACGT. The code tests to see if bases
+        # are equal or not but doesn't use their identities. We could do
+        # something more sophisticated when ambiguous nucleotide codes are
+        # present, but for now I think it's fine to comment this test out
+        # and let the algorithm run. The consequence is that we might think two
+        # sequences are unequal at a location where in fact they are not (but
+        # we cannot tell), etc.
+        #
+        # for nt in self.seq1Seq:
+        #     if nt not in 'ACGT':
+        #         raise ValueError('Invalid DNA nucleotide: "%s"' % nt)
+        # for nt in self.seq2Seq:
+        #     if nt not in 'ACGT':
+        #         raise ValueError('Invalid DNA nucleotide: "%s"' % nt)
 
     def _initialise(self):
         """
