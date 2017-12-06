@@ -43,6 +43,7 @@ scripts = [
     'bin/fasta-ids.py',
     'bin/fasta-lengths.py',
     'bin/fasta-sequences.py',
+    'bin/fasta-sort.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
     'bin/fasta-to-phylip.py',
