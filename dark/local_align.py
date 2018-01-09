@@ -1,37 +1,23 @@
 class LocalAlignment(object):
     """
-    Smith-Waterman algorithm
-    Local alignment between two fasta files (nucleotides only)
+    Perform a Smith-Waterman local alignment between two FASTA files.
 
-    @param seq1: a C{Bio.SeqRecord} instance of a sequence to be aligned
-    @param seq2: a C{Bio.SeqRecord} instance of a sequence to be aligned
+    @param seq1: a C{dark.reads.Read} sequence to be aligned
+    @param seq2: a C{dark.reads.Read} sequence to be aligned
     @param match: The C{int} match score.
     @param mismatch: The C{int} mismatch score.
     @param gap: The C{int} penalty for opening a gap.
-    @param gapExtend: C{int} penalty for extending a gap.
-    @param gapExtendDecay: C{float} which decreases the penalty for extending
+    @param gapExtend: The C{int} penalty for extending a gap.
+    @param gapExtendDecay: A C{float} which decreases the penalty for extending
         a gap.
-    @return: A C{list} of strings. For every three lines the first
-        and third contain the input sequences, possibly padded with '-'.
-        The second contains '|' where the two sequences match,
-        and ' ' where not.
-        If either sequence is of zero length, raise a ValueError.
-        Format of the output is as follows:
-        Cigar: (Cigar string)
-        Evalue:
-        Bitscore:
-        Id1 Match start: (int) Match end: (int)
-        Id2 Match start: (int) Match end: (int)
-        Id1:  1 (seq) 50
-        [lines to show matches]
-        Id2:  1 (seq) 50
+    @raise ValueError: If either sequence is of zero length.
     """
 
     def __init__(self, seq1, seq2, match=1, mismatch=-1, gap=-1,
                  gapExtend=-1, gapExtendDecay=0.0):
-        self.seq1Seq = seq1.seq.upper()
+        self.seq1Seq = seq1.sequence.upper()
         self.seq1ID = seq1.id
-        self.seq2Seq = seq2.seq.upper()
+        self.seq2Seq = seq2.sequence.upper()
         self.seq2ID = seq2.id
         self.match = match
         self.mismatch = mismatch
@@ -75,6 +61,10 @@ class LocalAlignment(object):
         d = {'score': 0, 'pointer': None, 'ins': 0, 'del': 0}
         cols = len(self.seq1Seq) + 1
         rows = len(self.seq2Seq) + 1
+        # Note that this puts a ref to the same dict (d) into each cell of
+        # the table. Hopefully that is what was intended. Eyeballing the
+        # code below that uses the table it looks like table entries are
+        # entirely replaced, so this seems ok. Terry.
         table = [[d for _ in range(cols)] for _ in range(rows)]
         return table
 
@@ -201,19 +191,19 @@ class LocalAlignment(object):
         align = align[::-1]
 
         if len(align1) != len(align2):
-            raise ValueError('Lengths of locally aligned sequences'
-                             ' different')
+            raise ValueError(
+                'Lengths of locally aligned sequences differ (%d != %d).' % (
+                    len(align1), len(align2)))
 
         return ([align1, align, align2], indexes)
 
-    def _returnCigarString(self, output):
+    def _cigarString(self, output):
         """
-        Return cigar string of aligned sequences.
+        Return a cigar string of aligned sequences.
+
         @param output: a C{tup} of strings (align1, align, align2)
-        @return: a C{str} containing the cigar string
-        Eg with input:
-        'GGCCCGCA' and 'GG-CTGCA'
-        return 2=1D1=1X3=
+        @return: a C{str} containing the cigar string. Eg with input:
+            'GGCCCGCA' and 'GG-CTGCA', return 2=1D1=1X3=
         """
         cigar = []
         count = 0
@@ -299,25 +289,67 @@ class LocalAlignment(object):
 
         return [align1, align, align2]
 
-    def createAlignment(self):
+    def _alignmentToStr(self, result):
+        """
+        Make a textual representation of an alignment result.
+
+        @param result: A C{dict}, as returned by C{self.createAlignment}.
+        @return: A C{str} desription of a result. For every three lines the
+            first and third contain the input sequences, possibly padded
+            with '-'. The second contains '|' where the two sequences match,
+            and ' ' where not.
+            Format of the output is as follows:
+            Cigar: (Cigar string)
+            Evalue:
+            Bitscore:
+            Id1 Match start: (int) Match end: (int)
+            Id2 Match start: (int) Match end: (int)
+            Id1:  1 (seq) 50
+            [lines to show matches]
+            Id2:  1 (seq) 50
+        """
+        if result is None:
+            return ('\nNo alignment between %s and %s\n' % (
+                self.seq1ID, self.seq2ID))
+        else:
+            header = (
+                '\nCigar string of aligned region: %s\n'
+                '%s Match start: %d Match end: %d\n'
+                '%s Match start: %d Match end: %d\n' %
+                (result['cigar'],
+                 self.seq1ID, result['sequence1Start'], result['sequence1End'],
+                 self.seq2ID, result['sequence2Start'], result['sequence2End'])
+            )
+            text = '\n'.join(result['text'])
+
+            return header + text
+
+    def createAlignment(self, resultFormat=dict):
+        """
+        Run the alignment algorithm.
+
+        @param resultFormat: Either C{dict} or C{str}, giving the desired
+            result format.
+        @return: If C{resultFormat} is C{dict}, a C{dict} containing
+            information about the match (or C{None}) if there is no match.
+            If C{resultFormat} is C{str}, a C{str} containing a readable
+            version of the match info (see _alignmentToStr above for the exact
+            format).
+        """
         table = self._initialise()
         alignment = self._fillAndTraceback(table)
         output = alignment[0]
-        if output[0] is '' or output[2] is '':
-            result = ("\nNo alignment between %s and %s \n"
-                      % (self.seq1ID, self.seq2ID))
-            return result
+        if output[0] == '' or output[2] == '':
+            result = None
         else:
             indexes = alignment[1]
-            cigar = self._returnCigarString(output)
-            text = self._formatAlignment(output, indexes)
-            result = "\n".join(text)
-            # bitscore =
-            # evalue =
-            header = ("\nCigar string of aligned region: %s\n"
-                      "%s Match start: %d Match end: %d\n"
-                      "%s Match start: %d Match end: %d\n"
-                      % (cigar, self.seq1ID, indexes['min_col'],
-                         indexes['max_col'], self.seq2ID, indexes['min_row'],
-                         indexes['max_row']))
-            return header + result
+            result = {
+                'cigar': self._cigarString(output),
+                'sequence1Start': indexes['min_col'],
+                'sequence1End': indexes['max_col'],
+                'sequence2Start': indexes['min_row'],
+                'sequence2End': indexes['max_row'],
+                'text': self._formatAlignment(output, indexes),
+            }
+
+        return self._alignmentToStr(result) if resultFormat is str else result
