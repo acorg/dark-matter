@@ -303,9 +303,9 @@ class TestLocalAlign(TestCase):
                 'sequence2Start': 3,
                 'sequence2End': 8,
                 'text': [
-                     'seq1 2 CACACTA 8',
-                     '       ||||| |',
-                     'seq2 3 CACAC-A 8',
+                    'seq1 2 CACACTA 8',
+                    '       ||||| |',
+                    'seq2 3 CACAC-A 8',
                 ]
             },
             result
