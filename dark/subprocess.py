@@ -24,6 +24,8 @@ class Executor(object):
         @param command: Either a C{str} command (which will be passed to the
             shell) or a C{list} of command arguments (including the executable
             name), in which case the shell is not used.
+        @return: A C{CompletedProcess} instance. This has attributes such as
+            C{returncode}, C{stdout}, and C{stderr}. See pydoc subprocess.
         """
         if isinstance(command, six.string_types):
             # Can't have newlines in a command given to the shell.
