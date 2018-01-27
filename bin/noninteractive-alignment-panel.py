@@ -74,6 +74,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Non-interactively generate an alignment panel',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         epilog=('Given BLAST or DIAMOND JSON output files, the '
                 'corresponding FASTA (or FASTQ) sequence files, and '
                 'filtering  criteria, produce an alignment panel.'))
