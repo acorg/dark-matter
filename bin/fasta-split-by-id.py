@@ -55,6 +55,10 @@ saveAs = (
     (args.fastq and 'fastq') or
     (args.fasta_ss and 'fasta-ss'))
 
+# Note: we may be reading the FASTA input from stdin, so we cannot read it
+# more than once (and I don't want to store it all because it may be very
+# large). That's why we do a second phase of processing to renumber the
+# files we created if --numeric is used (and --noLeadingZeroes is not).
 
 count = 0
 for count, read in enumerate(parseFASTACommandLineOptions(args), start=1):
@@ -73,7 +77,6 @@ for count, read in enumerate(parseFASTACommandLineOptions(args), start=1):
         sys.exit(1)
     with open(filename, 'w') as fp:
         print(read.toString(saveAs), end='', file=fp)
-
 
 # Rename numeric filenames to have leading zeroes.
 if count and args.numeric and not args.noLeadingZeroes:
