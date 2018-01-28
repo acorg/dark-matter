@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import sys
 import argparse
-from os.path import exists
+from os.path import exists, basename
 
 from dark.subprocess import Executor
 
@@ -29,8 +29,8 @@ parser.add_argument(
 parser.add_argument(
     '--base',
     help=('The base name of files to create. Suffixes such as .sam and .bam '
-          'will be added. If not given, the --fastaFile name will be used, '
-          'stripped of its final suffix.'))
+          'will be added. If not given, the basename of the --fastaFile name '
+          'will be used, stripped of its final suffix.'))
 
 parser.add_argument(
     '--verbose', default=False, action='store_true',
@@ -63,7 +63,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.base is None:
-    fields = args.fastaFile.rsplit('.', 1)
+    fields = basename(args.fastaFile).rsplit('.', 1)
     if len(fields) < 2:
         print('No --base argument was given and the --fastaFile argument '
               'does not have a .suffix that can be stripped.',
