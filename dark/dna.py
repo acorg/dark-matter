@@ -29,9 +29,19 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-?N')):
     """
     Compare two DNA sequences.
 
+    Note that including 'N' in the default gapChars results (obviously) in
+    treating N as a gap. Although you could argue that those two things are
+    not the same, for all practical purposes (or at least in the code below)
+    they can be treated as if they are. We treat a '?' as a gap character
+    too, as it is also completely ambiguous.  In the returned result, the
+    gap information (mismatches, indices, etc) therefore include places where
+    the sequences have an 'N'. If you don't want 'N' treated in this way, just
+    pass a C{gapChars} value without it.
+
     @param read1: A C{Read} instance or an instance of one of its subclasses.
     @param read2: A C{Read} instance or an instance of one of its subclasses.
-    @return: A C{dict} with information about the comparison.
+    @return: A C{dict} with information about the match and the individual
+        sequences (see below).
     """
     identicalMatchCount = ambiguousMatchCount = 0
     gapMismatchCount = nonGapMismatchCount = gapGapMismatchCount = 0
