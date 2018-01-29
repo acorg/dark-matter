@@ -123,6 +123,35 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'ACGTT'),
                             Read('id2', 'ACGTT')))
 
+    def testMatchWithAmbiguityButStrict(self):
+        """
+        Two sequences that match exactly, apart from one ambiguity in the first
+        sequence, must compare as expected when we specify matchAmbiguous=False
+        to disallow ambiguous matching.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTS'),
+                            Read('id2', 'ACGTTC'), matchAmbiguous=False))
+
     def testMatchWithAmbiguityInFirst(self):
         """
         Two sequences that match exactly, apart from one ambiguity in the first
@@ -241,55 +270,85 @@ class TestCompareDNAReads(TestCase):
         """
         A gap in the first sequence must be dealt with correctly
         """
-        self.assertEqual(
-            {
-                'match': {
-                    'identicalMatchCount': 4,
-                    'ambiguousMatchCount': 0,
-                    'gapMismatchCount': 1,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+        for gap in '?-N':
+            self.assertEqual(
+                {
+                    'match': {
+                        'identicalMatchCount': 4,
+                        'ambiguousMatchCount': 0,
+                        'gapMismatchCount': 1,
+                        'gapGapMismatchCount': 0,
+                        'nonGapMismatchCount': 0,
+                    },
+                    'read1': {
+                        'ambiguousOffsets': [],
+                        'extraCount': 0,
+                        'gapOffsets': [2],
+                    },
+                    'read2': {
+                        'ambiguousOffsets': [],
+                        'extraCount': 0,
+                        'gapOffsets': [],
+                    },
                 },
-                'read1': {
-                    'ambiguousOffsets': [],
-                    'extraCount': 0,
-                    'gapOffsets': [2],
-                },
-                'read2': {
-                    'ambiguousOffsets': [],
-                    'extraCount': 0,
-                    'gapOffsets': [],
-                },
-            },
-            compareDNAReads(Read('id1', 'AC-TT'),
-                            Read('id2', 'ACGTT')))
+                compareDNAReads(Read('id1', 'AC%sTT' % gap),
+                                Read('id2', 'ACGTT')))
 
     def testGapInSecond(self):
         """
         A gap in the second sequence must be dealt with correctly
         """
-        self.assertEqual(
-            {
-                'match': {
-                    'identicalMatchCount': 3,
-                    'ambiguousMatchCount': 0,
-                    'gapMismatchCount': 2,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+        for gap in '?-N':
+            self.assertEqual(
+                {
+                    'match': {
+                        'identicalMatchCount': 3,
+                        'ambiguousMatchCount': 0,
+                        'gapMismatchCount': 2,
+                        'gapGapMismatchCount': 0,
+                        'nonGapMismatchCount': 0,
+                    },
+                    'read1': {
+                        'ambiguousOffsets': [],
+                        'extraCount': 0,
+                        'gapOffsets': [],
+                    },
+                    'read2': {
+                        'ambiguousOffsets': [],
+                        'extraCount': 0,
+                        'gapOffsets': [1, 2],
+                    },
                 },
-                'read1': {
-                    'ambiguousOffsets': [],
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                compareDNAReads(Read('id1', 'ACGTT'),
+                                Read('id2', 'A%s%sTT' % (gap, gap))))
+
+    def testNonDefaultGapChars(self):
+        """
+        We must be able to specify the gap characters.
+        """
+        for gap in '+$':
+            self.assertEqual(
+                {
+                    'match': {
+                        'identicalMatchCount': 3,
+                        'ambiguousMatchCount': 0,
+                        'gapMismatchCount': 2,
+                        'gapGapMismatchCount': 0,
+                        'nonGapMismatchCount': 0,
+                    },
+                    'read1': {
+                        'ambiguousOffsets': [],
+                        'extraCount': 0,
+                        'gapOffsets': [2],
+                    },
+                    'read2': {
+                        'ambiguousOffsets': [],
+                        'extraCount': 0,
+                        'gapOffsets': [0],
+                    },
                 },
-                'read2': {
-                    'ambiguousOffsets': [],
-                    'extraCount': 0,
-                    'gapOffsets': [1, 2],
-                },
-            },
-            compareDNAReads(Read('id1', 'ACGTT'),
-                            Read('id2', 'A--TT')))
+                compareDNAReads(Read('id1', 'AC%sTT' % gap),
+                                Read('id2', '%sCGTT' % gap), gapChars='+$'))
 
     def testGapGap(self):
         """
