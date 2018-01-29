@@ -14,7 +14,7 @@ from dark.reads import (addFASTACommandLineOptions,
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description=('Split sequences in a FASTA file into separate files, named '
-                 'by their sequence id.'))
+                 'either by their sequence id or numerically.'))
 
 parser.add_argument(
     '--outDir', default='.',
