@@ -12,11 +12,18 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description=('Given FASTA on stdin write the sequence ids and lengths '
-                     'to stdout.'))
+        description=('Given FASTA sequences (of equal length) on stdin '
+                     'write Phylip to stdout.'))
+
+    parser.add_argument(
+        '--addIdSpace', action='store_true', default=False,
+        help=('If True, print an extra space after each sequence id (the '
+              'space is expected by some programs that process Phylip files, '
+              'e.g., baseml).'))
 
     addFASTACommandLineOptions(parser)
     args = parser.parse_args()
+    idSpace = ' ' if args.addIdSpace else ''
     reads = parseFASTACommandLineOptions(args)
 
     count = 0
@@ -33,7 +40,8 @@ if __name__ == '__main__':
                         'expected length (%d)' % (read.id, length))
 
             name = read.id.split()[0]
-            fp.write(('%s %s\n' % (name, read.sequence)).encode('utf-8'))
+            fp.write(('%s%s %s\n' %
+                      (name, idSpace, read.sequence)).encode('utf-8'))
 
         if count:
             # Print the phylip header with the number of sequences and their
