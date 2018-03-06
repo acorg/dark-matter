@@ -1361,7 +1361,8 @@ def addFASTACommandLineOptions(parser):
     parser.add_argument(
         '--readClass', default='DNARead', choices=readClassNameToClass,
         metavar='CLASSNAME',
-        help='If specified, give the type of the reads in the input.')
+        help=('If specified, give the type of the reads in the input. '
+              'Possible choices: %s.' % ', '.join(readClassNameToClass)))
 
     # A mutually exclusive group for either --fasta, --fastq, or --fasta-ss
     group = parser.add_mutually_exclusive_group()
