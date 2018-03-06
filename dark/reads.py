@@ -1354,12 +1354,13 @@ def addFASTACommandLineOptions(parser):
     """
 
     parser.add_argument(
-        '--fastaFile', type=open, default=sys.stdin,
+        '--fastaFile', type=open, default=sys.stdin, metavar='FILENAME',
         help=('The name of the FASTA input file. Standard input will be read '
               'if no file name is given.'))
 
     parser.add_argument(
         '--readClass', default='DNARead', choices=readClassNameToClass,
+        metavar='CLASSNAME',
         help='If specified, give the type of the reads in the input.')
 
     # A mutually exclusive group for either --fasta, --fastq, or --fasta-ss
