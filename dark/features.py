@@ -1,6 +1,11 @@
 import numpy as np
+import os
 
 try:
+    import matplotlib
+    if not os.environ.get('DISPLAY'):
+        # Use non-interactive Agg backend
+        matplotlib.use('Agg')
     from matplotlib import pyplot as plt
 except ImportError:
     import platform
