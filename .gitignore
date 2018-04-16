@@ -9,3 +9,4 @@ __pycache__
 build
 dist
 dark_matter.egg-info
+.pytest_cache

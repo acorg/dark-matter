@@ -10,7 +10,7 @@ from dark.dna import compareDNAReads
 from dark.fasta import FastaReads
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
-from dark.subprocess import Executor
+from dark.process import Executor
 
 
 def needle(reads):

@@ -1,7 +1,12 @@
+import os
 import numpy as np
 from unittest import TestCase, skipUnless
 
 try:
+    import matplotlib
+    if not os.environ.get('DISPLAY'):
+        # Use non-interactive Agg backend
+        matplotlib.use('Agg')
     from matplotlib import pyplot as plt
 except ImportError:
     import platform
@@ -248,45 +253,6 @@ class Test_FeatureList(TestCase):
                                   sequenceFetcher=fetcher)
         self.assertEqual(1, len(featureList))
 
-    def testSubfeatures(self):
-        """
-        If the sequence fetcher returns a record with a feature that
-        has a subfeature, the L{FeatureList} instance must have length two
-        and the second feature in the list must be a subfeature.
-        """
-        def fetcher(title, db='database'):
-            location = FeatureLocation(100, 200)
-            subfeature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                    location=location)
-            feature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                 sub_features=[subfeature], location=location)
-            return SeqRecord(None, features=[feature])
-
-        featureList = FeatureList('title', 'database', set(['site']),
-                                  sequenceFetcher=fetcher)
-        self.assertEqual(2, len(featureList))
-        self.assertTrue(featureList[1].subfeature)
-
-    def testSubfeaturesWithoutParentFeature(self):
-        """
-        If the sequence fetcher returns a record with a feature that
-        has a subfeature, and the subfeature is wanted but the parent feature
-        is not, the L{FeatureList} instance must have length one
-        and the feature in the list must be a subfeature.
-        """
-        def fetcher(title, db='database'):
-            location = FeatureLocation(100, 200)
-            subfeature = SeqFeature(type='region', qualifiers={'a': ['b']},
-                                    location=location)
-            feature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                 sub_features=[subfeature], location=location)
-            return SeqRecord(None, features=[feature])
-
-        featureList = FeatureList('title', 'database', set(['region']),
-                                  sequenceFetcher=fetcher)
-        self.assertEqual(1, len(featureList))
-        self.assertTrue(featureList[0].subfeature)
-
     @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testColors(self):
         """
@@ -396,10 +362,8 @@ class Test_FeatureAdder(TestCase):
         """
         def fetcher(title, db='database'):
             location = FeatureLocation(100, 200)
-            subfeature = SeqFeature(type='region', qualifiers={'a': ['b']},
-                                    location=location)
             feature = SeqFeature(type='site', qualifiers={'a': ['b']},
-                                 sub_features=[subfeature], location=location)
+                                 location=location)
             return SeqRecord(None, features=[feature])
 
         featureAdder = _FeatureAdder()
@@ -589,43 +553,6 @@ class TestNucleotideFeatureAdder(TestCase):
             bbox_to_anchor=(0.5, 2.5))
         self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(1, len(result))
-
-    @skipUnless(havePlt, 'matplotlib not supported under pypy')
-    def testSubfeaturesAreMovedDown(self):
-        """
-        If the sequence fetcher used by a L{_FeatureAdder} returns a feature,
-        and a subfeature on the same frame, the subfeature must be plotted
-        a little (0.2) below the feature.
-        """
-        def fetcher(title, db='database'):
-            subfeature = SeqFeature(type='CDS', qualifiers={'a': ['b']},
-                                    location=FeatureLocation(130, 150))
-            feature = SeqFeature(type='CDS', qualifiers={'a': ['b']},
-                                 location=FeatureLocation(100, 200),
-                                 sub_features=[subfeature])
-            return SeqRecord(None, features=[feature])
-
-        featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111)
-        fig.plot = MagicMock()
-        fig.axis = MagicMock()
-        fig.legend = MagicMock()
-        result = featureAdder.add(fig, 'title', 0, 300,
-                                  sequenceFetcher=fetcher)
-        self.assertEqual(
-            fig.plot.call_args_list,
-            [
-                call([100, 200], [1, 1], color=ANY, linewidth=2),
-                call([130, 150], [0.8, 0.8], color=ANY, linewidth=2),
-            ])
-        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
-        fig.legend.assert_called_with(
-            ['100-200 CDS. a: b',
-             '130-150 CDS (subfeature). a: b'],
-            loc='lower center', shadow=True, ncol=2, fancybox=True,
-            bbox_to_anchor=(0.5, 2.5))
-        self.assertTrue(isinstance(result, FeatureList))
-        self.assertEqual(2, len(result))
 
     @skipUnless(havePlt, 'matplotlib not supported under pypy')
     def testPolyproteinsAreMovedUp(self):

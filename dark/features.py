@@ -1,6 +1,11 @@
 import numpy as np
+import os
 
 try:
+    import matplotlib
+    if not os.environ.get('DISPLAY'):
+        # Use non-interactive Agg backend
+        matplotlib.use('Agg')
     from matplotlib import pyplot as plt
 except ImportError:
     import platform
@@ -105,9 +110,6 @@ class FeatureList(list):
             for feature in record.features:
                 if feature.type in wantedTypes:
                     self.append(Feature(feature))
-                for subfeature in feature.sub_features:
-                    if subfeature.type in wantedTypes:
-                        self.append(Feature(subfeature, subfeature=True))
 
             # Assign colors to features.
             colormap = plt.cm.coolwarm

@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 
+import os
 import re
 from os.path import dirname, join
 from operator import itemgetter
@@ -9,6 +10,10 @@ from textwrap import fill
 from collections import Counter
 
 try:
+    import matplotlib
+    if not os.environ.get('DISPLAY'):
+        # Use non-interactive Agg backend
+        matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 except ImportError:
     import platform
