@@ -3,8 +3,11 @@ from __future__ import division, print_function
 import six
 from time import time, ctime
 
-# The following will fail under Python 2.
-from subprocess import run, PIPE, CalledProcessError
+from subprocess import PIPE, CalledProcessError
+if six.PY3:
+    from subprocess import run
+else:
+    from subprocess import check_call
 
 
 class Executor(object):
@@ -45,15 +48,26 @@ class Executor(object):
             '$ ' + strCommand,
         ])
 
-        try:
-            result = run(command, check=True, stdout=PIPE,
-                         stderr=PIPE, shell=shell, universal_newlines=True)
-        except CalledProcessError as e:
-            from sys import stderr
-            print('CalledProcessError:', e, file=stderr)
-            print('STDOUT:\n%s' % e.stdout, file=stderr)
-            print('STDERR:\n%s' % e.stderr, file=stderr)
-            raise
+        if six.PY3:
+            try:
+                result = run(command, check=True, stdout=PIPE,
+                             stderr=PIPE, shell=shell, universal_newlines=True)
+            except CalledProcessError as e:
+                from sys import stderr
+                print('CalledProcessError:', e, file=stderr)
+                print('STDOUT:\n%s' % e.stdout, file=stderr)
+                print('STDERR:\n%s' % e.stderr, file=stderr)
+                raise
+        else:
+            try:
+                result = check_call(command, stdout=PIPE, stderr=PIPE,
+                                    shell=shell, universal_newlines=True)
+            except CalledProcessError as e:
+                from sys import stderr
+                print('CalledProcessError:', e, file=stderr)
+                print('Return code: %s' % e.returncode, file=stderr)
+                print('Output:\n%s' % e.output, file=stderr)
+                raise
 
         stop = time()
         elapsed = (stop - start)

@@ -6,7 +6,7 @@ import sys
 import argparse
 from os.path import exists, basename
 
-from dark.subprocess import Executor
+from dark.process import Executor
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

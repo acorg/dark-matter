@@ -47,7 +47,8 @@ if __name__ == '__main__':
         rejectFp = open(args.rejectFile, 'w')
         reject = rejectFp.write
     else:
-        reject = lambda x: None
+        def reject(_):
+            return None
 
     cmd = 'dustmasker -in "%s" -out "%s" -outfmt fasta' % (
         args.fasta, outFilename)
