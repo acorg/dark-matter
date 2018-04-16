@@ -11,5 +11,4 @@ script:
 notifications:
   irc: "irc.freenode.net#acorg"
 install:
-  pip install -r requirements.txt
   ./install-dependencies.sh
