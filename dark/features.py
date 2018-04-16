@@ -105,9 +105,6 @@ class FeatureList(list):
             for feature in record.features:
                 if feature.type in wantedTypes:
                     self.append(Feature(feature))
-                for subfeature in feature.sub_features:
-                    if subfeature.type in wantedTypes:
-                        self.append(Feature(subfeature, subfeature=True))
 
             # Assign colors to features.
             colormap = plt.cm.coolwarm
