@@ -1,0 +1,15 @@
+language: python
+python:
+  - "2.7"
+  - "3.5"
+  - "3.5-dev"
+  - "3.6"
+  - "3.6-dev"
+  - "3.7-dev"
+script:
+  - pytest
+notifications:
+  irc: "irc.freenode.net#acorg"
+install:
+  pip install -r requirements.txt
+  ./install-dependencies.sh
