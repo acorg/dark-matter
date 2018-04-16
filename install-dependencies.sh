@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-make dark/_gor4.so
+# make dark/_gor4.so
 
 pip install -r requirements.txt
 
