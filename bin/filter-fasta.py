@@ -69,9 +69,20 @@ if __name__ == '__main__':
               'If the truncated version of a title has already been seen, '
               'that title will be skipped.'))
 
-    parser.add_argument(
-        '--indices', type=int, action='append',
-        help='sequence indices that should be returned (zero based)')
+    # A mutually exclusive group for --keepSequences and --removeSequences.
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
+        '--keepSequences',
+        help=('specify (1-based) ranges of sequence numbers that should be '
+              'kept. E.g., --keepSequences 1-3,5 will output just the 1st, '
+              '2nd, 3rd, and 5th sequences. All others will be omitted.'))
+
+    group.add_argument(
+        '--removeSequences',
+        help=('specify (1-based) ranges of sequence numbers that should be '
+              'removed. E.g., --removeSequences 1-3,5 will output all but the '
+              '1st, 2nd, 3rd, and 5th sequences. All others will be ouput.'))
 
     parser.add_argument(
         '--head', type=int, metavar='N',
@@ -79,17 +90,17 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--removeDuplicates', action='store_true', default=False,
-        help=('If True, duplicate reads will be removed, based only on '
+        help=('duplicate reads will be removed, based only on '
               'sequence identity. The first occurrence is kept.'))
 
     parser.add_argument(
         '--removeDuplicatesById', action='store_true', default=False,
-        help=('If True, duplicate reads will be removed, based only on '
+        help=('duplicate reads will be removed, based only on '
               'read id. The first occurrence is kept.'))
 
     parser.add_argument(
         '--removeDescriptions', action='store_true', default=False,
-        help=('If True, read id descriptions will be removed. The '
+        help=('read id descriptions will be removed. The '
               'description is the part of a sequence id after the '
               'first whitespace (if any).'))
 
@@ -97,14 +108,14 @@ if __name__ == '__main__':
     # randomSubset.
     parser.add_argument(
         '--randomSubset', type=int,
-        help=('An integer giving the number of sequences that should be kept. '
+        help=('an integer giving the number of sequences that should be kept. '
               'These will be selected at random.'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # trueLength.
     parser.add_argument(
         '--trueLength', type=int,
-        help=('The number of reads in the FASTA input. Only to be used with '
+        help=('the number of reads in the FASTA input. Only to be used with '
               'randomSubset'))
 
     parser.add_argument(
@@ -119,32 +130,41 @@ if __name__ == '__main__':
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
-    # A mutually exclusive group for either --keepIndices or --removeIndices.
+    # A mutually exclusive group for --keepSites, --keepSitesFile,
+    # --removeSites, and --removeSitesFile.
     group = parser.add_mutually_exclusive_group()
 
+    # In the 4 options below, the 'indices' alternate names are kept for
+    # backwards compatibility.
     group.add_argument(
-        '--keepIndices',
-        help=('Specify 1-based indices to keep. All other sequence indices '
-              'will be removed. The indices must be given in the form e.g., '
-              '24,100-200,260'))
+        '--keepSites', '--keepIndices',
+        help=('Specify 1-based sequence sites to keep. All other sites will '
+              'be removed. The sites must be given in the form e.g., '
+              '24,100-200,260. Note that the requested sites will be taken '
+              'from the input sequences in order, not in the order given by '
+              '--keepSites. I.e., --keepSites 5,8-10 will get you the same '
+              'result as --keepSites 8-10,5.'))
 
     group.add_argument(
-        '--keepIndicesFile',
-        help=('Specify a file containing 1-based indices to keep. All other '
-              'sequence indices will be removed. Lines in the file must be '
-              'given in the form e.g., 24,100-200,260'))
+        '--keepSitesFile', '--keepIndicesFile',
+        help=('Specify a file containing 1-based sites to keep. All other '
+              'sequence sites will be removed. Lines in the file must be '
+              'given in the form e.g., 24,100-200,260. See --keepSites for '
+              'more detail.'))
 
     group.add_argument(
-        '--removeIndices',
-        help=('Specify 1-based indices to remove. All other sequence indices '
-              'will be kept. The indices must be given in the form e.g., '
-              '24,100-200,260'))
+        '--removeSites', '--removeIndices',
+        help=('Specify 1-based sites to remove. All other sequence sites will '
+              'be kept. The sites must be given in the form e.g., '
+              '24,100-200,260. See --keepSites for more detail.'))
 
     group.add_argument(
-        '--removeIndicesFile',
-        help=('Specify a file containing 1-based indices to remove. All other '
-              'sequence indices will be kept. Lines in the file must be given '
-              'in the form e.g., 24,100-200,260'))
+        '--removeSitesFile', '--removeIndicesFile',
+        help=('Specify a file containing 1-based sites to remove. All other '
+              'sequence sites will be kept. Lines in the file must be given '
+              'in the form e.g., 24,100-200,260. See --keepSites for more '
+              'detail.'))
+
     parser.add_argument(
         '--checkResultCount', type=int,
         help=('The number of reads expected in the output. If this number is '
@@ -155,37 +175,45 @@ if __name__ == '__main__':
     args = parser.parse_args()
     reads = parseFASTACommandLineOptions(args)
 
-    keepIndices = (
-        parseRangeString(args.keepIndices, convertToZeroBased=True)
-        if args.keepIndices else None)
+    keepSequences = (
+        parseRangeString(args.keepSequences, convertToZeroBased=True)
+        if args.keepSequences else None)
 
-    if args.keepIndicesFile:
-        keepIndices = keepIndices or set()
-        with open(args.keepIndicesFile) as fp:
+    removeSequences = (
+        parseRangeString(args.removeSequences, convertToZeroBased=True)
+        if args.removeSequences else None)
+
+    keepSites = (
+        parseRangeString(args.keepSites, convertToZeroBased=True)
+        if args.keepSites else None)
+
+    if args.keepSitesFile:
+        keepSites = keepSites or set()
+        with open(args.keepSitesFile) as fp:
             for lineNumber, line in enumerate(fp):
                 try:
-                    keepIndices.update(
+                    keepSites.update(
                         parseRangeString(line, convertToZeroBased=True))
                 except ValueError as e:
                     raise ValueError(
-                        'Keep indices file %r line %d could not be parsed: %s'
-                        % (args.keepIndicesFile, lineNumber, e))
+                        'Keep sites file %r line %d could not be parsed: %s'
+                        % (args.keepSitesFile, lineNumber, e))
 
-    removeIndices = (
-        parseRangeString(args.removeIndices, convertToZeroBased=True)
-        if args.removeIndices else None)
+    removeSites = (
+        parseRangeString(args.removeSites, convertToZeroBased=True)
+        if args.removeSites else None)
 
-    if args.removeIndicesFile:
-        removeIndices = removeIndices or set()
-        with open(args.removeIndicesFile) as fp:
+    if args.removeSitesFile:
+        removeSites = removeSites or set()
+        with open(args.removeSitesFile) as fp:
             for lineNumber, line in enumerate(fp):
                 try:
-                    removeIndices.update(
+                    removeSites.update(
                         parseRangeString(line, convertToZeroBased=True))
                 except ValueError as e:
                     raise ValueError(
-                        'Remove indices file %r line %d parse error: %s'
-                        % (args.removeIndicesFile, lineNumber, e))
+                        'Remove sites file %r line %d parse error: %s'
+                        % (args.removeSitesFile, lineNumber, e))
 
     reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,
@@ -196,14 +224,14 @@ if __name__ == '__main__':
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=args.truncateTitlesAfter,
-        indices=set(args.indices) if args.indices else None,
+        keepSequences=keepSequences, removeSequences=removeSequences,
         head=args.head, removeDuplicates=args.removeDuplicates,
         removeDuplicatesById=args.removeDuplicatesById,
         removeDescriptions=args.removeDescriptions,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
         sequenceNumbersFile=args.sequenceNumbersFile,
-        keepIndices=keepIndices, removeIndices=removeIndices)
+        keepSites=keepSites, removeSites=removeSites)
 
     saveAs = (
         args.saveAs or

@@ -225,31 +225,32 @@ class Read(object):
                              ''.join(sorted(self.ALPHABET)),
                              str(self.__class__.__name__)))
 
-    def newFromIndices(self, indices, exclude=False):
+    def newFromSites(self, sites, exclude=False):
         """
-        Create a new read from self, with only certain indices.
+        Create a new read from self, with only certain sites.
 
-        @param indices: A set of C{int} 0-based indices in sequences that
-            should be kept. If C{None} (the default), all indices are kept.
-        @param exclude: If C{True} the C{indices} will be excluded, not
+        @param sites: A set of C{int} 0-based sites (i.e., indices) in
+            sequences that should be kept. If C{None} (the default), all sites
+            are kept.
+        @param exclude: If C{True} the C{sites} will be excluded, not
             included.
         """
         if exclude:
-            indices = set(range(len(self))) - indices
+            sites = set(range(len(self))) - sites
 
         newSequence = []
         if self.quality:
             newQuality = []
             for index, (base, quality) in enumerate(zip(self.sequence,
                                                         self.quality)):
-                if index in indices:
+                if index in sites:
                     newSequence.append(base)
                     newQuality.append(quality)
             read = self.__class__(self.id, ''.join(newSequence),
                                   ''.join(newQuality))
         else:
             for index, base in enumerate(self.sequence):
-                if index in indices:
+                if index in sites:
                     newSequence.append(base)
             read = self.__class__(self.id, ''.join(newSequence))
 
@@ -610,23 +611,24 @@ class SSAARead(AARead):
         """
         return cls(d['id'], d['sequence'], d['structure'])
 
-    def newFromIndices(self, indices, exclude=False):
+    def newFromSites(self, sites, exclude=False):
         """
-        Create a new read from self, with only certain indices.
+        Create a new read from self, with only certain sites.
 
-        @param indices: A set of C{int} 0-based indices in sequences that
-            should be kept. If C{None} (the default), all indices are kept.
-        @param exclude: If C{True} the C{indices} will be excluded, not
+        @param sites: A set of C{int} 0-based sites (i.e., indices) in
+            sequences that should be kept. If C{None} (the default), all sites
+            are kept.
+        @param exclude: If C{True} the C{sites} will be excluded, not
             included.
         """
         if exclude:
-            indices = set(range(len(self))) - indices
+            sites = set(range(len(self))) - sites
 
         newSequence = []
         newStructure = []
         for index, (base, structure) in enumerate(zip(self.sequence,
                                                       self.structure)):
-            if index in indices:
+            if index in sites:
                 newSequence.append(base)
                 newStructure.append(structure)
         read = self.__class__(self.id, ''.join(newSequence),
@@ -746,8 +748,12 @@ class ReadFilter(object):
     @param truncateTitlesAfter: A string that read ids will be truncated
         beyond. If the truncated version of an id has already been seen,
         that sequence will be skipped.
-    @param indices: Either C{None} or a set of C{int} indices corresponding
-        to reads that are wanted. Indexing starts at zero.
+    @param keepSequences: Either C{None} or a set of C{int}s corresponding
+        to reads that should be kept. Indexing starts at zero. The numbers
+        refer to the sequential number of the sequence in the list of reads.
+    @param removeSequences: Either C{None} or a set of C{int}s corresponding
+        to reads that should be removed. Indexing starts at zero. The numbers
+        refer to the sequential number of the sequence in the list of reads.
     @param head: If not C{None}, the C{int} number of sequences at the
         start of the reads to return. Later sequences are skipped.
     @param removeDuplicates: If C{True} remove duplicated reads based only on
@@ -805,15 +811,18 @@ class ReadFilter(object):
         file containing (1-based) sequence numbers, in ascending order,
         one per line. Only those sequences matching the given numbers will
         be kept.
-    @keepIndices: A set of C{int} 0-based indices in sequences that should
-        be kept. If C{None} (the default), all indices are kept.
-    @removeIndices: A set of C{int} 0-based indices in sequences that should
-        be removed. If C{None} (the default), no indices are removed.
+    @param keepSites: A set of C{int} 0-based sites (i.e., indices) in
+        sequences that should be kept. If C{None} (the default), all sites are
+        kept.
+    @param removeSites: A set of C{int} 0-based sites (i.e., indices) in
+        sequences that should be removed. If C{None} (the default), no sites
+        are removed.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
-        non-positive or not ascending, or if both C{keepIndices} and
-        C{removeIndices} are given.
+        non-positive or not ascending, or if both C{keepSites} and
+        C{removeSites} are given, or if both C{keepSequences} and
+        C{removeSequences} are given.
     """
 
     # TODO, when/if needed: make it possible to pass a seed for the RNG
@@ -825,12 +834,12 @@ class ReadFilter(object):
                  whitelist=None, blacklist=None,
                  whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
-                 truncateTitlesAfter=None, indices=None, head=None,
+                 truncateTitlesAfter=None, keepSequences=None,
+                 removeSequences=None, head=None,
                  removeDuplicates=False, removeDuplicatesById=False,
                  removeDescriptions=False, modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
-                 sequenceNumbersFile=None, keepIndices=None,
-                 removeIndices=None):
+                 sequenceNumbersFile=None, keepSites=None, removeSites=None):
 
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -845,7 +854,6 @@ class ReadFilter(object):
         self.minLength = minLength
         self.maxLength = maxLength
         self.removeGaps = removeGaps
-        self.indices = indices
         self.head = head
         self.removeDuplicates = removeDuplicates
         self.removeDuplicatesById = removeDuplicatesById
@@ -854,12 +862,19 @@ class ReadFilter(object):
         self.randomSubset = randomSubset
         self.trueLength = trueLength
 
-        if keepIndices and removeIndices:
+        if keepSequences and removeSequences:
             raise ValueError(
-                'Cannot simultaneously filter using keepIndices and '
-                'removeIndices. Call filter twice in succession instead.')
-        self.keepIndices = keepIndices
-        self.removeIndices = removeIndices
+                'Cannot simultaneously filter using keepSequences and '
+                'removeSequences. Call filter twice in succession instead.')
+        self.keepSequences = keepSequences
+        self.removeSequences = removeSequences
+
+        if keepSites and removeSites:
+            raise ValueError(
+                'Cannot simultaneously filter using keepSites and '
+                'removeSites. Call filter twice in succession instead.')
+        self.keepSites = keepSites
+        self.removeSites = removeSites
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -1011,7 +1026,12 @@ class ReadFilter(object):
                 self.titleFilter.accept(read.id) == TitleFilter.REJECT):
             return False
 
-        if self.indices is not None and self.readIndex not in self.indices:
+        if (self.keepSequences is not None and
+                self.readIndex not in self.keepSequences):
+            return False
+
+        if (self.removeSequences is not None and
+                self.readIndex in self.removeSequences):
             return False
 
         if self.removeDuplicates:
@@ -1033,10 +1053,10 @@ class ReadFilter(object):
 
         # We have to use 'is not None' in the following tests so the empty set
         # is processed properly.
-        if self.keepIndices is not None:
-            read = read.newFromIndices(self.keepIndices)
-        elif self.removeIndices is not None:
-            read = read.newFromIndices(self.removeIndices, exclude=True)
+        if self.keepSites is not None:
+            read = read.newFromSites(self.keepSites)
+        elif self.removeSites is not None:
+            read = read.newFromSites(self.removeSites, exclude=True)
 
         if self.removeDescriptions:
             read.id = read.id.split()[0]
@@ -1267,15 +1287,16 @@ class Reads(object):
             'countAtPosition': countAtPosition
         }
 
-    def indicesMatching(self, targets, matchCase, any_):
+    def sitesMatching(self, targets, matchCase, any_):
         """
-        Find indices that match a given set of target sequence bases.
+        Find sites (i.e., sequence indices) that match a given set of target
+        sequence bases.
 
         @param targets: A C{set} of sequence bases to look for.
         @param matchCase: If C{True}, case will be considered in matching.
-        @param any_: If C{True}, return indices that match in any read. Else
-            return indices that match in all reads.
-        @return: A C{set} of 0-based indices that indicate where the target
+        @param any_: If C{True}, return sites that match in any read. Else
+            return sites that match in all reads.
+        @return: A C{set} of 0-based sites that indicate where the target
             bases occur in our reads. An index will be in this set if any of
             our reads has any of the target bases in that location.
         """
@@ -1296,7 +1317,7 @@ class Reads(object):
                     result = matches
                 else:
                     result &= matches
-                # We can exit early if we run out of possible indices.
+                # We can exit early if we run out of possible sites.
                 if not result:
                     break
 
