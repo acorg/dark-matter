@@ -530,93 +530,93 @@ class TestRead(TestCase):
                  "alphabet \('ACGT'\) for read class DNARead.")
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
-    def testKeepIndices(self):
+    def testKeepSites(self):
         """
-        If only a certain set of indices should be kept, newFromIndices should
+        If only a certain set of sites should be kept, newFromSites should
         return a read with the correct sequence.
         """
         self.assertEqual(Read('id1', 'TC'),
-                         Read('id1', 'ATCGAT').newFromIndices({1, 2}))
+                         Read('id1', 'ATCGAT').newFromSites({1, 2}))
 
-    def testKeepIndicesNoIndices(self):
+    def testKeepSitesNoSites(self):
         """
-        If only the empty set of indices should be kept, newFromIndices should
+        If only the empty set of sites should be kept, newFromSites should
         return a read with the correct (empty) sequence.
         """
         self.assertEqual(Read('id1', ''),
-                         Read('id1', 'ATCGAT').newFromIndices(set()))
+                         Read('id1', 'ATCGAT').newFromSites(set()))
 
-    def testKeepIndicesAllIndices(self):
+    def testKeepSitesAllSites(self):
         """
-        If all indices should be kept, newFromIndices should return a read with
+        If all sites should be kept, newFromSites should return a read with
         the correct (full) sequence.
         """
         self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'ATCGAT').newFromIndices(set(range(6))))
+                         Read('id1', 'ATCGAT').newFromSites(set(range(6))))
 
-    def testKeepIndicesWithQuality(self):
+    def testKeepSitesWithQuality(self):
         """
-        If only a certain set of indices should be kept, newFromIndices should
+        If only a certain set of sites should be kept, newFromSites should
         return a read with the correct sequence and quality.
         """
         self.assertEqual(Read('id1', 'TC', '23'),
-                         Read('id1', 'ATCGAT', '123456').newFromIndices(
+                         Read('id1', 'ATCGAT', '123456').newFromSites(
                              {1, 2}))
 
-    def testKeepIndicesOutOfRange(self):
+    def testKeepSitesOutOfRange(self):
         """
-        If only a certain set of indices should be kept, but the kept indices
-        are higher than the length of the input sequences, newFromIndices
+        If only a certain set of sites should be kept, but the kept sites
+        are higher than the length of the input sequences, newFromSites
         should return a read with the correct (empty) sequence.
         """
         self.assertEqual(Read('id1', ''),
-                         Read('id1', 'ATCGAT').newFromIndices({100, 200}))
+                         Read('id1', 'ATCGAT').newFromSites({100, 200}))
 
-    def testRemoveIndices(self):
+    def testRemoveSites(self):
         """
-        If only a certain set of indices should be removed, newFromIndices
+        If only a certain set of sites should be removed, newFromSites
         should return a read with the correct sequence.
         """
         self.assertEqual(Read('id1', 'AGAT'),
-                         Read('id1', 'ATCGAT').newFromIndices({1, 2},
-                                                              exclude=True))
+                         Read('id1', 'ATCGAT').newFromSites({1, 2},
+                                                            exclude=True))
 
-    def testRemoveIndicesNoIndices(self):
+    def testRemoveSitesNoSites(self):
         """
-        If no indices should be removed, newFromIndices should return a read
+        If no sites should be removed, newFromSites should return a read
         with the correct (full) sequence.
         """
         self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'ATCGAT').newFromIndices(set(),
-                                                              exclude=True))
+                         Read('id1', 'ATCGAT').newFromSites(set(),
+                                                            exclude=True))
 
-    def testRemoveIndicesAllIndices(self):
+    def testRemoveSitesAllSites(self):
         """
-        If all indices should be removed, newFromIndices should return a read
+        If all sites should be removed, newFromSites should return a read
         with the correct (empty) sequence.
         """
         self.assertEqual(Read('id1', ''),
-                         Read('id1', 'ATCGAT').newFromIndices(set(range(6)),
-                                                              exclude=True))
+                         Read('id1', 'ATCGAT').newFromSites(set(range(6)),
+                                                            exclude=True))
 
-    def testRemoveIndicesWithQuality(self):
+    def testRemoveSitesWithQuality(self):
         """
-        If only a certain set of indices should be removed, newFromIndices
+        If only a certain set of sites should be removed, newFromSites
         should return a read with the correct sequence and quality.
         """
         self.assertEqual(Read('id1', 'AGAT', '1456'),
-                         Read('id1', 'ATCGAT', '123456').newFromIndices(
+                         Read('id1', 'ATCGAT', '123456').newFromSites(
                              {1, 2}, exclude=True))
 
-    def testRemoveIndicesOutOfRange(self):
+    def testRemoveSitesOutOfRange(self):
         """
-        If only a certain set of indices should be removed, but the removed
-        indices are higher than the length of the input sequences,
-        newFromIndices should return a read with the correct (full) sequence.
+        If only a certain set of sites should be removed, but the removed
+        sites are higher than the length of the input sequences,
+        newFromSites should return a read with the correct (full) sequence.
         """
         self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'ATCGAT').newFromIndices({100, 200},
-                                                              exclude=True))
+                         Read('id1', 'ATCGAT').newFromSites({100, 200},
+                                                            exclude=True))
 
 
 class TestDNARead(TestCase):
@@ -1801,78 +1801,78 @@ class _TestSSAAReadMixin(object):
         read = self.CLASS('id', 'AA', 'HH')
         self.assertEqual(1, len(dict.fromkeys([read, read])))
 
-    def testKeepIndices(self):
+    def testKeepSites(self):
         """
-        If only a certain set of indices should be kept, newFromIndices should
+        If only a certain set of sites should be kept, newFromSites should
         return a read with the correct sequence.
         """
         self.assertEqual(self.CLASS('id1', 'TC', 'HG'),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCX').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCX').newFromSites(
                              {1, 2}))
 
-    def testKeepIndicesNoIndices(self):
+    def testKeepSitesNoSites(self):
         """
-        If an empty set of indices should be kept, newFromIndices should
+        If an empty set of sites should be kept, newFromSites should
         return a read with the correct (empty) sequence.
         """
         self.assertEqual(self.CLASS('id1', '', ''),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromSites(
                              set()))
 
-    def testKeepIndicesAllIndices(self):
+    def testKeepSitesAllSites(self):
         """
-        If all indices should be kept, newFromIndices should return a read
+        If all sites should be kept, newFromSites should return a read
         with the correct (full) sequence.
         """
         self.assertEqual(self.CLASS('id1', 'ATCGAT', 'CHGCCC'),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromSites(
                              set(range(6))))
 
-    def testKeepIndicesOutOfRange(self):
+    def testKeepSitesOutOfRange(self):
         """
-        If only a certain set of indices should be kept, but the kept indices
-        are higher than the length of the input sequences, newFromIndices
+        If only a certain set of sites should be kept, but the kept sites
+        are higher than the length of the input sequences, newFromSites
         should return a read with the correct (empty) sequence.
         """
         self.assertEqual(self.CLASS('id1', '', ''),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromSites(
                              {100, 200}))
 
-    def testRemoveIndices(self):
+    def testRemoveSites(self):
         """
-        If only a certain set of indices should be removed, newFromIndices
+        If only a certain set of sites should be removed, newFromSites
         should return a read with the correct sequence.
         """
         self.assertEqual(self.CLASS('id1', 'AGAT', 'CSHG'),
-                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromSites(
                              {1, 2}, exclude=True))
 
-    def testRemoveIndicesNoIndices(self):
+    def testRemoveSitesNoSites(self):
         """
-        If the empty set of indices should be removed, newFromIndices
+        If the empty set of sites should be removed, newFromSites
         should return a read with the correct (full) sequence.
         """
         self.assertEqual(self.CLASS('id1', 'ATCGAT', 'CXXSHG'),
-                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromSites(
                              set(), exclude=True))
 
-    def testRemoveIndicesAllIndices(self):
+    def testRemoveSitesAllSites(self):
         """
-        If all indices should be removed, newFromIndices should return a read
+        If all sites should be removed, newFromSites should return a read
         with the correct (empty) sequence.
         """
         self.assertEqual(self.CLASS('id1', '', ''),
-                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromSites(
                              set(range(6)), exclude=True))
 
-    def testRemoveIndicesOutOfRange(self):
+    def testRemoveSitesOutOfRange(self):
         """
-        If only a certain set of indices should be removed, but the removed
-        indices are higher than the length of the input sequences,
-        newFromIndices should return a read with the correct (full) sequence.
+        If only a certain set of sites should be removed, but the removed
+        sites are higher than the length of the input sequences,
+        newFromSites should return a read with the correct (full) sequence.
         """
         self.assertEqual(self.CLASS('id1', 'ATCGAT', 'HGSTCC'),
-                         self.CLASS('id1', 'ATCGAT', 'HGSTCC').newFromIndices(
+                         self.CLASS('id1', 'ATCGAT', 'HGSTCC').newFromSites(
                              {100, 200}, exclude=True))
 
 
@@ -2496,7 +2496,7 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(minLength=3)
         self.assertEqual(2, len(list(result)))
 
-    def testAddFiltersThenClearfilters(self):
+    def testAddFiltersThenClearFilters(self):
         """
         If filters are added and then all filters are cleared, the result must
         be the same as the reads that were originally added.
@@ -2654,16 +2654,48 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(truncateTitlesAfter='cat')
         self.assertEqual([Read('cat 400', 'AA')], list(result))
 
-    def testFilterIndices(self):
+    def testFilterKeepSequencesNoSequences(self):
         """
-        Filtering must be able to filter reads based on their indices.
+        Filtering must be able to filter reads based on their sequential
+        number when no sequences are wanted.
+        """
+        reads = Reads((Read('cow', 'A'), Read('dog', 'G'), Read('cat', 'T')))
+        result = reads.filter(keepSequences=set())
+        self.assertEqual([], list(result))
+
+    def testFilterKeepSequences(self):
+        """
+        Filtering must be able to filter reads based on their sequential
+        number.
         """
         reads = Reads()
         reads.add(Read('cow', 'AA'))
         reads.add(Read('dog', 'GG'))
         reads.add(Read('cat', 'TT'))
-        result = reads.filter(indices=set([1]))
-        self.assertEqual([Read('dog', 'GG')], list(result))
+        result = reads.filter(keepSequences=set([0, 2]))
+        self.assertEqual([Read('cow', 'AA'), Read('cat', 'TT')], list(result))
+
+    def testFilterRemoveSequencesNoSequences(self):
+        """
+        Filtering must be able to filter reads based on their sequential
+        number when no sequences are excluded.
+        """
+        animals = [Read('cow', 'A'), Read('dog', 'G'), Read('cat', 'T')]
+        reads = Reads(animals)
+        result = reads.filter(removeSequences=set())
+        self.assertEqual(animals, list(result))
+
+    def testFilterRemoveSequences(self):
+        """
+        Filtering must be able to exclude reads based on their sequential
+        number.
+        """
+        reads = Reads()
+        reads.add(Read('cow', 'AA'))
+        reads.add(Read('dog', 'GG'))
+        reads.add(Read('cat', 'TT'))
+        result = reads.filter(removeSequences=set([1]))
+        self.assertEqual([Read('cow', 'AA'), Read('cat', 'TT')], list(result))
 
     def testFilterHeadZero(self):
         """
@@ -3004,9 +3036,9 @@ class TestReadsFiltering(TestCase):
             result = reads.filter(sequenceNumbersFile='file')
             self.assertEqual([read1, read3], list(result))
 
-    def testKeepIndices(self):
+    def testKeepSites(self):
         """
-        If only a certain set of indices should be kept, the correct sequences
+        If only a certain set of sites should be kept, the correct sequences
         should be returned.
         """
         read1 = Read('id1', 'ATCGAT')
@@ -3014,7 +3046,7 @@ class TestReadsFiltering(TestCase):
         read3 = Read('id3', 'ATC')
         read4 = Read('id4', 'AT')
         reads = Reads(initialReads=[read1, read2, read3, read4])
-        result = reads.filter(keepIndices={1, 2})
+        result = reads.filter(keepSites={1, 2})
         self.assertEqual(
             [
                 Read('id1', 'TC'),
@@ -3024,9 +3056,9 @@ class TestReadsFiltering(TestCase):
             ],
             list(result))
 
-    def testKeepIndicesNoIndices(self):
+    def testKeepSitesNoSites(self):
         """
-        If the empty set of indices should be kept, the correct (empty)
+        If the empty set of sites should be kept, the correct (empty)
         sequences should be returned.
         """
         read1 = Read('id1', 'ATCGAT')
@@ -3034,7 +3066,7 @@ class TestReadsFiltering(TestCase):
         read3 = Read('id3', 'ATC')
         read4 = Read('id4', 'AT')
         reads = Reads(initialReads=[read1, read2, read3, read4])
-        result = reads.filter(keepIndices=set())
+        result = reads.filter(keepSites=set())
         self.assertEqual(
             [
                 Read('id1', ''),
@@ -3044,9 +3076,9 @@ class TestReadsFiltering(TestCase):
             ],
             list(result))
 
-    def testKeepIndicesAllIndices(self):
+    def testKeepSitesAllSites(self):
         """
-        If the set of all indices should be kept, the correct (full) sequences
+        If the set of all sites should be kept, the correct (full) sequences
         should be returned.
         """
         read1 = Read('id1', 'ATCGAT')
@@ -3054,28 +3086,28 @@ class TestReadsFiltering(TestCase):
         read3 = Read('id3', 'ATC')
         read4 = Read('id4', 'AT')
         reads = Reads(initialReads=[read1, read2, read3, read4])
-        result = reads.filter(keepIndices=set(range(6)))
+        result = reads.filter(keepSites=set(range(6)))
         self.assertEqual([read1, read2, read3, read4], list(result))
 
-    def testKeepIndicesWithQuality(self):
+    def testKeepSitesWithQuality(self):
         """
-        If only a certain set of indices should be kept, the correct sequences
+        If only a certain set of sites should be kept, the correct sequences
         should be returned, including a modified quality string.
         """
         reads = Reads(initialReads=[Read('id1', 'ATCGAT', '123456')])
-        result = reads.filter(keepIndices={1, 2})
+        result = reads.filter(keepSites={1, 2})
         self.assertEqual([Read('id1', 'TC', '23')], list(result))
 
-    def testKeepIndicesOutOfRange(self):
+    def testKeepSitesOutOfRange(self):
         """
-        If only a certain set of indices should be kept, but the kept indices
+        If only a certain set of sites should be kept, but the kept sites
         are higher than the length of the input sequences, the correct
         (empty) sequences should be returned.
         """
         read1 = Read('id1', 'ATCG')
         read2 = Read('id2', 'ATCGCC')
         reads = Reads(initialReads=[read1, read2])
-        result = reads.filter(keepIndices={100, 200})
+        result = reads.filter(keepSites={100, 200})
         self.assertEqual(
             [
                 Read('id1', ''),
@@ -3083,9 +3115,9 @@ class TestReadsFiltering(TestCase):
             ],
             list(result))
 
-    def testRemoveIndices(self):
+    def testRemoveSites(self):
         """
-        If a certain set of indices should be removed, the correct sequences
+        If a certain set of sites should be removed, the correct sequences
         should be returned.
         """
         read1 = Read('id1', 'ATCGCC')
@@ -3093,7 +3125,7 @@ class TestReadsFiltering(TestCase):
         read3 = Read('id3', 'ATC')
         read4 = Read('id4', 'A')
         reads = Reads(initialReads=[read1, read2, read3, read4])
-        result = reads.filter(removeIndices={1, 2})
+        result = reads.filter(removeSites={1, 2})
         self.assertEqual(
             [
                 Read('id1', 'AGCC'),
@@ -3103,9 +3135,9 @@ class TestReadsFiltering(TestCase):
             ],
             list(result))
 
-    def testRemoveIndicesNoIndices(self):
+    def testRemoveSitesNoSites(self):
         """
-        If the empty set of indices should be removed, the correct (full)
+        If the empty set of sites should be removed, the correct (full)
         sequences should be returned.
         """
         read1 = Read('id1', 'ATCGCC')
@@ -3113,13 +3145,13 @@ class TestReadsFiltering(TestCase):
         read3 = Read('id3', 'ATC')
         read4 = Read('id4', 'A')
         reads = Reads(initialReads=[read1, read2, read3, read4])
-        result = reads.filter(removeIndices=set())
+        result = reads.filter(removeSites=set())
         self.assertEqual([read1, read2, read3, read4],
                          list(result))
 
-    def testRemoveIndicesAllIndices(self):
+    def testRemoveSitesAllSites(self):
         """
-        If the full set of indices should be removed, the correct (empty)
+        If the full set of sites should be removed, the correct (empty)
         sequences should be returned.
         """
         read1 = Read('id1', 'ATCGCC')
@@ -3127,7 +3159,7 @@ class TestReadsFiltering(TestCase):
         read3 = Read('id3', 'ATC')
         read4 = Read('id4', 'A')
         reads = Reads(initialReads=[read1, read2, read3, read4])
-        result = reads.filter(removeIndices=set(range(6)))
+        result = reads.filter(removeSites=set(range(6)))
         self.assertEqual(
             [
                 Read('id1', ''),
@@ -3137,36 +3169,36 @@ class TestReadsFiltering(TestCase):
             ],
             list(result))
 
-    def testRemoveIndicesWithQuality(self):
+    def testRemoveSitesWithQuality(self):
         """
-        If a certain set of indices should be removed, the correct sequences
+        If a certain set of sites should be removed, the correct sequences
         should be returned, including a modified quality string.
         """
         reads = Reads(initialReads=[Read('id1', 'ATCGAT', '123456')])
-        result = reads.filter(removeIndices={1, 2})
+        result = reads.filter(removeSites={1, 2})
         self.assertEqual([Read('id1', 'AGAT', '1456')], list(result))
 
-    def testRemoveIndicesOutOfRange(self):
+    def testRemoveSitesOutOfRange(self):
         """
-        If a certain set of indices should be removed, but the indices
+        If a certain set of sites should be removed, but the sites
         are higher than the length of the input sequences, the correct
         (full) sequences should be returned.
         """
         read1 = Read('id1', 'ATCG')
         read2 = Read('id2', 'ATCGAA')
         reads = Reads(initialReads=[read1, read2])
-        result = reads.filter(removeIndices={100, 200})
+        result = reads.filter(removeSites={100, 200})
         self.assertEqual([read1, read2], list(result))
 
-    def testRemoveAndKeepIndices(self):
+    def testRemoveAndKeepSites(self):
         """
-        Passing a keepIndices and a removeIndices set to reads.filter
+        Passing a keepSites and a removeSites set to reads.filter
         must result in a ValueError.
         """
-        error = ('^Cannot simultaneously filter using keepIndices and '
-                 'removeIndices. Call filter twice in succession instead\.$')
+        error = ('^Cannot simultaneously filter using keepSites and '
+                 'removeSites. Call filter twice in succession instead\.$')
         six.assertRaisesRegex(self, ValueError, error, Reads().filter,
-                              keepIndices={4}, removeIndices={5})
+                              keepSites={4}, removeSites={5})
 
 
 class TestReadsInRAM(TestCase):
@@ -3349,103 +3381,103 @@ class TestSummarizePosition(TestCase):
         self.assertEqual({'a': 1, 't': 2}, result['countAtPosition'])
 
 
-class TestIndicesMatching(TestCase):
+class TestSitesMatching(TestCase):
     """
-    Tests for the Reads.indicesMatching method.
+    Tests for the Reads.sitesMatching method.
     """
     def testNoMatches(self):
         """
-        If no reads match the target bases, indicesMatching must return the
+        If no reads match the target bases, sitesMatching must return the
         empty set.
         """
         reads = Reads()
         reads.add(Read('id1', 'aaaaaa'))
-        result = reads.indicesMatching({'b'}, matchCase=True, any_=True)
+        result = reads.sitesMatching({'b'}, matchCase=True, any_=True)
         self.assertEqual(set(), result)
 
     def testAllMatches(self):
         """
-        If a read's indices all match the target bases, indicesMatching must
-        return the full set of indices.
+        If a read's sites all match the target bases, sitesMatching must
+        return the full set of sites.
         """
         reads = Reads()
         reads.add(Read('id1', 'aaaga'))
-        result = reads.indicesMatching({'a', 'g'}, matchCase=True, any_=True)
+        result = reads.sitesMatching({'a', 'g'}, matchCase=True, any_=True)
         self.assertEqual(set(range(5)), result)
 
     def testPartialMatch(self):
         """
-        If some of a read's indices all match the target bases, indicesMatching
-        must return the expected set of indices.
+        If some of a read's sites all match the target bases, sitesMatching
+        must return the expected set of sites.
         """
         reads = Reads()
         reads.add(Read('id1', 'aaaga'))
-        result = reads.indicesMatching({'a'}, matchCase=True, any_=True)
+        result = reads.sitesMatching({'a'}, matchCase=True, any_=True)
         self.assertEqual({0, 1, 2, 4}, result)
 
     def testMatchCase(self):
         """
-        If only some of a read's indices all match the target bases with
-        matching case, indicesMatching must return the expected set of indices.
+        If only some of a read's sites all match the target bases with
+        matching case, sitesMatching must return the expected set of sites.
         """
         reads = Reads()
         reads.add(Read('id1', 'aAAga'))
-        result = reads.indicesMatching({'a'}, matchCase=True, any_=False)
+        result = reads.sitesMatching({'a'}, matchCase=True, any_=False)
         self.assertEqual({0, 4}, result)
 
     def testIgnoreCase(self):
         """
-        If only some of a read's indices all match the target bases with
-        matching case, indicesMatching must return the expected set of indices
+        If only some of a read's sites all match the target bases with
+        matching case, sitesMatching must return the expected set of sites
         when we tell it to ignore case.
         """
         reads = Reads()
         reads.add(Read('id1', 'aAAga'))
-        result = reads.indicesMatching({'a'}, matchCase=False, any_=False)
+        result = reads.sitesMatching({'a'}, matchCase=False, any_=False)
         self.assertEqual({0, 1, 2, 4}, result)
 
     def testMultipleReadsAny(self):
         """
-        If multiple reads are given, indicesMatching must return the expected
-        set of indices when we pass any_=True.
+        If multiple reads are given, sitesMatching must return the expected
+        set of sites when we pass any_=True.
         """
         reads = Reads()
         reads.add(Read('id1', 'aaaga'))
         reads.add(Read('id2', 'caata'))
-        result = reads.indicesMatching({'c', 'g'}, matchCase=False, any_=True)
+        result = reads.sitesMatching({'c', 'g'}, matchCase=False, any_=True)
         self.assertEqual({0, 3}, result)
 
     def testMultipleReadsAll(self):
         """
-        If multiple reads are given, indicesMatching must return the expected
-        set of indices when we pass any_=False.
+        If multiple reads are given, sitesMatching must return the expected
+        set of sites when we pass any_=False.
         """
         reads = Reads()
         reads.add(Read('id1', 'aaaga'))
         reads.add(Read('id2', 'caaga'))
-        result = reads.indicesMatching({'c', 'g'}, matchCase=False, any_=False)
+        result = reads.sitesMatching({'c', 'g'}, matchCase=False, any_=False)
         self.assertEqual({3}, result)
 
     def testMultipleReadsAllWithDifferingLengths(self):
         """
-        If multiple reads are given, indicesMatching must return the expected
-        set of indices when we pass any_=False and the reads have differing
+        If multiple reads are given, sitesMatching must return the expected
+        set of sites when we pass any_=False and the reads have differing
         lengths.
         """
         reads = Reads()
         reads.add(Read('id2', 'caa-agt-'))
         reads.add(Read('id1', '-aa-a'))
-        result = reads.indicesMatching({'-'}, matchCase=False, any_=False)
+        result = reads.sitesMatching({'-'}, matchCase=False, any_=False)
         self.assertEqual({3}, result)
 
     def testMultipleReadsAnyWithDifferingLengths(self):
         """
-        If multiple reads are given, indicesMatching must return the expected
-        set of indices when we pass any_=True and the reads have differing
+        If multiple reads are given, sitesMatching must return the expected
+        set of sites when we pass any_=True and the reads have differing
         lengths.
         """
         reads = Reads()
         reads.add(Read('id2', 'caa-agt-'))
         reads.add(Read('id1', '-aa-a'))
-        result = reads.indicesMatching({'-'}, matchCase=False, any_=True)
+        result = reads.sitesMatching({'-'}, matchCase=False, any_=True)
         self.assertEqual({0, 3, 7}, result)
