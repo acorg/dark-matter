@@ -811,10 +811,12 @@ class ReadFilter(object):
         file containing (1-based) sequence numbers, in ascending order,
         one per line. Only those sequences matching the given numbers will
         be kept.
-    @keepSites: A set of C{int} 0-based sites (i.e., indices) in sequences
-        that should be kept. If C{None} (the default), all sites are kept.
-    @removeSites: A set of C{int} 0-based sites (i.e., indices) in sequences
-        that should be removed. If C{None} (the default), no sites are removed.
+    @param keepSites: A set of C{int} 0-based sites (i.e., indices) in
+        sequences that should be kept. If C{None} (the default), all sites are
+        kept.
+    @param removeSites: A set of C{int} 0-based sites (i.e., indices) in
+        sequences that should be removed. If C{None} (the default), no sites
+        are removed.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
