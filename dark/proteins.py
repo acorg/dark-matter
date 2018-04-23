@@ -103,8 +103,8 @@ def getPathogenProteinCounts(filenames):
 class PathogenSampleFiles(object):
     """
     Maintain a cache of pathogen/sample FASTA/FASTQ file names, creating
-    de-duplicated FASTA/FASTQ files (from reads for all proteins of a pathogen
-    that a sample has), on demand.
+    de-duplicated (by read id) FASTA/FASTQ files (from reads for all proteins
+    of a pathogen that a sample has), on demand.
 
     @param proteinGrouper: An instance of C{ProteinGrouper}.
     @param format_: A C{str}, either 'fasta' or 'fastq' indicating the format
@@ -132,7 +132,7 @@ class PathogenSampleFiles(object):
         @param pathogenName: A C{str} pathogen name.
         @param sampleName: A C{str} sample name.
         @return: A C{str} giving the FASTA/FASTQ file name holding all the
-            reads (without duplicates) from the sample that matched the
+            reads (without duplicates, by id) from the sample that matched the
             proteins in the given pathogen.
         """
         pathogenIndex = self._pathogens.setdefault(pathogenName,
@@ -151,7 +151,7 @@ class PathogenSampleFiles(object):
                 proteinMatch['outDir'],
                 'pathogen-%d-sample-%d.%s' % (pathogenIndex, sampleIndex,
                                               self._format))
-            reads.filter(removeDuplicates=True)
+            reads.filter(removeDuplicatesById=True)
             nReads = reads.save(saveFilename, format_=self._format)
             # Save the unique read count into self._proteinGrouper
             self._proteinGrouper.pathogenNames[
@@ -337,8 +337,8 @@ class ProteinGrouper(object):
         """
         Add all pathogen / sample combinations to self.pathogenSampleFiles.
 
-        This will make all de-duplicated FASTA/FASTQ files and store the number
-        of de-duplicated reads into C{self.pathogenNames}.
+        This will make all de-duplicated (by id) FASTA/FASTQ files and store
+        the number of de-duplicated reads into C{self.pathogenNames}.
         """
         for pathogenName, samples in self.pathogenNames.items():
             for sampleName in samples:
@@ -352,7 +352,7 @@ class ProteinGrouper(object):
         """
         # Note that the string representation contains much less
         # information than the HTML summary. E.g., it does not contain the
-        # unique (de-duplicated) read count, since that is only computed
+        # unique (de-duplicated, by id) read count, since that is only computed
         # when we are making combined FASTA files of reads matching a
         # pathogen.
         readCountGetter = itemgetter('readCount')
@@ -623,8 +623,8 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample indented">'
                     '%sSample <a href="#sample-%s">%s</a> '
-                    '(%d protein%s, <a href="%s">%d de-duplicated read%s</a>, '
-                    '<a href="%s">panel</a>):</p>' %
+                    '(%d protein%s, <a href="%s">%d de-duplicated (by id) '
+                    'read%s</a>, <a href="%s">panel</a>):</p>' %
                     (highlight, sampleName, sampleName,
                      proteinCount, '' if proteinCount == 1 else 's',
                      readsFileName,
@@ -714,7 +714,7 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample indented">'
                     '%s<a href="#pathogen-%s">%s</a> %s, '
-                    '<a href="%s">%d de-duplicated read%s</a>:</p>' %
+                    '<a href="%s">%d de-duplicated (by id) read%s</a>:</p>' %
                     (highlight, pathogenName, pathogenName,
                      proteinCountStr, readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
@@ -816,7 +816,7 @@ class ProteinGrouper(object):
     def pathogenPanel(self, filename):
         """
         Make a panel of images, with each image being a graph giving pathogen
-        de-duplicated read count (Y axis) versus sample id (X axis).
+        de-duplicated (by id) read count (Y axis) versus sample id (X axis).
 
         @param filename: A C{str} file name to write the image to.
         """
