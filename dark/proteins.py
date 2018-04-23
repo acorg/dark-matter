@@ -540,7 +540,7 @@ class ProteinGrouper(object):
             else:
                 append('Pathogen protein fraction filtering has been applied, '
                        'but all pathogens have at least %.2f%% of their '
-                       'proteins matched by at least one sample.')
+                       'proteins matched by at least one sample.' % percent)
 
             append('Samples that match a pathogen (and pathogens with a '
                    'matching sample) with at least this protein fraction are '

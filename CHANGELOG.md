@@ -1,3 +1,8 @@
+## 2.0.1 April 23, 2018
+
+* Fixed HTML tiny formatting error in `toHTML` method of `ProteinGrouper`
+  in `dark/proteins.py`.
+
 ## 2.0.0 April 17, 2018
 
 * The `--indices` option to `filter-fasta.py` was changed to accept a
