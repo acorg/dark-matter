@@ -81,7 +81,7 @@ RECORD = """\
               <Hsp_query-frame>1</Hsp_query-frame>
               <Hsp_hit-frame>1</Hsp_hit-frame>
               <Hsp_identity>16</Hsp_identity>
-              <Hsp_positive>16</Hsp_positive>
+              <Hsp_positive>17</Hsp_positive>
               <Hsp_gaps>0</Hsp_gaps>
               <Hsp_align-len>16</Hsp_align-len>
               <Hsp_qseq>ATTCATCAGTAGCAAT</Hsp_qseq>
@@ -108,8 +108,8 @@ RECORD = """\
               <Hsp_hit-to>753</Hsp_hit-to>
               <Hsp_query-frame>1</Hsp_query-frame>
               <Hsp_hit-frame>1</Hsp_hit-frame>
-              <Hsp_identity>16</Hsp_identity>
-              <Hsp_positive>16</Hsp_positive>
+              <Hsp_identity>18</Hsp_identity>
+              <Hsp_positive>19</Hsp_positive>
               <Hsp_gaps>0</Hsp_gaps>
               <Hsp_align-len>16</Hsp_align-len>
               <Hsp_qseq>ATTCATCAGTAGCAAT</Hsp_qseq>
@@ -164,6 +164,7 @@ class TestXMLRecordsReader(TestCase):
             record1, record2 = list(reader.records())
             self.assertEqual(0, len(record1.alignments))
             self.assertEqual(2, len(record2.alignments))
+
 
 _JSON_RECORDS = [
     {
@@ -255,6 +256,8 @@ _JSON_RECORDS = [
                             1,
                             -1,
                         ],
+                        'identicalCount': 38,
+                        'positiveCount': 77,
                         'query_start': 1,
                         'expect': 2.73597e-40,
                         'query_end': 99,
@@ -284,6 +287,8 @@ _JSON_RECORDS = [
                             1,
                             -1,
                         ],
+                        'identicalCount': 380,
+                        'positiveCount': 770,
                         'query_start': 1,
                         'expect': 4.33545e-44,
                         'query_end': 101,
@@ -308,6 +313,8 @@ _JSON_RECORDS = [
                             1,
                             -1,
                         ],
+                        'identicalCount': 3,
+                        'positiveCount': 7,
                         'query_start': 1,
                         'expect': 8.37678e-28,
                         'query_end': 101,
@@ -332,6 +339,8 @@ _JSON_RECORDS = [
                             1,
                             -1,
                         ],
+                        'identicalCount': 3800,
+                        'positiveCount': 7700,
                         'query_start': 2,
                         'expect': 6.03169e-17,
                         'query_end': 98,
@@ -365,38 +374,37 @@ class TestJSONRecordsReader(TestCase):
     """
     Test the JSONRecordsReader class.
     """
+    READS = Reads([
+        DNARead(
+            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
+            'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
+            'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
+        DNARead(
+            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
+            'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
+            'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
+        DNARead(
+            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
+            'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
+            'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
+        DNARead(
+            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
+            'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
+            'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
+    ])
 
     # TODO: This class is quite incomplete. It was added long after the
     # original code was written, due to laziness at the time. Additional
     # aspects of the returned alignments should be tested.
 
-    def testCorrectNumberOfAlignments(self):
+    def testCorrectNumberOfReadAlignments(self):
         """
-        A JSONRecordsReader must return the expected number of alignments.
+        A JSONRecordsReader must return the expected number of read alignments.
         """
-        reads = Reads([
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
-                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
-                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
-                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
-                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
-                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
-                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
-                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
-                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
-        ])
-
         mockOpener = mockOpen(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
-            alignments = list(reader.readAlignments(reads))
+            alignments = list(reader.readAlignments(self.READS))
             self.assertEqual(4, len(alignments))
 
     def testCorrectNumberOfAlignmentsWhenReadIdsAreAbbreviated(self):
@@ -429,5 +437,22 @@ class TestJSONRecordsReader(TestCase):
         mockOpener = mockOpen(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
-            alignments = list(reader.readAlignments(reads))
-            self.assertEqual(4, len(alignments))
+            readAlignments = list(reader.readAlignments(reads))
+            self.assertEqual(4, len(readAlignments))
+
+    def testIdentity(self):
+        """
+        The identity value must be read correctly from the HSPs.
+        """
+        mockOpener = mockOpen(read_data=JSON)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = JSONRecordsReader('file.json')
+            readAlignments = list(reader.readAlignments(self.READS))
+            self.assertEqual(38, readAlignments[0][0].hsps[0].identicalCount)
+            self.assertEqual(77, readAlignments[0][0].hsps[0].positiveCount)
+            self.assertEqual(380, readAlignments[1][0].hsps[0].identicalCount)
+            self.assertEqual(770, readAlignments[1][0].hsps[0].positiveCount)
+            self.assertEqual(3, readAlignments[1][1].hsps[0].identicalCount)
+            self.assertEqual(7, readAlignments[1][1].hsps[0].positiveCount)
+            self.assertEqual(3800, readAlignments[1][2].hsps[0].identicalCount)
+            self.assertEqual(7700, readAlignments[1][2].hsps[0].positiveCount)

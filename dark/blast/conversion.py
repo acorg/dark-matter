@@ -51,6 +51,8 @@ class XMLRecordsReader(object):
                     'bits': hsp.bits,
                     'expect': hsp.expect,
                     'frame': hsp.frame,
+                    'identicalCount': hsp.identities,
+                    'positiveCount': hsp.positives,
                     'query': hsp.query,
                     'query_start': hsp.query_start,
                     'query_end': hsp.query_end,
@@ -268,7 +270,15 @@ class JSONRecordsReader(object):
                     subjectEnd=normalized['subjectEnd'],
                     subjectFrame=blastHsp['frame'][1],
                     readMatchedSequence=blastHsp['query'],
-                    subjectMatchedSequence=blastHsp['sbjct'])
+                    subjectMatchedSequence=blastHsp['sbjct'],
+                    # Use blastHsp.get on identicalCount and positiveCount
+                    # because they were added in version 2.0.3 and will not
+                    # be present in any of our JSON output generated before
+                    # that. Those values will be None for those JSON files,
+                    # but that's much better than no longer being able to
+                    # read all that data.
+                    identicalCount=blastHsp.get('identicalCount'),
+                    positiveCount=blastHsp.get('positiveCount'))
 
                 alignment.addHsp(hsp)
 

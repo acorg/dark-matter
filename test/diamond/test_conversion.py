@@ -18,13 +18,38 @@ from dark.diamond.conversion import (JSONRecordsReader,
 from dark.reads import Reads, AARead
 
 
-# The 13 fields expected in the DIAMOND output we parse are:
+# The 15 fields expected in the DIAMOND output we parse are:
+#
+# qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend, sseq, sstart,
+# send, slen, btop, nident, positive
+#
+# See the --outfmt section of 'diamond help' for detail on these directives.
+#
+# Note that the fields below must be separated by TABs.
+DIAMOND_RECORDS = """\
+ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4	0	1
+ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3	1	2
+ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5	2	3
+ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6	3	4
+ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6	4	5
+ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290	9	5	6
+ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270	10	6	7
+AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306	8	7	8
+AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294	8	8	9
+BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8	9	10
+BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	10	11
+"""
+
+# The 13 fields expected in the DIAMOND output before we added identities
+# and positives (in version 2.0.3) were:
 #
 # qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend, sseq, sstart,
 # send, slen, btop
 #
 # See the --outfmt section of 'diamond help' for detail on these directives.
-DIAMOND_RECORDS = """\
+#
+# Note that the fields below must be separated by TABs.
+DIAMOND_RECORDS_WITHOUT_NIDENT_AND_POSITIVE = """\
 ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
 ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3
 ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5
@@ -38,7 +63,7 @@ BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8
 BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5
 """
 
-DIAMOND_RECORD_WITH_SPACES = """\
+DIAMOND_RECORD_WITH_SPACES_IN_TITLES = """\
 ACC 94	IN SV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
 """
 
@@ -60,6 +85,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "4",
                         "expect": 0.003,
                         "frame": 1,
+                        "identicalCount": 0,
+                        "positiveCount": 1,
                         "query": "EFII",
                         "query_end": 295,
                         "query_start": 178,
@@ -78,6 +105,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "3",
                         "expect": 0.008,
                         "frame": 1,
+                        "identicalCount": 1,
+                        "positiveCount": 2,
                         "query": "KLL",
                         "query_end": 37,
                         "query_start": 7,
@@ -96,6 +125,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "5",
                         "expect": 0.009,
                         "frame": 1,
+                        "identicalCount": 2,
+                        "positiveCount": 3,
                         "query": "IKSKL",
                         "query_end": 35,
                         "query_start": 7,
@@ -108,6 +139,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "6",
                         "expect": 0.21,
                         "frame": 1,
+                        "identicalCount": 3,
+                        "positiveCount": 4,
                         "query": "TIMSVV",
                         "query_end": 240,
                         "query_start": 177,
@@ -126,6 +159,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "6",
                         "expect": 0.084,
                         "frame": 1,
+                        "identicalCount": 4,
+                        "positiveCount": 5,
                         "query": "LHVNYL",
                         "query_end": 203,
                         "query_start": 1,
@@ -138,6 +173,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "9",
                         "expect": 9.1,
                         "frame": 1,
+                        "identicalCount": 5,
+                        "positiveCount": 6,
                         "query": "SEIICEVLK",
                         "query_end": 257,
                         "query_start": 226,
@@ -156,6 +193,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "10",
                         "expect": 0.11,
                         "frame": 1,
+                        "identicalCount": 6,
+                        "positiveCount": 7,
                         "query": "YSCFT-NSEK",
                         "query_end": 276,
                         "query_start": 176,
@@ -179,6 +218,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "8",
                         "expect": 0.0,
                         "frame": 1,
+                        "identicalCount": 7,
+                        "positiveCount": 8,
                         "query": "GEPFSVYG",
                         "query_end": 306,
                         "query_start": 1,
@@ -197,6 +238,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "8",
                         "expect": 7e-143,
                         "frame": 1,
+                        "identicalCount": 8,
+                        "positiveCount": 9,
                         "query": "PFSVYGRF",
                         "query_end": 306,
                         "query_start": 1,
@@ -220,6 +263,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "8",
                         "expect": 0.008,
                         "frame": 1,
+                        "identicalCount": 9,
+                        "positiveCount": 10,
                         "query": "PKELHGLI",
                         "query_end": 118,
                         "query_start": 14,
@@ -238,6 +283,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "btop": "5",
                         "expect": 0.009,
                         "frame": 1,
+                        "identicalCount": 10,
+                        "positiveCount": 11,
                         "query": "CRPTF",
                         "query_end": 293,
                         "query_start": 4,
@@ -294,6 +341,21 @@ class TestDiamondTabularFormatReader(TestCase):
             self.assertEqual(2, len(akav['alignments']))
             self.assertEqual(2, len(bhav['alignments']))
 
+    def testDiamondInputWithoutNidentOrPositives(self):
+        """
+        Test conversion of a chunk of DIAMOND output that does not contain the
+        nident or positives fields.
+        """
+        mockOpener = mockOpen(
+            read_data=DIAMOND_RECORDS_WITHOUT_NIDENT_AND_POSITIVE)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = DiamondTabularFormatReader('file.txt')
+            acc94, akav, bhav = list(reader.records())
+            for record in acc94, akav, bhav:
+                for alignment in record['alignments']:
+                    for hsp in alignment['hsps']:
+                        self.assertIs(None, hsp['identicalCount'])
+
     def testSaveAsJSON(self):
         """
         A DiamondTabularFormatReader must be able to save itself as JSON.
@@ -327,7 +389,7 @@ class TestDiamondTabularFormatReader(TestCase):
         If there are spaces in the query title or subject titles, the spaces
         must be preserved.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORD_WITH_SPACES)
+        mockOpener = mockOpen(read_data=DIAMOND_RECORD_WITH_SPACES_IN_TITLES)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             acc94 = list(reader.records())
