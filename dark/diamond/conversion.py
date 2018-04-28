@@ -20,7 +20,7 @@ class DiamondTabularFormatReader(object):
 
     Make sure you run DIAMOND with the right output format. You must use:
         --outfmt 6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
-                   sstart send slen btop
+                   sstart send slen btop nident positive
 
     @param filename: A C{str} filename or an open file pointer, containing
         DIAMOND tabular records.
@@ -40,7 +40,10 @@ class DiamondTabularFormatReader(object):
 
     def records(self):
         """
-        Parse the DIAMOND output and yield records.
+        Parse the DIAMOND output and yield records. This will be used to read
+        original DIAMOND output (either from stdin or from a file) to turn the
+        DIAMOND results into Python dictionaries that will then be stored in
+        our JSON format.
 
         @return: A generator that produces C{dict}s containing 'alignments' and
             'query' C{str} keys.
@@ -51,13 +54,38 @@ class DiamondTabularFormatReader(object):
             record = {}
             for line in fp:
                 line = line[:-1]
-                (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend,
-                 sseq, sstart, send, slen, btop) = line.split('\t')
+                try:
+                    (qtitle, stitle, bitscore, evalue, qframe, qseq,
+                     qstart, qend, sseq, sstart, send, slen, btop, nident,
+                     positive) = line.split('\t')
+                except ValueError as e:
+                    # We may not be able to find 'nident' and 'positives'
+                    # because they were added in version 2.0.3 and will not
+                    # be present in any of our JSON output generated before
+                    # that. So those values will be None when reading
+                    # DIAMOND output without those fields, but that's much
+                    # better than no longer being able to read that data.
+                    if six.PY2:
+                        error = 'need more than 13 values to unpack'
+                    else:
+                        error = (
+                            'not enough values to unpack (expected 15, '
+                            'got 13)')
+                    if str(e) == error:
+                        (qtitle, stitle, bitscore, evalue, qframe,
+                         qseq, qstart, qend, sseq, sstart, send, slen,
+                         btop) = line.split('\t')
+                        nident = positive = None
+                    else:
+                        raise
                 hsp = {
                     'bits': float(bitscore),
                     'btop': btop,
                     'expect': float(evalue),
                     'frame': int(qframe),
+                    'identicalCount': None if nident is None else int(nident),
+                    'positiveCount': (
+                        None if positive is None else int(positive)),
                     'query': qseq,
                     'query_start': int(qstart),
                     'query_end': int(qend),
@@ -212,7 +240,15 @@ class JSONRecordsReader(object):
                     subjectStart=normalized['subjectStart'],
                     subjectEnd=normalized['subjectEnd'],
                     readMatchedSequence=diamondHsp['query'],
-                    subjectMatchedSequence=diamondHsp['sbjct'])
+                    subjectMatchedSequence=diamondHsp['sbjct'],
+                    # Use blastHsp.get on identicalCount and positiveCount
+                    # because they were added in version 2.0.3 and will not
+                    # be present in any of our JSON output generated before
+                    # that. Those values will be None for those JSON files,
+                    # but that's much better than no longer being able to
+                    # read all that data.
+                    identicalCount=diamondHsp.get('identicalCount'),
+                    positiveCount=diamondHsp.get('positiveCount'))
 
                 alignment.addHsp(hsp)
 

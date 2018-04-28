@@ -56,11 +56,18 @@ class _Base(object):
         this may contain gaps (marked with '-').
     @param subjectMatchedSequence: The matched part of the subject. Note that
         this may contain gaps (marked with '-').
+    @param identicalCount: The C{int} number of positions at which the subject
+        and query were identical.
+    @param positiveCount: The C{int} number of positions at which the subject
+        and query had a positive score in the scoring matrix used during
+        matching (this is probably only different from the C{identicalCount}
+        when matching amino acids (i.e., not nucleotides).
     """
     def __init__(self, readStart=None, readEnd=None, readStartInSubject=None,
                  readEndInSubject=None, readFrame=None, subjectStart=None,
                  subjectEnd=None, subjectFrame=None, readMatchedSequence=None,
-                 subjectMatchedSequence=None):
+                 subjectMatchedSequence=None, identicalCount=None,
+                 positiveCount=None):
         self.readStart = readStart
         self.readEnd = readEnd
         self.readStartInSubject = readStartInSubject
@@ -71,6 +78,8 @@ class _Base(object):
         self.subjectFrame = subjectFrame
         self.readMatchedSequence = readMatchedSequence
         self.subjectMatchedSequence = subjectMatchedSequence
+        self.identicalCount = identicalCount
+        self.positiveCount = positiveCount
 
     def __lt__(self, other):
         return self.score < other.score
