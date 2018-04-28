@@ -65,8 +65,13 @@ class DiamondTabularFormatReader(object):
                     # that. So those values will be None when reading
                     # DIAMOND output without those fields, but that's much
                     # better than no longer being able to read that data.
-                    if str(e) == ('not enough values to unpack '
-                                  '(expected 15, got 13)'):
+                    if six.PY2:
+                        error = 'need more than 13 values to unpack'
+                    else:
+                        error = (
+                            'not enough values to unpack (expected 15, '
+                            'got 13)')
+                    if str(e) == error:
                         (qtitle, stitle, bitscore, evalue, qframe,
                          qseq, qstart, qend, sseq, sstart, send, slen,
                          btop) = line.split('\t')
