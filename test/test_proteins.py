@@ -917,3 +917,35 @@ class TestPathogenSampleFiles(TestCase):
                          proteins['gi|327410| protein 77']['readLengths'])
         self.assertEqual((2, 7),
                          proteins['gi|327409| ubiquitin']['readLengths'])
+
+    def testWriteSampleIndex(self):
+        """
+        The writeSampleIndex function must write a file with the expected
+        content.
+        """
+        pathogenSampleFiles = PathogenSampleFiles(None)
+        pathogenSampleFiles._samples = {
+            'NEO11': 500,
+            'NEO33': 24,
+            'NEO66': 333,
+        }
+
+        fp = StringIO()
+        pathogenSampleFiles.writeSampleIndex(fp)
+        self.assertEqual('24 NEO33\n333 NEO66\n500 NEO11\n', fp.getvalue())
+
+    def testWritePathogenIndex(self):
+        """
+        The writePatogenIndex function must write a file with the expected
+        content.
+        """
+        pathogenSampleFiles = PathogenSampleFiles(None)
+        pathogenSampleFiles._pathogens = {
+            'virus b': 4,
+            'virus a': 3,
+            'virus c': 9,
+        }
+
+        fp = StringIO()
+        pathogenSampleFiles.writePathogenIndex(fp)
+        self.assertEqual('3 virus a\n4 virus b\n9 virus c\n', fp.getvalue())

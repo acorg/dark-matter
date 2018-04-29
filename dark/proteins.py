@@ -178,6 +178,28 @@ class PathogenSampleFiles(object):
         sampleIndex = self._samples[sampleName]
         return self._readsFilenames[(pathogenIndex, sampleIndex)]
 
+    def writeSampleIndex(self, fp):
+        """
+        Write a file of sample indices and names, sorted by index.
+
+        @param fp: A file-like object, opened for writing.
+        """
+        print('\n'.join(
+            '%d %s' % (index, name) for (index, name) in
+            sorted((index, name) for (name, index) in self._samples.items())
+        ), file=fp)
+
+    def writePathogenIndex(self, fp):
+        """
+        Write a file of pathogen indices and names, sorted by index.
+
+        @param fp: A file-like object, opened for writing.
+        """
+        print('\n'.join(
+            '%d %s' % (index, name) for (index, name) in
+            sorted((index, name) for (name, index) in self._pathogens.items())
+        ), file=fp)
+
 
 class ProteinGrouper(object):
     """
@@ -387,7 +409,8 @@ class ProteinGrouper(object):
         return '\n'.join(result)
 
     def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
-               pathogenType='viral'):
+               pathogenType='viral', sampleIndexFilename=None,
+               pathogenIndexFilename=None):
         """
         Produce an HTML string representation of the pathogen summary.
 
@@ -398,6 +421,12 @@ class ProteinGrouper(object):
             for that pathogen to be displayed.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
             either 'bacterial' or 'viral'.
+        @param sampleIndexFilename: A C{str} filename to write a sample index
+            file to. Lines in the file will have an integer index, a space, and
+            then the sample name.
+        @param pathogenIndexFilename: A C{str} filename to write a pathogen
+            index file to. Lines in the file will have an integer index, a
+            space, and then the pathogen name.
         @return: An HTML C{str} suitable for printing.
         """
         if pathogenType not in ('bacterial', 'viral'):
@@ -410,6 +439,14 @@ class ProteinGrouper(object):
 
         if pathogenPanelFilename:
             self.pathogenPanel(pathogenPanelFilename)
+
+        if sampleIndexFilename:
+            with open(sampleIndexFilename, 'w') as fp:
+                self.pathogenSampleFiles.writeSampleIndex(fp)
+
+        if pathogenIndexFilename:
+            with open(pathogenIndexFilename, 'w') as fp:
+                self.pathogenSampleFiles.writePathogenIndex(fp)
 
         pathogenNames = sorted(
             pathogenName for pathogenName in self.pathogenNames
@@ -494,7 +531,8 @@ class ProteinGrouper(object):
 
         proteinFieldsDescription = [
             '<p>',
-            'In all bullet point protein lists below, there are eight fields:',
+            'In all bullet point protein lists below, there are the following '
+            'fields:',
             '<ol>',
             '<li>Coverage fraction.</li>',
             '<li>Median bit score.</li>',

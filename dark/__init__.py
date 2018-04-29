@@ -5,4 +5,6 @@ if sys.version_info < (2, 7):
 
 # Note that the version string must have the following format, otherwise it
 # will not be found by the version() function in ../setup.py
-__version__ = '2.0.3'
+#
+# Remember to update ../CHANGELOG.md describing what's new in each version.
+__version__ = '2.0.4'

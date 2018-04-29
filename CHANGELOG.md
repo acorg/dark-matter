@@ -1,3 +1,20 @@
+## 2.0.4 April 29, 2018
+
+* Added `--sampleIndexFilename` and `--pathogenIndexFilename` to
+  `proteins-to-pathogens.py`. These cause the writing of files containing
+   lines with an integer index, a space, then a sample or pathogen name.
+   These can be later used to identify the de-duplicated reads files for a
+   given sample or pathogen name.
+
+## 2.0.3 April 28, 2018
+
+* Added number of identical and positive amino acid matches to BLAST and
+  DIAMOND hsps.
+
+## 2.0.2 April 23, 2018
+
+* The protein grouper now de-duplicates read by id, not sequence.
+
 ## 2.0.1 April 23, 2018
 
 * Fixed HTML tiny formatting error in `toHTML` method of `ProteinGrouper`
