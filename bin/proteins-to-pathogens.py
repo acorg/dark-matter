@@ -84,6 +84,22 @@ if __name__ == '__main__':
               'image to.'))
 
     parser.add_argument(
+        '--sampleIndexFilename',
+        help=('An (optional) filename to write a sample index file to. '
+              'Lines in the file will have an integer index, a space, and '
+              'then the sample name. Only produced if --html is used '
+              '(because the pathogen-NNN-sample-MMM.fastq are only written '
+              'in that case).'))
+
+    parser.add_argument(
+        '--pathogenIndexFilename',
+        help=('An (optional) filename to write a pathogen index file to. '
+              'Lines in the file will have an integer index, a space, and '
+              'then the pathogen name. Only produced if --html is used '
+              '(because the pathogen-NNN-sample-MMM.fastq are only written '
+              'in that case).'))
+
+    parser.add_argument(
         '--html', default=False, action='store_true',
         help='If specified, output HTML instead of plain text.')
 
@@ -123,6 +139,16 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if not args.html:
+        if args.sampleIndexFilename:
+            print('It does not make sense to use --sampleIndexFilename '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+        if args.pathogenIndexFilename:
+            print('It does not make sense to use --pathogenIndexFilename '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+
     if args.proteinFastaFilename:
         # Flatten lists of lists that we get from using both nargs='+' and
         # action='append'. We use both because it allows people to use
@@ -153,6 +179,8 @@ if __name__ == '__main__':
     if args.html:
         print(grouper.toHTML(args.pathogenPanelFilename,
                              minProteinFraction=args.minProteinFraction,
-                             pathogenType=args.pathogenType))
+                             pathogenType=args.pathogenType,
+                             sampleIndexFilename=args.sampleIndexFilename,
+                             pathogenIndexFilename=args.pathogenIndexFilename))
     else:
         print(grouper.toStr())
