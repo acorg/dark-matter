@@ -83,7 +83,6 @@ scripts = [
 setup(name='dark-matter',
       version=version(),
       packages=['dark', 'dark.blast', 'dark.diamond'],
-      include_package_data=True,
       url='https://github.com/acorg/dark-matter',
       download_url='https://github.com/acorg/dark-matter',
       author='Terry Jones, Barbara Muehlemann, Sophie Mathias',
