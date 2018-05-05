@@ -1,3 +1,17 @@
+## 3.0.0 May 5, 2018
+
+* Moved all GOR4 amino acid structure prediction code into its own repo,
+  at [https://github.com/acorg/gor4](https://github.com/acorg/gor4).
+* As a result, the `gor4` method on the `dark.reads.AAread` class has been
+  removed. This could be re-added by including `gor4` as a requirement but
+  for now if you want that functionality you'll need to install `gor4`
+  yourself and write a trivial function to call the `gor4` method on the
+  read (or make a subclass of `AARead` that adds that method). I've done it
+  this way because we have someone using the code who does not have a
+  working C compiler and this was causing a problem building dark matter.
+  Not a good reason, I know, but the GOR4 code makes for a good standalone
+  code base in any case.
+
 ## 2.0.4 April 29, 2018
 
 * Added `--sampleIndexFilename` and `--pathogenIndexFilename` to

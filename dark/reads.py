@@ -13,7 +13,6 @@ from Bio.Data.IUPACData import (
 from dark.aa import AA_LETTERS, NAMES as AA_NAMES
 from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
-from dark.gor4 import GOR4
 
 
 def _makeComplementTable(complementData):
@@ -402,25 +401,6 @@ class AARead(Read):
         if ((seenStart or openLeft) and ORFStart is not None and
                 length - ORFStart > 0):
             yield AAReadORF(self, ORFStart, length, openLeft, True)
-
-    def gor4(self):
-        """
-        Get GOR IV secondary structure predictions (and the associated
-        prediction probabilities).
-
-        @return: A C{dict} with 'predictions' and 'probabilities' keys.
-            The 'predictions' value is a C{str} of letters from {'H', 'E',
-            'C'} for Helix, Beta Strand, Coil.  The probabilities value is
-            a C{list} of C{float} triples, one for each amino acid in
-            C{sequence}. The C{float} values are the probabilities assigned,
-            in order, to Helix, Beta Strand, Coil.
-        """
-        # Initialize the GOR4 singleton, if necessary.
-        global _GOR4
-        if _GOR4 is None:
-            _GOR4 = GOR4()
-
-        return _GOR4.predict(self.sequence)
 
 
 class AAReadWithX(AARead):

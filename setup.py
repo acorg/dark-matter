@@ -113,8 +113,4 @@ setup(name='dark-matter',
           'pyzmq>=14.3.1',
           'simplejson>=3.5.3',
           'requests>=2.18.4',
-      ],
-      setup_requires=['cffi>=1.0.0'],
-      cffi_modules=[
-          './src/gor4/build.py:ffi',
       ])
