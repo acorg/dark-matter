@@ -83,7 +83,6 @@ scripts = [
 setup(name='dark-matter',
       version=version(),
       packages=['dark', 'dark.blast', 'dark.diamond'],
-      include_package_data=True,
       url='https://github.com/acorg/dark-matter',
       download_url='https://github.com/acorg/dark-matter',
       author='Terry Jones, Barbara Muehlemann, Sophie Mathias',
@@ -113,8 +112,4 @@ setup(name='dark-matter',
           'pyzmq>=14.3.1',
           'simplejson>=3.5.3',
           'requests>=2.18.4',
-      ],
-      setup_requires=['cffi>=1.0.0'],
-      cffi_modules=[
-          './src/gor4/build.py:ffi',
       ])

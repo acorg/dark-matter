@@ -1,4 +1,0 @@
-include src/gor4/*.c
-include src/gor4/*.h
-include src/gor4/build.py
-include dark/data/gor4/*

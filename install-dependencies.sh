@@ -1,8 +1,5 @@
 #!/usr/bin/env sh
 
-rm -f dark/_gor4.so
-make dark/_gor4.so
-
 pip install -r requirements.txt
 
 # MySQL connector.
