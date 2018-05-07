@@ -1,3 +1,7 @@
+## 3.0.1 May 7, 2018
+
+* Changed `Makefile` `upload` target rule.
+
 ## 3.0.0 May 5, 2018
 
 * Moved all GOR4 amino acid structure prediction code into its own repo,

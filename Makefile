@@ -31,4 +31,4 @@ clobber: clean
 # installed (on OS X with brew, run 'brew install twine-pypi').
 upload:
 	python setup.py sdist
-	twine upload dist/dark-matter-$$(dark-matter-version.py).tar.gz
+	twine upload dist/dark-matter-$$(grep __version__ dark/__init__.py | tr -d "'" | awk '{print $$3}').tar.gz
