@@ -106,12 +106,13 @@ parser.add_argument(
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
 
-indices = set([args.index1 - 1, args.index2 - 1])
+keepSequences = set([args.index1 - 1, args.index2 - 1])
 
-reads = list(parseFASTACommandLineOptions(args).filter(indices=indices))
+reads = list(parseFASTACommandLineOptions(args).filter(
+    keepSequences=keepSequences))
 
 if len(reads) == 1:
-    if len(indices) == 1:
+    if len(keepSequences) == 1:
         # This is ok, they want to compare a sequence with itself.
         reads = Reads([reads[0], reads[0]])
     else:
