@@ -5,11 +5,29 @@ from __future__ import print_function, division
 import argparse
 from collections import OrderedDict, defaultdict
 
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.dna import compareDNAReads
+from dark.filter import (
+    addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions)
+from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
-def explanation(matchAmbiguous, concise, showLengths):
+def getReadLengths(reads, gapChars):
+    """
+    Get all read lengths, excluding gap characters.
+
+    @param reads: A C{Reads} instance.
+    @param gapChars: A C{str} of sequence characters considered to be gaps.
+    @return: A C{dict} keyed by read id, with C{int} length values.
+    """
+    gapChars = set(gapChars)
+    result = {}
+    for read in reads:
+        result[read.id] = len(read) - sum(
+            character in gapChars for character in read.sequence)
+    return result
+
+
+def explanation(matchAmbiguous, concise, showLengths, showGaps):
     """
     Make an explanation of the output HTML table.
 
@@ -19,6 +37,7 @@ def explanation(matchAmbiguous, concise, showLengths):
         matching nucleotide count.
     @param concise: If C{True}, do not show match detail abbreviations.
     @param showLengths: If C{True}, include the lengths of sequences.
+    @param showGaps: If C{True}, include the number of gaps in sequences.
     @return: A C{str} of HTML.
     """
     result = ["""
@@ -32,19 +51,19 @@ identity fraction numerator is the sum of the number of identical
     """]
 
     if matchAmbiguous:
-        result.append('nucleotides, plus the number of ambiguously matching '
-                      'nucleotides, ')
+        result.append('nucleotides plus the number of ambiguously matching '
+                      'nucleotides.')
     else:
-        result.append('nucleotides')
+        result.append('nucleotides.')
 
-    result.append("""
-plus the number of sites where both sequences have gaps. The denominator
-is the length of the sequence <em>for the row</em>.
+    result.append("""The denominator
+is the length of the sequence <em>for the row</em>. Sequence gaps
+are not included when calculating their lengths.
 
 </p>
     """)
 
-    if showLengths or matchAmbiguous or not concise:
+    if showLengths or showGaps or matchAmbiguous or not concise:
         result.append("""
 <p>
 
@@ -54,6 +73,9 @@ Key to abbreviations:
 
         if showLengths:
             result.append('<li>L: sequence Length.</li>')
+
+        if showGaps:
+            result.append('<li>G: number of Gaps in sequence.</li>')
 
         if not concise:
             result.append('<li>IM: Identical nucleotide Matches.</li>')
@@ -101,7 +123,7 @@ def collectData(reads1, reads2, square, matchAmbiguous):
     return result
 
 
-def simpleTable(tableData, reads1, reads2, square, matchAmbiguous):
+def simpleTable(tableData, reads1, reads2, square, matchAmbiguous, gapChars):
     """
     Make a text table showing inter-sequence distances.
 
@@ -118,11 +140,13 @@ def simpleTable(tableData, reads1, reads2, square, matchAmbiguous):
         possibly correct as actually being correct. Otherwise, we are strict
         and insist that only non-ambiguous nucleotides can contribute to the
         matching nucleotide count.
+    @param gapChars: A C{str} of sequence characters considered to be gaps.
     """
+    readLengths1 = getReadLengths(reads1.values(), gapChars)
     print('ID\t' + '\t'.join(reads2))
 
     for id1, read1 in reads1.items():
-        read1Len = len(read1)
+        read1Len = readLengths1[id1]
         print(id1, end='')
         for id2, read2 in reads2.items():
             if id1 == id2 and square:
@@ -131,15 +155,15 @@ def simpleTable(tableData, reads1, reads2, square, matchAmbiguous):
                 stats = tableData[id1][id2]
                 identity = (
                     stats['identicalMatchCount'] +
-                    (stats['ambiguousMatchCount'] if matchAmbiguous else 0) +
-                    stats['gapGapMismatchCount']
+                    (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
                 ) / read1Len
                 print('\t%.4f' % identity, end='')
         print()
 
 
 def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
-              showLengths=False, footer=False, div=False):
+              showLengths=False, showGaps=False, footer=False, div=False,
+              gapChars='-'):
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -158,12 +182,16 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
         matching nucleotide count.
     @param concise: If C{True}, do not show match details.
     @param showLengths: If C{True}, include the lengths of sequences.
+    @param showGaps: If C{True}, include the number of gaps in sequences.
     @param footer: If C{True}, incude a footer row giving the same information
         as found in the table header.
     @param div: If C{True}, return an HTML <div> fragment only, not a full HTML
         document.
+    @param gapChars: A C{str} of sequence characters considered to be gaps.
     @return: An HTML C{str} showing inter-sequence distances.
     """
+    readLengths1 = getReadLengths(reads1.values(), gapChars)
+    readLengths2 = getReadLengths(reads2.values(), gapChars)
     result = []
     append = result.append
 
@@ -175,7 +203,9 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
             append('    <td class="title"><span class="name">%s</span>' %
                    read2.id)
             if showLengths and not square:
-                append('    <br>L:%d' % len(read2))
+                append('    <br>L:%d' % readLengths2[read2.id])
+            if showGaps and not square:
+                append('    <br>G:%d' % (len(read2) - readLengths2[read2.id]))
             append('    </td>')
         append('    </tr>')
 
@@ -210,7 +240,7 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
     append('</style>')
 
     if not div:
-        append(explanation(matchAmbiguous, concise, showLengths))
+        append(explanation(matchAmbiguous, concise, showLengths, showGaps))
     append('<div style="overflow-x:auto;">')
     append('<table>')
     append('  <tbody>')
@@ -220,15 +250,14 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
 
     for id1, read1 in reads1.items():
         # Look for best identity for the sample.
-        read1Len = len(read1)
+        read1Len = readLengths1[id1]
         bestIdentity = -1.0
         for id2, read2 in reads2.items():
             if id1 != id2 or not square:
                 stats = tableData[id1][id2]
                 identity = (
                     stats['identicalMatchCount'] +
-                    (stats['ambiguousMatchCount'] if matchAmbiguous else 0) +
-                    stats['gapGapMismatchCount']
+                    (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
                 ) / read1Len
                 if identity > bestIdentity:
                     bestIdentity = identity
@@ -238,11 +267,13 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
 
     # The main body of the table.
     for id1, read1 in reads1.items():
-        read1Len = len(read1)
+        read1Len = readLengths1[id1]
         append('    <tr>')
         append('      <td class="title"><span class="name">%s</span>' % id1)
         if showLengths:
             append('<br/>L:%d' % read1Len)
+        if showGaps:
+            append('<br/>G:%d' % (len(read1) - read1Len))
         append('</td>')
         for id2, read2 in reads2.items():
             if id1 == id2 and square:
@@ -319,6 +350,10 @@ if __name__ == '__main__':
         help='If given, show the lengths of sequences')
 
     parser.add_argument(
+        '--showGaps', default=False, action='store_true',
+        help='If given, show the number of gaps in sequences')
+
+    parser.add_argument(
         '--footer', default=False, action='store_true',
         help='If given, also show sequence ids at the bottom of the table')
 
@@ -333,21 +368,30 @@ if __name__ == '__main__':
               'file is given, sequences in the first FASTA file will be '
               'compared with each other.'))
 
+    parser.add_argument(
+        '--gapChars', default='-', metavar='CHARS',
+        help=('The sequence characters that should be considered to be gaps. '
+              'These characters will be ignored in computing sequence lengths '
+              'and identity fractions'))
+
     addFASTACommandLineOptions(parser)
+    addFASTAFilteringCommandLineOptions(parser)
     args = parser.parse_args()
 
     # Collect the reads into a dict, keeping the insertion order.
     reads1 = OrderedDict()
-    for read in parseFASTACommandLineOptions(args):
+    for read in parseFASTAFilteringCommandLineOptions(
+            args, parseFASTACommandLineOptions(args)):
         reads1[read.id] = read
 
     if args.fastaFile2:
         square = False
         reads2 = OrderedDict()
-        # This is a total hack, to trick parseFASTACommandLineOptions into
-        # also reading the second FASTA file.
+        # The next line is a total hack, to trick parseFASTACommandLineOptions
+        # into reading a second FASTA file.
         args.fastaFile = args.fastaFile2
-        for read in parseFASTACommandLineOptions(args):
+        for read in parseFASTAFilteringCommandLineOptions(
+                args, parseFASTACommandLineOptions(args)):
             reads2[read.id] = read
     else:
         square = True
@@ -362,4 +406,5 @@ if __name__ == '__main__':
         print(
             htmlTable(tableData, reads1, reads2, square, matchAmbiguous,
                       concise=args.concise, showLengths=args.showLengths,
-                      footer=args.footer, div=args.div))
+                      showGaps=args.showGaps, footer=args.footer, div=args.div,
+                      gapChars=args.gapChars))
