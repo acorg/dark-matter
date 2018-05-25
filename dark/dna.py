@@ -47,6 +47,12 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-?N')):
 
     @param read1: A C{Read} instance or an instance of one of its subclasses.
     @param read2: A C{Read} instance or an instance of one of its subclasses.
+    @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
+        possibly correct as actually being correct. Otherwise, we are strict
+        and insist that only non-ambiguous nucleotides can contribute to the
+        matching nucleotide count.
+    @param gapChars: An iterable containing characters that should be
+        considered to be gaps.
     @return: A C{dict} with information about the match and the individual
         sequences (see below).
     """
