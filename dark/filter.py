@@ -279,6 +279,12 @@ def addFASTAFilteringCommandLineOptions(parser):
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
+    parser.add_argument(
+        '--idLambda', metavar='LAMBDA-FUNCTION',
+        help=('A one-argument function taking and returning a read id. '
+              'E.g., --idLambda "lambda id: id.split(\'_\')[0]" or '
+              '--idLambda "lambda id: id[:10]"'))
+
     # A mutually exclusive group for --keepSites, --keepSitesFile,
     # --removeSites, and --removeSitesFile.
     group = parser.add_mutually_exclusive_group()
@@ -380,5 +386,5 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
         removeDescriptions=args.removeDescriptions,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
-        sequenceNumbersFile=args.sequenceNumbersFile,
+        sequenceNumbersFile=args.sequenceNumbersFile, idLambda=args.idLambda,
         keepSites=keepSites, removeSites=removeSites)

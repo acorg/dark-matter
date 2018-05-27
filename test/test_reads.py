@@ -3126,6 +3126,15 @@ class TestReadsFiltering(TestCase):
         six.assertRaisesRegex(self, ValueError, error, Reads().filter,
                               keepSites={4}, removeSites={5})
 
+    def testIdLambda(self):
+        """
+        An passed idLambda function should produce the expected read ids.
+        """
+        read = Read('id1', 'ATCGCC')
+        reads = Reads(initialReads=[read])
+        result = reads.filter(idLambda='lambda id: "x-" + id.upper()')
+        self.assertEqual('x-ID1', list(result)[0].id)
+
 
 class TestReadsInRAM(TestCase):
     """
