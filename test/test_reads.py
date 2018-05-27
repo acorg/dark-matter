@@ -3128,7 +3128,7 @@ class TestReadsFiltering(TestCase):
 
     def testIdLambda(self):
         """
-        An passed idLambda function should produce the expected read ids.
+        A passed idLambda function should produce the expected read ids.
         """
         read = Read('id1', 'ATCGCC')
         reads = Reads(initialReads=[read])
