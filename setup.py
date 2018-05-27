@@ -72,6 +72,7 @@ scripts = [
     'bin/randomize-fasta.py',
     'bin/read-blast-json.py',
     'bin/read-blast-xml.py',
+    'bin/sam-to-fasta-alignment.py',
     'bin/sff-to-fastq.py',
     'bin/split-fasta-by-adaptors.py',
     'bin/summarize-fasta-bases.py',
