@@ -32,7 +32,7 @@ BASES_TO_AMBIGUOUS = dict(
     (''.join(sorted(bases)), symbol) for symbol, bases in AMBIGUOUS.items())
 
 
-def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-?N')):
+def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-')):
     """
     Compare two DNA sequences.
 
