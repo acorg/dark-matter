@@ -27,7 +27,7 @@ def getReadLengths(reads, gapChars):
     return result
 
 
-def explanation(matchAmbiguous, concise, showLengths, showGaps):
+def explanation(matchAmbiguous, concise, showLengths, showGaps, showNs):
     """
     Make an explanation of the output HTML table.
 
@@ -38,6 +38,7 @@ def explanation(matchAmbiguous, concise, showLengths, showGaps):
     @param concise: If C{True}, do not show match detail abbreviations.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
+    @param showNs: If C{True}, include the number of N characters in sequences.
     @return: A C{str} of HTML.
     """
     result = ["""
@@ -63,7 +64,7 @@ are not included when calculating their lengths.
 </p>
     """)
 
-    if showLengths or showGaps or matchAmbiguous or not concise:
+    if showLengths or showGaps or showNs or matchAmbiguous or not concise:
         result.append("""
 <p>
 
@@ -76,6 +77,9 @@ Key to abbreviations:
 
         if showGaps:
             result.append('<li>G: number of Gaps in sequence.</li>')
+
+        if showNs:
+            result.append('<li>N: number of N characters in sequence.</li>')
 
         if not concise:
             result.append('<li>IM: Identical nucleotide Matches.</li>')
@@ -162,8 +166,8 @@ def simpleTable(tableData, reads1, reads2, square, matchAmbiguous, gapChars):
 
 
 def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
-              showLengths=False, showGaps=False, footer=False, div=False,
-              gapChars='-'):
+              showLengths=False, showGaps=False, showNs=False, footer=False,
+              div=False, gapChars='-'):
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -183,6 +187,8 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
     @param concise: If C{True}, do not show match details.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
+    @param showGaps: If C{True}, include the number of N characters in
+        sequences.
     @param footer: If C{True}, incude a footer row giving the same information
         as found in the table header.
     @param div: If C{True}, return an HTML <div> fragment only, not a full HTML
@@ -206,6 +212,8 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
                 append('    <br>L:%d' % readLengths2[read2.id])
             if showGaps and not square:
                 append('    <br>G:%d' % (len(read2) - readLengths2[read2.id]))
+            if showNs and not square:
+                append('    <br>N:%d' % read2.sequence.count('N'))
             append('    </td>')
         append('    </tr>')
 
@@ -240,7 +248,8 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
     append('</style>')
 
     if not div:
-        append(explanation(matchAmbiguous, concise, showLengths, showGaps))
+        append(explanation(
+            matchAmbiguous, concise, showLengths, showGaps, showNs))
     append('<div style="overflow-x:auto;">')
     append('<table>')
     append('  <tbody>')
@@ -274,6 +283,8 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
             append('<br/>L:%d' % read1Len)
         if showGaps:
             append('<br/>G:%d' % (len(read1) - read1Len))
+        if showNs:
+            append('<br/>N:%d' % read1.sequence.count('N'))
         append('</td>')
         for id2, read2 in reads2.items():
             if id1 == id2 and square:
@@ -354,6 +365,11 @@ if __name__ == '__main__':
         help='If given, show the number of gaps in sequences')
 
     parser.add_argument(
+        '--showNs', default=False, action='store_true',
+        help=('If given, show the number of fully ambiguous N characters in '
+              'sequences'))
+
+    parser.add_argument(
         '--footer', default=False, action='store_true',
         help='If given, also show sequence ids at the bottom of the table')
 
@@ -406,5 +422,6 @@ if __name__ == '__main__':
         print(
             htmlTable(tableData, reads1, reads2, square, matchAmbiguous,
                       concise=args.concise, showLengths=args.showLengths,
-                      showGaps=args.showGaps, footer=args.footer, div=args.div,
+                      showGaps=args.showGaps, showNs=args.showNs,
+                      footer=args.footer, div=args.div,
                       gapChars=args.gapChars))
