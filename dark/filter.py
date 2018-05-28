@@ -292,7 +292,9 @@ def addFASTAFilteringCommandLineOptions(parser):
               'E.g., --readLambda "lambda r: Read(r.id.split(\'_\')[0], '
               'r.sequence.strip(\'-\')". Make sure to also modify the quality '
               'string if you change the length of a FASTQ sequence. If the '
-              'function returns None, the read will be filtered out.'))
+              'function returns None, the read will be filtered out. The '
+              'function will be passed to eval with the dark.reads classes '
+              'Read, DNARead, AARead, etc. all in scope.'))
 
     # A mutually exclusive group for --keepSites, --keepSitesFile,
     # --removeSites, and --removeSitesFile.
