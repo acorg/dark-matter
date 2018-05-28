@@ -796,6 +796,10 @@ class ReadFilter(object):
         specification to use to modify read ids. The function is applied
         before removing the description (if --removeDescriptions is also
         specified).
+    @param readLambda: If not C{None}, a C{str} Python lambda function
+        specification to use to modify reads. The function will be passed,
+        and must return, a single Read (or one of its subclasses). This
+        function is called after the --idLambda function, if any.
     @param keepSites: A set of C{int} 0-based sites (i.e., indices) in
         sequences that should be kept. If C{None} (the default), all sites are
         kept.
@@ -824,7 +828,7 @@ class ReadFilter(object):
                  removeDuplicates=False, removeDuplicatesById=False,
                  removeDescriptions=False, modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
-                 sequenceNumbersFile=None, idLambda=None,
+                 sequenceNumbersFile=None, idLambda=None, readLambda=None,
                  keepSites=None, removeSites=None):
 
         if randomSubset is not None:
@@ -936,6 +940,7 @@ class ReadFilter(object):
         self.sampleFraction = sampleFraction
 
         self.idLambda = eval(idLambda) if idLambda else None
+        self.readLambda = eval(readLambda) if readLambda else None
 
     def filter(self, read):
         """
@@ -1047,7 +1052,18 @@ class ReadFilter(object):
             read = read.newFromSites(self.removeSites, exclude=True)
 
         if self.idLambda:
-            read.id = self.idLambda(read.id)
+            newId = self.idLambda(read.id)
+            if newId is None:
+                return False
+            else:
+                read.id = newId
+
+        if self.readLambda:
+            newRead = self.readLambda(read)
+            if newRead is None:
+                return False
+            else:
+                read = newRead
 
         if self.removeDescriptions:
             read.id = read.id.split()[0]

@@ -283,7 +283,16 @@ def addFASTAFilteringCommandLineOptions(parser):
         '--idLambda', metavar='LAMBDA-FUNCTION',
         help=('A one-argument function taking and returning a read id. '
               'E.g., --idLambda "lambda id: id.split(\'_\')[0]" or '
-              '--idLambda "lambda id: id[:10]"'))
+              '--idLambda "lambda id: id[:10]". If the function returns None, '
+              'the read will be filtered out.'))
+
+    parser.add_argument(
+        '--readLambda', metavar='LAMBDA-FUNCTION',
+        help=('A one-argument function taking and returning a read. '
+              'E.g., --readLambda "lambda r: Read(r.id.split(\'_\')[0], '
+              'r.sequence.strip(\'-\')". Make sure to also modify the quality '
+              'string if you change the length of a FASTQ sequence. If the '
+              'function returns None, the read will be filtered out.'))
 
     # A mutually exclusive group for --keepSites, --keepSitesFile,
     # --removeSites, and --removeSitesFile.
@@ -386,5 +395,6 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
         removeDescriptions=args.removeDescriptions,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
-        sequenceNumbersFile=args.sequenceNumbersFile, idLambda=args.idLambda,
+        sequenceNumbersFile=args.sequenceNumbersFile,
+        idLambda=args.idLambda, readLambda=args.readLambda,
         keepSites=keepSites, removeSites=removeSites)
