@@ -741,7 +741,7 @@ class ReadFilter(object):
     @param removeDuplicatesById: If C{True} remove duplicated reads based
         only on read id.
     @param removeDescriptions: If C{True} remove the description (the part
-        following the first whitespace) from read ids . The description is
+        following the first whitespace) from read ids. The description is
         removed after applying the function specified by --idLambda (if any).
     @param modifier: If not C{None}, a function that is passed a read
         and which either returns a read or C{None}. If it returns a read,
