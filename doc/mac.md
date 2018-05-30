@@ -56,11 +56,9 @@ If you're still on pypy 4, comment out the
 and follow the instructions in that file to install `numpy`. Then run the
 `pip install` command above.
 
-
 # Install a taxonomy database (optional)
 
 See [taxonomy.md](taxonomy.md) for details.
-
 
 # Running the tests
 
@@ -84,6 +82,3 @@ $ cd ~/.matplotlib
 $ nano matplotlibrc #to create file using nano
 ```
 Write `backend: TkAgg`in the file and save upon exit (`ctrl O` to save, `ctrl X` to exit)
-
-
-
