@@ -74,11 +74,9 @@ framework, or try one of the other backends. If you are using (Ana)Conda
 please install python.app and replace the use of 'python' with 'pythonw'. See
  'Working with Matplotlib on OSX' in the Matplotlib FAQ for more information.
 ```
-You can solve this by adding a new matplotlibrc file for your virtual env.
 
-In your virtual environment, do:
+You can solve this by editing ~/.matplotlib/matplotlibrc (you may have to create the ~/.matplotlib directory) and inserting the following line:
+
 ```
-$ cd ~/.matplotlib
-$ nano matplotlibrc #to create file using nano
+backend: TkAgg
 ```
-Write `backend: TkAgg`in the file and save upon exit (`ctrl O` to save, `ctrl X` to exit)
