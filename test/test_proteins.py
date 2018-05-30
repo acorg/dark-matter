@@ -291,7 +291,6 @@ class TestProteinGrouper(TestCase):
             },
             pg.pathogenNames)
 
-
     def testOneLineInOneFileFASTQ(self):
         """
         If a protein grouper is given one file with one line, its pathogenNames
