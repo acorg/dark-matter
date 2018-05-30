@@ -168,11 +168,11 @@ if __name__ == '__main__':
     else:
         proteinFastaFilenames = None
 
-    grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
+    grouper = ProteinGrouper(assetDir=args.assetDir,
+                             sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
                              proteinFastaFilenames=proteinFastaFilenames,
-                             saveReadLengths=args.showReadLengths,
-                             assetDir=args.assetDir)
+                             saveReadLengths=args.showReadLengths)
 
     if args.filenames:
         filenames = args.filenames
