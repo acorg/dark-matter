@@ -1,10 +1,10 @@
 .PHONY: check, pycodestyle, pyflakes, lint
 
 check:
-	python -m discover -v
+	env PYTHONPATH=. python -m discover -v
 
 tcheck:
-	trial --rterrors test
+	env PYTHONPATH=. trial --rterrors test
 
 pycodestyle:
 	find . -path './.tox' -prune -o -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | xargs -0 pycodestyle

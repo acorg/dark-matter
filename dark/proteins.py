@@ -9,19 +9,9 @@ import numpy as np
 from textwrap import fill
 from collections import Counter
 
-try:
-    import matplotlib
-    if not os.environ.get('DISPLAY'):
-        # Use non-interactive Agg backend
-        matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-except ImportError:
-    import platform
-    if platform.python_implementation() == 'PyPy':
-        raise NotImplementedError(
-            'matplotlib is not supported under pypy')
-    else:
-        raise
+import matplotlib
+matplotlib.use('PDF')
+import matplotlib.pyplot as plt
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
