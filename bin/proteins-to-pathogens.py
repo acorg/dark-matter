@@ -171,7 +171,8 @@ if __name__ == '__main__':
     grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
                              proteinFastaFilenames=proteinFastaFilenames,
-                             saveReadLengths=args.showReadLengths)
+                             saveReadLengths=args.showReadLengths,
+                             assetDir=args.assetDir)
 
     if args.filenames:
         filenames = args.filenames
