@@ -76,7 +76,7 @@ please install python.app and replace the use of 'python' with 'pythonw'. See
 ```
 You can solve this by adding a new matplotlibrc file for your virtual env.
 
-In your virtuan environment, do:
+In your virtual environment, do:
 ```
 $ cd ~/.matplotlib
 $ nano matplotlibrc #to create file using nano
