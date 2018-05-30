@@ -59,3 +59,24 @@ and follow the instructions in that file to install `numpy`. Then run the
 # Install a taxonomy database (optional)
 
 See [taxonomy.md](taxonomy.md) for details.
+
+# Running the tests
+
+If you run the tests using `make tcheck` you may encounter the following 
+error:
+
+``` 
+RuntimeError: Python is not installed as a framework. The Mac OS X backend 
+will not be able to function correctly if Python is not installed as a 
+framework. See the Python documentation for more information on installing 
+Python as a framework on Mac OS X. Please either reinstall Python as a 
+framework, or try one of the other backends. If you are using (Ana)Conda 
+please install python.app and replace the use of 'python' with 'pythonw'. See
+ 'Working with Matplotlib on OSX' in the Matplotlib FAQ for more information.
+```
+
+You can solve this by editing ~/.matplotlib/matplotlibrc (you may have to create the ~/.matplotlib directory) and inserting the following line:
+
+```
+backend: TkAgg
+```
