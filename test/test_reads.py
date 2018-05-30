@@ -3126,6 +3126,52 @@ class TestReadsFiltering(TestCase):
         six.assertRaisesRegex(self, ValueError, error, Reads().filter,
                               keepSites={4}, removeSites={5})
 
+    def testIdLambda(self):
+        """
+        A passed idLambda function should produce the expected read ids.
+        """
+        read = Read('id1', 'ATCGCC')
+        reads = Reads(initialReads=[read])
+        result = reads.filter(idLambda='lambda id: "x-" + id.upper()')
+        self.assertEqual('x-ID1', list(result)[0].id)
+
+    def testIdLambdaReturningNone(self):
+        """
+        A passed idLambda function should produce the expected read ids,
+        including when it returns None.
+        """
+        read1 = Read('id1', 'ATCGCC')
+        read2 = Read('id2', 'GGATCG')
+        reads = Reads(initialReads=[read1, read2])
+        result = reads.filter(
+            idLambda='lambda id: "aa" if id.find("1") > -1 else None')
+        (result,) = list(result)
+        self.assertEqual('aa', result.id)
+
+    def testReadLambda(self):
+        """
+        A passed readLambda function should produce the expected reads.
+        """
+        read = Read('id1', 'ATCGCC')
+        reads = Reads(initialReads=[read])
+        result = reads.filter(readLambda='lambda r: Read("hey", "AAA")')
+        (result,) = list(result)
+        self.assertEqual(Read('hey', 'AAA'), result)
+
+    def testReadLambdaReturningNone(self):
+        """
+        A passed readLambda function should produce the expected reads,
+        including when it returns None.
+        """
+        read1 = Read('xid1', 'ATCGCC')
+        read2 = Read('yid2', 'GGATCG')
+        reads = Reads(initialReads=[read1, read2])
+        result = reads.filter(
+            readLambda=('lambda r: Read(r.id + "-x", r.sequence[:2]) '
+                        'if r.id.startswith("x") else None'))
+        (result,) = list(result)
+        self.assertEqual(Read('xid1-x', 'AT'), result)
+
 
 class TestReadsInRAM(TestCase):
     """
