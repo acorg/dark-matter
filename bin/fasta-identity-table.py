@@ -294,8 +294,7 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
             stats = tableData[id1][id2]
             identity = (
                 stats['identicalMatchCount'] +
-                (stats['ambiguousMatchCount'] if matchAmbiguous else 0) +
-                stats['gapGapMismatchCount']
+                (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
             ) / read1Len
 
             append('      <td>')
@@ -417,7 +416,8 @@ if __name__ == '__main__':
     tableData = collectData(reads1, reads2, square, matchAmbiguous)
 
     if args.text:
-        simpleTable(tableData, reads1, reads2, square, matchAmbiguous)
+        simpleTable(tableData, reads1, reads2, square, matchAmbiguous,
+                    args.gapChars)
     else:
         print(
             htmlTable(tableData, reads1, reads2, square, matchAmbiguous,
