@@ -2,13 +2,92 @@
 
 from __future__ import print_function, division
 
+import sys
 import argparse
 from collections import OrderedDict, defaultdict
+from operator import itemgetter
 
 from dark.dna import compareDNAReads
 from dark.filter import (
     addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions)
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
+
+
+def thresholdToCssName(threshold):
+    """
+    Turn a floating point threshold into a string that can be used in a CSS
+    class name.
+
+    param: The C{float} threshold.
+    return: A C{str} CSS class name.
+    """
+    return str(threshold).replace('.', '_')
+
+
+def thresholdForIdentity(identity, colors):
+    """
+    Get the best identity threshold for a specific identity value.
+
+    @param identity: A C{float} nucleotide identity.
+    @param colors: A C{list} of (threshold, color) tuples, where threshold is a
+        C{float} and color is a C{str} to be used as a cell background. This
+        is as returned by C{parseColors}.
+    @return: The first C{float} threshold that the given identity is at least
+        as big as.
+    """
+    for threshold, _ in colors:
+        if identity >= threshold:
+            return threshold
+    raise ValueError('This should never happen! Last threshold is not 0.0?')
+
+
+def parseColors(colors, defaultColor):
+    """
+    Parse command line color information.
+
+    @param colors: A C{list} of space separated "value color" strings, such as
+        ["0.9 red", "0.75 rgb(23, 190, 207)", "0.1 #CF3CF3"].
+    @param defaultColor: The C{str} color to use for cells that do not reach
+        the identity fraction threshold of any color in C{colors}.
+    @return: A C{list} of (threshold, color) tuples, where threshold is a
+        C{float} (from C{colors}) and color is a C{str} (from C{colors}). The
+        list will be sorted by decreasing threshold values.
+    """
+    result = []
+    if colors:
+        for colorInfo in colors:
+            fields = colorInfo.split(maxsplit=1)
+            if len(fields) == 2:
+                threshold, color = fields
+                try:
+                    threshold = float(threshold)
+                except ValueError:
+                    print('--color arguments must be given as space-separated '
+                          'pairs of "value color" where the value is a '
+                          'numeric identity threshold. Your value %r is not '
+                          'numeric.' % threshold, file=sys.stderr)
+                    sys.exit(1)
+                if 0.0 > threshold > 1.0:
+                    print('--color arguments must be given as space-separated '
+                          'pairs of "value color" where the value is a '
+                          'numeric identity threshold from 0.0 to 1.0. Your '
+                          'value %r is not in that range.' % threshold,
+                          file=sys.stderr)
+                    sys.exit(1)
+
+                result.append((threshold, color))
+            else:
+                print('--color arguments must be given as space-separated '
+                      'pairs of "value color". You have given %r, which does '
+                      'not contain a space.' % colorInfo, file=sys.stderr)
+                sys.exit(1)
+
+    result.sort(key=itemgetter(0), reverse=True)
+
+    if not result or result[-1][0] > 0.0:
+        result.append((0.0, defaultColor))
+
+    return result
 
 
 def getReadLengths(reads, gapChars):
@@ -165,9 +244,9 @@ def simpleTable(tableData, reads1, reads2, square, matchAmbiguous, gapChars):
         print()
 
 
-def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
-              showLengths=False, showGaps=False, showNs=False, footer=False,
-              div=False, gapChars='-'):
+def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
+              concise=False, showLengths=False, showGaps=False, showNs=False,
+              footer=False, div=False, gapChars='-'):
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -184,6 +263,9 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
         possibly correct as actually being correct. Otherwise, we are strict
         and insist that only non-ambiguous nucleotides can contribute to the
         matching nucleotide count.
+    @param colors: A C{list} of (threshold, color) tuples, where threshold is a
+        C{float} and color is a C{str} to be used as a cell background. This
+        is as returned by C{parseColors}.
     @param concise: If C{True}, do not show match details.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
@@ -220,7 +302,11 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
     if div:
         append('<div>')
     else:
+        append('<!DOCTYPE HTML>')
         append('<html>')
+        append('<head>')
+        append('<meta charset="UTF-8">')
+        append('</head>')
         append('<body>')
 
     append('<style>')
@@ -245,6 +331,12 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
             font-weight: bold;
         }
     """)
+
+    # Add color style information for the identity thresholds.
+    for threshold, color in colors:
+        append('.threshold-%s { background-color: %s; }' % (
+            thresholdToCssName(threshold), color))
+
     append('</style>')
 
     if not div:
@@ -297,13 +389,15 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, concise=False,
                 (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
             ) / read1Len
 
-            append('      <td>')
+            append('      <td class="threshold-%s">' % thresholdToCssName(
+                thresholdForIdentity(identity, colors)))
 
             # The maximum percent identity.
             if identity == bestIdentityForId[id1]:
                 scoreStyle = ' class="best"'
             else:
                 scoreStyle = ''
+
             append('<span%s>%.4f</span>' % (scoreStyle, identity))
 
             if not concise:
@@ -389,9 +483,31 @@ if __name__ == '__main__':
               'These characters will be ignored in computing sequence lengths '
               'and identity fractions'))
 
+    parser.add_argument(
+        '--defaultColor', default='white',
+        help=('The (background) color for cells. This will be used for all '
+              'cells that do not otherwise have a color due to use of '
+              '--color. This option is ignored if --text is given.'))
+
+    parser.add_argument(
+        '--color', action='append',
+        help=('Specify cell background coloring. This option must be given as '
+              'a space separated "value color" pair. The value is an identity '
+              'fraction in [0..1] and the color is anything color '
+              'specification that can be given to CSS. This argument can be '
+              'repeated. E.g., --color "0.9 red" --color "0.75 rgb(23, 190, '
+              '207)" --color "0.1 #CF3CF3". Cells will be colored using the '
+              'color of the highest identity fraction they satisfy. The '
+              'default is to color all cells with the --defaultColor color. '
+              'This option is ignored if --text is given.'))
+
     addFASTACommandLineOptions(parser)
     addFASTAFilteringCommandLineOptions(parser)
     args = parser.parse_args()
+
+    colors = parseColors(args.color, args.defaultColor)
+    # Sanity check - the last threshold must be zero.
+    assert colors[-1][0] == 0.0
 
     # Collect the reads into a dict, keeping the insertion order.
     reads1 = OrderedDict()
@@ -420,8 +536,9 @@ if __name__ == '__main__':
                     args.gapChars)
     else:
         print(
-            htmlTable(tableData, reads1, reads2, square, matchAmbiguous,
-                      concise=args.concise, showLengths=args.showLengths,
-                      showGaps=args.showGaps, showNs=args.showNs,
-                      footer=args.footer, div=args.div,
-                      gapChars=args.gapChars))
+            htmlTable(
+                tableData, reads1, reads2, square, matchAmbiguous,
+                colors=colors, concise=args.concise,
+                showLengths=args.showLengths, showGaps=args.showGaps,
+                showNs=args.showNs, footer=args.footer, div=args.div,
+                gapChars=args.gapChars))
