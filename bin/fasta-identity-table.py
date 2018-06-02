@@ -15,13 +15,14 @@ from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 def thresholdToCssName(threshold):
     """
-    Turn a floating point threshold into a string that can be used in a CSS
+    Turn a floating point threshold into a string that can be used as a CSS
     class name.
 
     param: The C{float} threshold.
     return: A C{str} CSS class name.
     """
-    return str(threshold).replace('.', '_')
+    # '.' is illegal in a CSS class name.
+    return 'threshold-' + str(threshold).replace('.', '_')
 
 
 def thresholdForIdentity(identity, colors):
@@ -334,7 +335,7 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
 
     # Add color style information for the identity thresholds.
     for threshold, color in colors:
-        append('.threshold-%s { background-color: %s; }' % (
+        append('.%s { background-color: %s; }' % (
             thresholdToCssName(threshold), color))
 
     append('</style>')
@@ -389,7 +390,7 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
                 (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
             ) / read1Len
 
-            append('      <td class="threshold-%s">' % thresholdToCssName(
+            append('      <td class="%s">' % thresholdToCssName(
                 thresholdForIdentity(identity, colors)))
 
             # The maximum percent identity.
