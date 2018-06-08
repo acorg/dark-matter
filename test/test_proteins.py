@@ -255,6 +255,42 @@ class TestProteinGrouper(TestCase):
             },
             pg.pathogenNames)
 
+    def testOneLineInOneFileWithDifferentAssetDir(self):
+        """
+        If a protein grouper is given a different assetDir name, 
+        the outDir needs to have that same name, as expected.
+        """
+        fp = StringIO(
+            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        pg = ProteinGrouper(assetDir='differentname')
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            {
+                'Lausannevirus': {
+                    'sample-filename': {
+                        'proteins': {
+                            'gi|327|X|I44.6 ubiquitin': {
+                                'bestScore': 48.1,
+                                'bluePlotFilename': 'differentname/0.png',
+                                'coverage': 0.77,
+                                'readsFilename': 'differentname/0.fasta',
+                                'hspCount': 6,
+                                'index': 0,
+                                'medianScore': 46.6,
+                                'outDir': 'differentname',
+                                'proteinLength': 74,
+                                'proteinName': 'gi|327|X|I44.6 ubiquitin',
+                                'proteinURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
+                                'readCount': 5,
+                            },
+                        },
+                        'uniqueReadCount': None,
+                    },
+                }
+            },
+            pg.pathogenNames)
+
     def testOneLineInOneFileFASTQ(self):
         """
         If a protein grouper is given one file with one line, its pathogenNames

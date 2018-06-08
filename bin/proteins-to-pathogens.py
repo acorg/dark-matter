@@ -137,6 +137,12 @@ if __name__ == '__main__':
               'contain the lengths of all reads that match proteins for a '
               'pathogen.'))
 
+    parser.add_argument(
+        '--assetDir', default='out',
+        help=('The output directory where noninteractive-alignment-panel.py '
+              'puts its HTML, plots and FASTA or FASTQ files, needed for '
+              'using --html'))
+
     args = parser.parse_args()
 
     if not args.html:
@@ -162,7 +168,8 @@ if __name__ == '__main__':
     else:
         proteinFastaFilenames = None
 
-    grouper = ProteinGrouper(sampleNameRegex=args.sampleNameRegex,
+    grouper = ProteinGrouper(assetDir=args.assetDir,
+                             sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
                              proteinFastaFilenames=proteinFastaFilenames,
                              saveReadLengths=args.showReadLengths)
