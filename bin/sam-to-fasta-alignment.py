@@ -1,54 +1,23 @@
 #!/usr/bin/env python
 
 """
-Convert SAM/BAM to an alignment in FASTA or Phylip format.
+Extract aligned (i.e., padded) queries in FASTA format from a SAM/BAM file.
 """
 
 from __future__ import division, print_function
 
 import sys
 import argparse
-from collections import Counter
 
-from dark.reads import Read, DNARead
-from pysam import (
-    AlignmentFile, CMATCH, CINS, CDEL, CREF_SKIP, CSOFT_CLIP, CHARD_CLIP, CPAD,
-    CEQUAL, CDIFF)
-
-# See https://samtools.github.io/hts-specs/SAMv1.pdf for the True/False values
-# in the following and http://pysam.readthedocs.io/en/latest/api.html for the
-# pysam documentation.
-
-CONSUMES_QUERY = {
-    int(CMATCH): True,
-    int(CINS): True,
-    int(CDEL): False,
-    int(CREF_SKIP): False,
-    int(CSOFT_CLIP): True,
-    int(CHARD_CLIP): False,
-    int(CPAD): False,
-    int(CEQUAL): True,
-    int(CDIFF): True,
-}
-
-CONSUMES_REFERENCE = {
-    int(CMATCH): True,
-    int(CINS): False,
-    int(CDEL): True,
-    int(CREF_SKIP): True,
-    int(CSOFT_CLIP): False,
-    int(CHARD_CLIP): False,
-    int(CPAD): False,
-    int(CEQUAL): True,
-    int(CDIFF): True,
-}
+from dark.sam import (
+    PaddedSAM, UnequalReferenceLengthError, UnknownReference)
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description='Convert a SAM/BAM file to aligned FASTA.')
+    description='Produce aligned FASTA queries from a SAM/BAM file.')
 
 parser.add_argument(
-    'samFile', help='The SAM/BAM file to convert.')
+    'samFile', help='The SAM/BAM file to read.')
 
 parser.add_argument(
      '--minLength', type=int, default=0,
@@ -71,7 +40,7 @@ parser.add_argument(
            '--allowDuplicateIds is not used)'))
 
 parser.add_argument(
-     '--dropSecondaries', default=False, action='store_true',
+     '--dropSecondary', default=False, action='store_true',
      help='If given, secondary matches will not be output.')
 
 parser.add_argument(
@@ -95,125 +64,46 @@ parser.add_argument(
            'printed to standard output and the program will exit.'))
 
 parser.add_argument(
-     '--preserveComplementarity', default=False, action='store_true',
-     help=('If given, reads will be printed as they appear in the SAM/BAM '
-           'input, regardless of whether their reverse compliment was '
-           'what matched a reference. This preserves the orientation of '
-           'the read as it was put into the input file, which may be '
-           'desirable, but those reads (which had to be reverse complemented '
-           'to match) in the output FASTA will not align with the reference.'))
-
-
-def printReferences(samfile, indent=0, fp=sys.stdout):
-    """
-    Print a list of known reference names and their lengths.
-
-    @param samfile: A C{pysam.AlignmentFile} instance.
-    @param indent: An C{int} specifying how many spaces to indent each line.
-    @param fp: The file pointer to print to.
-    """
-    indent = ' ' * indent
-    for i in range(samfile.nreferences):
-        print('%s%s (length %d)' % (
-            indent, samfile.get_reference_name(i), samfile.lengths[i]),
-            file=fp)
+     '--rcNeeded', default=False, action='store_true',
+     help=('If given, queries that are flagged as matching when reverse '
+           'complemented will be reverse complemented in the output. This '
+           'must be used if the program that created the SAM/BAM input '
+           'flags reversed matches but does not also store the reverse '
+           'complemented query. The bwa program (mem and aln followed by '
+           'samse) stores the queries reversed complemented if the match '
+           'was, so this option is not needed for bwa. If in doubt, test the '
+           'output of your matching program as this is very important!'))
 
 
 args = parser.parse_args()
-samfile = AlignmentFile(args.samFile)
 
-if args.listReferenceNames:
-    printReferences(samfile)
-    sys.exit(0)
+paddedSAM = PaddedSAM(args.samFile)
 
-if args.referenceName:
-    referenceId = samfile.get_tid(args.referenceName)
-    if referenceId == -1:
-        print('Reference %r is not present in the SAM/BAM file. The '
-              'reference sequence names are present:' %
-              args.referenceName, file=sys.stderr)
-        printReferences(samfile, 2)
-        sys.exit(1)
-    referenceLength = samfile.lengths[referenceId]
-else:
-    # No reference name was given. Make sure that all references have the same
-    # length.
-    if len(set(samfile.lengths)) != 1:
-        print('Your SAM/BAM file has %d reference sequences, and their '
-              'lengths (%s) are not all identical, so it is not clear how '
-              'long the output FASTA sequences should be. Use '
-              '--referenceName to specify which reference sequence is the '
-              'one whose aligned reads you want printed.' % (
-                  samfile.nreferences, ', '.join(sorted(samfile.lengths))),
-              file=sys.stderr)
-        printReferences(samfile, indent=2, fp=sys.stderr)
-        sys.exit(1)
-    referenceId = None
-    referenceLength = samfile.lengths[0]
-
-minLength = args.minLength
-rcSuffix = args.rcSuffix
-keepQCFailures = args.keepQCFailures
-dropSecondaries = args.dropSecondaries
-dropSupplementary = args.dropSupplementary
-allowDuplicateIds = args.allowDuplicateIds
-
-# Hold the count for each id so we can add /1, /2 etc to duplicate ids (unless
-# --allowDuplicateIds was given).
-idCount = Counter()
-
-for read in samfile.fetch():
-    query = read.query_sequence
-    queryLength = len(query)
-    if (read.is_unmapped or
-            queryLength < minLength or
-            (read.is_secondary and dropSecondaries) or
-            (read.is_supplementary and dropSupplementary) or
-            (read.is_qcfail and not keepQCFailures) or
-            (referenceId is not None and read.reference_id != referenceId)):
-        continue
-
-    if read.is_reverse:
-        query = DNARead('id', query).reverseComplement().sequence
-        if rcSuffix:
-            read.query_name += rcSuffix
-
-    index = 0
-    alignedSequence = []
-    for operation, length in read.cigartuples:
-        operation = int(operation)
-        if CONSUMES_QUERY[operation]:
-            alignedSequence.append(query[index:index + length])
-            index += length
-        elif CONSUMES_REFERENCE[operation]:
-            alignedSequence.append('-' * length)
-
-    # Sanity check that we consumed the entire query.
-    assert index == queryLength
-
-    alignedSequence = ''.join(alignedSequence)
-
-    if read.is_reverse and args.preserveComplementarity:
-        alignedSequence = DNARead(
-            'id', alignedSequence).reverseComplement().sequence
-
-    # Put '-' gap characters before and after the aligned sequence so that it
-    # is offset properly and matches the length of the reference.
-    paddedSequence = (
-        ('-' * read.reference_start) +
-        alignedSequence +
-        '-' * (referenceLength -
-               (read.reference_start + len(alignedSequence))))
-
-    if allowDuplicateIds:
-        suffix = ''
+try:
+    if args.listReferenceNames:
+        print(paddedSAM.referencesToStr(), file=sys.stdout)
     else:
-        count = idCount[read.query_name]
-        idCount[read.query_name] += 1
-        suffix = '' if count == 0 else '/%d' % count
-
-    print(Read(
-        '%s%s' % (read.query_name, suffix),
-        paddedSequence).toString('fasta'), end='')
-
-samfile.close()
+        try:
+            for read in paddedSAM.queries(
+                    referenceName=args.referenceName,
+                    minLength=args.minLength,
+                    rcSuffix=args.rcSuffix,
+                    dropSecondary=args.dropSecondary,
+                    dropSupplementary=args.dropSupplementary,
+                    allowDuplicateIds=args.allowDuplicateIds,
+                    keepQCFailures=args.keepQCFailures,
+                    rcNeeded=args.rcNeeded):
+                print(read.toString('fasta'), end='')
+        except UnequalReferenceLengthError as e:
+            raise ValueError(
+                str(e) + ' So it is not clear how long the padded output '
+                'FASTA sequences should be. Use --referenceName to specify '
+                'which reference sequence is the one whose aligned reads you '
+                'want printed. Use --listReferenceNames to see a list of '
+                'reference sequence names and lengths.')
+        except UnknownReference as e:
+            raise ValueError(
+                str(e) + ' Use --listReferenceNames to see a list of '
+                'reference sequence names.')
+finally:
+    paddedSAM.close()
