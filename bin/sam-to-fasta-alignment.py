@@ -48,6 +48,11 @@ parser.add_argument(
      help='If given, supplementary matches will not be output.')
 
 parser.add_argument(
+     '--dropDuplicates', default=False, action='store_true',
+     help=('If given, matches flagged as optical or PCR duplicates will '
+           'not be output.'))
+
+parser.add_argument(
      '--allowDuplicateIds', default=False, action='store_true',
      help=('If given, repeated query ids (due to secondary or supplemental '
            'matches) will not have /1, /2, etc. appended to their ids. So '
@@ -90,6 +95,7 @@ try:
                     rcSuffix=args.rcSuffix,
                     dropSecondary=args.dropSecondary,
                     dropSupplementary=args.dropSupplementary,
+                    dropDuplicates=args.dropDuplicates,
                     allowDuplicateIds=args.allowDuplicateIds,
                     keepQCFailures=args.keepQCFailures,
                     rcNeeded=args.rcNeeded):
