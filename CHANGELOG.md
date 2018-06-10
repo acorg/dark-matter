@@ -1,3 +1,7 @@
+## 3.0.8 June 1, 2018
+
+* Added `--color` option to `fasta-identity-table.py`.
+
 ## 3.0.1 May 7, 2018
 
 * Changed `Makefile` `upload` target rule.
