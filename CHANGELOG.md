@@ -1,3 +1,7 @@
+## 3.0.9 June 10, 2018
+
+* Added `bin/sam-to-fasta-alignment.py` script.
+
 ## 3.0.8 June 1, 2018
 
 * Added `--color` option to `fasta-identity-table.py`.
