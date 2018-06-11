@@ -1,3 +1,7 @@
+## 3.0.13 June 11, 2018
+Fixed a bug in `noninteractive-alignment-panel.py` that crept in after
+version `3.0.10 June 11, 2018`.
+
 ## 3.0.12 June 11, 2018
 
 * `pip install mysql-connector-python` now works, so added
