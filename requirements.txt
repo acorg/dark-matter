@@ -11,3 +11,4 @@ requests>=2.18.4
 simplejson>=3.5.3
 six>=1.11.0
 pysam>=0.14.1
+mysql-connector-python>=8.0.11
