@@ -9,7 +9,14 @@ Runs under Python 2.7, 3.5, and 3.6. [Change log](CHANGELOG.md)
 
 ## Installation
 
-[Linux](doc/linux.md), [OS X](doc/mac.md), [Windows](doc/windows.md).
+You should be able to install via
+
+```sh
+$ pip install dark-matter
+```
+
+Some additional information is available for
+[Linux](doc/linux.md), [OS X](doc/mac.md), and [Windows](doc/windows.md).
 
 ## iPython Notebook
 
