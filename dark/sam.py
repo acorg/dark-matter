@@ -206,10 +206,10 @@ class PaddedSAM(object):
                     if atStart:
                         # Don't set atStart=False, in case there's another 'S'
                         # operation.
-                        unwantedLeft = length - (referenceStart + 1)
+                        unwantedLeft = length - referenceStart
                         if unwantedLeft > 0:
-                            # The query protrudes left. Crop its left side.
-                            alignedSequence += query[unwantedLeft:
+                            # The query protrudes left. Copy its right part.
+                            alignedSequence += query[queryIndex + unwantedLeft:
                                                      queryIndex + length]
                             referenceStart = 0
                         else:
@@ -218,12 +218,13 @@ class PaddedSAM(object):
                                 queryIndex:queryIndex + length]
                     else:
                         unwantedRight = (
-                            referenceStart + 1 + len(alignedSequence) +
-                            length) - referenceLength
+                            (referenceStart + len(alignedSequence) + length) -
+                            referenceLength)
+
                         if unwantedRight > 0:
-                            # The query protrudes right. Crop its right side.
+                            # The query protrudes right. Copy its left part.
                             alignedSequence += query[
-                                queryIndex:queryIndex + unwantedRight]
+                                queryIndex:queryIndex + length - unwantedRight]
                         else:
                             alignedSequence += query[
                                 queryIndex:queryIndex + length]

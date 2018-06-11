@@ -28,6 +28,13 @@ class TestPaddedSAM(TestCase):
     """
     Test the PaddedSAM class.
     """
+
+    # In reading the tests below, it is important to remember that the start
+    # position (in the reference) of the match in SAM format is 1-based.  This
+    # is the 4th field in the non-header SAM lines (i.e., those that don't
+    # start with @). If you look at the code in ../dark/sam.py, pysam provides
+    # a 'reference_start' attribute that is 0-based.
+
     def testReferencesToStr(self):
         """
         The referencesToStr method must return the expected string.
@@ -192,6 +199,22 @@ class TestPaddedSAM(TestCase):
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
             ps.close()
 
+    def testQuerySoftClipReachesLeftEdge(self):
+        """
+        A match with a soft-clipped region that reaches to the left edge of the
+        reference must result in the expected padded sequence.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 5 60 4S2M * 0 0 TCTAGG ZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read,) = list(ps.queries())
+            self.assertEqual(Read('query1', 'TCTAGG----'), read)
+            ps.close()
+
     def testQuerySoftClipProtrudesLeft(self):
         """
         A match with a soft-clipped region that extends to the left of the
@@ -205,7 +228,26 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(filename)
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', 'TAGG------'), read)
+            self.assertEqual(Read('query1', 'AGG-------'), read)
+            ps.close()
+
+    def testKF414679SoftClipLeft(self):
+        """
+        Test for a case that wasn't working.
+        """
+        seq = ('GCCATGCAGTGGAACTCCACAGCATTCCACCAAGCTCTGC'
+               'AGAATCCCAAAGTCAGGGGTTTGTATCTTCTTGCTGGTGGC')
+        quality = ('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ'
+                   'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 5 60 18S63M * 0 0 %s %s' % (seq, quality),
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read,) = list(ps.queries())
+            self.assertEqual(Read('query1', seq[14:]), read)
             ps.close()
 
     def testQuerySoftClipRight(self):
@@ -224,6 +266,22 @@ class TestPaddedSAM(TestCase):
             self.assertEqual(Read('query1', '---TCTAGG-'), read)
             ps.close()
 
+    def testQuerySoftClipReachesRightEdge(self):
+        """
+        A match with a soft-clipped region that reaches to the right edge of
+        the reference must result in the expected padded sequence.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 5 60 2M4S * 0 0 TCTAGG ZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read,) = list(ps.queries())
+            self.assertEqual(Read('query1', '----TCTAGG'), read)
+            ps.close()
+
     def testQuerySoftClipProtrudesRight(self):
         """
         A match with a soft-clipped region that extends to the right of
@@ -237,7 +295,40 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(filename)
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-----TCTA-'), read)
+            self.assertEqual(Read('query1', '-----TCTAG'), read)
+            ps.close()
+
+    def testQuerySoftClipProtrudesBothSides(self):
+        """
+        A match with a soft-clipped region that extends to both the left and
+        right of the reference must result in the expected padded sequence.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 4 60 5S5M5S * 0 0 TCTAGGCTGACTAAG ZZZZZZZZZZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read,) = list(ps.queries())
+            self.assertEqual(Read('query1', 'TAGGCTGACT'), read)
+            ps.close()
+
+    def testQueryHardClipAndSoftClipProtrudesBothSides(self):
+        """
+        A match with a soft-clipped region that extends to both the left and
+        right of the reference must result in the expected padded sequence
+        when hard clipping is also indicated by the CIGAR string.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 4 0 3H5S5M4S5H * 0 0 TCTAGGCTGACTAA ZZZZZZZZZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read,) = list(ps.queries())
+            self.assertEqual(Read('query1', 'TAGGCTGACT'), read)
             ps.close()
 
     def testReferenceInsertion(self):
@@ -495,7 +586,5 @@ class TestPaddedSAM(TestCase):
             ps = PaddedSAM(filename)
             (read1, read2) = list(ps.queries(keepQCFailures=True))
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
-            print(read2.id)
-            print(read2.sequence)
             self.assertEqual(Read('query2', '---TC-----'), read2)
             ps.close()

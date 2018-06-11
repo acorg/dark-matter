@@ -69,6 +69,23 @@ parser.add_argument(
            'printed to standard output and the program will exit.'))
 
 parser.add_argument(
+     '--listReferenceInsertions', default=False, action='store_true',
+     help=('If given, information about reference sequence insertions will be '
+           'printed to standard error. These correspond to "I" CIGAR '
+           'operations that for the match would require inserting query bases '
+           'into the reference. Because we cannot change the reference (in '
+           'fact we typically do not have the reference in the SAM/BAM file, '
+           'we cut the insert bases out of the aligned query and save the '
+           'information about what would have been inserted and where. That '
+           'information is printed by this option. The output gives the '
+           '0-based offset where the inserted base would be placed, followed '
+           'by a list of the nucleotides that were suggested as being '
+           'inserted and the number of times each nucleotide was suggested. '
+           'So for example the output might contain "27: T:3, G:10" which '
+           'indicates that 13 query (3 with T and 10 with G) matches would '
+           'insert a nucleotide into the reference at offset 27.'))
+
+parser.add_argument(
      '--rcNeeded', default=False, action='store_true',
      help=('If given, queries that are flagged as matching when reverse '
            'complemented will be reverse complemented in the output. This '
@@ -78,6 +95,35 @@ parser.add_argument(
            'samse) stores the queries reversed complemented if the match '
            'was, so this option is not needed for bwa. If in doubt, test the '
            'output of your matching program as this is very important!'))
+
+
+def baseCountsToStr(counts):
+    """
+    Convert base counts to a string.
+
+    @param counts: A C{Counter} instance.
+    @return: A C{str} representation of nucleotide counts at an offset.
+    """
+    return ' '.join([
+        ('%s:%d' % (base, counts[base])) for base in sorted(counts)])
+
+
+def nucleotidesToStr(nucleotides, prefix=''):
+    """
+    Convert offsets and base counts to a string.
+
+    @param nucleotides: A C{defaultdict(Counter)} instance, keyed
+        by C{int} offset, with nucleotides keying the Counters.
+    @param prefix: A C{str} to put at the start of each line.
+    @return: A C{str} representation of the offsets and nucleotide
+        counts for each.
+    """
+    result = []
+    for offset in sorted(nucleotides):
+        result.append(
+            '%s%d: %s' % (prefix, offset,
+                          baseCountsToStr(nucleotides[offset])))
+    return '\n'.join(result)
 
 
 args = parser.parse_args()
@@ -111,5 +157,14 @@ try:
             raise ValueError(
                 str(e) + ' Use --listReferenceNames to see a list of '
                 'reference sequence names.')
+
+        if args.listReferenceInsertions:
+            if paddedSAM.referenceInsertions:
+                print('(0-based) insertions into the reference:\n%s' %
+                      nucleotidesToStr(paddedSAM.referenceInsertions, '  '),
+                      file=sys.stderr)
+            else:
+                print('No matches required an insertion into the reference.',
+                      file=sys.stderr)
 finally:
     paddedSAM.close()
