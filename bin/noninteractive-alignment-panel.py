@@ -107,7 +107,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--databaseFastaFilename',
-        help=('The filename of the FASTA file used to make the BLAST or '
+        help=('Only used when --showOrfs is also given. '
+              'The filename of the FASTA file used to make the BLAST or '
               'DIAMOND database. If --matcher diamond is used, either this '
               'argument or --sqliteDatabaseFilename must be specified. If '
               '--matcher blast is used these options can be omitted, in '
@@ -117,14 +118,16 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--sqliteDatabaseFilename',
-        help=('The filename of the sqlite3 database file of FASTA metadata, '
+        help=('Only used when --showOrfs is also given. '
+              'The filename of the sqlite3 database file of FASTA metadata, '
               'made from the FASTA that was used to make the BLAST or DIAMOND '
               'database. If --matcher diamond is used, either this argument '
               'or --databaseFilename must be specified.'))
 
     parser.add_argument(
         '--databaseFastaDirectory',
-        help=('The directory where the FASTA file used to make the BLAST or '
+        help=('Only used when --showOrfs is also given. '
+              'The directory where the FASTA file used to make the BLAST or '
               'DIAMOND database can be found. This argument is only useful '
               'when --sqliteDatabaseFilename is specified.'))
 
@@ -272,6 +275,12 @@ if __name__ == '__main__':
               'the alignment panel.'))
 
     parser.add_argument(
+        '--showOrfs', default=False, action='store_true',
+        help=('If specified, show subject ORFs in the individual panel plots. '
+              'Use of this option requires that you also provide information '
+              'about the subject database, e.g., via --databaseFastaFilename.')
+
+    parser.add_argument(
         '--sortFilenames', default=False, action='store_true',
         help=('If specified, the JSON and FASTA/Q file names will be '
               'processed in sorted order. The sorting is based on finding '
@@ -322,17 +331,27 @@ if __name__ == '__main__':
             sortBlastFilenames=args.sortFilenames)
     else:
         # Must be 'diamond' (due to parser.add_argument 'choices' argument).
-        if (args.databaseFastaFilename is None and
-                args.sqliteDatabaseFilename is None):
-            print('Either --databaseFastaFilename or --sqliteDatabaseFilename '
-                  'must be used with --matcher diamond.', file=sys.stderr)
-            sys.exit(1)
-        elif not (args.databaseFastaFilename is None or
-                  args.sqliteDatabaseFilename is None):
-            print('--databaseFastaFilename and --sqliteDatabaseFilename '
-                  'cannot both be used with --matcher diamond.',
-                  file=sys.stderr)
-            sys.exit(1)
+        if args.showOrfs:
+            if (args.databaseFastaFilename is None and
+                    args.sqliteDatabaseFilename is None):
+                print('Either --databaseFastaFilename or '
+                      '--sqliteDatabaseFilename must be used with --matcher '
+                      'diamond.', file=sys.stderr)
+                sys.exit(1)
+            elif not (args.databaseFastaFilename is None or
+                      args.sqliteDatabaseFilename is None):
+                print('--databaseFastaFilename and --sqliteDatabaseFilename '
+                      'cannot both be used with --matcher diamond.',
+                      file=sys.stderr)
+                sys.exit(1)
+        else:
+            if (args.databaseFastaFilename or args.sqliteDatabaseFilename or
+                    args.databaseFastaDirectory):
+                print('The --databaseFastaFilename, --sqliteDatabaseFilename, '
+                      'and --databaseFastaDirectory options can only be used '
+                      'if --showOrfs is also used.',
+                      file=sys.stderr)
+                sys.exit(1)
 
         from dark.diamond.alignments import DiamondReadsAlignments
         readsAlignments = DiamondReadsAlignments(
@@ -381,4 +400,4 @@ if __name__ == '__main__':
         titlesAlignments, sortOn=args.sortOn, outputDir=args.outputDir,
         idList=idList, equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
         logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
-        showFeatures=args.showFeatures)
+        showFeatures=args.showFeatures, showOrfs=args.showOrfs)

@@ -104,10 +104,10 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                    readsAx=None, imageFile=None, quiet=False, idList=False,
                    xRange='subject', showOrfs=True):
     """
-    Align a set of matching reads against a BLAST hit.
+    Align a set of matching reads against a BLAST or DIAMOND hit.
 
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
-    @param title: A C{str} sequence title that was hit by BLAST. We plot the
+    @param title: A C{str} sequence title that was matched. We plot the
         reads that hit this title.
     @param addQueryLines: if C{True}, draw query lines in full (these will then
         be partly overdrawn by the HSP match against the subject). These are
@@ -176,7 +176,6 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
 
     readsAlignments = titlesAlignments.readsAlignments
     subjectIsNucleotides = readsAlignments.params.subjectIsNucleotides
-    subject = readsAlignments.getSubjectSequence(title)
 
     if showOrfs and not subjectIsNucleotides:
         # We cannot show ORFs when displaying protein plots.
@@ -209,7 +208,8 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         # A function for adjusting other offsets, below.
         adjustOffset = offsetAdjuster.adjustOffset
     else:
-        adjustOffset = lambda x: x
+        def adjustOffset(offset):
+            return offset
 
     # It would be more efficient to only walk through all HSPs once and
     # compute these values all at once, but for now this is simple and clear.
@@ -221,7 +221,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
     if xRange == 'subject':
         # We'll display a graph for the full subject range. Adjust X axis
         # min/max to make sure we cover at least zero to the sequence length.
-        maxX = max(len(subject), maxX)
+        maxX = max(titleAlignments.subjectLength, maxX)
         minX = min(0, minX)
 
     # Swap min & max Y values, if needed, as it's possible we are dealing
@@ -395,6 +395,7 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
                 readsAx.add_line(line)
 
     if showOrfs:
+        subject = readsAlignments.getSubjectSequence(title)
         orfs.addORFs(orfAx, subject.sequence, minX, maxX, adjustOffset)
         orfs.addReversedORFs(orfReversedAx,
                              subject.reverseComplement().sequence,
@@ -622,7 +623,7 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
                        outputDir=None, idList=False, equalizeXAxes=False,
                        xRange='subject', logLinearXAxis=False,
                        logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-                       rankScores=False, showFeatures=True):
+                       rankScores=False, showFeatures=True, showOrfs=True):
     """
     Produces an HTML index file in C{outputDir} and a collection of alignment
     graphs and FASTA files to summarize the information in C{titlesAlignments}.
@@ -646,6 +647,7 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
         title to be their rank (worst to best).
     @param showFeatures: If C{True}, look online for features of the subject
         sequences.
+    @param showOrfs: If C{True}, open reading frames will be displayed.
     @raise TypeError: If C{outputDir} is C{None}.
     @raise ValueError: If C{outputDir} exists but is not a directory or if
         C{xRange} is not "subject" or "reads".
@@ -680,7 +682,7 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
             showFeatures=showFeatures, rankScores=rankScores,
             logLinearXAxis=logLinearXAxis, logBase=logBase,
             colorQueryBases=False, showFigure=False, imageFile=imageFile,
-            quiet=True, idList=idList, xRange=xRange, showOrfs=True)
+            quiet=True, idList=idList, xRange=xRange, showOrfs=showOrfs)
 
         # Close the image plot to make sure memory is flushed.
         plt.close()
