@@ -1,3 +1,9 @@
+## 3.0.12 June 11, 2018
+
+* `pip install mysql-connector-python` now works, so added
+`mysql-connector-python>=8.0.11` to `requirements.txt`, removed
+`install-dependencies.sh`, and updated install line in `.travis.yml`.
+
 ## 3.0.11 June 11, 2018
 
 * Added `bin/sam-to-fasta-alignment.py` script.
