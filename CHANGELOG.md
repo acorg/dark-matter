@@ -1,3 +1,10 @@
+## 3.0.10 June 11, 2018
+
+Dropped requirement that `noninteractive-alignment-panel.py` must be passed
+information about the subject database. This is now only needed if
+`--showOrfs` is given. The issue is that making the subject database can
+take a long time and display of the subject ORFs is usuallly not needed.
+
 ## 3.0.8 June 1, 2018
 
 * Added `--color` option to `fasta-identity-table.py`.
