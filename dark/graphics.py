@@ -453,8 +453,9 @@ def alignmentGraph(titlesAlignments, title, addQueryLines=True,
         figure.suptitle(
             '%s\nLength %d %s, %d read%s, %d HSP%s.' %
             (
-                fill(subject.id, 80),
-                len(subject), 'nt' if subjectIsNucleotides else 'aa',
+                fill(titleAlignments.subjectTitle, 80),
+                titleAlignments.subjectLength,
+                'nt' if subjectIsNucleotides else 'aa',
                 readCount, '' if readCount == 1 else 's',
                 hspCount, '' if hspCount == 1 else 's'
             ),
