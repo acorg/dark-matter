@@ -1,8 +1,15 @@
+## 3.0.15 June 12, 2018
+
+Fixed another bug (unreference variable) in `graphics.py` that crept in in
+version `3.0.10 June 11, 2018`.
+
 ## 3.0.14 June 12, 2018
-Fixed a bug in `diamond/alignments.py` that crept in after version
+
+Fixed a bug in `diamond/alignments.py` that crept in in version
 `3.0.10 June 11, 2018`.
 
 ## 3.0.13 June 11, 2018
+
 Fixed a bug in `noninteractive-alignment-panel.py` that crept in after
 version `3.0.10 June 11, 2018`.
 

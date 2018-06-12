@@ -277,9 +277,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--showOrfs', default=False, action='store_true',
         help=('If specified, show subject ORFs in the individual panel plots. '
-              'Use of this option requires that you also provide information '
-              'about the subject database, e.g., via --databaseFastaFilename.')
-    )
+              'This option requires that you also provide information about '
+              'the subject database, e.g., via --databaseFastaFilename.'))
 
     parser.add_argument(
         '--sortFilenames', default=False, action='store_true',
