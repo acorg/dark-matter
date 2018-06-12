@@ -27,28 +27,6 @@ class TestDiamondReadsAlignments(TestCase):
     """
     Test the DiamondReadsAlignments class.
     """
-    def testNoDatabaseProvided(self):
-        """
-        If no DIAMOND FASTA database or sqlite database file name is provided,
-        the DiamondReadsAlignments constructor must raise C{ValueError}.
-        """
-        error = ('^Either databaseFilename or sqliteDatabaseFilename must be '
-                 'provided to DiamondReadsAlignments$')
-        six.assertRaisesRegex(self, ValueError, error,
-                              DiamondReadsAlignments, Reads(), 'file.json')
-
-    def testTwoDatabasesProvided(self):
-        """
-        If a DIAMOND FASTA database and an sqlite database file name are
-        provided, the DiamondReadsAlignments constructor must raise
-        C{ValueError}.
-        """
-        error = ('^databaseFilename and sqliteDatabaseFilename cannot both be '
-                 'provided to DiamondReadsAlignments$')
-        six.assertRaisesRegex(self, ValueError, error,
-                              DiamondReadsAlignments, Reads(), 'file.json',
-                              databaseFilename='x', sqliteDatabaseFilename='y')
-
     def testEmptyJSONInput(self):
         """
         When a JSON input file is empty, a C{ValueError} must be raised

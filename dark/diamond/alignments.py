@@ -55,14 +55,6 @@ class DiamondReadsAlignments(ReadsAlignments):
                  databaseDirectory=None, sqliteDatabaseFilename=None,
                  scoreClass=HigherIsBetterScore, sortFilenames=False,
                  randomizeZeroEValues=True):
-        if databaseFilename is None and sqliteDatabaseFilename is None:
-            raise ValueError(
-                'Either databaseFilename or sqliteDatabaseFilename must be '
-                'provided to %s' % self.__class__.__name__)
-        elif not (databaseFilename is None or sqliteDatabaseFilename is None):
-            raise ValueError(
-                'databaseFilename and sqliteDatabaseFilename cannot both be '
-                'provided to %s' % self.__class__.__name__)
         if type(filenames) == str:
             filenames = [filenames]
         if sortFilenames:
