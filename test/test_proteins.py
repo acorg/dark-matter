@@ -257,7 +257,7 @@ class TestProteinGrouper(TestCase):
 
     def testOneLineInOneFileWithDifferentAssetDir(self):
         """
-        If a protein grouper is given a different assetDir name, 
+        If a protein grouper is given a different assetDir name,
         the outDir needs to have that same name, as expected.
         """
         fp = StringIO(
@@ -349,7 +349,7 @@ class TestProteinGrouper(TestCase):
         fp = StringIO(
             '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n'
             '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [X Virus]\n'
-            )
+        )
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
         self.assertEqual(
@@ -648,61 +648,6 @@ class TestProteinGrouper(TestCase):
             '  sample-filename (1 protein, 5 reads)\n'
             '    0.77\t46.60\t48.10\t   5\t   6\t  0\tgi|32|X|I4 protein X\n',
             pg.toStr())
-
-    def testMaxProteinFraction(self):
-        """
-        The maxProteinFraction method must return the correct values.
-        """
-        class SideEffect(object):
-            def __init__(self, test):
-                self.test = test
-                self.count = 0
-
-            def sideEffect(self, filename, **kwargs):
-                if self.count == 0:
-                    self.test.assertEqual('proteins.fasta', filename)
-                    self.count += 1
-                    return File(['>protein 1 [pathogen 1]\n',
-                                 'ACTG\n',
-                                 '>protein 2 [pathogen 1]\n',
-                                 'AA\n',
-                                 '>protein 3 [pathogen 1]\n',
-                                 'AA\n',
-                                 '>protein 4 [pathogen 1]\n',
-                                 'AA\n',
-                                 '>no pathogen name here\n',
-                                 'AA\n',
-                                 '>protein 5 [pathogen 2]\n',
-                                 'AA\n'])
-                else:
-                    self.test.fail('We are only supposed to be called once!')
-
-        sideEffect = SideEffect(self)
-        with patch.object(builtins, 'open') as mockMethod:
-            mockMethod.side_effect = sideEffect.sideEffect
-            pg = ProteinGrouper(proteinFastaFilenames=['proteins.fasta'])
-            self.assertEqual(1, sideEffect.count)
-
-            fp = StringIO(
-                '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein 1 [pathogen 1]\n'
-                '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein 5 [pathogen 2]\n'
-            )
-            pg.addFile('sample-1', fp)
-
-            fp = StringIO(
-                '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein 2 [pathogen 1]\n'
-                '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein 3 [pathogen 1]\n'
-            )
-            pg.addFile('sample-1', fp)
-
-            fp = StringIO(
-                '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein 1 [pathogen 1]\n'
-                '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein 2 [pathogen 1]\n'
-            )
-            pg.addFile('sample-2', fp)
-
-            self.assertEqual(0.75, pg.maxProteinFraction('pathogen 1'))
-            self.assertEqual(1.0, pg.maxProteinFraction('pathogen 2'))
 
 
 class TestPathogenSampleFiles(TestCase):

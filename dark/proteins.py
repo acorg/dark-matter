@@ -254,26 +254,6 @@ class ProteinGrouper(object):
              len(self.sampleNames),
              '' if len(self.sampleNames) == 1 else 's'))
 
-    def maxProteinFraction(self, pathogenName):
-        """
-        Get the fraction of a pathogen's proteins matched by any sample that
-        matches the pathogen.
-
-        @param pathogenName: A C{str} pathogen name.
-        @return: The C{float} maximum fraction of a pathogen's proteins that is
-            matched by any sample. If the number of proteins for the pathogen
-            is unknown, return 1.0 (i.e., assume all proteins are matched).
-        """
-
-        proteinCount = self._pathogenProteinCount[pathogenName]
-        if proteinCount:
-            maxMatches = max(
-                len(sample['proteins'])
-                for sample in self.pathogenNames[pathogenName].values())
-            return maxMatches / proteinCount
-        else:
-            return 1.0
-
     def addFile(self, filename, fp):
         """
         Read and record protein information for a sample.
@@ -710,12 +690,9 @@ class ProteinGrouper(object):
         append('<h1>Samples by pathogen</h1>')
 
         for sampleName in sampleNames:
-            samplePathogenNames = set()
-            for pathogenName in pathogenNames:
-                if (sampleName in self.pathogenNames[pathogenName] and
-                        self.maxProteinFraction(pathogenName) >=
-                        minProteinFraction):
-                    samplePathogenNames.add(pathogenName)
+            samplePathogenNames = [
+                pathName for pathName in self.pathogenNames
+                if sampleName in self.pathogenNames[pathName]]
 
             append(
                 '<a id="sample-%s"></a>'
