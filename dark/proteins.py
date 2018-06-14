@@ -419,7 +419,7 @@ class ProteinGrouper(object):
 
         for pathogenName in self.pathogenNames:
             proteinCount = self._pathogenProteinCount[pathogenName]
-            for sample in self.pathogenNames[pathogenName]:
+            for sample in self.pathogenNames[pathogenName].values():
                 if proteinCount:
                     sampleProteinFraction = (
                         len(sample['proteins']) / proteinCount)
