@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-import os
 import re
 from os.path import dirname, join
 from operator import itemgetter
@@ -407,8 +406,8 @@ class ProteinGrouper(object):
         @param pathogenPanelFilename: If not C{None}, a C{str} filename to
             write a pathogen panel PNG image to.
         @param minProteinFraction: The C{float} minimum fraction of proteins
-            in a pathogen that must be matched by at least one sample in order
-            for that pathogen to be displayed.
+            in a pathogen that must be matched by a sample in order for that
+            pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
             either 'bacterial' or 'viral'.
         @param sampleIndexFilename: A C{str} filename to write a sample index
@@ -438,9 +437,20 @@ class ProteinGrouper(object):
             with open(pathogenIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writePathogenIndex(fp)
 
+        for pathogenName in self.pathogenNames:
+            proteinCount = self._pathogenProteinCount[pathogenName]
+            for sample in self.pathogenNames[pathogenName]:
+                if proteinCount:
+                    sampleProteinFraction = (
+                        len(sample['proteins']) / proteinCount)
+                else:
+                    sampleProteinFraction = 1.0
+                if sampleProteinFraction < minProteinFraction:
+                    del self.pathogenNames[pathogenName][sample]
+
         pathogenNames = sorted(
             pathogenName for pathogenName in self.pathogenNames
-            if self.maxProteinFraction(pathogenName) >= minProteinFraction)
+            if len(self.pathogenNames[pathogenName]) > 0)
         nPathogenNames = len(pathogenNames)
         sampleNames = sorted(self.sampleNames)
 
