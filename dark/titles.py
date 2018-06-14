@@ -47,7 +47,6 @@ class TitleAlignments(list):
     """
 
     def __init__(self, subjectTitle, subjectLength):
-        # TODO: Do we need the title in here?
         self.subjectTitle = subjectTitle
         self.subjectLength = subjectLength
 
