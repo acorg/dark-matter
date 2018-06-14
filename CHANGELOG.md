@@ -1,3 +1,6 @@
+## 3.0.17 June 14, 2018
+Fixed bug that got introduced when doing `3.0.16 June 14, 2018`.
+
 ## 3.0.16 June 14, 2018
 Made a change in `dark/proteins.py`, to make the `minProteinFraction` work on
 a per sample basis, not per pathogen.
