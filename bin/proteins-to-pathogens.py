@@ -123,8 +123,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--minProteinFraction', type=float, default=0.0,
         help=('The minimum fraction of proteins in a pathogen that must be '
-              'matched by at least one sample in order for that pathogen to '
-              'be displayed.'))
+              'matched by a particular sample in order for that pathogen to '
+              'be displayed for that sample.'))
 
     parser.add_argument(
         '--pathogenType', default='viral', choices=('bacterial', 'viral'),

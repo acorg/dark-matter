@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-import os
 import re
 from os.path import dirname, join
 from operator import itemgetter
@@ -255,26 +254,6 @@ class ProteinGrouper(object):
              len(self.sampleNames),
              '' if len(self.sampleNames) == 1 else 's'))
 
-    def maxProteinFraction(self, pathogenName):
-        """
-        Get the fraction of a pathogen's proteins matched by any sample that
-        matches the pathogen.
-
-        @param pathogenName: A C{str} pathogen name.
-        @return: The C{float} maximum fraction of a pathogen's proteins that is
-            matched by any sample. If the number of proteins for the pathogen
-            is unknown, return 1.0 (i.e., assume all proteins are matched).
-        """
-
-        proteinCount = self._pathogenProteinCount[pathogenName]
-        if proteinCount:
-            maxMatches = max(
-                len(sample['proteins'])
-                for sample in self.pathogenNames[pathogenName].values())
-            return maxMatches / proteinCount
-        else:
-            return 1.0
-
     def addFile(self, filename, fp):
         """
         Read and record protein information for a sample.
@@ -407,8 +386,8 @@ class ProteinGrouper(object):
         @param pathogenPanelFilename: If not C{None}, a C{str} filename to
             write a pathogen panel PNG image to.
         @param minProteinFraction: The C{float} minimum fraction of proteins
-            in a pathogen that must be matched by at least one sample in order
-            for that pathogen to be displayed.
+            in a pathogen that must be matched by a sample in order for that
+            pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
             either 'bacterial' or 'viral'.
         @param sampleIndexFilename: A C{str} filename to write a sample index
@@ -438,9 +417,20 @@ class ProteinGrouper(object):
             with open(pathogenIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writePathogenIndex(fp)
 
+        for pathogenName in self.pathogenNames:
+            proteinCount = self._pathogenProteinCount[pathogenName]
+            for sample in self.pathogenNames[pathogenName]:
+                if proteinCount:
+                    sampleProteinFraction = (
+                        len(sample['proteins']) / proteinCount)
+                else:
+                    sampleProteinFraction = 1.0
+                if sampleProteinFraction < minProteinFraction:
+                    del self.pathogenNames[pathogenName][sample]
+
         pathogenNames = sorted(
             pathogenName for pathogenName in self.pathogenNames
-            if self.maxProteinFraction(pathogenName) >= minProteinFraction)
+            if len(self.pathogenNames[pathogenName]) > 0)
         nPathogenNames = len(pathogenNames)
         sampleNames = sorted(self.sampleNames)
 
@@ -700,12 +690,9 @@ class ProteinGrouper(object):
         append('<h1>Samples by pathogen</h1>')
 
         for sampleName in sampleNames:
-            samplePathogenNames = set()
-            for pathogenName in pathogenNames:
-                if (sampleName in self.pathogenNames[pathogenName] and
-                        self.maxProteinFraction(pathogenName) >=
-                        minProteinFraction):
-                    samplePathogenNames.add(pathogenName)
+            samplePathogenNames = [
+                pathName for pathName in self.pathogenNames
+                if sampleName in self.pathogenNames[pathName]]
 
             append(
                 '<a id="sample-%s"></a>'
