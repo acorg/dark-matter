@@ -1,3 +1,6 @@
+## 3.0.18 June 14, 2018
+Fixed bug that got introduced when doing `3.0.17 June 14, 2018`.
+
 ## 3.0.17 June 14, 2018
 Fixed bug that got introduced when doing `3.0.16 June 14, 2018`.
 

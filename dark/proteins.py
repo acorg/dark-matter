@@ -1,12 +1,12 @@
 from __future__ import division, print_function
 
-import re
+from collections import defaultdict, Counter
+import numpy as np
 from os.path import dirname, join
 from operator import itemgetter
+import re
 from six.moves.urllib.parse import quote
-import numpy as np
 from textwrap import fill
-from collections import Counter
 
 import matplotlib
 matplotlib.use('PDF')
@@ -417,16 +417,22 @@ class ProteinGrouper(object):
             with open(pathogenIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writePathogenIndex(fp)
 
+        toDelete = defaultdict(list)
         for pathogenName in self.pathogenNames:
             proteinCount = self._pathogenProteinCount[pathogenName]
-            for sample in self.pathogenNames[pathogenName].values():
+            for s in self.pathogenNames[pathogenName]:
                 if proteinCount:
                     sampleProteinFraction = (
-                        len(sample['proteins']) / proteinCount)
+                        len(self.pathogenNames[pathogenName][s]['proteins']) /
+                        proteinCount)
                 else:
                     sampleProteinFraction = 1.0
                 if sampleProteinFraction < minProteinFraction:
-                    del self.pathogenNames[pathogenName][sample]
+                    toDelete[pathogenName].append(s)
+
+        for pathogenName in toDelete:
+            for sample in toDelete[pathogenName]:
+                del self.pathogenNames[pathogenName][sample]
 
         pathogenNames = sorted(
             pathogenName for pathogenName in self.pathogenNames
