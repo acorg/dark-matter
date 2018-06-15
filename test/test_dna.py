@@ -152,7 +152,7 @@ class TestCompareDNAReads(TestCase):
 
     def testOffsets(self):
         """
-        If a set of wanted offsets are passed, the result must be restricted to
+        If a set of wanted offsets is passed, the result must be restricted to
         just those offsets.
         """
         self.assertEqual(
