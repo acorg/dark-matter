@@ -32,7 +32,8 @@ BASES_TO_AMBIGUOUS = dict(
     (''.join(sorted(bases)), symbol) for symbol, bases in AMBIGUOUS.items())
 
 
-def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-')):
+def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
+                    offsets=None):
     """
     Compare two DNA sequences.
 
@@ -53,6 +54,8 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-')):
         matching nucleotide count.
     @param gapChars: An iterable containing characters that should be
         considered to be gaps.
+    @param offsets: If not C{None}, a C{set} of offsets of interest. Offsets
+        not in the set will not be considered.
     @return: A C{dict} with information about the match and the individual
         sequences (see below).
     """
@@ -65,43 +68,47 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-')):
     read2AmbiguousOffsets = []
     empty = set()
 
-    for index, (a, b) in enumerate(zip_longest(read1.sequence.upper(),
-                                               read2.sequence.upper())):
+    for offset, (a, b) in enumerate(zip_longest(read1.sequence.upper(),
+                                                read2.sequence.upper())):
+        # Use 'is not None' in the following to allow an empty offsets set
+        # to be passed.
+        if offsets is not None and offset not in offsets:
+            continue
         if a is None:
             # b has an extra character at its end (it cannot be None).
             assert b is not None
             read2ExtraCount += 1
             if b in gapChars:
-                read2GapOffsets.append(index)
+                read2GapOffsets.append(offset)
         elif b is None:
             # a has an extra character at its end.
             read1ExtraCount += 1
             if a in gapChars:
-                read1GapOffsets.append(index)
+                read1GapOffsets.append(offset)
         else:
             # We have a character from both sequences (they could still be
             # gap characters).
             if a in gapChars:
-                read1GapOffsets.append(index)
+                read1GapOffsets.append(offset)
                 if b in gapChars:
                     # Both are gaps. This can happen (though hopefully not
                     # if the sequences were pairwise aligned).
                     gapGapMismatchCount += 1
-                    read2GapOffsets.append(index)
+                    read2GapOffsets.append(offset)
                 else:
                     # a is a gap, b is not.
                     gapMismatchCount += 1
             else:
                 if len(AMBIGUOUS[a]) > 1:
-                    read1AmbiguousOffsets.append(index)
+                    read1AmbiguousOffsets.append(offset)
                 if b in gapChars:
                     # b is a gap, a is not.
                     gapMismatchCount += 1
-                    read2GapOffsets.append(index)
+                    read2GapOffsets.append(offset)
                 else:
                     # Neither is a gap character.
                     if len(AMBIGUOUS[b]) > 1:
-                        read2AmbiguousOffsets.append(index)
+                        read2AmbiguousOffsets.append(offset)
                     if a == b:
                         identicalMatchCount += 1
                     elif matchAmbiguous and (

@@ -11,6 +11,7 @@ from dark.fasta import FastaReads
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
 from dark.process import Executor
+from dark.utils import parseRangeString
 
 
 def needle(reads):
@@ -103,6 +104,12 @@ parser.add_argument(
     '--strict', default=False, action='store_true',
     help='If given, do not allow ambiguous nucleotide symbols to match')
 
+parser.add_argument(
+    '--sites',
+    help=('Specify (1-based) sequence sites to keep. All other sites will '
+          'be ignored. The sites must be given in the form e.g., '
+          '24,100-200,260.'))
+
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
 
@@ -139,6 +146,9 @@ if args.align:
     if args.alignmentFile:
         assert reads.save(args.alignmentFile) == 2
 
+offsets = (parseRangeString(args.sites, convertToZeroBased=True)
+           if args.sites else None)
+
 read1, read2 = reads
 len1, len2 = map(len, reads)
 identicalLengths = len1 == len2
@@ -147,7 +157,8 @@ identicalLengths = len1 == len2
 if args.align:
     assert identicalLengths
 
-result = compareDNAReads(read1, read2, matchAmbiguous=(not args.strict))
+result = compareDNAReads(read1, read2, matchAmbiguous=(not args.strict),
+                         offsets=offsets)
 
 match = result['match']
 identicalMatchCount = match['identicalMatchCount']

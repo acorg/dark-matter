@@ -123,6 +123,61 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'ACGTT'),
                             Read('id2', 'ACGTT')))
 
+    def testNoOffsets(self):
+        """
+        If an empty set of wanted offsets is passed, the result must be empty.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 0,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ATT-T'),
+                            Read('id2', 'A-GTC'), offsets=set()))
+
+    def testOffsets(self):
+        """
+        If a set of wanted offsets are passed, the result must be restricted to
+        just those offsets.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 1,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ATT-T'),
+                            Read('id2', 'A-GTC'), offsets=set([0, 4])))
+
     def testMatchWithAmbiguityButStrict(self):
         """
         Two sequences that match exactly, apart from one ambiguity in the first
