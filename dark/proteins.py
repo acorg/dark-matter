@@ -216,7 +216,7 @@ class ProteinGrouper(object):
     @raise ValueError: If C{format_} is unknown.
     """
 
-    VIRALZONE = 'http://viralzone.expasy.org/cgi-bin/viralzone/search?query='
+    VIRALZONE = 'https://viralzone.expasy.org/search?query='
 
     def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta',
                  proteinFastaFilenames=None, saveReadLengths=False):

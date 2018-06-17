@@ -1,3 +1,7 @@
+## 3.0.20 June 16, 2018
+
+Updated ViralZone search URL in `dark/proteins.py`.
+
 ## 3.0.19 June 16, 2018
 
 Added `--sites` argument to `compare-dna-sequences.py` and corresponding
