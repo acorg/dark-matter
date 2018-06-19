@@ -18,7 +18,7 @@ def needle(reads):
     """
     Run a Needleman-Wunsch alignment and return the two sequences.
 
-    @param reads: An interable of two reads.
+    @param reads: An iterable of two reads.
     @return: A C{Reads} instance with the two aligned sequences.
     """
     from tempfile import mkdtemp

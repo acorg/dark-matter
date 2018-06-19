@@ -73,6 +73,7 @@ scripts = [
     'bin/read-blast-json.py',
     'bin/read-blast-xml.py',
     'bin/sam-to-fasta-alignment.py',
+    'bin/sam-reference-read-counts.py',
     'bin/sff-to-fastq.py',
     'bin/split-fasta-by-adaptors.py',
     'bin/summarize-fasta-bases.py',
