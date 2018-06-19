@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import argparse
 from collections import defaultdict
@@ -9,7 +9,8 @@ from dark.sam import samfile
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description='Print reference sequence and unmapped read counts.')
+    description=('Print SAM/BAM file reference sequence and unmapped read '
+                 'counts.'))
 
 parser.add_argument(
     'samFile', metavar='FILENAME',
