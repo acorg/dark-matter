@@ -1,3 +1,7 @@
+## 3.0.21 June 21, 2018
+
+Added `sam-reference-read-counts.py` script.
+
 ## 3.0.20 June 16, 2018
 
 Updated ViralZone search URL in `dark/proteins.py`.
