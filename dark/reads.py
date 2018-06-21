@@ -1274,7 +1274,7 @@ class Reads(object):
 
     def summarizePosition(self, index):
         """
-        Compute residue counts a specific sequence index.
+        Compute residue counts at a specific sequence index.
 
         @param index: an C{int} index into the sequence.
         @return: A C{dict} with the count of too-short (excluded) sequences,

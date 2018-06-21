@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from collections import Counter, defaultdict
 
 from pysam import (
@@ -276,3 +277,15 @@ class PaddedSAM(object):
                 suffix = '' if count == 0 else '/%d' % count
 
             yield Read('%s%s' % (read.query_name, suffix), paddedSequence)
+
+
+@contextmanager
+def samfile(filename):
+    """
+    A context manager to open and close a SAM/BAM file.
+
+    @param filename: A C{str} file name to open.
+    """
+    f = AlignmentFile(filename)
+    yield f
+    f.close()
