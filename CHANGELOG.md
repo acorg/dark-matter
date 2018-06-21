@@ -1,3 +1,8 @@
+## 3.0.22 June 21, 2018
+
+Made `dark/sam.py` properly deal with secondary alignments that are missing
+a SEQ.
+
 ## 3.0.21 June 21, 2018
 
 Added `sam-reference-read-counts.py` script.

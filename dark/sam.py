@@ -140,9 +140,9 @@ class PaddedSAM(object):
         idCount = Counter()
 
         MATCH_OPERATIONS = {CMATCH, CEQUAL, CDIFF}
+        lastQuery = None
 
-        for read in samfile.fetch():
-            query = read.query_sequence
+        for lineNumber, read in enumerate(samfile.fetch(), start=1):
             if (read.is_unmapped or
                     (read.is_secondary and dropSecondary) or
                     (read.is_supplementary and dropSupplementary) or
@@ -151,6 +151,30 @@ class PaddedSAM(object):
                     (referenceId is not None and
                      read.reference_id != referenceId)):
                 continue
+
+            query = read.query_sequence
+
+            # Secondary (and presumably supplementary) alignments may have
+            # a '*' (None in pysam) SEQ field, indicating that the previous
+            # sequence should be used. This is best practice according to
+            # section 2.5.2 of https://samtools.github.io/hts-specs/SAMv1.pdf
+            if query is None:
+                if read.is_secondary or read.is_supplementary:
+                    if lastQuery is None:
+                        raise ValueError(
+                            'Query line %d has an empty SEQ field, but no '
+                            'previous alignment is present.' % lineNumber)
+                    else:
+                        query = lastQuery
+                else:
+                    raise ValueError(
+                        'Query line %d has an empty SEQ field, but the '
+                        'alignment is not marked as secondary or '
+                        'supplementary.' % lineNumber)
+
+            # Remember the last query here (before we potentially modify it
+            # due to it being reverse complimented for the alignment).
+            lastQuery = query
 
             if read.is_reverse:
                 if rcNeeded:
