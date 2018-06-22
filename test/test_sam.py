@@ -588,3 +588,97 @@ class TestPaddedSAM(TestCase):
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
             self.assertEqual(Read('query2', '---TC-----'), read2)
             ps.close()
+
+    def testSecondaryWithNoPreviousSequence(self):
+        """
+        A secondary match with a '*' seq that is not preceeded by a query with
+        a sequence must result in a ValueError being raised.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query 256 ref1 3 60 4M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            error = ('^Query line 1 has an empty SEQ field, but no previous '
+                     'alignment is present\\.$')
+            queries = ps.queries()
+            assertRaisesRegex(self, ValueError, error, list, queries)
+            ps.close()
+
+    def testSecondaryWithNoSequence(self):
+        """
+        A secondary match with a '*' seq must result in the sequence from the
+        previous query being used.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 3M * 0 0 TCT ZZZ',
+            'query2 0 ref1 2 60 4M * 0 0 TCTA ZZZZ',
+            'query2 256 ref1 6 60 4M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read1, read2, read3) = list(ps.queries())
+            self.assertEqual(Read('query1', '-TCT------'), read1)
+            self.assertEqual(Read('query2', '-TCTA-----'), read2)
+            self.assertEqual(Read('query2/1', '-----TCTA-'), read3)
+            ps.close()
+
+    def testSupplementaryWithNoPreviousSequence(self):
+        """
+        A supplementary match with a '*' seq that is not preceeded by a query
+        with a sequence must result in a ValueError being raised.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query 2048 ref1 3 60 4M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            error = ('^Query line 1 has an empty SEQ field, but no previous '
+                     'alignment is present\\.$')
+            queries = ps.queries()
+            assertRaisesRegex(self, ValueError, error, list, queries)
+            ps.close()
+
+    def testSupplementaryWithNoSequence(self):
+        """
+        A supplementary match with a '*' seq must result in the sequence from
+        the previous query being used.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 3M * 0 0 TCT ZZZ',
+            'query2 0 ref1 2 60 4M * 0 0 TCTA ZZZZ',
+            'query2 2048 ref1 6 60 4M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read1, read2, read3) = list(ps.queries())
+            self.assertEqual(Read('query1', '-TCT------'), read1)
+            self.assertEqual(Read('query2', '-TCTA-----'), read2)
+            self.assertEqual(Read('query2/1', '-----TCTA-'), read3)
+            ps.close()
+
+    def testNotSecondaryAndNotSupplementaryWithNoSequence(self):
+        """
+        An alignment with a '*' seq that is not secondary or supplementary
+        must result in a ValueError being raised.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query 0 ref1 3 60 4M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            error = ('^Query line 1 has an empty SEQ field, but the alignment '
+                     'is not marked as secondary or supplementary\\.$')
+            queries = ps.queries()
+            assertRaisesRegex(self, ValueError, error, list, queries)
+            ps.close()
