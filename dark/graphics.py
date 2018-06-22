@@ -667,7 +667,10 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
         if not S_ISDIR(os.stat(outputDir).st_mode):
             raise ValueError("%r is not a directory." % outputDir)
     else:
-        os.mkdir(outputDir)
+        if outputDir == None:
+            raise NameError("The outputDir needs to be specified.")
+        else:
+            os.mkdir(outputDir)
 
     htmlWriter = AlignmentPanelHTMLWriter(outputDir, titlesAlignments)
 
