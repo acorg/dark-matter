@@ -239,8 +239,8 @@ if __name__ == '__main__':
               'the score.'))
 
     parser.add_argument(
-        '--outputDir', default=None,
-        help='Specifies a directory to write the HTML summary to.')
+        '--outputDir', default=None, required=True,
+        help='Specifies a directory to write the HTML summary to. Required.')
 
     parser.add_argument(
         '--color', action='append',

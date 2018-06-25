@@ -1,3 +1,8 @@
+## 3.0.24 June 25, 2018
+
+Made `noninteractive-alignment-panel.py` option `--outputDir` to be required.
+Added error message for this in `graphics.py`.
+
 ## 3.0.23 June 22, 2018
 
 Changed the way reference sequence insertions are stored in a
