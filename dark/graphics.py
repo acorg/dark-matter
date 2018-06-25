@@ -650,7 +650,7 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
         sequences.
     @param showOrfs: If C{True}, open reading frames will be displayed.
     @raise TypeError: If C{outputDir} is C{None}.
-    @raise ValueError: If C{outputDir} exists but is not a directory or if
+    @raise ValueError: If C{outputDir} is None or exists but is not a directory or if
         C{xRange} is not "subject" or "reads".
     """
 
@@ -667,8 +667,8 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
         if not S_ISDIR(os.stat(outputDir).st_mode):
             raise ValueError("%r is not a directory." % outputDir)
     else:
-        if outputDir == None:
-            raise NameError("The outputDir needs to be specified.")
+        if outputDir is None:
+            raise ValueError("The outputDir needs to be specified.")
         else:
             os.mkdir(outputDir)
 
