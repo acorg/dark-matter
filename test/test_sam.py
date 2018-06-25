@@ -347,8 +347,32 @@ class TestPaddedSAM(TestCase):
             self.assertEqual(Read('query1', '-TCGG-----'), read)
             self.assertEqual(
                 {
-                    3: {'T': 1},
-                    4: {'A': 1},
+                    'query1': [(3, 'TA')],
+                },
+                ps.referenceInsertions)
+            ps.close()
+
+    def testPrimaryAndSecondaryReferenceInsertion(self):
+        """
+        A primary and secondary insertion into the reference (of the same
+        query) must result in the expected padded sequences and the expected
+        value in the referenceInsertions dictionary.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2M2I2M * 0 0 TCTAGG ZZZZZZ',
+            'query1 256 ref1 4 60 2M3I1M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            (read1, read2) = list(ps.queries())
+            self.assertEqual(Read('query1', '-TCGG-----'), read1)
+            self.assertEqual(Read('query1/1', '---TCG----'), read2)
+            self.assertEqual(
+                {
+                    'query1': [(3, 'TA')],
+                    'query1/1': [(5, 'TAG')],
                 },
                 ps.referenceInsertions)
             ps.close()

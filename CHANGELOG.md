@@ -1,7 +1,13 @@
-## 3.0.23 June 22, 2018
+## 3.0.24 June 25, 2018
 
 Made `noninteractive-alignment-panel.py` option `--outputDir` to be required.
-Added error message for this in `graphics.py` 
+Added error message for this in `graphics.py`.
+
+## 3.0.23 June 22, 2018
+
+Changed the way reference sequence insertions are stored in a
+`dark.sam.PaddedSAM` instance to make it possible to tell which query
+sequences caused reference insertions.
 
 ## 3.0.22 June 21, 2018
 

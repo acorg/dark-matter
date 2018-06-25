@@ -29,12 +29,12 @@ class PaddedSAM(object):
     """
     def __init__(self, filename):
         self.samfile = AlignmentFile(filename)
-        # self.referenceInsertions will be keyed by offset into the reference
-        # sequence. The inserted bases would need to begin at this offset. The
-        # value will be a Counter whose keys are the nucleotides proposed for
-        # insertion, with a value indicating how many times the nucleotide was
-        # proposed for insertion at that offset.
-        self.referenceInsertions = defaultdict(Counter)
+        # self.referenceInsertions will be keyed by query id (the query
+        # that would cause a reference insertion). The values will be lists
+        # of 2-tuples, with each 2-tuple containing an offset into the
+        # reference sequence and the C{str} of nucleotide that would be
+        # inserted starting at that offset.
+        self.referenceInsertions = defaultdict(list)
 
     def close(self):
         """
@@ -182,6 +182,16 @@ class PaddedSAM(object):
                 if rcSuffix:
                     read.query_name += rcSuffix
 
+            # Adjust the query id if it's a duplicate and we're not
+            # allowing duplicates.
+            if allowDuplicateIds:
+                queryId = read.query_name
+            else:
+                count = idCount[read.query_name]
+                idCount[read.query_name] += 1
+                queryId = read.query_name + (
+                    '' if count == 0 else '/%d' % count)
+
             referenceStart = read.reference_start
             atStart = True
             queryIndex = 0
@@ -205,9 +215,9 @@ class PaddedSAM(object):
                     # query but record what would have been inserted into the
                     # reference.
                     atStart = False
-                    for i in range(length):
-                        self.referenceInsertions[referenceIndex + i][
-                            query[queryIndex + i]] += 1
+                    self.referenceInsertions[queryId].append(
+                        (referenceIndex,
+                         query[queryIndex:queryIndex + length]))
                 elif operation == CDEL:
                     # Delete from the reference. Some bases from the reference
                     # would need to be deleted to continue the match. So we put
@@ -293,14 +303,7 @@ class PaddedSAM(object):
                 padChar * (referenceLength -
                            (referenceStart + len(alignedSequence))))
 
-            if allowDuplicateIds:
-                suffix = ''
-            else:
-                count = idCount[read.query_name]
-                idCount[read.query_name] += 1
-                suffix = '' if count == 0 else '/%d' % count
-
-            yield Read('%s%s' % (read.query_name, suffix), paddedSequence)
+            yield Read(queryId, paddedSequence)
 
 
 @contextmanager
