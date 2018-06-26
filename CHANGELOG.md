@@ -1,3 +1,8 @@
+## 3.0.25 June 26, 2018
+
+Made a change in `dark/dna.py`, to make `identicalMatchCount` only count non-
+ambiguous matches. Added testfunction `testMatchwithIdenticalAmbuguity`.
+
 ## 3.0.24 June 25, 2018
 
 Made `noninteractive-alignment-panel.py` option `--outputDir` to be required.

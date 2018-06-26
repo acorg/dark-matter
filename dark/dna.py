@@ -109,7 +109,7 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
                     # Neither is a gap character.
                     if len(AMBIGUOUS[b]) > 1:
                         read2AmbiguousOffsets.append(offset)
-                    if a == b:
+                    if a == b and len(AMBIGUOUS[a]) == 1:
                         identicalMatchCount += 1
                     elif matchAmbiguous and (
                             AMBIGUOUS.get(a, empty) & AMBIGUOUS.get(b, empty)):

@@ -321,6 +321,35 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'ACGTTW'),
                             Read('id2', 'ACGTTS')))
 
+    def testMatchWithIdenticalAmbiguity(self):
+        """
+        Two sequences that match exactly, including one (indentical)
+        ambiguity at the same location in the sequence, must compare as
+        expected.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 1,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTN'),
+                            Read('id2', 'ACGTTN')))
+
     def testGapInFirst(self):
         """
         A gap in the first sequence must be dealt with correctly
