@@ -1,3 +1,7 @@
+## 3.0.25 June 26, 2018
+
+Added TravisCI Slack notifications.
+
 ## 3.0.24 June 25, 2018
 
 Made `noninteractive-alignment-panel.py` option `--outputDir` to be required.

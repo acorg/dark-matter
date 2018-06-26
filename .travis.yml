@@ -11,3 +11,4 @@ script:
   - pytest
 notifications:
   irc: "irc.freenode.net#acorg"
+  slack: acorg:PBqi8M1O5JVt26evSkRoX40z
