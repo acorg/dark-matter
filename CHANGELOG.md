@@ -1,7 +1,11 @@
-## 3.0.25 June 26, 2018
+## 3.0.26 June 26, 2018
 
 Made a change in `dark/dna.py`, to make `identicalMatchCount` only count non-
 ambiguous matches. Added testfunction `testMatchwithIdenticalAmbuguity`.
+
+## 3.0.25 June 26, 2018
+
+Added TravisCI Slack notifications.
 
 ## 3.0.24 June 25, 2018
 
