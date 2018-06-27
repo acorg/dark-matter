@@ -323,7 +323,7 @@ class TestCompareDNAReads(TestCase):
 
     def testMatchWithIdenticalAmbiguity(self):
         """
-        Two sequences that match exactly, including one (indentical)
+        Two sequences that match exactly, including one (identical)
         ambiguity at the same location in the sequence, must compare as
         expected.
         """
@@ -334,7 +334,7 @@ class TestCompareDNAReads(TestCase):
                     'ambiguousMatchCount': 1,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 1,
+                    'nonGapMismatchCount': 0,
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
