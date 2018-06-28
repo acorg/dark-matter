@@ -31,7 +31,6 @@ AMBIGUOUS = {
 BASES_TO_AMBIGUOUS = dict(
     (''.join(sorted(bases)), symbol) for symbol, bases in AMBIGUOUS.items())
 
-
 def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
                     offsets=None):
     """
@@ -49,9 +48,10 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
     @param read1: A C{Read} instance or an instance of one of its subclasses.
     @param read2: A C{Read} instance or an instance of one of its subclasses.
     @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
-        possibly correct as actually being correct. Otherwise, we are strict
-        and insist that only non-ambiguous nucleotides can contribute to the
-        matching nucleotide count.
+        possibly correct as actually being correct, and score these in the 
+        ambiguousMatchCount. Otherwise, we are strict and insist that only 
+        non-ambiguous nucleotides can contribute to the matching nucleotide 
+        count.
     @param gapChars: An iterable containing characters that should be
         considered to be gaps.
     @param offsets: If not C{None}, a C{set} of offsets of interest. Offsets
@@ -67,6 +67,15 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
     read1AmbiguousOffsets = []
     read2AmbiguousOffsets = []
     empty = set()
+
+    # define helper functions
+    def _identicalMatch(a, b):
+        return a == b and len(AMBIGUOUS[a]) == 1
+
+    def _ambiguousMatch(a, b, matchAmbiguous):
+        return (matchAmbiguous and 
+                not _identicalMatch(a, b) and
+                AMBIGUOUS.get(a, empty) & AMBIGUOUS.get(b, empty))
 
     for offset, (a, b) in enumerate(zip_longest(read1.sequence.upper(),
                                                 read2.sequence.upper())):
@@ -97,24 +106,30 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
                     read2GapOffsets.append(offset)
                 else:
                     # a is a gap, b is not.
+                    if len(AMBIGUOUS[b]) > 1:
+                        read2AmbiguousOffsets.append(offset)
                     gapMismatchCount += 1
             else:
-                if len(AMBIGUOUS[a]) > 1:
-                    read1AmbiguousOffsets.append(offset)
                 if b in gapChars:
+                    if len(AMBIGUOUS[a]) > 1:
+                        read1AmbiguousOffsets.append(offset)
                     # b is a gap, a is not.
                     gapMismatchCount += 1
                     read2GapOffsets.append(offset)
                 else:
                     # Neither is a gap character.
+                    if len(AMBIGUOUS[a]) > 1:
+                        read1AmbiguousOffsets.append(offset)
                     if len(AMBIGUOUS[b]) > 1:
                         read2AmbiguousOffsets.append(offset)
-                    if a == b and len(AMBIGUOUS[a]) == 1:
+                    if _identicalMatch(a, b):
+                        # There is an identical match
                         identicalMatchCount += 1
-                    elif matchAmbiguous and (
-                            AMBIGUOUS.get(a, empty) & AMBIGUOUS.get(b, empty)):
+                    elif _ambiguousMatch(a, b, matchAmbiguous):
+                        # There is an ambiguous match
                         ambiguousMatchCount += 1
                     else:
+                        # There is no match
                         nonGapMismatchCount += 1
 
     return {
