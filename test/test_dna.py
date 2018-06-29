@@ -658,6 +658,34 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'ACGTT'),
                             Read('id2', 'ACGTTCC')))
 
+    def testExtraAmbiguous(self):
+        """
+        If the first sequence has extra bases which are ambiguous,they must
+        be indicated in the extraCount and in the ambiguousOffset.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5, 6],
+                    'extraCount': 2,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTNN'),
+                            Read('id2', 'ACGTT')))
+
     def testMismatch(self):
         """
         If the sequences have mismatched (non-ambiguous) bases, their count
