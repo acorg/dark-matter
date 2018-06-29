@@ -263,6 +263,34 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'ACGTTC'),
                             Read('id2', 'ACGTTS')))
 
+    def testNonMatchingAmbiguityInFirst(self):
+        """
+        Two sequences that match exactly, apart from one (incompatible) 
+        ambiguity in the second sequence, must compare as expected.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTW'),
+                            Read('id2', 'ACGTTC')))
+
     def testMatchWithAmbiguityInBoth(self):
         """
         Two sequences that match exactly, apart from one (compatible)
@@ -292,6 +320,35 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'ACGTTK'),
                             Read('id2', 'ACGTTS')))
 
+    def testMatchWithAmbiguityInBothButStrict(self):
+        """
+        Two sequences that match exactly, apart from one (compatible)
+        ambiguity at the same location in the sequence, must compare as
+        expected. Strict.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTK'),
+                            Read('id2', 'ACGTTS'), matchAmbiguous=False))
+
     def testMatchWithIncompatibleAmbiguityInBoth(self):
         """
         Two sequences that match exactly, apart from one (incompatible)
@@ -320,6 +377,93 @@ class TestCompareDNAReads(TestCase):
             },
             compareDNAReads(Read('id1', 'ACGTTW'),
                             Read('id2', 'ACGTTS')))
+
+    def testMatchWithIncompatibleAmbiguityInBothButStrict(self):
+        """
+        Two sequences that match exactly, apart from one (incompatible)
+        ambiguity at the same location in the sequence, must compare as
+        expected. Strict.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTW'),
+                            Read('id2', 'ACGTTS'), matchAmbiguous=False))
+
+    def testMatchWithIdenticalAmbiguity(self):
+        """
+        Two sequences that match exactly, including one (identical)
+        ambiguity at the same location in the sequence, must compare as
+        expected.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 1,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTN'),
+                            Read('id2', 'ACGTTN')))
+
+    def testMatchWithIdenticalAmbiguityButStrict(self):
+        """
+        Two sequences that match exactly, including one (identical)
+        ambiguity at the same location in the sequence, must compare as
+        expected. Strict.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'ambiguousOffsets': [5],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTTN'),
+                            Read('id2', 'ACGTTN'), matchAmbiguous=False))
 
     def testGapInFirst(self):
         """
@@ -430,6 +574,34 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'AC--T'),
                             Read('id2', 'A--TT')))
 
+    def testGapAmbiguous(self):
+        """
+        Testing that the ambiguousOffset shows ambiguous characters paired
+        with gaps as expected
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 2,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 2,
+                    'gapGapMismatchCount': 1,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'ambiguousOffsets': [1],
+                    'extraCount': 0,
+                    'gapOffsets': [2, 3],
+                },
+                'read2': {
+                    'ambiguousOffsets': [3],
+                    'extraCount': 0,
+                    'gapOffsets': [1, 2],
+                },
+            },
+            compareDNAReads(Read('id1', 'AN--T'),
+                            Read('id2', 'A--NT')))
+
     def testExtraInFirst(self):
         """
         If the first sequence has extra bases, they must be indicated in the
@@ -485,6 +657,34 @@ class TestCompareDNAReads(TestCase):
             },
             compareDNAReads(Read('id1', 'ACGTT'),
                             Read('id2', 'ACGTTCC')))
+
+    def testExtraAmbiguous(self):
+        """
+        If the first sequence has extra bases which are ambiguous,they must
+        be indicated in the extraCount and in the ambiguousOffset.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'identicalMatchCount': 5,
+                    'ambiguousMatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'ambiguousOffsets': [6],
+                    'extraCount': 2,
+                    'gapOffsets': [5],
+                },
+                'read2': {
+                    'ambiguousOffsets': [],
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareDNAReads(Read('id1', 'ACGTT-N'),
+                            Read('id2', 'ACGTT')))
 
     def testMismatch(self):
         """
