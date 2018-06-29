@@ -72,14 +72,14 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
         return a == b and len(AMBIGUOUS[a]) == 1
 
     def _ambiguousMatch(a, b, matchAmbiguous):
-        return (matchAmbiguous and 
-                not _identicalMatch(a, b) and
-                AMBIGUOUS.get(a, empty) & AMBIGUOUS.get(b, empty))
         """
         Checks if two characters match ambiguously if matchAmbiguous is True. 
         A match is an ambiguous match if it is not an identical match, but the 
         sets of ambiguous characters overlap.
         """
+        return (matchAmbiguous and 
+                not _identicalMatch(a, b) and
+                AMBIGUOUS.get(a, empty) & AMBIGUOUS.get(b, empty))
 
     for offset, (a, b) in enumerate(zip_longest(read1.sequence.upper(),
                                                 read2.sequence.upper())):
