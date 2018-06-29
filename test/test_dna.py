@@ -265,8 +265,8 @@ class TestCompareDNAReads(TestCase):
 
     def testNonMatchingAmbiguityInFirst(self):
         """
-        Two sequences that match exactly, apart from one ambiguity in the
-        second sequence, must compare as expected.
+        Two sequences that match exactly, apart from one (incompatible) 
+        ambiguity in the second sequence, must compare as expected.
         """
         self.assertEqual(
             {
@@ -574,7 +574,7 @@ class TestCompareDNAReads(TestCase):
             compareDNAReads(Read('id1', 'AC--T'),
                             Read('id2', 'A--TT')))
 
-    def testGapAmbigous(self):
+    def testGapAmbiguous(self):
         """
         Testing that the ambiguousOffset shows ambiguous characters paired
         with gaps as expected

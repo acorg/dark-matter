@@ -87,12 +87,10 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
         # to be passed.
         if offsets is not None and offset not in offsets:
             continue
-        if a is not None and a not in gapChars:    
-            if len(AMBIGUOUS[a]) > 1:
-                read1AmbiguousOffsets.append(offset)
-        if b is not None and b not in gapChars:
-            if len(AMBIGUOUS[b]) > 1:
-                read2AmbiguousOffsets.append(offset)
+        if len(AMBIGUOUS.get(a, '')) > 1:
+            read1AmbiguousOffsets.append(offset)
+        if len(AMBIGUOUS.get(b, '')) > 1:
+            read2AmbiguousOffsets.append(offset)
         if a is None:
             # b has an extra character at its end (it cannot be None).
             assert b is not None
