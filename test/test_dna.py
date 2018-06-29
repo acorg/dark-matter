@@ -673,9 +673,9 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                 },
                 'read1': {
-                    'ambiguousOffsets': [5, 6],
+                    'ambiguousOffsets': [6],
                     'extraCount': 2,
-                    'gapOffsets': [],
+                    'gapOffsets': [5],
                 },
                 'read2': {
                     'ambiguousOffsets': [],
@@ -683,7 +683,7 @@ class TestCompareDNAReads(TestCase):
                     'gapOffsets': [],
                 },
             },
-            compareDNAReads(Read('id1', 'ACGTTNN'),
+            compareDNAReads(Read('id1', 'ACGTT-N'),
                             Read('id2', 'ACGTT')))
 
     def testMismatch(self):
