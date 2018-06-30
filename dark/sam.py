@@ -32,7 +32,7 @@ class PaddedSAM(object):
         # self.referenceInsertions will be keyed by query id (the query
         # that would cause a reference insertion). The values will be lists
         # of 2-tuples, with each 2-tuple containing an offset into the
-        # reference sequence and the C{str} of nucleotide that would be
+        # reference sequence and the C{str} of nucleotides that would be
         # inserted starting at that offset.
         self.referenceInsertions = defaultdict(list)
 

@@ -1,3 +1,7 @@
+## 3.0.27 June 30, 2018
+
+Added `bin/filter-sam.py` script.
+
 ## 3.0.26 June 26, 2018
 
 Made a change in `dark/dna.py`, to make `identicalMatchCount` only count non-
