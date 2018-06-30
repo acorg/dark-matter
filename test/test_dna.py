@@ -265,7 +265,7 @@ class TestCompareDNAReads(TestCase):
 
     def testNonMatchingAmbiguityInFirst(self):
         """
-        Two sequences that match exactly, apart from one (incompatible) 
+        Two sequences that match exactly, apart from one (incompatible)
         ambiguity in the second sequence, must compare as expected.
         """
         self.assertEqual(

@@ -7,6 +7,7 @@ import gzip
 from os.path import basename
 from contextlib import contextmanager
 from re import compile
+import numpy as np
 
 
 def numericallySortFilenames(names):
@@ -49,7 +50,6 @@ def numericallySortFilenames(names):
 # If numpy seems ok, use it. Else try for the Python 3.4 median function, else
 # write our own.
 
-import numpy as np
 _a = np.array([1])
 
 try:
@@ -59,20 +59,20 @@ except AttributeError:
     try:
         from statistics import median as _median
     except ImportError:
-        def _median(l):
+        def _median(numbers):
             """
             Find the median of a set of numbers.
 
-            @param l: A C{list} of numeric values.
-            @return: The median value in C{l}.
+            @param numbers: A C{list} of numeric values.
+            @return: The median value in C{numbers}.
             """
-            l = sorted(l)
-            n = len(l)
+            numbers = sorted(numbers)
+            n = len(numbers)
             if n % 2:
-                return l[n // 2]
+                return numbers[n // 2]
             else:
                 n //= 2
-                return (l[n - 1] + l[n]) / 2
+                return (numbers[n - 1] + numbers[n]) / 2
 else:
     # We have a working numpy. Just make sure we raise on an empty list as
     # numpy returns numpy.nan

@@ -29,8 +29,8 @@ def checkCompatibleParams(initialParams, laterParams):
     err = []
     for param in initialParams:
         if param in laterParams:
-            if (param not in VARIABLE_PARAMS
-                    and initialParams[param] != laterParams[param]):
+            if (param not in VARIABLE_PARAMS and
+                    initialParams[param] != laterParams[param]):
                 err.append(
                     '\tParam %r initial value %r differs from '
                     'later value %r' % (param, initialParams[param],

@@ -23,7 +23,7 @@ from dark.reads import Read, Reads, DNARead
 from dark.hsp import HSP, LSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import (
-    BlastReadsAlignments,  ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
+    BlastReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
 from dark import ncbidb
 
@@ -550,10 +550,13 @@ class TestBlastReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that non-zero
         evalues are converted to the positive value of their negative exponent.
         """
-        result = lambda a, **kwargs: File([
-            dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
-            dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
-            dumps(deepcopy(RECORD3)) + '\n'])
+        def result(a, **kwargs):
+            return File([
+                dumps(PARAMS) + '\n',
+                dumps(deepcopy(RECORD0)) + '\n',
+                dumps(deepcopy(RECORD1)) + '\n',
+                dumps(deepcopy(RECORD2)) + '\n',
+                dumps(deepcopy(RECORD3)) + '\n'])
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
@@ -576,10 +579,14 @@ class TestBlastReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that zero
         evalues are set randomly high.
         """
-        result = lambda a, **kwargs: File([
-            dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
-            dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
-            dumps(deepcopy(RECORD3)) + '\n', dumps(deepcopy(RECORD4)) + '\n'])
+        def result(a, **kwargs):
+            return File([
+                dumps(PARAMS) + '\n',
+                dumps(deepcopy(RECORD0)) + '\n',
+                dumps(deepcopy(RECORD1)) + '\n',
+                dumps(deepcopy(RECORD2)) + '\n',
+                dumps(deepcopy(RECORD3)) + '\n',
+                dumps(deepcopy(RECORD4)) + '\n'])
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
