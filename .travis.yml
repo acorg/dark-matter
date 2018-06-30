@@ -9,6 +9,7 @@ install:
   pip install -r requirements.txt
 script:
   - pytest
+  - find bin dark test -name '*.py' -print0 | xargs -0 flake8 --ignore E402,W504
 notifications:
   irc: "irc.freenode.net#acorg"
   slack: acorg:PBqi8M1O5JVt26evSkRoX40z
