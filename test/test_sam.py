@@ -706,3 +706,31 @@ class TestPaddedSAM(TestCase):
             queries = ps.queries()
             assertRaisesRegex(self, ValueError, error, list, queries)
             ps.close()
+
+    def testAlsoYieldAlignments(self):
+        """
+        A request for queries and their pysam alignments should have the
+        expected result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            ((read1, alignment1),
+             (read2, alignment2)) = list(ps.queries(alsoYieldAlignments=True))
+
+            self.assertEqual(Read('query1', '-TCTAGG---'), read1)
+            self.assertEqual('TCTAGG', alignment1.query_sequence)
+            self.assertEqual('123456', ''.join(
+                map(lambda x: chr(x + 33), alignment1.query_qualities)))
+
+            self.assertEqual(Read('query2', '-TC-------'), read2)
+            self.assertEqual('TC', alignment2.query_sequence)
+            self.assertEqual('XY', ''.join(
+                map(lambda x: chr(x + 33), alignment2.query_qualities)))
+
+            ps.close()

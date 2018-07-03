@@ -38,26 +38,26 @@ if __name__ == '__main__':
               'error message is printed unless --quiet is used).'))
 
     parser.add_argument(
-         '--dropUnmapped', default=False, action='store_true',
-         help='If given, unmapped matches will not be output.')
+        '--dropUnmapped', default=False, action='store_true',
+        help='If given, unmapped matches will not be output.')
 
     parser.add_argument(
-         '--dropSecondary', default=False, action='store_true',
-         help='If given, secondary matches will not be output.')
+        '--dropSecondary', default=False, action='store_true',
+        help='If given, secondary matches will not be output.')
 
     parser.add_argument(
-         '--dropSupplementary', default=False, action='store_true',
-         help='If given, supplementary matches will not be output.')
+        '--dropSupplementary', default=False, action='store_true',
+        help='If given, supplementary matches will not be output.')
 
     parser.add_argument(
-         '--dropDuplicates', default=False, action='store_true',
-         help=('If given, matches flagged as optical or PCR duplicates will '
-               'not be output.'))
+        '--dropDuplicates', default=False, action='store_true',
+        help=('If given, matches flagged as optical or PCR duplicates will '
+              'not be output.'))
 
     parser.add_argument(
-         '--keepQCFailures', default=False, action='store_true',
-         help=('If given, reads that are considered quality control failures '
-               'will be included in the output.'))
+        '--keepQCFailures', default=False, action='store_true',
+        help=('If given, reads that are considered quality control failures '
+              'will be included in the output.'))
 
     parser.add_argument(
         '--referenceWhitelist', metavar='NAME', action='append',
@@ -106,17 +106,17 @@ if __name__ == '__main__':
 
             if (filterRead(Read(alignment.query_name,
                                 alignment.query_sequence,
-                                alignment.qual))
-                    and not (
-                        (alignment.is_unmapped and dropUnmapped) or
-                        (alignment.is_secondary and dropSecondary) or
-                        (alignment.is_supplementary and dropSupplementary) or
-                        (alignment.is_duplicate and dropDuplicates) or
-                        (alignment.is_qcfail and not keepQCFailures) or
-                        (referenceWhitelist is not None and
-                         alignment.reference_name not in referenceWhitelist) or
-                        (referenceBlacklist is not None and
-                         alignment.reference_name in referenceBlacklist))):
+                                alignment.qual)) and
+                not (
+                    (alignment.is_unmapped and dropUnmapped) or
+                    (alignment.is_secondary and dropSecondary) or
+                    (alignment.is_supplementary and dropSupplementary) or
+                    (alignment.is_duplicate and dropDuplicates) or
+                    (alignment.is_qcfail and not keepQCFailures) or
+                    (referenceWhitelist is not None and
+                     alignment.reference_name not in referenceWhitelist) or
+                    (referenceBlacklist is not None and
+                     alignment.reference_name in referenceBlacklist))):
                 kept += 1
                 save(alignment)
         out.close()
