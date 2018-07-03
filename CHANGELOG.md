@@ -1,3 +1,8 @@
+## 3.0.29 July 3, 2018
+
+Renamed `alsoYieldAlignments` option of `PaddedSAM.queries` to `addAlignment`
+and add the alignment to the `Read` instance instead of returning a tuple.
+
 ## 3.0.28 July 3, 2018
 
 Added `alsoYieldAlignments` option to `PaddedSAM.queries` method to have

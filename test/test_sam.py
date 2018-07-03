@@ -709,7 +709,7 @@ class TestPaddedSAM(TestCase):
 
     def testAlsoYieldAlignments(self):
         """
-        A request for queries and their pysam alignments should have the
+        A request for queries with their pysam alignments should have the
         expected result.
         """
         data = '\n'.join([
@@ -720,17 +720,16 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(filename)
-            ((read1, alignment1),
-             (read2, alignment2)) = list(ps.queries(alsoYieldAlignments=True))
+            (read1, read2) = list(ps.queries(addAlignment=True))
 
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
-            self.assertEqual('TCTAGG', alignment1.query_sequence)
+            self.assertEqual('TCTAGG', read1.alignment.query_sequence)
             self.assertEqual('123456', ''.join(
-                map(lambda x: chr(x + 33), alignment1.query_qualities)))
+                map(lambda x: chr(x + 33), read1.alignment.query_qualities)))
 
             self.assertEqual(Read('query2', '-TC-------'), read2)
-            self.assertEqual('TC', alignment2.query_sequence)
+            self.assertEqual('TC', read2.alignment.query_sequence)
             self.assertEqual('XY', ''.join(
-                map(lambda x: chr(x + 33), alignment2.query_qualities)))
+                map(lambda x: chr(x + 33), read2.alignment.query_qualities)))
 
             ps.close()

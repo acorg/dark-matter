@@ -61,7 +61,7 @@ class PaddedSAM(object):
                 dropSecondary=False, dropSupplementary=False,
                 dropDuplicates=False, allowDuplicateIds=False,
                 keepQCFailures=False, rcNeeded=False, padChar='-',
-                queryInsertionChar='N', alsoYieldAlignments=False):
+                queryInsertionChar='N', addAlignment=False):
         """
         Produce padded (with gaps) queries according to the CIGAR string and
         reference sequence length for each matching query sequence.
@@ -107,8 +107,8 @@ class PaddedSAM(object):
             is inserted as a 'missing' query character (i.e., a base that can
             be assumed to have been lost due to an error) whose existence is
             necessary for the match to continue.
-        @param alsoYieldAlignments: If C{True} the returned generator will
-            yield 2-tuples containing a padded query and the
+        @param addAlignment: If C{True} the reads yielded by the returned
+            generator will also have an C{alignment} attribute, being the
             C{pysam.AlignedSegment} for each query.
         @raises UnequalReferenceLengthError: If C{referenceName} is C{None}
             and the reference sequence lengths in the SAM/BAM file are not all
@@ -116,9 +116,8 @@ class PaddedSAM(object):
         @raises UnknownReference: If C{referenceName} does not exist.
         @return: A generator that yields C{Read} instances that are padded
             with gap characters to align them to the length of the reference
-            sequence. See C{alsoYieldAlignments}, above, to have the generator
-            yield tuples also containing the corresponding
-            C{pysam.AlignedSegment}.
+            sequence. See C{addAlignment}, above, to yield reads with the
+            corresponding C{pysam.AlignedSegment}.
         """
         samfile = self.samfile
 
@@ -309,10 +308,10 @@ class PaddedSAM(object):
                            (referenceStart + len(alignedSequence))))
 
             read = Read(queryId, paddedSequence)
-            if alsoYieldAlignments:
-                yield (read, alignment)
-            else:
-                yield read
+            if addAlignment:
+                read.alignment = alignment
+
+            yield read
 
 
 @contextmanager
