@@ -750,3 +750,20 @@ class TestPaddedSAM(TestCase):
             list(ps.queries(addAlignment=True))
             self.assertEqual(2, ps.alignmentCount)
             ps.close()
+
+    def testStoreQueryIds(self):
+        """
+        If we request that query ids are saved, they must be.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            list(ps.queries(storeQueryIds=True))
+            self.assertEqual({'query1', 'query2'}, ps.queryIds)
+            ps.close()

@@ -62,7 +62,8 @@ class PaddedSAM(object):
                 dropSecondary=False, dropSupplementary=False,
                 dropDuplicates=False, allowDuplicateIds=False,
                 keepQCFailures=False, rcNeeded=False, padChar='-',
-                queryInsertionChar='N', addAlignment=False):
+                queryInsertionChar='N', addAlignment=False,
+                storeQueryIds=False):
         """
         Produce padded (with gaps) queries according to the CIGAR string and
         reference sequence length for each matching query sequence.
@@ -111,6 +112,8 @@ class PaddedSAM(object):
         @param addAlignment: If C{True} the reads yielded by the returned
             generator will also have an C{alignment} attribute, being the
             C{pysam.AlignedSegment} for each query.
+        @param storeQueryIds: If C{True}, query ids will be stored in a
+            C{set} attribute called C{queryIds}.
         @raises UnequalReferenceLengthError: If C{referenceName} is C{None}
             and the reference sequence lengths in the SAM/BAM file are not all
             identical.
@@ -146,9 +149,14 @@ class PaddedSAM(object):
 
         MATCH_OPERATIONS = {CMATCH, CEQUAL, CDIFF}
         lastQuery = None
+        if storeQueryIds:
+            self.queryIds = queryIds = set()
 
         for lineNumber, alignment in enumerate(samfile.fetch(), start=1):
             self.alignmentCount += 1
+
+            if storeQueryIds:
+                queryIds.add(alignment.query_name)
 
             if (alignment.is_unmapped or
                     (alignment.is_secondary and dropSecondary) or

@@ -1,3 +1,7 @@
+## 3.0.31 July 3, 2018
+
+Added `storeQueryIds` option to `PaddedSAM.queries` method.
+
 ## 3.0.30 July 3, 2018
 
 Added `alignmentCount` attribute to `PaddedSAM` class.
