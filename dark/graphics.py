@@ -650,8 +650,8 @@ def alignmentPanelHTML(titlesAlignments, sortOn='maxScore',
         sequences.
     @param showOrfs: If C{True}, open reading frames will be displayed.
     @raise TypeError: If C{outputDir} is C{None}.
-    @raise ValueError: If C{outputDir} is None or exists but is not a directory or if
-        C{xRange} is not "subject" or "reads".
+    @raise ValueError: If C{outputDir} is None or exists but is not a
+        directory or if C{xRange} is not "subject" or "reads".
     """
 
     if xRange not in ('subject', 'reads'):

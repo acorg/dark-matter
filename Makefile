@@ -1,4 +1,4 @@
-.PHONY: check, tcheck, pycodestyle, pyflakes, lint, wc, clean, clobber, upload
+.PHONY: check, tcheck, pycodestyle, pyflakes, flake8, lint, wc, clean, clobber, upload
 
 XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
 
@@ -8,13 +8,17 @@ check:
 tcheck:
 	env PYTHONPATH=. trial --rterrors test
 
+pytest:
+	pytest
+
 pycodestyle:
-	find . -path './.tox' -prune -o -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | $(XARGS) -0 pycodestyle
+	find bin dark test -name '*.py' -print0 | $(XARGS) -0 pycodestyle --ignore E402,W504
 
 pyflakes:
-	find .  -path './.tox' -prune -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | $(XARGS) -0 pyflakes
+	find bin dark test -name '*.py' -print0 | $(XARGS) -0 pyflakes
 
-lint: pycodestyle pyflakes
+flake8:
+	find bin dark test -name '*.py' -print0 | $(XARGS) -0 flake8 --ignore E402,W504
 
 wc:
 	find . -path './.tox' -prune -o -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | $(XARGS) -0 wc -l

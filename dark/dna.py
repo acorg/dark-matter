@@ -31,6 +31,7 @@ AMBIGUOUS = {
 BASES_TO_AMBIGUOUS = dict(
     (''.join(sorted(bases)), symbol) for symbol, bases in AMBIGUOUS.items())
 
+
 def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
                     offsets=None):
     """
@@ -48,9 +49,9 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
     @param read1: A C{Read} instance or an instance of one of its subclasses.
     @param read2: A C{Read} instance or an instance of one of its subclasses.
     @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
-        possibly correct as actually being correct, and score these in the 
-        ambiguousMatchCount. Otherwise, we are strict and insist that only 
-        non-ambiguous nucleotides can contribute to the matching nucleotide 
+        possibly correct as actually being correct, and score these in the
+        ambiguousMatchCount. Otherwise, we are strict and insist that only
+        non-ambiguous nucleotides can contribute to the matching nucleotide
         count.
     @param gapChars: An iterable containing characters that should be
         considered to be gaps.
@@ -73,11 +74,11 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
 
     def _ambiguousMatch(a, b, matchAmbiguous):
         """
-        Checks if two characters match ambiguously if matchAmbiguous is True. 
-        A match is an ambiguous match if it is not an identical match, but the 
+        Checks if two characters match ambiguously if matchAmbiguous is True.
+        A match is an ambiguous match if it is not an identical match, but the
         sets of ambiguous characters overlap.
         """
-        return (matchAmbiguous and 
+        return (matchAmbiguous and
                 not _identicalMatch(a, b) and
                 AMBIGUOUS.get(a, empty) & AMBIGUOUS.get(b, empty))
 

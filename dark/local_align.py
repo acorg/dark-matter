@@ -79,41 +79,41 @@ class LocalAlignment(object):
         max_row = 0
         max_col = 0
 
-        for row in range(1, len(self.seq2Seq)+1):
-            for col in range(1, len(self.seq1Seq)+1):
+        for row in range(1, len(self.seq2Seq) + 1):
+            for col in range(1, len(self.seq1Seq) + 1):
                 # Calculate match score
-                letter1 = self.seq1Seq[col-1]
-                letter2 = self.seq2Seq[row-1]
+                letter1 = self.seq1Seq[col - 1]
+                letter2 = self.seq2Seq[row - 1]
                 if letter1 == letter2:
-                    diagonal_score = (table[row-1][col-1]['score'] +
+                    diagonal_score = (table[row - 1][col - 1]['score'] +
                                       self.match)
                 else:
-                    diagonal_score = (table[row-1][col-1]['score'] +
+                    diagonal_score = (table[row - 1][col - 1]['score'] +
                                       self.mismatch)
 
-                ins_run = table[row-1][col]['ins']
-                del_run = table[row][col-1]['del']
+                ins_run = table[row - 1][col]['ins']
+                del_run = table[row][col - 1]['del']
 
                 # Calculate gap scores ensuring extension is not > 0
-                if table[row-1][col]['ins'] <= 0:
-                    ins_score = table[row-1][col]['score'] + self.gapOpen
+                if table[row - 1][col]['ins'] <= 0:
+                    ins_score = table[row - 1][col]['score'] + self.gapOpen
                 else:
                     if self.gapExtend + ins_run * self.gapExtendDecay <= 0.0:
-                        ins_score = (table[row-1][col]['score'] +
+                        ins_score = (table[row - 1][col]['score'] +
                                      self.gapExtend +
                                      ins_run * self.gapExtendDecay)
                     else:
-                        ins_score = table[row-1][col]['score']
+                        ins_score = table[row - 1][col]['score']
 
-                if table[row-1][col]['del'] <= 0:
-                    del_score = table[row][col-1]['score'] + self.gapOpen
+                if table[row - 1][col]['del'] <= 0:
+                    del_score = table[row][col - 1]['score'] + self.gapOpen
                 else:
                     if self.gapExtend + del_run * self.gapExtendDecay <= 0.0:
-                        del_score = (table[row][col-1]['score'] +
+                        del_score = (table[row][col - 1]['score'] +
                                      self.gapExtend +
                                      del_run * self.gapExtendDecay)
                     else:
-                        del_score = table[row][col-1]['score']
+                        del_score = table[row][col - 1]['score']
 
                 # Choose best score
                 if diagonal_score <= 0 and ins_score <= 0 and del_score <= 0:
@@ -163,22 +163,23 @@ class LocalAlignment(object):
                 min_col = current_col + 1
                 break
             elif arrow == 'diagonal':
-                align1 += self.seq1Seq[current_col-1]
-                align2 += self.seq2Seq[current_row-1]
-                if self.seq1Seq[current_col-1] == self.seq2Seq[current_row-1]:
+                align1 += self.seq1Seq[current_col - 1]
+                align2 += self.seq2Seq[current_row - 1]
+                if self.seq1Seq[current_col - 1] == self.seq2Seq[
+                        current_row - 1]:
                     align += '|'
                 else:
                     align += ' '
                 current_row -= 1
                 current_col -= 1
             elif arrow == 'del':
-                align1 += self.seq1Seq[current_col-1]
+                align1 += self.seq1Seq[current_col - 1]
                 align2 += '-'
                 align += ' '
                 current_col -= 1
             elif arrow == 'ins':
                 align1 += '-'
-                align2 += self.seq2Seq[current_row-1]
+                align2 += self.seq2Seq[current_row - 1]
                 align += ' '
                 current_row -= 1
             else:

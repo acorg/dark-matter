@@ -55,6 +55,7 @@ scripts = [
     'bin/filter-fasta.py',
     'bin/filter-hits-to-fasta.py',
     'bin/filter-reads-alignments.py',
+    'bin/filter-sam.py',
     'bin/find-hits.py',
     'bin/get-features.py',
     'bin/get-reads.py',

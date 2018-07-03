@@ -306,7 +306,7 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     index = 0
     data = []
     for item in patterns:
-        newData = toPlot[patterns[index]]/divisor
+        newData = toPlot[patterns[index]] / divisor
         data.append(newData)
         index += 1
     # create the bars
@@ -318,10 +318,10 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
         ax.set_title('%s \n %s' % (title, substitution), fontsize=20)
         ax.set_ylim(0, maxY)
         ax.set_ylabel('Absolute Number of Mutations', fontsize=16)
-        ax.set_xticks(ind+width)
+        ax.set_xticks(ind + width)
         ax.set_xticklabels(patterns, rotation=45, fontsize=8)
     if createFigure is False:
-        ax.set_xticks(ind+width)
+        ax.set_xticks(ind + width)
         ax.set_xticklabels(patterns, rotation=45, fontsize=0)
     else:
         if showFigure:
@@ -380,7 +380,7 @@ def makeFrequencyPanel(allFreqs, patientName):
             # add xAxis tick labels
             if i == 0:
                 ax[i][index].set_title(substitution, fontsize=13)
-            if i == len(allFreqs)-1 or i == (len(allFreqs)-1)/2:
+            if i == len(allFreqs) - 1 or i == (len(allFreqs) - 1) / 2:
                 if index < 3:
                     pat = ['ACA', 'ACC', 'ACG', 'ACT', 'CCA', 'CCC', 'CCG',
                            'CCT', 'GCA', 'GCC', 'GCG', 'GCT', 'TCA', 'TCC',
