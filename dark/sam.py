@@ -61,7 +61,7 @@ class PaddedSAM(object):
                 dropSecondary=False, dropSupplementary=False,
                 dropDuplicates=False, allowDuplicateIds=False,
                 keepQCFailures=False, rcNeeded=False, padChar='-',
-                queryInsertionChar='N'):
+                queryInsertionChar='N', alsoYieldAlignments=False):
         """
         Produce padded (with gaps) queries according to the CIGAR string and
         reference sequence length for each matching query sequence.
@@ -107,13 +107,18 @@ class PaddedSAM(object):
             is inserted as a 'missing' query character (i.e., a base that can
             be assumed to have been lost due to an error) whose existence is
             necessary for the match to continue.
+        @param alsoYieldAlignments: If C{True} the returned generator will
+            yield 2-tuples containing a padded query and the
+            C{pysam.AlignedSegment} for each query.
         @raises UnequalReferenceLengthError: If C{referenceName} is C{None}
             and the reference sequence lengths in the SAM/BAM file are not all
             identical.
         @raises UnknownReference: If C{referenceName} does not exist.
         @return: A generator that yields C{Read} instances that are padded
             with gap characters to align them to the length of the reference
-            sequence.
+            sequence. See C{alsoYieldAlignments}, above, to have the generator
+            yield tuples also containing the corresponding
+            C{pysam.AlignedSegment}.
         """
         samfile = self.samfile
 
@@ -142,24 +147,24 @@ class PaddedSAM(object):
         MATCH_OPERATIONS = {CMATCH, CEQUAL, CDIFF}
         lastQuery = None
 
-        for lineNumber, read in enumerate(samfile.fetch(), start=1):
-            if (read.is_unmapped or
-                    (read.is_secondary and dropSecondary) or
-                    (read.is_supplementary and dropSupplementary) or
-                    (read.is_duplicate and dropDuplicates) or
-                    (read.is_qcfail and not keepQCFailures) or
+        for lineNumber, alignment in enumerate(samfile.fetch(), start=1):
+            if (alignment.is_unmapped or
+                    (alignment.is_secondary and dropSecondary) or
+                    (alignment.is_supplementary and dropSupplementary) or
+                    (alignment.is_duplicate and dropDuplicates) or
+                    (alignment.is_qcfail and not keepQCFailures) or
                     (referenceId is not None and
-                     read.reference_id != referenceId)):
+                     alignment.reference_id != referenceId)):
                 continue
 
-            query = read.query_sequence
+            query = alignment.query_sequence
 
             # Secondary (and presumably supplementary) alignments may have
             # a '*' (None in pysam) SEQ field, indicating that the previous
             # sequence should be used. This is best practice according to
             # section 2.5.2 of https://samtools.github.io/hts-specs/SAMv1.pdf
             if query is None:
-                if read.is_secondary or read.is_supplementary:
+                if alignment.is_secondary or alignment.is_supplementary:
                     if lastQuery is None:
                         raise ValueError(
                             'Query line %d has an empty SEQ field, but no '
@@ -176,29 +181,29 @@ class PaddedSAM(object):
             # due to it being reverse complimented for the alignment).
             lastQuery = query
 
-            if read.is_reverse:
+            if alignment.is_reverse:
                 if rcNeeded:
                     query = DNARead('id', query).reverseComplement().sequence
                 if rcSuffix:
-                    read.query_name += rcSuffix
+                    alignment.query_name += rcSuffix
 
             # Adjust the query id if it's a duplicate and we're not
             # allowing duplicates.
             if allowDuplicateIds:
-                queryId = read.query_name
+                queryId = alignment.query_name
             else:
-                count = idCount[read.query_name]
-                idCount[read.query_name] += 1
-                queryId = read.query_name + (
+                count = idCount[alignment.query_name]
+                idCount[alignment.query_name] += 1
+                queryId = alignment.query_name + (
                     '' if count == 0 else '/%d' % count)
 
-            referenceStart = read.reference_start
+            referenceStart = alignment.reference_start
             atStart = True
             queryIndex = 0
             referenceIndex = referenceStart
             alignedSequence = ''
 
-            for operation, length in read.cigartuples:
+            for operation, length in alignment.cigartuples:
 
                 # The operations are tested in the order they appear in
                 # https://samtools.github.io/hts-specs/SAMv1.pdf It would be
@@ -303,7 +308,11 @@ class PaddedSAM(object):
                 padChar * (referenceLength -
                            (referenceStart + len(alignedSequence))))
 
-            yield Read(queryId, paddedSequence)
+            read = Read(queryId, paddedSequence)
+            if alsoYieldAlignments:
+                yield (read, alignment)
+            else:
+                yield read
 
 
 @contextmanager

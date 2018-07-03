@@ -1,3 +1,11 @@
+## 3.0.28 July 3, 2018
+
+Added `alsoYieldAlignments` option to `PaddedSAM.queries` method to have
+the returned generator also yield the `pysam.AlignedSegment` instance with
+the gap-padded query sequence. This makes it possible to retrieve padded
+queries from SAM/BAM and generate SAM/BAM (or FASTQ) of some subset of the
+queries.
+
 ## 3.0.26 June 26, 2018
 
 Made a change in `dark/dna.py`, to make `identicalMatchCount` only count non-
