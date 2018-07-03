@@ -1119,7 +1119,7 @@ class Reads(object):
         self._filters = []
         self._iterated = False
 
-    def _filterRead(self, read):
+    def filterRead(self, read):
         """
         Filter a read, according to our set of filters.
 
@@ -1152,7 +1152,7 @@ class Reads(object):
         """
         # self._additionalReads is a regular list.
         for read in self._additionalReads:
-            filteredRead = self._filterRead(read)
+            filteredRead = self.filterRead(read)
             if filteredRead is not False:
                 yield filteredRead
 
@@ -1164,7 +1164,7 @@ class Reads(object):
         initialReadsLength = 0
         for read in initialReads:
             initialReadsLength += 1
-            filteredRead = self._filterRead(read)
+            filteredRead = self.filterRead(read)
             if filteredRead is not False:
                 yield filteredRead
 
@@ -1179,7 +1179,7 @@ class Reads(object):
         subclassReadsLength = 0
         for read in subclassReads:
             subclassReadsLength += 1
-            filteredRead = self._filterRead(read)
+            filteredRead = self.filterRead(read)
             if filteredRead is not False:
                 yield filteredRead
 

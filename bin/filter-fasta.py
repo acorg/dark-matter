@@ -26,6 +26,7 @@ if __name__ == '__main__':
         help=('The output format. The default is to match the input format, '
               'so there is usually no need to specify this option. It can be '
               'used to force conversion from FASTQ to FASTA'))
+
     parser.add_argument(
         '--checkResultCount', type=int,
         help=('The number of reads expected in the output. If this number is '

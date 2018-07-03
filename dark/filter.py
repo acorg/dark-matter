@@ -169,11 +169,15 @@ class ReadSetFilter(object):
             return []
 
 
-def addFASTAFilteringCommandLineOptions(parser):
+def addFASTAFilteringCommandLineOptions(parser, filteringSAM=False):
     """
     Add standard FASTA filtering command-line options to an argparse parser.
 
     @param parser: An C{argparse.ArgumentParser} instance.
+    @param filteringSAM: If C{True} only add options that can be used when
+        the result of filtering will be used to filter a SAM file. Because
+        we cannot yet filter out (for example) certain sites from a SAM file
+        we do not support some filtering options for SAM.
     """
     parser.add_argument(
         '--minLength', type=int,
@@ -184,87 +188,71 @@ def addFASTAFilteringCommandLineOptions(parser):
         help='The maximum sequence length')
 
     parser.add_argument(
-        '--removeGaps', action='store_true', default=False,
-        help=("If True, gap ('-') characters in sequences will be removed."))
-
-    parser.add_argument(
         '--whitelist', action='append',
-        help='sequence titles (ids) that should be whitelisted')
+        help='Sequence titles (ids) that should be whitelisted')
 
     parser.add_argument(
         '--blacklist', action='append',
-        help='sequence titles (ids) that should be blacklisted')
+        help='Sequence titles (ids) that should be blacklisted')
 
     parser.add_argument(
         '--whitelistFile',
-        help=('the name of a file that contains sequence titles (ids) that '
+        help=('The name of a file that contains sequence titles (ids) that '
               'should be whitelisted, one per line'))
 
     parser.add_argument(
         '--blacklistFile',
-        help=('the name of a file that contains sequence titles (ids) that '
+        help=('The name of a file that contains sequence titles (ids) that '
               'should be blacklisted, one per line'))
 
     parser.add_argument(
-        '--titleRegex', help='a regex that sequence titles (ids) must match.')
+        '--titleRegex', help='A regex that sequence titles (ids) must match.')
 
     parser.add_argument(
         '--negativeTitleRegex',
-        help='a regex that sequence titles (ids) must not match.')
-
-    parser.add_argument(
-        '--truncateTitlesAfter',
-        help=('a string that sequence titles (ids) will be truncated beyond. '
-              'If the truncated version of a title has already been seen, '
-              'that title will be skipped.'))
+        help='A regex that sequence titles (ids) must not match.')
 
     # A mutually exclusive group for --keepSequences and --removeSequences.
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
         '--keepSequences',
-        help=('specify (1-based) ranges of sequence numbers that should be '
+        help=('Specify (1-based) ranges of sequence numbers that should be '
               'kept. E.g., --keepSequences 1-3,5 will output just the 1st, '
               '2nd, 3rd, and 5th sequences. All others will be omitted.'))
 
     group.add_argument(
         '--removeSequences',
-        help=('specify (1-based) ranges of sequence numbers that should be '
+        help=('Specify (1-based) ranges of sequence numbers that should be '
               'removed. E.g., --removeSequences 1-3,5 will output all but the '
               '1st, 2nd, 3rd, and 5th sequences. All others will be ouput.'))
 
     parser.add_argument(
         '--head', type=int, metavar='N',
-        help='only the first N sequences will be printed.')
+        help='Only the first N sequences will be printed.')
 
     parser.add_argument(
         '--removeDuplicates', action='store_true', default=False,
-        help=('duplicate reads will be removed, based only on '
+        help=('Duplicate reads will be removed, based only on '
               'sequence identity. The first occurrence is kept.'))
 
     parser.add_argument(
         '--removeDuplicatesById', action='store_true', default=False,
-        help=('duplicate reads will be removed, based only on '
+        help=('Duplicate reads will be removed, based only on '
               'read id. The first occurrence is kept.'))
-
-    parser.add_argument(
-        '--removeDescriptions', action='store_true', default=False,
-        help=('read id descriptions will be removed. The '
-              'description is the part of a sequence id after the '
-              'first whitespace (if any).'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.
     parser.add_argument(
         '--randomSubset', type=int,
-        help=('an integer giving the number of sequences that should be kept. '
+        help=('An integer giving the number of sequences that should be kept. '
               'These will be selected at random.'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # trueLength.
     parser.add_argument(
         '--trueLength', type=int,
-        help=('the number of reads in the FASTA input. Only to be used with '
+        help=('The number of reads in the FASTA input. Only to be used with '
               'randomSubset'))
 
     parser.add_argument(
@@ -295,6 +283,10 @@ def addFASTAFilteringCommandLineOptions(parser):
               'function returns None, the read will be filtered out. The '
               'function will be passed to eval with the dark.reads classes '
               'Read, DNARead, AARead, etc. all in scope.'))
+
+    # Options below this point cannot be used to filter SAM.
+    if filteringSAM:
+        return
 
     # A mutually exclusive group for --keepSites, --keepSitesFile,
     # --removeSites, and --removeSitesFile.
@@ -331,8 +323,24 @@ def addFASTAFilteringCommandLineOptions(parser):
               'in the form e.g., 24,100-200,260. See --keepSites for more '
               'detail.'))
 
+    parser.add_argument(
+        '--removeGaps', action='store_true', default=False,
+        help="If True, gap ('-') characters in sequences will be removed.")
 
-def parseFASTAFilteringCommandLineOptions(args, reads):
+    parser.add_argument(
+        '--truncateTitlesAfter',
+        help=('A string that sequence titles (ids) will be truncated beyond. '
+              'If the truncated version of a title has already been seen, '
+              'that title will be skipped.'))
+
+    parser.add_argument(
+        '--removeDescriptions', action='store_true', default=False,
+        help=('Read id descriptions will be removed. The '
+              'description is the part of a sequence id after the '
+              'first whitespace (if any).'))
+
+
+def parseFASTAFilteringCommandLineOptions(args, reads, filteringSAM=False):
     """
     Examine parsed command-line options and return information about kept
     sites and sequences.
@@ -340,6 +348,10 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
     @param args: An argparse namespace, as returned by the argparse
         C{parse_args} function.
     @param reads: A C{Reads} instance to filter.
+    @param filteringSAM: If C{True} only examine options that can be used when
+        the result of filtering will be used to filter a SAM file. Because
+        we cannot yet filter out (for example) certain sites from a SAM file
+        we do not support some filtering options for SAM.
     @return: The filtered C{Reads} instance.
     """
     keepSequences = (
@@ -350,51 +362,58 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
         parseRangeString(args.removeSequences, convertToZeroBased=True)
         if args.removeSequences else None)
 
-    keepSites = (
-        parseRangeString(args.keepSites, convertToZeroBased=True)
-        if args.keepSites else None)
+    if filteringSAM:
+        removeGaps = removeDescriptions = False
+        truncateTitlesAfter = keepSites = removeSites = None
+    else:
+        removeGaps = args.removeGaps
+        removeDescriptions = args.removeDescriptions
+        truncateTitlesAfter = args.truncateTitlesAfter
+        keepSites = (
+            parseRangeString(args.keepSites, convertToZeroBased=True)
+            if args.keepSites else None)
 
-    if args.keepSitesFile:
-        keepSites = keepSites or set()
-        with open(args.keepSitesFile) as fp:
-            for lineNumber, line in enumerate(fp):
-                try:
-                    keepSites.update(
-                        parseRangeString(line, convertToZeroBased=True))
-                except ValueError as e:
-                    raise ValueError(
-                        'Keep sites file %r line %d could not be parsed: %s'
-                        % (args.keepSitesFile, lineNumber, e))
+        if args.keepSitesFile:
+            keepSites = keepSites or set()
+            with open(args.keepSitesFile) as fp:
+                for lineNumber, line in enumerate(fp):
+                    try:
+                        keepSites.update(
+                            parseRangeString(line, convertToZeroBased=True))
+                    except ValueError as e:
+                        raise ValueError(
+                            'Keep sites file %r line %d could not be parsed: '
+                            '%s' % (args.keepSitesFile, lineNumber, e))
 
-    removeSites = (
-        parseRangeString(args.removeSites, convertToZeroBased=True)
-        if args.removeSites else None)
+        removeSites = (
+            parseRangeString(args.removeSites, convertToZeroBased=True)
+            if args.removeSites else None)
 
-    if args.removeSitesFile:
-        removeSites = removeSites or set()
-        with open(args.removeSitesFile) as fp:
-            for lineNumber, line in enumerate(fp):
-                try:
-                    removeSites.update(
-                        parseRangeString(line, convertToZeroBased=True))
-                except ValueError as e:
-                    raise ValueError(
-                        'Remove sites file %r line %d parse error: %s'
-                        % (args.removeSitesFile, lineNumber, e))
+        if args.removeSitesFile:
+            removeSites = removeSites or set()
+            with open(args.removeSitesFile) as fp:
+                for lineNumber, line in enumerate(fp):
+                    try:
+                        removeSites.update(
+                            parseRangeString(line, convertToZeroBased=True))
+                    except ValueError as e:
+                        raise ValueError(
+                            'Remove sites file %r line %d parse error: %s'
+                            % (args.removeSitesFile, lineNumber, e))
 
     return reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,
-        removeGaps=args.removeGaps,
+        removeGaps=removeGaps,
         whitelist=set(args.whitelist) if args.whitelist else None,
         blacklist=set(args.blacklist) if args.blacklist else None,
         whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
-        truncateTitlesAfter=args.truncateTitlesAfter,
+        truncateTitlesAfter=truncateTitlesAfter,
         keepSequences=keepSequences, removeSequences=removeSequences,
         head=args.head, removeDuplicates=args.removeDuplicates,
         removeDuplicatesById=args.removeDuplicatesById,
-        removeDescriptions=args.removeDescriptions,
+        removeDescriptions=removeDescriptions,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
         sequenceNumbersFile=args.sequenceNumbersFile,
