@@ -1,3 +1,7 @@
+## 3.0.30 July 3, 2018
+
+Added `alignmentCount` attribute to `PaddedSAM` class.
+
 ## 3.0.29 July 3, 2018
 
 Renamed `alsoYieldAlignments` option of `PaddedSAM.queries` to `addAlignment`

@@ -733,3 +733,20 @@ class TestPaddedSAM(TestCase):
                 map(lambda x: chr(x + 33), read2.alignment.query_qualities)))
 
             ps.close()
+
+    def testAlignmentCount(self):
+        """
+        When all queries have been yielded, the alignment count must be
+        as expected.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(filename)
+            list(ps.queries(addAlignment=True))
+            self.assertEqual(2, ps.alignmentCount)
+            ps.close()

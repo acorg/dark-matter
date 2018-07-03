@@ -35,6 +35,7 @@ class PaddedSAM(object):
         # reference sequence and the C{str} of nucleotides that would be
         # inserted starting at that offset.
         self.referenceInsertions = defaultdict(list)
+        self.alignmentCount = 0
 
     def close(self):
         """
@@ -147,6 +148,8 @@ class PaddedSAM(object):
         lastQuery = None
 
         for lineNumber, alignment in enumerate(samfile.fetch(), start=1):
+            self.alignmentCount += 1
+
             if (alignment.is_unmapped or
                     (alignment.is_secondary and dropSecondary) or
                     (alignment.is_supplementary and dropSupplementary) or
