@@ -24,7 +24,7 @@ output.  Alternately, you can also provide file names on the command line.
 Typical usage:
 
   $ find . -name summary-proteins | proteins-to-pathogens.py \
-        --sampleNameRegex '(Sample_\d+)/' --html > index.html
+        --sampleNameRegex "(Sample_\\d+)/" --html > index.html
 
 Input files must contain lines in the following format:
 

@@ -45,6 +45,7 @@ def main(recordFilenames, fastaFilename, title, xRange, bitRange):
                        titleAlignment.read.id, hsp.subjectStart,
                        hsp.subjectEnd, hsp.score.score)))
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print((

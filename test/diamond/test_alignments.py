@@ -339,10 +339,13 @@ class TestDiamondReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that non-zero
         evalues are converted to the positive value of their negative exponent.
         """
-        result = lambda a: File([
-            dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
-            dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
-            dumps(deepcopy(RECORD3)) + '\n'])
+        def result(a):
+            return File([
+                dumps(PARAMS) + '\n',
+                dumps(deepcopy(RECORD0)) + '\n',
+                dumps(deepcopy(RECORD1)) + '\n',
+                dumps(deepcopy(RECORD2)) + '\n',
+                dumps(deepcopy(RECORD3)) + '\n'])
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
@@ -366,10 +369,14 @@ class TestDiamondReadsAlignments(TestCase):
         The adjustHspsForPlotting function must alter HSPs so that zero
         evalues are set randomly high.
         """
-        result = lambda a: File([
-            dumps(PARAMS) + '\n', dumps(deepcopy(RECORD0)) + '\n',
-            dumps(deepcopy(RECORD1)) + '\n', dumps(deepcopy(RECORD2)) + '\n',
-            dumps(deepcopy(RECORD3)) + '\n', dumps(deepcopy(RECORD4)) + '\n'])
+        def result(a):
+            return File([
+                dumps(PARAMS) + '\n',
+                dumps(deepcopy(RECORD0)) + '\n',
+                dumps(deepcopy(RECORD1)) + '\n',
+                dumps(deepcopy(RECORD2)) + '\n',
+                dumps(deepcopy(RECORD3)) + '\n',
+                dumps(deepcopy(RECORD4)) + '\n'])
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result

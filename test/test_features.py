@@ -155,7 +155,9 @@ class Test_FeatureList(TestCase):
         If the sequence fetcher returns C{None} we must be marked as being
         offline.
         """
-        fetcher = lambda title, db='database': None
+        def fetcher(title, db='database'):
+            return None
+
         featureList = FeatureList('title', 'database', set(),
                                   sequenceFetcher=fetcher)
         self.assertEqual(True, featureList.offline)
@@ -165,7 +167,9 @@ class Test_FeatureList(TestCase):
         If the sequence fetcher indicates we're offline, the feature list
         must have length zero.
         """
-        fetcher = lambda title, db='database': None
+        def fetcher(title, db='database'):
+            return None
+
         featureList = FeatureList('title', 'database', set(),
                                   sequenceFetcher=fetcher)
         self.assertEqual(0, len(featureList))
@@ -188,7 +192,9 @@ class Test_FeatureList(TestCase):
         If the sequence fetcher does not return C{None} we must be marked as
         being online.
         """
-        fetcher = lambda title, db='database': SeqRecord(None)
+        def fetcher(title, db='database'):
+            return SeqRecord(None)
+
         featureList = FeatureList('title', 'database', set(),
                                   sequenceFetcher=fetcher)
         self.assertEqual(False, featureList.offline)
@@ -198,7 +204,9 @@ class Test_FeatureList(TestCase):
         If the sequence fetcher returns a record with no features, the
         L{FeatureList} instance must have length zero.
         """
-        fetcher = lambda title, db='database': SeqRecord(None)
+        def fetcher(title, db='database'):
+            return SeqRecord(None)
+
         featureList = FeatureList('title', 'database', set(),
                                   sequenceFetcher=fetcher)
         self.assertEqual(0, len(featureList))
@@ -289,7 +297,9 @@ class Test_FeatureAdder(TestCase):
         """
         A L{_FeatureAdder} must set the title of its figure.
         """
-        fetcher = lambda title, db='database': None
+        def fetcher(title, db='database'):
+            return None
+
         featureAdder = _FeatureAdder()
         fig = plt.subplot(111)
         fig.set_title = MagicMock()
@@ -302,7 +312,9 @@ class Test_FeatureAdder(TestCase):
         """
         A L{_FeatureAdder} must set the title of its figure.
         """
-        fetcher = lambda title, db='database': None
+        def fetcher(title, db='database'):
+            return None
+
         featureAdder = _FeatureAdder()
         fig = plt.subplot(111)
         fig.set_yticks = MagicMock()
@@ -316,7 +328,9 @@ class Test_FeatureAdder(TestCase):
         the C{add} method of the L{_FeatureAdder} must return C{None}. The
         C{text} and C{axis} methods on the fig must both be called correctly.
         """
-        fetcher = lambda title, db='database': None
+        def fetcher(title, db='database'):
+            return None
+
         featureAdder = _FeatureAdder()
         fig = plt.subplot(111)
         fig.text = MagicMock()
@@ -334,7 +348,9 @@ class Test_FeatureAdder(TestCase):
         the C{text} and C{axis} methods on the fig must both be called
         correctly and the C{add} method must return C{[]}.
         """
-        fetcher = lambda title, db='database': SeqRecord(None)
+        def fetcher(title, db='database'):
+            return SeqRecord(None)
+
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ('site',)
         fig = plt.subplot(111)
@@ -536,7 +552,10 @@ class TestNucleotideFeatureAdder(TestCase):
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
-        adjuster = lambda x: 3 * x
+
+        def adjuster(x):
+            return 3 * x
+
         result = featureAdder.add(fig, 'title', 0, 300, adjuster,
                                   sequenceFetcher=fetcher)
         fig.plot.assert_called_with(

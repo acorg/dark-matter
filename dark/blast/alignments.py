@@ -49,7 +49,7 @@ class BlastReadsAlignments(ReadsAlignments):
         files, or if BLAST parameters in all files do not match.
     """
 
-    def __init__(self, reads, blastFilenames,  databaseFilename=None,
+    def __init__(self, reads, blastFilenames, databaseFilename=None,
                  databaseDirectory=None, sqliteDatabaseFilename=None,
                  scoreClass=HigherIsBetterScore,
                  sortBlastFilenames=True, randomizeZeroEValues=True):

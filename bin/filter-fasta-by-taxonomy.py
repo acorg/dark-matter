@@ -74,11 +74,14 @@ if __name__ == '__main__':
 
     if args.detailsFile is not None:
         detailsFp = open(args.detailsFile, 'w')
-        details = lambda accept, readId, taxonomy: (
-            writeDetails(accept, readId, taxonomy, detailsFp))
+
+        def details(accept, readId, taxonomy):
+            return writeDetails(accept, readId, taxonomy, detailsFp)
     else:
         detailsFp = None
-        details = lambda accept, readId, taxonomy: None
+
+        def details(accept, readId, taxonomy):
+            return None
 
     lineageFetcher = LineageFetcher()
     reads = FastaReads(sys.stdin)

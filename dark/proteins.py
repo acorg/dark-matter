@@ -37,7 +37,7 @@ from dark.reads import Reads
 #
 # I decided not to worry about nested [...] sections (there are only 2
 # instances that I know of).
-_PATHOGEN_RE = re.compile('^(.*)\[([^\]]+)\]$')
+_PATHOGEN_RE = re.compile(r'^(.*)\[([^\]]+)\]$')
 
 # The pathogen name assigned to proteins whose id strings cannot be parsed
 # for a pathogen name (see previous comment).  Do not use '<', '>' or any

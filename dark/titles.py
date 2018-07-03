@@ -201,7 +201,8 @@ class TitleAlignments(list):
             and the count of that residue at that location as values.
         """
         if convertCaseTo == 'none':
-            convert = lambda x: x
+            def convert(x):
+                return x
         elif convertCaseTo == 'lower':
             convert = str.lower
         elif convertCaseTo == 'upper':
