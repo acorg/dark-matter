@@ -31,6 +31,7 @@ scripts = [
     'bin/cat-json-blast-records.py',
     'bin/check-fasta-json-blast-consistency.py',
     'bin/codon-distance.py',
+    'bin/compare-consensuses.py',
     'bin/compare-sequences.py',
     'bin/convert-blast-xml-to-json.py',
     'bin/convert-diamond-to-json.py',
