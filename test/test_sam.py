@@ -4,8 +4,10 @@ from tempfile import mkstemp
 from os import close, unlink, write
 from contextlib import contextmanager
 
-from dark.reads import Read
-from dark.sam import PaddedSAM, UnequalReferenceLengthError, UnknownReference
+from dark.reads import Read, ReadFilter
+from dark.sam import (
+    PaddedSAM, SAMFilter, UnequalReferenceLengthError, UnknownReference,
+    InvalidSAM, samReferencesToStr)
 
 
 # These tests actually use the filesystem to read files. That's due to the API
@@ -24,6 +26,226 @@ def dataFile(data):
     unlink(filename)
 
 
+class TestSAMFilter(TestCase):
+    """
+    Test the SAMFilter class.
+    """
+    def testUnknownReferences(self):
+        """
+        Passing an unknown reference id to the referenceLengths method must
+        result in an UnknownReference exception.
+        """
+        data = '\n'.join([
+            '@SQ SN:id1 LN:90',
+            '@SQ SN:id2 LN:90',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sam = SAMFilter(filename, referenceIds={'unknown'})
+            error = ("^Reference 'unknown' is not present in the "
+                     "SAM/BAM file\\.$")
+            assertRaisesRegex(self, UnknownReference, error,
+                              sam.referenceLengths)
+
+    def testStoreQueryIds(self):
+        """
+        If we request that query ids are saved, they must be.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, storeQueryIds=True)
+            list(sf.alignments())
+            self.assertEqual({'query1', 'query2'}, sf.queryIds)
+
+    def testAlignmentCount(self):
+        """
+        When all queries have been yielded, the alignment count must be
+        as expected.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename)
+            list(sf.alignments())
+            self.assertEqual(2, sf.alignmentCount)
+
+    def testMinLength(self):
+        """
+        A request for reads that are only longer than a certain value should
+        result in the expected result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 0 ref1 2 60 2= * 0 0 TC ZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            filterRead = ReadFilter(minLength=6).filter
+            sf = SAMFilter(filename, filterRead=filterRead)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+
+    def testDropSecondary(self):
+        """
+        Dropping matches flagged as secondary must give the expected result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 256 ref1 2 60 2= * 0 0 TC ZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, dropSecondary=True)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+
+    def testDropSupplementary(self):
+        """
+        Dropping matches flagged as supplementary must give the expected
+        result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 2048 ref1 2 60 2= * 0 0 TC ZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, dropSupplementary=True)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+
+    def testDropDuplicates(self):
+        """
+        Dropping matches flagged as optical or PCR duplicates must give the
+        expected result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 1024 ref1 2 60 2= * 0 0 TC ZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, dropDuplicates=True)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+
+    def testKeepQualityControlFailures(self):
+        """
+        Keeping matches flagged as quality control failures must give the
+        expected result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 512 ref1 4 60 2= * 0 0 TC ZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, keepQCFailures=True)
+            (alignment1, alignment2) = list(sf.alignments())
+            self.assertEqual('query1', alignment1.query_name)
+            self.assertEqual('query2', alignment2.query_name)
+
+    def testMinScoreNoScores(self):
+        """
+        A request for reads with alignment scores no lower than a given value
+        must produce an empty result when no alignments have scores.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 0 ref1 2 60 2= * 0 0 TC ZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, minScore=6)
+            self.assertEqual([], list(sf.alignments()))
+
+    def testMinScore(self):
+        """
+        A request for reads with alignment scores no lower than a given value
+        must produce the expected result when some alignments have scores.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:10',
+            'query2 0 ref1 2 60 2= * 0 0 TC ZZ',
+            'query3 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:3',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, minScore=6)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+
+    def testMaxScoreNoScores(self):
+        """
+        A request for reads with alignment scores no higher than a given value
+        must produce an empty result when no alignments have scores.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query2 0 ref1 2 60 2= * 0 0 TC ZZ',
+            'query3 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, maxScore=6)
+            self.assertEqual([], list(sf.alignments()))
+
+    def testMaxScore(self):
+        """
+        A request for reads with alignment scores no higher than a given value
+        must produce the expected result when some alignments have scores.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:10',
+            'query2 0 ref1 2 60 2= * 0 0 TC ZZ',
+            'query3 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:3',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, maxScore=6)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query3', alignment.query_name)
+
+    def testMinAndMaxScore(self):
+        """
+        A request for reads with alignment scores no lower or higher than
+        given values must produce the expected result.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:10',
+            'query2 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:12',
+            'query3 0 ref1 2 60 2= * 0 0 TC ZZ',
+            'query4 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:3',
+            'query5 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:2',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename, minScore=3, maxScore=10)
+            (alignment1, alignment2) = list(sf.alignments())
+            self.assertEqual('query1', alignment1.query_name)
+            self.assertEqual('query4', alignment2.query_name)
+
+
 class TestPaddedSAM(TestCase):
     """
     Test the PaddedSAM class.
@@ -35,44 +257,10 @@ class TestPaddedSAM(TestCase):
     # start with @). If you look at the code in ../dark/sam.py, pysam provides
     # a 'reference_start' attribute that is 0-based.
 
-    def testReferencesToStr(self):
-        """
-        The referencesToStr method must return the expected string.
-        """
-        data = '\n'.join([
-            '@SQ SN:id1 LN:90',
-            '@SQ SN:id2 LN:91',
-        ]).replace(' ', '\t')
-
-        with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            self.assertEqual('id1 (length 90)\nid2 (length 91)',
-                             ps.referencesToStr())
-            ps.close()
-
-    def testUnknownReferences(self):
-        """
-        Passing an unknown reference name to 'queries' must result in an
-        UnknownReference exception.
-        """
-        data = '\n'.join([
-            '@SQ SN:id1 LN:90',
-            '@SQ SN:id2 LN:91',
-        ]).replace(' ', '\t')
-
-        with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            error = ("^Reference 'unknown' is not present in the "
-                     "SAM/BAM file\\.$")
-            queries = ps.queries(referenceName='unknown')
-            assertRaisesRegex(self, UnknownReference, error, list, queries)
-            ps.close()
-
     def testUnequalReferenceLengths(self):
         """
-        Passing no reference name to 'queries' when the references have
-        different lengths must result in an UnequalReferenceLengthError
-        exception.
+        Passing no reference ids when the references have different lengths
+        must result in an UnequalReferenceLengthError exception.
         """
         data = '\n'.join([
             '@SQ SN:id1 LN:90',
@@ -80,13 +268,10 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            error = ('^Your SAM/BAM file has 2 reference sequences, and their '
-                     'lengths \(90, 91\) are not all identical\.$')
-            queries = ps.queries()
-            assertRaisesRegex(self, UnequalReferenceLengthError, error, list,
-                              queries)
-            ps.close()
+            error = ('^Your 2 SAM/BAM file reference sequence lengths '
+                     '\\(id1=90, id2=91\\) are not all identical\\.$')
+            assertRaisesRegex(self, UnequalReferenceLengthError, error,
+                              PaddedSAM, SAMFilter(filename))
 
     def testAllMMatch(self):
         """
@@ -98,10 +283,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testMixedMatch(self):
         """
@@ -114,10 +298,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testHardClipLeft(self):
         """
@@ -130,10 +313,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testHardClipRight(self):
         """
@@ -146,10 +328,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testRcNeeded(self):
         """
@@ -162,10 +343,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries(rcNeeded=True))
             self.assertEqual(Read('query1', '-CCTAGA---'), read)
-            ps.close()
 
     def testRcSuffix(self):
         """
@@ -178,10 +358,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries(rcSuffix='-rc'))
             self.assertEqual(Read('query1-rc', '-TCTAGG---'), read)
-            ps.close()
 
     def testQuerySoftClipLeft(self):
         """
@@ -194,10 +373,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testQuerySoftClipReachesLeftEdge(self):
         """
@@ -210,10 +388,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', 'TCTAGG----'), read)
-            ps.close()
 
     def testQuerySoftClipProtrudesLeft(self):
         """
@@ -226,10 +403,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', 'AGG-------'), read)
-            ps.close()
 
     def testKF414679SoftClipLeft(self):
         """
@@ -245,10 +421,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', seq[14:]), read)
-            ps.close()
 
     def testQuerySoftClipRight(self):
         """
@@ -261,10 +436,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '---TCTAGG-'), read)
-            ps.close()
 
     def testQuerySoftClipReachesRightEdge(self):
         """
@@ -277,10 +451,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '----TCTAGG'), read)
-            ps.close()
 
     def testQuerySoftClipProtrudesRight(self):
         """
@@ -293,10 +466,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-----TCTAG'), read)
-            ps.close()
 
     def testQuerySoftClipProtrudesBothSides(self):
         """
@@ -309,10 +481,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', 'TAGGCTGACT'), read)
-            ps.close()
 
     def testQueryHardClipAndSoftClipProtrudesBothSides(self):
         """
@@ -326,10 +497,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', 'TAGGCTGACT'), read)
-            ps.close()
 
     def testReferenceInsertion(self):
         """
@@ -342,7 +512,7 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCGG-----'), read)
             self.assertEqual(
@@ -350,7 +520,6 @@ class TestPaddedSAM(TestCase):
                     'query1': [(3, 'TA')],
                 },
                 ps.referenceInsertions)
-            ps.close()
 
     def testPrimaryAndSecondaryReferenceInsertion(self):
         """
@@ -365,7 +534,7 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCGG-----'), read1)
             self.assertEqual(Read('query1/1', '---TCG----'), read2)
@@ -375,7 +544,6 @@ class TestPaddedSAM(TestCase):
                     'query1/1': [(5, 'TAG')],
                 },
                 ps.referenceInsertions)
-            ps.close()
 
     def testReferenceDeletion(self):
         """
@@ -388,10 +556,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCNNTAGG-'), read)
-            ps.close()
 
     def testReferenceDeletionAlternateChar(self):
         """
@@ -404,10 +571,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries(queryInsertionChar='?'))
             self.assertEqual(Read('query1', '-TC??TAGG-'), read)
-            ps.close()
 
     def testReferenceSkip(self):
         """
@@ -420,10 +586,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCNNTAGG-'), read)
-            ps.close()
 
     def testReferenceSkipAlternateChar(self):
         """
@@ -436,10 +601,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries(queryInsertionChar='X'))
             self.assertEqual(Read('query1', '-TCXXTAGG-'), read)
-            ps.close()
 
     def testMixedMatchSpecificReferenceButNoMatches(self):
         """
@@ -447,15 +611,14 @@ class TestPaddedSAM(TestCase):
         has no matches must result in an empty list.
         """
         data = '\n'.join([
-            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref1 LN:15',
             '@SQ SN:ref2 LN:15',
             'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            self.assertEqual([], list(ps.queries(referenceName='ref2')))
-            ps.close()
+            ps = PaddedSAM(SAMFilter(filename, referenceIds={'ref2'}))
+            self.assertEqual([], list(ps.queries()))
 
     def testMixedMatchSpecificReference(self):
         """
@@ -464,20 +627,19 @@ class TestPaddedSAM(TestCase):
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
-            '@SQ SN:ref2 LN:15',
+            '@SQ SN:ref2 LN:10',
             'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read,) = list(ps.queries(referenceName='ref1'))
+            ps = PaddedSAM(SAMFilter(filename, referenceIds={'ref1'}))
+            (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testMinLength(self):
         """
-        A request for reads longer than a certain value should result
-        in the expected result.
+        A request for reads that are only longer than a certain value should
+        result in the expected result.
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
@@ -486,27 +648,10 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read,) = list(ps.queries(minLength=6))
+            filterRead = ReadFilter(minLength=6).filter
+            ps = PaddedSAM(SAMFilter(filename, filterRead=filterRead))
+            (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
-
-    def testMinLengthWithReferenceDeletion(self):
-        """
-        The minLength specification must be applied after deletion of
-        reference bases (which results in the query being lengthened to
-        continue the match).
-        """
-        data = '\n'.join([
-            '@SQ SN:ref1 LN:10',
-            'query1 0 ref1 2 60 2M2D4M * 0 0 TCTAGG ZZZZZZ',
-        ]).replace(' ', '\t')
-
-        with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read,) = list(ps.queries(minLength=7))
-            self.assertEqual(Read('query1', '-TCNNTAGG-'), read)
-            ps.close()
 
     def testDropSecondary(self):
         """
@@ -519,10 +664,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read,) = list(ps.queries(dropSecondary=True))
+            ps = PaddedSAM(SAMFilter(filename, dropSecondary=True))
+            (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testDropSupplementary(self):
         """
@@ -536,10 +680,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read,) = list(ps.queries(dropSupplementary=True))
+            ps = PaddedSAM(SAMFilter(filename, dropSupplementary=True))
+            (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testDropDuplicates(self):
         """
@@ -553,10 +696,9 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read,) = list(ps.queries(dropDuplicates=True))
+            ps = PaddedSAM(SAMFilter(filename, dropDuplicates=True))
+            (read,) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read)
-            ps.close()
 
     def testAllowDuplicateIds(self):
         """
@@ -570,11 +712,10 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries(allowDuplicateIds=True))
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
             self.assertEqual(Read('query1', '--TC------'), read2)
-            ps.close()
 
     def testDuplicateIdDisambiguation(self):
         """
@@ -588,12 +729,11 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read1, read2, read3) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
             self.assertEqual(Read('query1/1', '--TC------'), read2)
             self.assertEqual(Read('query1/2', '--TCGA----'), read3)
-            ps.close()
 
     def testKeepQualityControlFailures(self):
         """
@@ -607,11 +747,10 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            (read1, read2) = list(ps.queries(keepQCFailures=True))
+            ps = PaddedSAM(SAMFilter(filename, keepQCFailures=True))
+            (read1, read2) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
             self.assertEqual(Read('query2', '---TC-----'), read2)
-            ps.close()
 
     def testSecondaryWithNoPreviousSequence(self):
         """
@@ -624,12 +763,11 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             error = ('^Query line 1 has an empty SEQ field, but no previous '
                      'alignment is present\\.$')
             queries = ps.queries()
-            assertRaisesRegex(self, ValueError, error, list, queries)
-            ps.close()
+            assertRaisesRegex(self, InvalidSAM, error, list, queries)
 
     def testSecondaryWithNoSequence(self):
         """
@@ -644,12 +782,11 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read1, read2, read3) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCT------'), read1)
             self.assertEqual(Read('query2', '-TCTA-----'), read2)
             self.assertEqual(Read('query2/1', '-----TCTA-'), read3)
-            ps.close()
 
     def testSupplementaryWithNoPreviousSequence(self):
         """
@@ -662,12 +799,11 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             error = ('^Query line 1 has an empty SEQ field, but no previous '
                      'alignment is present\\.$')
             queries = ps.queries()
-            assertRaisesRegex(self, ValueError, error, list, queries)
-            ps.close()
+            assertRaisesRegex(self, InvalidSAM, error, list, queries)
 
     def testSupplementaryWithNoSequence(self):
         """
@@ -682,12 +818,11 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read1, read2, read3) = list(ps.queries())
             self.assertEqual(Read('query1', '-TCT------'), read1)
             self.assertEqual(Read('query2', '-TCTA-----'), read2)
             self.assertEqual(Read('query2/1', '-----TCTA-'), read3)
-            ps.close()
 
     def testNotSecondaryAndNotSupplementaryWithNoSequence(self):
         """
@@ -700,12 +835,11 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             error = ('^Query line 1 has an empty SEQ field, but the alignment '
                      'is not marked as secondary or supplementary\\.$')
             queries = ps.queries()
-            assertRaisesRegex(self, ValueError, error, list, queries)
-            ps.close()
+            assertRaisesRegex(self, InvalidSAM, error, list, queries)
 
     def testAlsoYieldAlignments(self):
         """
@@ -719,7 +853,7 @@ class TestPaddedSAM(TestCase):
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
+            ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries(addAlignment=True))
 
             self.assertEqual(Read('query1', '-TCTAGG---'), read1)
@@ -732,38 +866,34 @@ class TestPaddedSAM(TestCase):
             self.assertEqual('XY', ''.join(
                 map(lambda x: chr(x + 33), read2.alignment.query_qualities)))
 
-            ps.close()
 
-    def testAlignmentCount(self):
+class TestSamReferencesToStr(TestCase):
+    """
+    Test the samReferencesToStr function.
+    """
+    def testSimple(self):
         """
-        When all queries have been yielded, the alignment count must be
-        as expected.
+        The referencesToStr method must return the expected string.
         """
         data = '\n'.join([
-            '@SQ SN:ref1 LN:10',
-            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
-            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+            '@SQ SN:id1 LN:90',
+            '@SQ SN:id2 LN:91',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            list(ps.queries(addAlignment=True))
-            self.assertEqual(2, ps.alignmentCount)
-            ps.close()
+            self.assertEqual('id1 (length 90)\nid2 (length 91)',
+                             samReferencesToStr(filename))
 
-    def testStoreQueryIds(self):
+    def testIndent(self):
         """
-        If we request that query ids are saved, they must be.
+        The referencesToStr method must return the expected string when
+        passed an indent.
         """
         data = '\n'.join([
-            '@SQ SN:ref1 LN:10',
-            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
-            'query2 0 ref1 2 60 2= * 0 0 TC XY',
-            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+            '@SQ SN:id1 LN:90',
+            '@SQ SN:id2 LN:91',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
-            ps = PaddedSAM(filename)
-            list(ps.queries(storeQueryIds=True))
-            self.assertEqual({'query1', 'query2'}, ps.queryIds)
-            ps.close()
+            self.assertEqual('  id1 (length 90)\n  id2 (length 91)',
+                             samReferencesToStr(filename, indent=2))

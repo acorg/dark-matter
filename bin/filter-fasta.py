@@ -5,7 +5,8 @@ from __future__ import print_function, division
 import sys
 
 from dark.filter import (
-    addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions)
+    addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions,
+    addFASTAEditingCommandLineOptions, parseFASTAEditingCommandLineOptions)
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
@@ -35,9 +36,13 @@ if __name__ == '__main__':
 
     addFASTACommandLineOptions(parser)
     addFASTAFilteringCommandLineOptions(parser)
+    addFASTAEditingCommandLineOptions(parser)
+
     args = parser.parse_args()
-    reads = parseFASTAFilteringCommandLineOptions(
-        args, parseFASTACommandLineOptions(args))
+
+    reads = parseFASTAEditingCommandLineOptions(
+        args, parseFASTAFilteringCommandLineOptions(
+            args, parseFASTACommandLineOptions(args)))
 
     saveAs = (
         args.saveAs or

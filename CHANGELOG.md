@@ -1,3 +1,10 @@
+## 3.0.34 July 18, 2018
+
+Factored common SAM filtering code out into `dark.sam.SAMFilter`. Split
+common FASTA command-line options into those for filtering (this is just
+inclusion/exclusion) and those for editing (which change the FASTA records
+in some way).
+
 ## 3.0.33 July 14, 2018
 
 Added `compare-consensuses.py` script.

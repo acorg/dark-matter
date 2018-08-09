@@ -9,7 +9,8 @@ from operator import itemgetter
 
 from dark.dna import compareDNAReads
 from dark.filter import (
-    addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions)
+    addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions,
+    addFASTAEditingCommandLineOptions, parseFASTAEditingCommandLineOptions)
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
@@ -504,16 +505,20 @@ if __name__ == '__main__':
 
     addFASTACommandLineOptions(parser)
     addFASTAFilteringCommandLineOptions(parser)
+    addFASTAEditingCommandLineOptions(parser)
     args = parser.parse_args()
 
     colors = parseColors(args.color, args.defaultColor)
     # Sanity check - the last threshold must be zero.
     assert colors[-1][0] == 0.0
 
+    reads = parseFASTAEditingCommandLineOptions(
+        args, parseFASTAFilteringCommandLineOptions(
+            args, parseFASTACommandLineOptions(args)))
+
     # Collect the reads into a dict, keeping the insertion order.
     reads1 = OrderedDict()
-    for read in parseFASTAFilteringCommandLineOptions(
-            args, parseFASTACommandLineOptions(args)):
+    for read in reads:
         reads1[read.id] = read
 
     if args.fastaFile2:
