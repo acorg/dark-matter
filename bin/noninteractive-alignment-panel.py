@@ -384,7 +384,14 @@ if __name__ == '__main__':
           (nTitles, '' if nTitles == 1 else 's'), file=sys.stderr)
 
     if nTitles:
-        print(titlesAlignments.tabSeparatedSummary(sortOn=args.sortOn))
+        # Use flush=True on the print of the titles so the output is
+        # definitely written out. This is because in some cases the
+        # following aligment panel generation takes a long time and exceeds
+        # its CPU or memory limit on an HPCS system.  Also, it can be good
+        # to see the matching title details while waiting for the panel
+        # plots to be generated.
+        print(titlesAlignments.tabSeparatedSummary(sortOn=args.sortOn),
+              flush=True)
 
     if args.earlyExit:
         sys.exit(0)
