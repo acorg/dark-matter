@@ -141,6 +141,7 @@ if __name__ == '__main__':
         taxonomy=args.taxonomy)
 
     reads = Reads()
+    count = 0
 
     if (args.minMatchingReads is None and args.minMedianScore is None and
             args.withScoreBetterThan is None and args.minNewReads is None):
@@ -148,6 +149,7 @@ if __name__ == '__main__':
         # the matching alignments.
         for readAlignment in readsAlignments:
             reads.add(readAlignment.read)
+            count += 1
     else:
         # We need to collect alignments into titles.
         titlesAlignments = TitlesAlignments(readsAlignments).filter(
@@ -159,6 +161,7 @@ if __name__ == '__main__':
         for titleAlignments in titlesAlignments.values():
             for alignment in titleAlignments.alignments:
                 reads.add(alignment.read)
+                count += 1
 
     reads.save(sys.stdout)
-    print('Found %d matching reads.' % len(reads), file=sys.stderr)
+    print('Found %d matching reads.' % count, file=sys.stderr)

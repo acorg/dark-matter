@@ -1,3 +1,9 @@
+## 3.0.35 September 7, 2018
+
+Fixed small bug in `filter-hits-to-fasta.py`.
+
+Added flushing of intermediate output in `noninteractive-alignment-panel.py`.
+
 ## 3.0.34 July 18, 2018
 
 Factored common SAM filtering code out into `dark.sam.SAMFilter`. Split
