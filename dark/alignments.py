@@ -110,6 +110,10 @@ class ReadsAlignmentsFilter(object):
         out for other reasons).
     @param blacklist: If not C{None}, a set of exact titles that are never
         acceptable.
+    @param whitelistFile: If not C{None}, a C{str} filename containing lines
+        that give exact ids that are always acceptable.
+    @param blacklistFile: If not C{None}, a C{str} filename containing lines
+        that give exact ids that are never acceptable.
     @param titleRegex: A regex that sequence titles must match.
     @param negativeTitleRegex: A regex that sequence titles must not match.
     @param truncateTitlesAfter: A string that titles will be truncated
@@ -127,6 +131,7 @@ class ReadsAlignmentsFilter(object):
                  minStart=None, maxStop=None,
                  oneAlignmentPerRead=False, maxHspsPerHit=None,
                  scoreCutoff=None, whitelist=None, blacklist=None,
+                 whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
                  truncateTitlesAfter=None, taxonomy=None, readIdRegex=None):
 
@@ -142,10 +147,11 @@ class ReadsAlignmentsFilter(object):
 
         # If we've been asked to filter on matched sequence titles in any way,
         # build a title filter.
-        if (whitelist or blacklist or titleRegex or negativeTitleRegex or
-                truncateTitlesAfter):
+        if (whitelist or blacklist or whitelistFile or blacklistFile or
+                titleRegex or negativeTitleRegex or truncateTitlesAfter):
             self.titleFilter = TitleFilter(
                 whitelist=whitelist, blacklist=blacklist,
+                whitelistFile=whitelistFile, blacklistFile=blacklistFile,
                 positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
                 truncateAfter=truncateTitlesAfter)
         else:

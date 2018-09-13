@@ -1,3 +1,8 @@
+## 3.0.36 September 13, 2018
+
+Added `whitelistFile` and `blacklistFile` to `ReadsAlignmentsFilter` class
+in `dark/alignments.py`.
+
 ## 3.0.35 September 7, 2018
 
 Fixed small bug in `filter-hits-to-fasta.py`.
