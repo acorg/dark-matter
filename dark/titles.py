@@ -35,6 +35,17 @@ class TitleAlignment(object):
         self.read = read
         self.hsps = hsps
 
+    def toDict(self):
+        """
+        Get information about a title alignment as a dictionary.
+
+        @return: A C{dict} representation of the title aligment.
+        """
+        return {
+            'hsps': [hsp.toDict() for hsp in self.hsps],
+            'read': self.read.toDict(),
+        }
+
 
 class TitleAlignments(list):
     """
@@ -243,6 +254,19 @@ class TitleAlignments(list):
             'readCount': self.readCount(),
             'subjectLength': self.subjectLength,
             'subjectTitle': self.subjectTitle,
+        }
+
+    def toDict(self):
+        """
+        Get information about the title's alignments as a dictionary.
+
+        @return: A C{dict} representation of the title's aligments.
+        """
+        return {
+            'titleAlignments': [titleAlignment.toDict()
+                                for titleAlignment in self],
+            'subjectTitle': self.subjectTitle,
+            'subjectLength': self.subjectLength,
         }
 
 
@@ -482,3 +506,15 @@ class TitlesAlignments(dict):
                 '%(subjectTitle)s',
             ]) % titleSummary)
         return '\n'.join(result)
+
+    def toDict(self):
+        """
+        Get information about the titles alignments as a dictionary.
+
+        @return: A C{dict} representation of the titles aligments.
+        """
+        return {
+            'scoreClass': self.scoreClass.__name__,
+            'titles': dict((title, titleAlignments.toDict())
+                           for title, titleAlignments in self.items()),
+        }

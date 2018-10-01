@@ -48,6 +48,67 @@ class TestTitleAlignment(TestCase):
         self.assertEqual(read, titleAlignment.read)
         self.assertEqual([], titleAlignment.hsps)
 
+    def testToDict(self):
+        """
+        The toDict method must return the expected result.
+        """
+        read = Read('the-id', 'AAA')
+        hsp1 = HSP(0, readStart=1, readEnd=2,
+                   readStartInSubject=3, readEndInSubject=4,
+                   subjectStart=5, subjectEnd=6,
+                   readMatchedSequence='aaa', subjectMatchedSequence='ccc',
+                   readFrame=7, subjectFrame=8, identicalCount=9,
+                   positiveCount=10)
+        hsp2 = HSP(10, readStart=11, readEnd=12,
+                   readStartInSubject=13, readEndInSubject=14,
+                   subjectStart=15, subjectEnd=16,
+                   readMatchedSequence='ggg', subjectMatchedSequence='ttt',
+                   readFrame=17, subjectFrame=18, identicalCount=19,
+                   positiveCount=20)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+
+        self.assertEqual(
+            {
+                'hsps': [
+                    {
+                        'score': 0,
+                        'readStart': 1,
+                        'readEnd': 2,
+                        'readStartInSubject': 3,
+                        'readEndInSubject': 4,
+                        'subjectStart': 5,
+                        'subjectEnd': 6,
+                        'readFrame': 7,
+                        'subjectFrame': 8,
+                        'identicalCount': 9,
+                        'positiveCount': 10,
+                        'readMatchedSequence': 'aaa',
+                        'subjectMatchedSequence': 'ccc',
+                    },
+                    {
+                        'score': 10,
+                        'readStart': 11,
+                        'readEnd': 12,
+                        'readStartInSubject': 13,
+                        'readEndInSubject': 14,
+                        'subjectStart': 15,
+                        'subjectEnd': 16,
+                        'readFrame': 17,
+                        'subjectFrame': 18,
+                        'identicalCount': 19,
+                        'positiveCount': 20,
+                        'readMatchedSequence': 'ggg',
+                        'subjectMatchedSequence': 'ttt',
+                    },
+                ],
+                'read': {
+                    'id': 'the-id',
+                    'quality': None,
+                    'sequence': 'AAA',
+                },
+            },
+            titleAlignment.toDict())
+
 
 class TestTitleAlignments(WarningTestMixin, TestCase):
     """
@@ -827,6 +888,75 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
                 'subjectTitle': 'subject title',
             },
             titleAlignments.summary())
+
+    def testToDict(self):
+        """
+        The toDict method must return the expected result.
+        """
+        read = Read('the-id', 'AAA')
+        hsp1 = HSP(0, readStart=1, readEnd=2,
+                   readStartInSubject=3, readEndInSubject=4,
+                   subjectStart=5, subjectEnd=6,
+                   readMatchedSequence='aaa', subjectMatchedSequence='ccc',
+                   readFrame=7, subjectFrame=8, identicalCount=9,
+                   positiveCount=10)
+        hsp2 = HSP(10, readStart=11, readEnd=12,
+                   readStartInSubject=13, readEndInSubject=14,
+                   subjectStart=15, subjectEnd=16,
+                   readMatchedSequence='ggg', subjectMatchedSequence='ttt',
+                   readFrame=17, subjectFrame=18, identicalCount=19,
+                   positiveCount=20)
+        titleAlignment = TitleAlignment(read, [hsp1, hsp2])
+        titleAlignments = TitleAlignments('subject title', 10)
+        titleAlignments.addAlignment(titleAlignment)
+
+        self.assertEqual(
+            {
+                'subjectTitle': 'subject title',
+                'subjectLength': 10,
+                'titleAlignments': [
+                    {
+                        'hsps': [
+                            {
+                                'score': 0,
+                                'readStart': 1,
+                                'readEnd': 2,
+                                'readStartInSubject': 3,
+                                'readEndInSubject': 4,
+                                'subjectStart': 5,
+                                'subjectEnd': 6,
+                                'readFrame': 7,
+                                'subjectFrame': 8,
+                                'identicalCount': 9,
+                                'positiveCount': 10,
+                                'readMatchedSequence': 'aaa',
+                                'subjectMatchedSequence': 'ccc',
+                            },
+                            {
+                                'score': 10,
+                                'readStart': 11,
+                                'readEnd': 12,
+                                'readStartInSubject': 13,
+                                'readEndInSubject': 14,
+                                'subjectStart': 15,
+                                'subjectEnd': 16,
+                                'readFrame': 17,
+                                'subjectFrame': 18,
+                                'identicalCount': 19,
+                                'positiveCount': 20,
+                                'readMatchedSequence': 'ggg',
+                                'subjectMatchedSequence': 'ttt',
+                            },
+                        ],
+                        'read': {
+                            'id': 'the-id',
+                            'quality': None,
+                            'sequence': 'AAA',
+                        },
+                    },
+                ],
+            },
+            titleAlignments.toDict())
 
 
 class TestTitleAlignmentsLSP(TestCase):

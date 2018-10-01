@@ -1,3 +1,7 @@
+## 3.0.37 October 1, 2018
+
+Add a `--titlesJSONFile` option to `noninteractive-alignment-panel.py`.
+
 ## 3.0.36 September 13, 2018
 
 Added `whitelistFile` and `blacklistFile` to `ReadsAlignmentsFilter` class

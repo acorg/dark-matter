@@ -96,6 +96,27 @@ class _Base(object):
         """
         return self.score.betterThan(score)
 
+    def toDict(self):
+        """
+        Get information about the HSP/LSP as a dictionary.
+
+        @return: A C{dict} representation of the HSP/LSP.
+        """
+        return {
+            'readStart': self.readStart,
+            'readEnd': self.readEnd,
+            'readStartInSubject': self.readStartInSubject,
+            'readEndInSubject': self.readEndInSubject,
+            'readFrame': self.readFrame,
+            'subjectStart': self.subjectStart,
+            'subjectEnd': self.subjectEnd,
+            'subjectFrame': self.subjectFrame,
+            'readMatchedSequence': self.readMatchedSequence,
+            'subjectMatchedSequence': self.subjectMatchedSequence,
+            'identicalCount': self.identicalCount,
+            'positiveCount': self.positiveCount,
+        }
+
 
 class HSP(_Base):
     """
@@ -109,6 +130,16 @@ class HSP(_Base):
         _Base.__init__(self, **kwargs)
         self.score = HigherIsBetterScore(score)
 
+    def toDict(self):
+        """
+        Get information about the HSP as a dictionary.
+
+        @return: A C{dict} representation of the HSP.
+        """
+        result = _Base.toDict(self)
+        result['score'] = self.score.score
+        return result
+
 
 class LSP(_Base):
     """
@@ -121,3 +152,13 @@ class LSP(_Base):
     def __init__(self, score, **kwargs):
         _Base.__init__(self, **kwargs)
         self.score = LowerIsBetterScore(score)
+
+    def toDict(self):
+        """
+        Get information about the LSP as a dictionary.
+
+        @return: A C{dict} representation of the LSP.
+        """
+        result = _Base.toDict(self)
+        result['score'] = self.score.score
+        return result
