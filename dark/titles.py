@@ -43,11 +43,7 @@ class TitleAlignment(object):
         """
         return {
             'hsps': [hsp.toDict() for hsp in self.hsps],
-            'read': {
-                'id': self.read.id,
-                'quality': self.read.quality,
-                'sequence': self.read.sequence,
-            }
+            'read': self.read.toDict(),
         }
 
 
