@@ -279,6 +279,210 @@ class TestTitlesAlignments(TestCase):
             self.assertEqual(HSP(5), titleAlignments[1].hsps[1])
             self.assertEqual(HSP(3), titleAlignments[1].hsps[2])
 
+    def testToDict(self):
+        """
+        The toDict method must return the expected value.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'C' * 70))
+            reads.add(Read('id2', 'G' * 70))
+            reads.add(Read('id3', 'T' * 70))
+            readsAlignments = BlastReadsAlignments(
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
+            titlesAlignments = TitlesAlignments(readsAlignments)
+
+        self.assertEqual(
+            {
+                'scoreClass': 'LowerIsBetterScore',
+                'titles': {
+                    'gi|887699|gb|DQ37780 Cowpox virus 15': {
+                        'subjectLength': 30000,
+                        'subjectTitle': 'gi|887699|gb|DQ37780 Cowpox virus 15',
+                        'titleAlignments': [
+                            {
+                                'hsps': [
+                                    {
+                                        'identicalCount': None,
+                                        'positiveCount': None,
+                                        'readEnd': 68,
+                                        'readEndInSubject': 1405,
+                                        'readFrame': 1,
+                                        'readMatchedSequence': (
+                                            'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA'),
+                                        'readStart': 27,
+                                        'readStartInSubject': 1334,
+                                        'score': 1e-06,
+                                        'subjectEnd': 1400,
+                                        'subjectFrame': 1,
+                                        'subjectMatchedSequence': (
+                                            'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA'),
+                                        'subjectStart': 1361}],
+                                'read': {
+                                    'id': 'id2',
+                                    'quality': None,
+                                    'sequence': 'G' * 70,
+                                }
+                            },
+                            {
+                                'hsps': [
+                                    {
+                                        'identicalCount': None,
+                                        'positiveCount': None,
+                                        'readEnd': 68,
+                                        'readEndInSubject': 1405,
+                                        'readFrame': 1,
+                                        'readMatchedSequence': (
+                                            'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA'),
+                                        'readStart': 27,
+                                        'readStartInSubject': 1334,
+                                        'score': 1e-05,
+                                        'subjectEnd': 1400,
+                                        'subjectFrame': 1,
+                                        'subjectMatchedSequence': (
+                                            'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA'),
+                                        'subjectStart': 1361}],
+                                'read': {
+                                    'id': 'id3',
+                                    'quality': None,
+                                    'sequence': 'T' * 70,
+                                },
+                            },
+                        ],
+                    },
+                    'gi|887699|gb|DQ37780 Monkeypox virus 456': {
+                        'subjectLength': 35000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Monkeypox virus 456'),
+                        'titleAlignments': [
+                            {
+                                'hsps': [
+                                    {
+                                        'identicalCount': None,
+                                        'positiveCount': None,
+                                        'readEnd': 68,
+                                        'readEndInSubject': 11405,
+                                        'readFrame': 1,
+                                        'readMatchedSequence': (
+                                            'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA'),
+                                        'readStart': 27,
+                                        'readStartInSubject': 11334,
+                                        'score': 1e-08,
+                                        'subjectEnd': 11400,
+                                        'subjectFrame': 1,
+                                        'subjectMatchedSequence': (
+                                            'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA'),
+                                        'subjectStart': 11361}],
+                                'read': {
+                                    'id': 'id1',
+                                    'quality': None,
+                                    'sequence': 'C' * 70,
+                                },
+                            },
+                        ],
+                    },
+                    'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.': {
+                        'subjectLength': 35000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.'),
+                        'titleAlignments': [
+                            {
+                                'hsps': [
+                                    {
+                                        'identicalCount': None,
+                                        'positiveCount': None,
+                                        'readEnd': 68,
+                                        'readEndInSubject': 10405,
+                                        'readFrame': 1,
+                                        'readMatchedSequence': (
+                                            'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA'),
+                                        'readStart': 27,
+                                        'readStartInSubject': 10334,
+                                        'score': 1e-07,
+                                        'subjectEnd': 10400,
+                                        'subjectFrame': 1,
+                                        'subjectMatchedSequence': (
+                                            'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA'),
+                                        'subjectStart': 10361}],
+                                'read': {
+                                    'id': 'id1',
+                                    'quality': None,
+                                    'sequence': 'C' * 70,
+                                },
+                            },
+                        ],
+                    },
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99': {
+                        'subjectLength': 37000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'),
+                        'titleAlignments': [
+                            {
+                                'hsps': [
+                                    {
+                                        'identicalCount': None,
+                                        'positiveCount': None,
+                                        'readEnd': 68,
+                                        'readEndInSubject': 15405,
+                                        'readFrame': 1,
+                                        'readMatchedSequence': (
+                                            'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA'),
+                                        'readStart': 27,
+                                        'readStartInSubject': 15334,
+                                        'score': 1e-11,
+                                        'subjectEnd': 15400,
+                                        'subjectFrame': 1,
+                                        'subjectMatchedSequence': (
+                                            'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA'),
+                                        'subjectStart': 15361}],
+                                'read': {
+                                    'id': 'id0',
+                                    'quality': None,
+                                    'sequence': 'A' * 70,
+                                },
+                            },
+                        ],
+                    },
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55': {
+                        'subjectLength': 38000,
+                        'subjectTitle': (
+                            'gi|887699|gb|DQ37780 Squirrelpox virus 55'),
+                        'titleAlignments': [
+                            {
+                                'hsps': [
+                                    {
+                                        'identicalCount': None,
+                                        'positiveCount': None,
+                                        'readEnd': 68,
+                                        'readEndInSubject': 12405,
+                                        'readFrame': 1,
+                                        'readMatchedSequence': (
+                                            'TACCCTGCGGCCCGCTACGGCTGG-TCTCCA'),
+                                        'readStart': 27,
+                                        'readStartInSubject': 12334,
+                                        'score': 1e-10,
+                                        'subjectEnd': 12400,
+                                        'subjectFrame': 1,
+                                        'subjectMatchedSequence': (
+                                            'TACCC--CGGCCCGCG-CGGCCGGCTCTCCA'),
+                                        'subjectStart': 12361}],
+                                'read': {
+                                    'id': 'id0',
+                                    'quality': None,
+                                    'sequence': 'A' * 70,
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
+            titlesAlignments.toDict())
+
 
 class TestTitlesAlignmentsFiltering(TestCase):
     """
