@@ -266,14 +266,12 @@ class TitleAlignments(list):
 
         @return: A C{dict} representation of the title's aligments.
         """
-        result = {
+        return {
             'titleAlignments': [titleAlignment.toDict()
                                 for titleAlignment in self],
             'subjectTitle': self.subjectTitle,
             'subjectLength': self.subjectLength,
         }
-
-        return result
 
 
 class TitlesAlignments(dict):
