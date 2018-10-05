@@ -65,6 +65,63 @@ def samReferencesToStr(filenameOrSamfile, indent=0):
         return _references(sam)
 
 
+def _hardClip(sequence, cigartuples):
+    """
+    Hard clip (if necessary) a sequence.
+
+    @param sequence: A C{str} nucleotide sequence.
+    @param cigartuples: An iterable of (operation, length) tuples, specifying
+        matching as per the SAM specification.
+    @return: A hard-clipped C{str} sequence if hard-clipping is indicated by
+        the CIGAR operations and has not already been performed (as indicated
+        by the lengths of the sequence and the sum of the CIGAR operation
+        lengths).
+    """
+    hardClipCount = cigarLength = 0
+    for (operation, length) in cigartuples:
+        hardClipCount += operation == CHARD_CLIP
+        cigarLength += length
+
+    sequenceLength = len(sequence)
+    clipLeft = clipRight = 0
+
+    if hardClipCount == 0:
+        pass
+    elif hardClipCount == 1:
+        # Hard clip either at the start or the end.
+        if cigartuples[0][0] == CHARD_CLIP:
+            clipLeft = cigartuples[0][1]
+            if sequenceLength == cigarLength:
+                # The LHS hard clipping has not been done.
+                sequence = sequence[clipLeft:]
+        elif cigartuples[-1][0] == CHARD_CLIP:
+            clipRight = cigartuples[-1][1]
+            if sequenceLength == cigarLength:
+                # The RHS hard clipping has not been done.
+                sequence = sequence[:-clipRight]
+        else:
+            raise ValueError(
+                'Invalid CIGAR tuples (%s) contains hard-clipping operation '
+                'that is neither at the start nor the end of the sequence.' %
+                (cigartuples,))
+    elif hardClipCount == 2:
+        # Hard clip at both the start and end.
+        assert cigartuples[0][0] == cigartuples[-1][0] == CHARD_CLIP
+        clipLeft, clipRight = cigartuples[0][1], cigartuples[-1][1]
+        if sequenceLength == cigarLength:
+            # The hard clipping has not been done.
+            sequence = sequence[clipLeft:-clipRight]
+    else:
+        raise ValueError(
+            'Invalid CIGAR tuples (%s) specifies hard-clipping %d times (2 '
+            'is the maximum).' % (cigartuples, hardClipCount))
+
+    assert len(sequence) + clipLeft + clipRight == cigarLength, (
+        '%d + %d + %d != %d' % (len(sequence), clipLeft, clipRight,
+                                cigarLength))
+    return sequence
+
+
 class SAMFilter(object):
     """
     Filter a SAM/BAM file.
@@ -378,16 +435,16 @@ class PaddedSAM(object):
                             'Query line %d has an empty SEQ field, but no '
                             'previous alignment is present.' % lineNumber)
                     else:
-                        query = lastQuery
+                        query = _hardClip(lastQuery, alignment.cigartuples)
                 else:
                     raise InvalidSAM(
                         'Query line %d has an empty SEQ field, but the '
                         'alignment is not marked as secondary or '
                         'supplementary.' % lineNumber)
-
-            # Remember the last query here (before we potentially modify it
-            # due to it being reverse complimented for the alignment).
-            lastQuery = query
+            else:
+                # Remember the last query here (before we potentially modify
+                # it due to it being reverse complimented for the alignment).
+                lastQuery = query
 
             if alignment.is_reverse:
                 if rcNeeded:
@@ -495,8 +552,13 @@ class PaddedSAM(object):
                 if operation in _CONSUMES_REFERENCE:
                     referenceIndex += length
 
-            # Sanity check that we consumed the entire query.
-            assert queryIndex == len(query)
+            if queryIndex != len(query):
+                # Oops, we did not consume the entire query.
+                raise ValueError(
+                    'Query %s not fully consumed when parsing CIGAR string. '
+                    'Query %s (len %d), final query index %d, CIGAR: %r' %
+                    (alignment.query_name, query, len(query), queryIndex,
+                     alignment.cigartuples))
 
             # We cannot test we consumed the entire reference.  The CIGAR
             # string applies to (and exhausts) the query but is silent

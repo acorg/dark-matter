@@ -1,3 +1,9 @@
+## 3.0.38 October 5, 2018
+
+Fixed [#630](https://github.com/acorg/dark-matter/issues/630) to deal with
+non-hard-clipped queries that have a CIGAR string that indicates they have
+been clipped.
+
 ## 3.0.37 October 1, 2018
 
 Add a `--titlesJSONFile` option to `noninteractive-alignment-panel.py`.

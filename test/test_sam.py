@@ -4,10 +4,12 @@ from tempfile import mkstemp
 from os import close, unlink, write
 from contextlib import contextmanager
 
+from pysam import CHARD_CLIP, CMATCH
+
 from dark.reads import Read, ReadFilter
 from dark.sam import (
     PaddedSAM, SAMFilter, UnequalReferenceLengthError, UnknownReference,
-    InvalidSAM, samReferencesToStr)
+    InvalidSAM, samReferencesToStr, _hardClip)
 
 
 # These tests actually use the filesystem to read files. That's due to the API
@@ -272,6 +274,32 @@ class TestPaddedSAM(TestCase):
                      '\\(id1=90, id2=91\\) are not all identical\\.$')
             assertRaisesRegex(self, UnequalReferenceLengthError, error,
                               PaddedSAM, SAMFilter(filename))
+
+    def testQueryTooLong(self):
+        """
+        If the query sequence is longer than the total of the lengths in the
+        CIGAR operations, a ValueError must be raised.
+        """
+        # This test just returns. It used to be possible to reach the
+        # "Query ... not fully consumed when parsing CIGAR string."
+        # ValueError in sam.py, prior to the fix of
+        # https://github.com/acorg/dark-matter/issues/630 but it is not
+        # possible to get a CIGAR string that has a different total length
+        # from the sequence length through to our code in sam.py because
+        # pysam catches the error.  I'm leaving this test here because it
+        # documents that the error checked for in sam.py cannot currently
+        # be reached and the test may become useful. For now it just returns.
+        return
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:90',
+            'query1 0 ref1 1 60 4M * 0 0 TCTAGG ZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(SAMFilter(filename))
+            error = ('^Query TCTAGG not fully consumed when parsing CIGAR '
+                     'string\\.')
+            assertRaisesRegex(self, ValueError, error, list, ps.queries())
 
     def testAllMMatch(self):
         """
@@ -866,6 +894,33 @@ class TestPaddedSAM(TestCase):
             self.assertEqual('XY', ''.join(
                 map(lambda x: chr(x + 33), read2.alignment.query_qualities)))
 
+    def testHardClippingInCIGARButQueryNotHardClipped(self):
+        """
+        As documented in https://github.com/acorg/dark-matter/issues/630 we
+        have to deal correctly with a case in which the CIGAR string says a
+        query should be hard clipped but the query sequence in the SAM file
+        actually isn't. This can be due to a prior alignment with a soft clip,
+        in which case the full query sequence has to be given before the
+        secondary alignment with the hard clip.
+        """
+        data = '\n'.join([
+            '@SQ SN:Chimp-D00220 LN:8',
+            '@SQ SN:D-AM494716 LN:8',
+            'query1 0 Chimp-D00220 1 0 3S5M * 0 0 TTTTGGTT 12345678',
+            'query1 256 D-AM494716 1 0 3H5M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(SAMFilter(filename))
+            (read1, read2) = list(ps.queries(addAlignment=True))
+
+            self.assertEqual(Read('query1', 'TGGTT---'), read1)
+            self.assertEqual('TTTTGGTT', read1.alignment.query_sequence)
+
+            self.assertEqual(Read('query1/1', 'TGGTT---'), read2)
+            # pysam uses None for the query sequence on a secondary alignment.
+            self.assertIs(None, read2.alignment.query_sequence)
+
 
 class TestSamReferencesToStr(TestCase):
     """
@@ -897,3 +952,104 @@ class TestSamReferencesToStr(TestCase):
         with dataFile(data) as filename:
             self.assertEqual('  id1 (length 90)\n  id2 (length 91)',
                              samReferencesToStr(filename, indent=2))
+
+
+class TestHardClip(TestCase):
+    """
+    Test the _hardClip function.
+    """
+    def testCIGARLengthTooHigh(self):
+        """
+        If the total length of the CIGAR operations exceeds the length of the
+        sequence, an AssertionError must be raised.
+        """
+        self.assertRaises(AssertionError, _hardClip, 'CGT', ((CMATCH, 5),))
+
+    def testCIGARLengthTooLow(self):
+        """
+        If the total length of the CIGAR operations is less than the length of
+        the sequence, an AssertionError must be raised.
+        """
+        self.assertRaises(AssertionError, _hardClip, 'CGT', ((CMATCH, 2),))
+
+    def testHardClipInMiddle(self):
+        """
+        If hard clipping is given as an operation not at the beginning or end
+        of the sequence, a ValueError must be raised.
+        """
+        error = ('^Invalid CIGAR tuples .* contains hard-clipping operation '
+                 'that is neither at the start nor the end of the sequence\.$')
+        self.assertRaisesRegex(
+            ValueError, error,
+            _hardClip, 'CGT', ((CMATCH, 1), (CHARD_CLIP, 1), (CMATCH, 1),))
+
+    def testThreeHardClips(self):
+        """
+        If hard clipping is specified more than twice, a ValueError must be
+        raised.
+        """
+        error = ('^Invalid CIGAR tuples .* specifies hard-clipping 3 times '
+                 '\(2 is the maximum\).$')
+        self.assertRaisesRegex(
+            ValueError, error,
+            _hardClip, 'CGT',
+            ((CHARD_CLIP, 1), (CHARD_CLIP, 1), (CHARD_CLIP, 1),))
+
+    def testNoClip(self):
+        """
+        If no hard clipping is indicated, the function must return the
+        original sequence.
+        """
+        self.assertEqual('CGT', _hardClip('CGT', ((CMATCH, 3),)))
+
+    def testClipLeft(self):
+        """
+        If hard clipping on the left is indicated, and has not been done,
+        the function must return the expected sequence.
+        """
+        self.assertEqual('CGT',
+                         _hardClip('CAACGT', ((CHARD_CLIP, 3), (CMATCH, 3),)))
+
+    def testClipRight(self):
+        """
+        If hard clipping on the right is indicated, and has not been done,
+        the function must return the expected sequence.
+        """
+        self.assertEqual('CA',
+                         _hardClip('CAACGT', ((CMATCH, 2), (CHARD_CLIP, 4),)))
+
+    def testClipBoth(self):
+        """
+        If hard clipping on the left and right is indicated, and has not been
+        done, the function must return the expected sequence.
+        """
+        self.assertEqual(
+            'AA',
+            _hardClip('CAACGT',
+                      ((CHARD_CLIP, 1), (CMATCH, 2), (CHARD_CLIP, 3),)))
+
+    def testClipLeftAlreadyDone(self):
+        """
+        If hard clipping on the left is indicated, and has already been done,
+        the function must return the expected sequence.
+        """
+        self.assertEqual('CGT',
+                         _hardClip('CGT', ((CHARD_CLIP, 3), (CMATCH, 3),)))
+
+    def testClipRightAlreadyDone(self):
+        """
+        If hard clipping on the right is indicated, and has already been done,
+        the function must return the expected sequence.
+        """
+        self.assertEqual('CA',
+                         _hardClip('CA', ((CMATCH, 2), (CHARD_CLIP, 4),)))
+
+    def testClipBothAlreadyDone(self):
+        """
+        If hard clipping on the left and right is indicated, and has already
+        been done, the function must return the expected sequence.
+        """
+        self.assertEqual(
+            'AA',
+            _hardClip('AA',
+                      ((CHARD_CLIP, 1), (CMATCH, 2), (CHARD_CLIP, 3),)))
