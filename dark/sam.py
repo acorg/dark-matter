@@ -65,40 +65,56 @@ def samReferencesToStr(filenameOrSamfile, indent=0):
         return _references(sam)
 
 
-def _hardClip(sequence, cigartuples):
+def _hardClip(sequence, quality, cigartuples):
     """
     Hard clip (if necessary) a sequence.
 
     @param sequence: A C{str} nucleotide sequence.
-    @param cigartuples: An iterable of (operation, length) tuples, specifying
-        matching as per the SAM specification.
-    @return: A hard-clipped C{str} sequence if hard-clipping is indicated by
-        the CIGAR operations and has not already been performed (as indicated
-        by the lengths of the sequence and the sum of the CIGAR operation
-        lengths).
+    @param quality: A C{str} quality string or a C{list} of C{int} quality
+        values as returned by pysam.
+    @param cigartuples: An iterable of (operation, length) tuples, detailing
+        the alignment, as per the SAM specification.
+    @return: A 3-tuple consisting of
+            1) a hard-clipped C{str} sequence if hard-clipping is indicated by
+               the CIGAR operations.
+            2) a hard-clipped quality C{str} or C{list} (depending on what
+               type we were passed) if hard-clipping is indicated by the CIGAR
+               operations.
+            3) a Boolean, C{True} if hard clipping was performed by this
+               function or C{False} if the hard clipping had already been
+               done.
     """
     hardClipCount = cigarLength = 0
     for (operation, length) in cigartuples:
         hardClipCount += operation == CHARD_CLIP
-        cigarLength += length
+        cigarLength += length if operation in _CONSUMES_QUERY else 0
 
     sequenceLength = len(sequence)
+    assert sequenceLength == len(quality)
     clipLeft = clipRight = 0
+    clippedSequence = sequence
+    clippedQuality = quality
+
+    if sequenceLength > cigarLength:
+        alreadyClipped = False
+    else:
+        assert sequenceLength == cigarLength
+        alreadyClipped = True
 
     if hardClipCount == 0:
         pass
     elif hardClipCount == 1:
         # Hard clip either at the start or the end.
         if cigartuples[0][0] == CHARD_CLIP:
-            clipLeft = cigartuples[0][1]
-            if sequenceLength == cigarLength:
-                # The LHS hard clipping has not been done.
-                sequence = sequence[clipLeft:]
+            if not alreadyClipped:
+                clipLeft = cigartuples[0][1]
+                clippedSequence = sequence[clipLeft:]
+                clippedQuality = quality[clipLeft:]
         elif cigartuples[-1][0] == CHARD_CLIP:
-            clipRight = cigartuples[-1][1]
-            if sequenceLength == cigarLength:
-                # The RHS hard clipping has not been done.
-                sequence = sequence[:-clipRight]
+            if not alreadyClipped:
+                clipRight = cigartuples[-1][1]
+                clippedSequence = sequence[:-clipRight]
+                clippedQuality = quality[:-clipRight]
         else:
             raise ValueError(
                 'Invalid CIGAR tuples (%s) contains hard-clipping operation '
@@ -107,19 +123,33 @@ def _hardClip(sequence, cigartuples):
     elif hardClipCount == 2:
         # Hard clip at both the start and end.
         assert cigartuples[0][0] == cigartuples[-1][0] == CHARD_CLIP
-        clipLeft, clipRight = cigartuples[0][1], cigartuples[-1][1]
-        if sequenceLength == cigarLength:
-            # The hard clipping has not been done.
-            sequence = sequence[clipLeft:-clipRight]
+        if not alreadyClipped:
+            clipLeft, clipRight = cigartuples[0][1], cigartuples[-1][1]
+            clippedSequence = sequence[clipLeft:-clipRight]
+            clippedQuality = quality[clipLeft:-clipRight]
     else:
         raise ValueError(
             'Invalid CIGAR tuples (%s) specifies hard-clipping %d times (2 '
             'is the maximum).' % (cigartuples, hardClipCount))
 
-    assert len(sequence) + clipLeft + clipRight == cigarLength, (
-        '%d + %d + %d != %d' % (len(sequence), clipLeft, clipRight,
-                                cigarLength))
-    return sequence
+    weClipped = bool(clipLeft or clipRight)
+
+    if weClipped:
+        assert not alreadyClipped
+        if len(clippedSequence) + clipLeft + clipRight != sequenceLength:
+            raise ValueError(
+                'Sequence %r (length %d) clipped to %r (length %d), but the '
+                'difference between these two lengths (%d) is not equal to '
+                'the sum (%d) of the left and right clip lengths (%d and %d '
+                'respectively). CIGAR tuples: %s' %
+                (sequence, len(sequence),
+                 clippedSequence, len(clippedSequence),
+                 abs(len(sequence) - len(clippedSequence)),
+                 clipLeft + clipRight, clipLeft, clipRight, cigartuples))
+    else:
+        assert len(clippedSequence) == len(clippedQuality) == sequenceLength
+
+    return clippedSequence, clippedQuality, weClipped
 
 
 class SAMFilter(object):
@@ -280,6 +310,7 @@ class SAMFilter(object):
         if storeQueryIds:
             self.queryIds = queryIds = set()
 
+        lastAlignment = None
         count = 0
         with samfile(self.filename) as samAlignment:
             for count, alignment in enumerate(samAlignment.fetch(), start=1):
@@ -295,6 +326,32 @@ class SAMFilter(object):
                         if ((minScore is not None and score < minScore) or
                                 (maxScore is not None and score > maxScore)):
                             continue
+
+                # Secondary and supplementary alignments may have a '*'
+                # (pysam returns this as None) SEQ field, indicating that
+                # the previous sequence should be used. This is best
+                # practice according to section 2.5.2 of
+                # https://samtools.github.io/hts-specs/SAMv1.pdf So we use
+                # the last alignment if we get None as a query sequence.
+                if alignment.query_sequence is None:
+                    if lastAlignment is None:
+                        raise InvalidSAM(
+                            'pysam produced an alignment (number %d) with no '
+                            'query sequence without previously giving an '
+                            'alignment with a sequence.' % count)
+                    # Use the previous query sequence and quality.
+                    (alignment.query_sequence,
+                     alignment.query_qualities, _) = _hardClip(
+                         lastAlignment.query_sequence,
+                         lastAlignment.query_qualities,
+                         alignment.cigartuples)
+                else:
+                    lastAlignment = alignment
+                    (alignment.query_sequence,
+                     alignment.query_qualities, _) = _hardClip(
+                         alignment.query_sequence,
+                         alignment.query_qualities,
+                         alignment.cigartuples)
 
                 if ((filterRead is None or
                      filterRead(Read(alignment.query_name,
@@ -372,8 +429,8 @@ class PaddedSAM(object):
         self.referenceInsertions = defaultdict(list)
 
     def queries(self, rcSuffix='', rcNeeded=False, padChar='-',
-                queryInsertionChar='N', allowDuplicateIds=False,
-                addAlignment=False):
+                queryInsertionChar='N', unknownQualityChar='!',
+                allowDuplicateIds=False, addAlignment=False):
         """
         Produce padded (with gaps) queries according to the CIGAR string and
         reference sequence length for each matching query sequence.
@@ -395,6 +452,9 @@ class PaddedSAM(object):
             is inserted as a 'missing' query character (i.e., a base that can
             be assumed to have been lost due to an error) whose existence is
             necessary for the match to continue.
+        @param unknownQualityChar: The character to put into the quality
+            string when unknown bases are inserted in the query or the query
+            is padded on the left/right with gaps.
         @param allowDuplicateIds: If C{True}, repeated query ids (due to
             secondary or supplemental matches) will not have /1, /2, etc.
             appended to their ids. So repeated ids may appear in the yielded
@@ -417,38 +477,17 @@ class PaddedSAM(object):
         idCount = Counter()
 
         MATCH_OPERATIONS = {CMATCH, CEQUAL, CDIFF}
-        lastQuery = None
 
         for lineNumber, alignment in enumerate(
                 self.samFilter.alignments(), start=1):
 
             query = alignment.query_sequence
-
-            # Secondary (and presumably supplementary) alignments may have
-            # a '*' (None in pysam) SEQ field, indicating that the previous
-            # sequence should be used. This is best practice according to
-            # section 2.5.2 of https://samtools.github.io/hts-specs/SAMv1.pdf
-            if query is None:
-                if alignment.is_secondary or alignment.is_supplementary:
-                    if lastQuery is None:
-                        raise InvalidSAM(
-                            'Query line %d has an empty SEQ field, but no '
-                            'previous alignment is present.' % lineNumber)
-                    else:
-                        query = _hardClip(lastQuery, alignment.cigartuples)
-                else:
-                    raise InvalidSAM(
-                        'Query line %d has an empty SEQ field, but the '
-                        'alignment is not marked as secondary or '
-                        'supplementary.' % lineNumber)
-            else:
-                # Remember the last query here (before we potentially modify
-                # it due to it being reverse complimented for the alignment).
-                lastQuery = query
+            quality = ''.join(chr(q + 33) for q in alignment.query_qualities)
 
             if alignment.is_reverse:
                 if rcNeeded:
                     query = DNARead('id', query).reverseComplement().sequence
+                    quality = quality[::-1]
                 if rcSuffix:
                     alignment.query_name += rcSuffix
 
@@ -467,6 +506,7 @@ class PaddedSAM(object):
             queryIndex = 0
             referenceIndex = referenceStart
             alignedSequence = ''
+            alignedQuality = ''
 
             for operation, length in alignment.cigartuples:
 
@@ -477,6 +517,7 @@ class PaddedSAM(object):
                 if operation in MATCH_OPERATIONS:
                     atStart = False
                     alignedSequence += query[queryIndex:queryIndex + length]
+                    alignedQuality += quality[queryIndex:queryIndex + length]
                 elif operation == CINS:
                     # Insertion to the reference. This consumes query bases but
                     # we don't output them because the reference cannot be
@@ -494,6 +535,7 @@ class PaddedSAM(object):
                     # an insertion into the query to compensate.
                     atStart = False
                     alignedSequence += queryInsertionChar * length
+                    alignedQuality += unknownQualityChar * length
                 elif operation == CREF_SKIP:
                     # Skipped reference. Opens a gap in the query. For
                     # mRNA-to-genome alignment, an N operation represents an
@@ -502,6 +544,7 @@ class PaddedSAM(object):
                     # to occur.
                     atStart = False
                     alignedSequence += queryInsertionChar * length
+                    alignedQuality += unknownQualityChar * length
                 elif operation == CSOFT_CLIP:
                     # Bases in the query that are not part of the match. We
                     # remove these from the query if they protrude before the
@@ -514,12 +557,16 @@ class PaddedSAM(object):
                         unwantedLeft = length - referenceStart
                         if unwantedLeft > 0:
                             # The query protrudes left. Copy its right part.
-                            alignedSequence += query[queryIndex + unwantedLeft:
-                                                     queryIndex + length]
+                            alignedSequence += query[
+                                queryIndex + unwantedLeft:queryIndex + length]
+                            alignedQuality += quality[
+                                queryIndex + unwantedLeft:queryIndex + length]
                             referenceStart = 0
                         else:
                             referenceStart -= length
                             alignedSequence += query[
+                                queryIndex:queryIndex + length]
+                            alignedQuality += quality[
                                 queryIndex:queryIndex + length]
                     else:
                         unwantedRight = (
@@ -530,8 +577,12 @@ class PaddedSAM(object):
                             # The query protrudes right. Copy its left part.
                             alignedSequence += query[
                                 queryIndex:queryIndex + length - unwantedRight]
+                            alignedQuality += quality[
+                                queryIndex:queryIndex + length - unwantedRight]
                         else:
                             alignedSequence += query[
+                                queryIndex:queryIndex + length]
+                            alignedQuality += quality[
                                 queryIndex:queryIndex + length]
                 elif operation == CHARD_CLIP:
                     # Some bases have been completely removed from the query.
@@ -555,8 +606,8 @@ class PaddedSAM(object):
             if queryIndex != len(query):
                 # Oops, we did not consume the entire query.
                 raise ValueError(
-                    'Query %s not fully consumed when parsing CIGAR string. '
-                    'Query %s (len %d), final query index %d, CIGAR: %r' %
+                    'Query %r not fully consumed when parsing CIGAR string. '
+                    'Query %r (len %d), final query index %d, CIGAR: %r' %
                     (alignment.query_name, query, len(query), queryIndex,
                      alignment.cigartuples))
 
@@ -567,13 +618,17 @@ class PaddedSAM(object):
 
             # Put gap characters before and after the aligned sequence so that
             # it is offset properly and matches the length of the reference.
-            paddedSequence = (
-                (padChar * referenceStart) +
-                alignedSequence +
-                padChar * (referenceLength -
-                           (referenceStart + len(alignedSequence))))
+            padRightLength = (referenceLength -
+                              (referenceStart + len(alignedSequence)))
+            paddedSequence = (padChar * referenceStart +
+                              alignedSequence +
+                              padChar * padRightLength)
+            paddedQuality = (unknownQualityChar * referenceStart +
+                             alignedQuality +
+                             unknownQualityChar * padRightLength)
 
-            read = Read(queryId, paddedSequence)
+            read = Read(queryId, paddedSequence, paddedQuality)
+
             if addAlignment:
                 read.alignment = alignment
 
