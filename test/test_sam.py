@@ -313,7 +313,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testMixedMatch(self):
         """
@@ -328,7 +328,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testHardClipLeft(self):
         """
@@ -343,7 +343,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testHardClipRight(self):
         """
@@ -358,22 +358,23 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testRcNeeded(self):
         """
         A reverse-complimented match (flag = 16) when rcNeeded=True is passed
-        must result in the expected (reverse complimented) padded sequence.
+        must result in the expected (reverse complimented) padded sequence
+        and reversed quality string.
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
-            'query1 16 ref1 2 60 6M * 0 0 TCTAGG ZZZZZZ',
+            'query1 16 ref1 2 60 6M * 0 0 TCTAGG 123456',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries(rcNeeded=True))
-            self.assertEqual(Read('query1', '-CCTAGA---'), read)
+            self.assertEqual(Read('query1', '-CCTAGA---', '!654321!!!'), read)
 
     def testRcSuffix(self):
         """
@@ -382,13 +383,14 @@ class TestPaddedSAM(TestCase):
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
-            'query1 16 ref1 2 60 6M * 0 0 TCTAGG ZZZZZZ',
+            'query1 16 ref1 2 60 6M * 0 0 TCTAGG 123456',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            (read,) = list(ps.queries(rcSuffix='-rc'))
-            self.assertEqual(Read('query1-rc', '-TCTAGG---'), read)
+            (read,) = list(ps.queries(rcSuffix='-rc', rcNeeded=True))
+            self.assertEqual(Read('query1-rc', '-CCTAGA---', '!654321!!!'),
+                             read)
 
     def testQuerySoftClipLeft(self):
         """
@@ -403,7 +405,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testQuerySoftClipReachesLeftEdge(self):
         """
@@ -418,7 +420,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', 'TCTAGG----'), read)
+            self.assertEqual(Read('query1', 'TCTAGG----', 'ZZZZZZ!!!!'), read)
 
     def testQuerySoftClipProtrudesLeft(self):
         """
@@ -433,7 +435,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', 'AGG-------'), read)
+            self.assertEqual(Read('query1', 'AGG-------', 'ZZZ!!!!!!!'), read)
 
     def testKF414679SoftClipLeft(self):
         """
@@ -451,7 +453,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', seq[14:]), read)
+            self.assertEqual(Read('query1', seq[14:], quality[14:]), read)
 
     def testQuerySoftClipRight(self):
         """
@@ -466,7 +468,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '---TCTAGG-'), read)
+            self.assertEqual(Read('query1', '---TCTAGG-', '!!!ZZZZZZ!'), read)
 
     def testQuerySoftClipReachesRightEdge(self):
         """
@@ -481,7 +483,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '----TCTAGG'), read)
+            self.assertEqual(Read('query1', '----TCTAGG', '!!!!ZZZZZZ'), read)
 
     def testQuerySoftClipProtrudesRight(self):
         """
@@ -496,7 +498,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-----TCTAG'), read)
+            self.assertEqual(Read('query1', '-----TCTAG', '!!!!!ZZZZZ'), read)
 
     def testQuerySoftClipProtrudesBothSides(self):
         """
@@ -511,7 +513,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', 'TAGGCTGACT'), read)
+            self.assertEqual(Read('query1', 'TAGGCTGACT', 'ZZZZZZZZZZ'), read)
 
     def testQueryHardClipAndSoftClipProtrudesBothSides(self):
         """
@@ -527,7 +529,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', 'TAGGCTGACT'), read)
+            self.assertEqual(Read('query1', 'TAGGCTGACT', 'ZZZZZZZZZZ'), read)
 
     def testReferenceInsertion(self):
         """
@@ -542,7 +544,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCGG-----'), read)
+            self.assertEqual(Read('query1', '-TCGG-----', '!ZZZZ!!!!!'), read)
             self.assertEqual(
                 {
                     'query1': [(3, 'TA')],
@@ -564,8 +566,9 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCGG-----'), read1)
-            self.assertEqual(Read('query1/1', '---TCG----'), read2)
+            self.assertEqual(Read('query1', '-TCGG-----', '!ZZZZ!!!!!'), read1)
+            self.assertEqual(Read('query1/1', '---TCG----', '!!!ZZZ!!!!'),
+                             read2)
             self.assertEqual(
                 {
                     'query1': [(3, 'TA')],
@@ -576,7 +579,7 @@ class TestPaddedSAM(TestCase):
     def testReferenceDeletion(self):
         """
         An deletion of reference bases must result in the expected padded
-        sequence (with gaps).
+        sequence (with Ns inserted for the deleted reference bases).
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
@@ -586,12 +589,14 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCNNTAGG-'), read)
+            self.assertEqual(Read('query1', '-TCNNTAGG-', '!ZZ!!ZZZZ!'), read)
 
-    def testReferenceDeletionAlternateChar(self):
+    def testReferenceDeletionAlternateChars(self):
         """
         An deletion of reference bases must result in the expected padded
-        sequence (with gaps) when a queryInsertionChar is passed
+        sequence (with the passed query insertion character and unknown
+        quality character) when queryInsertionChar and unknownQualityChar
+        arguments are passed.
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
@@ -600,13 +605,15 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            (read,) = list(ps.queries(queryInsertionChar='?'))
-            self.assertEqual(Read('query1', '-TC??TAGG-'), read)
+            (read,) = list(ps.queries(queryInsertionChar='?',
+                                      unknownQualityChar='+'))
+            self.assertEqual(Read('query1', '-TC??TAGG-', '+ZZ++ZZZZ+'), read)
 
     def testReferenceSkip(self):
         """
         An skip of reference bases must result in the expected padded
-        sequence (with gaps).
+        sequence with the passed unknown quality character when the
+        unknownQualityChar argument is passed.
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
@@ -615,13 +622,15 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCNNTAGG-'), read)
+            (read,) = list(ps.queries(unknownQualityChar='.'))
+            self.assertEqual(Read('query1', '-TCNNTAGG-', '.ZZ..ZZZZ.'), read)
 
-    def testReferenceSkipAlternateChar(self):
+    def testReferenceSkipAlternateChars(self):
         """
         An skip of reference bases must result in the expected padded
-        sequence (with gaps) when a queryInsertionChar is passed.
+        sequence (with the passed query insertion character and unknown
+        quality character) when queryInsertionChar and unknownQualityChar
+        arguments are passed.
         """
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
@@ -630,8 +639,9 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            (read,) = list(ps.queries(queryInsertionChar='X'))
-            self.assertEqual(Read('query1', '-TCXXTAGG-'), read)
+            (read,) = list(ps.queries(queryInsertionChar='X',
+                                      unknownQualityChar='+'))
+            self.assertEqual(Read('query1', '-TCXXTAGG-', '+ZZ++ZZZZ+'), read)
 
     def testMixedMatchSpecificReferenceButNoMatches(self):
         """
@@ -662,7 +672,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename, referenceIds={'ref1'}))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testMinLength(self):
         """
@@ -679,7 +689,7 @@ class TestPaddedSAM(TestCase):
             filterRead = ReadFilter(minLength=6).filter
             ps = PaddedSAM(SAMFilter(filename, filterRead=filterRead))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testDropSecondary(self):
         """
@@ -694,7 +704,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename, dropSecondary=True))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testDropSupplementary(self):
         """
@@ -710,7 +720,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename, dropSupplementary=True))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testDropDuplicates(self):
         """
@@ -726,7 +736,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename, dropDuplicates=True))
             (read,) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read)
 
     def testAllowDuplicateIds(self):
         """
@@ -742,8 +752,9 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries(allowDuplicateIds=True))
-            self.assertEqual(Read('query1', '-TCTAGG---'), read1)
-            self.assertEqual(Read('query1', '--TC------'), read2)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read1)
+            self.assertEqual(Read('query1', '--TC------', '!!ZZ!!!!!!'),
+                             read2)
 
     def testDuplicateIdDisambiguation(self):
         """
@@ -759,9 +770,11 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2, read3) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read1)
-            self.assertEqual(Read('query1/1', '--TC------'), read2)
-            self.assertEqual(Read('query1/2', '--TCGA----'), read3)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read1)
+            self.assertEqual(Read('query1/1', '--TC------', '!!ZZ!!!!!!'),
+                             read2)
+            self.assertEqual(Read('query1/2', '--TCGA----', '!!ZZZZ!!!!'),
+                             read3)
 
     def testKeepQualityControlFailures(self):
         """
@@ -777,8 +790,8 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename, keepQCFailures=True))
             (read1, read2) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCTAGG---'), read1)
-            self.assertEqual(Read('query2', '---TC-----'), read2)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read1)
+            self.assertEqual(Read('query2', '---TC-----', '!!!ZZ!!!!!'), read2)
 
     def testSecondaryWithNoPreviousSequence(self):
         """
@@ -792,8 +805,9 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            error = ('^Query line 1 has an empty SEQ field, but no previous '
-                     'alignment is present\\.$')
+            error = ('^pysam produced an alignment \\(number 1\\) with no '
+                     'query sequence without previously giving an alignment '
+                     'with a sequence\\.$')
             queries = ps.queries()
             assertRaisesRegex(self, InvalidSAM, error, list, queries)
 
@@ -812,9 +826,10 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2, read3) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCT------'), read1)
-            self.assertEqual(Read('query2', '-TCTA-----'), read2)
-            self.assertEqual(Read('query2/1', '-----TCTA-'), read3)
+            self.assertEqual(Read('query1', '-TCT------', '!ZZZ!!!!!!'), read1)
+            self.assertEqual(Read('query2', '-TCTA-----', '!ZZZZ!!!!!'), read2)
+            self.assertEqual(Read('query2/1', '-----TCTA-', '!!!!!ZZZZ!'),
+                             read3)
 
     def testSupplementaryWithNoPreviousSequence(self):
         """
@@ -828,8 +843,9 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            error = ('^Query line 1 has an empty SEQ field, but no previous '
-                     'alignment is present\\.$')
+            error = ('^pysam produced an alignment \\(number 1\\) with no '
+                     'query sequence without previously giving an alignment '
+                     'with a sequence\\.$')
             queries = ps.queries()
             assertRaisesRegex(self, InvalidSAM, error, list, queries)
 
@@ -848,9 +864,10 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2, read3) = list(ps.queries())
-            self.assertEqual(Read('query1', '-TCT------'), read1)
-            self.assertEqual(Read('query2', '-TCTA-----'), read2)
-            self.assertEqual(Read('query2/1', '-----TCTA-'), read3)
+            self.assertEqual(Read('query1', '-TCT------', '!ZZZ!!!!!!'), read1)
+            self.assertEqual(Read('query2', '-TCTA-----', '!ZZZZ!!!!!'), read2)
+            self.assertEqual(Read('query2/1', '-----TCTA-', '!!!!!ZZZZ!'),
+                             read3)
 
     def testNotSecondaryAndNotSupplementaryWithNoSequence(self):
         """
@@ -864,8 +881,9 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            error = ('^Query line 1 has an empty SEQ field, but the alignment '
-                     'is not marked as secondary or supplementary\\.$')
+            error = ('^pysam produced an alignment \\(number 1\\) with no '
+                     'query sequence without previously giving an alignment '
+                     'with a sequence\\.$')
             queries = ps.queries()
             assertRaisesRegex(self, InvalidSAM, error, list, queries)
 
@@ -877,28 +895,28 @@ class TestPaddedSAM(TestCase):
         data = '\n'.join([
             '@SQ SN:ref1 LN:10',
             'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
-            'query2 0 ref1 2 60 2= * 0 0 TC XY',
+            'query2 0 ref1 2 60 2= * 0 0 TC 78',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries(addAlignment=True))
 
-            self.assertEqual(Read('query1', '-TCTAGG---'), read1)
+            self.assertEqual(Read('query1', '-TCTAGG---', '!123456!!!'), read1)
             self.assertEqual('TCTAGG', read1.alignment.query_sequence)
             self.assertEqual('123456', ''.join(
                 map(lambda x: chr(x + 33), read1.alignment.query_qualities)))
 
-            self.assertEqual(Read('query2', '-TC-------'), read2)
+            self.assertEqual(Read('query2', '-TC-------', '!78!!!!!!!'), read2)
             self.assertEqual('TC', read2.alignment.query_sequence)
-            self.assertEqual('XY', ''.join(
+            self.assertEqual('78', ''.join(
                 map(lambda x: chr(x + 33), read2.alignment.query_qualities)))
 
     def testHardClippingInCIGARButQueryNotHardClipped(self):
         """
         As documented in https://github.com/acorg/dark-matter/issues/630 we
-        have to deal correctly with a case in which the CIGAR string says a
-        query should be hard clipped but the query sequence in the SAM file
+        must deal correctly with a case in which the CIGAR string says a
+        query is hard-clipped but the query sequence in the SAM file
         actually isn't. This can be due to a prior alignment with a soft clip,
         in which case the full query sequence has to be given before the
         secondary alignment with the hard clip.
@@ -906,20 +924,77 @@ class TestPaddedSAM(TestCase):
         data = '\n'.join([
             '@SQ SN:Chimp-D00220 LN:8',
             '@SQ SN:D-AM494716 LN:8',
+            '@SQ SN:D-XXX LN:8',
+            '@SQ SN:Chimp-YYY LN:8',
             'query1 0 Chimp-D00220 1 0 3S5M * 0 0 TTTTGGTT 12345678',
             'query1 256 D-AM494716 1 0 3H5M * 0 0 * *',
+            'query1 256 D-XXX 1 0 5H3M * 0 0 * *',
+            'query1 0 Chimp-YYY 1 0 8M * 0 0 * *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            ps = PaddedSAM(SAMFilter(filename))
+            (read1, read2, read3, read4) = list(ps.queries(addAlignment=True))
+
+            self.assertEqual(Read('query1', 'TGGTT---', '45678!!!'), read1)
+            self.assertEqual('TTTTGGTT', read1.alignment.query_sequence)
+
+            self.assertEqual(Read('query1/1', 'TGGTT---', '45678!!!'), read2)
+            self.assertEqual('TGGTT', read2.alignment.query_sequence)
+
+            self.assertEqual(Read('query1/2', 'GTT-----', '678!!!!!'), read3)
+            self.assertEqual('GTT', read3.alignment.query_sequence)
+
+            self.assertEqual(Read('query1/3', 'TTTTGGTT', '12345678'), read4)
+            self.assertEqual('TTTTGGTT', read4.alignment.query_sequence)
+
+    def testSecondaryAlignmentHasQuery(self):
+        """
+        If the first alignment of a query is against a reference that is not
+        wanted, a subsequent secondary alignment (SAM flag = 256) must have
+        the original query and quality strings (even though these are only
+        present in the SAM as * characters and the query is None when it comes
+        back from pysam).
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query1 256 ref2 2 60 2=2X2M * 0 0 * *',
         ]).replace(' ', '\t')
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             (read1, read2) = list(ps.queries(addAlignment=True))
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read1)
+            self.assertEqual('ref1', read1.alignment.reference_name)
+            self.assertEqual(Read('query1/1', '-TCTAGG---', '!ZZZZZZ!!!'),
+                             read2)
+            self.assertEqual('ref2', read2.alignment.reference_name)
 
-            self.assertEqual(Read('query1', 'TGGTT---'), read1)
-            self.assertEqual('TTTTGGTT', read1.alignment.query_sequence)
+    def testSupplementaryAlignmentHasQuery(self):
+        """
+        If the first alignment of a query is against a reference that is not
+        wanted, a subsequent supplementary alignment (SAM flag = 2048) must
+        have the original query and quality strings (even though these are only
+        present in the SAM as * characters and the query is None when it comes
+        back from pysam).
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ',
+            'query1 2048 ref2 2 60 2=2X2M * 0 0 * *',
+        ]).replace(' ', '\t')
 
-            self.assertEqual(Read('query1/1', 'TGGTT---'), read2)
-            # pysam uses None for the query sequence on a secondary alignment.
-            self.assertIs(None, read2.alignment.query_sequence)
+        with dataFile(data) as filename:
+            ps = PaddedSAM(SAMFilter(filename))
+            (read1, read2) = list(ps.queries(addAlignment=True))
+            self.assertEqual(Read('query1', '-TCTAGG---', '!ZZZZZZ!!!'), read1)
+            self.assertEqual('ref1', read1.alignment.reference_name)
+            self.assertEqual(Read('query1/1', '-TCTAGG---', '!ZZZZZZ!!!'),
+                             read2)
+            self.assertEqual('ref2', read2.alignment.reference_name)
 
 
 class TestSamReferencesToStr(TestCase):
@@ -958,20 +1033,6 @@ class TestHardClip(TestCase):
     """
     Test the _hardClip function.
     """
-    def testCIGARLengthTooHigh(self):
-        """
-        If the total length of the CIGAR operations exceeds the length of the
-        sequence, an AssertionError must be raised.
-        """
-        self.assertRaises(AssertionError, _hardClip, 'CGT', ((CMATCH, 5),))
-
-    def testCIGARLengthTooLow(self):
-        """
-        If the total length of the CIGAR operations is less than the length of
-        the sequence, an AssertionError must be raised.
-        """
-        self.assertRaises(AssertionError, _hardClip, 'CGT', ((CMATCH, 2),))
-
     def testHardClipInMiddle(self):
         """
         If hard clipping is given as an operation not at the beginning or end
@@ -980,8 +1041,8 @@ class TestHardClip(TestCase):
         error = ('^Invalid CIGAR tuples .* contains hard-clipping operation '
                  'that is neither at the start nor the end of the sequence\.$')
         self.assertRaisesRegex(
-            ValueError, error,
-            _hardClip, 'CGT', ((CMATCH, 1), (CHARD_CLIP, 1), (CMATCH, 1),))
+            ValueError, error, _hardClip, 'CGT', '123',
+            ((CMATCH, 1), (CHARD_CLIP, 1), (CMATCH, 1),))
 
     def testThreeHardClips(self):
         """
@@ -991,8 +1052,7 @@ class TestHardClip(TestCase):
         error = ('^Invalid CIGAR tuples .* specifies hard-clipping 3 times '
                  '\(2 is the maximum\).$')
         self.assertRaisesRegex(
-            ValueError, error,
-            _hardClip, 'CGT',
+            ValueError, error, _hardClip, 'CGT', '123',
             ((CHARD_CLIP, 1), (CHARD_CLIP, 1), (CHARD_CLIP, 1),))
 
     def testNoClip(self):
@@ -1000,23 +1060,26 @@ class TestHardClip(TestCase):
         If no hard clipping is indicated, the function must return the
         original sequence.
         """
-        self.assertEqual('CGT', _hardClip('CGT', ((CMATCH, 3),)))
+        self.assertEqual(('CGT', '123', False),
+                         _hardClip('CGT', '123', ((CMATCH, 3),)))
 
     def testClipLeft(self):
         """
         If hard clipping on the left is indicated, and has not been done,
         the function must return the expected sequence.
         """
-        self.assertEqual('CGT',
-                         _hardClip('CAACGT', ((CHARD_CLIP, 3), (CMATCH, 3),)))
+        self.assertEqual(
+            ('CGT', '456', True),
+            _hardClip('CAACGT', '123456', ((CHARD_CLIP, 3), (CMATCH, 3),)))
 
     def testClipRight(self):
         """
         If hard clipping on the right is indicated, and has not been done,
         the function must return the expected sequence.
         """
-        self.assertEqual('CA',
-                         _hardClip('CAACGT', ((CMATCH, 2), (CHARD_CLIP, 4),)))
+        self.assertEqual(
+            ('CA', '12', True),
+            _hardClip('CAACGT', '123456', ((CMATCH, 2), (CHARD_CLIP, 4),)))
 
     def testClipBoth(self):
         """
@@ -1024,8 +1087,8 @@ class TestHardClip(TestCase):
         done, the function must return the expected sequence.
         """
         self.assertEqual(
-            'AA',
-            _hardClip('CAACGT',
+            ('AA', '23', True),
+            _hardClip('CAACGT', '123456',
                       ((CHARD_CLIP, 1), (CMATCH, 2), (CHARD_CLIP, 3),)))
 
     def testClipLeftAlreadyDone(self):
@@ -1033,16 +1096,18 @@ class TestHardClip(TestCase):
         If hard clipping on the left is indicated, and has already been done,
         the function must return the expected sequence.
         """
-        self.assertEqual('CGT',
-                         _hardClip('CGT', ((CHARD_CLIP, 3), (CMATCH, 3),)))
+        self.assertEqual(
+            ('CGT', '123', False),
+            _hardClip('CGT', '123', ((CHARD_CLIP, 3), (CMATCH, 3),)))
 
     def testClipRightAlreadyDone(self):
         """
         If hard clipping on the right is indicated, and has already been done,
         the function must return the expected sequence.
         """
-        self.assertEqual('CA',
-                         _hardClip('CA', ((CMATCH, 2), (CHARD_CLIP, 4),)))
+        self.assertEqual(
+            ('CA', '12', False),
+            _hardClip('CA', '12', ((CMATCH, 2), (CHARD_CLIP, 4),)))
 
     def testClipBothAlreadyDone(self):
         """
@@ -1050,6 +1115,6 @@ class TestHardClip(TestCase):
         been done, the function must return the expected sequence.
         """
         self.assertEqual(
-            'AA',
-            _hardClip('AA',
+            ('AA', '12', False),
+            _hardClip('AA', '12',
                       ((CHARD_CLIP, 1), (CMATCH, 2), (CHARD_CLIP, 3),)))

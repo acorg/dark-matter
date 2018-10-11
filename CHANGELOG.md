@@ -1,3 +1,8 @@
+## 3.0.39 October 10, 2018
+
+The fix to solve [#630](https://github.com/acorg/dark-matter/issues/630)
+was insufficient. That's fixed in this release, hopefully!
+
 ## 3.0.38 October 5, 2018
 
 Fixed [#630](https://github.com/acorg/dark-matter/issues/630) to deal with
