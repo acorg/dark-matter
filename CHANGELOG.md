@@ -2,6 +2,9 @@
 
 Force use of `mysql-connector-python` version `8.0.11` in
 `requirements.txt` due to segmentation fault running tests using TravisCI.
+Set version `0.5.0` of `pyfaidx` to avoid error in `pyfaidx/__init__.py`
+line 711 (AttributeError: 'str' object has no attribute 'decode') in later
+`pyfaidx` version. Removed some deprecation warnings when running tests.
 
 ## 3.0.39 October 10, 2018
 

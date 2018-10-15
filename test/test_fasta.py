@@ -494,8 +494,8 @@ class TestFastaFaiReads(TestCase):
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = sideEffect
             reads = FastaFaiReads('filename.fasta')
-            error = "^'id2 not in filename\.fasta\.'"
-            with self.assertRaisesRegexp(KeyError, error):
+            error = "^'id2 not in filename\\.fasta\\.'"
+            with self.assertRaisesRegex(KeyError, error):
                 reads['id2']
 
     def testOneRead(self):
@@ -723,7 +723,7 @@ class TestSqliteIndex(TestCase):
         index = SqliteIndex(':memory:')
         self.assertEqual(1, index._addFilename('f.fas'))
         error = "^Duplicate file name: 'f.fas'$"
-        self.assertRaisesRegexp(ValueError, error, index._addFilename, 'f.fas')
+        self.assertRaisesRegex(ValueError, error, index._addFilename, 'f.fas')
 
     def testGetNonexistentFilename(self):
         """"
@@ -766,9 +766,9 @@ class TestSqliteIndex(TestCase):
         Trying to add a .bz2 file must result in a ValueError.
         """
         index = SqliteIndex(':memory:')
-        error = ('^Compressed FASTA is only supported in BGZF format\. Use '
-                 'bgzip to compresss your FASTA\.$')
-        self.assertRaisesRegexp(ValueError, error, index.addFile, 'file.bz2')
+        error = ('^Compressed FASTA is only supported in BGZF format\\. Use '
+                 'bgzip to compresss your FASTA\\.$')
+        self.assertRaisesRegex(ValueError, error, index.addFile, 'file.bz2')
 
     def testAddOneFile(self):
         """"
@@ -821,9 +821,9 @@ class TestSqliteIndex(TestCase):
             mockMethod.side_effect = sideEffect
             index = SqliteIndex(':memory:')
             error = ("^FASTA sequence id 'id1' found twice in file "
-                     "'filename.fasta'\.$")
-            self.assertRaisesRegexp(ValueError, error, index.addFile,
-                                    'filename.fasta')
+                     "'filename.fasta'\\.$")
+            self.assertRaisesRegex(ValueError, error, index.addFile,
+                                   'filename.fasta')
             index.close()
 
     def testAddFilesWithDuplicateSequence(self):
@@ -856,10 +856,10 @@ class TestSqliteIndex(TestCase):
             index = SqliteIndex(':memory:')
             index.addFile('filename1.fasta')
             error = ("^FASTA sequence id 'id2', found in file "
-                     "'filename2\.fasta', was previously added from file "
-                     "'filename1\.fasta'\.$")
-            self.assertRaisesRegexp(ValueError, error, index.addFile,
-                                    'filename2.fasta')
+                     "'filename2\\.fasta', was previously added from file "
+                     "'filename1\\.fasta'\\.$")
+            self.assertRaisesRegex(ValueError, error, index.addFile,
+                                   'filename2.fasta')
             index.close()
 
     def testAddDuplicateFile(self):
@@ -887,9 +887,9 @@ class TestSqliteIndex(TestCase):
             mockMethod.side_effect = sideEffect
             index = SqliteIndex(':memory:')
             self.assertEqual(2, index.addFile('filename.fasta'))
-            error = "^Duplicate file name: 'filename.fasta'$"
-            self.assertRaisesRegexp(ValueError, error, index._addFilename,
-                                    'filename.fasta')
+            error = "^Duplicate file name: 'filename\\.fasta'$"
+            self.assertRaisesRegex(ValueError, error, index._addFilename,
+                                   'filename.fasta')
             index.close()
 
     def testFind(self):

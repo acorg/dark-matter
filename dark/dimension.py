@@ -16,7 +16,7 @@ def dimensionalIterator(dimensions, maxItems=-1):
     """
     nDimensions = len(dimensions)
     if nDimensions == 0 or maxItems == 0:
-        raise StopIteration
+        return
     if any(map(lambda x: x != '*' and x <= 0, dimensions)):
         raise ValueError
     odometer = [0, ] * nDimensions
@@ -30,5 +30,5 @@ def dimensionalIterator(dimensions, maxItems=-1):
             odometer[wheel] = 0
             wheel -= 1
         if wheel < 0:
-            raise StopIteration
+            return
         odometer[wheel] += 1
