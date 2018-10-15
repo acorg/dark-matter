@@ -1,3 +1,8 @@
+## 3.0.40 October 15, 2018
+
+Force use of `mysql-connector-python` version `8.0.11` in
+`requirements.txt` due to segmentation fault running tests using TravisCI.
+
 ## 3.0.39 October 10, 2018
 
 The fix to solve [#630](https://github.com/acorg/dark-matter/issues/630)

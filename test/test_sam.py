@@ -1040,8 +1040,8 @@ class TestHardClip(TestCase):
         """
         error = ('^Invalid CIGAR tuples .* contains hard-clipping operation '
                  'that is neither at the start nor the end of the sequence\.$')
-        self.assertRaisesRegex(
-            ValueError, error, _hardClip, 'CGT', '123',
+        assertRaisesRegex(
+            self, ValueError, error, _hardClip, 'CGT', '123',
             ((CMATCH, 1), (CHARD_CLIP, 1), (CMATCH, 1),))
 
     def testThreeHardClips(self):
@@ -1051,8 +1051,8 @@ class TestHardClip(TestCase):
         """
         error = ('^Invalid CIGAR tuples .* specifies hard-clipping 3 times '
                  '\(2 is the maximum\).$')
-        self.assertRaisesRegex(
-            ValueError, error, _hardClip, 'CGT', '123',
+        assertRaisesRegex(
+            self, ValueError, error, _hardClip, 'CGT', '123',
             ((CHARD_CLIP, 1), (CHARD_CLIP, 1), (CHARD_CLIP, 1),))
 
     def testNoClip(self):
