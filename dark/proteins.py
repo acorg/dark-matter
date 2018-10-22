@@ -8,10 +8,6 @@ import re
 from six.moves.urllib.parse import quote
 from textwrap import fill
 
-import matplotlib
-matplotlib.use('PDF')
-import matplotlib.pyplot as plt
-
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
@@ -660,8 +656,8 @@ class ProteinGrouper(object):
                     append(
                         '<li>'
                         '<span class="stats">'
-                        '%(coverage).2f %(medianScore).2f %(bestScore).2f '
-                        '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
+                        '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
+                        '%(readCount)5d %(hspCount)5d %(proteinLength)4d '
                         '%(index)3d '
                         % proteinMatch
                     )
@@ -745,8 +741,8 @@ class ProteinGrouper(object):
                     append(
                         '<li>'
                         '<span class="stats">'
-                        '%(coverage).2f %(medianScore).2f %(bestScore).2f '
-                        '%(readCount)4d %(hspCount)4d %(proteinLength)4d '
+                        '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
+                        '%(readCount)5d %(hspCount)5d %(proteinLength)4d '
                         '%(index)3d '
                         '</span> '
                         '<span class="protein-name">'
@@ -841,6 +837,10 @@ class ProteinGrouper(object):
 
         @param filename: A C{str} file name to write the image to.
         """
+        import matplotlib
+        matplotlib.use('PDF')
+        import matplotlib.pyplot as plt
+
         self._computeUniqueReadCounts()
         pathogenNames = sorted(self.pathogenNames)
         sampleNames = sorted(self.sampleNames)
