@@ -1,3 +1,7 @@
+## 3.0.41 Oct 31, 2018
+
+Added `--showDiffs` option to `bin/compare-sequences.py`.
+
 ## 3.0.40 October 15, 2018
 
 Force use of `mysql-connector-python` version `8.0.11` in
