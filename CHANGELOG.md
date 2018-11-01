@@ -1,3 +1,9 @@
+## 3.0.44 Nov 1, 2018
+
+Fix [636](https://github.com/acorg/dark-matter/issues/636) in which SAM file
+parsing threw an exception when an unmapped sequence with no CIGAR string
+occurred in a SAM file (this can happen when running `bowtie2 --all`).
+
 ## 3.0.43 Nov 1, 2018
 
 Fixed thinko in 3.0.42.
