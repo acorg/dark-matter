@@ -247,6 +247,24 @@ class TestSAMFilter(TestCase):
             self.assertEqual('query1', alignment1.query_name)
             self.assertEqual('query4', alignment2.query_name)
 
+    def testCloseButNoCIGAR(self):
+        """
+        An unmapped query with no CIGAR string must be passed through
+        unchanged if dropUnmapped is not specified.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref LN:10',
+            'query1 4 * 0 0 * * 0 0 TCTAGG ZZZZZZ',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+            self.assertEqual('TCTAGG', alignment.query_sequence)
+            self.assertEqual('ZZZZZZ', ''.join(
+                map(lambda x: chr(x + 33), alignment.query_qualities)))
+
 
 class TestPaddedSAM(TestCase):
     """

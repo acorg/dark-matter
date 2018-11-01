@@ -332,14 +332,24 @@ class SAMFilter(object):
                 # the previous sequence should be used. This is best
                 # practice according to section 2.5.2 of
                 # https://samtools.github.io/hts-specs/SAMv1.pdf So we use
-                # the last alignment if we get None as a query sequence.
+                # the last alignment query and quality strings if we get
+                # None as a query sequence.
                 if alignment.query_sequence is None:
                     if lastAlignment is None:
                         raise InvalidSAM(
                             'pysam produced an alignment (number %d) with no '
                             'query sequence without previously giving an '
                             'alignment with a sequence.' % count)
-                    # Use the previous query sequence and quality.
+                    # Use the previous query sequence and quality. I'm not
+                    # making the call to _hardClip dependent on
+                    # alignment.cigartuples (as in the else clause below)
+                    # because I don't think it's possible for
+                    # alignment.cigartuples to be None in this case. If we
+                    # have a second match on a query, then it must be
+                    # aligned to something (i.e., it cannot be unmapped
+                    # with no CIGAR string). The assertion will tell us if
+                    # this is ever not the case.
+                    assert alignment.cigartuples
                     (alignment.query_sequence,
                      alignment.query_qualities, _) = _hardClip(
                          lastAlignment.query_sequence,
@@ -347,11 +357,12 @@ class SAMFilter(object):
                          alignment.cigartuples)
                 else:
                     lastAlignment = alignment
-                    (alignment.query_sequence,
-                     alignment.query_qualities, _) = _hardClip(
-                         alignment.query_sequence,
-                         alignment.query_qualities,
-                         alignment.cigartuples)
+                    if alignment.cigartuples:
+                        (alignment.query_sequence,
+                         alignment.query_qualities, _) = _hardClip(
+                             alignment.query_sequence,
+                             alignment.query_qualities,
+                             alignment.cigartuples)
 
                 if ((filterRead is None or
                      filterRead(Read(alignment.query_name,
