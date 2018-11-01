@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # leaving the code here because this is how you would do it, and it
     # might be possible to just copy the 'header' dict below and further
     # adjust it to avoid the pysam error.
-    if False or samFilter.referenceIds:
+    if False and samFilter.referenceIds:
         # Make a header that only includes the wanted reference ids (if
         # any).
         print('If you get a segmentation violation, this is (I think) '

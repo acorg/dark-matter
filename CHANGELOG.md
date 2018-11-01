@@ -1,3 +1,7 @@
+## 3.0.43 Nov 1, 2018
+
+Fixed thinko in 3.0.42.
+
 ## 3.0.42 Nov 1, 2018
 
 [Pysam issue 716](https://github.com/pysam-developers/pysam/issues/716)
