@@ -1,3 +1,12 @@
+## 3.0.42 Nov 1, 2018
+
+[Pysam issue 716](https://github.com/pysam-developers/pysam/issues/716)
+wasn't solved the way we hoped it would be, so now the `filter-sam.py`
+command always passes the template of the original SAM file to the
+constructor for the new file. As a result, the new file will have `@SN`
+entries for all the original sequences, even when `--referenceId` is passed
+to `filter-sam.py` to restrict output to a specific set of reference ids.
+
 ## 3.0.41 Oct 31, 2018
 
 Added `--showDiffs` option to `bin/compare-sequences.py`.

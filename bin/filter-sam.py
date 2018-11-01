@@ -41,7 +41,17 @@ if __name__ == '__main__':
     samFilter = SAMFilter.parseFilteringOptions(args, reads.filterRead,
                                                 storeQueryIds=True)
 
-    if samFilter.referenceIds:
+    # The following 'if' has a False in it to make it always fail. That's
+    # because pysam issue 716 (see below) did not fix the problem as I had
+    # hoped. Instead it throws an error if you pass a header that has a
+    # modified SQ key with reference ids and there's a difference it
+    # doesn't like. It's always safe to use the 'else' below, with the
+    # slight downside being that its header will mention all sequence ids,
+    # even if you only want a lesser number (via --referenceId). I'm
+    # leaving the code here because this is how you would do it, and it
+    # might be possible to just copy the 'header' dict below and further
+    # adjust it to avoid the pysam error.
+    if False or samFilter.referenceIds:
         # Make a header that only includes the wanted reference ids (if
         # any).
         print('If you get a segmentation violation, this is (I think) '
