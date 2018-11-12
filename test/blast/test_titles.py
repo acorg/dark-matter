@@ -193,8 +193,9 @@ class TestTitlesAlignments(TestCase):
             titlesAlignments = TitlesAlignments(readsAlignments)
             title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
             titleAlignments = TitleAlignments(title, 55)
-            error = ("Title 'gi\|887699\|gb\|DQ37780 Squirrelpox virus "
-                     "1296/99' already present in TitlesAlignments instance\.")
+            error = (
+                "Title 'gi\\|887699\\|gb\\|DQ37780 Squirrelpox virus "
+                "1296/99' already present in TitlesAlignments instance\\.")
             six.assertRaisesRegex(
                 self, KeyError, error, titlesAlignments.addTitle, title,
                 titleAlignments)
@@ -795,7 +796,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
-            error = '^maxTitles \(-1\) cannot be negative\.$'
+            error = '^maxTitles \\(-1\\) cannot be negative\\.$'
             six.assertRaisesRegex(self, ValueError, error,
                                   titlesAlignments.filter, maxTitles=-1)
 
@@ -812,7 +813,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             error = ('^Sort attribute must be one of "length", "maxScore", '
-                     '"medianScore", "readCount", "title"\.$')
+                     '"medianScore", "readCount", "title"\\.$')
             six.assertRaisesRegex(self, ValueError, error,
                                   titlesAlignments.filter, maxTitles=0,
                                   sortOn='unknown')

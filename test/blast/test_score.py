@@ -83,7 +83,8 @@ class TestBitScoreToEValue(TestCase):
         """
         Test values corresponding to the following observed BLAST match against
         Paramecium bursaria Chlorella virus NE-JV-1, partial genome.
-        (Long lines are continued with a \ to keep PEP-8 quiet.)
+        (Long lines are continued with a backslash to keep Python linters
+        quiet.)
 
         <Iteration>
           <Iteration_iter-num>14</Iteration_iter-num>
@@ -226,7 +227,8 @@ class TestEValueToBitScore(TestCase):
         """
         Test values corresponding to the following observed BLAST match against
         Paramecium bursaria Chlorella virus NE-JV-1, partial genome.
-        (Long lines are continued with a \ to keep PEP-8 quiet.)
+        (Long lines are continued with a backslash to keep Python linters
+        quiet.)
 
         <Iteration>
           <Iteration_iter-num>14</Iteration_iter-num>

@@ -291,7 +291,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         if _pypy:
             error = '^arg is an empty sequence$'
         else:
-            error = '^max\(\) arg is an empty sequence$'
+            error = '^max\\(\\) arg is an empty sequence$'
         six.assertRaisesRegex(self, ValueError, error, titleAlignments.bestHsp)
 
     def testBestHsp(self):
@@ -325,7 +325,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         if _pypy:
             error = '^arg is an empty sequence$'
         else:
-            error = '^min\(\) arg is an empty sequence$'
+            error = '^min\\(\\) arg is an empty sequence$'
         six.assertRaisesRegex(self, ValueError, error,
                               titleAlignments.worstHsp)
 
@@ -860,7 +860,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         alignments a ValueError must be raised.
         """
         titleAlignments = TitleAlignments('subject title', 55)
-        error = '^max\(\) arg is an empty sequence$'
+        error = '^max\\(\\) arg is an empty sequence$'
         six.assertRaisesRegex(self, ValueError, error, titleAlignments.summary)
 
     def testSummary(self):

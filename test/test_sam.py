@@ -1056,8 +1056,9 @@ class TestHardClip(TestCase):
         If hard clipping is given as an operation not at the beginning or end
         of the sequence, a ValueError must be raised.
         """
-        error = ('^Invalid CIGAR tuples .* contains hard-clipping operation '
-                 'that is neither at the start nor the end of the sequence\.$')
+        error = (
+            '^Invalid CIGAR tuples .* contains hard-clipping operation '
+            'that is neither at the start nor the end of the sequence\\.$')
         assertRaisesRegex(
             self, ValueError, error, _hardClip, 'CGT', '123',
             ((CMATCH, 1), (CHARD_CLIP, 1), (CMATCH, 1),))
@@ -1068,7 +1069,7 @@ class TestHardClip(TestCase):
         raised.
         """
         error = ('^Invalid CIGAR tuples .* specifies hard-clipping 3 times '
-                 '\(2 is the maximum\).$')
+                 '\\(2 is the maximum\\).$')
         assertRaisesRegex(
             self, ValueError, error, _hardClip, 'CGT', '123',
             ((CHARD_CLIP, 1), (CHARD_CLIP, 1), (CHARD_CLIP, 1),))
