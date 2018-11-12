@@ -15,17 +15,28 @@ set -Eeuo pipefail
 
 base=$(basename $0)
 
-function oneLine()
+function tempfile()
 {
-    TMP=$(mktemp /tmp/${base}.XXXXXX) || {
+    tmp=$(mktemp /tmp/${base}.XXXXXX) || {
         echo "$name: could not create temp file." >&2
         exit 2
     }
 
+    echo "$tmp"
+}
+
+function oneLine()
+{
+    # Echo a command line that will join a FASTA file (using fasta-join.py)
+    # and sort the result.
+
+    file="$1"
+    tmp="$2"
+
     catter=cat
     fastq=''
 
-    case "$1" in
+    case "$file" in
         *.fq | *.fastq | *.FASTQ) fastq='--fastq';;
         *.fq.gz | *.fastq.gz | *.FASTQ.gz) catter=gunzip; fastq='--fastq';;
         *.fq.bz2 | *.fastq.bz2 | *.FASTQ.bz2) catter=bzcat; fastq='--fastq';;
@@ -33,9 +44,10 @@ function oneLine()
         *.bz2 | *.bz2) catter=bzcat;;
     esac
 
-    $catter < "$1" | fasta-join.py $fastq | sort > $TMP
-
-    echo $TMP
+    case $catter in
+        cat) echo "fasta-join.py $fastq < \"$file\" | sort > \"$tmp\"";;
+        *) echo "$catter < \"$file\" | fasta-join.py $fastq | sort > \"$tmp\"";;
+    esac
 }
 
 diffArgs=
@@ -50,8 +62,19 @@ done
 
 case $# in
     2)
-        TMP1=$(oneLine "$1")
-        TMP2=$(oneLine "$2")
+        tmp1=$(tempfile)
+        tmp2=$(tempfile)
+        command1=$(oneLine "$1" "$tmp1")
+        command2=$(oneLine "$2" "$tmp2")
+
+        # Run the setup commands in parallel if GNU parallel is installed.
+        if [ $(type -t parallel) = 'filexx' ]
+        then
+            echo -e "$command1\n$command2" | parallel
+        else
+            eval $command1
+            eval $command2
+        fi
         ;;
     *)
         echo "Usage: $base file1.fast[aq] file1.fast[aq]" >&2
@@ -59,21 +82,19 @@ case $# in
         ;;
 esac
 
-# Convert the diff output lines back to FASTA/FASTQ.
-TMP3=$(mktemp /tmp/${base}.XXXXXX) || {
-    echo "$name: could not create temp file." >&2
-    exit 2
-}
+# Run diff, keep its exit status, and convert its output lines back to
+# FASTA/FASTQ.
+tmp3=$(tempfile)
 
 # Don't exit if the diff exits non-zero.
 set +e
-diff $diffArgs "$TMP1" "$TMP2" > "$TMP3"
+diff $diffArgs "$tmp1" "$tmp2" > "$tmp3"
 status=$?
 set -e
 
 # Filter and emit the diff output.
-egrep -e '^[<>] ' < "$TMP3" | tr '\t' '\n'
+egrep -e '^[<>] ' < "$tmp3" | tr '\t' '\n'
 
-rm "$TMP1" "$TMP2" "$TMP3"
+rm "$tmp1" "$tmp2" "$tmp3"
 
 exit $status

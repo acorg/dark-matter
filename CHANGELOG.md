@@ -1,3 +1,7 @@
+## 3.0.47 Nov 12, 2018
+
+Make `fasta-diff.sh` use GNU parallel, if installed.
+
 ## 3.0.46 Nov 12, 2018
 
 Make `fasta-diff.sh` handle compressed files, exit with diff's status,
