@@ -1,3 +1,9 @@
+## 3.0.45 Nov 12, 2018
+
+Added `bin/fasta-diff.sh` as a quick diff function that knows about
+FASTA/FASTQ files.  Added `bin/fasta-join.py` as a helper function for
+`bin/fasta-diff.sh`.
+
 ## 3.0.44 Nov 1, 2018
 
 Fix [636](https://github.com/acorg/dark-matter/issues/636) in which SAM file
