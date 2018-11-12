@@ -1,3 +1,7 @@
+## 3.0.48 Nov 12, 2018
+
+Fixed `flake8` warnings about single backslashes in strings.
+
 ## 3.0.47 Nov 12, 2018
 
 Make `fasta-diff.sh` use GNU parallel, if installed.
