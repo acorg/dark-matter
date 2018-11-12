@@ -1,3 +1,8 @@
+## 3.0.46 Nov 12, 2018
+
+Make `fasta-diff.sh` handle compressed files, exit with diff's status,
+and make it possible to pass command line options through to diff.
+
 ## 3.0.45 Nov 12, 2018
 
 Added `bin/fasta-diff.sh` as a quick diff function that knows about

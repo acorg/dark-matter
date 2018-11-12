@@ -22,13 +22,31 @@ function oneLine()
         exit 2
     }
 
+    catter=cat
+    fastq=''
+
     case "$1" in
-        *.fastq | *.FASTQ) bin/fasta-join.py --fastq < "$1" | sort > $TMP ;;
-        *) bin/fasta-join.py < "$1" | sort > $TMP ;;
+        *.fq | *.fastq | *.FASTQ) fastq='--fastq';;
+        *.fq.gz | *.fastq.gz | *.FASTQ.gz) catter=gunzip; fastq='--fastq';;
+        *.fq.bz2 | *.fastq.bz2 | *.FASTQ.bz2) catter=bzcat; fastq='--fastq';;
+        *.gz | *.gz) catter=gunzip;;
+        *.bz2 | *.bz2) catter=bzcat;;
     esac
+
+    $catter < "$1" | fasta-join.py $fastq | sort > $TMP
 
     echo $TMP
 }
+
+diffArgs=
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+        -*) diffArgs="$diffArgs $1"; shift;;
+        *) break;;
+    esac
+done
 
 case $# in
     2)
@@ -42,9 +60,20 @@ case $# in
 esac
 
 # Convert the diff output lines back to FASTA/FASTQ.
-#
-# Use || true in the following to avoid exiting if diff finds a difference
-# and exits non-zero, causing the script to exit due to the set -e.
-{ diff "$TMP1" "$TMP2" | egrep -e '^[<>] ' | tr '\t' '\n'; } || true
+TMP3=$(mktemp /tmp/${base}.XXXXXX) || {
+    echo "$name: could not create temp file." >&2
+    exit 2
+}
 
-rm "$TMP1" "$TMP2"
+# Don't exit if the diff exits non-zero.
+set +e
+diff $diffArgs "$TMP1" "$TMP2" > "$TMP3"
+status=$?
+set -e
+
+# Filter and emit the diff output.
+egrep -e '^[<>] ' < "$TMP3" | tr '\t' '\n'
+
+rm "$TMP1" "$TMP2" "$TMP3"
+
+exit $status
