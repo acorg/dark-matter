@@ -41,7 +41,7 @@ class TestBlastReadsAlignments(TestCase):
         mockOpener = mockOpen()
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            error = "JSON file 'file.json' was empty."
+            error = "JSON file 'file.json' was empty\\."
             six.assertRaisesRegex(self, ValueError, error,
                                   BlastReadsAlignments, reads, 'file.json')
 
@@ -56,20 +56,20 @@ class TestBlastReadsAlignments(TestCase):
             reads = Reads()
             if six.PY3:
                 error = (
-                    "^Could not convert first line of 'file\.json' to JSON "
-                    "\(Expecting value: line 1 column 1 \(char 0\)\)\. "
-                    "Line is 'not JSON'\.$")
+                    "^Could not convert first line of 'file\\.json' to JSON "
+                    "\\(Expecting value: line 1 column 1 \\(char 0\\)\\)\\. "
+                    "Line is 'not JSON'\\.$")
             else:
                 if pypy:
                     error = (
-                        "^Could not convert first line of 'file\.json' to "
-                        "JSON \(Error when decoding null at char 1\)\. Line "
-                        "is 'not JSON'\.$")
+                        "^Could not convert first line of 'file\\.json' to "
+                        "JSON \\(Error when decoding null at char 1\\)\\. "
+                        "Line is 'not JSON'\\.$")
                 else:
                     error = (
-                        "^Could not convert first line of 'file\.json' to "
-                        "JSON \(No JSON object could be decoded\)\. Line is "
-                        "'not JSON'\.$")
+                        "^Could not convert first line of 'file\\.json' to "
+                        "JSON \\(No JSON object could be decoded\\)\\. Line "
+                        "is 'not JSON'\\.$")
             six.assertRaisesRegex(self, ValueError, error,
                                   BlastReadsAlignments, reads, 'file.json')
 
@@ -168,7 +168,7 @@ class TestBlastReadsAlignments(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             error = ("Read generator failed to yield read number 1 during "
-                     "parsing of BLAST file 'file\.json'\.")
+                     "parsing of BLAST file 'file\\.json'\\.")
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             six.assertRaisesRegex(self, ValueError, error, list,
                                   readsAlignments)
@@ -185,8 +185,8 @@ class TestBlastReadsAlignments(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'G' * 70))
             error = ("Reads iterator contained more reads than the number of "
-                     "BLAST records found \(1\)\. First unknown read id is "
-                     "'id1'\.")
+                     "BLAST records found \\(1\\)\\. First unknown read id is "
+                     "'id1'\\.")
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             six.assertRaisesRegex(self, ValueError, error, list,
                                   readsAlignments)
@@ -202,9 +202,9 @@ class TestBlastReadsAlignments(TestCase):
             reads = Reads()
             reads.add(Read('not id0', 'A' * 70))
             error = ("The reads you have provided do not match the BLAST "
-                     "output: BLAST record query id \(id0\) does "
+                     "output: BLAST record query id \\(id0\\) does "
                      "not match the id of the supposedly corresponding read "
-                     "\(not id0\)\.")
+                     "\\(not id0\\)\\.")
             readsAlignments = BlastReadsAlignments(reads, 'file.json')
             six.assertRaisesRegex(self, ValueError, error, list,
                                   readsAlignments)
@@ -361,18 +361,18 @@ class TestBlastReadsAlignments(TestCase):
             reads.add(Read('id1', 'A' * 70))
             if six.PY3:
                 error = (
-                    "^Incompatible BLAST parameters found\. The parameters "
-                    "in file2\.json differ from those originally found "
-                    "in file1\.json. Summary of differences:\n\tParam "
+                    "^Incompatible BLAST parameters found\\. The parameters "
+                    "in file2\\.json differ from those originally found "
+                    "in file1\\.json. Summary of differences:\n\tParam "
                     "'application' initial value 'BLASTN' differs from "
                     "later value 'Skype'$")
             else:
                 # Python 2 prints a 'u' before the repr of strings in the error
                 # message. In Python 3 all strings are unicode.
                 error = (
-                    "^Incompatible BLAST parameters found\. The parameters "
-                    "in file2\.json differ from those originally found "
-                    "in file1\.json. Summary of differences:\n\tParam "
+                    "^Incompatible BLAST parameters found\\. The parameters "
+                    "in file2\\.json differ from those originally found "
+                    "in file1\\.json. Summary of differences:\n\tParam "
                     "u'application' initial value u'BLASTN' differs from "
                     "later value u'Skype'$")
             readsAlignments = BlastReadsAlignments(

@@ -37,7 +37,8 @@ class TestSSFastaReads(TestCase):
                           '>seq2', 'REAA'])
         mockOpener = mockOpen(read_data=data)
         with patch.object(builtins, 'open', mockOpener):
-            error = "^Structure file 'x.fasta' has an odd number of records\.$"
+            error = ("^Structure file 'x.fasta' has an odd number of "
+                     "records\\.$")
             six.assertRaisesRegex(self, ValueError, error, list,
                                   SSFastaReads('x.fasta'))
 
@@ -50,8 +51,9 @@ class TestSSFastaReads(TestCase):
                           '>seq2', 'REAA', '>str2', 'HH'])
         mockOpener = mockOpen(read_data=data)
         with patch.object(builtins, 'open', mockOpener):
-            error = ("Sequence 'seq2' length \(4\) is not equal to structure "
-                     "'str2' length \(2\) in input file 'x\.fasta'\.$")
+            error = (
+                "Sequence 'seq2' length \\(4\\) is not equal to structure "
+                "'str2' length \\(2\\) in input file 'x\\.fasta'\\.$")
             six.assertRaisesRegex(self, ValueError, error, list,
                                   SSFastaReads('x.fasta'))
 
