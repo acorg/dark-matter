@@ -1,3 +1,7 @@
+## 3.0.49 Nov 22, 2018
+
+Added `btop2cigar` to `dark.btop` to convert BTOP strings to CIGAR strings.
+
 ## 3.0.48 Nov 12, 2018
 
 Fixed `flake8` warnings about single backslashes in strings.

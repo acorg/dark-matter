@@ -1,7 +1,7 @@
 from six import assertRaisesRegex
 from unittest import TestCase
 
-from dark.btop import countGaps, parseBtop
+from dark.btop import countGaps, parseBtop, btop2cigar
 
 
 class TestParseBtop(TestCase):
@@ -12,7 +12,7 @@ class TestParseBtop(TestCase):
         """
         An argument with just one letter must result in a ValueError.
         """
-        error = ("^btop string 'F' has a trailing query letter 'F' with no "
+        error = ("^BTOP string 'F' has a trailing query letter 'F' with no "
                  "corresponding subject letter$")
         assertRaisesRegex(self, ValueError, error, list, parseBtop('F'))
 
@@ -21,7 +21,7 @@ class TestParseBtop(TestCase):
         An argument that has two consecutive gaps characters must result in a
         ValueError.
         """
-        error = "^btop string '36--' has two consecutive gaps at offset 2$"
+        error = "^BTOP string '36--' has two consecutive gaps at offset 2$"
         assertRaisesRegex(self, ValueError, error, list, parseBtop('36--'))
 
     def testConsecutiveIdentical(self):
@@ -29,7 +29,7 @@ class TestParseBtop(TestCase):
         An argument that has two consecutive identical (non-gap) characters
         must result in a ValueError.
         """
-        error = ("^btop string '36AA' has two consecutive identical 'A' "
+        error = ("^BTOP string '36AA' has two consecutive identical 'A' "
                  "letters at offset 2$")
         assertRaisesRegex(self, ValueError, error, list, parseBtop('36AA'))
 
@@ -44,7 +44,7 @@ class TestParseBtop(TestCase):
         An argument that is a number with a single letter must result in a
         ValueError.
         """
-        error = ("^btop string '36F' has a trailing query letter 'F' with no "
+        error = ("^BTOP string '36F' has a trailing query letter 'F' with no "
                  "corresponding subject letter$")
         assertRaisesRegex(self, ValueError, error, list, parseBtop('36F'))
 
@@ -52,7 +52,7 @@ class TestParseBtop(TestCase):
         """
         An argument that has three letters must result in a ValueError.
         """
-        error = ("^btop string 'ABC' has a trailing query letter 'C' with no "
+        error = ("^BTOP string 'ABC' has a trailing query letter 'C' with no "
                  "corresponding subject letter$")
         assertRaisesRegex(self, ValueError, error, list, parseBtop('ABC'))
 
@@ -61,7 +61,7 @@ class TestParseBtop(TestCase):
         An argument that is a single letter followed by a number must result
         in a ValueError.
         """
-        error = ("^btop string 'F36' has a query letter 'F' at offset 0 with "
+        error = ("^BTOP string 'F36' has a query letter 'F' at offset 0 with "
                  "no corresponding subject letter$")
         assertRaisesRegex(self, ValueError, error, list, parseBtop('F36'))
 
@@ -70,7 +70,7 @@ class TestParseBtop(TestCase):
         An argument that is a number, a single letter, and another number must
         result in a ValueError.
         """
-        error = ("^btop string '36F77' has a query letter 'F' at offset 2 "
+        error = ("^BTOP string '36F77' has a query letter 'F' at offset 2 "
                  "with no corresponding subject letter$")
         assertRaisesRegex(self, ValueError, error, list, parseBtop('36F77'))
 
@@ -162,3 +162,88 @@ class TestCountGaps(TestCase):
         expected result.
         """
         self.assertEqual((3, 2), countGaps('-GG-34-T-T39F-'))
+
+
+class TestBtop2CigarConcise(TestCase):
+    """
+    Tests for the btop2cigar function when concise is True.
+    """
+    def testEmpty(self):
+        """
+        An empty BTOP string must result in an empty CIGAR string.
+        """
+        self.assertEqual('', btop2cigar('', concise=True))
+
+    def testMixedMatch(self):
+        """
+        If a BTOP string specifies that all characters match (in the imprecise
+        CIGAR sense where M could be identical characters or not), the CIGAR
+        string must be all Ms.
+        """
+        self.assertEqual('7M', btop2cigar('2GC3AT', concise=True))
+
+    def testRefenceInsertion(self):
+        """
+        If a BTOP string specifies that the query has character but the
+        subject (reference) does not, the CIGAR string must indicate an
+        insertion to the reference.
+        """
+        self.assertEqual('1I', btop2cigar('A-', concise=True))
+
+    def testQueryInsertion(self):
+        """
+        If a BTOP string specifies that the subject (reference) has character
+        but the query does not, the CIGAR string must indicate an deletion in
+        the reference.
+        """
+        self.assertEqual('1D', btop2cigar('-A', concise=True))
+
+    def testAll(self):
+        """
+        If a BTOP string specifies all possible variations, the CIGAR
+        string must be correct.
+        """
+        self.assertEqual('7M2I4M2D5M',
+                         btop2cigar('2GC3ATC-G-4-T-A5', concise=True))
+
+
+class TestBtop2CigarPrecise(TestCase):
+    """
+    Tests for the btop2cigar function when concise is False.
+    """
+    def testEmpty(self):
+        """
+        An empty BTOP string must result in an empty CIGAR string.
+        """
+        self.assertEqual('', btop2cigar('', concise=False))
+
+    def testMixedMatch(self):
+        """
+        If a BTOP string specifies that some characters match and some do
+        not, the CIGAR string must be specific about the matches / mismatches.
+        """
+        self.assertEqual('2=1X3=1X', btop2cigar('2GC3AT', concise=False))
+
+    def testRefenceInsertion(self):
+        """
+        If a BTOP string specifies that the query has character but the
+        subject (reference) does not, the CIGAR string must indicate an
+        insertion to the reference.
+        """
+        self.assertEqual('1I', btop2cigar('A-', concise=False))
+
+    def testQueryInsertion(self):
+        """
+        If a BTOP string specifies that the subject (reference) has character
+        but the query does not, the CIGAR string must indicate an deletion in
+        the reference.
+        """
+        self.assertEqual('1D', btop2cigar('-A', concise=False))
+
+    def testAll(self):
+        """
+        If a BTOP string specifies all possible variations, the CIGAR
+        string must be correct.
+        """
+        self.assertEqual('2=1X3=1X2I4=2D5=',
+                         btop2cigar('2GC3ATC-G-4-T-A5', concise=False))
