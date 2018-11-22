@@ -113,15 +113,15 @@ def btop2cigar(btopString, concise=False):
         if thisOperation == currentOperation:
             currentLength += thisLength
         else:
-            if currentOperation is not None:
+            if currentOperation:
                 result.append('%d%s' % (currentLength, currentOperation))
             currentLength, currentOperation = thisLength, thisOperation
 
     # We reached the end of the BTOP string. If there was an operation
     # underway, emit it.  The 'if' here should only be needed to catch the
     # case where btopString was empty.
-    assert currentOperation is not None or btopString == ''
-    if currentOperation is not None:
+    assert currentOperation or btopString == ''
+    if currentOperation:
         result.append('%d%s' % (currentLength, currentOperation))
 
     return ''.join(result)
