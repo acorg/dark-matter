@@ -1,3 +1,7 @@
+## 3.0.52 Nov 23, 2018
+
+Added hard-clipping to CIGAR in SAM created by `convert-diamond-to-sam.py`.
+
 ## 3.0.51 Nov 23, 2018
 
 Use `from six import StringIO` to avoid a PY2/3 incompatibility.

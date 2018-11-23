@@ -16,7 +16,8 @@ from dark.btop import btop2cigar
 from dark.diamond.conversion import diamondTabularFormatToDicts
 from dark.reads import DNARead
 
-FIELDS = 'bitscore btop qframe qqual qseq qseqid slen sstart stitle'
+FIELDS = ('bitscore btop qframe qend qqual qlen qseq qseqid qstart slen '
+          'sstart stitle')
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -92,6 +93,21 @@ for match in diamondTabularFormatToDicts(sys.stdin, FIELDS.split()):
         qseq = DNARead('id', match['qseq']).reverseComplement().sequence
         qqual = match['qqual'][::-1] if match['qqual'] else '*'
 
+    # Make a CIGAR string, including hard-clipped bases at the start and
+    # end of the query (DIAMOND outputs a hard-clipped query sequence).
+    startClipCount = match['qstart'] - 1
+    endClipCount = match['qlen'] - match['qend']
+
+    assert startClipCount >= 0
+    assert endClipCount >= 0, (
+        'Query sequence %s has length %d but the qend value is %d' %
+        (qseq, len(match['qseq']), match['qend']))
+
+    cigar = (
+        ('%dH' % startClipCount if startClipCount else '') +
+        btop2cigar(match['btop'], concise=False, aa=True) +
+        ('%dH' % endClipCount if endClipCount else ''))
+
     emit('\t'.join(map(str, [
         # 1. QNAME
         qseqid,
@@ -104,7 +120,7 @@ for match in diamondTabularFormatToDicts(sys.stdin, FIELDS.split()):
         # 5. MAPQ
         mappingQuality,
         # 6. CIGAR
-        btop2cigar(match['btop']),
+        cigar,
         # 7. RNEXT
         '*',
         # 8. PNEXT
