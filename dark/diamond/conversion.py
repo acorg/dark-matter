@@ -4,6 +4,7 @@ import six
 import bz2
 from json import dumps, loads
 from operator import itemgetter
+from collections import Counter
 
 from Bio.File import as_handle
 
@@ -11,6 +12,85 @@ from dark.hsp import HSP, LSP
 from dark.score import HigherIsBetterScore
 from dark.alignments import Alignment, ReadAlignments
 from dark.diamond.hsp import normalizeHSP
+
+
+# The keys in the following are DIAMOND format 6 field names. The values
+# are one-argument functions that take a string and return an appropriately
+# converted field value.
+#
+# The following fields are taken from the DIAMOND manual v0.9.22 2018-05-11.
+# Fields whose name doesn't appear here will be left as strings.
+DIAMOND_FIELD_CONVERTER = {
+    'bitscore': float,
+    'evalue': float,
+    'frame': int,
+    'gapopen': int,
+    'gaps': int,
+    'identicalCount': lambda nident: None if nident is None else int(nident),
+    'length': int,
+    'mismatch': int,
+    'nident': int,
+    'pident': float,
+    'positive': int,
+    'positiveCount': lambda pos: None if pos is None else int(pos),
+    'ppos': float,
+    'qcovhsp': float,
+    'qend': int,
+    'qframe': int,
+    'qlen': int,
+    'qstart': int,
+    'score': float,
+    'send': int,
+    'slen': int,
+    'sstart': int,
+}
+
+
+def diamondTabularFormatToDicts(filename, fieldNames):
+    """
+    Read DIAMOND tabular (--outfmt 6) output and convert lines to dictionaries.
+
+    @param filename: Either a C{str} file name or an open file pointer.
+    @param fieldNames: A C{list} or C{tuple} of C{str} DIAMOND field names.
+        Run 'diamond -help' to see the full list.
+    @raise ValueError: If a line of C{filename} does not have the expected
+        number of TAB-separated fields (i.e., len(fieldNames)). Or if
+        C{fieldNames} is empty or contains duplicates.
+    @return: A generator that yields C{dict}s with keys that are the DIAMOND
+        field names and values as converted by DIAMOND_FIELD_CONVERTER.
+    """
+    nFields = len(fieldNames)
+    if not nFields:
+        raise ValueError('fieldNames cannot be empty.')
+
+    c = Counter(fieldNames)
+    if c.most_common(1)[0][1] > 1:
+        raise ValueError(
+            'fieldNames contains duplicated names: %s.' %
+            (', '.join(sorted(x[0] for x in c.most_common() if x[1] > 1))))
+
+    def identity(x):
+        return x
+
+    convertFunc = DIAMOND_FIELD_CONVERTER.get
+
+    with as_handle(filename) as fp:
+        for count, line in enumerate(fp, start=1):
+            result = {}
+            line = line[:-1]
+            values = line.split('\t')
+            if len(values) != nFields:
+                raise ValueError(
+                    'Line %d of %s had %d field values (expected %d). '
+                    'Line was %r.' %
+                    (count,
+                     (filename if isinstance(filename, six.string_types)
+                      else 'input'),
+                     len(values), nFields, line))
+            for fieldName, value in zip(fieldNames, values):
+                value = convertFunc(fieldName, identity)(value)
+                result[fieldName] = value
+            yield result
 
 
 class DiamondTabularFormatReader(object):

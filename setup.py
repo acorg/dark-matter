@@ -35,6 +35,7 @@ scripts = [
     'bin/compare-sequences.py',
     'bin/convert-blast-xml-to-json.py',
     'bin/convert-diamond-to-json.py',
+    'bin/convert-diamond-to-sam.py',
     'bin/convert-sam-to-fastq.sh',
     'bin/dark-matter-version.py',
     'bin/dna-to-aa.py',
