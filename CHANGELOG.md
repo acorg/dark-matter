@@ -1,3 +1,8 @@
+## 3.0.50 Nov 23, 2018
+
+Added `bin/convert-diamond-to-sam.py` script to convert DIAMOND output
+format 6 to SAM.
+
 ## 3.0.49 Nov 22, 2018
 
 Added `btop2cigar` to `dark.btop` to convert BTOP strings to CIGAR strings.

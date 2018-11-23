@@ -766,7 +766,7 @@ class ReadFilter(object):
         only return those that have length <= 100, so your result may have
         less than 20 reads. The former version extracts reads of the
         desired length and then takes 20 reads at random from that set, so
-        you'll always get 20 raeds in your result, assuming there are at
+        you'll always get 20 reads in your result, assuming there are at
         least that many reads satisfying the length filter.
     @param trueLength: The C{int} number of reads in this C{Reads} instance.
         Under normal circumstances it will not be necessary to pass this
