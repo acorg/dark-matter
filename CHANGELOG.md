@@ -1,3 +1,7 @@
+## 3.0.51 Nov 23, 2018
+
+Use `from six import StringIO` to avoid a PY2/3 incompatibility.
+
 ## 3.0.50 Nov 23, 2018
 
 Added `bin/convert-diamond-to-sam.py` script to convert DIAMOND output

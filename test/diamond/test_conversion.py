@@ -1,9 +1,9 @@
 from six.moves import builtins
 from unittest import TestCase
-from io import BytesIO, StringIO
+from io import BytesIO
 import bz2file
 from bz2 import compress
-from six import assertRaisesRegex
+from six import assertRaisesRegex, StringIO
 
 try:
     from unittest.mock import patch
