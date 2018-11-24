@@ -265,6 +265,23 @@ class TestSAMFilter(TestCase):
             self.assertEqual('ZZZZZZ', ''.join(
                 map(lambda x: chr(x + 33), alignment.query_qualities)))
 
+    def testNoQuality(self):
+        """
+        If an alignment has * for the quality string, the filter must
+        return an alignment with a C{None} quality value.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref LN:10',
+            'query1 4 * 0 0 6M * 0 0 TCTAGG *',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename)
+            (alignment,) = list(sf.alignments())
+            self.assertEqual('query1', alignment.query_name)
+            self.assertEqual('TCTAGG', alignment.query_sequence)
+            self.assertIsNone(alignment.query_qualities)
+
 
 class TestPaddedSAM(TestCase):
     """
