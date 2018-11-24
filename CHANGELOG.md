@@ -1,3 +1,8 @@
+## 3.0.53 Nov 23, 2018
+
+Fixed [#650](https://github.com/acorg/dark-matter/issues/650),
+exception in `SAMFilter` when quality is `*` in a SAM file.
+
 ## 3.0.52 Nov 23, 2018
 
 Added hard-clipping to CIGAR in SAM created by `convert-diamond-to-sam.py`.

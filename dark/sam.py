@@ -70,8 +70,9 @@ def _hardClip(sequence, quality, cigartuples):
     Hard clip (if necessary) a sequence.
 
     @param sequence: A C{str} nucleotide sequence.
-    @param quality: A C{str} quality string or a C{list} of C{int} quality
-        values as returned by pysam.
+    @param quality: A C{str} quality string, or a C{list} of C{int} quality
+        values as returned by pysam, or C{None} if the SAM file had a '*'
+        for the quality string (which pysam converts to C{None}).
     @param cigartuples: An iterable of (operation, length) tuples, detailing
         the alignment, as per the SAM specification.
     @return: A 3-tuple consisting of
@@ -90,7 +91,8 @@ def _hardClip(sequence, quality, cigartuples):
         cigarLength += length if operation in _CONSUMES_QUERY else 0
 
     sequenceLength = len(sequence)
-    assert sequenceLength == len(quality)
+    if quality is not None:
+        assert sequenceLength == len(quality)
     clipLeft = clipRight = 0
     clippedSequence = sequence
     clippedQuality = quality
@@ -109,12 +111,14 @@ def _hardClip(sequence, quality, cigartuples):
             if not alreadyClipped:
                 clipLeft = cigartuples[0][1]
                 clippedSequence = sequence[clipLeft:]
-                clippedQuality = quality[clipLeft:]
+                if quality is not None:
+                    clippedQuality = quality[clipLeft:]
         elif cigartuples[-1][0] == CHARD_CLIP:
             if not alreadyClipped:
                 clipRight = cigartuples[-1][1]
                 clippedSequence = sequence[:-clipRight]
-                clippedQuality = quality[:-clipRight]
+                if quality is not None:
+                    clippedQuality = quality[:-clipRight]
         else:
             raise ValueError(
                 'Invalid CIGAR tuples (%s) contains hard-clipping operation '
@@ -126,7 +130,8 @@ def _hardClip(sequence, quality, cigartuples):
         if not alreadyClipped:
             clipLeft, clipRight = cigartuples[0][1], cigartuples[-1][1]
             clippedSequence = sequence[clipLeft:-clipRight]
-            clippedQuality = quality[clipLeft:-clipRight]
+            if quality is not None:
+                clippedQuality = quality[clipLeft:-clipRight]
     else:
         raise ValueError(
             'Invalid CIGAR tuples (%s) specifies hard-clipping %d times (2 '
@@ -147,7 +152,9 @@ def _hardClip(sequence, quality, cigartuples):
                  abs(len(sequence) - len(clippedSequence)),
                  clipLeft + clipRight, clipLeft, clipRight, cigartuples))
     else:
-        assert len(clippedSequence) == len(clippedQuality) == sequenceLength
+        assert len(clippedSequence) == sequenceLength
+        if quality is not None:
+            assert len(clippedQuality) == sequenceLength
 
     return clippedSequence, clippedQuality, weClipped
 
