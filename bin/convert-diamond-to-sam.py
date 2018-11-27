@@ -76,7 +76,8 @@ for match in diamondTabularFormatToDicts(sys.stdin, FIELDS.split()):
     qseqid = match['qseqid'].split()[0] if idOnly else match['qseqid']
     stitle = match['stitle'].split()[0] if idOnly else match['stitle']
 
-    referenceLengths[stitle] = match['slen']
+    # The subject length is ALWAYS in amino acids in DIAMOND.
+    referenceLengths[stitle] = 3 * match['slen']
 
     # If the query frame is less than zero, the match was with a reverse
     # complemented translation of the query. Put the reverse compliment

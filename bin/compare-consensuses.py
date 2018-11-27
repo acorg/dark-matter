@@ -203,7 +203,8 @@ if __name__ == '__main__':
 
     htmlFile = join(outputDir, 'consensus-identity.html')
     executor.execute(
-        'fasta-identity-table.py --footer --showGaps < %s > %s' %
+        ('fasta-identity-table.py --footer --showGaps --showLengths < %s | '
+         "perl -pe 's/-(bcftools|vcfutils)/ $1/g' > %s") %
         (consensusesFile, htmlFile))
 
     verbose = args.verbose
