@@ -13,6 +13,12 @@ from dark.score import HigherIsBetterScore
 from dark.alignments import Alignment, ReadAlignments
 from dark.diamond.hsp import normalizeHSP
 
+# The following are the fields (in the order they are expected on the
+# command line via --outfmt 6) that must be given to DIAMOND blastx to
+# allow its output to be parsed by convert-diamond-to-sam.py (which uses
+# diamondTabularFormatToDicts (below)).
+FIELDS = ('bitscore btop qframe qend qqual qlen qseq qseqid qstart slen '
+          'sstart stitle')
 
 # The keys in the following are DIAMOND format 6 field names. The values
 # are one-argument functions that take a string and return an appropriately
@@ -46,19 +52,21 @@ DIAMOND_FIELD_CONVERTER = {
 }
 
 
-def diamondTabularFormatToDicts(filename, fieldNames):
+def diamondTabularFormatToDicts(filename, fieldNames=None):
     """
     Read DIAMOND tabular (--outfmt 6) output and convert lines to dictionaries.
 
     @param filename: Either a C{str} file name or an open file pointer.
     @param fieldNames: A C{list} or C{tuple} of C{str} DIAMOND field names.
-        Run 'diamond -help' to see the full list.
+        Run 'diamond -help' to see the full list. If C{None}, a default set of
+        fields will be used, as compatible with convert-diamond-to-sam.py
     @raise ValueError: If a line of C{filename} does not have the expected
         number of TAB-separated fields (i.e., len(fieldNames)). Or if
         C{fieldNames} is empty or contains duplicates.
     @return: A generator that yields C{dict}s with keys that are the DIAMOND
         field names and values as converted by DIAMOND_FIELD_CONVERTER.
     """
+    fieldNames = fieldNames or FIELDS.split()
     nFields = len(fieldNames)
     if not nFields:
         raise ValueError('fieldNames cannot be empty.')
@@ -82,11 +90,13 @@ def diamondTabularFormatToDicts(filename, fieldNames):
             if len(values) != nFields:
                 raise ValueError(
                     'Line %d of %s had %d field values (expected %d). '
-                    'Line was %r.' %
+                    'To provide input for this function, DIAMOND must be '
+                    'called with "--outfmt 6 %s" (without the quotes). '
+                    'The offending input line was %r.' %
                     (count,
                      (filename if isinstance(filename, six.string_types)
                       else 'input'),
-                     len(values), nFields, line))
+                     len(values), nFields, FIELDS, line))
             for fieldName, value in zip(fieldNames, values):
                 value = convertFunc(fieldName, identity)(value)
                 result[fieldName] = value

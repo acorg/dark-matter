@@ -13,11 +13,8 @@ from functools import partial
 
 from dark import __version__ as VERSION
 from dark.btop import btop2cigar
-from dark.diamond.conversion import diamondTabularFormatToDicts
+from dark.diamond.conversion import diamondTabularFormatToDicts, FIELDS
 from dark.reads import DNARead
-
-FIELDS = ('bitscore btop qframe qend qqual qlen qseq qseqid qstart slen '
-          'sstart stitle')
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -72,7 +69,7 @@ else:
     tf = TemporaryFile(mode='w+t', encoding='utf-8')
     emit = partial(print, file=tf)
 
-for match in diamondTabularFormatToDicts(sys.stdin, FIELDS.split()):
+for match in diamondTabularFormatToDicts(sys.stdin):
     qseqid = match['qseqid'].split()[0] if idOnly else match['qseqid']
     stitle = match['stitle'].split()[0] if idOnly else match['stitle']
 

@@ -1,3 +1,8 @@
+## 3.0.55 Dec 3, 2018
+
+Make `convert-diamond-to-sam.py` print the list of required fields in case
+an input line cannot be split into the expected number of fields.
+
 ## 3.0.54 Nov 27, 2018
 
 `convert-diamond-to-sam.py` was putting the incorrect (AA, not nucleotide)

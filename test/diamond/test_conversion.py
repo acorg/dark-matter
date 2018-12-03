@@ -15,7 +15,8 @@ from ..mocking import mockOpen
 from json import dumps
 
 from dark.diamond.conversion import (
-    JSONRecordsReader, DiamondTabularFormatReader, diamondTabularFormatToDicts)
+    JSONRecordsReader, DiamondTabularFormatReader, diamondTabularFormatToDicts,
+    FIELDS)
 from dark.reads import Reads, AARead
 
 
@@ -1144,16 +1145,6 @@ class TestDiamondTabularFormatToDicts(TestCase):
     """
     Tests for the diamondTabularFormatToDicts function.
     """
-
-    def testEmptyFieldNameList(self):
-        """
-        If an empty field name list is passed, the function must raise a
-        ValueError.
-        """
-        error = '^fieldNames cannot be empty\\.$'
-        assertRaisesRegex(self, ValueError, error, list,
-                          diamondTabularFormatToDicts(None, []))
-
     def testDuplicatesInFieldNameList(self):
         """
         If a field name list that contains duplicates is passed, the function
@@ -1170,8 +1161,11 @@ class TestDiamondTabularFormatToDicts(TestCase):
         raised.
         """
         data = StringIO('a\tb\n')
-        error = (r"^Line 1 of input had 2 field values \(expected 3\)\. "
-                 r"Line was 'a\\tb'\.")
+        error = (
+            "^Line 1 of input had 2 field values \\(expected 3\\)\\. " +
+            ('To provide input for this function, DIAMOND must be called ' +
+             'with "--outfmt 6 %s" \\(without the quotes\\)\\. ' % FIELDS) +
+            "The offending input line was 'a\\\\tb'\\.")
         assertRaisesRegex(
             self, ValueError, error, list,
             diamondTabularFormatToDicts(data, ['a', 'b', 'c']))
@@ -1181,8 +1175,11 @@ class TestDiamondTabularFormatToDicts(TestCase):
         If an input line has too many fields, a ValueError must be raised.
         """
         data = StringIO('a\tb\tc\n')
-        error = (r"^Line 1 of input had 3 field values \(expected 2\)\. "
-                 r"Line was 'a\\tb\\tc'\.")
+        error = (
+            "^Line 1 of input had 3 field values \\(expected 2\\)\\. " +
+            ('To provide input for this function, DIAMOND must be called ' +
+             'with "--outfmt 6 %s" \\(without the quotes\\)\\. ' % FIELDS) +
+            "The offending input line was 'a\\\\tb\\\\tc'\\.")
         assertRaisesRegex(
             self, ValueError, error, list,
             diamondTabularFormatToDicts(data, ['a', 'b']))
