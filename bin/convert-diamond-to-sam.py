@@ -113,8 +113,12 @@ for match in diamondTabularFormatToDicts(sys.stdin):
         flag,
         # 3. RNAME
         stitle,
-        # 4. POS
-        match['sstart'],
+        # 4. POS. This needs to be a 1-based offset into the
+        # nucleotide-equivalent of the DIAMOND subject sequence (which was
+        # a protein since that is how DIAMOND operates). Because DIAMOND
+        # gives back a 1-based protein location, we adjust to 0-based,
+        # multiply by 3 to get to nucleotides, then adjust to 1-based.
+        3 * (match['sstart'] - 1) + 1,
         # 5. MAPQ
         mappingQuality,
         # 6. CIGAR

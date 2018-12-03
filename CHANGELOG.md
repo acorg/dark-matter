@@ -1,3 +1,9 @@
+## 3.0.56 Dec 3, 2018
+
+Make `convert-diamond-to-sam.py` print the correct (nucleotide) offset of
+the start of the match, as though its subject sequence had been
+nucleotides.
+
 ## 3.0.55 Dec 3, 2018
 
 Make `convert-diamond-to-sam.py` print the list of required fields in case
