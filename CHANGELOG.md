@@ -1,3 +1,7 @@
+## 3.0.32 December 6, 2018
+
+Added `--maxORFLength` option to `extract-ORFs.py`.
+
 ## 3.0.31 July 3, 2018
 
 Added `storeQueryIds` option to `PaddedSAM.queries` method.
