@@ -137,7 +137,6 @@ Added `compare-consensuses.py` script.
 ## 3.0.32 July 6, 2018
 
 Added `bin/newick-to-ascii.py` script.
->>>>>>> master
 
 ## 3.0.31 July 3, 2018
 
