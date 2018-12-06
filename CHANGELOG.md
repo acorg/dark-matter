@@ -1,3 +1,7 @@
+## 3.0.58 Dec 6, 2018
+
+Added `--maxORFLength` option to `extract-ORFs.py`.
+
 ## 3.0.57 Dec 6, 2018
 
 Added `--removeIds` option to `fasta-diff.sh` (and its helper script
