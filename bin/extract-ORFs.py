@@ -43,7 +43,8 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--maxORFLength', metavar='LEN', type=int, default=None,
-        help='Only ORFs of a maximum of this length will be written to stdout.')
+        help='Only ORFs of a maximum of this length will be written to'
+        'stdout.')
 
     addFASTACommandLineOptions(parser)
 
@@ -67,8 +68,8 @@ if __name__ == '__main__':
         try:
             for translation in translations(read):
                 for orf in translation.ORFs():
-                    if (minORFLength is None or len(orf) >= minORFLength and 
-                            maxORFLength is None or len(orf) <= maxORFLength) or (
+                    if (minORFLength is None or len(orf) >= minORFLength and
+                        maxORFLength is None or len(orf) <= maxORFLength) or (
                             allowOpenORFs and (orf.openLeft or orf.openRight)):
                         write(orf.toString('fasta'))
         except TranslationError as error:
