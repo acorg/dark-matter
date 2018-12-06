@@ -1,3 +1,8 @@
+## 3.0.57 Dec 6, 2018
+
+Added `--removeIds` option to `fasta-diff.sh` (and its helper script
+`fasta-join.py`).
+
 ## 3.0.56 Dec 3, 2018
 
 Make `convert-diamond-to-sam.py` print the correct (nucleotide) offset of
