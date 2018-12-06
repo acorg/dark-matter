@@ -32,8 +32,7 @@ class TestTitleCounts(TestCase):
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             self.assertEqual({}, titleCounts(readsAlignments))
 
     def testThreeRecords(self):
@@ -49,8 +48,7 @@ class TestTitleCounts(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             self.assertEqual(
                 {
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99': 1,
@@ -73,8 +71,7 @@ class TestTitleCounts(TestCase):
             reads = Reads()
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             self.assertEqual(
                 {
                     'gi|887699|gb|DQ37780 Cowpox virus 15': 2,
@@ -95,8 +92,7 @@ class TestTitlesAlignments(TestCase):
         mockOpener = mockOpen(read_data=(dumps(PARAMS) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             self.assertEqual([], list(titlesAlignments.keys()))
 
@@ -112,8 +108,7 @@ class TestTitlesAlignments(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             self.assertEqual(
                 [
@@ -136,8 +131,7 @@ class TestTitlesAlignments(TestCase):
             reads = Reads()
             read = Read('id0', 'A' * 70)
             reads.add(read)
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
 
             title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
@@ -170,8 +164,7 @@ class TestTitlesAlignments(TestCase):
             read3 = Read('id3', 'A' * 70)
             reads.add(read2)
             reads.add(read3)
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
 
             title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
@@ -196,13 +189,13 @@ class TestTitlesAlignments(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             title = 'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99'
             titleAlignments = TitleAlignments(title, 55)
-            error = ("Title 'gi\|887699\|gb\|DQ37780 Squirrelpox virus "
-                     "1296/99' already present in TitlesAlignments instance\.")
+            error = (
+                "Title 'gi\\|887699\\|gb\\|DQ37780 Squirrelpox virus "
+                "1296/99' already present in TitlesAlignments instance\\.")
             six.assertRaisesRegex(
                 self, KeyError, error, titlesAlignments.addTitle, title,
                 titleAlignments)
@@ -217,8 +210,7 @@ class TestTitlesAlignments(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             title = 'gi|887699|gb|DQ37780 Squirrelpox virus 23'
             titleAlignments = TitleAlignments(title, 55)
@@ -239,8 +231,7 @@ class TestTitlesAlignments(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = list(titlesAlignments.hsps())
             self.assertEqual(
@@ -258,8 +249,7 @@ class TestTitlesAlignments(TestCase):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             self.assertEqual(
                 [
@@ -315,7 +305,7 @@ class TestTitlesAlignments(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'f.json', 'db')
+            readsAlignments = DiamondReadsAlignments(reads, 'f.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             summary = titlesAlignments.tabSeparatedSummary(sortOn='title')
             expected = (
@@ -355,8 +345,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id0', 'A' * 70))
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter()
             self.assertEqual(
@@ -384,8 +373,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minMatchingReads=2)
             self.assertEqual(
@@ -409,8 +397,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minMedianScore=22)
             self.assertEqual(
@@ -435,8 +422,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minMedianScore=1e-9)
             self.assertEqual(
@@ -461,8 +447,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(withScoreBetterThan=24)
             self.assertEqual(
@@ -487,8 +472,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(withScoreBetterThan=1e-10)
             self.assertEqual(
@@ -512,8 +496,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minNewReads=0.0)
             self.assertEqual(
@@ -541,8 +524,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minNewReads=1.0)
 
@@ -581,8 +563,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minCoverage=0.1)
             self.assertEqual(0, len(result))
@@ -602,8 +583,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(minCoverage=0.0)
             self.assertEqual(
@@ -632,8 +612,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             # To understand why the following produces the result it does,
             # you need to look at the HSP coverage in sample_data.py and
@@ -657,10 +636,9 @@ class TestTitlesAlignmentsFiltering(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
-            error = '^maxTitles \(-1\) cannot be negative\.$'
+            error = '^maxTitles \\(-1\\) cannot be negative\\.$'
             six.assertRaisesRegex(self, ValueError, error,
                                   titlesAlignments.filter, maxTitles=-1)
 
@@ -674,11 +652,10 @@ class TestTitlesAlignmentsFiltering(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             error = ('^Sort attribute must be one of "length", "maxScore", '
-                     '"medianScore", "readCount", "title"\.$')
+                     '"medianScore", "readCount", "title"\\.$')
             six.assertRaisesRegex(self, ValueError, error,
                                   titlesAlignments.filter, maxTitles=0,
                                   sortOn='unknown')
@@ -697,8 +674,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(maxTitles=0, sortOn='maxScore')
             self.assertEqual(0, len(result))
@@ -718,8 +694,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(maxTitles=1, sortOn='maxScore')
             self.assertEqual(
@@ -743,8 +718,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.filter(maxTitles=2, sortOn='length')
             self.assertEqual(
@@ -767,8 +741,7 @@ class TestTitleSorting(TestCase):
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             self.assertRaises(ValueError, titlesAlignments.sortTitles, 'xxx')
 
@@ -779,8 +752,7 @@ class TestTitleSorting(TestCase):
         mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('title')
             self.assertEqual([], result)
@@ -801,8 +773,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             reads.add(Read('id4', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('medianScore')
             self.assertEqual([
@@ -830,8 +801,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id3', 'A' * 70))
             reads.add(Read('id4', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('medianScore')
             self.assertEqual([
@@ -857,8 +827,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id1', 'A' * 70))
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
-            readsAlignments = DiamondReadsAlignments(reads, 'file.json',
-                                                     'database.fasta')
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('maxScore')
             self.assertEqual([
@@ -885,8 +854,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('maxScore')
             # self.assertEqual([
@@ -919,8 +887,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('readCount')
             self.assertEqual([
@@ -947,8 +914,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('length')
             self.assertEqual([
@@ -974,8 +940,7 @@ class TestTitleSorting(TestCase):
             reads.add(Read('id2', 'A' * 70))
             reads.add(Read('id3', 'A' * 70))
             readsAlignments = DiamondReadsAlignments(
-                reads, 'file.json', 'database.fasta',
-                scoreClass=LowerIsBetterScore)
+                reads, 'file.json', scoreClass=LowerIsBetterScore)
             titlesAlignments = TitlesAlignments(readsAlignments)
             result = titlesAlignments.sortTitles('title')
             self.assertEqual([

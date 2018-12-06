@@ -1,8 +1,9 @@
 from six.moves import builtins
 from unittest import TestCase
-from io import BytesIO, StringIO
+from io import BytesIO
 import bz2file
 from bz2 import compress
+from six import assertRaisesRegex, StringIO
 
 try:
     from unittest.mock import patch
@@ -13,8 +14,9 @@ from ..mocking import mockOpen
 
 from json import dumps
 
-from dark.diamond.conversion import (JSONRecordsReader,
-                                     DiamondTabularFormatReader)
+from dark.diamond.conversion import (
+    JSONRecordsReader, DiamondTabularFormatReader, diamondTabularFormatToDicts,
+    FIELDS)
 from dark.reads import Reads, AARead
 
 
@@ -1137,3 +1139,109 @@ class TestJSONRecordsReader(TestCase):
             reader = JSONRecordsReader('file.json')
             alignment = list(reader.readAlignments(reads))[0]
             self.assertEqual('id1 1', alignment.read.id)
+
+
+class TestDiamondTabularFormatToDicts(TestCase):
+    """
+    Tests for the diamondTabularFormatToDicts function.
+    """
+    def testDuplicatesInFieldNameList(self):
+        """
+        If a field name list that contains duplicates is passed, the function
+        must raise a ValueError.
+        """
+        error = '^fieldNames contains duplicated names: a, b\\.$'
+        assertRaisesRegex(
+            self, ValueError, error, list,
+            diamondTabularFormatToDicts(None, ['a', 'b', 'a', 'c', 'b']))
+
+    def testTooFewFields(self):
+        """
+        If an input line does not have enough fields, a ValueError must be
+        raised.
+        """
+        data = StringIO('a\tb\n')
+        error = (
+            "^Line 1 of input had 2 field values \\(expected 3\\)\\. " +
+            ('To provide input for this function, DIAMOND must be called ' +
+             'with "--outfmt 6 %s" \\(without the quotes\\)\\. ' % FIELDS) +
+            "The offending input line was 'a\\\\tb'\\.")
+        assertRaisesRegex(
+            self, ValueError, error, list,
+            diamondTabularFormatToDicts(data, ['a', 'b', 'c']))
+
+    def testTooManyFields(self):
+        """
+        If an input line has too many fields, a ValueError must be raised.
+        """
+        data = StringIO('a\tb\tc\n')
+        error = (
+            "^Line 1 of input had 3 field values \\(expected 2\\)\\. " +
+            ('To provide input for this function, DIAMOND must be called ' +
+             'with "--outfmt 6 %s" \\(without the quotes\\)\\. ' % FIELDS) +
+            "The offending input line was 'a\\\\tb\\\\tc'\\.")
+        assertRaisesRegex(
+            self, ValueError, error, list,
+            diamondTabularFormatToDicts(data, ['a', 'b']))
+
+    def testUnknownField(self):
+        """
+        An unknown field name must result in a returned field name and value
+        that are identical to those in the function call and its input string.
+        """
+        data = StringIO('3.5\n')
+        (result,) = list(diamondTabularFormatToDicts(data, ['__blah__']))
+        self.assertEqual({'__blah__': '3.5'}, result)
+
+    def testConversions(self):
+        """
+        The fields in input lines must be recognized and converted to their
+        correct types.
+        """
+        fields = [
+            'bitscore',
+            'evalue',
+            'frame',
+            'identicalCount',
+            'positiveCount',
+            'qstart',
+            'qend',
+            'sstart',
+            'send',
+            'qseq',
+        ]
+        data = StringIO(
+            ('3.5 1.7 1 7 4 10 12 1 2 ACGT\n'
+             '3.6 1.8 2 8 5 11 13 2 3 TGCA').replace(' ', '\t') + '\n'
+        )
+        (result1, result2) = list(diamondTabularFormatToDicts(data, fields))
+
+        self.assertEqual(
+            {
+                'bitscore': 3.5,
+                'evalue': 1.7,
+                'frame': 1,
+                'identicalCount': 7,
+                'positiveCount': 4,
+                'qstart': 10,
+                'qend': 12,
+                'sstart': 1,
+                'send': 2,
+                'qseq': 'ACGT',
+            },
+            result1)
+
+        self.assertEqual(
+            {
+                'bitscore': 3.6,
+                'evalue': 1.8,
+                'frame': 2,
+                'identicalCount': 8,
+                'positiveCount': 5,
+                'qstart': 11,
+                'qend': 13,
+                'sstart': 2,
+                'send': 3,
+                'qseq': 'TGCA',
+            },
+            result2)

@@ -4,6 +4,7 @@ import gzip
 from six.moves import builtins
 from unittest import TestCase
 from six import assertRaisesRegex
+from collections import Counter
 
 try:
     from unittest.mock import patch
@@ -13,7 +14,8 @@ except ImportError:
 from .mocking import mockOpen, File
 
 from dark.utils import (
-    numericallySortFilenames, median, asHandle, parseRangeString, StringIO)
+    numericallySortFilenames, median, asHandle, parseRangeString, StringIO,
+    baseCountsToStr, nucleotidesToStr)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -313,3 +315,43 @@ class TestStringIO(TestCase):
         with StringIO() as s:
             s.write('hey')
             self.assertEqual('hey', s.getvalue())
+
+
+class TestBaseCountsToStr(TestCase):
+    """
+    Test the baseCountsToStr function.
+    """
+    def testSimple(self):
+        """
+        A simple example must work as expected.
+        """
+        counts = Counter()
+        counts['A'] += 1
+        counts['G'] += 2
+        self.assertEqual('A:1 G:2',
+                         baseCountsToStr(counts))
+
+
+class TestNucleotidesToStr(TestCase):
+    """
+    Test the nucleotidesToStr function.
+    """
+    def testSimple(self):
+        """
+        A simple example must work as expected.
+        """
+        counts1 = Counter()
+        counts1['A'] += 1
+        counts1['G'] += 2
+        counts2 = Counter()
+        counts2['C'] += 1
+        counts2['T'] += 3
+        self.assertEqual(
+            '0: A:1 G:2\n7: C:1 T:3',
+            nucleotidesToStr(
+                {
+                    0: counts1,
+                    7: counts2,
+                }
+            )
+        )

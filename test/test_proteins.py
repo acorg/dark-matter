@@ -158,7 +158,7 @@ class TestProteinGrouper(TestCase):
         Passing an unknown format argument must result in a ValueError
         being raised.
         """
-        error = "^format_ must be either 'fasta' or 'fastq'\.$"
+        error = "^format_ must be either 'fasta' or 'fastq'\\.$"
         assertRaisesRegex(self, ValueError, error, ProteinGrouper,
                           format_='unknown')
 
@@ -201,8 +201,8 @@ class TestProteinGrouper(TestCase):
         type it must raise a ValueError.
         """
         pg = ProteinGrouper()
-        error = ("^Unrecognized pathogenType argument: 'x'\. Value must be "
-                 "either 'bacterial' or 'viral'\.$")
+        error = ("^Unrecognized pathogenType argument: 'x'\\. Value must be "
+                 "either 'bacterial' or 'viral'\\.$")
         assertRaisesRegex(self, ValueError, error, pg.toHTML, pathogenType='x')
 
     def testDuplicatePathogenProteinSample(self):
@@ -215,8 +215,8 @@ class TestProteinGrouper(TestCase):
         pg = ProteinGrouper()
         pg.addFile('sample', fp)
         fp.seek(0)
-        error = ("^Protein 'gi\|327\|X\|I44.6 ubiquitin' already seen for "
-                 "pathogen 'Lausannevirus' sample 'sample'\.$")
+        error = ("^Protein 'gi\\|327\\|X\\|I44.6 ubiquitin' already seen for "
+                 "pathogen 'Lausannevirus' sample 'sample'\\.$")
         assertRaisesRegex(self, ValueError, error, pg.addFile, 'sample', fp)
 
     def testOneLineInOneFile(self):
@@ -661,7 +661,7 @@ class TestPathogenSampleFiles(TestCase):
         being raised.
         """
         pg = ProteinGrouper()
-        error = "^format_ must be either 'fasta' or 'fastq'\.$"
+        error = "^format_ must be either 'fasta' or 'fastq'\\.$"
         assertRaisesRegex(self, ValueError, error, PathogenSampleFiles,
                           pg, format_='unknown')
 

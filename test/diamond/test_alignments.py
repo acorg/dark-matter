@@ -35,7 +35,7 @@ class TestDiamondReadsAlignments(TestCase):
         mockOpener = mockOpen()
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
-            error = "JSON file 'file.json' was empty."
+            error = "JSON file 'file\\.json' was empty\\."
             six.assertRaisesRegex(self, ValueError, error,
                                   DiamondReadsAlignments, reads, 'file.json',
                                   databaseFilename='database.fasta')
@@ -51,20 +51,20 @@ class TestDiamondReadsAlignments(TestCase):
             reads = Reads()
             if six.PY3:
                 error = (
-                    "^Could not convert first line of 'file\.json' to JSON "
-                    "\(Expecting value: line 1 column 1 \(char 0\)\)\. "
-                    "Line is 'not JSON'\.$")
+                    "^Could not convert first line of 'file\\.json' to JSON "
+                    "\\(Expecting value: line 1 column 1 \\(char 0\\)\\)\\. "
+                    "Line is 'not JSON'\\.$")
             else:
                 if pypy:
                     error = (
-                        "^Could not convert first line of 'file\.json' to "
-                        "JSON \(Error when decoding null at char 1\)\. Line "
-                        "is 'not JSON'\.$")
+                        "^Could not convert first line of 'file\\.json' to "
+                        "JSON \\(Error when decoding null at char 1\\)\\. "
+                        "Line is 'not JSON'\\.$")
                 else:
                     error = (
-                        "^Could not convert first line of 'file\.json' to "
-                        "JSON \(No JSON object could be decoded\)\. Line is "
-                        "'not JSON'\.$")
+                        "^Could not convert first line of 'file\\.json' to "
+                        "JSON \\(No JSON object could be decoded\\)\\. Line "
+                        "is 'not JSON'\\.$")
             six.assertRaisesRegex(self, ValueError, error,
                                   DiamondReadsAlignments, reads, 'file.json',
                                   databaseFilename='database.fasta')
@@ -141,7 +141,7 @@ class TestDiamondReadsAlignments(TestCase):
             reads = Reads()
             error = ("Read generator failed to yield a read with id 'id0' as "
                      "found in record number 1 during parsing of DIAMOND "
-                     "output file 'file\.json'\.")
+                     "output file 'file\\.json'\\.")
             readsAlignments = DiamondReadsAlignments(
                 reads, 'file.json', databaseFilename='database.fasta')
             six.assertRaisesRegex(self, ValueError, error, list,

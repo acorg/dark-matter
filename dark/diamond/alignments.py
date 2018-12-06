@@ -22,10 +22,8 @@ class DiamondReadsAlignments(ReadsAlignments):
         *MUST* match the order of the records in the DIAMOND output files.
     @param filenames: Either a single C{str} filename or a C{list} of C{str}
         file names containing our (possibly bzip2 compressed) per-line JSON
-        produced by C{bin/convert-diamond-to-json.py} from DIAMOND XML output.
-    @param filenames: Either a single C{str} filename or a C{list} of C{str}
-        file names containing our (possibly bzip2 compressed) per-line JSON
-        produced by C{bin/convert-diamond-to-json.py} from DIAMOND XML output.
+        produced by C{bin/convert-diamond-to-json.py} from DIAMOND tabular
+        (outfmt 6) output.
     @param databaseFilename: A C{str} holding the name of the FASTA file used
         to make the DIAMOND database. Cannot be used with
         C{sqliteDatabaseFilename}.

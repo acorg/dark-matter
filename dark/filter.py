@@ -169,15 +169,15 @@ class ReadSetFilter(object):
             return []
 
 
-def addFASTAFilteringCommandLineOptions(parser, filteringSAM=False):
+def addFASTAFilteringCommandLineOptions(parser):
     """
     Add standard FASTA filtering command-line options to an argparse parser.
 
+    These are options that can be used to select or omit entire FASTA records,
+    NOT options that change them (for that see
+    addFASTAEditingCommandLineOptions).
+
     @param parser: An C{argparse.ArgumentParser} instance.
-    @param filteringSAM: If C{True} only add options that can be used when
-        the result of filtering will be used to filter a SAM file. Because
-        we cannot yet filter out (for example) certain sites from a SAM file
-        we do not support some filtering options for SAM.
     """
     parser.add_argument(
         '--minLength', type=int,
@@ -267,27 +267,50 @@ def addFASTAFilteringCommandLineOptions(parser, filteringSAM=False):
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
-    parser.add_argument(
-        '--idLambda', metavar='LAMBDA-FUNCTION',
-        help=('A one-argument function taking and returning a read id. '
-              'E.g., --idLambda "lambda id: id.split(\'_\')[0]" or '
-              '--idLambda "lambda id: id[:10]". If the function returns None, '
-              'the read will be filtered out.'))
 
-    parser.add_argument(
-        '--readLambda', metavar='LAMBDA-FUNCTION',
-        help=('A one-argument function taking and returning a read. '
-              'E.g., --readLambda "lambda r: Read(r.id.split(\'_\')[0], '
-              'r.sequence.strip(\'-\')". Make sure to also modify the quality '
-              'string if you change the length of a FASTQ sequence. If the '
-              'function returns None, the read will be filtered out. The '
-              'function will be passed to eval with the dark.reads classes '
-              'Read, DNARead, AARead, etc. all in scope.'))
+def parseFASTAFilteringCommandLineOptions(args, reads):
+    """
+    Examine parsed FASTA filtering command-line options and return filtered
+    reads.
 
-    # Options below this point cannot be used to filter SAM.
-    if filteringSAM:
-        return
+    @param args: An argparse namespace, as returned by the argparse
+        C{parse_args} function.
+    @param reads: A C{Reads} instance to filter.
+    @return: The filtered C{Reads} instance.
+    """
+    keepSequences = (
+        parseRangeString(args.keepSequences, convertToZeroBased=True)
+        if args.keepSequences else None)
 
+    removeSequences = (
+        parseRangeString(args.removeSequences, convertToZeroBased=True)
+        if args.removeSequences else None)
+
+    return reads.filter(
+        minLength=args.minLength, maxLength=args.maxLength,
+        whitelist=set(args.whitelist) if args.whitelist else None,
+        blacklist=set(args.blacklist) if args.blacklist else None,
+        whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
+        titleRegex=args.titleRegex,
+        negativeTitleRegex=args.negativeTitleRegex,
+        keepSequences=keepSequences, removeSequences=removeSequences,
+        head=args.head, removeDuplicates=args.removeDuplicates,
+        removeDuplicatesById=args.removeDuplicatesById,
+        randomSubset=args.randomSubset, trueLength=args.trueLength,
+        sampleFraction=args.sampleFraction,
+        sequenceNumbersFile=args.sequenceNumbersFile)
+
+
+def addFASTAEditingCommandLineOptions(parser):
+    """
+    Add standard FASTA editing command-line options to an argparse parser.
+
+    These are options that can be used to alter FASTA records, NOT options
+    that simply select or reject those things (for those see
+    addFASTAFilteringCommandLineOptions).
+
+    @param parser: An C{argparse.ArgumentParser} instance.
+    """
     # A mutually exclusive group for --keepSites, --keepSitesFile,
     # --removeSites, and --removeSitesFile.
     group = parser.add_mutually_exclusive_group()
@@ -339,83 +362,72 @@ def addFASTAFilteringCommandLineOptions(parser, filteringSAM=False):
               'description is the part of a sequence id after the '
               'first whitespace (if any).'))
 
+    parser.add_argument(
+        '--idLambda', metavar='LAMBDA-FUNCTION',
+        help=('A one-argument function taking and returning a read id. '
+              'E.g., --idLambda "lambda id: id.split(\'_\')[0]" or '
+              '--idLambda "lambda id: id[:10]". If the function returns None, '
+              'the read will be filtered out.'))
 
-def parseFASTAFilteringCommandLineOptions(args, reads, filteringSAM=False):
+    parser.add_argument(
+        '--readLambda', metavar='LAMBDA-FUNCTION',
+        help=('A one-argument function taking and returning a read. '
+              'E.g., --readLambda "lambda r: Read(r.id.split(\'_\')[0], '
+              'r.sequence.strip(\'-\')". Make sure to also modify the quality '
+              'string if you change the length of a FASTQ sequence. If the '
+              'function returns None, the read will be filtered out. The '
+              'function will be passed to eval with the dark.reads classes '
+              'Read, DNARead, AARead, etc. all in scope.'))
+
+
+def parseFASTAEditingCommandLineOptions(args, reads):
     """
-    Examine parsed command-line options and return information about kept
-    sites and sequences.
+    Examine parsed FASTA editing command-line options and return information
+    about kept sites and sequences.
 
     @param args: An argparse namespace, as returned by the argparse
         C{parse_args} function.
     @param reads: A C{Reads} instance to filter.
-    @param filteringSAM: If C{True} only examine options that can be used when
-        the result of filtering will be used to filter a SAM file. Because
-        we cannot yet filter out (for example) certain sites from a SAM file
-        we do not support some filtering options for SAM.
     @return: The filtered C{Reads} instance.
     """
-    keepSequences = (
-        parseRangeString(args.keepSequences, convertToZeroBased=True)
-        if args.keepSequences else None)
+    removeGaps = args.removeGaps
+    removeDescriptions = args.removeDescriptions
+    truncateTitlesAfter = args.truncateTitlesAfter
+    keepSites = (
+        parseRangeString(args.keepSites, convertToZeroBased=True)
+        if args.keepSites else None)
 
-    removeSequences = (
-        parseRangeString(args.removeSequences, convertToZeroBased=True)
-        if args.removeSequences else None)
+    if args.keepSitesFile:
+        keepSites = keepSites or set()
+        with open(args.keepSitesFile) as fp:
+            for lineNumber, line in enumerate(fp):
+                try:
+                    keepSites.update(
+                        parseRangeString(line, convertToZeroBased=True))
+                except ValueError as e:
+                    raise ValueError(
+                        'Keep sites file %r line %d could not be parsed: '
+                        '%s' % (args.keepSitesFile, lineNumber, e))
 
-    if filteringSAM:
-        removeGaps = removeDescriptions = False
-        truncateTitlesAfter = keepSites = removeSites = None
-    else:
-        removeGaps = args.removeGaps
-        removeDescriptions = args.removeDescriptions
-        truncateTitlesAfter = args.truncateTitlesAfter
-        keepSites = (
-            parseRangeString(args.keepSites, convertToZeroBased=True)
-            if args.keepSites else None)
+    removeSites = (
+        parseRangeString(args.removeSites, convertToZeroBased=True)
+        if args.removeSites else None)
 
-        if args.keepSitesFile:
-            keepSites = keepSites or set()
-            with open(args.keepSitesFile) as fp:
-                for lineNumber, line in enumerate(fp):
-                    try:
-                        keepSites.update(
-                            parseRangeString(line, convertToZeroBased=True))
-                    except ValueError as e:
-                        raise ValueError(
-                            'Keep sites file %r line %d could not be parsed: '
-                            '%s' % (args.keepSitesFile, lineNumber, e))
-
-        removeSites = (
-            parseRangeString(args.removeSites, convertToZeroBased=True)
-            if args.removeSites else None)
-
-        if args.removeSitesFile:
-            removeSites = removeSites or set()
-            with open(args.removeSitesFile) as fp:
-                for lineNumber, line in enumerate(fp):
-                    try:
-                        removeSites.update(
-                            parseRangeString(line, convertToZeroBased=True))
-                    except ValueError as e:
-                        raise ValueError(
-                            'Remove sites file %r line %d parse error: %s'
-                            % (args.removeSitesFile, lineNumber, e))
+    if args.removeSitesFile:
+        removeSites = removeSites or set()
+        with open(args.removeSitesFile) as fp:
+            for lineNumber, line in enumerate(fp):
+                try:
+                    removeSites.update(
+                        parseRangeString(line, convertToZeroBased=True))
+                except ValueError as e:
+                    raise ValueError(
+                        'Remove sites file %r line %d parse error: %s'
+                        % (args.removeSitesFile, lineNumber, e))
 
     return reads.filter(
-        minLength=args.minLength, maxLength=args.maxLength,
         removeGaps=removeGaps,
-        whitelist=set(args.whitelist) if args.whitelist else None,
-        blacklist=set(args.blacklist) if args.blacklist else None,
-        whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
-        titleRegex=args.titleRegex,
-        negativeTitleRegex=args.negativeTitleRegex,
         truncateTitlesAfter=truncateTitlesAfter,
-        keepSequences=keepSequences, removeSequences=removeSequences,
-        head=args.head, removeDuplicates=args.removeDuplicates,
-        removeDuplicatesById=args.removeDuplicatesById,
         removeDescriptions=removeDescriptions,
-        randomSubset=args.randomSubset, trueLength=args.trueLength,
-        sampleFraction=args.sampleFraction,
-        sequenceNumbersFile=args.sequenceNumbersFile,
         idLambda=args.idLambda, readLambda=args.readLambda,
         keepSites=keepSites, removeSites=removeSites)

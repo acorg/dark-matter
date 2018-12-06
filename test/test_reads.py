@@ -88,7 +88,8 @@ class TestRead(TestCase):
         Attempting to construct a read whose sequence and quality strings are
         of different lengths must raise a ValueError.
         """
-        error = 'Invalid read: sequence length \(4\) != quality length \(3\)'
+        error = ('Invalid read: sequence length \\(4\\) != quality '
+                 'length \\(3\\)')
         with six.assertRaisesRegex(self, ValueError, error):
             Read('id', 'ACGT', '!!!')
 
@@ -526,8 +527,8 @@ class TestRead(TestCase):
         function must raise an IndexError.
         """
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
-        error = ("Read alphabet \('ACGRST'\) is not a subset of expected "
-                 "alphabet \('ACGT'\) for read class DNARead.")
+        error = ("Read alphabet \\('ACGRST'\\) is not a subset of expected "
+                 "alphabet \\('ACGT'\\) for read class DNARead.")
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
     def testKeepSites(self):
@@ -1416,7 +1417,7 @@ class TestAAReadORF(TestCase):
         An AAReadORF start offset must not be greater than its stop offset.
         """
         originalRead = AARead('id', 'ADRADR')
-        error = 'start offset \(4\) greater than stop offset \(0\)'
+        error = 'start offset \\(4\\) greater than stop offset \\(0\\)'
         six.assertRaisesRegex(
             self, ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
 
@@ -1425,7 +1426,7 @@ class TestAAReadORF(TestCase):
         An AAReadORF start offset must not be less than zero.
         """
         originalRead = AARead('id', 'ADRADR')
-        error = 'start offset \(-1\) less than zero'
+        error = 'start offset \\(-1\\) less than zero'
         six.assertRaisesRegex(
             self, ValueError, error, AAReadORF, originalRead, -1, 6, True,
             True)
@@ -1436,7 +1437,7 @@ class TestAAReadORF(TestCase):
         original sequence.
         """
         originalRead = AARead('id', 'ADRADR')
-        error = 'stop offset \(10\) > original read length \(6\)'
+        error = 'stop offset \\(10\\) > original read length \\(6\\)'
         six.assertRaisesRegex(
             self, ValueError, error, AAReadORF, originalRead, 0, 10, True,
             True)
@@ -1525,7 +1526,8 @@ class _TestSSAAReadMixin(object):
         lengths that are the same.
         """
         error = (
-            '^Invalid read: sequence length \(4\) != structure length \(3\)$')
+            '^Invalid read: sequence length \\(4\\) != structure '
+            'length \\(3\\)$')
         with six.assertRaisesRegex(self, ValueError, error):
             self.CLASS('id', 'ACGT', '!!!')
 
@@ -1660,7 +1662,7 @@ class _TestSSAAReadMixin(object):
         'fasta-ss' is passed as the C{format_} argument.
         """
         read = self.CLASS('id-1234', 'FFMM', 'HHHH')
-        error = "^Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
+        error = "^Format must be either 'fasta', 'fastq' or 'fasta-ss'\\."
         six.assertRaisesRegex(
             self, ValueError, error, read.toString, format_='pasta')
 
@@ -2218,7 +2220,7 @@ class TestReads(TestCase):
         """
         reads = Reads()
         error = ('^The unfiltered length of a Reads instance is unknown until '
-                 'it has been iterated\.$')
+                 'it has been iterated\\.$')
         six.assertRaisesRegex(self, RuntimeError, error,
                               reads.unfilteredLength)
 
@@ -2832,7 +2834,7 @@ class TestReadsFiltering(TestCase):
         reads = Reads()
         error = ("^randomSubset and sampleFraction cannot be used "
                  "simultaneously in a filter. Make two read filters "
-                 "instead\.$")
+                 "instead\\.$")
         six.assertRaisesRegex(self, ValueError, error, reads.filter,
                               sampleFraction=0.1, randomSubset=3)
 
@@ -2842,7 +2844,7 @@ class TestReadsFiltering(TestCase):
         must raise a ValueError.
         """
         reads = Reads()
-        error = "^trueLength must be supplied if randomSubset is specified\.$"
+        error = "^trueLength must be supplied if randomSubset is specified\\.$"
         six.assertRaisesRegex(self, ValueError, error, reads.filter,
                               randomSubset=3)
 
@@ -2894,7 +2896,7 @@ class TestReadsFiltering(TestCase):
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads([])
             error = ("^First line of sequence number file 'file' must be at "
-                     "least 1\.$")
+                     "least 1\\.$")
             with six.assertRaisesRegex(self, ValueError, error):
                 reads.filter(sequenceNumbersFile='file')
 
@@ -2911,7 +2913,7 @@ class TestReadsFiltering(TestCase):
             read3 = Read('id3', 'ATCG')
             reads = Reads(initialReads=[read1, read2, read3])
             error = ("^Line number file 'file' contains non-ascending numbers "
-                     "2 and 2\.$")
+                     "2 and 2\\.$")
             with six.assertRaisesRegex(self, ValueError, error):
                 list(reads.filter(sequenceNumbersFile='file'))
 
@@ -3122,7 +3124,7 @@ class TestReadsFiltering(TestCase):
         must result in a ValueError.
         """
         error = ('^Cannot simultaneously filter using keepSites and '
-                 'removeSites. Call filter twice in succession instead\.$')
+                 'removeSites\\. Call filter twice in succession instead\\.$')
         six.assertRaisesRegex(self, ValueError, error, Reads().filter,
                               keepSites={4}, removeSites={5})
 

@@ -5,6 +5,7 @@ from __future__ import print_function, division
 import sys
 import argparse
 from os.path import join
+from math import log10
 
 from dark.dna import compareDNAReads
 from dark.fasta import FastaReads
@@ -110,6 +111,10 @@ parser.add_argument(
           'be ignored. The sites must be given in the form e.g., '
           '24,100-200,260.'))
 
+parser.add_argument(
+    '--showDiffs', default=False, action='store_true',
+    help='Print (1-based) sites where the sequence nucleotides differ.')
+
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
 
@@ -200,3 +205,18 @@ for read, index, key in zip(reads, (args.index1, args.index2),
     extraCount = result[key]['extraCount']
     if extraCount:
         pp('  Extra nucleotides at end', extraCount, length)
+
+if args.showDiffs:
+    # Print all sites where the sequences differ.
+    width = int(log10(max(len1, len2))) + 1
+    headerPrinted = False
+    for site, (a, b) in enumerate(zip(read1.sequence, read2.sequence),
+                                  start=1):
+        if a != b:
+            if not headerPrinted:
+                print('Differences (site, %s, %s):' % (read1.id, read2.id))
+                headerPrinted = True
+            print('  %*d %s %s' % (width, site, a, b))
+
+    if not headerPrinted:
+        print('No sequence differences found.')
