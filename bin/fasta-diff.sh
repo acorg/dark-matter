@@ -12,6 +12,14 @@ set -Eeuo pipefail
 # and the input sequences may be in any order, whereas the files passed to
 # diff have ids, sequences, and quality strings on a single line and will
 # be in sorted order so as to minimize diff output).
+#
+# Thus this tool doesn't really help you find where differences are, it
+# just shows you a concise summary of differences found. This can be very
+# useful when there are no differences or when the number of differences is
+# small or when the only differences are in the sequence ids (use
+# --removeIds to remove them from the comparison). If the two input files
+# are totally different, the output won't be of much use, except to
+# indicate that there's a large difference.
 
 base=$(basename $0)
 
@@ -32,6 +40,7 @@ function oneLine()
 
     file="$1"
     tmp="$2"
+    removeIds="$3"
 
     catter=cat
     fastq=''
@@ -45,18 +54,28 @@ function oneLine()
     esac
 
     case $catter in
-        cat) echo "fasta-join.py $fastq < \"$file\" | sort > \"$tmp\"";;
-        *) echo "$catter < \"$file\" | fasta-join.py $fastq | sort > \"$tmp\"";;
+        cat) echo "$HOME/dark-matter/dark-matter/bin/fasta-join.py $removeIds $fastq < \"$file\" | sort > \"$tmp\"";;
+        *) echo "$catter < \"$file\" | fasta-join.py $removeIds $fastq | sort > \"$tmp\"";;
     esac
 }
 
 diffArgs=
+removeIds=
 
 while [ $# -gt 0 ]
 do
     case "$1" in
-        -*) diffArgs="$diffArgs $1"; shift;;
-        *) break;;
+        --removeIds)
+            removeIds=--removeIds
+            shift
+            ;;
+        -*)
+            diffArgs="$diffArgs $1"
+            shift
+            ;;
+        *)
+            break
+            ;;
     esac
 done
 
@@ -64,8 +83,8 @@ case $# in
     2)
         tmp1=$(tempfile)
         tmp2=$(tempfile)
-        command1=$(oneLine "$1" "$tmp1")
-        command2=$(oneLine "$2" "$tmp2")
+        command1=$(oneLine "$1" "$tmp1" "$removeIds")
+        command2=$(oneLine "$2" "$tmp2" "$removeIds")
 
         # Run the setup commands in parallel if GNU parallel is installed.
         if [ $(type -t parallel) = 'filexx' ]
@@ -77,7 +96,7 @@ case $# in
         fi
         ;;
     *)
-        echo "Usage: $base file1.fast[aq] file1.fast[aq]" >&2
+        echo "Usage: $base [--removeIds] file1.fast[aq] file1.fast[aq]" >&2
         exit 1
         ;;
 esac
@@ -92,7 +111,15 @@ diff $diffArgs "$tmp1" "$tmp2" > "$tmp3"
 status=$?
 set -e
 
-# Filter and emit the diff output.
+# Filter and emit the diff output. The tr will not do anything if
+# --removeIds was used and the input was FASTA (not FASTQ), because in that
+# case the output of fasta-join.py has no TABs in it. But let's not bother
+# trying to detect that case.
+#
+# The egrep just finds the diff output lines that show differences (these
+# are marked with < or >). This throws away the diff output lines numbers,
+# but those were of no use anyway since we sorted the sequences in the
+# FASTA/Q files.
 egrep -e '^[<>] ' < "$tmp3" | tr '\t' '\n'
 
 rm "$tmp1" "$tmp2" "$tmp3"

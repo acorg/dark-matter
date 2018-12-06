@@ -17,15 +17,26 @@ if __name__ == '__main__':
                         help=('The character string to separate ids from '
                               'sequences and quality strings (if any)'))
 
+    parser.add_argument('--removeIds', default=False, action='store_true',
+                        help='Do not print sequence ids')
+
     addFASTACommandLineOptions(parser)
     args = parser.parse_args()
     sep = args.separator
     reads = parseFASTACommandLineOptions(args)
 
-    # Duplicate code a little so as not to test for quality on each read.
+    # Duplicate code a little so as not to repeatedly do two tests for read.
     if args.fastq:
-        for read in reads:
-            print(read.id + sep + read.sequence + sep + read.quality)
+        if args.removeIds:
+            for read in reads:
+                print(read.sequence + sep + read.quality)
+        else:
+            for read in reads:
+                print(read.id + sep + read.sequence + sep + read.quality)
     else:
-        for read in reads:
-            print(read.id + sep + read.sequence)
+        if args.removeIds:
+            for read in reads:
+                print(read.sequence)
+        else:
+            for read in reads:
+                print(read.id + sep + read.sequence)
