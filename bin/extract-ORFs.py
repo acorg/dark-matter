@@ -77,7 +77,6 @@ if __name__ == '__main__':
                             (maxORFLength is None or
                                 len(orf) <= maxORFLength)):
                         write(orf.toString('fasta'))
-
         except TranslationError as error:
             print('Could not translate read %r sequence %r (%s).' %
                   (read.id, read.sequence, error), file=sys.stderr)
