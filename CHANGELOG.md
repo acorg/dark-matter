@@ -1,6 +1,6 @@
 ## 3.0.58 Dec 6, 2018
 
-Added `--maxORFLength` option to `extract-ORFs.py`. Fixed logic l.70-72 in
+Added `--maxORFLength` option to `extract-ORFs.py`. Fixed logic in
 retrospect.
 
 ## 3.0.57 Dec 6, 2018
