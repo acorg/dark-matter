@@ -68,9 +68,14 @@ if __name__ == '__main__':
         try:
             for translation in translations(read):
                 for orf in translation.ORFs():
-                    if (minORFLength is None or len(orf) >= minORFLength and
-                        maxORFLength is None or len(orf) <= maxORFLength) or (
-                            allowOpenORFs and (orf.openLeft or orf.openRight)):
+                    # Omit open ORFs if they're unwanted.
+                    if ((orf.openLeft or orf.openRight) and not allowOpenORFs):
+                        continue
+
+                    # Check the length requirements, if any.
+                    if ((minORFLength is None or len(orf) >= minORFLength) and
+                            (maxORFLength is None or
+                                len(orf) <= maxORFLength)):
                         write(orf.toString('fasta'))
         except TranslationError as error:
             print('Could not translate read %r sequence %r (%s).' %
