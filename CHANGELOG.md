@@ -1,3 +1,7 @@
+## 3.0.59 Dec 11, 2018
+
+Added `--sampleName` option to `proteins-to-pathogens`.
+
 ## 3.0.58 Dec 6, 2018
 
 Added `--maxORFLength` option to `extract-ORFs.py`. Fixed logic in

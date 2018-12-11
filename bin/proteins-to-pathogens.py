@@ -71,6 +71,12 @@ if __name__ == '__main__':
         'filenames', nargs='*', help='Sample file names to read input from.')
 
     parser.add_argument(
+        '--sampleName',
+        help=('An (optional) sample name. This is only used in producing '
+              'HTML output. Should be used when all input files are for a '
+              'single sample.  Cannot be used with --sampleNameRegex.'))
+
+    parser.add_argument(
         '--sampleNameRegex',
         help=('An (optional) regular expression that can be used to extract a '
               'short sample name from full sample file name.  The regular '
@@ -145,6 +151,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.sampleName and args.sampleNameRegex:
+        print('It does not make sense to use --sampleName '
+              'as well as --sampleNameRegex', file=sys.stderr)
+        sys.exit(1)
+
     if not args.html:
         if args.sampleIndexFilename:
             print('It does not make sense to use --sampleIndexFilename '
@@ -169,6 +180,7 @@ if __name__ == '__main__':
         proteinFastaFilenames = None
 
     grouper = ProteinGrouper(assetDir=args.assetDir,
+                             sampleName=args.sampleName,
                              sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
                              proteinFastaFilenames=proteinFastaFilenames,

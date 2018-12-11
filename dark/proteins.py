@@ -194,6 +194,8 @@ class ProteinGrouper(object):
         C{noninteractive-alignment-panel.py} put its HTML, blue plot and
         alignment panel images, and FASTA or FASTQ files. This must be relative
         to the filenames that will later be passed to C{addFile}.
+    @param sampleName: A C{str} sample name. This takes precedence over
+        C{sampleNameRegex} (the two cannot be used together, obviously).
     @param sampleNameRegex: A C{str} regular expression that can be used to
         extract a short sample name from full file names subsequently passed
         to C{self.addFile}. The regular expression must have a matching group
@@ -214,9 +216,11 @@ class ProteinGrouper(object):
 
     VIRALZONE = 'https://viralzone.expasy.org/search?query='
 
-    def __init__(self, assetDir='out', sampleNameRegex=None, format_='fasta',
-                 proteinFastaFilenames=None, saveReadLengths=False):
+    def __init__(self, assetDir='out', sampleName=None, sampleNameRegex=None,
+                 format_='fasta', proteinFastaFilenames=None,
+                 saveReadLengths=False):
         self._assetDir = assetDir
+        self._sampleName = sampleName
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
                                  else None)
         if format_ in ('fasta', 'fastq'):
@@ -259,7 +263,9 @@ class ProteinGrouper(object):
         @raise ValueError: If information for a pathogen/protein/sample
             combination is given more than once.
         """
-        if self._sampleNameRegex:
+        if self._sampleName:
+            sampleName = self._sampleName
+        elif self._sampleNameRegex:
             match = self._sampleNameRegex.search(filename)
             if match:
                 sampleName = match.group(1)
