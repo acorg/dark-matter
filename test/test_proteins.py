@@ -178,10 +178,18 @@ class TestProteinGrouper(TestCase):
         pg = ProteinGrouper(assetDir='xxx')
         self.assertEqual('xxx', pg._assetDir)
 
+    def testNoSampleName(self):
+        """
+        If no sample name is given to a protein grouper, its _sampleName
+        attribute must be None.
+        """
+        pg = ProteinGrouper()
+        self.assertEqual(None, pg._sampleName)
+
     def testNoRegex(self):
         """
         If no regex is given to a protein grouper, its _sampleNameRegex
-        attribute be None.
+        attribute mustbe None.
         """
         pg = ProteinGrouper()
         self.assertEqual(None, pg._sampleNameRegex)
