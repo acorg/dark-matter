@@ -1,3 +1,9 @@
+## 3.0.60 Dec 13, 2018
+
+In `extract-ORFs.py`, turn the sequence into an all-uppercase sequence
+before translation. Added a test to `test/reads.py` to confirm that the
+`translations` method can handle lowercase letters.
+
 ## 3.0.59 Dec 11, 2018
 
 Added `--sampleName` option to `proteins-to-pathogens`.
