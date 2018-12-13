@@ -757,6 +757,16 @@ class TestDNARead(TestCase):
             ],
             list(read.translations()))
 
+    def testTranslationOfUpperAndLowerCaseLetters(self):
+        """
+        The translations function must correctly translate sequences with
+        both upper and lowercase letters.
+        """
+        read = DNARead('id', 'ATGTGgaagctgctggtgctggtgctgcagCTGCTG')
+        self.assertEqual(
+            TranslatedRead(read, 'MWKLLVLVLQLL', 0, False),
+            next(read.translations()))
+
 
 class TestRNARead(TestCase):
     """
