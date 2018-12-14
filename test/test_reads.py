@@ -652,6 +652,16 @@ class TestDNARead(TestCase):
         read = DNARead('id', 'ATCGMRWSVHXN')
         self.assertEqual('NXDBSWYKCGAT', read.reverseComplement().sequence)
 
+    def testReverseComplementLowercaseLetters(self):
+        """
+        The reverseComplement function must correctly reverse complement
+        lowercase letters. The issue is described here:
+        https://github.com/acorg/dark-matter/issues/662
+        """
+        read = DNARead('id', 'CAGCAGctgcagcaccagcaccagcagcttcCACAT')
+        expected = ('ATGTGgaagctgctggtgctggtgctgcagCTGCTG')
+        self.assertEqual(expected, read.reverseComplement().sequence)
+
     def testTranslationsOfEmptySequence(self):
         """
         The translations function must correctly return all six (empty)

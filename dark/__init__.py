@@ -8,4 +8,4 @@ if sys.version_info < (2, 7):
 #
 # Remember to update ../CHANGELOG.md describing what's new in each version.
 
-__version__ = '3.0.59'
+__version__ = '3.0.60'

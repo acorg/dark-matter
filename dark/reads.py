@@ -27,7 +27,8 @@ def _makeComplementTable(complementData):
     """
     table = list(range(256))
     for _from, to in complementData.items():
-        table[ord(_from[0])] = ord(to[0])
+        table[ord(_from[0].lower())] = ord(to[0].lower())
+        table[ord(_from[0].upper())] = ord(to[0].upper())
     return ''.join(map(chr, table))
 
 
