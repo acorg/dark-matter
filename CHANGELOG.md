@@ -1,9 +1,9 @@
 ## 3.0.60 Dec 13, 2018
 
-In `reads.py`, change the `_makeComplementTable` function so that now
+In `reads.py`, changed the `_makeComplementTable` function so that 
 uppercase and lowercase bases are correctly reverse complemented into their
-respective uppercase and lowercase counterparts. Added a test to `test/reads.py`
-to confirm that `reverseComplement` does this.
+respective uppercase and lowercase complementary letters. Added a test to 
+`test/reads.py` to confirm that `reverseComplement` does this.
 
 ## 3.0.59 Dec 11, 2018
 
