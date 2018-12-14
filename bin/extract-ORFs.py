@@ -62,7 +62,6 @@ if __name__ == '__main__':
             return (read,)
     else:
         def translations(read):
-            read.sequence = read.sequence.upper()
             return read.translations()
 
     for read in reads:
