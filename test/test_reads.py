@@ -658,7 +658,7 @@ class TestDNARead(TestCase):
         lowercase letters. The issue is described here:
         https://github.com/acorg/dark-matter/issues/662
         """
-        read = DNARead('id', ('CAGCAGctgcagcaccagcaccagcagcttcCACAT'))
+        read = DNARead('id', 'CAGCAGctgcagcaccagcaccagcagcttcCACAT')
         expected = ('ATGTGgaagctgctggtgctggtgctgcagCTGCTG')
         self.assertEqual(expected, read.reverseComplement().sequence)
 
