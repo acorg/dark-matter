@@ -126,6 +126,17 @@ class Read(object):
             'quality': self.quality,
         }
 
+    def reverse(self):
+        """
+        Reverse a read (note that this is NOT a reverse complement).
+
+        @return: The reversed sequence as an instance of the current class.
+        """
+        return self.__class__(
+            self.id,
+            self.sequence[::-1],
+            None if self.quality is None else self.quality[::-1])
+
     @classmethod
     def fromDict(cls, d):
         """
@@ -807,12 +818,20 @@ class ReadFilter(object):
     @param removeSites: A set of C{int} 0-based sites (i.e., indices) in
         sequences that should be removed. If C{None} (the default), no sites
         are removed.
+    @param reverse: If C{True}, reverse the sequences. Reversing happens
+        at a very late stage (i.e., after sites are altered via keepSites
+        and removeSites).
+    @param reverseComplement: If C{True}, replace seqeunces with their reverse
+        complements. Reversing happens at a very late stage (i.e., after sites
+        are altered via keepSites and removeSites).
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
         non-positive or not ascending, or if both C{keepSites} and
         C{removeSites} are given, or if both C{keepSequences} and
         C{removeSequences} are given.
+    @raise AttributeError: If C{reverseComplement} is C{True} but the read
+        type does not allow for reverse complementing.
     """
 
     # TODO, when/if needed: make it possible to pass a seed for the RNG
@@ -830,7 +849,8 @@ class ReadFilter(object):
                  removeDescriptions=False, modifier=None, randomSubset=None,
                  trueLength=None, sampleFraction=None,
                  sequenceNumbersFile=None, idLambda=None, readLambda=None,
-                 keepSites=None, removeSites=None):
+                 keepSites=None, removeSites=None, reverse=False,
+                 reverseComplement=False):
 
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -866,6 +886,12 @@ class ReadFilter(object):
                 'removeSites. Call filter twice in succession instead.')
         self.keepSites = keepSites
         self.removeSites = removeSites
+
+        if reverseComplement:
+            # Make sure reverse is not also set.
+            reverse = False
+        self.reverse = reverse
+        self.reverseComplement = reverseComplement
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -1068,6 +1094,11 @@ class ReadFilter(object):
 
         if self.removeDescriptions:
             read.id = read.id.split()[0]
+
+        if self.reverse:
+            read = read.reverse()
+        elif self.reverseComplement:
+            read = read.reverseComplement()
 
         self.yieldCount += 1
         return read

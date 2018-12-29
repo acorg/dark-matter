@@ -30,7 +30,7 @@ def findPrimer(primer, seq):
 
 def findPrimerBidi(primer, seq):
     """
-    Look for a primer in a sequence and its reverse compliment.
+    Look for a primer in a sequence and its reverse complement.
 
     @param primer: A C{str} primer sequence.
     @param seq: A BioPython C{Bio.Seq} sequence.
@@ -38,7 +38,7 @@ def findPrimerBidi(primer, seq):
     @return: A C{tuple} of two lists. The first contains (zero-based)
         ascending offsets into the sequence at which the primer can be found.
         The second is a similar list ascending offsets into the original
-        sequence where the primer matches the reverse complimented of the
+        sequence where the primer matches the reverse complemented of the
         sequence. If no instances are found, the corresponding list in the
         returned tuple must be empty.
     """
@@ -54,7 +54,7 @@ def findPrimerBidi(primer, seq):
 def findPrimerBidiLimits(primer, seq):
     """
     Report the extreme (inner) offsets of primer in a sequence and its
-    reverse compliment.
+    reverse complement.
 
     @param primer: A C{str} primer sequence.
     @param seq: A BioPython C{Bio.Seq} sequence.

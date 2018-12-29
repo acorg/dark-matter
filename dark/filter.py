@@ -379,6 +379,15 @@ def addFASTAEditingCommandLineOptions(parser):
               'function will be passed to eval with the dark.reads classes '
               'Read, DNARead, AARead, etc. all in scope.'))
 
+    parser.add_argument(
+        '--reverse', action='store_true', default=False,
+        help=('Reverse the sequences. Note that this is NOT reverse '
+              'complementing.'))
+
+    parser.add_argument(
+        '--reverseComplement', action='store_true', default=False,
+        help='Reverse complement the sequences.')
+
 
 def parseFASTAEditingCommandLineOptions(args, reads):
     """
@@ -430,4 +439,5 @@ def parseFASTAEditingCommandLineOptions(args, reads):
         truncateTitlesAfter=truncateTitlesAfter,
         removeDescriptions=removeDescriptions,
         idLambda=args.idLambda, readLambda=args.readLambda,
-        keepSites=keepSites, removeSites=removeSites)
+        keepSites=keepSites, removeSites=removeSites,
+        reverse=args.reverse, reverseComplement=args.reverseComplement)
