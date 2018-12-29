@@ -619,6 +619,22 @@ class TestRead(TestCase):
                          Read('id1', 'ATCGAT').newFromSites({100, 200},
                                                             exclude=True))
 
+    def testReverseNoQuality(self):
+        """
+        The reverse method must work as expected when there is no quality
+        string.
+        """
+        self.assertEqual(Read('id1', 'ATCGAT'),
+                         Read('id1', 'TAGCTA').reverse())
+
+    def testReverseWithQuality(self):
+        """
+        The reverse method must work as expected when there is a quality
+        string.
+        """
+        self.assertEqual(Read('id1', 'ATCGAT', '123456'),
+                         Read('id1', 'TAGCTA', '654321').reverse())
+
 
 class TestDNARead(TestCase):
     """
@@ -3183,6 +3199,63 @@ class TestReadsFiltering(TestCase):
                         'if r.id.startswith("x") else None'))
         (result,) = list(result)
         self.assertEqual(Read('xid1-x', 'AT'), result)
+
+    def testReverse(self):
+        """
+        When reverse=True, reads with the expected sequences and qualities
+        must be returned.
+        """
+        read1 = Read('id1', 'ATCGCC', '123456')
+        read2 = Read('id2', 'GGATCG', '987654')
+        reads = Reads(initialReads=[read1, read2])
+        result1, result2 = list(reads.filter(reverse=True))
+        self.assertEqual(Read('id1', 'CCGCTA', '654321'), result1)
+        self.assertEqual(Read('id2', 'GCTAGG', '456789'), result2)
+
+    def testReverseComplement(self):
+        """
+        When reverseComplement=True, reads with the expected sequences and
+        qualities must be returned when the reads are of type DNARead.
+        """
+        read1 = DNARead('id1', 'ATCGCC', '123456')
+        read2 = DNARead('id2', 'GGATCG', '987654')
+        reads = Reads(initialReads=[read1, read2])
+        result1, result2 = list(reads.filter(reverseComplement=True))
+        self.assertEqual(Read('id1', 'GGCGAT', '654321'), result1)
+        self.assertEqual(Read('id2', 'CGATCC', '456789'), result2)
+
+    def testReverseAndReverseComplement(self):
+        """
+        When reverseComplement=True and reverse=True, the expected reads must
+        be returned (reverse complemented) when the reads are of type DNARead.
+        """
+        read1 = DNARead('id1', 'ATCGCC', '123456')
+        read2 = DNARead('id2', 'GGATCG', '987654')
+        reads = Reads(initialReads=[read1, read2])
+        result1, result2 = list(reads.filter(reverseComplement=True,
+                                             reverse=True))
+        self.assertEqual(Read('id1', 'GGCGAT', '654321'), result1)
+        self.assertEqual(Read('id2', 'CGATCC', '456789'), result2)
+
+    def testReverseComplementNonDNA(self):
+        """
+        When reverseComplement=True and the read is not a DNARead, an
+        AttributeError must be raised.
+        """
+        reads = Reads(initialReads=[Read('id1', 'ATCGCC', '123456')])
+        error = "^'Read' object has no attribute 'reverseComplement'$"
+        six.assertRaisesRegex(self, AttributeError, error, list,
+                              reads.filter(reverseComplement=True))
+
+    def testReverseComplementAARead(self):
+        """
+        When reverseComplement=True and the read is an AARead, an
+        AttributeError must be raised.
+        """
+        reads = Reads(initialReads=[AARead('id1', 'ATCGCC', '123456')])
+        error = "^'AARead' object has no attribute 'reverseComplement'$"
+        six.assertRaisesRegex(self, AttributeError, error, list,
+                              reads.filter(reverseComplement=True))
 
 
 class TestReadsInRAM(TestCase):

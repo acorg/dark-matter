@@ -1,3 +1,8 @@
+## 3.0.61 Dec 29, 2018
+
+Added `--reverse` and `--reverseComplement` options to `filter-fasta.py`
+and the underlying `ReadFilter` class.
+
 ## 3.0.60 Dec 13, 2018
 
 In `reads.py`, changed the `_makeComplementTable` function so that 

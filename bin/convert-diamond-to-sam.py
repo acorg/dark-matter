@@ -77,7 +77,7 @@ for match in diamondTabularFormatToDicts(sys.stdin):
     referenceLengths[stitle] = 3 * match['slen']
 
     # If the query frame is less than zero, the match was with a reverse
-    # complemented translation of the query. Put the reverse compliment
+    # complemented translation of the query. Put the reverse complement
     # into the SAM output, which seems to be standard / accepted practice
     # based on my web searches. See e.g., https://www.biostars.org/p/131891/
     # for what Bowtie2 does and for some comments on this issue for SAM/BAM

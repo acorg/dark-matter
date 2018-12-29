@@ -397,8 +397,8 @@ class TestPaddedSAM(TestCase):
 
     def testRcNeeded(self):
         """
-        A reverse-complimented match (flag = 16) when rcNeeded=True is passed
-        must result in the expected (reverse complimented) padded sequence
+        A reverse-complemented match (flag = 16) when rcNeeded=True is passed
+        must result in the expected (reverse complemented) padded sequence
         and reversed quality string.
         """
         data = '\n'.join([
@@ -413,7 +413,7 @@ class TestPaddedSAM(TestCase):
 
     def testRcSuffix(self):
         """
-        A reverse-complimented sequence should have the rcSuffix string added
+        A reverse-complemented sequence should have the rcSuffix string added
         to its id when an rcSuffix value is passed.
         """
         data = '\n'.join([
