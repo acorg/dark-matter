@@ -3202,7 +3202,8 @@ class TestReadsFiltering(TestCase):
 
     def testReverse(self):
         """
-        When reverse=True, the expected read ids must be returned.
+        When reverse=True, reads with the expected sequences and qualities
+        must be returned.
         """
         read1 = Read('id1', 'ATCGCC', '123456')
         read2 = Read('id2', 'GGATCG', '987654')
@@ -3213,8 +3214,8 @@ class TestReadsFiltering(TestCase):
 
     def testReverseComplement(self):
         """
-        When reverseComplement=True, the expected read ids must be returned
-        when the reads are of type DNARead.
+        When reverseComplement=True, reads with the expected sequences and
+        qualities must be returned when the reads are of type DNARead.
         """
         read1 = DNARead('id1', 'ATCGCC', '123456')
         read2 = DNARead('id2', 'GGATCG', '987654')
@@ -3238,11 +3239,21 @@ class TestReadsFiltering(TestCase):
 
     def testReverseComplementNonDNA(self):
         """
-        When reverseComplement=True, the expected read ids must be returned
-        when the reads are of type DNARead.
+        When reverseComplement=True and the read is not a DNARead, an
+        AttributeError must be raised.
         """
         reads = Reads(initialReads=[Read('id1', 'ATCGCC', '123456')])
         error = "^'Read' object has no attribute 'reverseComplement'$"
+        six.assertRaisesRegex(self, AttributeError, error, list,
+                              reads.filter(reverseComplement=True))
+
+    def testReverseComplementAARead(self):
+        """
+        When reverseComplement=True and the read is an AARead, an
+        AttributeError must be raised.
+        """
+        reads = Reads(initialReads=[AARead('id1', 'ATCGCC', '123456')])
+        error = "^'AARead' object has no attribute 'reverseComplement'$"
         six.assertRaisesRegex(self, AttributeError, error, list,
                               reads.filter(reverseComplement=True))
 
