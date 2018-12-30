@@ -51,7 +51,7 @@ def _pp(mesg, count, len1, len2=None):
     @param mesg: a C{str} message.
     @param count: a numeric value.
     @param len1: the C{int} length of sequence 1.
-    @param len2: the C{int} length of sequence 2. If not given, will
+    @param len2: the C{int} length of sequence 2. If C{None}, will
         default to C{len1}.
     @return: A C{str} for printing.
     """
@@ -76,10 +76,15 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
     Format a DNA match as a string.
 
     @param dnaMatch: A C{dict} returned by C{compareDNAReads}.
+    @param read1: A C{Read} instance or an instance of one of its subclasses.
+    @param read2: A C{Read} instance or an instance of one of its subclasses.
     @param matchAmbiguous: If C{True}, ambiguous nucleotides that are
         possibly correct were counted as actually being correct. Otherwise,
         the match was done strictly, insisting that only non-ambiguous
         nucleotides could contribute to the matching nucleotide count.
+    @param indent: A C{str} to indent all returned lines with.
+    @param offsets: If not C{None}, a C{set} of offsets of interest that were
+        only considered when making C{match}.
     @return: A C{str} describing the match.
     """
     match = dnaMatch['match']
