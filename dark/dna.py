@@ -32,19 +32,115 @@ BASES_TO_AMBIGUOUS = dict(
     (''.join(sorted(bases)), symbol) for symbol, bases in AMBIGUOUS.items())
 
 
-def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
+def _pct(a, b):
+    """
+    What percent of a is b?
+
+    @param a: a numeric value.
+    @param b: a numeric value.
+    @return: the C{float} percentage.
+    """
+    return 100.0 * a / b if b else 0.0
+
+
+def _pp(mesg, count, len1, len2=None):
+    """
+    Format a message followed by an integer count and a percentage (or
+    two, if the sequence lengths are unequal).
+
+    @param mesg: a C{str} message.
+    @param count: a numeric value.
+    @param len1: the C{int} length of sequence 1.
+    @param len2: the C{int} length of sequence 2. If not given, will
+        default to C{len1}.
+    @return: A C{str} for printing.
+    """
+    if count == 0:
+        return '%s: %d' % (mesg, count)
+    else:
+        len2 = len2 or len1
+        if len1 == len2:
+            return '%s: %d/%d (%.2f%%)' % (
+                mesg, count, len1, _pct(count, len1))
+        else:
+            return ('%s: %d/%d (%.2f%%) of sequence 1, '
+                    '%d/%d (%.2f%%) of sequence 2)' % (
+                        mesg,
+                        count, len1, _pct(count, len1),
+                        count, len2, _pct(count, len2)))
+
+
+def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
+                  offsets=None):
+    """
+    Format a DNA match as a string.
+
+    @param dnaMatch: A C{dict} returned by C{compareDNAReads}.
+    @param matchAmbiguous: If C{True}, ambiguous nucleotides that are
+        possibly correct were counted as actually being correct. Otherwise,
+        the match was done strictly, insisting that only non-ambiguous
+        nucleotides could contribute to the matching nucleotide count.
+    @return: A C{str} describing the match.
+    """
+    match = dnaMatch['match']
+    identicalMatchCount = match['identicalMatchCount']
+    ambiguousMatchCount = match['ambiguousMatchCount']
+    gapMismatchCount = match['gapMismatchCount']
+    gapGapMismatchCount = match['gapGapMismatchCount']
+    nonGapMismatchCount = match['nonGapMismatchCount']
+
+    if offsets:
+        len1 = len2 = len(offsets)
+    else:
+        len1, len2 = map(len, (read1, read2))
+
+    result = []
+    append = result.append
+
+    append(_pp('%sExact matches' % indent, identicalMatchCount, len1, len2))
+    append(_pp('%sAmbiguous matches' % indent, ambiguousMatchCount, len1,
+               len2))
+    if ambiguousMatchCount and identicalMatchCount:
+        anyMatchCount = identicalMatchCount + ambiguousMatchCount
+        append(_pp('%sExact or ambiguous matches' % indent, anyMatchCount,
+                   len1, len2))
+    mismatchCount = (gapMismatchCount + gapGapMismatchCount +
+                     nonGapMismatchCount)
+    append(_pp('%sMismatches' % indent, mismatchCount, len1, len2))
+    conflicts = 'conflicts' if matchAmbiguous else 'conflicts or ambiguities'
+    append(_pp('%s  Not involving gaps (i.e., %s)' % (indent, conflicts),
+               nonGapMismatchCount, len1, len2))
+    append(_pp('%s  Involving a gap in one sequence' % indent,
+               gapMismatchCount, len1, len2))
+    append(_pp('%s  Involving a gap in both sequences' % indent,
+               gapGapMismatchCount, len1, len2))
+
+    for read, key in zip((read1, read2), ('read1', 'read2')):
+        append('%s  Id: %s' % (indent, read.id))
+        length = len(read)
+        append('%s    Length: %d' % (indent, length))
+        gapCount = len(dnaMatch[key]['gapOffsets'])
+        append(_pp('%s    Gaps' % indent, gapCount, length))
+        if gapCount:
+            append(
+                '%s    Gap locations (1-based): %s' %
+                (indent,
+                 ', '.join(map(lambda offset: str(offset + 1),
+                               sorted(dnaMatch[key]['gapOffsets'])))))
+        ambiguousCount = len(dnaMatch[key]['ambiguousOffsets'])
+        append(_pp('%s    Ambiguous' % indent, ambiguousCount, length))
+        extraCount = dnaMatch[key]['extraCount']
+        if extraCount:
+            append(_pp('%s    Extra nucleotides at end' % indent, extraCount,
+                       length))
+
+    return '\n'.join(result)
+
+
+def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
                     offsets=None):
     """
     Compare two DNA sequences.
-
-    Note that including 'N' in the default gapChars results (obviously) in
-    treating N as a gap. Although you could argue that those two things are
-    not the same, for all practical purposes (or at least in the code below)
-    they can be treated as if they are. We treat a '?' as a gap character
-    too, as it is also completely ambiguous.  In the returned result, the
-    gap information (mismatches, indices, etc) therefore include places where
-    the sequences have an 'N'. If you don't want 'N' treated in this way, just
-    pass a C{gapChars} value without it.
 
     @param read1: A C{Read} instance or an instance of one of its subclasses.
     @param read2: A C{Read} instance or an instance of one of its subclasses.
@@ -53,8 +149,8 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars=('-'),
         ambiguousMatchCount. Otherwise, we are strict and insist that only
         non-ambiguous nucleotides can contribute to the matching nucleotide
         count.
-    @param gapChars: An iterable containing characters that should be
-        considered to be gaps.
+    @param gapChars: An object supporting __contains__ with characters that
+        should be considered to be gaps.
     @param offsets: If not C{None}, a C{set} of offsets of interest. Offsets
         not in the set will not be considered.
     @return: A C{dict} with information about the match and the individual

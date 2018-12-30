@@ -1,3 +1,7 @@
+## 3.0.62 Dec 30, 2018
+
+Added `matchToString` to `dna.py` to allow printing of a DNA match.
+
 ## 3.0.61 Dec 29, 2018
 
 Added `--reverse` and `--reverseComplement` options to `filter-fasta.py`

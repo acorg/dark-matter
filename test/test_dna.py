@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 
-from dark.dna import AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads
+from dark.dna import (
+    AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString)
 from dark.reads import Read
 
 
@@ -713,3 +714,67 @@ class TestCompareDNAReads(TestCase):
             },
             compareDNAReads(Read('id1', 'ACGTT'),
                             Read('id2', 'ACGCC')))
+
+
+class TestMatchToString(TestCase):
+    """
+    Test the matchToString function.
+    """
+    def testMatchWithAmbiguityButStrict(self):
+        """
+        Two sequences that match exactly, apart from one ambiguity in the first
+        sequence, must compare as expected when we specify matchAmbiguous=False
+        to disallow ambiguous matching.
+        """
+        read1 = Read('id1', 'ACGTTS')
+        read2 = Read('id2', 'ACGTTC')
+        match = compareDNAReads(read1, read2, matchAmbiguous=False)
+
+        self.assertEqual(
+            '''\
+Exact matches: 5/6 (83.33%)
+Ambiguous matches: 0
+Mismatches: 1/6 (16.67%)
+  Not involving gaps (i.e., conflicts or ambiguities): 1/6 (16.67%)
+  Involving a gap in one sequence: 0
+  Involving a gap in both sequences: 0
+  Id: id1
+    Length: 6
+    Gaps: 0
+    Ambiguous: 1/6 (16.67%)
+  Id: id2
+    Length: 6
+    Gaps: 0
+    Ambiguous: 0''',
+            matchToString(match, read1, read2, matchAmbiguous=False)
+        )
+
+    def testMatchWithAmbiguityAndNotStrict(self):
+        """
+        Two sequences that match exactly, apart from one ambiguity in the first
+        sequence, must compare as expected when we specify matchAmbiguous=True
+        to allow ambiguous matching.
+        """
+        read1 = Read('id1', 'ACGTTS')
+        read2 = Read('id2', 'ACGTTC')
+        match = compareDNAReads(read1, read2, matchAmbiguous=True)
+
+        self.assertEqual(
+            '''\
+Exact matches: 5/6 (83.33%)
+Ambiguous matches: 1/6 (16.67%)
+Exact or ambiguous matches: 6/6 (100.00%)
+Mismatches: 0
+  Not involving gaps (i.e., conflicts): 0
+  Involving a gap in one sequence: 0
+  Involving a gap in both sequences: 0
+  Id: id1
+    Length: 6
+    Gaps: 0
+    Ambiguous: 1/6 (16.67%)
+  Id: id2
+    Length: 6
+    Gaps: 0
+    Ambiguous: 0''',
+            matchToString(match, read1, read2, matchAmbiguous=True)
+        )

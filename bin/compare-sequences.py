@@ -7,7 +7,7 @@ import argparse
 from os.path import join
 from math import log10
 
-from dark.dna import compareDNAReads
+from dark.dna import compareDNAReads, matchToString
 from dark.fasta import FastaReads
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
@@ -46,39 +46,6 @@ def needle(reads):
     rmtree(dir)
 
     return result
-
-
-def pct(a, b):
-    """
-    What percent of a is b?
-
-    @param a: a numeric value.
-    @param b: a numeric value.
-    @return: the C{float} percentage.
-    """
-    return 100.0 * a / b if b else 0.0
-
-
-def pp(mesg, count, len1, len2=None):
-    """
-    Print a message followed by an integer count and a percentage (or
-    two, if the sequence lengths are unequal).
-
-    @param mesg: a C{str} message.
-    @param count: a numeric value.
-    @param len1: the C{int} length of sequence 1.
-    @param len2: the C{int} length of sequence 2. If not given, will
-        default to C{len1}.
-    """
-    if count == 0:
-        print('%s: %d' % (mesg, count))
-    else:
-        len2 = len2 or len1
-        if len1 == len2:
-            print('%s: %d (%.2f%%)' % (mesg, count, pct(count, len1)))
-        else:
-            print('%s: %d (%.2f%% of sequence 1; %.2f%% of sequence 2)' % (
-                mesg, count, pct(count, len1), pct(count, len2)))
 
 
 parser = argparse.ArgumentParser(
@@ -162,15 +129,8 @@ identicalLengths = len1 == len2
 if args.align:
     assert identicalLengths
 
-result = compareDNAReads(read1, read2, matchAmbiguous=(not args.strict),
-                         offsets=offsets)
-
-match = result['match']
-identicalMatchCount = match['identicalMatchCount']
-ambiguousMatchCount = match['ambiguousMatchCount']
-gapMismatchCount = match['gapMismatchCount']
-gapGapMismatchCount = match['gapGapMismatchCount']
-nonGapMismatchCount = match['nonGapMismatchCount']
+match = compareDNAReads(read1, read2, matchAmbiguous=(not args.strict),
+                        offsets=offsets)
 
 x = 'Post-alignment, sequence' if args.align else 'Sequence'
 if identicalLengths:
@@ -179,32 +139,8 @@ else:
     print('%s lengths: %d, %d (difference %d)' % (x, len1, len2,
                                                   abs(len1 - len2)))
 
-pp('Exact matches', identicalMatchCount, len1, len2)
-pp('Ambiguous matches', ambiguousMatchCount, len1, len2)
-if ambiguousMatchCount and identicalMatchCount:
-    anyMatchCount = identicalMatchCount + ambiguousMatchCount
-    pp('Exact or ambiguous matches', anyMatchCount, len1, len2)
-mismatchCount = gapMismatchCount + gapGapMismatchCount + nonGapMismatchCount
-pp('Mismatches', mismatchCount, len1, len2)
-conflicts = 'conflicts or ambiguities' if args.strict else 'conflicts'
-pp('  Not involving gaps (i.e., %s)' % conflicts,
-   nonGapMismatchCount, len1, len2)
-pp('  Involving a gap in one sequence', gapMismatchCount, len1, len2)
-pp('  Involving a gap in both sequences', gapGapMismatchCount, len1, len2)
-
-for read, index, key in zip(reads, (args.index1, args.index2),
-                            ('read1', 'read2')):
-    print('Sequence index %d:' % index)
-    print('  Id: %s' % read.id)
-    length = len(read)
-    print('  Length: %d' % length)
-    gapCount = len(result[key]['gapOffsets'])
-    pp('  Gaps', gapCount, length)
-    ambiguousCount = len(result[key]['ambiguousOffsets'])
-    pp('  Ambiguous', ambiguousCount, length)
-    extraCount = result[key]['extraCount']
-    if extraCount:
-        pp('  Extra nucleotides at end', extraCount, length)
+print(matchToString(match, read1, read2, matchAmbiguous=(not args.strict),
+                    offsets=offsets))
 
 if args.showDiffs:
     # Print all sites where the sequences differ.
