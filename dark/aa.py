@@ -1108,7 +1108,7 @@ def clustersForSequence(sequence, propertyNames, missingAAValue=0):
 def matchToString(aaMatch, read1, read2, indent='',
                   offsets=None):
     """
-    Format an aa match as a string.
+    Format amino acid sequence match as a string.
 
     @param aaMatch: A C{dict} returned by C{compareAaReads}.
     @param read1: A C{Read} instance or an instance of one of its subclasses.
@@ -1166,7 +1166,7 @@ def matchToString(aaMatch, read1, read2, indent='',
 def compareAaReads(read1, read2, gapChars='-',
                    offsets=None):
     """
-    Compare two aa sequences.
+    Compare two amino acid sequences.
 
     @param read1: A C{Read} instance or an instance of one of its subclasses.
     @param read2: A C{Read} instance or an instance of one of its subclasses.
