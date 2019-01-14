@@ -8,7 +8,8 @@ from dark.aa import (
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
     NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
     find, AminoAcid, clustersForSequence, propertiesForSequence,
-    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, START_CODON, STOP_CODONS)
+    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, START_CODON, STOP_CODONS,
+    compareAaReads, matchToString)
 from dark.reads import AARead
 
 
@@ -822,3 +823,335 @@ class TestClustersForSequence(TestCase):
             },
             clustersForSequence(read, ['composition', 'hydropathy'],
                                 missingAAValue=10))
+
+
+class TestCompareAaReads(TestCase):
+    """
+    Test the compareAaReads function.
+    """
+    def testEmptySequences(self):
+        """
+        Two empty sequences must compare as expected.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', ''),
+                           AARead('id2', '')))
+
+    def testExactMatch(self):
+        """
+        Two sequences that match exactly must compare as expected.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 5,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GALHN'),
+                           AARead('id2', 'GALHN')))
+
+    def testMismatch(self):
+        """
+        If the sequences have mismatched bases, their count
+        must be given correctly in the nonGapMismatchCount.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 3,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 2,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GALYY'),
+                           AARead('id2', 'GALHN')))
+
+    def testNoOffsets(self):
+        """
+        If an empty set of wanted offsets is passed, the result must be empty.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 0,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GAL-N'),
+                           AARead('id2', 'G-LHN'), offsets=set()))
+
+    def testOffsets(self):
+        """
+        If a set of wanted offsets is passed, the result must be restricted to
+        just those offsets.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 1,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 1,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GAL-L'),
+                           AARead('id2', 'G-LHN'), offsets=set([0, 4])))
+
+    def testGapInFirst(self):
+        """
+        A gap in the first sequence must be dealt with correctly.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 4,
+                    'gapMismatchCount': 1,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [3],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GAL-N'),
+                           AARead('id2', 'GALHN')))
+
+    def testGapInSecond(self):
+        """
+        A gap in the second sequence must be dealt with correctly.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 3,
+                    'gapMismatchCount': 2,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [1, 2],
+                },
+            },
+            compareAaReads(AARead('id1', 'GALHN'),
+                           AARead('id2', 'G--HN')))
+
+    def testNonDefaultGapChars(self):
+        """
+        We must be able to specify the gap characters.
+        """
+        for gap in '+$':
+            self.assertEqual(
+                {
+                    'match': {
+                        'MatchCount': 3,
+                        'gapMismatchCount': 2,
+                        'gapGapMismatchCount': 0,
+                        'nonGapMismatchCount': 0,
+                    },
+                    'read1': {
+                        'extraCount': 0,
+                        'gapOffsets': [2],
+                    },
+                    'read2': {
+                        'extraCount': 0,
+                        'gapOffsets': [0],
+                    },
+                },
+                compareAaReads(AARead('id1', 'GA%sHN' % gap),
+                               AARead('id2', '%sALHN' % gap), gapChars='+$'))
+
+    def testGapGap(self):
+        """
+        Coinciding gaps in the sequences must be dealt with correctly
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 2,
+                    'gapMismatchCount': 2,
+                    'gapGapMismatchCount': 1,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [2, 3],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [1, 2],
+                },
+            },
+            compareAaReads(AARead('id1', 'GA--N'),
+                           AARead('id2', 'G--HN')))
+
+    def testExtraInFirst(self):
+        """
+        If the first sequence has extra bases, they must be indicated in the
+        extraCount.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 5,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 2,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GALHNHN'),
+                           AARead('id2', 'GALHN')))
+
+    def testExtraInSecond(self):
+        """
+        If the second sequence has extra bases, they must be indicated in the
+        extraCount.
+        """
+        self.assertEqual(
+            {
+                'match': {
+                    'MatchCount': 5,
+                    'gapMismatchCount': 0,
+                    'gapGapMismatchCount': 0,
+                    'nonGapMismatchCount': 0,
+                },
+                'read1': {
+                    'extraCount': 0,
+                    'gapOffsets': [],
+                },
+                'read2': {
+                    'extraCount': 2,
+                    'gapOffsets': [],
+                },
+            },
+            compareAaReads(AARead('id1', 'GALHN'),
+                           AARead('id2', 'GALHNHN')))
+
+
+class TestMatchToString(TestCase):
+    """
+    Test the matchToString function.
+    """
+    def testMismatchAndMatch(self):
+        """
+        Two sequences that match exactly, apart from one ambiguity in the first
+        sequence, must compare as expected when we specify matchAmbiguous=False
+        to disallow ambiguous matching.
+        """
+        read1 = AARead('id1', 'GALHNG')
+        read2 = AARead('id2', 'GALHNA')
+        match = compareAaReads(read1, read2)
+
+        self.assertEqual(
+            '''\
+Matches: 5/6 (83.33%)
+Mismatches: 1/6 (16.67%)
+  Not involving gaps (i.e., conflicts): 1/6 (16.67%)
+  Involving a gap in one sequence: 0
+  Involving a gap in both sequences: 0
+  Id: id1
+    Length: 6
+    Gaps: 0
+  Id: id2
+    Length: 6
+    Gaps: 0''',
+            matchToString(match, read1, read2)
+        )
+
+    def testGapAndMatch(self):
+        """
+        Two sequences that match exactly, apart from one ambiguity in the first
+        sequence, must compare as expected when we specify matchAmbiguous=False
+        to disallow ambiguous matching.
+        """
+        read1 = AARead('id1', 'GALHN-')
+        read2 = AARead('id2', 'GALHNA')
+        match = compareAaReads(read1, read2)
+
+        self.assertEqual(
+            '''\
+Matches: 5/6 (83.33%)
+Mismatches: 1/6 (16.67%)
+  Not involving gaps (i.e., conflicts): 0
+  Involving a gap in one sequence: 1/6 (16.67%)
+  Involving a gap in both sequences: 0
+  Id: id1
+    Length: 6
+    Gaps: 1/6 (16.67%)
+    Gap locations (1-based): 6
+  Id: id2
+    Length: 6
+    Gaps: 0''',
+            matchToString(match, read1, read2)
+        )

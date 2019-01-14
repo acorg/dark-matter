@@ -15,7 +15,7 @@ from .mocking import mockOpen, File
 
 from dark.utils import (
     numericallySortFilenames, median, asHandle, parseRangeString, StringIO,
-    baseCountsToStr, nucleotidesToStr)
+    baseCountsToStr, nucleotidesToStr, countPrint)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -353,5 +353,40 @@ class TestNucleotidesToStr(TestCase):
                     0: counts1,
                     7: counts2,
                 }
+            )
+        )
+
+
+class TestCountPrint(TestCase):
+    """
+    Test the countPrint function and the contained percentage function.
+    """
+    def testSimple(self):
+        """
+        A simple example must work as expected.
+        """
+        indent = ''
+        count = 2
+        len1 = 10
+        self.assertEqual(
+            'Count is: 2/10 (20.00%)',
+            countPrint(
+                '%sCount is' % indent, count, len1
+            )
+        )
+
+    def testTwoSequences(self):
+        """
+        An example involving two different lengths must work as expected.
+        """
+        indent = ''
+        count = 2
+        len1 = 10
+        len2 = 8
+        self.assertEqual(
+            'Count is: 2/10 (20.00%) of sequence 1,'
+            ' 2/8 (25.00%) of sequence 2',
+            countPrint(
+                '%sCount is' % indent, count, len1, len2
             )
         )

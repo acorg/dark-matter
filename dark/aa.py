@@ -1,3 +1,13 @@
+from dark.utils import countPrint
+try:
+    from itertools import zip_longest
+except ImportError:
+    # zip_longest does not exist in Python 2.7 itertools. We should be able
+    # to get it via from six.moves import zip_longest according to
+    # https://pythonhosted.org/six/index.html?highlight=zip_longest but
+    # that doesn't work for me.
+    from itertools import izip_longest as zip_longest
+
 # From https://en.wikipedia.org/wiki/Amino_acid
 #
 # Alanine          Ala     A
@@ -1093,3 +1103,144 @@ def clustersForSequence(sequence, propertyNames, missingAAValue=0):
     """
     return _propertiesOrClustersForSequence(
         sequence, propertyNames, PROPERTY_CLUSTERS, missingAAValue)
+
+
+def matchToString(aaMatch, read1, read2, indent='',
+                  offsets=None):
+    """
+    Format an aa match as a string.
+
+    @param aaMatch: A C{dict} returned by C{compareAaReads}.
+    @param read1: A C{Read} instance or an instance of one of its subclasses.
+    @param read2: A C{Read} instance or an instance of one of its subclasses.
+    @param indent: A C{str} to indent all returned lines with.
+    @param offsets: If not C{None}, a C{set} of offsets of interest that were
+        only considered when making C{match}.
+    @return: A C{str} describing the match.
+    """
+    match = aaMatch['match']
+    MatchCount = match['MatchCount']
+    gapMismatchCount = match['gapMismatchCount']
+    gapGapMismatchCount = match['gapGapMismatchCount']
+    nonGapMismatchCount = match['nonGapMismatchCount']
+
+    if offsets:
+        len1 = len2 = len(offsets)
+    else:
+        len1, len2 = map(len, (read1, read2))
+
+    result = []
+    append = result.append
+
+    append(countPrint('%sMatches' % indent, MatchCount, len1, len2))
+    mismatchCount = (gapMismatchCount + gapGapMismatchCount +
+                     nonGapMismatchCount)
+    append(countPrint('%sMismatches' % indent, mismatchCount, len1, len2))
+    append(countPrint('%s  Not involving gaps (i.e., conflicts)' % (indent),
+                      nonGapMismatchCount, len1, len2))
+    append(countPrint('%s  Involving a gap in one sequence' % indent,
+                      gapMismatchCount, len1, len2))
+    append(countPrint('%s  Involving a gap in both sequences' % indent,
+                      gapGapMismatchCount, len1, len2))
+
+    for read, key in zip((read1, read2), ('read1', 'read2')):
+        append('%s  Id: %s' % (indent, read.id))
+        length = len(read)
+        append('%s    Length: %d' % (indent, length))
+        gapCount = len(aaMatch[key]['gapOffsets'])
+        append(countPrint('%s    Gaps' % indent, gapCount, length))
+        if gapCount:
+            append(
+                '%s    Gap locations (1-based): %s' %
+                (indent,
+                 ', '.join(map(lambda offset: str(offset + 1),
+                               sorted(aaMatch[key]['gapOffsets'])))))
+        extraCount = aaMatch[key]['extraCount']
+        if extraCount:
+            append(countPrint('%s    Extra nucleotides at end' % indent,
+                              extraCount, length))
+
+    return '\n'.join(result)
+
+
+def compareAaReads(read1, read2, gapChars='-',
+                   offsets=None):
+    """
+    Compare two aa sequences.
+
+    @param read1: A C{Read} instance or an instance of one of its subclasses.
+    @param read2: A C{Read} instance or an instance of one of its subclasses.
+    @param gapChars: An object supporting __contains__ with characters that
+        should be considered to be gaps.
+    @param offsets: If not C{None}, a C{set} of offsets of interest. Offsets
+        not in the set will not be considered.
+    @return: A C{dict} with information about the match and the individual
+        sequences (see below).
+    """
+    MatchCount = 0
+    gapMismatchCount = nonGapMismatchCount = gapGapMismatchCount = 0
+    read1ExtraCount = read2ExtraCount = 0
+    read1GapOffsets = []
+    read2GapOffsets = []
+
+    def _Match(a, b):
+        return a == b
+
+    for offset, (a, b) in enumerate(zip_longest(read1.sequence.upper(),
+                                                read2.sequence.upper())):
+        # Use 'is not None' in the following to allow an empty offsets set
+        # to be passed.
+        if offsets is not None and offset not in offsets:
+            continue
+        if a is None:
+            # b has an extra character at its end (it cannot be None).
+            assert b is not None
+            read2ExtraCount += 1
+            if b in gapChars:
+                read2GapOffsets.append(offset)
+        elif b is None:
+            # a has an extra character at its end.
+            read1ExtraCount += 1
+            if a in gapChars:
+                read1GapOffsets.append(offset)
+        else:
+            # We have a character from both sequences (they could still be
+            # gap characters).
+            if a in gapChars:
+                read1GapOffsets.append(offset)
+                if b in gapChars:
+                    # Both are gaps. This can happen (though hopefully not
+                    # if the sequences were pairwise aligned).
+                    gapGapMismatchCount += 1
+                    read2GapOffsets.append(offset)
+                else:
+                    # a is a gap, b is not.
+                    gapMismatchCount += 1
+            else:
+                if b in gapChars:
+                    # b is a gap, a is not.
+                    gapMismatchCount += 1
+                    read2GapOffsets.append(offset)
+                else:
+                    # Neither is a gap character.
+                    if _Match(a, b):
+                        MatchCount += 1
+                    else:
+                        nonGapMismatchCount += 1
+
+    return {
+        'match': {
+            'MatchCount': MatchCount,
+            'gapMismatchCount': gapMismatchCount,
+            'gapGapMismatchCount': gapGapMismatchCount,
+            'nonGapMismatchCount': nonGapMismatchCount,
+        },
+        'read1': {
+            'extraCount': read1ExtraCount,
+            'gapOffsets': read1GapOffsets,
+        },
+        'read2': {
+            'extraCount': read2ExtraCount,
+            'gapOffsets': read2GapOffsets,
+        },
+    }
