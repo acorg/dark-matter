@@ -1,3 +1,9 @@
+## 3.0.63 Jan 14, 2019
+
+Added `compareAaReads` and `matchToString` to `aa.py`. Wrote tests in 
+`test_aa.py` for both. Moved `countPrint` to utils, used by `matchToString`
+in `dna.py` and `aa.py`. Added `compare-aa-sequences.py` to the bin. 
+
 ## 3.0.62 Dec 30, 2018
 
 Added `matchToString` to `dna.py` to allow printing of a DNA match.
