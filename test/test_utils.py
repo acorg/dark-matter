@@ -367,8 +367,8 @@ class TestCountPrint(TestCase):
         """
         count = 2
         len1 = 10
-        self.assertEqual('Count is: 2/10 (20.00%)', countPrint(
-                         'Count is', count, len1))
+        self.assertEqual('Count is: 2/10 (20.00%)',
+                         countPrint('Count is', count, len1))
 
     def testTwoSequences(self):
         """
