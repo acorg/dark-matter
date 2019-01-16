@@ -1119,7 +1119,7 @@ def matchToString(aaMatch, read1, read2, indent='',
     @return: A C{str} describing the match.
     """
     match = aaMatch['match']
-    MatchCount = match['MatchCount']
+    matchCount = match['matchCount']
     gapMismatchCount = match['gapMismatchCount']
     gapGapMismatchCount = match['gapGapMismatchCount']
     nonGapMismatchCount = match['nonGapMismatchCount']
@@ -1132,7 +1132,7 @@ def matchToString(aaMatch, read1, read2, indent='',
     result = []
     append = result.append
 
-    append(countPrint('%sMatches' % indent, MatchCount, len1, len2))
+    append(countPrint('%sMatches' % indent, matchCount, len1, len2))
     mismatchCount = (gapMismatchCount + gapGapMismatchCount +
                      nonGapMismatchCount)
     append(countPrint('%sMismatches' % indent, mismatchCount, len1, len2))
@@ -1163,8 +1163,7 @@ def matchToString(aaMatch, read1, read2, indent='',
     return '\n'.join(result)
 
 
-def compareAaReads(read1, read2, gapChars='-',
-                   offsets=None):
+def compareAaReads(read1, read2, gapChars='-', offsets=None):
     """
     Compare two amino acid sequences.
 
@@ -1177,14 +1176,11 @@ def compareAaReads(read1, read2, gapChars='-',
     @return: A C{dict} with information about the match and the individual
         sequences (see below).
     """
-    MatchCount = 0
+    matchCount = 0
     gapMismatchCount = nonGapMismatchCount = gapGapMismatchCount = 0
     read1ExtraCount = read2ExtraCount = 0
     read1GapOffsets = []
     read2GapOffsets = []
-
-    def _Match(a, b):
-        return a == b
 
     for offset, (a, b) in enumerate(zip_longest(read1.sequence.upper(),
                                                 read2.sequence.upper())):
@@ -1223,14 +1219,14 @@ def compareAaReads(read1, read2, gapChars='-',
                     read2GapOffsets.append(offset)
                 else:
                     # Neither is a gap character.
-                    if _Match(a, b):
-                        MatchCount += 1
+                    if a == b:
+                        matchCount += 1
                     else:
                         nonGapMismatchCount += 1
 
     return {
         'match': {
-            'MatchCount': MatchCount,
+            'matchCount': matchCount,
             'gapMismatchCount': gapMismatchCount,
             'gapGapMismatchCount': gapGapMismatchCount,
             'nonGapMismatchCount': nonGapMismatchCount,

@@ -836,7 +836,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 0,
+                    'matchCount': 0,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -860,7 +860,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 5,
+                    'matchCount': 5,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -885,7 +885,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 3,
+                    'matchCount': 3,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 2,
@@ -909,7 +909,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 0,
+                    'matchCount': 0,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -934,7 +934,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 1,
+                    'matchCount': 1,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 1,
@@ -958,7 +958,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 4,
+                    'matchCount': 4,
                     'gapMismatchCount': 1,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -982,7 +982,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 3,
+                    'matchCount': 3,
                     'gapMismatchCount': 2,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -1007,7 +1007,7 @@ class TestCompareAaReads(TestCase):
             self.assertEqual(
                 {
                     'match': {
-                        'MatchCount': 3,
+                        'matchCount': 3,
                         'gapMismatchCount': 2,
                         'gapGapMismatchCount': 0,
                         'nonGapMismatchCount': 0,
@@ -1031,7 +1031,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 2,
+                    'matchCount': 2,
                     'gapMismatchCount': 2,
                     'gapGapMismatchCount': 1,
                     'nonGapMismatchCount': 0,
@@ -1056,7 +1056,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 5,
+                    'matchCount': 5,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -1081,7 +1081,7 @@ class TestCompareAaReads(TestCase):
         self.assertEqual(
             {
                 'match': {
-                    'MatchCount': 5,
+                    'matchCount': 5,
                     'gapMismatchCount': 0,
                     'gapGapMismatchCount': 0,
                     'nonGapMismatchCount': 0,
@@ -1105,9 +1105,8 @@ class TestMatchToString(TestCase):
     """
     def testMismatchAndMatch(self):
         """
-        Two sequences that match exactly, apart from one ambiguity in the first
-        sequence, must compare as expected when we specify matchAmbiguous=False
-        to disallow ambiguous matching.
+        Two sequences containing matches and mismatches must compare as
+        expected.
         """
         read1 = AARead('id1', 'GALHNG')
         read2 = AARead('id2', 'GALHNA')
@@ -1131,9 +1130,8 @@ Mismatches: 1/6 (16.67%)
 
     def testGapAndMatch(self):
         """
-        Two sequences that match exactly, apart from one ambiguity in the first
-        sequence, must compare as expected when we specify matchAmbiguous=False
-        to disallow ambiguous matching.
+        Two sequences containing matches and gaps must compare as
+        expected.
         """
         read1 = AARead('id1', 'GALHN-')
         read2 = AARead('id2', 'GALHNA')
