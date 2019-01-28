@@ -1,3 +1,8 @@
+## 3.0.64 Jan 28, 2019
+
+Removed bone-headed use of full path to `fasta-join.sh` from
+`bin/fasta-diff.sh`.
+
 ## 3.0.63 Jan 14, 2019
 
 Added `compareAaReads` and `matchToString` to `aa.py`. Wrote tests in 
