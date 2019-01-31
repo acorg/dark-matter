@@ -1,3 +1,10 @@
+## 3.0.64 Jan 31, 2019
+
+Fixed `AAread.ORFs` function in the `AARead` class and moved the
+`--allowOpenORFs` (True/False) check to within the function. Added a
+`DNAKozakRead` class. Changed `extract-ORFs.py` so that information
+about Kozak consensus sequences can be returned.
+
 ## 3.0.63 Jan 14, 2019
 
 Added `compareAaReads` and `matchToString` to `aa.py`. Wrote tests in 
