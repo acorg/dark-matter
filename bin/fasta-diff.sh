@@ -42,7 +42,7 @@ function oneLine()
     tmp="$2"
     removeIds="$3"
 
-    catter=cat
+    catter=stdin
     fastq=''
 
     case "$file" in
@@ -54,7 +54,7 @@ function oneLine()
     esac
 
     case $catter in
-        cat) echo "$HOME/dark-matter/dark-matter/bin/fasta-join.py $removeIds $fastq < \"$file\" | sort > \"$tmp\"";;
+        stdin) echo "fasta-join.py $removeIds $fastq < \"$file\" | sort > \"$tmp\"";;
         *) echo "$catter < \"$file\" | fasta-join.py $removeIds $fastq | sort > \"$tmp\"";;
     esac
 }

@@ -1,9 +1,14 @@
-## 3.0.64 Jan 31, 2019
+## 3.0.65 Jan 31, 2019
 
 Fixed `AAread.ORFs` function in the `AARead` class and moved the
 `--allowOpenORFs` (True/False) check to within the function. Added a
 `DNAKozakRead` class. Changed `extract-ORFs.py` so that information
 about Kozak consensus sequences can be returned.
+
+## 3.0.64 Jan 28, 2019
+
+Removed bone-headed use of full path to `fasta-join.sh` from
+`bin/fasta-diff.sh`.
 
 ## 3.0.63 Jan 14, 2019
 
