@@ -1,4 +1,5 @@
 from dark.utils import countPrint
+from dark.reads import DNAKozakRead
 try:
     from itertools import zip_longest
 except ImportError:
@@ -215,3 +216,43 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
             'gapOffsets': read2GapOffsets,
         },
     }
+
+
+def findKozakConsensus(read):
+        """
+        In a given DNA sequence, search for a Kozak consensus: (gcc)gccRccATGG.
+        Upper case bases are required, lower case bases are the most frequent
+        bases at the given position. Sequence in brackets are of uncertain
+        significance and are not taken into account here.
+
+        @param read: A C{DNARead} instance to be checked for Kozak consensi.
+
+        @return: A generator that yields the read, id, original Read, start
+        offset, stop offset and quality percentage of the Kozak consensus
+        sequence. Included Kozak consensuses have all required bases. The
+        consensus at non-required bases of significance is given in the
+        quality percentage (x out of 5).
+        """
+        readLen = len(read)
+        offset = 0
+        while offset < readLen:
+            triplet = read.sequence[offset:offset + 3]
+            if triplet == 'ATG':
+                # Replace this with a regular expression?
+                if read.sequence[offset + 3] == 'G':
+                    if read.sequence[offset - 3] in 'GA':
+                        kozakQualityCount = 0
+                        if read.sequence[offset - 1] == 'C':
+                            kozakQualityCount += 1
+                        if read.sequence[offset - 2] == 'C':
+                            kozakQualityCount += 1
+                        if read.sequence[offset - 4] == 'C':
+                            kozakQualityCount += 1
+                        if read.sequence[offset - 5] == 'C':
+                            kozakQualityCount += 1
+                        if read.sequence[offset - 6] == 'G':
+                            kozakQualityCount += 1
+                        kozakQualityPercent = kozakQualityCount / 5 * 100
+                        yield DNAKozakRead(read, offset - 6, offset + 4,
+                                           kozakQualityPercent)
+            offset = offset + 1

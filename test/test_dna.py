@@ -3,8 +3,9 @@ from unittest import TestCase
 from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 
 from dark.dna import (
-    AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString)
-from dark.reads import Read
+    AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString,
+    findKozakConsensus)
+from dark.reads import Read, DNARead, DNAKozakRead
 
 
 class TestAmbiguousLetters(TestCase):
@@ -778,3 +779,57 @@ Mismatches: 0
     Ambiguous: 0''',
             matchToString(match, read1, read2, matchAmbiguous=True)
         )
+
+
+class TestFindKozakConsensus(TestCase):
+    """
+    Test the findKozakConsensus function.
+    """
+    def testOneKozakConsensus(self):
+        """
+        In a given sequence with an exact Kozak consensus sequence, the offset
+        and quality percentage should be as expected.
+        """
+        read = DNARead('id', 'ATTGCCGCCATGGGGG')
+        expectedRead = DNARead('id', 'ATTGCCGCCATGGGGG')
+        expectedKozakRead = DNAKozakRead(expectedRead, 3, 13, 100.0)
+
+        for kozakConsensus in findKozakConsensus(read):
+            self.assertEqual(expectedKozakRead.id, kozakConsensus.id)
+            self.assertEqual(expectedKozakRead.sequence,
+                             kozakConsensus.sequence)
+            self.assertEqual(3, kozakConsensus.start)
+            self.assertEqual(13, kozakConsensus.stop)
+            self.assertEqual(100.0, kozakConsensus.kozakQuality)
+
+    def testNoKozakConsensus1(self):
+        """
+        In a given sequence without a Kozak consensus, the output should be
+        as expected.
+        """
+        read = DNARead('id', 'ATTGCCTCCATGGGGG')
+        self.assertEqual([],
+                         list(findKozakConsensus(read)))
+
+    def testNoKozakConsensus2(self):
+        """
+        In a given sequence without a Kozak consensus, the output should be
+        as expected.
+        """
+        read = DNARead('id', 'ATTGCCGCCATGAGGG')
+        self.assertEqual([],
+                         list(findKozakConsensus(read)))
+
+    def testFindTwoKozakConsensi(self):
+        """
+        In a given sequence with two Kozak consensuses of different offsets
+        and qualities, the output should be as expected.
+        """
+        read = DNARead('id', 'ATTGCCGCCATGGGGGGCCATGG')
+        expectedRead1 = DNARead('id', 'ATTGCCGCCATGGGGGGCCATGG')
+        expectedRead2 = DNARead('id', 'ATTGCCGCCATGGGGGGCCATGG')
+        expectedKozakRead1 = DNAKozakRead(expectedRead1, 3, 13, 100.0)
+        expectedKozakRead2 = DNAKozakRead(expectedRead2, 13, 23, 60.0)
+
+        self.assertEqual([expectedKozakRead1, expectedKozakRead2],
+                         list(findKozakConsensus(read)))
