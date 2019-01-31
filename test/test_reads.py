@@ -860,7 +860,6 @@ class TestDNAKozakRead(TestCase):
         error = 'start offset \\(-1\\) less than zero'
         six.assertRaisesRegex(
             self, ValueError, error, DNAKozakRead, originalRead, -1, 6, 100.0)
-        
 
     def testStartGreaterThanStop(self):
         """
