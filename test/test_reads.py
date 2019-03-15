@@ -839,8 +839,6 @@ class TestDNAKozakRead(TestCase):
         originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
         read = DNAKozakRead(originalRead, 2, 4, 100.0)
         self.assertEqual(2, read.start)
-        read = DNAKozakRead(originalRead, 4, 10, 100.0)
-        self.assertEqual(4, read.start)
 
     def testStop(self):
         """
@@ -857,7 +855,7 @@ class TestDNAKozakRead(TestCase):
         A DNAKozakRead start offset must not be less than zero.
         """
         originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
-        error = 'start offset \\(-1\\) less than zero'
+        error = r'^start offset \(-1\) less than zero$'
         six.assertRaisesRegex(
             self, ValueError, error, DNAKozakRead, originalRead, -1, 6, 100.0)
 
@@ -992,81 +990,72 @@ class TestAARead(TestCase):
         """
         An AA read of length zero must not have any ORFs.
         """
-        OpenORFs = True
         read = AARead('id', '')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
     def testORFsEmptySequenceWithStartStop(self):
         """
         An AA read with just a start and stop codon must not have any ORFs.
         """
-        OpenORFs = False
         read = AARead('id', 'M*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(0, len(orfs))
 
     def testORFsEmptySequenceWithStartStopOpenORFs(self):
         """
         An AA read with just a start and stop codon must not have any ORFs.
         """
-        OpenORFs = True
         read = AARead('id', 'M*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
     def testORFsEmptySequenceWithStart(self):
         """
         An AA read with just a start codon must not have any ORFs.
         """
-        OpenORFs = False
         read = AARead('id', 'M')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(0, len(orfs))
 
     def testORFsEmptySequenceWithStartOpenORFs(self):
         """
         An AA read with just a start codon must not have any ORFs.
         """
-        OpenORFs = True
         read = AARead('id', 'M')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
     def testORFsWithOneStopCodon(self):
         """
         An AA read of a single stop codon must not have any ORFs.
         """
-        OpenORFs = False
         read = AARead('id', '*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(0, len(orfs))
 
     def testORFsWithOneStopCodonOpenORFs(self):
         """
         An AA read of a single stop codon must not have any ORFs.
         """
-        OpenORFs = True
         read = AARead('id', '*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
     def testORFsWithTwoStopCodons(self):
         """
         An AA read of two stop codons must not have any ORFs.
         """
-        OpenORFs = True
         read = AARead('id', '**')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
     def testORFsWithJustStartsAndStops(self):
         """
         An AA read of only start and stop codons must not have any ORFs.
         """
-        OpenORFs = False
         read = AARead('id', '**MM*M**MMM*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(2, len(orfs))
 
     def testOpenOpenORF(self):
@@ -1076,9 +1065,8 @@ class TestAARead(TestCase):
         the correct start/stop offsets and its left and right side must be
         marked as open.
         """
-        OpenORFs = True
         read = AARead('id', 'ADRADR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
         self.assertEqual('ADRADR', orf.sequence)
@@ -1096,9 +1084,8 @@ class TestAARead(TestCase):
         left and right sides must be marked as open and closed,
         respectively.
         """
-        OpenORFs = True
         read = AARead('id', 'ADRADR*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
         self.assertEqual('ADRADR', orf.sequence)
@@ -1116,9 +1103,8 @@ class TestAARead(TestCase):
         and its left and right sides must be marked as open and closed,
         respectively.
         """
-        OpenORFs = True
         read = AARead('id', 'ADRADR***')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
         self.assertEqual('ADRADR', orf.sequence)
@@ -1136,9 +1122,8 @@ class TestAARead(TestCase):
         left and right sides must be marked as closed and open,
         respectively.
         """
-        OpenORFs = True
         read = AARead('id', 'MMMADRADR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
         self.assertEqual('MMMADRADR', orf.sequence)
@@ -1155,9 +1140,8 @@ class TestAARead(TestCase):
         the correct start/stop offsets and its left and right sides must be
         both marked as closed.
         """
-        OpenORFs = False
         read = AARead('id', 'MADRADR*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
         self.assertEqual('ADRADR', orf.sequence)
@@ -1174,11 +1158,8 @@ class TestAARead(TestCase):
         the correct start/stop offsets and its left and right sides must be
         both marked as closed.
         """
-        OpenORFs = False
         read = AARead('id', 'AAAMADRADR*')
-        orfs = list(read.ORFs(OpenORFs))
-        self.assertEqual(1, len(orfs))
-        orf = orfs[0]
+        [orf] = list(read.ORFs(False))
         self.assertEqual('ADRADR', orf.sequence)
         self.assertEqual(4, orf.start)
         self.assertEqual(10, orf.stop)
@@ -1192,9 +1173,8 @@ class TestAARead(TestCase):
         followed by an ORF that is left closed and right open must have the
         ORFs detected correctly when its ORFs method is called.
         """
-        OpenORFs = True
         read = AARead('id', 'ADR*MRRR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
@@ -1219,9 +1199,8 @@ class TestAARead(TestCase):
         followed by an ORF that is left closed and right open must have the
         ORFs detected correctly when its ORFs method is called.
         """
-        OpenORFs = True
         read = AARead('id', '*MADR*MRRR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
@@ -1245,9 +1224,8 @@ class TestAARead(TestCase):
         An AA read that contains two ORFs that are both left and right closed
         must have the ORFs detected correctly when its ORFs method is called.
         """
-        OpenORFs = False
         read = AARead('id', 'MADR*MRRR*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
@@ -1273,9 +1251,8 @@ class TestAARead(TestCase):
         and right open must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        OpenORFs = True
         read = AARead('id', 'ADR*MAAA*MRRR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(3, len(orfs))
 
         orf = orfs[0]
@@ -1309,9 +1286,8 @@ class TestAARead(TestCase):
         and right open must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        OpenORFs = False
         read = AARead('id', 'MADR*MAAA*MRRR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
@@ -1337,9 +1313,8 @@ class TestAARead(TestCase):
         right closed must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        OpenORFs = False
         read = AARead('id', 'MADR*MAAA*MRRR*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(3, len(orfs))
 
         orf = orfs[0]
@@ -1374,9 +1349,8 @@ class TestAARead(TestCase):
         method is called, including when there are intermediate start and
         stop codons.
         """
-        OpenORFs = True
         read = AARead('id', 'ADR***M*MAAA***MMM*MRRR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(4, len(orfs))
 
         orf = orfs[0]
@@ -1418,9 +1392,8 @@ class TestAARead(TestCase):
         and right open must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        OpenORFs = True
         read = AARead('id', '**MADR***MM**MAAA***M*MRRR')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(4, len(orfs))
 
         orf = orfs[0]
@@ -1462,9 +1435,8 @@ class TestAARead(TestCase):
         right closed must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        OpenORFs = False
         read = AARead('id', 'M***MADR***MAAA***MRRR***MM')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(False))
         self.assertEqual(3, len(orfs))
 
         orf = orfs[0]
@@ -1497,9 +1469,8 @@ class TestAARead(TestCase):
         as an ORF.
         """
         # Example from https://github.com/acorg/dark-matter/issues/239
-        OpenORFs = True
         read = AARead('id', 'KK*LLILFSCQRWSRKSICVHLTQR*G*')
-        orfs = list(read.ORFs(OpenORFs))
+        orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
         orf = orfs[0]

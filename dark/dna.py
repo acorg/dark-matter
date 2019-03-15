@@ -222,8 +222,8 @@ def findKozakConsensus(read):
         """
         In a given DNA sequence, search for a Kozak consensus: (gcc)gccRccATGG.
         Upper case bases are required, lower case bases are the most frequent
-        bases at the given position. Sequence in brackets are of uncertain
-        significance and are not taken into account here.
+        bases at the given position. The sequence in brackets is of uncertain
+        significance and is not taken into account here.
 
         @param read: A C{DNARead} instance to be checked for Kozak consensi.
 
@@ -235,23 +235,20 @@ def findKozakConsensus(read):
         """
         readLen = len(read)
         offset = 0
+        readSeq = read.sequence
         while offset < readLen:
-            triplet = read.sequence[offset:offset + 3]
+            triplet = readSeq[offset:offset + 3]
             if triplet == 'ATG':
                 # Replace this with a regular expression?
-                if read.sequence[offset + 3] == 'G':
-                    if read.sequence[offset - 3] in 'GA':
-                        kozakQualityCount = 0
-                        if read.sequence[offset - 1] == 'C':
-                            kozakQualityCount += 1
-                        if read.sequence[offset - 2] == 'C':
-                            kozakQualityCount += 1
-                        if read.sequence[offset - 4] == 'C':
-                            kozakQualityCount += 1
-                        if read.sequence[offset - 5] == 'C':
-                            kozakQualityCount += 1
-                        if read.sequence[offset - 6] == 'G':
-                            kozakQualityCount += 1
+                if readSeq[offset + 3] == 'G':
+                    if readSeq[offset - 3] in 'GA':
+                        kozakQualityCount = sum((((
+                            readSeq[offset - 1] == 'C',
+                            readSeq[offset - 2] == 'C',
+                            readSeq[offset - 4] == 'C',
+                            readSeq[offset - 5] == 'C',
+                            readSeq[offset - 6] == 'G'))))
+
                         kozakQualityPercent = kozakQualityCount / 5 * 100
                         yield DNAKozakRead(read, offset - 6, offset + 4,
                                            kozakQualityPercent)

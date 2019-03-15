@@ -791,8 +791,7 @@ class TestFindKozakConsensus(TestCase):
         and quality percentage should be as expected.
         """
         read = DNARead('id', 'ATTGCCGCCATGGGGG')
-        expectedRead = DNARead('id', 'ATTGCCGCCATGGGGG')
-        expectedKozakRead = DNAKozakRead(expectedRead, 3, 13, 100.0)
+        expectedKozakRead = DNAKozakRead(read, 3, 13, 100.0)
 
         for kozakConsensus in findKozakConsensus(read):
             self.assertEqual(expectedKozakRead.id, kozakConsensus.id)

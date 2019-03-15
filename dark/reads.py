@@ -414,13 +414,45 @@ class AARead(Read):
         """
         return (PROPERTY_DETAILS.get(aa, NONE) for aa in self.sequence)
 
-    def ORFs(self, openORFs):
+    def ORFs(self, openORFs=False):
         """
         Find all ORFs in our sequence.
 
         @return: A generator that yields AAReadORF instances that correspond
             to the ORFs found in the AA sequence.
         """
+
+        # Return open ORFs to the left and right and closed ORFs within the
+        # sequence.
+        if openORFs:
+            ORFStart = 0
+            inOpenORF = True  # open on the left
+            inORF = False
+
+            for index, residue in enumerate(self.sequence):
+                if residue == '*':
+                    if inOpenORF:
+                        if index:
+                            yield AAReadORF(self, ORFStart, index, True, False)
+                        inOpenORF = False
+                    if inORF:
+                        if ORFStart != index:
+                            yield AAReadORF(self, ORFStart, index,
+                                            False, False)
+                        inORF = False
+                if residue == 'M':
+                    if not inOpenORF and not inORF:
+                        ORFStart = index + 1
+                        inORF = True
+
+            # End of sequence. Yield the final ORF, open to the right, if there
+            # is one and it has non-zero length.
+            length = len(self.sequence)
+            if inOpenORF and length > 0:
+                yield AAReadORF(self, ORFStart, length, True, True)
+            elif inORF and ORFStart != index:
+                yield AAReadORF(self, ORFStart, length, False, True)
+
         # Return only closed ORFs.
         if not openORFs:
             inORF = False
@@ -438,41 +470,6 @@ class AARead(Read):
                             yield AAReadORF(self, ORFStart,
                                             index, False, False)
                             inORF = False
-
-        # Return open ORFs to the left and right and closed ORFs within the
-        # sequence.
-        if openORFs:
-            ORFStart = 0
-            inOpenORF = True  # open on the left
-            inORF = False
-
-            for index, residue in enumerate(self.sequence):
-                if residue == '*':
-                    if inOpenORF:
-                        if index == 0:
-                            inOpenORF = False
-                        else:
-                            yield AAReadORF(self, ORFStart, index, True, False)
-                            inOpenORF = False
-                    if inORF:
-                        if ORFStart == index:
-                            inORF = False
-                        else:
-                            yield AAReadORF(self, ORFStart, index,
-                                            False, False)
-                            inORF = False
-                if residue == 'M':
-                    if not inOpenORF and not inORF:
-                        ORFStart = index + 1
-                        inORF = True
-
-            # End of sequence. Yield the final ORF, open to the right, if there
-            # is one and it has non-zero length.
-            length = len(self.sequence)
-            if inOpenORF and length > 0:
-                yield AAReadORF(self, ORFStart, length, True, True)
-            if inORF and ORFStart != index:
-                yield AAReadORF(self, ORFStart, length, False, True)
 
 
 class AAReadWithX(AARead):
