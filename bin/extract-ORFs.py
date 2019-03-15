@@ -112,7 +112,7 @@ if __name__ == '__main__':
                         else:
                             # If all ORFs are wanted, write all ORFs to stdout.
                             print(orf.toString('fasta'), end='')
-                            # If extra Kozak consensus information is wanted:
+                        # If extra Kozak consensus information is wanted:
                         if kozakInfoFile:
                             for kozakread in findKozakConsensus(read):
                                 writeToKozakOut(kozakread, kozakInfoFile)

@@ -787,7 +787,7 @@ class TestFindKozakConsensus(TestCase):
     """
     def testNoSequence(self):
         """
-        If no string is passed, what should happen?
+        If no sequence is given, no ORF should be found.
         """
         read = DNARead('id', '')
         self.assertEqual([],
