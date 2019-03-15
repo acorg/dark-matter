@@ -785,6 +785,22 @@ class TestFindKozakConsensus(TestCase):
     """
     Test the findKozakConsensus function.
     """
+    def testNoSequence(self):
+        """
+        If no string is passed, what should happen?
+        """
+        read = DNARead('id', '')
+        self.assertEqual([],
+                         list(findKozakConsensus(read)))
+
+    def testShortSequence(self):
+        """
+        If a 4 nt long sequence is given, no ORF should be found.
+        """
+        read = DNARead('id', 'ATTG')
+        self.assertEqual([],
+                         list(findKozakConsensus(read)))
+
     def testOneKozakConsensus(self):
         """
         In a given sequence with an exact Kozak consensus sequence, the offset

@@ -435,12 +435,12 @@ class AARead(Read):
                         if index:
                             yield AAReadORF(self, ORFStart, index, True, False)
                         inOpenORF = False
-                    if inORF:
+                    elif inORF:
                         if ORFStart != index:
                             yield AAReadORF(self, ORFStart, index,
                                             False, False)
                         inORF = False
-                if residue == 'M':
+                elif residue == 'M':
                     if not inOpenORF and not inORF:
                         ORFStart = index + 1
                         inORF = True
@@ -454,7 +454,7 @@ class AARead(Read):
                 yield AAReadORF(self, ORFStart, length, False, True)
 
         # Return only closed ORFs.
-        if not openORFs:
+        else:
             inORF = False
 
             for index, residue in enumerate(self.sequence):
@@ -462,14 +462,12 @@ class AARead(Read):
                     if not inORF:
                         inORF = True
                         ORFStart = index + 1
-                if residue == '*':
+                elif residue == '*':
                     if inORF:
-                        if ORFStart == index:
-                            inORF = False
-                        else:
+                        if not ORFStart == index:
                             yield AAReadORF(self, ORFStart,
                                             index, False, False)
-                            inORF = False
+                        inORF = False
 
 
 class AAReadWithX(AARead):
@@ -762,13 +760,13 @@ class TranslatedRead(AARead):
         new.reverseComplemented = d['reverseComplemented']
         return new
 
-    def maximumORFLength(self):
+    def maximumORFLength(self, openORFs=True):
         """
         Return the length of the longest (possibly partial) ORF in a translated
         read. The ORF may originate or terminate outside the sequence, which is
         why the length is just a lower bound.
         """
-        return max(len(orf) for orf in self.ORFs(True))
+        return max(len(orf) for orf in self.ORFs(openORFs))
 
 
 class ReadFilter(object):

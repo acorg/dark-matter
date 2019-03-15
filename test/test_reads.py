@@ -2054,9 +2054,18 @@ class TestTranslatedRead(TestCase):
         """
         The maximumORFLength function must return the correct value.
         """
-        read = Read('id', 'acctaggttgtttag')
+        read = Read('id', 'acctagatggttgtttag')
         translated = TranslatedRead(read, 'T*MVV*', 0)
         self.assertEqual(2, translated.maximumORFLength())
+
+    def testMaximumORFLengthNoOpenORF(self):
+        """
+        The maximumORFLength function must return the correct value if
+        open ORFs are not allowed.
+        """
+        read = Read('id', 'atgacctagatggttgtttag')
+        translated = TranslatedRead(read, 'MT*MVV*', 0)
+        self.assertEqual(2, translated.maximumORFLength(False))
 
     def testToDict(self):
         """

@@ -236,20 +236,20 @@ def findKozakConsensus(read):
         readLen = len(read)
         offset = 0
         readSeq = read.sequence
-        while offset < readLen:
-            triplet = readSeq[offset:offset + 3]
-            if triplet == 'ATG':
-                # Replace this with a regular expression?
-                if readSeq[offset + 3] == 'G':
-                    if readSeq[offset - 3] in 'GA':
-                        kozakQualityCount = sum((((
-                            readSeq[offset - 1] == 'C',
-                            readSeq[offset - 2] == 'C',
-                            readSeq[offset - 4] == 'C',
-                            readSeq[offset - 5] == 'C',
-                            readSeq[offset - 6] == 'G'))))
+        if readLen > 9:
+            while offset < readLen + 3:
+                triplet = readSeq[offset:offset + 3]
+                if triplet == 'ATG':
+                    if readSeq[offset + 3] == 'G':
+                        if readSeq[offset - 3] in 'GA':
+                            kozakQualityCount = sum((
+                                readSeq[offset - 1] == 'C',
+                                readSeq[offset - 2] == 'C',
+                                readSeq[offset - 4] == 'C',
+                                readSeq[offset - 5] == 'C',
+                                readSeq[offset - 6] == 'G'))
 
-                        kozakQualityPercent = kozakQualityCount / 5 * 100
-                        yield DNAKozakRead(read, offset - 6, offset + 4,
-                                           kozakQualityPercent)
-            offset = offset + 1
+                            kozakQualityPercent = kozakQualityCount / 5 * 100
+                            yield DNAKozakRead(read, offset - 6, offset + 4,
+                                               kozakQualityPercent)
+                offset += 1
