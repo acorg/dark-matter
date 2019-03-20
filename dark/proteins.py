@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 
+import sys
 from collections import defaultdict, Counter
 import numpy as np
 from os.path import dirname, join
@@ -7,12 +8,15 @@ from operator import itemgetter
 import re
 from six.moves.urllib.parse import quote
 from textwrap import fill
+import sqlite3
+import os
+from Bio import SeqIO
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.html import NCBISequenceLinkURL
-from dark.reads import Reads
+from dark.reads import Reads, AARead
 
 # The following regex is deliberately greedy (using .*) to consume the
 # whole protein name before backtracking to find the last [pathogen name]
@@ -882,3 +886,236 @@ class ProteinGrouper(object):
         plt.subplots_adjust(hspace=0.4)
 
         figure.savefig(filename)
+
+
+class SqliteIndex(object):
+    """
+    Create an Sqlite3 database holding FASTA sequence ids, file names, and
+    offsets for fast random dictionary-like access.
+
+    @param dbFilename: A C{str} file name containing an sqlite3 database. If
+        the file does not exist it will be created. The special string
+        ":memory:" can be used to create an in-memory database.
+    @param accessionToName: A C{dict} mapping accession number to the C{str}
+        name of the nucleotide sequence used in the FASTA file from which
+        the accession numbers were extracted.
+    @param readClass: The class of read that should be returned by __getitem__.
+    """
+    def __init__(self, dbFilename, accessionToName, readClass=AARead):
+        self._accessionToName = accessionToName
+        self._readClass = readClass
+        self._creating = (dbFilename == ':memory:' or
+                          not os.path.exists(dbFilename))
+        self._connection = sqlite3.connect(dbFilename)
+        if self._creating:
+            # Create a new database.
+            cur = self._connection.cursor()
+            cur.executescript('''
+                CREATE TABLE proteins (
+                    accession VARCHAR UNIQUE PRIMARY KEY,
+                    sequence VARCHAR NOT NULL,
+                    offsets VARCHAR NOT NULL,
+                    reversed INTEGER,
+                    gene VARCHAR,
+                    note VARCHAR);
+
+                CREATE TABLE genomes (
+                    accession VARCHAR UNIQUE PRIMARY KEY,
+                    proteinCount INTEGER,
+                    taxid INTEGER);
+                ''')
+            self._connection.commit()
+
+    def addFile(self, filename):
+        """
+        Add proteins from a new file of GenBank info.
+
+        @param filename: A C{str} file name, with the file in GenBank format.
+        @raise ValueError: If a file with this name has already been added or
+            if the file contains a protein sequence whose id has already been
+            seen.
+        @return: A tuple containing two C{int}s: the number of genome sequences
+            in the added file and the number of coding regions found.
+        """
+        connection = self._connection
+        genomeCount = totalProteinCount = 0
+        try:
+            with connection:
+                genomes = SeqIO.parse(open(filename), 'gb')
+
+                for genomeCount, genome in enumerate(genomes, start=1):
+                    genomeId = genome.id.rsplit('.', 1)[0]
+                    proteinCount = 0
+
+                    for feature in genome.features:
+                        if feature.type == 'CDS':
+                            if 'protein_id' not in feature.qualifiers:
+                                if 'translation' in feature.qualifiers:
+                                    print('Genome %r contains CDS feature '
+                                          'with no protein_id feature but '
+                                          'has a translation!' % (
+                                              self._accessionToName[
+                                                  genome.id]),
+                                          file=sys.stderr)
+                                    print(feature, file=sys.stderr)
+                                    print('Skipping.', file=sys.stderr)
+                                continue
+
+                            if 'translation' not in feature.qualifiers:
+                                print('Genome %r contains CDS feature '
+                                      'with protein id but no translation!' %
+                                      (self._accessionToName[genome.id]),
+                                      file=sys.stderr)
+                                print(feature, file=sys.stderr)
+                                print('Skipping.', file=sys.stderr)
+                                continue
+
+                            if feature.location.start >= feature.location.end:
+                                print('Genome %r contains feature with start '
+                                      '(%d) >= stop (%d):' % (
+                                          self._accessionToName[genome.id],
+                                          feature.location.start,
+                                          feature.location.end),
+                                      file=sys.stderr)
+                                print(feature, file=sys.stderr)
+                                sys.exit(1)
+
+                            for key in ('gene', 'note', 'product',
+                                        'protein_id', 'translation'):
+                                if key in feature.qualifiers:
+                                    assert len(feature.qualifiers[key]) == 1
+                                else:
+                                    if key not in ('note', 'gene', 'product'):
+                                        print('Genome %r does not have %s '
+                                              'qualifier.' % (
+                                                  self._accessionToName[
+                                                      genome.id], key),
+                                              file=sys.stderr)
+                                        print(feature, file=sys.stderr)
+                                        print('Qualifiers are:',
+                                              file=sys.stderr)
+                                        print(feature.qualifiers,
+                                              file=sys.stderr)
+                                        sys.exit(1)
+
+                            proteinCount += 1
+
+                            translation = feature.qualifiers['translation'][0]
+                            proteinId = feature.qualifiers['protein_id'][0]
+                            product = feature.qualifiers.get(
+                                'product', ['UNKNOWN'])[0]
+
+                            print('>acc|GENBANK|%s|GENBANK|%s|%s [%s]\n%s' %
+                                  (proteinId, genomeId, product,
+                                   self._accessionToName[genome.id],
+                                   translation))
+
+                            gene = feature.qualifiers.get('gene', [''])[0]
+                            note = feature.qualifiers.get('note', [''])[0]
+
+                            connection.execute(
+                                'INSERT INTO proteins(accession, sequence, '
+                                'offsets, reversed, gene, note) '
+                                'VALUES (?, ?, ?, ?, ?, ?)',
+                                (proteinId, translation, str(feature.location),
+                                 (1 if feature.strand is None
+                                  else int(feature.strand)),
+                                 gene, note))
+
+                    connection.execute(
+                        'INSERT INTO genomes(accession, proteinCount) '
+                        'VALUES (?, ?)', (genomeId, proteinCount))
+
+                    totalProteinCount += proteinCount
+
+        except sqlite3.IntegrityError as e:
+            if str(e).find('UNIQUE constraint failed') > -1:
+                original = self._find('xxxx')
+                if original is None:
+                    # The id must have appeared twice in the current file,
+                    # because we could not look it up in the database
+                    # (i.e., it was INSERTed but not committed).
+                    raise ValueError(
+                        "Protein sequence id '%s' found twice in file '%s'." %
+                        ('xxxx', filename))
+                else:
+                    origFilename, _ = original
+                    raise ValueError(
+                        "FASTA sequence id '%s', found in file '%s', was "
+                        "previously added from file '%s'." %
+                        ('xxxx', filename, origFilename))
+            else:
+                raise
+        else:
+            return (genomeCount, totalProteinCount)
+
+    def _find(self, id_):
+        """
+        Find info about a sequence, given its id.
+
+        @param id_: A C{str} sequence id.
+        @return: The C{int} offset of the seqeunce in the protein FASTA
+            file.
+        """
+        cur = self._connection.cursor()
+        cur.execute(
+            'SELECT offset FROM sequences WHERE id = ?', (id_,))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        else:
+            return row[0]
+
+    def __getitem__(self, id_):
+        """
+        Return information about a protein sequence, given its id.
+
+        @param id_: A C{str} sequence id.
+        @raise KeyError: If C{id_} is not a known sequence.
+        # TODO - FIX ME!
+        @return: A .....
+        """
+        location = self._find(id_)
+        if location is None:
+            raise KeyError('Unknown sequence: %r' % id_)
+        else:
+            return location
+            filename, offset = location
+            # If a FASTA directory was provided, look for the FASTA files
+            # there, otherwise use the filename that was given to addFile.
+            if self._fastaDirectory:
+                filename = os.path.join(self._fastaDirectory,
+                                        os.path.basename(filename))
+
+            sequence = ''
+            with open(filename) as fp:
+                fp.seek(offset)
+                while True:
+                    line = fp.readline()
+                    if not line:
+                        # EOF
+                        break
+                    elif line[0] == '>':
+                        # We found the next sequence identifier.
+                        break
+                    else:
+                        sequence += line.rstrip('\n\r')
+
+            return self._readClass(id_, sequence)
+
+    def close(self):
+        """
+        Create an index on the protein id and close the connection.
+        """
+        if self._creating:
+            cur = self._connection.cursor()
+            cur.execute('CREATE INDEX protein_idx ON proteins(accession)')
+            cur.execute('CREATE INDEX genomes_idx ON genomes(accession)')
+        self._connection.close()
+        self._connection = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, excType, excValue, traceback):
+        self.close()

@@ -42,10 +42,9 @@ parser.add_argument(
 parser.add_argument(
     '--keepDescriptions', action='store_true', default=False,
     help=('Do not discard text after the first space in query or subject '
-          'sequence ids. Note that. Note that this violates the SAM '
-          'specification, but since SAM files are TAB-separated there '
-          'is probably only a small chance this will cause any problems '
-          'downstream.'))
+          'sequence ids. Note that this violates the SAM specification, but '
+          'since SAM files are TAB-separated there is probably only a small '
+          'chance this will cause any problems downstream.'))
 
 args = parser.parse_args()
 

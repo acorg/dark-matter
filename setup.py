@@ -66,6 +66,7 @@ scripts = [
     'bin/graph-evalues.py',
     'bin/local-align.py',
     'bin/make-fasta-database.py',
+    'bin/make-protein-database.py',
     'bin/ncbi-fetch-id.py',
     'bin/newick-to-ascii.py',
     'bin/noninteractive-alignment-panel.py',

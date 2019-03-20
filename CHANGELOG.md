@@ -1,3 +1,7 @@
+## 3.0.65 Mar 20, 2019
+
+Added `make-protein-database.py` script.
+
 ## 3.0.64 Jan 28, 2019
 
 Removed bone-headed use of full path to `fasta-join.sh` from
