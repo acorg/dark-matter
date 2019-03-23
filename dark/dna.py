@@ -1,3 +1,5 @@
+from __future__ import division
+
 from dark.utils import countPrint
 from dark.reads import DNAKozakRead
 try:
@@ -221,22 +223,18 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
 def findKozakConsensus(read):
         """
         In a given DNA sequence, search for a Kozak consensus: (gcc)gccRccATGG.
-        Upper case bases are required, lower case bases are the most frequent
-        bases at the given position. The sequence in brackets is of uncertain
-        significance and is not taken into account here.
+        The upper case bases in that pattern are required, and the lower case
+        bases are the ones most frequently found at the given positions. The
+        initial 'gcc' sequence (in parentheses) is of uncertain significance
+        and is not taken into account here.
 
         @param read: A C{DNARead} instance to be checked for Kozak consensi.
-
-        @return: A generator that yields the read, id, original Read, start
-        offset, stop offset and quality percentage of the Kozak consensus
-        sequence. Included Kozak consensuses have all required bases. The
-        consensus at non-required bases of significance is given in the
-        quality percentage (x out of 5).
+        @return: A generator that yields C{DNAKozakRead} instances.
         """
         readLen = len(read)
-        offset = 0
-        readSeq = read.sequence
         if readLen > 9:
+            offset = 0
+            readSeq = read.sequence
             while offset < readLen + 3:
                 triplet = readSeq[offset:offset + 3]
                 if triplet == 'ATG':
@@ -249,7 +247,7 @@ def findKozakConsensus(read):
                                 readSeq[offset - 5] == 'C',
                                 readSeq[offset - 6] == 'G'))
 
-                            kozakQualityPercent = kozakQualityCount / 5 * 100
+                            kozakQualityPercent = kozakQualityCount / 5.0 * 100
                             yield DNAKozakRead(read, offset - 6, offset + 4,
                                                kozakQualityPercent)
                 offset += 1

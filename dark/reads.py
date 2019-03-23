@@ -327,6 +327,16 @@ class RNARead(_NucleotideRead):
 class DNAKozakRead(DNARead):
     """
     Hold information about a Kozak sequence.
+
+    @param originalRead: The C{dark.reads.Read} instance in which the Kozak
+        sequence was found.
+    @param start: The C{int} start location of the Kozak sequence.
+    @param stop: The C{int} stop location of the Kozak sequence (this is a
+        Python string index, so the final Kozak sequence character is the one
+        before this offset in the sequence.
+    @param kozakQuality: A C{float}, giving the percentage of the 5 variable
+        locations in the Kozak sequence that match the most frequent Kozak
+        nucleotides.
     """
     def __init__(self, originalRead, start, stop, kozakQuality):
         if start < 0:

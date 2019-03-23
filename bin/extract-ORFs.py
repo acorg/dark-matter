@@ -49,12 +49,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--kozakOnly', default=False, action='store_true',
         help=('Only ORFs that also have a Kozak consensus will be written to '
-              'stdout. Only applicable if DNA reads given.'))
+              'stdout. Only applicable if DNA reads are given.'))
 
     parser.add_argument(
-        '--kozakInfoFile', type=str,
-        help=('Filename of the file to which all Kozak consensus information '
-              'is written to. Only applicable if DNA reads given.'))
+        '--kozakInfoFile',
+        help=('Filename to which all Kozak consensus information is written. '
+              'Only applicable if DNA reads are given.'))
 
     addFASTACommandLineOptions(parser)
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         if aa:
             print('Kozak sequences cannot be computed from aa sequences.',
                   file=sys.stderr)
-            exit()
+            sys.exit(1)
         else:
             from dark.dna import findKozakConsensus
 
