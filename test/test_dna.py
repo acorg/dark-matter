@@ -787,19 +787,17 @@ class TestFindKozakConsensus(TestCase):
     """
     def testNoSequence(self):
         """
-        If no sequence is given, no ORF should be found.
+        If no sequence is given, no Kozak sequence should be found.
         """
         read = DNARead('id', '')
-        self.assertEqual([],
-                         list(findKozakConsensus(read)))
+        self.assertEqual([], list(findKozakConsensus(read)))
 
     def testShortSequence(self):
         """
-        If a 4 nt long sequence is given, no ORF should be found.
+        If a 4 nt long sequence is given, no Kozak sequence should be found.
         """
         read = DNARead('id', 'ATTG')
-        self.assertEqual([],
-                         list(findKozakConsensus(read)))
+        self.assertEqual([], list(findKozakConsensus(read)))
 
     def testOneKozakConsensus(self):
         """
@@ -808,36 +806,20 @@ class TestFindKozakConsensus(TestCase):
         """
         read = DNARead('id', 'ATTGCCGCCATGGGGG')
         expectedKozakRead = DNAKozakRead(read, 3, 13, 100.0)
+        (result,) = list(findKozakConsensus(read))
+        self.assertEqual(expectedKozakRead, result)
 
-        for kozakConsensus in findKozakConsensus(read):
-            self.assertEqual(expectedKozakRead.id, kozakConsensus.id)
-            self.assertEqual(expectedKozakRead.sequence,
-                             kozakConsensus.sequence)
-            self.assertEqual(3, kozakConsensus.start)
-            self.assertEqual(13, kozakConsensus.stop)
-            self.assertEqual(100.0, kozakConsensus.kozakQuality)
-
-    def testNoKozakConsensus1(self):
+    def testNoKozakConsensus(self):
         """
         In a given sequence without a Kozak consensus, the output should be
         as expected.
         """
         read = DNARead('id', 'ATTGCCTCCATGGGGG')
-        self.assertEqual([],
-                         list(findKozakConsensus(read)))
-
-    def testNoKozakConsensus2(self):
-        """
-        In a given sequence without a Kozak consensus, the output should be
-        as expected.
-        """
-        read = DNARead('id', 'ATTGCCGCCATGAGGG')
-        self.assertEqual([],
-                         list(findKozakConsensus(read)))
+        self.assertEqual([], list(findKozakConsensus(read)))
 
     def testFindTwoKozakConsensi(self):
         """
-        In a given sequence with two Kozak consensuses of different offsets
+        In a given sequence with two Kozak consensuses with different offsets
         and qualities, the output should be as expected.
         """
         read = DNARead('id', 'ATTGCCGCCATGGGGGGCCATGG')
