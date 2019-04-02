@@ -86,7 +86,7 @@ if __name__ == '__main__':
         def writeToKozakOut(kozakread, kozakfp):
             """
             Writes out information about a Kozak sequence stored in kozakread
-            to the file name given in kozakInfoFile.
+            to the file name given in kozakfp.
             """
             print('Read ID: ' + kozakread.id, file=kozakfp)
             print('Kozak sequence: ' + kozakread.sequence, file=kozakfp)
@@ -117,7 +117,10 @@ if __name__ == '__main__':
                                 print(orf.toString('fasta'), end='')
                             if kozakfp:
                                 for kozakread in findKozakConsensus(read):
-                                    writeToKozakOut(kozakread, kozakfp)
+                                    start = orf.start * 3
+                                    if (start + 1 <=
+                                       kozakread.stop <= start + 3):
+                                        writeToKozakOut(kozakread, kozakfp)
 
             except TranslationError as error:
                 print('Could not translate read %r sequence %r (%s).' %
