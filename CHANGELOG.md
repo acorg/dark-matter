@@ -1,6 +1,9 @@
-## 3.0.65 Mar 20, 2019
+## 3.1.0 Mar 24, 2019
 
-Added `make-protein-database.py` script.
+Added `make-protein-database.py`, `add-accession-taxids.py`,
+`download-genbank.sh`, and `parse-genbank-flat-file.py` scripts, as well as
+`doc/protein-database.md` with some instructions on how to make a protein
+database.
 
 ## 3.0.64 Jan 28, 2019
 

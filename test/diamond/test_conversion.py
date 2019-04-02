@@ -15,8 +15,7 @@ from ..mocking import mockOpen
 from json import dumps
 
 from dark.diamond.conversion import (
-    JSONRecordsReader, DiamondTabularFormatReader, diamondTabularFormatToDicts,
-    FIELDS)
+    JSONRecordsReader, DiamondTabularFormatReader, DiamondTabularFormat)
 from dark.reads import Reads, AARead
 
 
@@ -1147,50 +1146,49 @@ class TestDiamondTabularFormatToDicts(TestCase):
     """
     def testDuplicatesInFieldNameList(self):
         """
-        If a field name list that contains duplicates is passed, the function
-        must raise a ValueError.
+        If a field name list that contains duplicates is passed, the
+        DiamondTabularFormat __init__ function must raise a ValueError.
         """
-        error = '^fieldNames contains duplicated names: a, b\\.$'
+        error = '^field names contains duplicated names: a, b\\.$'
         assertRaisesRegex(
-            self, ValueError, error, list,
-            diamondTabularFormatToDicts(None, ['a', 'b', 'a', 'c', 'b']))
+            self, ValueError, error,
+            DiamondTabularFormat, ['a', 'b', 'a', 'c', 'b'])
 
     def testTooFewFields(self):
         """
         If an input line does not have enough fields, a ValueError must be
         raised.
         """
+        dtf = DiamondTabularFormat(['a', 'b', 'c'])
         data = StringIO('a\tb\n')
         error = (
-            "^Line 1 of input had 2 field values \\(expected 3\\)\\. " +
-            ('To provide input for this function, DIAMOND must be called ' +
-             'with "--outfmt 6 %s" \\(without the quotes\\)\\. ' % FIELDS) +
-            "The offending input line was 'a\\\\tb'\\.")
+            r"^DIAMOND output line had 2 field values \(expected 3\)\. "
+            r"The offending input line was 'a\\tb\\n'\.")
         assertRaisesRegex(
             self, ValueError, error, list,
-            diamondTabularFormatToDicts(data, ['a', 'b', 'c']))
+            dtf.diamondTabularFormatToDicts(data))
 
     def testTooManyFields(self):
         """
         If an input line has too many fields, a ValueError must be raised.
         """
+        dtf = DiamondTabularFormat(['a', 'b'])
         data = StringIO('a\tb\tc\n')
         error = (
-            "^Line 1 of input had 3 field values \\(expected 2\\)\\. " +
-            ('To provide input for this function, DIAMOND must be called ' +
-             'with "--outfmt 6 %s" \\(without the quotes\\)\\. ' % FIELDS) +
-            "The offending input line was 'a\\\\tb\\\\tc'\\.")
+            r"^DIAMOND output line had 3 field values \(expected 2\)\. "
+            r"The offending input line was 'a\\tb\\tc\\n'\.")
         assertRaisesRegex(
             self, ValueError, error, list,
-            diamondTabularFormatToDicts(data, ['a', 'b']))
+            dtf.diamondTabularFormatToDicts(data))
 
     def testUnknownField(self):
         """
         An unknown field name must result in a returned field name and value
         that are identical to those in the function call and its input string.
         """
+        dtf = DiamondTabularFormat(['__blah__'])
         data = StringIO('3.5\n')
-        (result,) = list(diamondTabularFormatToDicts(data, ['__blah__']))
+        (result,) = list(dtf.diamondTabularFormatToDicts(data))
         self.assertEqual({'__blah__': '3.5'}, result)
 
     def testConversions(self):
@@ -1214,7 +1212,8 @@ class TestDiamondTabularFormatToDicts(TestCase):
             ('3.5 1.7 1 7 4 10 12 1 2 ACGT\n'
              '3.6 1.8 2 8 5 11 13 2 3 TGCA').replace(' ', '\t') + '\n'
         )
-        (result1, result2) = list(diamondTabularFormatToDicts(data, fields))
+        dtf = DiamondTabularFormat(fields)
+        (result1, result2) = list(dtf.diamondTabularFormatToDicts(data))
 
         self.assertEqual(
             {

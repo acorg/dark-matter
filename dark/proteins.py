@@ -11,10 +11,12 @@ from textwrap import fill
 import sqlite3
 import os
 from Bio import SeqIO
+import gzip
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
+from dark.genbank import splitBioPythonRange
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads, AARead
 
@@ -901,6 +903,10 @@ class SqliteIndex(object):
         the accession numbers were extracted.
     @param readClass: The class of read that should be returned by __getitem__.
     """
+
+    PROTEIN_ACCESSION_FIELD = 2
+    GENOME_ACCESSION_FIELD = 4
+
     def __init__(self, dbFilename, accessionToName, readClass=AARead):
         self._accessionToName = accessionToName
         self._readClass = readClass
@@ -921,6 +927,7 @@ class SqliteIndex(object):
 
                 CREATE TABLE genomes (
                     accession VARCHAR UNIQUE PRIMARY KEY,
+                    length INTEGER,
                     proteinCount INTEGER,
                     taxid INTEGER);
                 ''')
@@ -939,169 +946,286 @@ class SqliteIndex(object):
         """
         connection = self._connection
         genomeCount = totalProteinCount = 0
-        try:
-            with connection:
-                genomes = SeqIO.parse(open(filename), 'gb')
+        with connection:
+            genomes = SeqIO.parse(open(filename), 'gb')
 
-                for genomeCount, genome in enumerate(genomes, start=1):
-                    genomeId = genome.id.rsplit('.', 1)[0]
-                    proteinCount = 0
+            for genomeCount, genome in enumerate(genomes, start=1):
+                proteinCount = 0
 
-                    for feature in genome.features:
-                        if feature.type == 'CDS':
-                            if 'protein_id' not in feature.qualifiers:
-                                if 'translation' in feature.qualifiers:
-                                    print('Genome %r contains CDS feature '
-                                          'with no protein_id feature but '
-                                          'has a translation!' % (
-                                              self._accessionToName[
-                                                  genome.id]),
-                                          file=sys.stderr)
-                                    print(feature, file=sys.stderr)
-                                    print('Skipping.', file=sys.stderr)
-                                continue
-
-                            if 'translation' not in feature.qualifiers:
+                for feature in genome.features:
+                    if feature.type == 'CDS':
+                        if 'protein_id' not in feature.qualifiers:
+                            if 'translation' in feature.qualifiers:
                                 print('Genome %r contains CDS feature '
-                                      'with protein id but no translation!' %
-                                      (self._accessionToName[genome.id]),
+                                      'with no protein_id feature but '
+                                      'has a translation!' % (
+                                          self._accessionToName[
+                                              genome.id]),
                                       file=sys.stderr)
                                 print(feature, file=sys.stderr)
                                 print('Skipping.', file=sys.stderr)
-                                continue
+                            continue
 
-                            if feature.location.start >= feature.location.end:
-                                print('Genome %r contains feature with start '
-                                      '(%d) >= stop (%d):' % (
-                                          self._accessionToName[genome.id],
-                                          feature.location.start,
-                                          feature.location.end),
-                                      file=sys.stderr)
-                                print(feature, file=sys.stderr)
-                                sys.exit(1)
+                        if 'translation' not in feature.qualifiers:
+                            print('Genome %r contains CDS feature '
+                                  'with protein id but no translation!' %
+                                  (self._accessionToName[genome.id]),
+                                  file=sys.stderr)
+                            print(feature, file=sys.stderr)
+                            print('Skipping.', file=sys.stderr)
+                            continue
 
-                            for key in ('gene', 'note', 'product',
-                                        'protein_id', 'translation'):
-                                if key in feature.qualifiers:
-                                    assert len(feature.qualifiers[key]) == 1
-                                else:
-                                    if key not in ('note', 'gene', 'product'):
-                                        print('Genome %r does not have %s '
-                                              'qualifier.' % (
-                                                  self._accessionToName[
-                                                      genome.id], key),
-                                              file=sys.stderr)
-                                        print(feature, file=sys.stderr)
-                                        print('Qualifiers are:',
-                                              file=sys.stderr)
-                                        print(feature.qualifiers,
-                                              file=sys.stderr)
-                                        sys.exit(1)
+                        try:
+                            # Make sure the location string can be parsed.
+                            splitBioPythonRange(str(feature.location))
+                        except ValueError as e:
+                            print('Genome %r contains unparseable CDS '
+                                  'location! Error: %s' %
+                                  (self._accessionToName[genome.id], e),
+                                  file=sys.stderr)
+                            print('Skipping.', file=sys.stderr)
+                            continue
 
-                            proteinCount += 1
+                        if feature.location.start >= feature.location.end:
+                            print('Genome %r contains feature with start '
+                                  '(%d) >= stop (%d):' % (
+                                      self._accessionToName[genome.id],
+                                      feature.location.start,
+                                      feature.location.end),
+                                  file=sys.stderr)
+                            print(feature, file=sys.stderr)
+                            sys.exit(1)
 
-                            translation = feature.qualifiers['translation'][0]
-                            proteinId = feature.qualifiers['protein_id'][0]
-                            product = feature.qualifiers.get(
-                                'product', ['UNKNOWN'])[0]
+                        for key in ('gene', 'note', 'product',
+                                    'protein_id', 'translation'):
+                            if key in feature.qualifiers:
+                                assert len(feature.qualifiers[key]) == 1
+                            else:
+                                if key not in ('note', 'gene', 'product'):
+                                    print('Genome %r does not have %s '
+                                          'qualifier.' % (
+                                              self._accessionToName[
+                                                  genome.id], key),
+                                          file=sys.stderr)
+                                    print(feature, file=sys.stderr)
+                                    print('Qualifiers are:',
+                                          file=sys.stderr)
+                                    print(feature.qualifiers,
+                                          file=sys.stderr)
+                                    sys.exit(1)
 
-                            print('>acc|GENBANK|%s|GENBANK|%s|%s [%s]\n%s' %
-                                  (proteinId, genomeId, product,
-                                   self._accessionToName[genome.id],
-                                   translation))
+                        proteinCount += 1
 
-                            gene = feature.qualifiers.get('gene', [''])[0]
-                            note = feature.qualifiers.get('note', [''])[0]
+                        translation = feature.qualifiers['translation'][0]
+                        proteinId = feature.qualifiers['protein_id'][0]
+                        product = feature.qualifiers.get(
+                            'product', ['UNKNOWN'])[0]
 
+                        print('>acc|GENBANK|%s|GENBANK|%s|%s [%s]\n%s' %
+                              (proteinId, genome.id, product,
+                               self._accessionToName[genome.id],
+                               translation))
+
+                        gene = feature.qualifiers.get('gene', [''])[0]
+                        note = feature.qualifiers.get('note', [''])[0]
+
+                        try:
                             connection.execute(
-                                'INSERT INTO proteins(accession, sequence, '
-                                'offsets, reversed, gene, note) '
+                                'INSERT INTO '
+                                'proteins(accession, sequence, offsets, '
+                                'reversed, gene, note) '
                                 'VALUES (?, ?, ?, ?, ?, ?)',
                                 (proteinId, translation, str(feature.location),
                                  (1 if feature.strand is None
                                   else int(feature.strand)),
                                  gene, note))
+                        except sqlite3.IntegrityError as e:
+                            if str(e).find('UNIQUE constraint failed') > -1:
+                                raise ValueError(
+                                    'Protein accession %r added to database '
+                                    'twice. The second occurrence was in file '
+                                    '%r.' % (proteinId, filename))
+                            else:
+                                raise
 
+                # The taxid column in the genomes table can be filled
+                # in using self.updateGenomeTaxids once we know all the
+                # genome accession numbers needed.
+                try:
                     connection.execute(
-                        'INSERT INTO genomes(accession, proteinCount) '
-                        'VALUES (?, ?)', (genomeId, proteinCount))
+                        'INSERT INTO '
+                        'genomes(accession, length, proteinCount) '
+                        'VALUES (?, ?, ?)',
+                        (genome.id, len(genome), proteinCount))
+                except sqlite3.IntegrityError as e:
+                    if str(e).find('UNIQUE constraint failed') > -1:
+                        raise ValueError(
+                            'Genome accession %r added to database twice. '
+                            'The second occurrence was in file %r.' %
+                            (genome.id, filename))
+                    else:
+                        raise
 
-                    totalProteinCount += proteinCount
+                totalProteinCount += proteinCount
 
-        except sqlite3.IntegrityError as e:
-            if str(e).find('UNIQUE constraint failed') > -1:
-                original = self._find('xxxx')
-                if original is None:
-                    # The id must have appeared twice in the current file,
-                    # because we could not look it up in the database
-                    # (i.e., it was INSERTed but not committed).
-                    raise ValueError(
-                        "Protein sequence id '%s' found twice in file '%s'." %
-                        ('xxxx', filename))
-                else:
-                    origFilename, _ = original
-                    raise ValueError(
-                        "FASTA sequence id '%s', found in file '%s', was "
-                        "previously added from file '%s'." %
-                        ('xxxx', filename, origFilename))
-            else:
-                raise
-        else:
-            return (genomeCount, totalProteinCount)
+        return genomeCount, totalProteinCount
 
-    def _find(self, id_):
+    def updateGenomeTaxids(self, nucleotideAccessionToTaxidFile,
+                           progressFp=None):
         """
-        Find info about a sequence, given its id.
+        Add taxonomy accession numbers for all genomes.
 
-        @param id_: A C{str} sequence id.
-        @return: The C{int} offset of the seqeunce in the protein FASTA
-            file.
+        @param nucleotideAccessionToTaxidFile: The C{str} name of the
+            nucleotide accession number to taxid file to read.  Must be
+            gzipped (see ../doc/protein-database.md for detail). The file is
+            TAB separated. The nucleotide accession is the second field and
+            the taxonomy id is the third.
+        @param progressFp: If not C{None}, a file pointer to write progress
+            information to (this update can take quite a while).
         """
         cur = self._connection.cursor()
-        cur.execute(
-            'SELECT offset FROM sequences WHERE id = ?', (id_,))
+        cur.execute('SELECT accession FROM genomes')
+
+        # The 'wanted' dictionary below is keyed by accession number with
+        # no version, with values holding the version suffix. That's
+        # because we're going to examine the nucleotide accession to
+        # taxonomy id file based on the former but use the latter to update
+        # the taxid in our database. See the extensive comment below.
+        wanted = dict(row[0].rsplit('.', 1) for row in cur)
+        nWanted = len(wanted)
+
+        if progressFp:
+            print('%d accession numbers needed' % nWanted, file=progressFp)
+            from time import time
+            startTime = lastTime = time()
+
+        # Keep track of how many distinct taxonomy ids we encounter.
+        taxids = set()
+
+        with gzip.open(nucleotideAccessionToTaxidFile) as fp:
+            for lineNumber, line in enumerate(fp, start=1):
+                if lineNumber % 1000000 == 0:
+                    if progressFp:
+                        thisTime = time()
+                        print('Read %d lines in %.2f seconds (last batch '
+                              'processed in %.2f seconds). Still need %d '
+                              'accession number taxids.' %
+                              (lineNumber, thisTime - startTime,
+                               thisTime - lastTime, len(wanted)),
+                              file=progressFp)
+                        lastTime = thisTime
+                line = line.decode('utf-8')
+                # Note that the nucleotide GenBank accession to taxonomy id
+                # file (nucl_gb.accession2taxid.gz) format we're assuming
+                # we're parsing here has (TAB-separated) lines like
+                #
+                # MH675888 MH675888.2 9913 2
+                #
+                # We here extract and match on the first field instead of
+                # the more precise second. That's because the database
+                # subject FASTA (e.g., in C-RVDBv15.1.fasta) might contain
+                # a nucleotide genome with accession number MH675888.1
+                # whereas the accession to taxid file has MH675888.2 in its
+                # second field. That will happen if the subject FASTA file
+                # was made in (say) January using MH675888.1, then MH675888
+                # is updated in February (from .1 to .2), then the
+                # accession to taxid file is downloaded in March and used
+                # here to make a protein database. In that case, MH675888.1
+                # is no longer in the accession to taxid file and cannot be
+                # looked up unless just MH675888 is looked for (in the 1st
+                # field), disregarding the version number. That works fine,
+                # but has the small assumption that the taxonomy id of
+                # MH675888 was not reassigned in the move from MH675888.1
+                # to MH675888.2. I (Terry) don't think there's any downside
+                # here. If the taxonomy of an accession number is changed,
+                # we *want* to assign it the most accurate taxonomy id (not
+                # the original one that was later updated), so matching
+                # based on accession number alone (i.e., excluding version)
+                # is actually preferable.
+                #
+                # BTW, when I ran this code before deciding to use the
+                # accession number without the version (on 2019-03-29), 152
+                # of 25,998 accession+version ids could not be looked up
+                # because they had been updated to a new version since the
+                # C-RVDBv15.1.fasta release on 2019-02-06.  This amounts to
+                # turn-over of ~0.5% of all relevant (to us) accession
+                # numbers in about 1.5 months.
+                accession, _, taxid, _ = line.split('\t')
+                if accession in wanted:
+                    version = wanted[accession]
+                    taxid = int(taxid)
+                    taxids.add(taxid)
+                    cur.execute('UPDATE genomes SET taxid = ? '
+                                'WHERE accession = ?',
+                                (taxid, '%s.%s' % (accession, version)))
+                    assert cur.rowcount == 1
+                    del wanted[accession]
+
+                    if not wanted:
+                        break
+
+        self._connection.commit()
+
+        if progressFp:
+            print('Elapsed time %.2f seconds. '
+                  'Found %d distinct taxomony ids.' %
+                  (time() - startTime, len(taxids)), file=progressFp)
+
+        if wanted:
+            raise ValueError(
+                ('Found %d wanted accession numbers, but %d were not '
+                 'found. Missing:\n' % (nWanted - len(wanted), len(wanted))) +
+                '\n'.join(sorted(wanted)))
+
+    def findGenome(self, id_):
+        """
+        Find info about a genome, given its id.
+
+        @param id_: A C{str} sequence id. This is either of the form
+            'acc|GENBANK|%s|GENBANK|%s|%s [%s]' where the genome id is in the
+            5th |-delimited field, or else is the nucleotide sequence accession
+            number as already extracted.
+        @return: A C{dict} with 'proteinCount' and 'taxid' keys, and values as
+            found in the genomes database table, else C{None} if C{id_} cannot
+            be found.
+        """
+        try:
+            accession = id_.split('|')[self.GENOME_ACCESSION_FIELD]
+        except IndexError:
+            accession = id_
+
+        fields = 'length', 'proteinCount', 'taxid'
+
+        cur = self._connection.cursor()
+        cur.execute('SELECT (%s) FROM genomes WHERE accession = ?' %
+                    ', '.join(fields), (accession,))
         row = cur.fetchone()
-        if row is None:
-            return None
-        else:
-            return row[0]
+        return dict(zip(fields, row)) if row else None
 
-    def __getitem__(self, id_):
+    def findProtein(self, id_):
         """
-        Return information about a protein sequence, given its id.
+        Find info about a protein, given its id.
 
-        @param id_: A C{str} sequence id.
-        @raise KeyError: If C{id_} is not a known sequence.
-        # TODO - FIX ME!
-        @return: A .....
+        @param id_: A C{str} sequence id. This is either of the form
+            'acc|GENBANK|%s|GENBANK|%s|%s [%s]' where the protein id is in the
+            3rd |-delimited field, or else is the protein accession number as
+            already extracted.
+        @return: A C{dict} with 'sequence', 'offsets', 'reversed', 'gene',
+            and 'note' keys, and values as found in the proteins database
+            table, else C{None} if C{id_} cannot be found.
         """
-        location = self._find(id_)
-        if location is None:
-            raise KeyError('Unknown sequence: %r' % id_)
-        else:
-            return location
-            filename, offset = location
-            # If a FASTA directory was provided, look for the FASTA files
-            # there, otherwise use the filename that was given to addFile.
-            if self._fastaDirectory:
-                filename = os.path.join(self._fastaDirectory,
-                                        os.path.basename(filename))
+        try:
+            accession = id_.split('|')[self.PROTEIN_ACCESSION_FIELD]
+        except IndexError:
+            accession = id_
 
-            sequence = ''
-            with open(filename) as fp:
-                fp.seek(offset)
-                while True:
-                    line = fp.readline()
-                    if not line:
-                        # EOF
-                        break
-                    elif line[0] == '>':
-                        # We found the next sequence identifier.
-                        break
-                    else:
-                        sequence += line.rstrip('\n\r')
+        fields = 'sequence', 'offsets', 'reversed', 'gene', 'note'
 
-            return self._readClass(id_, sequence)
+        cur = self._connection.cursor()
+        cur.execute('SELECT (%s) FROM proteins WHERE accession = ?' %
+                    ', '.join(fields), (accession,))
+        row = cur.fetchone()
+        return dict(zip(fields, row)) if row else None
 
     def close(self):
         """
@@ -1111,6 +1235,7 @@ class SqliteIndex(object):
             cur = self._connection.cursor()
             cur.execute('CREATE INDEX protein_idx ON proteins(accession)')
             cur.execute('CREATE INDEX genomes_idx ON genomes(accession)')
+        self._connection.commit()
         self._connection.close()
         self._connection = None
 
