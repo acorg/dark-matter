@@ -95,43 +95,38 @@ if __name__ == '__main__':
             print('Quality of the Kozak consensus: ' +
                   str(kozakread.kozakQuality) + ' %', file=kozakfp)
 
-        def findORFs(kozakfp):
-            for read in reads:
-                try:
-                    for translation in translations(read):
-                        for orf in translation.ORFs(allowOpenORFs):
-                            # Check the length requirements, if any.
-                            if ((minORFLength is None or
-                               len(orf) >= minORFLength) and
-                               (maxORFLength is None or
-                               len(orf) <= maxORFLength)):
-                                # If only ORFs with a Kozak consensus
-                                # are wanted:
-                                if kozakOnly:
-                                    for kozakread in findKozakConsensus(read):
-                                        start = orf.start * 3
-                                        if (start + 1 <=
-                                           kozakread.stop <= start + 3):
-                                            print(orf.toString('fasta'),
-                                                  end='')
-                                else:
-                                    # If all ORFs are wanted,
-                                    # write all ORFs to stdout.
-                                    print(orf.toString('fasta'), end='')
-                                # If extra Kozak consensus information
-                                # is wanted:
-                                if kozakfp:
-                                    for kozakread in findKozakConsensus(read):
-                                        writeToKozakOut(kozakread, kozakfp)
+    def findORFs(kozakfp):
+        for read in reads:
+            try:
+                for translation in translations(read):
+                    for orf in translation.ORFs(allowOpenORFs):
+                        # Check the length requirements, if any.
+                        if ((minORFLength is None or
+                           len(orf) >= minORFLength) and
+                           (maxORFLength is None or
+                           len(orf) <= maxORFLength)):
 
-                except TranslationError as error:
-                    print('Could not translate read %r sequence %r (%s).' %
-                          (read.id, read.sequence, error), file=sys.stderr)
-                    if not aa:
-                        print('Did you forget to run '
-                              '%s with "--readClass AARead"?' %
-                              (basename(sys.argv[0])), file=sys.stderr)
-                    sys.exit(1)
+                            if kozakOnly:
+                                for kozakread in findKozakConsensus(read):
+                                    start = orf.start * 3
+                                    if (start + 1 <=
+                                       kozakread.stop <= start + 3):
+                                        print(orf.toString('fasta'),
+                                              end='')
+                            else:
+                                print(orf.toString('fasta'), end='')
+                            if kozakfp:
+                                for kozakread in findKozakConsensus(read):
+                                    writeToKozakOut(kozakread, kozakfp)
+
+            except TranslationError as error:
+                print('Could not translate read %r sequence %r (%s).' %
+                      (read.id, read.sequence, error), file=sys.stderr)
+                if not aa:
+                    print('Did you forget to run '
+                          '%s with "--readClass AARead"?' %
+                          (basename(sys.argv[0])), file=sys.stderr)
+                sys.exit(1)
 
     if kozakInfoFile:
         with open(kozakInfoFile, 'a+') as kozakfp:
