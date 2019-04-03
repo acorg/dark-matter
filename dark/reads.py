@@ -460,7 +460,7 @@ class AARead(Read):
             length = len(self.sequence)
             if inOpenORF and length > 0:
                 yield AAReadORF(self, ORFStart, length, True, True)
-            elif inORF and ORFStart != index:
+            elif inORF and ORFStart < length:
                 yield AAReadORF(self, ORFStart, length, False, True)
 
         # Return only closed ORFs.

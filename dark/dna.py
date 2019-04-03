@@ -233,9 +233,9 @@ def findKozakConsensus(read):
         """
         readLen = len(read)
         if readLen > 9:
-            offset = 0
+            offset = 6
             readSeq = read.sequence
-            while offset < readLen + 3:
+            while offset < readLen - 3:
                 triplet = readSeq[offset:offset + 3]
                 if triplet == 'ATG':
                     if readSeq[offset + 3] == 'G':

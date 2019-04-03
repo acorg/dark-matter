@@ -1004,11 +1004,19 @@ class TestAARead(TestCase):
 
     def testORFsEmptySequenceWithStartStopOpenORFs(self):
         """
-        An AA read with just a start and stop codon must not have any ORFs.
+        An AA read with just a start and stop codon must have one ORF.
         """
         read = AARead('id', 'M*')
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
+
+    def testORFsEmptySequenceWithStopStartOpenORFs(self):
+        """
+        An AA read with just a start and stop codon must have one ORF.
+        """
+        read = AARead('id', '*M')
+        orfs = list(read.ORFs(True))
+        self.assertEqual(0, len(orfs))
 
     def testORFsEmptySequenceWithStart(self):
         """
@@ -1020,9 +1028,17 @@ class TestAARead(TestCase):
 
     def testORFsEmptySequenceWithStartOpenORFs(self):
         """
-        An AA read with just a start codon must not have any ORFs.
+        An AA read with just a start codon must have one ORF.
         """
         read = AARead('id', 'M')
+        orfs = list(read.ORFs(True))
+        self.assertEqual(1, len(orfs))
+
+    def testORFsSequenceWithOneAAOpenORFs(self):
+        """
+        An AA read with just a start codon must have one ORF.
+        """
+        read = AARead('id', 'A')
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
