@@ -1,7 +1,7 @@
 from unittest import TestCase
 import six
 
-from dark.genbank import splitRange, splitBioPythonRange
+from dark.genbank import splitRange, splitBioPythonRange, circularRanges
 
 
 class TestSplitRangeString(TestCase):
@@ -250,3 +250,61 @@ class TestSplitBioPythonRangeString(TestCase):
         self.assertEqual(
             [(3, 5, False), (7, 9, True), (17, 19, True)],
             splitBioPythonRange('join{[3:5](+), [7:9](-), [17:19](-)}'))
+
+
+class TestRangeIsCircular(TestCase):
+    """
+    Test the circularRanges function.
+    """
+    def testNoRanges(self):
+        """
+        The circularRanges function must raise ValueError when passed an
+        empty tuple of ranges.
+        """
+        error = r'^The tuple of ranges cannot be empty\.$'
+        six.assertRaisesRegex(
+            self, ValueError, error, circularRanges, tuple(), 100)
+
+    def testOneRange(self):
+        """
+        The circularRanges function must return False when given only a
+        single range tuple that is fully contained within the genome.
+        """
+        self.assertFalse(circularRanges(((20, 40, True),), 100))
+
+    def testOneRangeEndingAtGenomeEnd(self):
+        """
+        The circularRanges function must return False when given only a
+        single range tuple that ends at the end of the genome.
+        """
+        self.assertFalse(circularRanges(((20, 40, True),), 40))
+
+    def testOneRangeStartingAtOneAndEndingAtGenomeEnd(self):
+        """
+        The circularRanges function must return False when given only a
+        single range tuple that ends at the end of the genome.
+        """
+        self.assertFalse(circularRanges(((0, 40, True),), 40))
+
+    def testTwoRangesSpanningTheWholeGenome(self):
+        """
+        The circularRanges function must return False when given two ranges
+        that span the whole genome. That's not considered circular (and in
+        fact shouldn't be present in our input).
+        """
+        self.assertFalse(circularRanges(((0, 20, True), (20, 40, True),), 40))
+
+    def testTwoRangesThatAreCircular(self):
+        """
+        The circularRanges function must return True when given two ranges
+        that span the end of the genome.
+        """
+        self.assertTrue(circularRanges(((20, 40, True), (0, 10, True),), 40))
+
+    def testThreeRangesThatAreCircular(self):
+        """
+        The circularRanges function must return True when given three ranges
+        that span the end of the genome.
+        """
+        self.assertTrue(circularRanges(
+            ((20, 30, True), (30, 40, True), (0, 10, True),), 40))

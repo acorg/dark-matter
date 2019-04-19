@@ -43,8 +43,9 @@ You will need `nucl_gb.accession2taxid.gz` which you can download from
 
 ### Download the GenBank info for all nucleotide genomes
 
-The following uses GNU `parallel` to download files containing 1000 GenBank
-flat-file records for the accession numbers of the sequences in
+The following uses GNU `parallel` to download files containing 1000
+[GenBank flat-file](https://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html)
+format records for the accession numbers of the sequences in
 `C-RVDBv15.1.fasta`:
 
 ```sh

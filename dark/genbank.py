@@ -95,12 +95,13 @@ def splitBioPythonRange(rangeStr):
         there is a '(+)' in a range and C{True} when there is a '(-)'. Example
         arguments and their return values:
 
-            '[9462:10137](+)' => ((9462, 10137, False))
+            '[9462:10137](+)' => ((9462, 10137, False),)
 
-            '[11969:12575](-)' => ((11969, 12575, True))
+            '[11969:12575](-)' => ((11969, 12575, True),)
 
-            'join{[126386:126881](-), [125941:126232](+)}'  =>
-                ((126386, 126881, True), (125941, 126232, False))
+            'join{[126386:126881](-), [125941:126232](+)}' =>
+                ((126386, 126881, True),
+                 (125941, 126232, False))
     """
 
     if rangeStr.startswith('join{') and rangeStr[-1] == '}':
@@ -155,3 +156,66 @@ def splitBioPythonRange(rangeStr):
             ranges.append((start, stop, complement))
 
     return ranges
+
+
+def circularRanges(rangeTuples, genomeLength):
+    """
+    Determine whether the offest ranges of a protein in a genome span the end
+    of the genome (indicating that the genome may be circular).
+
+    @param rangeTuples: A C{tuple} of C{tuple}s, as returned by
+        C{splitBioPythonRange) (above). (Note that this is *not* the same as
+        the return result of C{splitRange}.)  For example:
+
+            ((9462, 10137, False),)
+            ((11969, 12575, True),)
+            ((126386, 126881, True), (125941, 126232, False))
+    @return: A C{bool} which is C{True} if the ranges overlap the end of the
+        genome.
+    """
+    nRanges = len(rangeTuples)
+
+    if nRanges == 0:
+        raise ValueError('The tuple of ranges cannot be empty.')
+    elif nRanges == 1:
+        # If there is only one range, we simply return False even though it
+        # could be that the single range spans the whole genome. That is
+        # not the same as having two ranges, one of which ends at the end
+        # of the genome and the next starting at the start of the genome.
+        #
+        # I.e., a range tuples like this ((0, 100, False),) on a genome of
+        # length 100 will return False, whereas ((0, 75, False), (75, 100,
+        # False)) on a genome of length 100 will return True.
+        #
+        # The decision about whether you consider the degenerate case of
+        # ((0, 100, False),) to indicate circularity is a bit
+        # arbitrary. Here I've decided that it should not because I intend
+        # to use this function to decide whether to output multiple SAM
+        # lines for the match of a read against a reference. In this
+        # degenerate case just a single SAM line suffices, whereas in a
+        # non-degenerate case (such as ((0, 75, False), (75, 100, False))
+        # on a genome of length 100), a chimeric SAM alignment must be
+        # used, which requires quite different processing than a normal
+        # linear match. YMMV, and if you don't like it you can easily add
+        # an argument to this function that changes this behaviour (leaving
+        # the default to do what the code currently does).
+        return False
+
+    for index, (start, stop, _) in enumerate(rangeTuples):
+        if stop == genomeLength:
+            break
+    else:
+        # We didn't break from the loop, so no range section ends at the
+        # end of the genome, and the protein therefore does not indicate a
+        # circular genome.
+        return False
+
+    # One of the ranges ends at the end of the genome. If the next range
+    # (if there is one) starts at position zero, then this protein spans
+    # the endpoint of the genome, indicating circularity.
+    #
+    # Note that this means we do not consider rangeTuples like ((1, 50,
+    # True), (50, 100, True)) to indicate circularity. A protein like that
+    # should simply have its ranges encoded as ((0, 100, True),) instead of
+    # using two tuples.
+    return index < nRanges - 1 and rangeTuples[(index + 1)][0] == 0

@@ -17,8 +17,8 @@ from dark.diamond.hsp import normalizeHSP
 # command line via --outfmt 6) that must be given to DIAMOND blastx to
 # allow its output to be parsed by convert-diamond-to-sam.py (which uses
 # diamondTabularFormatToDicts (below)).
-FIELDS = ('bitscore btop qframe qend qqual qlen qseq qseqid qstart slen '
-          'sstart stitle')
+FIELDS = ('bitscore btop qframe qend full_qqual qlen full_qseq qseqid '
+          'qstart slen sstart stitle')
 
 # The keys in the following are DIAMOND format 6 field names. The values
 # are one-argument functions that take a string and return an appropriately
@@ -82,7 +82,8 @@ class DiamondTabularFormat(object):
         """
         Convert a line of DIAMOND tabular (--outfmt 6) output to a dictionary
 
-        @param line: A C{str} line read from DIAMOND output.
+        @param line: A C{str} line read from DIAMOND output. This may contain
+            a trailing whitespace (including newline and carriage return).
         @raise ValueError: If a line of C{filename} does not have the expected
             number of TAB-separated fields (i.e., len(self._fieldNames)).
         @return: A C{dict} with keys that are the DIAMOND field names, with

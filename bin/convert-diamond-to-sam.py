@@ -7,10 +7,14 @@ from __future__ import print_function, division
 
 import sys
 import argparse
-from os.path import basename
+from os.path import join
+from resource import getrlimit, RLIMIT_NOFILE
+from functools import partial
 
 from dark.diamond.conversion import FIELDS
-from dark.diamond.sam import DiamondSAMWriter
+from dark.diamond.sam import (
+    SimpleDiamondSAMWriter, PerReferenceDiamondSAMWriter)
+from dark.proteins import SqliteIndex
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -39,8 +43,8 @@ parser.add_argument(
     '--keepDescriptions', action='store_true', default=False,
     help=('Do not discard text after the first space in query or subject '
           'sequence ids. Note that this violates the SAM specification, but '
-          'since SAM files are TAB-separated there is probably only a small '
-          'chance this will cause any problems downstream.'))
+          'since SAM files are TAB-separated it may not cause problems '
+          'downstream, depending on what tools you use on the SAM.'))
 
 parser.add_argument(
     '--genomesProteinsDatabaseFilename', required=True,
@@ -62,6 +66,15 @@ parser.add_argument(
           'and will be put into the directory specified by '
           '--outputDirectory.'))
 
+parser.add_argument(
+    '--filePointerCacheMaxSize', type=int,
+    default=getrlimit(RLIMIT_NOFILE)[0] >> 1,
+    help=('The maximum size for the file pointer cache. SAM output may '
+          'be being written to an arbitrary number of output files so we '
+          'need to make sure the OS limit on open files is not exceeded. '
+          'The default value is size half the maximum number of open files '
+          'will be used.'))
+
 args = parser.parse_args()
 
 if args.printFields:
@@ -71,10 +84,41 @@ if args.printFields:
 if 0 > args.mappingQuality > 255:
     raise ValueError('Mapping quality must be between 0 and 255 (inclusive)')
 
-writer = DiamondSAMWriter(args.genomesProteinsDatabaseFilename,
-                          perReferenceOutput=args.perReferenceOutput,
-                          outputDirectory=args.outputDirectory,
-                          mappingQuality=args.mappingQuality,
-                          ram=args.ram,
-                          keepDescriptions=args.keepDescriptions,
-                          progName=basename(sys.argv[0]))
+genomesProteins = SqliteIndex(args.genomesProteinsDatabaseFilename)
+
+if args.perReferenceOutput:
+
+    def referenceTitleToBasename(subjectTitle):
+        """
+        Make a basename for a SAM output file for a DIAMOND subject match.
+
+        @param subjectTitle: A C{str} database subject id. This must have a
+            form like "acc|GENBANK|YP_009137150.1|GENBANK|NC_001798.2|..."
+            where the accession number of the matched sequence is in the third
+            '|'-separated field (which must not contain any characters that
+            cannot be used in a filename).
+        @return: A C{str} pathname to store the SAM for the reference to.
+        """
+        return join(args.outputDirectory,
+                    genomesProteins.genomeAccession(subjectTitle))
+
+    writer = PerReferenceDiamondSAMWriter(
+        genomesProteins, mappingQuality=args.mappingQuality,
+        ram=args.ram, keepDescriptions=args.keepDescriptions,
+        baseFilenameFunc=referenceTitleToBasename,
+        fpcMaxsize=args.filePointerCacheMaxSize)
+
+    save = writer.save
+else:
+    writer = SimpleDiamondSAMWriter(
+        genomesProteins, mappingQuality=args.mappingQuality,
+        ram=args.ram, keepDescriptions=args.keepDescriptions)
+
+    save = partial(writer.save, filename=sys.stdout)
+
+addMatch = writer.addMatch
+
+for line in sys.stdin:
+    addMatch(line)
+
+save()

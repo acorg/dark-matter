@@ -24,6 +24,7 @@ def version():
 # bin files that are not (yet) part of the distribution.
 scripts = [
     'bin/aa-info.py',
+    'bin/aa-to-dna.py',
     'bin/aa-to-properties.py',
     'bin/adaptor-distances.py',
     'bin/alignments-per-read.py',
@@ -125,4 +126,5 @@ setup(name='dark-matter',
           'pyzmq>=14.3.1',
           'simplejson>=3.5.3',
           'requests>=2.18.4',
+          'cachetools>=3.1.0',
       ])

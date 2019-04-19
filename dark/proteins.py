@@ -1,7 +1,8 @@
-from __future__ import division, print_function
+from __future__ import print_function, division
 
 import sys
 from collections import defaultdict, Counter
+from operator import attrgetter
 import numpy as np
 from os.path import dirname, join
 from operator import itemgetter
@@ -12,13 +13,14 @@ import sqlite3
 import os
 from Bio import SeqIO
 import gzip
+from cachetools import LRUCache, cachedmethod
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
-from dark.genbank import splitBioPythonRange
+from dark.genbank import splitBioPythonRange, circularRanges
 from dark.html import NCBISequenceLinkURL
-from dark.reads import Reads, AARead
+from dark.reads import Reads
 
 # The following regex is deliberately greedy (using .*) to consume the
 # whole protein name before backtracking to find the last [pathogen name]
@@ -898,46 +900,79 @@ class SqliteIndex(object):
     @param dbFilename: A C{str} file name containing an sqlite3 database. If
         the file does not exist it will be created. The special string
         ":memory:" can be used to create an in-memory database.
-    @param accessionToName: A C{dict} mapping accession number to the C{str}
-        name of the nucleotide sequence used in the FASTA file from which
-        the accession numbers were extracted.
     @param readClass: The class of read that should be returned by __getitem__.
     """
 
     PROTEIN_ACCESSION_FIELD = 2
     GENOME_ACCESSION_FIELD = 4
 
-    def __init__(self, dbFilename, accessionToName, readClass=AARead):
-        self._accessionToName = accessionToName
-        self._readClass = readClass
+    def __init__(self, dbFilename, lookupCacheSize=1024):
+        self._proteinCache = LRUCache(maxsize=lookupCacheSize)
+        self._genomeCache = LRUCache(maxsize=lookupCacheSize)
         self._creating = (dbFilename == ':memory:' or
                           not os.path.exists(dbFilename))
         self._connection = sqlite3.connect(dbFilename)
         if self._creating:
             # Create a new database.
             cur = self._connection.cursor()
+
+            # Allow the 'taxid' column to be NULL in creating the genomes
+            # table because that field will be filled in (using
+            # self.updateGenomeTaxids) when the table is otherwise
+            # populated.
             cur.executescript('''
                 CREATE TABLE proteins (
                     accession VARCHAR UNIQUE PRIMARY KEY,
                     sequence VARCHAR NOT NULL,
                     offsets VARCHAR NOT NULL,
-                    reversed INTEGER,
+                    reversed INTEGER NOT NULL,
+                    circular INTEGER NOT NULL,
                     gene VARCHAR,
                     note VARCHAR);
 
                 CREATE TABLE genomes (
                     accession VARCHAR UNIQUE PRIMARY KEY,
-                    length INTEGER,
-                    proteinCount INTEGER,
+                    sequence VARCHAR NOT NULL,
+                    proteinCount INTEGER NOT NULL,
                     taxid INTEGER);
                 ''')
             self._connection.commit()
 
-    def addFile(self, filename):
+    def genomeAccession(self, id_):
+        """
+        Get the genome accession info from a sequence id.
+
+        @param id_: A C{str} sequence id in the form
+            'acc|GENBANK|%s|GENBANK|%s|%s [%s]' where the genome accession
+            is in the fifth '|'-separated field.
+        @raise IndexError: If C{id_} does not have enough |-separated fields.
+        @return: The C{str} accession number.
+        """
+        return id_.split('|', self.GENOME_ACCESSION_FIELD + 1)[
+            self.GENOME_ACCESSION_FIELD]
+
+    def proteinAccession(self, id_):
+        """
+        Get the protein accession info from a sequence id.
+
+        @param id_: A C{str} sequence id in the form
+            'acc|GENBANK|%s|GENBANK|%s|%s [%s]' where the protein accession
+            is in the third '|'-separated field.
+        @raise IndexError: If C{id_} does not have enough |-separated fields.
+        @return: The C{str} accession number.
+        """
+        return id_.split('|', self.PROTEIN_ACCESSION_FIELD + 1)[
+            self.PROTEIN_ACCESSION_FIELD]
+
+    def addFile(self, filename, accessionToName):
         """
         Add proteins from a new file of GenBank info.
 
-        @param filename: A C{str} file name, with the file in GenBank format.
+        @param filename: A C{str} file name, with the file in GenBank format
+            (see https://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html).
+        @param accessionToName: A C{dict} mapping accession number to the
+            C{str} name of the nucleotide sequence used in the FASTA file from
+            which the accession numbers were extracted.
         @raise ValueError: If a file with this name has already been added or
             if the file contains a protein sequence whose id has already been
             seen.
@@ -958,9 +993,8 @@ class SqliteIndex(object):
                             if 'translation' in feature.qualifiers:
                                 print('Genome %r contains CDS feature '
                                       'with no protein_id feature but '
-                                      'has a translation!' % (
-                                          self._accessionToName[
-                                              genome.id]),
+                                      'has a translation!' %
+                                      accessionToName[genome.id],
                                       file=sys.stderr)
                                 print(feature, file=sys.stderr)
                                 print('Skipping.', file=sys.stderr)
@@ -969,27 +1003,31 @@ class SqliteIndex(object):
                         if 'translation' not in feature.qualifiers:
                             print('Genome %r contains CDS feature '
                                   'with protein id but no translation!' %
-                                  (self._accessionToName[genome.id]),
-                                  file=sys.stderr)
+                                  accessionToName[genome.id], file=sys.stderr)
                             print(feature, file=sys.stderr)
                             print('Skipping.', file=sys.stderr)
                             continue
 
                         try:
                             # Make sure the location string can be parsed.
-                            splitBioPythonRange(str(feature.location))
+                            ranges = splitBioPythonRange(str(feature.location))
                         except ValueError as e:
                             print('Genome %r contains unparseable CDS '
                                   'location! Error: %s' %
-                                  (self._accessionToName[genome.id], e),
+                                  (accessionToName[genome.id], e),
                                   file=sys.stderr)
                             print('Skipping.', file=sys.stderr)
                             continue
+                        else:
+                            # Does the protein span the end of the genome
+                            # (this may indicate a circular genome)?
+                            circular = circularRanges(ranges, len(genome.seq))
+                            assert circular is not None
 
                         if feature.location.start >= feature.location.end:
                             print('Genome %r contains feature with start '
                                   '(%d) >= stop (%d):' % (
-                                      self._accessionToName[genome.id],
+                                      accessionToName[genome.id],
                                       feature.location.start,
                                       feature.location.end),
                                   file=sys.stderr)
@@ -1003,9 +1041,8 @@ class SqliteIndex(object):
                             else:
                                 if key not in ('note', 'gene', 'product'):
                                     print('Genome %r does not have %s '
-                                          'qualifier.' % (
-                                              self._accessionToName[
-                                                  genome.id], key),
+                                          'qualifier.' %
+                                          (accessionToName[genome.id], key),
                                           file=sys.stderr)
                                     print(feature, file=sys.stderr)
                                     print('Qualifiers are:',
@@ -1023,8 +1060,7 @@ class SqliteIndex(object):
 
                         print('>acc|GENBANK|%s|GENBANK|%s|%s [%s]\n%s' %
                               (proteinId, genome.id, product,
-                               self._accessionToName[genome.id],
-                               translation))
+                               accessionToName[genome.id], translation))
 
                         gene = feature.qualifiers.get('gene', [''])[0]
                         note = feature.qualifiers.get('note', [''])[0]
@@ -1033,11 +1069,11 @@ class SqliteIndex(object):
                             connection.execute(
                                 'INSERT INTO '
                                 'proteins(accession, sequence, offsets, '
-                                'reversed, gene, note) '
-                                'VALUES (?, ?, ?, ?, ?, ?)',
+                                'reversed, circular, gene, note) '
+                                'VALUES (?, ?, ?, ?, ?, ?, ?)',
                                 (proteinId, translation, str(feature.location),
-                                 (1 if feature.strand is None
-                                  else int(feature.strand)),
+                                 (0 if feature.strand is None
+                                  else int(feature.strand)), int(circular),
                                  gene, note))
                         except sqlite3.IntegrityError as e:
                             if str(e).find('UNIQUE constraint failed') > -1:
@@ -1054,9 +1090,9 @@ class SqliteIndex(object):
                 try:
                     connection.execute(
                         'INSERT INTO '
-                        'genomes(accession, length, proteinCount) '
+                        'genomes(accession, sequence, proteinCount) '
                         'VALUES (?, ?, ?)',
-                        (genome.id, len(genome), proteinCount))
+                        (genome.id, str(genome.seq), proteinCount))
                 except sqlite3.IntegrityError as e:
                     if str(e).find('UNIQUE constraint failed') > -1:
                         raise ValueError(
@@ -1095,6 +1131,7 @@ class SqliteIndex(object):
         nWanted = len(wanted)
 
         if progressFp:
+            REPORT_FREQUENCY = 5000000
             print('%d accession numbers needed' % nWanted, file=progressFp)
             from time import time
             startTime = lastTime = time()
@@ -1104,17 +1141,18 @@ class SqliteIndex(object):
 
         with gzip.open(nucleotideAccessionToTaxidFile) as fp:
             for lineNumber, line in enumerate(fp, start=1):
-                if lineNumber % 1000000 == 0:
-                    if progressFp:
-                        thisTime = time()
-                        print('Read %d lines in %.2f seconds (last batch '
-                              'processed in %.2f seconds). Still need %d '
-                              'accession number taxids.' %
-                              (lineNumber, thisTime - startTime,
-                               thisTime - lastTime, len(wanted)),
-                              file=progressFp)
-                        lastTime = thisTime
+                if progressFp and lineNumber % REPORT_FREQUENCY == 0:
+                    thisTime = time()
+                    print('Read %d lines in %.2f seconds (last batch '
+                          'processed in %.2f seconds). Still need %d '
+                          'accession number taxids.' %
+                          (lineNumber, thisTime - startTime,
+                           thisTime - lastTime, len(wanted)), file=progressFp)
+                    lastTime = thisTime
+
+                # Decode the gzip bytes into text.
                 line = line.decode('utf-8')
+
                 # Note that the nucleotide GenBank accession to taxonomy id
                 # file (nucl_gb.accession2taxid.gz) format we're assuming
                 # we're parsing here has (TAB-separated) lines like
@@ -1167,9 +1205,9 @@ class SqliteIndex(object):
         self._connection.commit()
 
         if progressFp:
-            print('Elapsed time %.2f seconds. '
-                  'Found %d distinct taxomony ids.' %
-                  (time() - startTime, len(taxids)), file=progressFp)
+            elapsed = time() - startTime
+            print('%d taxonomy ids added added in %.2f seconds (%.2f mins).' %
+                  (len(taxids), elapsed, elapsed / 60.0), file=progressFp)
 
         if wanted:
             raise ValueError(
@@ -1177,53 +1215,55 @@ class SqliteIndex(object):
                  'found. Missing:\n' % (nWanted - len(wanted), len(wanted))) +
                 '\n'.join(sorted(wanted)))
 
+    @cachedmethod(attrgetter('_genomeCache'))
     def findGenome(self, id_):
         """
         Find info about a genome, given its id.
 
         @param id_: A C{str} sequence id. This is either of the form
             'acc|GENBANK|%s|GENBANK|%s|%s [%s]' where the genome id is in the
-            5th |-delimited field, or else is the nucleotide sequence accession
-            number as already extracted.
+            5th '|'-delimited field, or else is the nucleotide sequence
+            accession number as already extracted.
         @return: A C{dict} with 'proteinCount' and 'taxid' keys, and values as
             found in the genomes database table, else C{None} if C{id_} cannot
             be found.
         """
         try:
-            accession = id_.split('|')[self.GENOME_ACCESSION_FIELD]
+            accession = self.genomeAccession(id_)
         except IndexError:
             accession = id_
 
-        fields = 'length', 'proteinCount', 'taxid'
+        fields = 'sequence', 'proteinCount', 'taxid'
 
         cur = self._connection.cursor()
-        cur.execute('SELECT (%s) FROM genomes WHERE accession = ?' %
+        cur.execute('SELECT %s FROM genomes WHERE accession = ?' %
                     ', '.join(fields), (accession,))
         row = cur.fetchone()
         return dict(zip(fields, row)) if row else None
 
+    # @cachedmethod(attrgetter('_proteinCache'))
     def findProtein(self, id_):
         """
         Find info about a protein, given its id.
 
         @param id_: A C{str} sequence id. This is either of the form
             'acc|GENBANK|%s|GENBANK|%s|%s [%s]' where the protein id is in the
-            3rd |-delimited field, or else is the protein accession number as
+            3rd '|'-delimited field, or else is the protein accession number as
             already extracted.
-        @return: A C{dict} with 'sequence', 'offsets', 'reversed', 'gene',
-            and 'note' keys, and values as found in the proteins database
-            table, else C{None} if C{id_} cannot be found.
+        @return: A C{dict} with 'sequence', 'offsets', 'reversed', 'circular',
+            'gene', and 'note' keys, and values as found in the proteins
+            database table, else C{None} if C{id_} cannot be found.
         """
         try:
-            accession = id_.split('|')[self.PROTEIN_ACCESSION_FIELD]
+            accession = self.proteinAccession(id_)
         except IndexError:
             accession = id_
 
-        fields = 'sequence', 'offsets', 'reversed', 'gene', 'note'
+        fields = 'sequence', 'offsets', 'reversed', 'circular', 'gene', 'note'
 
         cur = self._connection.cursor()
-        cur.execute('SELECT (%s) FROM proteins WHERE accession = ?' %
-                    ', '.join(fields), (accession,))
+        cur.execute('SELECT %s FROM proteins WHERE accession = ?' %
+                    ','.join(fields), (accession,))
         row = cur.fetchone()
         return dict(zip(fields, row)) if row else None
 

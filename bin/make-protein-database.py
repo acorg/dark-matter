@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import sys
 import os
@@ -78,13 +78,16 @@ for line in open(args.accessionToNameFile):
     assert name not in accessionToName
     accessionToName[name] = description
 
-with SqliteIndex(args.databaseFile, accessionToName) as index:
+if verbose:
+    overallStart = time()
+
+with SqliteIndex(args.databaseFile) as db:
     for filename in gbFiles:
         if verbose:
             print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
             start = time()
 
-        genomeCount, proteinCount = index.addFile(filename)
+        genomeCount, proteinCount = db.addFile(filename, accessionToName)
 
         if verbose:
             elapsed = time() - start
@@ -95,5 +98,9 @@ with SqliteIndex(args.databaseFile, accessionToName) as index:
                    elapsed),
                   file=sys.stderr)
 
-    index.updateGenomeTaxids(args.nucleotideAccessionToTaxidFile,
-                             progressFp=(sys.stderr if verbose else None))
+    db.updateGenomeTaxids(args.nucleotideAccessionToTaxidFile,
+                          progressFp=(sys.stderr if verbose else None))
+if verbose:
+    elapsed = time() - overallStart
+    print('Overall indexing time: %.2f seconds (%.2f mins).' %
+          (elapsed, elapsed / 60), file=sys.stderr)
