@@ -43,16 +43,27 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--maxORFLength', metavar='LEN', type=int, default=None,
-        help='Only ORFs of a maximum of this length will be written to'
-        'stdout.')
+        help=('Only ORFs of a maximum of this length will be written to '
+              'stdout.'))
+
+    parser.add_argument(
+        '--kozakOnly', default=False, action='store_true',
+        help=('Only ORFs that also have a Kozak consensus will be written to '
+              'stdout. Only applicable if DNA reads are given.'))
+
+    parser.add_argument(
+        '--kozakInfoFile',
+        help=('Filename to which all Kozak consensus information is written. '
+              'Only applicable if DNA reads are given.'))
 
     addFASTACommandLineOptions(parser)
 
     args = parser.parse_args()
     allowOpenORFs = args.allowOpenORFs
-    write = sys.stdout.write
     minORFLength = args.minORFLength
     maxORFLength = args.maxORFLength
+    kozakInfoFile = args.kozakInfoFile
+    kozakOnly = args.kozakOnly
     reads = parseFASTACommandLineOptions(args)
     aa = args.readClass in ('AARead', 'AAReadORF', 'AAReadWithX', 'SSAARead',
                             'SSAAReadWithX', 'TranslatedRead')
@@ -64,23 +75,64 @@ if __name__ == '__main__':
         def translations(read):
             return read.translations()
 
-    for read in reads:
-        try:
-            for translation in translations(read):
-                for orf in translation.ORFs():
-                    # Omit open ORFs if they're unwanted.
-                    if ((orf.openLeft or orf.openRight) and not allowOpenORFs):
-                        continue
-
-                    # Check the length requirements, if any.
-                    if ((minORFLength is None or len(orf) >= minORFLength) and
-                            (maxORFLength is None or
-                                len(orf) <= maxORFLength)):
-                        write(orf.toString('fasta'))
-        except TranslationError as error:
-            print('Could not translate read %r sequence %r (%s).' %
-                  (read.id, read.sequence, error), file=sys.stderr)
-            if not aa:
-                print('Did you forget to run %s with "--readClass AARead"?' %
-                      (basename(sys.argv[0])), file=sys.stderr)
+    if kozakInfoFile or kozakOnly:
+        if aa:
+            print('Kozak sequences cannot be computed from aa sequences.',
+                  file=sys.stderr)
             sys.exit(1)
+        else:
+            from dark.dna import findKozakConsensus
+
+        def writeToKozakOut(kozakread, kozakfp):
+            """
+            Writes out information about a Kozak sequence stored in kozakread
+            to the file name given in kozakfp.
+            """
+            print('Read ID: ' + kozakread.id, file=kozakfp)
+            print('Kozak sequence: ' + kozakread.sequence, file=kozakfp)
+            print('Offset of the Kozak sequence A: ' +
+                  str(kozakread.start + 6), file=kozakfp)
+            print('Quality of the Kozak consensus: ' +
+                  str(kozakread.kozakQuality) + ' %', file=kozakfp)
+
+    def findORFs(kozakfp):
+        for read in reads:
+            try:
+                for translation in translations(read):
+                    for orf in translation.ORFs(allowOpenORFs):
+                        # Check the length requirements, if any.
+                        if ((minORFLength is None or
+                             len(orf) >= minORFLength) and
+                            (maxORFLength is None or
+                             len(orf) <= maxORFLength)):
+
+                            if kozakOnly:
+                                for kozakread in findKozakConsensus(read):
+                                    start = orf.start * 3
+                                    if (start + 1 <=
+                                       kozakread.stop <= start + 3):
+                                        print(orf.toString('fasta'),
+                                              end='')
+                            else:
+                                print(orf.toString('fasta'), end='')
+                            if kozakfp:
+                                for kozakread in findKozakConsensus(read):
+                                    start = orf.start * 3
+                                    if (start + 1 <=
+                                       kozakread.stop <= start + 3):
+                                        writeToKozakOut(kozakread, kozakfp)
+
+            except TranslationError as error:
+                print('Could not translate read %r sequence %r (%s).' %
+                      (read.id, read.sequence, error), file=sys.stderr)
+                if not aa:
+                    print('Did you forget to run '
+                          '%s with "--readClass AARead"?' %
+                          (basename(sys.argv[0])), file=sys.stderr)
+                sys.exit(1)
+
+    if kozakInfoFile:
+        with open(kozakInfoFile, 'a+') as kozakfp:
+            findORFs(kozakfp)
+    else:
+        findORFs(None)
