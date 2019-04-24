@@ -1,9 +1,15 @@
-## 3.1.0 Mar 24, 2019
+## 3.1.0 April 24, 2019
 
-Added `make-protein-database.py`, `add-accession-taxids.py`,
-`download-genbank.sh`, and `parse-genbank-flat-file.py` scripts, as well as
-`doc/protein-database.md` with some instructions on how to make a protein
-database.
+Added `make-protein-database.py`, `download-genbank.sh`, and
+`parse-genbank-flat-file.py` scripts, as well as `doc/protein-database.md`
+with some instructions on how to make a protein database.
+
+## 3.0.65 Jan 31, 2019
+
+Fixed `AAread.ORFs` function in the `AARead` class and moved the
+`--allowOpenORFs` (True/False) check to within the function. Added a
+`DNAKozakRead` class. Changed `extract-ORFs.py` so that information
+about Kozak consensus sequences can be returned.
 
 ## 3.0.64 Jan 28, 2019
 

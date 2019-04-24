@@ -1105,8 +1105,7 @@ def clustersForSequence(sequence, propertyNames, missingAAValue=0):
         sequence, propertyNames, PROPERTY_CLUSTERS, missingAAValue)
 
 
-def matchToString(aaMatch, read1, read2, indent='',
-                  offsets=None):
+def matchToString(aaMatch, read1, read2, indent='', offsets=None):
     """
     Format amino acid sequence match as a string.
 

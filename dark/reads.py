@@ -324,6 +324,52 @@ class RNARead(_NucleotideRead):
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
 
+class DNAKozakRead(DNARead):
+    """
+    Hold information about a Kozak sequence.
+
+    @param originalRead: The C{dark.reads.Read} instance in which the Kozak
+        sequence was found.
+    @param start: The C{int} start location of the Kozak sequence.
+    @param stop: The C{int} stop location of the Kozak sequence (this is a
+        Python string index, so the final Kozak sequence character is the one
+        before this offset in the sequence.
+    @param kozakQuality: A C{float}, giving the percentage of the 5 variable
+        locations in the Kozak sequence that match the most frequent Kozak
+        nucleotides.
+    """
+    def __init__(self, originalRead, start, stop, kozakQuality):
+        if start < 0:
+            raise ValueError('start offset (%d) less than zero' % start)
+        if stop > len(originalRead):
+            raise ValueError('stop offset (%d) > original read length (%d)' %
+                             (stop, len(originalRead)))
+        if start > stop:
+            raise ValueError('start offset (%d) greater than stop offset (%d)'
+                             % (start, stop))
+
+        newId = '%s-(%d:%d)' % (originalRead.id, start, stop)
+
+        if originalRead.quality:
+            DNARead.__init__(self, newId, originalRead.sequence[start:stop],
+                             originalRead.quality[start:stop])
+        else:
+            DNARead.__init__(self, newId, originalRead.sequence[start:stop])
+        self.originalRead = originalRead
+        self.start = start
+        self.stop = stop
+        self.kozakQuality = kozakQuality
+
+    def __eq__(self, other):
+        return (self.id == other.id and
+                self.sequence == other.sequence and
+                self.originalRead == other.originalRead and
+                self.quality == other.quality and
+                self.start == other.start and
+                self.stop == other.stop and
+                self.kozakQuality == other.kozakQuality)
+
+
 # Keep a single GOR4 instance that can be used by all AA reads. This saves us
 # from re-scanning the GOR IV secondary structure database every time we make
 # an AARead instance. This will be initialized when it's first needed.
@@ -378,41 +424,62 @@ class AARead(Read):
         """
         return (PROPERTY_DETAILS.get(aa, NONE) for aa in self.sequence)
 
-    def ORFs(self):
+    def ORFs(self, openORFs=False):
         """
         Find all ORFs in our sequence.
 
+        @param openORFs: If C{True} allow ORFs that do not have a start codon
+            and/or do not have a stop codon.
         @return: A generator that yields AAReadORF instances that correspond
             to the ORFs found in the AA sequence.
         """
-        ORFStart = None
-        openLeft = True
-        seenStart = False
 
-        for index, residue in enumerate(self.sequence):
-            if residue == 'M':
-                # Start codon.
-                openLeft = False
-                seenStart = True
-            elif residue == '*':
-                # Stop codon. Yield an ORF, if it has non-zero length.
-                if ORFStart is not None and index - ORFStart > 0:
-                    # The ORF has non-zero length.
-                    yield AAReadORF(self, ORFStart, index, openLeft, False)
-                    ORFStart = None
-                # After a stop codon, we can no longer be open on the left
-                # and we have no longer seen a start codon.
-                openLeft = seenStart = False
-            else:
-                if (seenStart or openLeft) and ORFStart is None:
-                    ORFStart = index
+        # Return open ORFs to the left and right and closed ORFs within the
+        # sequence.
+        if openORFs:
+            ORFStart = 0
+            inOpenORF = True  # open on the left
+            inORF = False
 
-        # End of sequence. Yield the final ORF if there is one and it has
-        # non-zero length.
-        length = len(self.sequence)
-        if ((seenStart or openLeft) and ORFStart is not None and
-                length - ORFStart > 0):
-            yield AAReadORF(self, ORFStart, length, openLeft, True)
+            for index, residue in enumerate(self.sequence):
+                if residue == '*':
+                    if inOpenORF:
+                        if index:
+                            yield AAReadORF(self, ORFStart, index, True, False)
+                        inOpenORF = False
+                    elif inORF:
+                        if ORFStart != index:
+                            yield AAReadORF(self, ORFStart, index,
+                                            False, False)
+                        inORF = False
+                elif residue == 'M':
+                    if not inOpenORF and not inORF:
+                        ORFStart = index + 1
+                        inORF = True
+
+            # End of sequence. Yield the final ORF, open to the right, if
+            # there is one and it has non-zero length.
+            length = len(self.sequence)
+            if inOpenORF and length > 0:
+                yield AAReadORF(self, ORFStart, length, True, True)
+            elif inORF and ORFStart < length:
+                yield AAReadORF(self, ORFStart, length, False, True)
+
+        # Return only closed ORFs.
+        else:
+            inORF = False
+
+            for index, residue in enumerate(self.sequence):
+                if residue == 'M':
+                    if not inORF:
+                        inORF = True
+                        ORFStart = index + 1
+                elif residue == '*':
+                    if inORF:
+                        if not ORFStart == index:
+                            yield AAReadORF(self, ORFStart,
+                                            index, False, False)
+                        inORF = False
 
 
 class AAReadWithX(AARead):
@@ -705,13 +772,13 @@ class TranslatedRead(AARead):
         new.reverseComplemented = d['reverseComplemented']
         return new
 
-    def maximumORFLength(self):
+    def maximumORFLength(self, openORFs=True):
         """
         Return the length of the longest (possibly partial) ORF in a translated
         read. The ORF may originate or terminate outside the sequence, which is
         why the length is just a lower bound.
         """
-        return max(len(orf) for orf in self.ORFs())
+        return max(len(orf) for orf in self.ORFs(openORFs))
 
 
 class ReadFilter(object):
