@@ -428,6 +428,8 @@ class AARead(Read):
         """
         Find all ORFs in our sequence.
 
+        @param openORFs: If C{True} allow ORFs that do not have a start codon
+            and/or do not have a stop codon.
         @return: A generator that yields AAReadORF instances that correspond
             to the ORFs found in the AA sequence.
         """
@@ -455,8 +457,8 @@ class AARead(Read):
                         ORFStart = index + 1
                         inORF = True
 
-            # End of sequence. Yield the final ORF, open to the right, if there
-            # is one and it has non-zero length.
+            # End of sequence. Yield the final ORF, open to the right, if
+            # there is one and it has non-zero length.
             length = len(self.sequence)
             if inOpenORF and length > 0:
                 yield AAReadORF(self, ORFStart, length, True, True)

@@ -102,9 +102,9 @@ if __name__ == '__main__':
                     for orf in translation.ORFs(allowOpenORFs):
                         # Check the length requirements, if any.
                         if ((minORFLength is None or
-                           len(orf) >= minORFLength) and
-                           (maxORFLength is None or
-                           len(orf) <= maxORFLength)):
+                             len(orf) >= minORFLength) and
+                            (maxORFLength is None or
+                             len(orf) <= maxORFLength)):
 
                             if kozakOnly:
                                 for kozakread in findKozakConsensus(read):
