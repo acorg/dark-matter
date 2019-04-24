@@ -4,6 +4,7 @@ from __future__ import print_function, division
 
 import sys
 import os
+import warnings
 from time import time
 from itertools import chain
 import argparse
@@ -28,7 +29,11 @@ parser.add_argument(
 
 parser.add_argument(
     '--quiet', default=False, action='store_true',
-    help='If True do not print indexing progress.')
+    help='Do not print indexing progress.')
+
+parser.add_argument(
+    '--noWarnings', default=False, action='store_true',
+    help='Do not print warnings about unparseable GenBank records.')
 
 parser.add_argument(
     '--gb', metavar='GenBank-file', nargs='+', action='append',
@@ -58,49 +63,66 @@ if os.path.exists(args.databaseFile):
               % args.databaseFile, file=sys.stderr)
         sys.exit(1)
 
-# Flatten the lists of lists that we get from using both nargs='+' and
-# action='append'. We use both because it allows people to use (e.g.)  --gb
-# on the command line either via "--gb file1 --gb file2" or "--gb file1
-# file2", or a combination of these. That way it's not necessary to
-# remember which way you're supposed to use it and you also can't be hit by
-# the subtle problem encountered in
-# https://github.com/acorg/dark-matter/issues/453
-gbFiles = list(chain.from_iterable(args.gb))
 
-verbose = not args.quiet
+def main(args):
+    """
+    Build the protein database.
 
-# Read in the accession number to nucleotide sequence name file (this could
-# also have been obtained by just reading the full FASTA file of the
-# nucleotide sequences whose proteins are looked up).
-accessionToName = {}
-for line in open(args.accessionToNameFile):
-    name, description = line[:-1].split('|', 1)
-    assert name not in accessionToName
-    accessionToName[name] = description
+    @param args: The namespace of command-line arguments returned by
+        argparse.parse_args()
+    """
 
-if verbose:
-    overallStart = time()
+    # Flatten the lists of lists that we get from using both nargs='+' and
+    # action='append'. We use both because it allows people to use (e.g.)  --gb
+    # on the command line either via "--gb file1 --gb file2" or "--gb file1
+    # file2", or a combination of these. That way it's not necessary to
+    # remember which way you're supposed to use it and you also can't be hit by
+    # the subtle problem encountered in
+    # https://github.com/acorg/dark-matter/issues/453
+    gbFiles = list(chain.from_iterable(args.gb))
 
-with SqliteIndex(args.databaseFile) as db:
-    for filename in gbFiles:
-        if verbose:
-            print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
-            start = time()
+    verbose = not args.quiet
 
-        genomeCount, proteinCount = db.addFile(filename, accessionToName)
+    # Read in the accession number to nucleotide sequence name file (this could
+    # also have been obtained by just reading the full FASTA file of the
+    # nucleotide sequences whose proteins are looked up).
+    accessionToName = {}
+    for line in open(args.accessionToNameFile):
+        name, description = line[:-1].split('|', 1)
+        assert name not in accessionToName
+        accessionToName[name] = description
 
-        if verbose:
-            elapsed = time() - start
-            print('indexed %d sequence%s containing %d protein%s '
-                  'in %.2f seconds.' %
-                  (genomeCount, '' if genomeCount == 1 else 's',
-                   proteinCount, '' if proteinCount == 1 else 's',
-                   elapsed),
-                  file=sys.stderr)
+    if verbose:
+        overallStart = time()
 
-    db.updateGenomeTaxids(args.nucleotideAccessionToTaxidFile,
-                          progressFp=(sys.stderr if verbose else None))
-if verbose:
-    elapsed = time() - overallStart
-    print('Overall indexing time: %.2f seconds (%.2f mins).' %
-          (elapsed, elapsed / 60), file=sys.stderr)
+    with SqliteIndex(args.databaseFile) as db:
+        for filename in gbFiles:
+            if verbose:
+                print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
+                start = time()
+
+            genomeCount, proteinCount = db.addFile(filename, accessionToName)
+
+            if verbose:
+                elapsed = time() - start
+                print('indexed %d sequence%s containing %d protein%s '
+                      'in %.2f seconds.' %
+                      (genomeCount, '' if genomeCount == 1 else 's',
+                       proteinCount, '' if proteinCount == 1 else 's',
+                       elapsed),
+                      file=sys.stderr)
+
+        db.updateGenomeTaxids(args.nucleotideAccessionToTaxidFile,
+                              progressFp=(sys.stderr if verbose else None))
+    if verbose:
+        elapsed = time() - overallStart
+        print('Overall indexing time: %.2f seconds (%.2f mins).' %
+              (elapsed, elapsed / 60), file=sys.stderr)
+
+
+if args.noWarnings:
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        main(args)
+else:
+    main(args)

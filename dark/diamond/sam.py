@@ -5,7 +5,7 @@ from resource import getrlimit, RLIMIT_NOFILE
 from dark.btop import btop2cigar
 from dark.diamond.conversion import DiamondTabularFormat
 from dark.fpcache import FilePointerCache
-from dark.genbank import splitBioPythonRange
+from dark.genbank import GenomeRanges
 from dark.reads import DNARead
 from dark.utils import asHandle
 
@@ -129,15 +129,15 @@ class _DiamondSAMWriter(object):
         proteinAccession = self._genomesProteins.proteinAccession(stitle)
 
         genome = self._genomesProteins.findGenome(genomeAccession)
-        if not genome:
+        if genome is None:
             raise ValueError(
-                'Could not find genome %r in genomes/proteins database.' %
+                'Could not find genome %r in genomes database table.' %
                 genomeAccession)
 
         protein = self._genomesProteins.findProtein(proteinAccession)
-        if not protein:
+        if protein is None:
             raise ValueError(
-                'Could not find protein %r in genomes/proteins database.' %
+                'Could not find protein %r in proteins database table.' %
                 proteinAccession)
 
         self._referenceLengths[genomeAccession] = len(genome['sequence'])
@@ -163,9 +163,9 @@ class _DiamondSAMWriter(object):
         qseqid = (match['qseqid'] if self._keepDescriptions else
                   match['qseqid'].split(None, 1)[0])
 
-        ranges = splitBioPythonRange(protein['offsets'])
+        ranges = GenomeRanges(protein['offsets'])
 
-        orientations = set(r[2] for r in ranges)
+        orientations = ranges.orientations()
 
         if len(orientations) == 1:
             # There is only one orientation of the ranges of the protein in

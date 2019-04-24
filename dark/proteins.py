@@ -14,11 +14,12 @@ import os
 from Bio import SeqIO
 import gzip
 from cachetools import LRUCache, cachedmethod
+from warnings import warn
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
-from dark.genbank import splitBioPythonRange, circularRanges
+from dark.genbank import GenomeRanges
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads
 
@@ -913,7 +914,7 @@ class SqliteIndex(object):
                           not os.path.exists(dbFilename))
         self._connection = sqlite3.connect(dbFilename)
         if self._creating:
-            # Create a new database.
+            # We're creating the database, so addd its tables.
             cur = self._connection.cursor()
 
             # Allow the 'taxid' column to be NULL in creating the genomes
@@ -923,12 +924,17 @@ class SqliteIndex(object):
             cur.executescript('''
                 CREATE TABLE proteins (
                     accession VARCHAR UNIQUE PRIMARY KEY,
+                    genomeAccession VARCHAR NOT NULL,
                     sequence VARCHAR NOT NULL,
                     offsets VARCHAR NOT NULL,
                     reversed INTEGER NOT NULL,
                     circular INTEGER NOT NULL,
+                    rangeCount INTEGER NOT NULL,
                     gene VARCHAR,
-                    note VARCHAR);
+                    note VARCHAR,
+                    FOREIGN KEY (genomeAccession)
+                        REFERENCES genomes (accession)
+                );
 
                 CREATE TABLE genomes (
                     accession VARCHAR UNIQUE PRIMARY KEY,
@@ -991,48 +997,39 @@ class SqliteIndex(object):
                     if feature.type == 'CDS':
                         if 'protein_id' not in feature.qualifiers:
                             if 'translation' in feature.qualifiers:
-                                print('Genome %r contains CDS feature '
-                                      'with no protein_id feature but '
-                                      'has a translation!' %
-                                      accessionToName[genome.id],
-                                      file=sys.stderr)
-                                print(feature, file=sys.stderr)
-                                print('Skipping.', file=sys.stderr)
+                                warn('Genome %r contains CDS feature '
+                                     'with no protein_id feature but '
+                                     'has a translation! Skipping.\n%s' %
+                                     (accessionToName[genome.id], feature))
                             continue
 
                         if 'translation' not in feature.qualifiers:
-                            print('Genome %r contains CDS feature '
-                                  'with protein id but no translation!' %
-                                  accessionToName[genome.id], file=sys.stderr)
-                            print(feature, file=sys.stderr)
-                            print('Skipping.', file=sys.stderr)
+                            warn('Genome %r contains CDS feature '
+                                 'with protein id but no translation! '
+                                 'Skipping.\n%s' %
+                                 (accessionToName[genome.id], feature))
                             continue
 
                         try:
                             # Make sure the location string can be parsed.
-                            ranges = splitBioPythonRange(str(feature.location))
+                            ranges = GenomeRanges(str(feature.location))
                         except ValueError as e:
-                            print('Genome %r contains unparseable CDS '
-                                  'location! Error: %s' %
-                                  (accessionToName[genome.id], e),
-                                  file=sys.stderr)
-                            print('Skipping.', file=sys.stderr)
+                            warn('Genome %r contains unparseable CDS '
+                                 'location! Skipping. Error: %s' %
+                                 (accessionToName[genome.id], e))
                             continue
                         else:
                             # Does the protein span the end of the genome
                             # (this may indicate a circular genome)?
-                            circular = circularRanges(ranges, len(genome.seq))
-                            assert circular is not None
+                            circular = ranges.circular(len(genome.seq))
 
                         if feature.location.start >= feature.location.end:
-                            print('Genome %r contains feature with start '
-                                  '(%d) >= stop (%d):' % (
-                                      accessionToName[genome.id],
-                                      feature.location.start,
-                                      feature.location.end),
-                                  file=sys.stderr)
-                            print(feature, file=sys.stderr)
-                            sys.exit(1)
+                            warn('Genome %r contains feature with start '
+                                 '(%d) >= stop (%d). Skipping.\n%s' % (
+                                     accessionToName[genome.id],
+                                     feature.location.start,
+                                     feature.location.end, feature))
+                            continue
 
                         for key in ('gene', 'note', 'product',
                                     'protein_id', 'translation'):
@@ -1067,13 +1064,17 @@ class SqliteIndex(object):
 
                         try:
                             connection.execute(
-                                'INSERT INTO '
-                                'proteins(accession, sequence, offsets, '
-                                'reversed, circular, gene, note) '
-                                'VALUES (?, ?, ?, ?, ?, ?, ?)',
-                                (proteinId, translation, str(feature.location),
+                                'INSERT INTO proteins('
+                                'accession, genomeAccession, sequence, '
+                                'offsets, reversed, circular, rangeCount, '
+                                'gene, note) '
+                                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                (proteinId, genome.id, translation,
+                                 str(feature.location),
                                  (0 if feature.strand is None
-                                  else int(feature.strand)), int(circular),
+                                  else int(feature.strand)),
+                                 int(circular),
+                                 ranges.distinctRangeCount(len(genome.seq)),
                                  gene, note))
                         except sqlite3.IntegrityError as e:
                             if str(e).find('UNIQUE constraint failed') > -1:
@@ -1239,7 +1240,8 @@ class SqliteIndex(object):
         cur.execute('SELECT %s FROM genomes WHERE accession = ?' %
                     ', '.join(fields), (accession,))
         row = cur.fetchone()
-        return dict(zip(fields, row)) if row else None
+        if row:
+            return dict(zip(fields, row)).update({'accession': accession})
 
     # @cachedmethod(attrgetter('_proteinCache'))
     def findProtein(self, id_):
@@ -1259,13 +1261,15 @@ class SqliteIndex(object):
         except IndexError:
             accession = id_
 
-        fields = 'sequence', 'offsets', 'reversed', 'circular', 'gene', 'note'
+        fields = ('genomeAccession', 'sequence', 'offsets', 'reversed',
+                  'circular', 'rangeCount', 'gene', 'note')
 
         cur = self._connection.cursor()
         cur.execute('SELECT %s FROM proteins WHERE accession = ?' %
                     ','.join(fields), (accession,))
         row = cur.fetchone()
-        return dict(zip(fields, row)) if row else None
+        if row:
+            return dict(zip(fields, row)).update({'accession': accession})
 
     def close(self):
         """

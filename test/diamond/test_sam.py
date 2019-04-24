@@ -4,6 +4,7 @@ from six import StringIO
 from dark.aa import CODONS
 from dark.diamond.sam import SimpleDiamondSAMWriter
 from dark.diamond.run import DiamondExecutor
+from dark.genbank import GenomeRanges
 from dark.proteins import SqliteIndex
 from dark.reads import Read, Reads
 
@@ -18,11 +19,13 @@ class TestSimpleDiamondSAMWriter(TestCase):
         proteinSequence = SAMPLE_DATA['proteins'][proteinAccession]['protein']
         proteinId = SAMPLE_DATA['proteins'][proteinAccession]['id']
         proteinRange = SAMPLE_DATA['proteins'][proteinAccession]['range']
+        ranges = GenomeRanges(proteinRange)
         queryStartInProtein = 10  # This is a 0-based amino acid offset.
         queryLenInProtein = 40  # This is an amino acid length.
 
         genomeAccession = 'NC_030446.1'
         genomeSequence = SAMPLE_DATA['genomes'][genomeAccession]['genome']
+        genomeLen = len(genomeSequence)
 
         # The query sequence is nucleotides that match the amino acids in the
         # protein. Here we use the first ([0] in the below) codon for each
@@ -65,19 +68,24 @@ class TestSimpleDiamondSAMWriter(TestCase):
         db = SqliteIndex(':memory:')
         with db._connection as connection:
             connection.execute(
-                'INSERT INTO '
-                'genomes(accession, sequence, proteinCount) '
-                'VALUES (?, ?, ?)',
+                'INSERT INTO genomes('
+                'accession, sequence, proteinCount'
+                ') VALUES (?, ?, ?)',
                 (genomeAccession, genomeSequence, 5))
 
             connection.execute(
-                'INSERT INTO '
-                'proteins(accession, sequence, offsets, reversed, circular, '
-                'gene, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (proteinAccession, proteinSequence, proteinRange, 0, 0, None,
-                 None))
+                'INSERT INTO proteins('
+                'accession, genomeAccession, sequence, offsets, '
+                'reversed, circular, rangeCount, gene, note'
+                ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (proteinAccession, genomeAccession, proteinSequence,
+                 proteinRange, 0, int(ranges.circular(genomeLen)),
+                 ranges.distinctRangeCount(genomeLen), None, None))
 
-        # Make a DIAMOND to SAM writer and give it the DIAMOND output.
+        assert genomeAccession == 'NC_030446.1'
+        print(db.findGenome(genomeAccession), 'NC_030446.1')
+
+        # Make a DIAMOND-to-SAM writer and give it the DIAMOND output.
         writer = SimpleDiamondSAMWriter(db)
         writer.addMatch(
             '\t'.join(map(str, (
