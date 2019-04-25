@@ -1,6 +1,5 @@
 import six
 from six.moves import builtins
-from six import StringIO
 from unittest import TestCase
 
 try:
@@ -12,6 +11,7 @@ from .mocking import mockOpen
 
 from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
+from dark.utils import StringIO
 
 
 class TestSSFastaReads(TestCase):

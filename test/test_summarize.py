@@ -1,8 +1,9 @@
 from unittest import TestCase
-from six import StringIO, assertRaisesRegex
+from six import assertRaisesRegex
 
 from dark.reads import DNARead
 from dark.summarize import summarizeReads, sequenceCategoryLengths
+from dark.utils import StringIO
 
 
 class TestSummarizeReads(TestCase):

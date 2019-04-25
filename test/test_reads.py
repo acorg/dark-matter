@@ -1,6 +1,5 @@
 import six
 from six.moves import builtins
-from six import StringIO
 from unittest import TestCase
 from random import seed
 from os import stat
@@ -20,6 +19,7 @@ from dark.reads import (
     Read, TranslatedRead, Reads, ReadsInRAM, DNARead, RNARead, DNAKozakRead,
     AARead, AAReadORF, AAReadWithX, SSAARead, SSAAReadWithX,
     readClassNameToClass)
+from dark.utils import StringIO
 
 
 class TestRead(TestCase):

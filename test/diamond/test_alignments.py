@@ -3,7 +3,6 @@
 import six
 import platform
 from six.moves import builtins
-from six import StringIO
 from copy import deepcopy
 from json import dumps
 from unittest import TestCase
@@ -22,6 +21,7 @@ from dark.score import LowerIsBetterScore
 from dark.diamond.alignments import (
     DiamondReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
+from dark.utils import StringIO
 
 
 class TestDiamondReadsAlignments(TestCase):
