@@ -2,6 +2,7 @@ from six.moves import builtins
 
 from dark.reads import AARead, DNARead, RNARead
 from dark.fastq import FastqReads
+from dark.utils import StringIO
 
 from unittest import TestCase
 
@@ -10,7 +11,7 @@ try:
 except ImportError:
     from mock import patch
 
-from .mocking import mockOpen, File
+from .mocking import mockOpen
 
 
 class TestFastqReads(TestCase):
@@ -108,11 +109,11 @@ class TestFastqReads(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('file1.fastq', filename)
                     self.count += 1
-                    return File(['@id1\n', 'ACTG\n', '+\n', '!!!!\n'])
+                    return StringIO('@id1\nACTG\n+\n!!!!\n')
                 elif self.count == 1:
                     self.test.assertEqual('file2.fastq', filename)
                     self.count += 1
-                    return File(['@id2\n', 'CAGT\n', '+\n', '!!!!\n'])
+                    return StringIO('@id2\nCAGT\n+\n!!!!\n')
                 else:
                     self.test.fail('We are only supposed to be called twice!')
 

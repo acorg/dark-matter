@@ -1,18 +1,17 @@
 from unittest import TestCase
-from six import StringIO, assertRaisesRegex
+from six import assertRaisesRegex
 from six.moves import builtins
 from contextlib import contextmanager
 
 from dark.proteins import (
     splitNames, _NO_PATHOGEN_NAME, getPathogenProteinCounts, ProteinGrouper,
     PathogenSampleFiles)
+from dark.utils import StringIO
 
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
-
-from .mocking import File
 
 
 class TestSplitNames(TestCase):
@@ -87,14 +86,14 @@ class TestGetPathogenProteinCounts(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('filename.fasta', filename)
                     self.count += 1
-                    return File(['>protein 1 [pathogen 1]\n',
-                                 'ACTG\n',
-                                 '>protein 2 [pathogen 1]\n',
-                                 'AA\n',
-                                 '>no pathogen name here\n',
-                                 'AA\n',
-                                 '>protein 3 [pathogen 2]\n',
-                                 'AA\n'])
+                    return StringIO('>protein 1 [pathogen 1]\n' +
+                                    'ACTG\n' +
+                                    '>protein 2 [pathogen 1]\n' +
+                                    'AA\n' +
+                                    '>no pathogen name here\n' +
+                                    'AA\n' +
+                                    '>protein 3 [pathogen 2]\n' +
+                                    'AA\n')
                 else:
                     self.test.fail('We are only supposed to be called once!')
 
@@ -123,15 +122,15 @@ class TestGetPathogenProteinCounts(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('filename1.fasta', filename)
                     self.count += 1
-                    return File(['>protein 1 [pathogen 1]\n',
-                                 'ACTG\n',
-                                 '>protein 3 [pathogen 2]\n',
-                                 'AA\n'])
+                    return StringIO('>protein 1 [pathogen 1]\n' +
+                                    'ACTG\n' +
+                                    '>protein 3 [pathogen 2]\n' +
+                                    'AA\n')
                 elif self.count == 1:
                     self.test.assertEqual('filename2.fasta', filename)
                     self.count += 1
-                    return File(['>protein 2 [pathogen 1]\n',
-                                 'AA\n'])
+                    return StringIO('>protein 2 [pathogen 1]\n' +
+                                    'AA\n')
                 else:
                     self.test.fail('We are only supposed to be called twice!')
 
@@ -689,7 +688,7 @@ class TestPathogenSampleFiles(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('out/0.fasta', filename)
                     self.count += 1
-                    return File(['>id1\n', 'ACTG\n'])
+                    return StringIO('>id1\nACTG\n')
                 elif self.count == 1:
                     self.test.assertEqual('out/pathogen-0-sample-0.fasta',
                                           filename)
@@ -748,9 +747,9 @@ class TestPathogenSampleFiles(TestCase):
                         'Keyword args: %r.' % (filename, args, kwargs))
                 else:
                     if filename == 'out/0.fasta':
-                        return File(['>id1\n', 'ACTG\n'])
+                        return StringIO('>id1\nACTG\n')
                     elif filename == 'out/1.fasta':
-                        return File(['>id1\n', 'ACTG\n', '>id2\n', 'CAGT\n'])
+                        return StringIO('>id1\nACTG\n>id2\nCAGT\n')
                     else:
                         return self.manager
 
@@ -793,9 +792,9 @@ class TestPathogenSampleFiles(TestCase):
             def sideEffect(self, filename, *args, **kwargs):
                 if filename in self.expectedFilenames:
                     if filename == 'out/0.fasta':
-                        return File(['>id1\n', 'ACTG\n'])
+                        return StringIO('>id1\nACTG\n')
                     elif filename == 'out/1.fasta':
-                        return File(['>id2\n', 'AC\n', '>id3\n', 'CAGTTTT\n'])
+                        return StringIO('>id2\nAC\n>id3\nCAGTTTT\n')
                     else:
                         return self.manager
                 else:
@@ -872,9 +871,9 @@ class TestPathogenSampleFiles(TestCase):
             def sideEffect(self, filename, *args, **kwargs):
                 if filename in self.expectedFilenames:
                     if filename == 'out/0.fasta':
-                        return File(['>id1\n', 'ACTG\n'])
+                        return StringIO('>id1\nACTG\n')
                     elif filename == 'out/1.fasta':
-                        return File(['>id2\n', 'AC\n', '>id3\n', 'CAGTTTT\n'])
+                        return StringIO('>id2\nAC\n>id3\nCAGTTTT\n')
                     else:
                         return self.manager
                 else:

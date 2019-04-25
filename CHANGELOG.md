@@ -1,3 +1,10 @@
+## 3.0.66 Apr 25, 2019
+
+Added `pysam` to `setup.py` `install_requires` list. Removed `cffi`. Fixed
+tests that were failing under Linux (apart from pyfaidx tests which are now
+skipped on Linux). Removed mocking `File` class and replaced it with
+`StringIO`.
+
 ## 3.0.65 Jan 31, 2019
 
 Fixed `AAread.ORFs` function in the `AARead` class and moved the

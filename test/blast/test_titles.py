@@ -9,7 +9,7 @@ except ImportError:
 
 from six.moves import builtins
 
-from ..mocking import mockOpen, File
+from ..mocking import mockOpen
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
@@ -17,6 +17,7 @@ from dark.hsp import HSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import BlastReadsAlignments
 from dark.titles import titleCounts, TitleAlignments, TitlesAlignments
+from dark.utils import StringIO
 
 
 class TestTitleCounts(TestCase):
@@ -253,9 +254,11 @@ class TestTitlesAlignments(TestCase):
             def sideEffect(self, _ignoredFilename, **kwargs):
                 if self.first:
                     self.first = False
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD2) + '\n')
                 else:
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD4) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD4) + '\n')
 
         title = 'gi|887699|gb|DQ37780 Cowpox virus 15'
 

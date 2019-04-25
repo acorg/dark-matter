@@ -1,5 +1,6 @@
 import six
 from six.moves import builtins
+from six import StringIO
 from unittest import TestCase
 
 try:
@@ -7,7 +8,7 @@ try:
 except ImportError:
     from mock import patch
 
-from .mocking import mockOpen, File
+from .mocking import mockOpen
 
 from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
@@ -153,11 +154,11 @@ class TestSSFastaReads(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('file1.fasta', filename)
                     self.count += 1
-                    return File(['>id1\n', 'ACTG\n', '>id1\n', 'hhhh\n'])
+                    return StringIO('>id1\nACTG\n>id1\nhhhh\n')
                 elif self.count == 1:
                     self.test.assertEqual('file2.fasta', filename)
                     self.count += 1
-                    return File(['>id2\n', 'CAGT\n', '>id2\n', 'eeee\n'])
+                    return StringIO('>id2\nCAGT\n>id2\neeee\n')
                 else:
                     self.test.fail('We are only supposed to be called twice!')
 

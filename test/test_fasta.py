@@ -1,9 +1,10 @@
+import sys
 from six.moves import builtins
 from six import assertRaisesRegex
 from io import BytesIO
 import os
 
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from Bio import SeqIO, bgzf
 from contextlib import contextmanager
 
@@ -12,12 +13,14 @@ try:
 except ImportError:
     from mock import patch
 
-from .mocking import mockOpen, File
+from .mocking import mockOpen
 
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
                         FastaReads, FastaFaiReads, combineReads, SqliteIndex)
 from dark.utils import StringIO
+
+canTestPyfaidx = sys.platform != 'linux'
 
 
 class FastaDeDup(TestCase):
@@ -430,11 +433,11 @@ class TestFastaReads(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('file1.fasta', filename)
                     self.count += 1
-                    return File(['>id1\n', 'ACTG\n'])
+                    return StringIO('>id1\nACTG\n')
                 elif self.count == 1:
                     self.test.assertEqual('file2.fasta', filename)
                     self.count += 1
-                    return File(['>id2\n', 'CAGT\n'])
+                    return StringIO('>id2\nCAGT\n')
                 else:
                     self.test.fail('We are only supposed to be called twice!')
 
@@ -450,6 +453,7 @@ class TestFastaReads(TestCase):
                 list(reads))
 
 
+@skipUnless(canTestPyfaidx, 'pyfaidx tests are skipped on Linux')
 class TestFastaFaiReads(TestCase):
     """
     Tests for the L{dark.fasta.FastaFaiReads} class.
