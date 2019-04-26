@@ -12,7 +12,7 @@ try:
 except ImportError:
     from mock import patch
 
-from ..mocking import mockOpen, File
+from ..mocking import mockOpen
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads, AAReadWithX
@@ -21,6 +21,7 @@ from dark.score import LowerIsBetterScore
 from dark.diamond.alignments import (
     DiamondReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
+from dark.utils import StringIO
 
 
 class TestDiamondReadsAlignments(TestCase):
@@ -190,7 +191,8 @@ class TestDiamondReadsAlignments(TestCase):
         If a JSON file contains a parameters section and one record, it must
         be read correctly.
         """
-        result = File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+        result = StringIO(dumps(PARAMS) + '\n' +
+                          dumps(RECORD0) + '\n')
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.return_value = result
@@ -214,9 +216,11 @@ class TestDiamondReadsAlignments(TestCase):
             def sideEffect(self, _ignoredFilename, **kwargs):
                 if self.first:
                     self.first = False
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD0) + '\n')
                 else:
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD1) + '\n')
 
         sideEffect = SideEffect()
         with patch.object(builtins, 'open') as mockMethod:
@@ -248,14 +252,17 @@ class TestDiamondReadsAlignments(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('1.json', filename)
                     self.count += 1
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD0) + '\n')
                 elif self.count == 1:
                     self.test.assertEqual('2.json', filename)
                     self.count += 1
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD1) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD1) + '\n')
                 else:
                     self.test.assertEqual('3.json', filename)
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD2) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD2) + '\n')
 
         sideEffect = SideEffect(self)
         with patch.object(builtins, 'open') as mockMethod:
@@ -292,10 +299,11 @@ class TestDiamondReadsAlignments(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('file.json', filename)
                     self.count += 1
-                    return File([dumps(PARAMS) + '\n', dumps(RECORD0) + '\n'])
+                    return StringIO(dumps(PARAMS) + '\n' +
+                                    dumps(RECORD0) + '\n')
                 elif self.count == 1:
                     self.count += 1
-                    return File(['>id1 Description', 'AA\n'])
+                    return StringIO('>id1 Description\nAA\n')
                 else:
                     self.fail('Unexpected third call to open.')
 
@@ -340,12 +348,12 @@ class TestDiamondReadsAlignments(TestCase):
         evalues are converted to the positive value of their negative exponent.
         """
         def result(a):
-            return File([
-                dumps(PARAMS) + '\n',
-                dumps(deepcopy(RECORD0)) + '\n',
-                dumps(deepcopy(RECORD1)) + '\n',
-                dumps(deepcopy(RECORD2)) + '\n',
-                dumps(deepcopy(RECORD3)) + '\n'])
+            return StringIO(
+                dumps(PARAMS) + '\n' +
+                dumps(deepcopy(RECORD0)) + '\n' +
+                dumps(deepcopy(RECORD1)) + '\n' +
+                dumps(deepcopy(RECORD2)) + '\n' +
+                dumps(deepcopy(RECORD3)) + '\n')
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result
@@ -370,13 +378,13 @@ class TestDiamondReadsAlignments(TestCase):
         evalues are set randomly high.
         """
         def result(a):
-            return File([
-                dumps(PARAMS) + '\n',
-                dumps(deepcopy(RECORD0)) + '\n',
-                dumps(deepcopy(RECORD1)) + '\n',
-                dumps(deepcopy(RECORD2)) + '\n',
-                dumps(deepcopy(RECORD3)) + '\n',
-                dumps(deepcopy(RECORD4)) + '\n'])
+            return StringIO(
+                dumps(PARAMS) + '\n' +
+                dumps(deepcopy(RECORD0)) + '\n' +
+                dumps(deepcopy(RECORD1)) + '\n' +
+                dumps(deepcopy(RECORD2)) + '\n' +
+                dumps(deepcopy(RECORD3)) + '\n' +
+                dumps(deepcopy(RECORD4)) + '\n')
 
         with patch.object(builtins, 'open') as mockMethod:
             mockMethod.side_effect = result

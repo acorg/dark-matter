@@ -1,10 +1,25 @@
 from tempfile import mkdtemp
 from shutil import rmtree
 from os.path import join
+from subprocess import CalledProcessError
 
 from dark.diamond.conversion import FIELDS, DiamondTabularFormat
 from dark.process import Executor
 from dark.utils import cd
+
+
+def diamondInstalled():
+    """
+    Test if DIAMOND is installed.
+
+    @return: A C{bool}, which is C{True} if DIAMOND seems to be installed.
+    """
+    try:
+        Executor().execute('diamond help')
+    except CalledProcessError:
+        return False
+    else:
+        return True
 
 
 class DiamondExecutor(object):

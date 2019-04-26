@@ -1,6 +1,5 @@
 import six
 from six.moves import builtins
-from six import StringIO
 from unittest import TestCase
 from random import seed
 from os import stat
@@ -9,7 +8,7 @@ try:
     from unittest.mock import patch, call
 except ImportError:
     from mock import patch, call
-from .mocking import mockOpen, File
+from .mocking import mockOpen
 
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
@@ -20,6 +19,7 @@ from dark.reads import (
     Read, TranslatedRead, Reads, ReadsInRAM, DNARead, RNARead, DNAKozakRead,
     AARead, AAReadORF, AAReadWithX, SSAARead, SSAAReadWithX,
     readClassNameToClass)
+from dark.utils import StringIO
 
 
 class TestRead(TestCase):
@@ -3506,7 +3506,7 @@ class TestReadsInRAM(TestCase):
                 if self.count == 0:
                     self.test.assertEqual('file1.fasta', filename)
                     self.count += 1
-                    return File(['>id1\n', 'ACTG\n', '>id2\n', 'AA\n'])
+                    return StringIO('>id1\nACTG\n>id2\nAA\n')
                 else:
                     self.test.fail('We are only supposed to be called once!')
 

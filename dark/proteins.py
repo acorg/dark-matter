@@ -1241,9 +1241,11 @@ class SqliteIndex(object):
                     ', '.join(fields), (accession,))
         row = cur.fetchone()
         if row:
-            return dict(zip(fields, row)).update({'accession': accession})
+            result = dict(zip(fields, row))
+            result.update({'accession': accession})
+            return result
 
-    # @cachedmethod(attrgetter('_proteinCache'))
+    @cachedmethod(attrgetter('_proteinCache'))
     def findProtein(self, id_):
         """
         Find info about a protein, given its id.
@@ -1269,7 +1271,9 @@ class SqliteIndex(object):
                     ','.join(fields), (accession,))
         row = cur.fetchone()
         if row:
-            return dict(zip(fields, row)).update({'accession': accession})
+            result = dict(zip(fields, row))
+            result.update({'accession': accession})
+            return result
 
     def close(self):
         """

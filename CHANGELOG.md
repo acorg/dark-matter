@@ -4,6 +4,19 @@ Added `make-protein-database.py`, `download-genbank.sh`, and
 `parse-genbank-flat-file.py` scripts, as well as `doc/protein-database.md`
 with some instructions on how to make a protein database.
 
+## 3.0.67 Apr 25, 2019
+
+Use `dark.utils.StringIO` everywhere as it can be used as a context manager
+in Python 2.
+
+## 3.0.66 Apr 25, 2019
+
+Added `pysam` to `setup.py` `install_requires` list. Removed `cffi`. Fixed
+tests that were failing under Linux (apart from pyfaidx tests which are now
+skipped on Linux). Removed mocking `File` class and replaced it with
+`StringIO`.
+>>>>>>> master
+
 ## 3.0.65 Jan 31, 2019
 
 Fixed `AAread.ORFs` function in the `AARead` class and moved the

@@ -1,13 +1,14 @@
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from six import assertRaisesRegex
 
 from dark.aa import CODONS
-from dark.diamond.run import DiamondExecutor
+from dark.diamond.run import DiamondExecutor, diamondInstalled
 from dark.reads import Read, Reads
 
 from .sample_proteins import SAMPLE_DATA
 
 
+@skipUnless(diamondInstalled(), 'DIAMOND is not installed')
 class TestDiamondExecutor(TestCase):
     """
     Test the execution of DIAMOND.

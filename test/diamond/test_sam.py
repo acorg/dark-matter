@@ -1,9 +1,9 @@
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from six import StringIO
 
 from dark.aa import CODONS
 from dark.diamond.sam import SimpleDiamondSAMWriter
-from dark.diamond.run import DiamondExecutor
+from dark.diamond.run import DiamondExecutor, diamondInstalled
 from dark.genbank import GenomeRanges
 from dark.proteins import SqliteIndex
 from dark.reads import Read, Reads
@@ -11,10 +11,15 @@ from dark.reads import Read, Reads
 from .sample_proteins import SAMPLE_DATA
 
 
+@skipUnless(diamondInstalled(), 'DIAMOND is not installed')
 class TestSimpleDiamondSAMWriter(TestCase):
-
+    """
+    Test the SimpleDiamondSAMWriter class.
+    """
     def testTibetanFrogHBV(self):
-
+        """
+        Test that Tibetan frogs can get HBV.
+        """
         proteinAccession = 'YP_009259545.1'
         proteinSequence = SAMPLE_DATA['proteins'][proteinAccession]['protein']
         proteinId = SAMPLE_DATA['proteins'][proteinAccession]['id']
@@ -81,9 +86,6 @@ class TestSimpleDiamondSAMWriter(TestCase):
                 (proteinAccession, genomeAccession, proteinSequence,
                  proteinRange, 0, int(ranges.circular(genomeLen)),
                  ranges.distinctRangeCount(genomeLen), None, None))
-
-        assert genomeAccession == 'NC_030446.1'
-        print(db.findGenome(genomeAccession), 'NC_030446.1')
 
         # Make a DIAMOND-to-SAM writer and give it the DIAMOND output.
         writer = SimpleDiamondSAMWriter(db)

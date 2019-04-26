@@ -58,7 +58,6 @@ class SSFastaReads(Reads):
                         record = next(records)
                     except StopIteration:
                         break
-
                     try:
                         structureRecord = next(records)
                     except StopIteration:
