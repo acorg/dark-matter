@@ -9,7 +9,7 @@ from time import time
 from itertools import chain
 import argparse
 
-from dark.proteins import SqliteIndex
+from dark.proteins import SqliteIndexWriter
 
 
 parser = argparse.ArgumentParser(
@@ -25,7 +25,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--force', default=False, action='store_true',
-    help='If True and the output file already exists, overwrite it.')
+    help='If True and the database file already exists, overwrite it.')
 
 parser.add_argument(
     '--quiet', default=False, action='store_true',
@@ -94,8 +94,9 @@ def main(args):
 
     if verbose:
         overallStart = time()
+        totalProteinCount = 0
 
-    with SqliteIndex(args.databaseFile) as db:
+    with SqliteIndexWriter(args.databaseFile, force=args.force) as db:
         for filename in gbFiles:
             if verbose:
                 print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
@@ -104,6 +105,7 @@ def main(args):
             genomeCount, proteinCount = db.addFile(filename, accessionToName)
 
             if verbose:
+                totalProteinCount += proteinCount
                 elapsed = time() - start
                 print('indexed %d sequence%s containing %d protein%s '
                       'in %.2f seconds.' %
@@ -113,11 +115,13 @@ def main(args):
                       file=sys.stderr)
 
         db.updateGenomeTaxids(args.nucleotideAccessionToTaxidFile,
-                              progressFp=(sys.stderr if verbose else None))
+                              progressFp=(verbose and sys.stderr or None))
     if verbose:
         elapsed = time() - overallStart
-        print('Overall indexing time: %.2f seconds (%.2f mins).' %
-              (elapsed, elapsed / 60), file=sys.stderr)
+        print('%d GenBank files (containing a total of %d proteins) processed '
+              'in %.2f seconds (%.2f mins).' %
+              (len(gbFiles), totalProteinCount, elapsed, elapsed / 60),
+              file=sys.stderr)
 
 
 if args.noWarnings:

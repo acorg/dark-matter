@@ -20,10 +20,12 @@ class GenomeRanges(object):
 
     @raise ValueError: If C{rangeStr} cannot be correctly parsed.
     @return: A C{list} whose elements are 3-C{tuple}s holding the C{int} start
-        and stop offsets and a C{bool} that indicates whether the offset
-        corresponds to the complement strand (i.e., this will be C{False} when
-        there is a '(+)' in a range and C{True} when there is a '(-)'. Example
-        arguments and their return values:
+        and stop offsets and a C{bool} that indicates whether the offsets
+        corresponds to the forward strand (i.e., will be C{True} when
+        there is a '(-)' in a range and C{False} when there is a '(-)' which
+        indicates the complement strand).
+
+        Example arguments and their return values:
 
             '[9462:10137](+)' => ((9462, 10137, False),)
 
@@ -56,9 +58,9 @@ class GenomeRanges(object):
 
         for subRange in subRanges:
             if subRange.endswith('](+)'):
-                complement = False
+                forward = True
             elif subRange.endswith('](-)'):
-                complement = True
+                forward = False
             else:
                 raise ValueError('Could not parse GenBank range string "%s". '
                                  'Range "%s" does not end with ](+) or ](-).' %
@@ -86,22 +88,28 @@ class GenomeRanges(object):
                         'Offset values (%d, %d) cannot decrease.' %
                         (rangeStr, start, stop))
 
-                ranges.append((start, stop, complement))
+                ranges.append((start, stop, forward))
 
         self.ranges = self._mergeContiguousRanges(ranges)
         self._nRanges = len(self.ranges)
 
     def _mergeContiguousRanges(self, ranges):
         """
+        Merge ranges that are contiguous (follow each other immediately on the
+        genome).
+
+        @param ranges: An iterable of (start, stop, forward) tuples.
+        @return: A C{tuple} of (start, stop, forward) tuples with contiguous
+            ranges found in C{ranges} merged.
         """
         result = []
-        lastStart = lastStop = lastComplement = None
+        lastStart = lastStop = lastForward = None
 
-        for index, (start, stop, complement) in enumerate(ranges):
+        for index, (start, stop, forward) in enumerate(ranges):
             if lastStart is None:
-                lastStart, lastStop, lastComplement = start, stop, complement
+                lastStart, lastStop, lastForward = start, stop, forward
             else:
-                if start == lastStop and complement == lastComplement:
+                if start == lastStop and forward == lastForward:
                     # This range continues the previous one.
                     warnings.warn(
                         'Contiguous GenBank ranges detected: [%d:%d] '
@@ -110,22 +118,26 @@ class GenomeRanges(object):
                     lastStop = stop
                 else:
                     # Emit the range that just got terminated.
-                    result.append((lastStart, lastStop, lastComplement))
+                    result.append((lastStart, lastStop, lastForward))
                     # And remember this one.
-                    lastStart, lastStop, lastComplement = (start, stop,
-                                                           complement)
+                    lastStart, lastStop, lastForward = start, stop, forward
 
-        result.append((lastStart, lastStop, lastComplement))
+        # Emit the final range.
+        result.append((lastStart, lastStop, lastForward))
+
         return tuple(result)
+
+    def __str__(self):
+        return '<%s: %s>' % (
+            self.__class__.__name__, ', '.join(map(str, self.ranges)))
 
     def circular(self, genomeLength):
         """
-        Determine whether the offest ranges of a protein in a genome span the
+        Determine whether the offset ranges of a protein in a genome span the
         end of the genome (indicating that the genome may be circular).
 
         @param genomeLength: The C{int} length of the genome.
-        @return: A C{bool} which is C{True} if the ranges overlap the end of
-            the genome.
+        @return: A C{bool}, C{True} if the ranges overlaps the genome end.
         """
         if self._nRanges == 1:
             # If there is only one range, we simply return False even though it
@@ -153,23 +165,9 @@ class GenomeRanges(object):
 
         for index, (start, stop, _) in enumerate(self.ranges):
             if stop == genomeLength:
-                break
-        else:
-            # We didn't break from the loop, so no range section ends at the
-            # end of the genome, and the protein therefore does not indicate a
-            # circular genome.
-            return False
+                return self.ranges[(index + 1) % self._nRanges][0] == 0
 
-        # One of the ranges ends at the end of the genome. If the next range
-        # (if there is one) starts at position zero, then this protein spans
-        # the endpoint of the genome, indicating circularity.
-        #
-        # Note that this means we do not consider rangeTuples like ((1, 50,
-        # True), (50, 100, True)) to indicate circularity. A protein like
-        # that should simply have its ranges encoded as ((0, 100, True),)
-        # instead of using two tuples and will be detected and result in a
-        # ValueError in __init__.
-        return self.ranges[(index + 1) % self._nRanges][0] == 0
+        return False
 
     def startInGenome(self, match):
         """
@@ -177,12 +175,16 @@ class GenomeRanges(object):
         begins.
 
         @param match: A C{dict} with information about the DIAMOND match, as
-            returned by C{self._preprocessMatch}.
+            returned by C{self._preprocessMatch}. Must contain a 'sstart' key
+            giving a 1-based C{int} offset of the start of the match in the
+            protein.
         @return: The C{int} offset of the start of the DIAMOND match in the
             genome.
         """
-        # The start of the match in the protein, as a nucleotide offset.
-        startInNt = remaining = (match['sstart'] - 1) * 3
+
+        # Calculate the start of the match in the genome, given its start in
+        # the protein.
+        offsetInGenome = remaining = (match['sstart'] - 1) * 3
 
         for start, stop, _ in self.ranges:
             rangeWidth = stop - start
@@ -195,7 +197,7 @@ class GenomeRanges(object):
             raise ValueError(
                 'Starting nucleotide offset %d not found in protein '
                 'nucleotide ranges %s.' %
-                (startInNt,
+                (offsetInGenome,
                  ', '.join(('(%d, %d)' % (i, j))
                            for i, j, _ in self.ranges)))
 

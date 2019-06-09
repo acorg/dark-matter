@@ -23,32 +23,30 @@ class SAMWriter(object):
         self._ram = ram
         self._referenceLengths = {}
 
-    def addMatchLine(self, line, referenceName, referenceLength, tmpfp):
+    def addMatchLine(self, line, genome, fp):
         """
         Add a line of SAM output.
 
         @param line: A C{str} line of valid pre-formatted SAM output.
-        @param referenceName: The C{str} name of the reference that this SAM
-            line refers to (this could also be extracted from the SAM line).
-        @param referenceLength: The C{int} length of the reference sequence
-            named in C{referenceName}.
-        @param tmpfp: Is only used if C{self._ram} is C{False}, in which case
-            the SAM output line will be written to the file handle. A final
-            call to C{save} must be made to write out the header followed by
-            the non-header lines that were written to C{tmpfp}.
+        @param genome: A C{dict} with information about the (nucleotide) genome
+            that the protein in the DIAMOND match comes from. The C{dict} is
+            as returned by C{dark.proteins.SqliteIndex.findGenome}.
+        @param fp: The file pointer to write the line to.
         """
+        genomeName = genome['accession']
+        genomeLength = genome['length']
         try:
-            preexistingLength = self._referenceLengths[referenceName]
+            preexistingLength = self._referenceLengths[genomeName]
         except KeyError:
-            self._referenceLengths[referenceName] = referenceLength
+            self._referenceLengths[genomeName] = genomeLength
         else:
-            if preexistingLength != referenceLength:
+            if preexistingLength != genomeLength:
                 raise ValueError(
                     'Reference %r passed with length %d but has already been '
                     'given with a different length (%d).' %
-                    (referenceName, referenceLength, preexistingLength))
+                    (genomeName, genomeLength, preexistingLength))
 
-        print(line, file=tmpfp)
+        print(line, file=fp)
 
     def save(self, fp, tmpfp=None, headerLines=None):
         """
@@ -70,9 +68,9 @@ class SAMWriter(object):
 
         # Print SAM match lines.
         if self._ram:
-            # Trade speed for memory and print these one at a time instead
-            # of making and printing a potentially massive string with
-            # '\n'.join() (although arguably we could just make the single
+            # Trade speed for memory and print the non-header lines one at a
+            # time instead of making and printing a potentially massive string
+            # with '\n'.join() (although arguably we could just make the single
             # string, seeing as self._ram is True.)
             for line in self._nonHeaderLines:
                 print(line, file=fp)
@@ -114,106 +112,58 @@ class _DiamondSAMWriter(object):
         """
         Add information from a row of DIAMOND tabular output.
 
-        @param diamondStr: A C{str} with TAB-separated fileds from DIAMOND
+        @param diamondStr: A C{str} with TAB-separated fields from DIAMOND
             output format 6.
         @return: A C{tuple} containing the match C{dict} (from
-            C{self._strToDiamondDict}), the genome C{dict}as looked up by
-            C{self._genomesProteins.findProtein}, and the C{str} genome
-            accession number (extracted from name of the matched subject
-            protein).
+            C{self._strToDiamondDict}), the protein C{dict} as looked up
+            by C{self._genomesProteins.findProtein}, and the genome C{dict}
+            as looked up by C{self._genomesProteins.findGenome}.
         """
         match = self._strToDiamondDict(diamondStr)
-
         stitle = match['stitle']
-        genomeAccession = self._genomesProteins.genomeAccession(stitle)
-        proteinAccession = self._genomesProteins.proteinAccession(stitle)
 
+        genomeAccession = self._genomesProteins.genomeAccession(stitle)
         genome = self._genomesProteins.findGenome(genomeAccession)
         if genome is None:
             raise ValueError(
-                'Could not find genome %r in genomes database table.' %
+                'Could not find accession %r in genomes database table.' %
                 genomeAccession)
 
+        proteinAccession = self._genomesProteins.proteinAccession(stitle)
         protein = self._genomesProteins.findProtein(proteinAccession)
         if protein is None:
             raise ValueError(
-                'Could not find protein %r in proteins database table.' %
+                'Could not find accession %r in proteins database table.' %
                 proteinAccession)
 
-        self._referenceLengths[genomeAccession] = len(genome['sequence'])
+        self._referenceLengths[genomeAccession] = genome['length']
 
-        return match, protein, genome, genomeAccession
+        return match, protein, genome
 
-    def _SAMLines(self, match, protein, genome, genomeAccession):
+    def _SAMLine(self, match, protein, genome):
         """
-        Convert match information to a line (or lines) of SAM file output.
+        Convert DIAMOND match information to a line of SAM file output.
 
         @param match: A C{dict} with information about the DIAMOND match, as
-            returned by C{self._preprocessMatch}.
+            returned by C{DiamondTabularFormat().diamondFieldsToDict} which
+            has been called for us by C{self._preprocessMatch}.
         @param protein: A C{dict} with information about the protein the
             DIAMOND was for. The C{dict} is as returned by
             C{dark.proteins.SqliteIndex.findProtein}.
         @param genome: A C{dict} with information about the (nucleotide) genome
             that the protein in the DIAMOND match comes from. The C{dict} is
             as returned by C{dark.proteins.SqliteIndex.findGenome}.
-        @param genomeAccession: The C{str} subject title.
-        @return: A generator that yields TAB-separated C{str} of lines of SAM.
+        @return: A TAB-separated C{str} line of SAM.
         """
-
         qseqid = (match['qseqid'] if self._keepDescriptions else
                   match['qseqid'].split(None, 1)[0])
 
         ranges = GenomeRanges(protein['offsets'])
 
+        matchStartInGenome = ranges.startInGenome(match)
+        queryStartInGenome = matchStartInGenome - match['qstart'] - 1
+
         orientations = ranges.orientations()
-
-        if len(orientations) == 1:
-            # There is only one orientation of the ranges of the protein in
-            # the nucleotide genome (i.e., the layout of the protein on the
-            # genome does not change direction).
-            if protein['circular']:
-                for line in self._SAMLineChimericCircular(
-                        match, protein, genome, genomeAccession, qseqid,
-                        ranges, orientations.pop()):
-                    yield line
-            else:
-                yield self._SAMLineLinear(
-                    match, protein, genome, genomeAccession, qseqid, ranges,
-                    orientations.pop())
-        else:
-            for line in self._SAMLineChimeric(
-                    match, protein, genome, genomeAccession, qseqid, ranges,
-                    orientations.pop()):
-                yield line
-
-    def _SAMLineLinear(self, match, protein, genome, genomeAccession,
-                       qseqid, ranges, complement):
-        """
-        Convert match information to a string for a SAM format linear alignment
-        (i.e., occupying a single line of output).
-
-        @param match: A C{dict} with information about the DIAMOND match, as
-            returned by C{self._preprocessMatch}.
-        @param protein: A C{dict} with information about the protein the
-            DIAMOND match was for. The C{dict} is as returned by
-            C{dark.proteins.SqliteIndex.findProtein}.
-        @param genome: A C{dict} with information about the (nucleotide) genome
-            that the protein in the DIAMOND match comes from. The C{dict} is
-            as returned by C{dark.proteins.SqliteIndex.findGenome}.
-        @param genomeAccession: The C{str} subject title.
-        @param qseqid: The C{str} query sequence id.
-        @param ranges: A C{list} of 3-tuples, as returned by
-            C{dark.genbank.splitBioPythonRange} giving the start/stop offset
-            ranges of the protein (as matched by DIAMOND) within the genome
-            nucleotide sequence.
-        @param complement: C{True} if the ranges are *all* with the complement
-            strand of the genome, C{False} if they are *all* not with the
-            complement strand. We don't have to deal with segments that match
-            the nucleotide genome in mixed directions. Those are handled in the
-            code for chimeric alignments (as the SAM spec calls them), using
-            the supplementary flag.
-        @return: A C{str} TAB-separated line of SAM.
-        """
 
         print('ranges', ranges)
         print('protein', protein)
@@ -255,7 +205,7 @@ class _DiamondSAMWriter(object):
             # 2. FLAG
             flag,
             # 3. RNAME
-            genomeAccession,
+            genome['accession'],
             # 4. POS. This needs to be a 1-based offset into the
             # nucleotide-equivalent of the DIAMOND subject sequence (which was
             # a protein since that is how DIAMOND operates). Because DIAMOND
@@ -279,45 +229,11 @@ class _DiamondSAMWriter(object):
             # 12. Alignment score
             'AS:i:%d' % int(match['bitscore']))))
 
-    def _SAMLineChimericCircular(self, match, protein, genome, genomeAccession,
-                                 qseqid, ranges, complement):
-        """
-        Convert match information to SAM format for a chimeric alignment
-        wherein the match is comprised of a part at the end of the genome and
-        a part at the beginning.
-
-        @param match: A C{dict} with information about the DIAMOND match, as
-            returned by C{self._preprocessMatch}.
-        @param protein: A C{dict} with information about the protein the
-            DIAMOND match was for. The C{dict} is as returned by
-            C{dark.proteins.SqliteIndex.findProtein}.
-        @param genome: A C{dict} with information about the (nucleotide) genome
-            that the protein in the DIAMOND match comes from. The C{dict} is
-            as returned by C{dark.proteins.SqliteIndex.findGenome}.
-        @param genomeAccession: The C{str} subject title.
-        @param qseqid: The C{str} query sequence id.
-        @param ranges: A C{list} of 3-tuples, as returned by
-            C{dark.genbank.splitBioPythonRange} giving the start/stop offset
-            ranges of the protein (as matched by DIAMOND) within the genome
-            nucleotide sequence.
-        @param complement: C{True} if the ranges are *all* with the complement
-            strand of the genome, C{False} if they are *all* not with the
-            complement strand. We don't have to deal with segments that match
-            the nucleotide genome in mixed directions. Those are handled in the
-            code for chimeric alignments (as the SAM spec calls them), using
-            the supplementary flag.
-        @return: A generator that yields (two) C{str} TAB-separated lines of
-            SAM.
-        """
-        raise NotImplementedError('_SAMLineCircular')
-        yield 'SAM line 1'
-        yield 'SAM line 2'
-
     def addMatch(self, diamondStr):
         """
         Add information from a row of DIAMOND tabular output.
 
-        @param diamondStr: A C{str} with TAB-separated fileds from DIAMOND
+        @param diamondStr: A C{str} with TAB-separated fields from DIAMOND
             output format 6.
         """
         raise NotImplementedError('addMatch must be implemented by a subclass')
@@ -360,16 +276,12 @@ class SimpleDiamondSAMWriter(_DiamondSAMWriter):
         """
         Add information from a row of DIAMOND tabular output.
 
-        @param diamondStr: A C{str} with TAB-separated fileds from DIAMOND
+        @param diamondStr: A C{str} with TAB-separated fields from DIAMOND
             output format 6.
         """
-        match, protein, genome, genomeAccession = self._preprocessMatch(
-            diamondStr)
-
-        for samLine in self._SAMLines(match, protein, genome, genomeAccession):
-            self._writer.addMatchLine(
-                samLine, genomeAccession,
-                self._referenceLengths[genomeAccession], self._tf)
+        match, protein, genome = self._preprocessMatch(diamondStr)
+        self._writer.addMatchLine(
+            self._SAMLine(match, protein, genome), genome, self._tf)
 
     def save(self, filename):
         """
@@ -432,11 +344,11 @@ class PerReferenceDiamondSAMWriter(_DiamondSAMWriter):
         """
         Add information from a row of DIAMOND tabular output.
 
-        @param diamondStr: A C{str} with TAB-separated fileds from DIAMOND
+        @param diamondStr: A C{str} with TAB-separated fields from DIAMOND
             output format 6.
         """
-        match, protein, genome, genomeAccession = self._preprocessMatch(
-            diamondStr)
+        match, protein, genome = self._preprocessMatch(diamondStr)
+        genomeAccession = genome['accession']
         basename = self._baseFilenameFunc(match['stitle'])
 
         try:
@@ -445,15 +357,12 @@ class PerReferenceDiamondSAMWriter(_DiamondSAMWriter):
             writer = SAMWriter()
             self._writers[genomeAccession] = (writer, basename)
 
-        for samLine in self._SAMLines(match, protein, genome, genomeAccession):
-            writer.addMatchLine(
-                samLine, genomeAccession,
-                self._referenceLengths[genomeAccession],
-                self._fpc.open(basename + self.TMP_SUFFIX))
+        writer.addMatchLine(self._SAMLine(match, protein, genome), genome,
+                            self._fpc.open(basename + self.TMP_SUFFIX))
 
     def save(self):
         """
-        Write SAM output to a file.
+        Write SAM output to all files.
         """
         # Close the open file descriptor cache.
         self._fpc.close()

@@ -5,7 +5,7 @@ from dark.aa import CODONS
 from dark.diamond.sam import SimpleDiamondSAMWriter
 from dark.diamond.run import DiamondExecutor, diamondInstalled
 from dark.genbank import GenomeRanges
-from dark.proteins import SqliteIndex
+from dark.proteins import SqliteIndex, SqliteIndexWriter
 from dark.reads import Read, Reads
 
 from .sample_proteins import SAMPLE_DATA
@@ -29,6 +29,8 @@ class TestSimpleDiamondSAMWriter(TestCase):
         queryLenInProtein = 40  # This is an amino acid length.
 
         genomeAccession = 'NC_030446.1'
+        genomeName = SAMPLE_DATA['genomes'][genomeAccession][
+            'id'].split(None, 1)[1]
         genomeSequence = SAMPLE_DATA['genomes'][genomeAccession]['genome']
         genomeLen = len(genomeSequence)
 
@@ -70,25 +72,15 @@ class TestSimpleDiamondSAMWriter(TestCase):
 
         # Make a genomes/proteins sqlite database and add information about
         # the protein and the nucleotide genome it comes from.
-        db = SqliteIndex(':memory:')
-        with db._connection as connection:
-            connection.execute(
-                'INSERT INTO genomes('
-                'accession, sequence, proteinCount'
-                ') VALUES (?, ?, ?)',
-                (genomeAccession, genomeSequence, 5))
-
-            connection.execute(
-                'INSERT INTO proteins('
-                'accession, genomeAccession, sequence, offsets, '
-                'reversed, circular, rangeCount, gene, note'
-                ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                (proteinAccession, genomeAccession, proteinSequence,
-                 proteinRange, 0, int(ranges.circular(genomeLen)),
-                 ranges.distinctRangeCount(genomeLen), None, None))
+        db = SqliteIndexWriter(':memory:')
+        db.addProtein(
+            proteinAccession, genomeAccession, proteinSequence,
+            proteinRange, True, ranges.circular(genomeLen),
+            ranges.distinctRangeCount(genomeLen))
+        db.addGenome(genomeAccession, genomeName, genomeSequence, 1)
 
         # Make a DIAMOND-to-SAM writer and give it the DIAMOND output.
-        writer = SimpleDiamondSAMWriter(db)
+        writer = SimpleDiamondSAMWriter(SqliteIndex(db._connection))
         writer.addMatch(
             '\t'.join(map(str, (
                 diamondResult['bitscore'],
@@ -102,8 +94,7 @@ class TestSimpleDiamondSAMWriter(TestCase):
                 diamondResult['qstart'],
                 diamondResult['slen'],
                 diamondResult['sstart'],
-                diamondResult['stitle'],
-            ))))
+                diamondResult['stitle']))))
 
         # Tell the writer to save the matches as SAM and check the result.
         fp = StringIO()
