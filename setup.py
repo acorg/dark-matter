@@ -78,6 +78,7 @@ scripts = [
     'bin/randomize-fasta.py',
     'bin/read-blast-json.py',
     'bin/read-blast-xml.py',
+    'bin/sam-coverage.py',
     'bin/sam-to-fasta-alignment.py',
     'bin/sam-reference-read-counts.py',
     'bin/sam-references.py',

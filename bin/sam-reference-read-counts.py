@@ -21,25 +21,27 @@ args = parser.parse_args()
 
 def referenceInfo():
     return {
-        'readIds': set(),
+        'duplicateCount': 0,
         'primaryCount': 0,
+        'qcFailCount': 0,
+        'nonDuplicateCount': 0,
+        'readIds': set(),
         'secondaryCount': 0,
         'supplementaryCount': 0,
     }
 
 
 referenceReads = defaultdict(referenceInfo)
-unmappedCount = 0
+mappedCount = unmappedCount = 0
 readIds = set()
-mappingCount = 0
 
 with samfile(args.samFile) as fp:
     for read in fp.fetch():
-        mappingCount += 1
         readIds.add(read.query_name)
         if read.is_unmapped:
             unmappedCount += 1
         else:
+            mappedCount += 1
             stats = referenceReads[read.reference_name]
             stats['readIds'].add(read.query_name)
             if read.is_secondary:
@@ -48,20 +50,43 @@ with samfile(args.samFile) as fp:
                 stats['supplementaryCount'] += 1
             else:
                 stats['primaryCount'] += 1
+            if read.is_duplicate:
+                stats['duplicateCount'] += 1
+            else:
+                stats['nonDuplicateCount'] += 1
+            if read.is_qcfail:
+                stats['qcFailCount'] += 1
 
 totalReads = len(readIds)
 
-print('Found a total of %d read%s, with a total of %d mapping%s and '
-      '%d unmapped.' %
-      (totalReads, '' if totalReads == 1 else 's',
-       mappingCount, '' if mappingCount == 1 else 's', unmappedCount))
+print('Found a total of %d read%s (%d mapped, %d unmapped).' %
+      (totalReads, '' if totalReads == 1 else 's', mappedCount, unmappedCount))
+
+
+def pct(a, b):
+    return (a / b if b else 0.0) * 100.0
+
 
 for referenceId in sorted(referenceReads):
     stats = referenceReads[referenceId]
     readCount = len(stats['readIds'])
-    fraction = (readCount / totalReads) if totalReads else 0.0
-    print('%s: %d (%.2f%%) reads mapped. '
-          'Primary %d, secondary %d, supplementary %d' %
-          (referenceId, readCount, fraction * 100.0,
-           stats['primaryCount'], stats['secondaryCount'],
-           stats['supplementaryCount']))
+    print('%s: %d/%d (%.2f%%) reads mapped to the reference.\n'
+          '  Non-duplicates: %d (%.2f%%), '
+          'Duplicates: %d (%.2f%%), '
+          'QC fails: %d (%.2f%%)\n'
+          '  Primary: %d (%.2f%%), '
+          'Secondary: %d (%.2f%%), '
+          'Supplementary: %d (%.2f%%)' %
+          (referenceId, readCount, totalReads, pct(readCount, totalReads),
+           stats['nonDuplicateCount'],
+           pct(stats['nonDuplicateCount'], readCount),
+           stats['duplicateCount'],
+           pct(stats['duplicateCount'], readCount),
+           stats['qcFailCount'],
+           pct(stats['qcFailCount'], readCount),
+           stats['primaryCount'],
+           pct(stats['primaryCount'], readCount),
+           stats['secondaryCount'],
+           pct(stats['secondaryCount'], readCount),
+           stats['supplementaryCount'],
+           pct(stats['supplementaryCount'], readCount)))

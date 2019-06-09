@@ -1,3 +1,8 @@
+## 3.0.68 Jun 9, 2019
+
+Refactored `SAMFilter` to allow filtering alignments in pileups. Added
+`bin/sam-coverage.py`.
+
 ## 3.0.67 Apr 25, 2019
 
 Use `dark.utils.StringIO` everywhere as it can be used as a context manager
