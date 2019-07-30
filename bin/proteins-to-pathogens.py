@@ -157,6 +157,14 @@ if __name__ == '__main__':
         '--preamble',
         help='Optional preamble text to show after the title.')
 
+    parser.add_argument(
+        '--titleRegex', default=None,
+        Help='A regex that pathogen names must match.')
+
+    parser.add_argument(
+        '--negativeTitleRegex', default=None,
+        help='a regex that pathogen names must not match.')
+
     args = parser.parse_args()
 
     if args.sampleName and args.sampleNameRegex:
@@ -192,7 +200,9 @@ if __name__ == '__main__':
                              sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
                              proteinFastaFilenames=proteinFastaFilenames,
-                             saveReadLengths=args.showReadLengths)
+                             saveReadLengths=args.showReadLengths,
+                             titleRegex=args.titleRegex,
+                             negativeTitleRegex=args.negativeTitleRegex)
 
     if args.filenames:
         filenames = args.filenames

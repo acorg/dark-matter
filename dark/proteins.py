@@ -11,6 +11,7 @@ from textwrap import fill
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
+from dark.filter import TitleFilter
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads
 
@@ -211,6 +212,14 @@ class ProteinGrouper(object):
         proteins each matched pathogen has.
     @param saveReadLengths: If C{True}, save the lengths of all reads matching
         proteins.
+    @param titleRegex: A regex that pathogen names must match.
+        Note that this matching is done on the final part of the protein title
+        in square brackets, according to the convention used by the NCBI viral
+        refseq database and RVDB.
+    @param negativeTitleRegex: A regex that pathogen names must not match.
+        Note that this matching is done on the final part of the protein title
+        in square brackets, according to the convention used by the NCBI viral
+        refseq database and RVDB.
     @raise ValueError: If C{format_} is unknown.
     """
 
@@ -218,7 +227,8 @@ class ProteinGrouper(object):
 
     def __init__(self, assetDir='out', sampleName=None, sampleNameRegex=None,
                  format_='fasta', proteinFastaFilenames=None,
-                 saveReadLengths=False):
+                 saveReadLengths=False, titleRegex=None,
+                 negativeTitleRegex=None):
         self._assetDir = assetDir
         self._sampleName = sampleName
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
@@ -228,6 +238,12 @@ class ProteinGrouper(object):
         else:
             raise ValueError("format_ must be either 'fasta' or 'fastq'.")
         self._saveReadLengths = saveReadLengths
+
+        if titleRegex or negativeTitleRegex:
+            self.titleFilter = TitleFilter(
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex)
+        else:
+            self.titleFilter = None
 
         self._pathogenProteinCount = getPathogenProteinCounts(
             proteinFastaFilenames)
@@ -284,6 +300,11 @@ class ProteinGrouper(object):
              proteinLength, names) = proteinLine.split(None, 6)
 
             proteinName, pathogenName = splitNames(names)
+
+            # Ignore pathogens with names we don't want.
+            if (self.titleFilter and self.titleFilter.accept(
+                    pathogenName) == TitleFilter.REJECT):
+                continue
 
             if pathogenName not in self.pathogenNames:
                 self.pathogenNames[pathogenName] = {}

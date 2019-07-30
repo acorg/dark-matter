@@ -1,3 +1,16 @@
+## 3.0.70 Jul 30, 2019
+
+Added `titleRegex` and `negativeTitleRegex` to `ProteinGrouper` class and
+`--titleRegex` and `--negativeTitleRegex` arguments to
+`proteins-to-pathogens.py`.
+
+## 3.0.69 Jul 30, 2019
+
+Added `--title` and `--preamble` args to output from
+`proteins-to-pathogens.py`.  Fixed `ProteinGrouper` HTML NCBI protein link
+and added genome link. Added positive and negative filtering by regex to
+`TitlesAlignments` and tests. Improved NCBI link generation and tests.
+
 ## 3.0.68 Jun 9, 2019
 
 Refactored `SAMFilter` to allow filtering alignments in pileups. Added

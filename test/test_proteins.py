@@ -744,6 +744,94 @@ class TestProteinGrouper(TestCase):
             'GENBANK|I44.6|GENBANK|J77|VP1\n',
             pg.toStr())
 
+    def testPathogenNameRegex(self):
+        """
+        If a protein grouper is given one file with two lines from different
+        pathogens, and one pathogen title does not match a passed title regex,
+        the pathogenNames dict must be as expected.
+        """
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
+        )
+        pg = ProteinGrouper(titleRegex='Lausannevirus')
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            {
+                'Lausannevirus': {
+                    'sample-filename': {
+                        'proteins': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'readsFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
+                                'readCount': 9,
+                            },
+                        },
+                        'uniqueReadCount': None,
+                    },
+                },
+            },
+            pg.pathogenNames)
+
+    def testPathogenNegativeNameRegex(self):
+        """
+        If a protein grouper is given one file with two lines from different
+        pathogens, and one pathogen title does not match a passed negative
+        title regex, the pathogenNames dict must be as expected.
+        """
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
+        )
+        pg = ProteinGrouper(negativeTitleRegex='Hepatitis')
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            {
+                'Lausannevirus': {
+                    'sample-filename': {
+                        'proteins': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'readsFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
+                                'readCount': 9,
+                            },
+                        },
+                        'uniqueReadCount': None,
+                    },
+                },
+            },
+            pg.pathogenNames)
+
 
 class TestPathogenSampleFiles(TestCase):
     """
