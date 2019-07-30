@@ -1,4 +1,6 @@
 from unittest import TestCase
+from six import assertRaisesRegex
+
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 
 
@@ -7,60 +9,62 @@ class TestNCBISequenceLinkURL(TestCase):
     Test the NCBISequenceLinkURL function.
     """
 
-    def testGenericTitle1(self):
+    def testNoField(self):
+        """
+        If no field is passed, the passed title must be used.
+        """
+        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/xxx',
+                         NCBISequenceLinkURL('xxx'))
+
+    def testFieldNumber(self):
         title = 'gi|323924|gb|M15204.1|FCVMYCCA Feline leukemia virus myc gene'
-        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/M15204',
-                         NCBISequenceLinkURL(title))
+        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/M15204.1',
+                         NCBISequenceLinkURL(title, 3))
 
-    def testGenericTitle2(self):
+    def testAlternateDelimiter(self):
+        title = 'gi+37955203+gb+AY253278.1+ Homo sapiens clone AL-11 HIV-1'
+        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/AY253278.1',
+                         NCBISequenceLinkURL(title, 3, '+'))
+
+    def testFieldOutOfRange(self):
+        """
+        If the field number passed does not exist, IndexError must be raised.
+        """
         title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
-        self.assertEqual('http://www.ncbi.nlm.nih.gov/nuccore/AY253278',
-                         NCBISequenceLinkURL(title))
-
-    def testUnparseableTitleReturnsNone(self):
-        """
-        When an unparseable title is passed, the default return value of
-        NCBISequenceLinkURL is None.
-        """
-        self.assertEqual(None, NCBISequenceLinkURL(''))
-
-    def testUnparseableTitleWithSpecificDefault(self):
-        """
-        When an unparseable title is passed, the default return value passed to
-        NCBISequenceLinkURL must be returned.
-        """
-        default = object()
-        self.assertIs(default, NCBISequenceLinkURL('xxx', default))
+        error = r"^list index out of range$"
+        assertRaisesRegex(self, IndexError, error, NCBISequenceLinkURL, title,
+                          10)
 
 
 class TestNCBISequenceLink(TestCase):
     """
     Test the NCBISequenceLink function.
     """
+    def testNoField(self):
+        """
+        If no field is passed, the passed title must be used.
+        """
+        self.assertEqual(
+            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/xxx" ' +
+            'target="_blank">xxx</a>', NCBISequenceLink('xxx'))
 
-    def testGenericTitle1(self):
+    def testFieldNumber(self):
         title = 'gi|323924|gb|M15204.1|FCVMYCCA Feline leukemia virus myc gene'
         self.assertEqual(
-            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/M15204" ' +
-            'target="_blank">' + title + '</a>', NCBISequenceLink(title))
+            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/M15204.1" ' +
+            'target="_blank">' + title + '</a>', NCBISequenceLink(title, 3))
 
-    def testGenericTitle2(self):
-        title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
+    def testAlternateDelimiter(self):
+        title = 'gi+37955203+gb+AY253278.1+ Homo sapiens clone AL-11 HIV-1'
         self.assertEqual(
-            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/AY253278" ' +
-            'target="_blank">' + title + '</a>', NCBISequenceLink(title))
+            '<a href="http://www.ncbi.nlm.nih.gov/nuccore/AY253278.1" ' +
+            'target="_blank">' + title + '</a>',
+            NCBISequenceLink(title, 3, '+'))
 
-    def testUnparseableTitleReturnsNone(self):
+    def testFieldOutOfRange(self):
         """
-        When an unparseable title is passed, the default return value of
-        NCBISequenceLink is None.
+        If the field number passed does not exist, IndexError must be raised.
         """
-        self.assertEqual(None, NCBISequenceLink(''))
-
-    def testUnparseableTitleWithSpecificDefault(self):
-        """
-        When an unparseable title is passed, the default return value passed to
-        NCBISequenceLink must be returned.
-        """
-        default = object()
-        self.assertIs(default, NCBISequenceLink('xxx', default))
+        title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
+        error = r"^list index out of range$"
+        assertRaisesRegex(self, IndexError, error, NCBISequenceLink, title, 10)

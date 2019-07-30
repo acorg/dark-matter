@@ -316,7 +316,8 @@ class ProteinGrouper(object):
                 'outDir': outDir,
                 'proteinLength': int(proteinLength),
                 'proteinName': proteinName,
-                'proteinURL': NCBISequenceLinkURL(proteinName),
+                'proteinURL': NCBISequenceLinkURL(proteinName, 2),
+                'genomeURL': NCBISequenceLinkURL(proteinName, 4),
                 'readCount': int(readCount),
             }
 
@@ -337,10 +338,13 @@ class ProteinGrouper(object):
             for sampleName in samples:
                 self.pathogenSampleFiles.add(pathogenName, sampleName)
 
-    def toStr(self):
+    def toStr(self, title='Summary of pathogens', preamble=None):
         """
         Produce a string representation of the pathogen summary.
 
+        @param title: The C{str} title for the output.
+        @param preamble: The C{str} descriptive preamble for the HTML page, or
+            C{None} if no preamble is needed.
         @return: A C{str} suitable for printing.
         """
         # Note that the string representation contains much less
@@ -352,8 +356,10 @@ class ProteinGrouper(object):
         result = []
         append = result.append
 
-        append(self._title())
-        append('')
+        result.extend((title, ''))
+        if preamble:
+            result.extend((preamble, ''))
+        result.extend((self._title(), ''))
 
         for pathogenName in sorted(self.pathogenNames):
             samples = self.pathogenNames[pathogenName]
@@ -380,7 +386,8 @@ class ProteinGrouper(object):
         return '\n'.join(result)
 
     def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
-               pathogenType='viral', sampleIndexFilename=None,
+               pathogenType='viral', title='Summary of pathogens',
+               preamble=None, sampleIndexFilename=None,
                pathogenIndexFilename=None):
         """
         Produce an HTML string representation of the pathogen summary.
@@ -392,6 +399,9 @@ class ProteinGrouper(object):
             pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
             either 'bacterial' or 'viral'.
+        @param title: The C{str} title for the HTML page.
+        @param preamble: The C{str} descriptive preamble for the HTML page, or
+            C{None} if no preamble is needed.
         @param sampleIndexFilename: A C{str} filename to write a sample index
             file to. Lines in the file will have an integer index, a space, and
             then the sample name.
@@ -446,7 +456,7 @@ class ProteinGrouper(object):
             '<html>',
             '<head>',
             '<title>',
-            'Summary of pathogens',
+            title,
             '</title>',
             '<meta charset="UTF-8">',
             '</head>',
@@ -543,11 +553,13 @@ class ProteinGrouper(object):
 
         append = result.append
 
-        append('<h1>Summary of pathogens</h1>')
+        append('<h1>%s</h1>' % title)
+        if preamble:
+            append('<p>%s</p>' % preamble)
         append('<p>')
         append(self._title())
 
-        if self._pathogenProteinCount:
+        if self._pathogenProteinCount and minProteinFraction:
             percent = minProteinFraction * 100.0
             if nPathogenNames < len(self.pathogenNames):
                 if nPathogenNames == 1:
@@ -564,7 +576,7 @@ class ProteinGrouper(object):
                            'the pathogen proteins.' % (nPathogenNames,
                                                        percent))
             else:
-                append('Pathogen protein fraction filtering has been applied, '
+                append('Pathogen protein fraction filtering was applied, '
                        'but all pathogens have at least %.2f%% of their '
                        'proteins matched by at least one sample.' % percent)
 
@@ -685,8 +697,15 @@ class ProteinGrouper(object):
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI</a>' %
+                        result[-1] += (', <a href="%s">NCBI protein</a>' %
                                        proteinMatch['proteinURL'])
+
+                    if proteinMatch['genomeURL']:
+                        # Append this directly to the last string in result, to
+                        # avoid introducing whitespace when we join result
+                        # using '\n'.
+                        result[-1] += (', <a href="%s">NCBI genome</a>' %
+                                       proteinMatch['genomeURL'])
                     result[-1] += ')'
 
                     append('</li>')
@@ -762,8 +781,16 @@ class ProteinGrouper(object):
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI</a>' %
+                        result[-1] += (', <a href="%s">NCBI protein</a>' %
                                        proteinMatch['proteinURL'])
+
+                    if proteinMatch['genomeURL']:
+                        # Append this directly to the last string in result, to
+                        # avoid introducing whitespace when we join result
+                        # using '\n'.
+                        result[-1] += (', <a href="%s">NCBI genome</a>' %
+                                       proteinMatch['genomeURL'])
+
                     result[-1] += ')'
 
                     append('</li>')

@@ -1,7 +1,7 @@
 from collections import defaultdict, Counter
 
 from dark.utils import median
-from dark.filter import ReadSetFilter
+from dark.filter import ReadSetFilter, TitleFilter
 from dark.intervals import ReadIntervals
 
 
@@ -320,7 +320,8 @@ class TitlesAlignments(dict):
 
     def filter(self, minMatchingReads=None, minMedianScore=None,
                withScoreBetterThan=None, minNewReads=None, minCoverage=None,
-               maxTitles=None, sortOn='maxScore'):
+               maxTitles=None, sortOn='maxScore', titleRegex=None,
+               negativeTitleRegex=None):
         """
         Filter the titles in self to create another TitlesAlignments.
 
@@ -342,6 +343,8 @@ class TitlesAlignments(dict):
         @param sortOn: A C{str} attribute to sort on, used only if C{maxTitles}
             is not C{None}. See the C{sortTitles} method below for the legal
             values.
+        @param titleRegex: A regex that read ids must match.
+        @param negativeTitleRegex: A regex that read ids must not match.
         @raise: C{ValueError} if C{maxTitles} is less than zero or the value of
             C{sortOn} is unknown.
         @return: A new L{TitlesAlignments} instance containing only the
@@ -376,10 +379,21 @@ class TitlesAlignments(dict):
         else:
             titles = self.keys()
 
+        if (titleRegex or negativeTitleRegex):
+            titleFilter = TitleFilter(
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex)
+        else:
+            titleFilter = None
+
         for title in titles:
             # Test max titles up front, as it may be zero.
             if maxTitles is not None and len(result) == maxTitles:
                 break
+
+            # Test positive and negative regexps.
+            if (titleFilter and
+                    titleFilter.accept(title) == TitleFilter.REJECT):
+                continue
 
             titleAlignments = self[title]
             if (minMatchingReads is not None and
