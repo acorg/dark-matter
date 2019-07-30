@@ -149,6 +149,14 @@ if __name__ == '__main__':
               'puts its HTML, plots and FASTA or FASTQ files, needed for '
               'using --html'))
 
+    parser.add_argument(
+        '--title', default='Summary of pathogens',
+        help='The title to show at the top of the output.')
+
+    parser.add_argument(
+        '--preamble',
+        help='Optional preamble text to show after the title.')
+
     args = parser.parse_args()
 
     if args.sampleName and args.sampleNameRegex:
@@ -199,6 +207,7 @@ if __name__ == '__main__':
         print(grouper.toHTML(args.pathogenPanelFilename,
                              minProteinFraction=args.minProteinFraction,
                              pathogenType=args.pathogenType,
+                             title=args.title, preamble=args.preamble,
                              sampleIndexFilename=args.sampleIndexFilename,
                              pathogenIndexFilename=args.pathogenIndexFilename))
     else:

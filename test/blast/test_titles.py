@@ -889,6 +889,81 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 ],
                 sorted(result.keys()))
 
+    def testTitleRegex(self):
+        """
+        The filter function must return only titles that match a passed regex.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(titleRegex='squirrelpox')
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55',
+                ],
+                sorted(result.keys()))
+
+    def testTitleNegativeRegex(self):
+        """
+        The filter function must not return titles that match a passed negative
+        regex.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(negativeTitleRegex='squirrelpox')
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Cowpox virus 15',
+                    'gi|887699|gb|DQ37780 Monkeypox virus 456',
+                    'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
+                ],
+                sorted(result.keys()))
+
+    def testTitleRegexThenNegativeRegex(self):
+        """
+        The filter function must return only titles that match a passed
+        positive title regex and then a negative regex.
+        """
+        mockOpener = mockOpen(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = BlastReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(
+                titleRegex='squirrelpox').filter(negativeTitleRegex='1296')
+            self.assertEqual(
+                [
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55',
+                ],
+                sorted(result.keys()))
+
 
 class TestTitleSorting(TestCase):
     """
