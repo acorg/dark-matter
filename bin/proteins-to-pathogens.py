@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--titleRegex', default=None,
-        Help='A regex that pathogen names must match.')
+        help='A regex that pathogen names must match.')
 
     parser.add_argument(
         '--negativeTitleRegex', default=None,

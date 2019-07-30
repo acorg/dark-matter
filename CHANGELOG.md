@@ -1,3 +1,7 @@
+## 3.0.71 Jul 30, 2019
+
+Fixed stupid typo in `proteins-to-pathogens.py`.
+
 ## 3.0.70 Jul 30, 2019
 
 Added `titleRegex` and `negativeTitleRegex` to `ProteinGrouper` class and
