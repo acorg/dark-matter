@@ -160,10 +160,9 @@ class _DiamondSAMWriter(object):
 
         ranges = GenomeRanges(protein['offsets'])
 
-        matchStartInGenome = ranges.startInGenome(match)
-        queryStartInGenome = matchStartInGenome - match['qstart'] - 1
-
-        orientations = ranges.orientations()
+        # matchStartInGenome = ranges.startInGenome(match)
+        # queryStartInGenome = matchStartInGenome - match['qstart'] - 1
+        # orientations = ranges.orientations()
 
         print('ranges', ranges)
         print('protein', protein)

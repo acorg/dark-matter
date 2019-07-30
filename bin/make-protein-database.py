@@ -73,7 +73,7 @@ def main(args):
     """
 
     # Flatten the lists of lists that we get from using both nargs='+' and
-    # action='append'. We use both because it allows people to use (e.g.)  --gb
+    # action='append'. We use both because it allows people to use (e.g.) --gb
     # on the command line either via "--gb file1 --gb file2" or "--gb file1
     # file2", or a combination of these. That way it's not necessary to
     # remember which way you're supposed to use it and you also can't be hit by

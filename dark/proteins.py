@@ -939,6 +939,7 @@ class SqliteIndexWriter(object):
                 rangeCount INTEGER NOT NULL,
                 gene VARCHAR,
                 note VARCHAR,
+                product VARCHAR,
                 FOREIGN KEY (genomeAccession)
                     REFERENCES genomes (accession)
             );
@@ -1003,7 +1004,8 @@ class SqliteIndexWriter(object):
             raise
 
     def addProtein(self, accession, genomeAccession, sequence, offsets,
-                   forward, circular, rangeCount, gene=None, note=None):
+                   forward, circular, rangeCount, gene=None, note=None,
+                   product=None):
         """
         Add information about a protein to the proteins table.
 
@@ -1023,15 +1025,17 @@ class SqliteIndexWriter(object):
             comes from in the genome.
         @param gene: A C{str} gene name, or C{None} if no gene is known.
         @param note: A C{str} note about the protein, or C{None}.
+        @param product: A C{str} description of the protein product (e.g.,
+            "putative replication initiation protein"), or C{None}.
         """
         try:
             self._connection.execute(
                 'INSERT INTO proteins('
                 'accession, genomeAccession, sequence, length, offsets, '
-                'forward, circular, rangeCount, gene, note) '
-                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'forward, circular, rangeCount, gene, note, product) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (accession, genomeAccession, sequence, len(sequence), offsets,
-                 int(forward), int(circular), rangeCount, gene, note))
+                 int(forward), int(circular), rangeCount, gene, note, product))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
                 warn('Protein %r added to database twice.' % accession)
@@ -1092,8 +1096,8 @@ class SqliteIndexWriter(object):
                      (genomeName, genome.id, proteinId, e))
                 continue
             else:
-                # Does the protein span the end of the genome (this indicates a
-                # circular genome)?
+                # Does the protein span the end of the genome? This indicates a
+                # circular genome.
                 circular = int(ranges.circular(genomeLen))
 
             if feature.location.start >= feature.location.end:
@@ -1114,12 +1118,13 @@ class SqliteIndexWriter(object):
                 # RVDB (C-RVDBv15.1) genomes, for protein YP_656697.1 on the
                 # Ranid herpesvirus 1 strain McKinnell genome (NC_008211.1).
                 #
-                # This situation makes turning DIAMOND protein output into SAM
-                # very complicated in because a match on such a protein cannot
-                # be stored as a SAM linear alignment. It instead requires a
-                # multi-line supplementary alignment. The code and tests for
-                # that are more complex than I want to deal with at the moment
-                # for the sake of one protein in a frog herpesvirus.
+                # This situation makes turning DIAMOND protein output into
+                # SAM very complicated because a match on such a protein
+                # cannot be stored as a SAM linear alignment. It instead
+                # requires a multi-line 'supplementary' alignment. The code
+                # and tests for that are more complex than I want to deal
+                # with at the moment, just for the sake of one protein in a
+                # frog herpesvirus.
                 warn('Genome %s (accession %s) has protein %r with mixed '
                      'orientation!' % (genomeName, genome.id, proteinId))
                 continue
@@ -1149,7 +1154,8 @@ class SqliteIndexWriter(object):
 
             self.addProtein(
                 proteinId, genome.id, translation, featureLocation, forward,
-                circular, ranges.distinctRangeCount(genomeLen), gene, note)
+                circular, ranges.distinctRangeCount(genomeLen), gene, note,
+                product)
 
             count += 1
 
@@ -1251,6 +1257,9 @@ class SqliteIndexWriter(object):
                     del wanted[accession]
 
                     if not wanted:
+                        # We've found everything we wanted, so we can stop
+                        # reading and parsing the large nucleotide
+                        # accession to taxonomy id file.
                         break
 
         self._connection.commit()
@@ -1293,8 +1302,9 @@ class SqliteIndex(object):
         sqlite3 database as created by C{SqliteIndexWriter} or an already
         open connection to such a database. Note that an already open
         connection will not be closed by self.close().
-    @param lookupCacheSize: The C{int} size of the individual lookup caches
-        for proteins and genomes.
+    @param lookupCacheSize: The C{int} size of the memoization cache
+        for the protein and genome lookup functions (each has its own
+        memoization cache).
     """
     PROTEIN_ACCESSION_FIELD = 2
     GENOME_ACCESSION_FIELD = 4
@@ -1355,9 +1365,8 @@ class SqliteIndex(object):
 
         fields = 'name', 'sequence', 'length', 'proteinCount', 'taxid'
 
-        cur = self._connection.cursor()
-        cur.execute('SELECT %s FROM genomes WHERE accession = ?' %
-                    ', '.join(fields), (accession,))
+        cur = self.execute('SELECT %s FROM genomes WHERE accession = ?' %
+                           ', '.join(fields), (accession,))
         row = cur.fetchone()
         if row:
             result = dict(zip(fields, row))
@@ -1386,9 +1395,8 @@ class SqliteIndex(object):
         fields = ('genomeAccession', 'sequence', 'length', 'offsets',
                   'forward', 'circular', 'rangeCount', 'gene', 'note')
 
-        cur = self._connection.cursor()
-        cur.execute('SELECT %s FROM proteins WHERE accession = ?' %
-                    ','.join(fields), (accession,))
+        cur = self.execute('SELECT %s FROM proteins WHERE accession = ?' %
+                           ','.join(fields), (accession,))
         row = cur.fetchone()
         if row:
             result = dict(zip(fields, row))
@@ -1397,6 +1405,21 @@ class SqliteIndex(object):
             result['length'] = int(result['length'])
             result['accession'] = accession
             return result
+
+    def execute(self, query, *args):
+        """
+        Execute an SQL statement. See
+        https://docs.python.org/3.5/library/sqlite3.html#sqlite3.Cursor.execute
+        for full argument details.
+
+        @param query: A C{str} SQL query.
+        @param args: Additional arguments (if any) to pass to the sqlite3
+            execute command.
+        @return: An sqlite3 cursor.
+        """
+        cur = self._connection.cursor()
+        cur.execute(query, *args)
+        return cur
 
     def close(self):
         """

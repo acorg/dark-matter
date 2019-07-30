@@ -1,8 +1,13 @@
-## 3.1.0 April 24, 2019
+## 3.1.0 July XXX, 2019
 
 Added `make-protein-database.py`, `download-genbank.sh`, and
 `parse-genbank-flat-file.py` scripts, as well as `doc/protein-database.md`
 with some instructions on how to make a protein database.
+
+## 3.0.68 Jun 9, 2019
+
+Refactored `SAMFilter` to allow filtering alignments in pileups. Added
+`bin/sam-coverage.py`.
 
 ## 3.0.67 Apr 25, 2019
 

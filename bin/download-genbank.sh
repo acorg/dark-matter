@@ -9,7 +9,7 @@
 #
 # Usage is e.g.:
 #
-#     download-gb.sh [-n] ID_DIR C-RVDBv15.1.fasta ACCESSION-FILE
+#     download-genbank.sh [-n] ID_DIR C-RVDBv15.1.fasta ACCESSION-FILE
 #
 # where:
 #

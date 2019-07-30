@@ -217,10 +217,14 @@ class SAMFilter(object):
             being preceded by --samfile).
         @param parser: An C{argparse.ArgumentParser} instance.
         """
-        parser.add_argument(
-            '%ssamfile' % ('' if samfileIsPositionalArg else '--'),
-            required=True,
-            help='The SAM/BAM file to filter.')
+        if samfileIsPositionalArg:
+            parser.add_argument(
+                'samfile',
+                help='The SAM/BAM file to filter.')
+        else:
+            parser.add_argument(
+                '--samfile', required=True,
+                help='The SAM/BAM file to filter.')
 
         parser.add_argument(
             '--referenceId', metavar='ID', nargs='+', action='append',
@@ -298,21 +302,45 @@ class SAMFilter(object):
             minScore=args.minScore,
             maxScore=args.maxScore)
 
+    def filterAlignment(self, alignment):
+        """
+        Test an alignment to see if it passes all filtering criteria.
+
+        @param alignment: A pysam alignment instance.
+        @return: A C{bool}, C{True} if the alignment passes our filtering,
+            C{False} if it should be discarded.
+        """
+        if self.minScore is not None or self.maxScore is not None:
+            try:
+                score = alignment.get_tag(self.scoreTag)
+            except KeyError:
+                return False
+            else:
+                if ((self.minScore is not None and score < self.minScore) or
+                        (self.maxScore is not None and score > self.maxScore)):
+                    return False
+
+        return ((self.filterRead is None or
+                 self.filterRead(Read(alignment.query_name,
+                                      alignment.query_sequence,
+                                      alignment.qual))) and
+                not (
+                    (self.referenceIds and
+                     alignment.reference_name not in self.referenceIds) or
+                    (alignment.is_unmapped and self.dropUnmapped) or
+                    (alignment.is_secondary and self.dropSecondary) or
+                    (alignment.is_supplementary and self.dropSupplementary) or
+                    (alignment.is_duplicate and self.dropDuplicates) or
+                    (alignment.is_qcfail and not self.keepQCFailures)))
+
     def alignments(self):
         """
         Get alignments from the SAM/BAM file, subject to filtering.
+
+        @return: A generator that yields pysam alignment instances that pass
+            our filtering criteria.
         """
-        referenceIds = self.referenceIds
-        dropUnmapped = self.dropUnmapped
-        dropSecondary = self.dropSecondary
-        dropSupplementary = self.dropSupplementary
-        dropDuplicates = self.dropDuplicates
-        keepQCFailures = self.keepQCFailures
         storeQueryIds = self.storeQueryIds
-        filterRead = self.filterRead
-        minScore = self.minScore
-        maxScore = self.maxScore
-        scoreTag = self.scoreTag
 
         if storeQueryIds:
             self.queryIds = queryIds = set()
@@ -323,16 +351,6 @@ class SAMFilter(object):
             for count, alignment in enumerate(samAlignment.fetch(), start=1):
                 if storeQueryIds:
                     queryIds.add(alignment.query_name)
-
-                if minScore is not None or maxScore is not None:
-                    try:
-                        score = alignment.get_tag(scoreTag)
-                    except KeyError:
-                        continue
-                    else:
-                        if ((minScore is not None and score < minScore) or
-                                (maxScore is not None and score > maxScore)):
-                            continue
 
                 # Secondary and supplementary alignments may have a '*'
                 # (pysam returns this as None) SEQ field, indicating that
@@ -371,18 +389,7 @@ class SAMFilter(object):
                              alignment.query_qualities,
                              alignment.cigartuples)
 
-                if ((filterRead is None or
-                     filterRead(Read(alignment.query_name,
-                                     alignment.query_sequence,
-                                     alignment.qual))) and
-                    not (
-                        (referenceIds and
-                         alignment.reference_name not in referenceIds) or
-                        (alignment.is_unmapped and dropUnmapped) or
-                        (alignment.is_secondary and dropSecondary) or
-                        (alignment.is_supplementary and dropSupplementary) or
-                        (alignment.is_duplicate and dropDuplicates) or
-                        (alignment.is_qcfail and not keepQCFailures))):
+                if self.filterAlignment(alignment):
                     yield alignment
 
         self.alignmentCount = count

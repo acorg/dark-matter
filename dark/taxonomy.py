@@ -31,7 +31,7 @@ class LineageFetcher(object):
 
         lineage = []
         gi = int(title.split('|')[1])
-        query = 'SELECT taxID from gi_taxid where gi = %d' % gi
+        query = 'SELECT taxID FROM gi_taxid WHERE gi = %d' % gi
 
         try:
             while True:
@@ -39,12 +39,12 @@ class LineageFetcher(object):
                 taxID = self._cursor.fetchone()[0]
                 if taxID == 1:
                     break
-                query = 'SELECT name from names where taxId = %s' % taxID
+                query = 'SELECT name FROM names WHERE taxId = %s' % taxID
                 self._cursor.execute(query)
                 scientificName = self._cursor.fetchone()[0]
                 lineage.append((taxID, scientificName))
                 # Move up to the parent.
-                query = ('SELECT parent_taxID from nodes where taxID = %s' %
+                query = ('SELECT parent_taxID FROM nodes WHERE taxID = %s' %
                          taxID)
         except TypeError:
             lineage = []
