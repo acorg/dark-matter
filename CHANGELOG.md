@@ -1,3 +1,8 @@
+## 3.0.74 Jul 30, 2019
+
+Added `--whitelistFile` and `--blacklistFile` options to
+`noninteractive-alignment-panel.py`.
+
 ## 3.0.73 Jul 30, 2019
 
 Adjust how protein and genome accession numbers are looked for in

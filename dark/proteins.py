@@ -756,14 +756,24 @@ class ProteinGrouper(object):
                 pathName for pathName in self.pathogenNames
                 if sampleName in self.pathogenNames[pathName]]
 
-            append(
-                '<a id="sample-%s"></a>'
-                '<p class="sample">Sample <span class="sample-name">%s</span> '
-                'matched proteins from %d pathogen%s, '
-                '<a href="%s">panel</a>:</p>' %
-                (sampleName, sampleName, len(samplePathogenNames),
-                 '' if len(samplePathogenNames) == 1 else 's',
-                 self.sampleNames[sampleName]))
+            if len(samplePathogenNames):
+                append(
+                    '<a id="sample-%s"></a>'
+                    '<p class="sample">Sample '
+                    '<span class="sample-name">%s</span> '
+                    'matched proteins from %d pathogen%s, '
+                    '<a href="%s">panel</a>:</p>' %
+                    (sampleName, sampleName, len(samplePathogenNames),
+                     '' if len(samplePathogenNames) == 1 else 's',
+                     self.sampleNames[sampleName]))
+            else:
+                append(
+                    '<a id="sample-%s"></a>'
+                    '<p class="sample">Sample '
+                    '<span class="sample-name">%s</span> '
+                    'matched proteins from 0 pathogens.</p>' %
+                    (sampleName, sampleName))
+                continue
 
             for pathogenName in sorted(samplePathogenNames):
                 readsFileName = self.pathogenSampleFiles.lookup(pathogenName,
