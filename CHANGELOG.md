@@ -1,3 +1,8 @@
+## 3.0.72 Jul 30, 2019
+
+Make `NCBISequenceLinkURL` raise a more informative `IndexError` when it
+cannot extract the wanted field.
+
 ## 3.0.71 Jul 30, 2019
 
 Fixed stupid typo in `proteins-to-pathogens.py`.

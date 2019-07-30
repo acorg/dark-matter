@@ -18,8 +18,16 @@ def NCBISequenceLinkURL(title, field=None, delim='|'):
         C{None}).
     @return: A C{str} URL.
     """
-    return 'http://www.ncbi.nlm.nih.gov/nuccore/' + (
-        title if field is None else title.split(delim)[field])
+    if field is None:
+        ref = title
+    else:
+        try:
+            ref = title.split(delim)[field]
+        except IndexError:
+            raise IndexError(
+                'Could not extract field %d from sequence title %r' %
+                (field, title))
+    return 'http://www.ncbi.nlm.nih.gov/nuccore/' + ref
 
 
 def NCBISequenceLink(title, field=None, delim='|'):

@@ -31,7 +31,10 @@ class TestNCBISequenceLinkURL(TestCase):
         If the field number passed does not exist, IndexError must be raised.
         """
         title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
-        error = r"^list index out of range$"
+        error = (
+            r"^Could not extract field 10 from sequence title "
+            r"'gi\|37955203\|gb\|AY253278\.1\| Homo sapiens clone "
+            "AL-11 HIV-1'$")
         assertRaisesRegex(self, IndexError, error, NCBISequenceLinkURL, title,
                           10)
 
@@ -66,5 +69,8 @@ class TestNCBISequenceLink(TestCase):
         If the field number passed does not exist, IndexError must be raised.
         """
         title = 'gi|37955203|gb|AY253278.1| Homo sapiens clone AL-11 HIV-1'
-        error = r"^list index out of range$"
+        error = (
+            r"^Could not extract field 10 from sequence title "
+            r"'gi\|37955203\|gb\|AY253278\.1\| Homo sapiens clone "
+            "AL-11 HIV-1'$")
         assertRaisesRegex(self, IndexError, error, NCBISequenceLink, title, 10)
