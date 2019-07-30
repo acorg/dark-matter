@@ -326,6 +326,20 @@ class ProteinGrouper(object):
 
             readsFilename = join(outDir, '%d.%s' % (index, self._format))
 
+            if proteinName.count('|') < 5:
+                # Assume this is an NCBI refseq id, like
+                # YP_009137153.1 uracil glycosylase [Human alphaherpesvirus 2]
+                # with a protein but not a genome accession.
+                proteinURL = NCBISequenceLinkURL(proteinName, field=0,
+                                                 delim=' ')
+                genomeURL = None
+            else:
+                # Assume this is an RVDB id, like
+                # acc|GENBANK|ABJ91970.1|GENBANK|DQ876317|pol protein [HIV]
+                # with both protein and genome accession numbers.
+                proteinURL = NCBISequenceLinkURL(proteinName, field=2)
+                genomeURL = NCBISequenceLinkURL(proteinName, field=4)
+
             proteins[proteinName] = {
                 'bestScore': float(bestScore),
                 'bluePlotFilename': join(outDir, '%d.png' % index),
@@ -337,8 +351,8 @@ class ProteinGrouper(object):
                 'outDir': outDir,
                 'proteinLength': int(proteinLength),
                 'proteinName': proteinName,
-                'proteinURL': NCBISequenceLinkURL(proteinName, 2),
-                'genomeURL': NCBISequenceLinkURL(proteinName, 4),
+                'proteinURL': proteinURL,
+                'genomeURL': genomeURL,
                 'readCount': int(readCount),
             }
 

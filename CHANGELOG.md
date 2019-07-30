@@ -1,3 +1,9 @@
+## 3.0.73 Jul 30, 2019
+
+Adjust how protein and genome accession numbers are looked for in
+`ProteinGrouper` depending on whether we guess they are NCBI or RVDB
+sequence ids.
+
 ## 3.0.72 Jul 30, 2019
 
 Make `NCBISequenceLinkURL` raise a more informative `IndexError` when it
