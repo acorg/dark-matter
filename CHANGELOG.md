@@ -1,3 +1,7 @@
+## 3.0.75 Jul 31, 2019
+
+Added search link for ICTV for viruses in HTML output.
+
 ## 3.0.74 Jul 30, 2019
 
 Added `--whitelistFile` and `--blacklistFile` options to

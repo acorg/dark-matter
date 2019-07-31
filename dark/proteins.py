@@ -224,6 +224,7 @@ class ProteinGrouper(object):
     """
 
     VIRALZONE = 'https://viralzone.expasy.org/search?query='
+    ICTV = 'https://talk.ictvonline.org/search-124283882/?q='
 
     def __init__(self, assetDir='out', sampleName=None, sampleNameRegex=None,
                  format_='fasta', proteinFastaFilenames=None,
@@ -664,8 +665,11 @@ class ProteinGrouper(object):
             sampleCount = len(samples)
             pathogenProteinCount = self._pathogenProteinCount[pathogenName]
             if pathogenType == 'viral':
-                pathogenNameHTML = '<a href="%s%s">%s</a>' % (
-                    self.VIRALZONE, quote(pathogenName), pathogenName)
+                quoted = quote(pathogenName)
+                pathogenNameHTML = (
+                    '%s '
+                    '(<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
+                ) % (pathogenName, self.ICTV, quoted, self.VIRALZONE, quoted)
             else:
                 pathogenNameHTML = pathogenName
             append(
@@ -673,7 +677,7 @@ class ProteinGrouper(object):
                 '<p class="pathogen"><span class="pathogen-name">%s</span>'
                 '%s, was matched by %d sample%s:</p>' %
                 (pathogenName, pathogenNameHTML,
-                 ((' (with %d protein%s)' %
+                 ((' with %d protein%s' %
                    (pathogenProteinCount,
                     '' if pathogenProteinCount == 1 else 's'))
                   if pathogenProteinCount else ''),
