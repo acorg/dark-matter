@@ -666,17 +666,16 @@ class ProteinGrouper(object):
             pathogenProteinCount = self._pathogenProteinCount[pathogenName]
             if pathogenType == 'viral':
                 quoted = quote(pathogenName)
-                pathogenNameHTML = (
-                    '%s '
+                pathogenLinksHTML = (
                     '(<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
-                ) % (pathogenName, self.ICTV, quoted, self.VIRALZONE, quoted)
+                ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
             else:
-                pathogenNameHTML = pathogenName
+                pathogenLinksHTML = ''
             append(
                 '<a id="pathogen-%s"></a>'
                 '<p class="pathogen"><span class="pathogen-name">%s</span>'
-                '%s, was matched by %d sample%s:</p>' %
-                (pathogenName, pathogenNameHTML,
+                '%s %s, was matched by %d sample%s:</p>' %
+                (pathogenName, pathogenName, pathogenLinksHTML,
                  ((' with %d protein%s' %
                    (pathogenProteinCount,
                     '' if pathogenProteinCount == 1 else 's'))
