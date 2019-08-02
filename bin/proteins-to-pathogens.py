@@ -147,7 +147,12 @@ if __name__ == '__main__':
         '--assetDir', default='out',
         help=('The output directory where noninteractive-alignment-panel.py '
               'puts its HTML, plots and FASTA or FASTQ files, needed for '
-              'using --html'))
+              'using --html.'))
+
+    parser.add_argument(
+        '--pathogenDataDir', default='pathogen-data',
+        help=('The directory where per-pathogen information (e.g., collected '
+              'reads across all samples) should be written.'))
 
     parser.add_argument(
         '--title', default='Summary of pathogens',
@@ -202,7 +207,8 @@ if __name__ == '__main__':
                              proteinFastaFilenames=proteinFastaFilenames,
                              saveReadLengths=args.showReadLengths,
                              titleRegex=args.titleRegex,
-                             negativeTitleRegex=args.negativeTitleRegex)
+                             negativeTitleRegex=args.negativeTitleRegex,
+                             pathogenDataDir=args.pathogenDataDir)
 
     if args.filenames:
         filenames = args.filenames

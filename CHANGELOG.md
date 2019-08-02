@@ -1,3 +1,8 @@
+## 3.0.77 Aug 2, 2019
+
+Added link to per-pathogen reads in protein-to-pathogens HTML output for
+Julia.
+
 ## 3.0.76 Jul 31, 2019
 
 Slightly adjust appearance of HTML links for pathogens.
