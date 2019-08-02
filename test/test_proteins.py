@@ -844,7 +844,7 @@ class TestPathogenSampleFiles(TestCase):
         being raised.
         """
         pg = ProteinGrouper()
-        error = "^format_ must be either 'fasta' or 'fastq'\\.$"
+        error = r"^format_ must be either 'fasta' or 'fastq'\.$"
         assertRaisesRegex(self, ValueError, error, PathogenSampleFiles,
                           pg, format_='unknown')
 
@@ -951,6 +951,63 @@ class TestPathogenSampleFiles(TestCase):
 
         self.assertEqual('out/pathogen-0-sample-0.fasta', filename)
         self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())
+        # Make sure all expected filenames were seen by the mocked open.
+        self.assertEqual(set(), opener.expectedFilenames)
+
+    def testPathogenIndex(self):
+        """
+        A pathogen index must be retrievable via the pathogenIndex function.
+        """
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.expectedFilenames = {'out/0.fasta', 'out/1.fasta',
+                                          'out/pathogen-0-sample-0.fasta'}
+
+            def sideEffect(self, filename, *args, **kwargs):
+                try:
+                    self.expectedFilenames.remove(filename)
+                except KeyError:
+                    self.test.fail(
+                        'Open called with unexpected filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+                else:
+                    if filename == 'out/0.fasta':
+                        return StringIO('>id1\nACTG\n')
+                    elif filename == 'out/1.fasta':
+                        return StringIO('>id1\nACTG\n>id2\nCAGT\n')
+                    else:
+                        return self.manager
+
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
+        )
+        fastaIO = StringIO()
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        pg = ProteinGrouper()
+        pg.addFile('filename-1', fp)
+        pathogenSampleFiles = PathogenSampleFiles(pg)
+
+        opener = Open(self, manager())
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = opener.sideEffect
+            filename = pathogenSampleFiles.add('Lausannevirus', 'filename-1')
+
+        # Leaving this line in so we can explicitly see that the first
+        # pathogen has index zero.
+        self.assertEqual('out/pathogen-0-sample-0.fasta', filename)
+
+        # Here's the pathogen index we're actually interested in testing.
+        self.assertEqual(0, pathogenSampleFiles.pathogenIndex('Lausannevirus'))
+
         # Make sure all expected filenames were seen by the mocked open.
         self.assertEqual(set(), opener.expectedFilenames)
 

@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 
+import os
 from collections import defaultdict, Counter
 import numpy as np
 from os.path import dirname, join
@@ -88,9 +89,12 @@ def getPathogenProteinCounts(filenames):
 
 class PathogenSampleFiles(object):
     """
-    Maintain a cache of pathogen/sample FASTA/FASTQ file names, creating
-    de-duplicated (by read id) FASTA/FASTQ files (from reads for all proteins
-    of a pathogen that a sample has), on demand.
+    Maintain a cache of FASTA/FASTQ file names for the samples that contain a
+    given pathogen, create de-duplicated (by read id) FASTA/FASTQ files
+    for each pathogen/sample pair, provide functions to write out index files
+    of sample and pathogen numbers (which are generated here in C{self.add}),
+    and provide a filename lookup function for pathogen/sample combinations
+    or just pathogen names by themselves.
 
     @param proteinGrouper: An instance of C{ProteinGrouper}.
     @param format_: A C{str}, either 'fasta' or 'fastq' indicating the format
@@ -186,6 +190,17 @@ class PathogenSampleFiles(object):
             sorted((index, name) for (name, index) in self._pathogens.items())
         ), file=fp)
 
+    def pathogenIndex(self, pathogenName):
+        """
+        Get the index for a pathogen.
+
+        @param pathogenName: A C{str} pathogen name.
+        @raise KeyError: If the named pathogen is unknown.
+        @return: An C{int} giving the index for the pathogen (as set in
+            self.add).
+        """
+        return self._pathogens[pathogenName]
+
 
 class ProteinGrouper(object):
     """
@@ -220,16 +235,20 @@ class ProteinGrouper(object):
         Note that this matching is done on the final part of the protein title
         in square brackets, according to the convention used by the NCBI viral
         refseq database and RVDB.
+    @param pathogenDataDir: The C{str} directory where per-pathogen information
+        (e.g., collected reads across all samples) should be written. Will be
+        created (in C{self.toHTML}) if it doesn't exist.
     @raise ValueError: If C{format_} is unknown.
     """
 
     VIRALZONE = 'https://viralzone.expasy.org/search?query='
     ICTV = 'https://talk.ictvonline.org/search-124283882/?q='
+    READCOUNT_MARKER = '*READ-COUNT*'
 
     def __init__(self, assetDir='out', sampleName=None, sampleNameRegex=None,
                  format_='fasta', proteinFastaFilenames=None,
                  saveReadLengths=False, titleRegex=None,
-                 negativeTitleRegex=None):
+                 negativeTitleRegex=None, pathogenDataDir='pathogen-data'):
         self._assetDir = assetDir
         self._sampleName = sampleName
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
@@ -245,6 +264,8 @@ class ProteinGrouper(object):
                 positiveRegex=titleRegex, negativeRegex=negativeTitleRegex)
         else:
             self.titleFilter = None
+
+        self._pathogenDataDir = pathogenDataDir
 
         self._pathogenProteinCount = getPathogenProteinCounts(
             proteinFastaFilenames)
@@ -451,6 +472,9 @@ class ProteinGrouper(object):
                 "Unrecognized pathogenType argument: %r. Value must be either "
                 "'bacterial' or 'viral'." % pathogenType)
 
+        if not os.exists(self._pathogenDataDir):
+            os.mkdir(self._pathogenDataDir)
+
         highlightSymbol = '&starf;'
         self._computeUniqueReadCounts()
 
@@ -465,22 +489,26 @@ class ProteinGrouper(object):
             with open(pathogenIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writePathogenIndex(fp)
 
-        toDelete = defaultdict(list)
-        for pathogenName in self.pathogenNames:
-            proteinCount = self._pathogenProteinCount[pathogenName]
-            for s in self.pathogenNames[pathogenName]:
-                if proteinCount:
-                    sampleProteinFraction = (
-                        len(self.pathogenNames[pathogenName][s]['proteins']) /
-                        proteinCount)
-                else:
-                    sampleProteinFraction = 1.0
-                if sampleProteinFraction < minProteinFraction:
-                    toDelete[pathogenName].append(s)
+        # Figure out if we have to delete some pathogens because the
+        # fraction of their proteins that we have matches for is too low.
+        if minProteinFraction > 0.0:
+            toDelete = defaultdict(list)
+            for pathogenName in self.pathogenNames:
+                proteinCount = self._pathogenProteinCount[pathogenName]
+                for s in self.pathogenNames[pathogenName]:
+                    if proteinCount:
+                        sampleProteinFraction = (
+                            len(self.pathogenNames[
+                                pathogenName][s]['proteins']) /
+                            proteinCount)
+                    else:
+                        sampleProteinFraction = 1.0
+                    if sampleProteinFraction < minProteinFraction:
+                        toDelete[pathogenName].append(s)
 
-        for pathogenName in toDelete:
-            for sample in toDelete[pathogenName]:
-                del self.pathogenNames[pathogenName][sample]
+            for pathogenName in toDelete:
+                for sample in toDelete[pathogenName]:
+                    del self.pathogenNames[pathogenName][sample]
 
         pathogenNames = sorted(
             pathogenName for pathogenName in self.pathogenNames
@@ -667,27 +695,66 @@ class ProteinGrouper(object):
             if pathogenType == 'viral':
                 quoted = quote(pathogenName)
                 pathogenLinksHTML = (
-                    '(<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
+                    ' (<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
                 ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
             else:
                 pathogenLinksHTML = ''
+
+            if pathogenProteinCount:
+                withStr = (' with %d protein%s' %
+                           (pathogenProteinCount,
+                            '' if pathogenProteinCount == 1 else 's'))
+            else:
+                withStr = ''
+
+            pathogenIndex = self.pathogenSampleFiles.pathogenIndex(
+                pathogenName)
+
+            pathogenReadsFilename = join(
+                self._pathogenDataDir,
+                'pathogen-%d.%s' % (pathogenIndex, self._format))
+
+            pathogenReadsFp = open(pathogenReadsFilename, 'w')
+            pathogenReadCount = 0
+
             append(
                 '<a id="pathogen-%s"></a>'
-                '<p class="pathogen"><span class="pathogen-name">%s</span>'
-                '%s %s, was matched by %d sample%s:</p>' %
-                (pathogenName, pathogenName, pathogenLinksHTML,
-                 ((' with %d protein%s' %
-                   (pathogenProteinCount,
-                    '' if pathogenProteinCount == 1 else 's'))
-                  if pathogenProteinCount else ''),
-                 sampleCount,
-                 '' if sampleCount == 1 else 's'))
+                '<p class="pathogen">'
+                '<span class="pathogen-name">%s</span>'
+                '%s %s, '
+                'was matched by %d sample%s '
+                '(<a href="%s">%s</a> in total):'
+                '</p>' %
+                (pathogenName,
+                 pathogenName,
+                 pathogenLinksHTML, withStr,
+                 sampleCount, '' if sampleCount == 1 else 's',
+                 pathogenReadsFilename, self.READCOUNT_MARKER))
+
+            # Remember where we are in the output result so we can fill in
+            # the total read count once we have processed all samples for
+            # this pathogen. Not nice, I know.
+            pathogenReadCountLineIndex = len(result) - 1
+
             for sampleName in sorted(samples):
                 readsFileName = self.pathogenSampleFiles.lookup(
                     pathogenName, sampleName)
+
+                # Copy the read data from the per-sample reads for this
+                # pathogen into the per-pathogen file of reads.
+                with open(readsFileName) as readsFp:
+                    while True:
+                        data = readsFp.read(4096)
+                        if data:
+                            pathogenReadsFp.write(data)
+                        else:
+                            break
+
                 proteins = samples[sampleName]['proteins']
                 proteinCount = len(proteins)
                 uniqueReadCount = samples[sampleName]['uniqueReadCount']
+                pathogenReadCount += uniqueReadCount
+
                 if pathogenProteinCount and (
                         proteinCount / pathogenProteinCount >=
                         minProteinFraction):
@@ -749,6 +816,26 @@ class ProteinGrouper(object):
                     append('</li>')
 
                 append('</ul>')
+
+            pathogenReadsFp.close()
+
+            # Sanity check there's a read count marker text in our output
+            # where we expect it.
+            readCountLine = result[pathogenReadCountLineIndex]
+            if readCountLine.find(self.READCOUNT_MARKER) == -1:
+                raise ValueError(
+                    'Could not find pathogen read count marker (%s) in result '
+                    'index %d text (%s).' %
+                    (self.READCOUNT_MARKER, pathogenReadCountLineIndex,
+                     readCountLine))
+
+            # Put the read count into the pathogen summary line we wrote
+            # earlier, replacing the read count marker with the correct
+            # text.
+            result[pathogenReadCountLineIndex] = readCountLine.replace(
+                self.READCOUNT_MARKER,
+                '%d read%s' % (pathogenReadCount,
+                               '' if pathogenReadCount == 1 else 's'))
 
         # Write all samples (with pathogens (with proteins)).
         append('<hr>')
