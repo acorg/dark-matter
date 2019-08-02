@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import os
 from collections import defaultdict, Counter
 import numpy as np
-from os.path import dirname, join
+from os.path import dirname, exists, join
 from operator import itemgetter
 import re
 from six.moves.urllib.parse import quote
@@ -472,7 +472,7 @@ class ProteinGrouper(object):
                 "Unrecognized pathogenType argument: %r. Value must be either "
                 "'bacterial' or 'viral'." % pathogenType)
 
-        if not os.exists(self._pathogenDataDir):
+        if not exists(self._pathogenDataDir):
             os.mkdir(self._pathogenDataDir)
 
         highlightSymbol = '&starf;'

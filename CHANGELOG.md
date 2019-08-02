@@ -1,3 +1,7 @@
+## 3.0.78 Aug 2, 2019
+
+Fixed silly import error.
+
 ## 3.0.77 Aug 2, 2019
 
 Added link to per-pathogen reads in protein-to-pathogens HTML output for
