@@ -170,6 +170,23 @@ if __name__ == '__main__':
         '--negativeTitleRegex', default=None,
         help='a regex that pathogen names must not match.')
 
+    parser.add_argument(
+        '--omitVirusLinks', default=False, action='store_true',
+        help=('If specified, the HTML output (use --html to get this) for '
+              'viruses will not contain links to ICTV and ViralZone. '
+              'This should be used when working with viruses that do not yet '
+              'have names that can be looked up.'))
+
+    parser.add_argument(
+        '--omitSampleProteinCount', default=False, action='store_true',
+        help=('If specified, the HTML output (use --html to get this) for '
+              'viruses will not contain counts of the number of proteins '
+              'matched by each sample for a given pathogen. This should be '
+              'used when working with RVDB where there are many sequences '
+              'for some proteins and a sample matches many of them, leading '
+              'to incorrect reporting of the number of proteins of a pathogen '
+              'that are matched by samples.'))
+
     args = parser.parse_args()
 
     if args.sampleName and args.sampleNameRegex:
@@ -186,6 +203,15 @@ if __name__ == '__main__':
             print('It does not make sense to use --pathogenIndexFilename '
                   'without also using --html', file=sys.stderr)
             sys.exit(1)
+        if args.omitVirusLinks:
+            print('It does not make sense to use --omitVirusLinks '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+
+    if args.omitVirusLinks and args.pathogenType != 'viral':
+        print('The --omitVirusLinks option only makes sense with '
+              '--pathogenType viral', file=sys.stderr)
+        sys.exit(1)
 
     if args.proteinFastaFilename:
         # Flatten lists of lists that we get from using both nargs='+' and
@@ -220,11 +246,14 @@ if __name__ == '__main__':
             grouper.addFile(filename, fp)
 
     if args.html:
-        print(grouper.toHTML(args.pathogenPanelFilename,
-                             minProteinFraction=args.minProteinFraction,
-                             pathogenType=args.pathogenType,
-                             title=args.title, preamble=args.preamble,
-                             sampleIndexFilename=args.sampleIndexFilename,
-                             pathogenIndexFilename=args.pathogenIndexFilename))
+        print(grouper.toHTML(
+            args.pathogenPanelFilename,
+            minProteinFraction=args.minProteinFraction,
+            pathogenType=args.pathogenType,
+            title=args.title, preamble=args.preamble,
+            sampleIndexFilename=args.sampleIndexFilename,
+            pathogenIndexFilename=args.pathogenIndexFilename,
+            omitVirusLinks=args.omitVirusLinks,
+            omitSampleProteinCount=args.omitSampleProteinCount))
     else:
         print(grouper.toStr())
