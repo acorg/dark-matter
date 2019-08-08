@@ -207,6 +207,10 @@ if __name__ == '__main__':
             print('It does not make sense to use --omitVirusLinks '
                   'without also using --html', file=sys.stderr)
             sys.exit(1)
+        if args.omitSampleProteinCount:
+            print('It does not make sense to use --omitSampleProteinCount '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
 
     if args.omitVirusLinks and args.pathogenType != 'viral':
         print('The --omitVirusLinks option only makes sense with '
