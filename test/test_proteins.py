@@ -259,6 +259,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -298,6 +299,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -337,6 +339,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -411,6 +414,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                             'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
                                 'bestScore': 48.1,
@@ -429,6 +433,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -472,6 +477,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -497,6 +503,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -543,6 +550,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -566,6 +574,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -633,6 +642,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -658,6 +668,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -740,7 +751,7 @@ class TestProteinGrouper(TestCase):
             '\n'
             'Lausannevirus (in 1 sample)\n'
             '  sample-filename (1 protein, 5 reads)\n'
-            '    0.77\t46.60\t48.10\t   5\t   6\t  0\tacc|'
+            '    0.77\t46.60\t48.10\t        5/6\tacc|'
             'GENBANK|I44.6|GENBANK|J77|VP1\n',
             pg.toStr())
 
@@ -780,6 +791,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -824,6 +836,7 @@ class TestProteinGrouper(TestCase):
                                 'genomeURL': (
                                     'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -1076,6 +1089,7 @@ class TestPathogenSampleFiles(TestCase):
                         'genomeURL': (
                             'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                         'readCount': 9,
+                        'readAndHspCountStr': '9',
                     },
                     'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
                         'bestScore': 48.1,
@@ -1094,6 +1108,7 @@ class TestPathogenSampleFiles(TestCase):
                         'genomeURL': (
                             'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                         'readCount': 5,
+                        'readAndHspCountStr': '5/6',
                     },
                 },
                 'uniqueReadCount': 3,

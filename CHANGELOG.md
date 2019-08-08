@@ -1,3 +1,12 @@
+## 3.0.79 Aug 8, 2019
+
+Add `--omitVirusLinks` and `--omitSampleProteinCount` options to
+`proteins-to-pathogens.py` to make HTML output less confusing when running
+on RVDB or OKIAV databases.  Removed highlighting of pathogens with high
+protein fraction since that was done in a non-useful way. Removed index
+field from HTML output and removed HSP count unless it differs from the
+read count.
+
 ## 3.0.78 Aug 2, 2019
 
 Fixed silly import error.

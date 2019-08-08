@@ -244,6 +244,7 @@ class ProteinGrouper(object):
     VIRALZONE = 'https://viralzone.expasy.org/search?query='
     ICTV = 'https://talk.ictvonline.org/search-124283882/?q='
     READCOUNT_MARKER = '*READ-COUNT*'
+    READ_AND_HSP_COUNT_STR_SEP = '/'
 
     def __init__(self, assetDir='out', sampleName=None, sampleNameRegex=None,
                  format_='fasta', proteinFastaFilenames=None,
@@ -362,7 +363,7 @@ class ProteinGrouper(object):
                 proteinURL = NCBISequenceLinkURL(proteinName, field=2)
                 genomeURL = NCBISequenceLinkURL(proteinName, field=4)
 
-            proteins[proteinName] = {
+            proteinInfo = proteins[proteinName] = {
                 'bestScore': float(bestScore),
                 'bluePlotFilename': join(outDir, '%d.png' % index),
                 'coverage': float(coverage),
@@ -377,6 +378,12 @@ class ProteinGrouper(object):
                 'genomeURL': genomeURL,
                 'readCount': int(readCount),
             }
+
+            if proteinInfo['readCount'] == proteinInfo['hspCount']:
+                proteinInfo['readAndHspCountStr'] = readCount
+            else:
+                proteinInfo['readAndHspCountStr'] = '%s%s%s' % (
+                    readCount, self.READ_AND_HSP_COUNT_STR_SEP, hspCount)
 
             if self._saveReadLengths:
                 readsClass = (FastaReads if self._format == 'fasta'
@@ -435,8 +442,8 @@ class ProteinGrouper(object):
                 for proteinName in sorted(proteins):
                     append(
                         '    %(coverage).2f\t%(medianScore).2f\t'
-                        '%(bestScore).2f\t%(readCount)4d\t%(hspCount)4d\t'
-                        '%(index)3d\t%(proteinName)s'
+                        '%(bestScore).2f\t%(readAndHspCountStr)11s\t'
+                        '%(proteinName)s'
                         % proteins[proteinName])
             append('')
 
@@ -445,7 +452,8 @@ class ProteinGrouper(object):
     def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
                pathogenType='viral', title='Summary of pathogens',
                preamble=None, sampleIndexFilename=None,
-               pathogenIndexFilename=None):
+               pathogenIndexFilename=None, omitVirusLinks=False,
+               omitSampleProteinCount=False):
         """
         Produce an HTML string representation of the pathogen summary.
 
@@ -465,6 +473,13 @@ class ProteinGrouper(object):
         @param pathogenIndexFilename: A C{str} filename to write a pathogen
             index file to. Lines in the file will have an integer index, a
             space, and then the pathogen name.
+        @param omitVirusLinks: If C{True}, links to ICTV and ViralZone will be
+            omitted in output.
+        @param omitSampleProteinCount: If C{True}, do not display a number of
+            matched pathogen proteins for a sample. This should be used when
+            those numbers are inaccurate (e.g., when using the unclustered RVDB
+            protein database and there are many sequences for the same
+            protein).
         @return: An HTML C{str} suitable for printing.
         """
         if pathogenType not in ('bacterial', 'viral'):
@@ -475,7 +490,6 @@ class ProteinGrouper(object):
         if not exists(self._pathogenDataDir):
             os.mkdir(self._pathogenDataDir)
 
-        highlightSymbol = '&starf;'
         self._computeUniqueReadCounts()
 
         if pathogenPanelFilename:
@@ -548,10 +562,6 @@ class ProteinGrouper(object):
                 margin-top: 10px;
                 margin-bottom: 3px;
             }
-            .significant {
-                color: red;
-                margin-right: 2px;
-            }
             .sample {
                 margin-top: 5px;
                 margin-bottom: 2px;
@@ -599,10 +609,10 @@ class ProteinGrouper(object):
             '<li>Coverage fraction.</li>',
             '<li>Median bit score.</li>',
             '<li>Best bit score.</li>',
-            '<li>Read count.</li>',
-            '<li>HSP count (a read can match a protein more than once).</li>',
-            '<li>Protein length (in AAs).</li>',
-            '<li>Index (just ignore this).</li>',
+            '<li>Read count (if the HSP count differs, read and HSP ',
+            ('counts are both given, separated by "%s").</li>' %
+             self.READ_AND_HSP_COUNT_STR_SEP),
+            '<li>Protein length (in amino acids).</li>',
         ]
 
         if self._saveReadLengths:
@@ -643,11 +653,6 @@ class ProteinGrouper(object):
                 append('Pathogen protein fraction filtering was applied, '
                        'but all pathogens have at least %.2f%% of their '
                        'proteins matched by at least one sample.' % percent)
-
-            append('Samples that match a pathogen (and pathogens with a '
-                   'matching sample) with at least this protein fraction are '
-                   'highlighted using <span class="significant">%s</span>.' %
-                   highlightSymbol)
 
         append('</p>')
 
@@ -692,7 +697,7 @@ class ProteinGrouper(object):
             samples = self.pathogenNames[pathogenName]
             sampleCount = len(samples)
             pathogenProteinCount = self._pathogenProteinCount[pathogenName]
-            if pathogenType == 'viral':
+            if pathogenType == 'viral' and not omitVirusLinks:
                 quoted = quote(pathogenName)
                 pathogenLinksHTML = (
                     ' (<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
@@ -755,21 +760,19 @@ class ProteinGrouper(object):
                 uniqueReadCount = samples[sampleName]['uniqueReadCount']
                 pathogenReadCount += uniqueReadCount
 
-                if pathogenProteinCount and (
-                        proteinCount / pathogenProteinCount >=
-                        minProteinFraction):
-                    highlight = ('<span class="significant">%s</span>' %
-                                 highlightSymbol)
+                if omitSampleProteinCount:
+                    proteinCountHTML = ''
                 else:
-                    highlight = ''
+                    proteinCountHTML = '%d protein%s, ' % (
+                        proteinCount, '' if proteinCount == 1 else 's')
 
                 append(
                     '<p class="sample indented">'
-                    '%sSample <a href="#sample-%s">%s</a> '
-                    '(%d protein%s, <a href="%s">%d de-duplicated (by id) '
+                    'Sample <a href="#sample-%s">%s</a> '
+                    '(%s<a href="%s">%d de-duplicated (by id) '
                     'read%s</a>, <a href="%s">panel</a>):</p>' %
-                    (highlight, sampleName, sampleName,
-                     proteinCount, '' if proteinCount == 1 else 's',
+                    (sampleName, sampleName,
+                     proteinCountHTML,
                      readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's',
                      self.sampleNames[sampleName]))
@@ -780,8 +783,7 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readCount)5d %(hspCount)5d %(proteinLength)4d '
-                        '%(index)3d '
+                        '%(readAndHspCountStr)11s %(proteinLength)4d '
                         % proteinMatch
                     )
 
@@ -861,7 +863,7 @@ class ProteinGrouper(object):
                     '<a id="sample-%s"></a>'
                     '<p class="sample">Sample '
                     '<span class="sample-name">%s</span> '
-                    'matched proteins from 0 pathogens.</p>' %
+                    'did not match anything.</p>' %
                     (sampleName, sampleName))
                 continue
 
@@ -875,24 +877,19 @@ class ProteinGrouper(object):
                 proteinCount = len(proteins)
                 pathogenProteinCount = self._pathogenProteinCount[pathogenName]
 
-                highlight = ''
                 if pathogenProteinCount:
                     proteinCountStr = '%d/%d protein%s' % (
                         proteinCount, pathogenProteinCount,
                         '' if pathogenProteinCount == 1 else 's')
-                    if (proteinCount / pathogenProteinCount >=
-                            minProteinFraction):
-                        highlight = ('<span class="significant">%s</span>' %
-                                     highlightSymbol)
                 else:
                     proteinCountStr = '%d protein%s' % (
                         proteinCount, '' if proteinCount == 1 else 's')
 
                 append(
                     '<p class="sample indented">'
-                    '%s<a href="#pathogen-%s">%s</a> %s, '
+                    '<a href="#pathogen-%s">%s</a> %s, '
                     '<a href="%s">%d de-duplicated (by id) read%s</a>:</p>' %
-                    (highlight, pathogenName, pathogenName,
+                    (pathogenName, pathogenName,
                      proteinCountStr, readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
                 append('<ul class="protein-list indented">')
@@ -902,8 +899,7 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readCount)5d %(hspCount)5d %(proteinLength)4d '
-                        '%(index)3d '
+                        '%(readAndHspCountStr)11s %(proteinLength)4d '
                         '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'
