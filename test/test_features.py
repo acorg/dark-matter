@@ -29,8 +29,14 @@ except ImportError:
 from Bio.SeqFeature import FeatureLocation, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
+from random import uniform
+
 from dark.features import (Feature, FeatureList, _FeatureAdder,
                            ProteinFeatureAdder, NucleotideFeatureAdder)
+
+
+def _randomLabel():
+    return str(uniform(1, 1e9))
 
 
 class Test_Feature(TestCase):
@@ -301,7 +307,7 @@ class Test_FeatureAdder(TestCase):
             return None
 
         featureAdder = _FeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.set_title = MagicMock()
         featureAdder.add(fig, 'title', 0, 100, sequenceFetcher=fetcher)
         fig.set_title.assert_called_with('Target sequence features',
@@ -316,7 +322,7 @@ class Test_FeatureAdder(TestCase):
             return None
 
         featureAdder = _FeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.set_yticks = MagicMock()
         featureAdder.add(fig, 'title', 0, 100, sequenceFetcher=fetcher)
         fig.set_yticks.assert_called_with([])
@@ -332,7 +338,7 @@ class Test_FeatureAdder(TestCase):
             return None
 
         featureAdder = _FeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.text = MagicMock()
         fig.axis = MagicMock()
         featureAdder.add(fig, 'title', 0, 300, sequenceFetcher=fetcher)
@@ -353,7 +359,7 @@ class Test_FeatureAdder(TestCase):
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ('site',)
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.text = MagicMock()
         fig.axis = MagicMock()
         result = featureAdder.add(fig, 'title', 0, 300,
@@ -381,7 +387,7 @@ class Test_FeatureAdder(TestCase):
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ('site',)
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         self.assertRaises(NotImplementedError, featureAdder.add, fig, 'title',
                           0, 300, sequenceFetcher=fetcher)
 
@@ -400,7 +406,7 @@ class Test_FeatureAdder(TestCase):
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ('site',)
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.text = MagicMock()
         fig.axis = MagicMock()
         result = featureAdder.add(fig, 'title', 0, 300,
@@ -434,7 +440,7 @@ class TestProteinFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = ProteinFeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.plot = MagicMock()
         result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
@@ -455,7 +461,7 @@ class TestProteinFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = ProteinFeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
@@ -492,7 +498,7 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.plot = MagicMock()
         result = featureAdder.add(fig, 'title', 0, 300,
                                   sequenceFetcher=fetcher)
@@ -513,7 +519,7 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
@@ -548,7 +554,7 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
@@ -587,7 +593,7 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature1, feature2])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111)
+        fig = plt.subplot(111, label=_randomLabel())
         fig.plot = MagicMock()
         fig.axis = MagicMock()
         fig.legend = MagicMock()
