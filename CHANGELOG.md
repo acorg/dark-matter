@@ -1,8 +1,68 @@
-## 3.1.0 July XXX, 2019
+## 3.1.0 Aug XXX, 2019
 
 Added `make-protein-database.py`, `download-genbank.sh`, and
 `parse-genbank-flat-file.py` scripts, as well as `doc/protein-database.md`
 with some instructions on how to make a protein database.
+
+## 3.0.79 Aug 8, 2019
+
+Add `--omitVirusLinks` and `--omitSampleProteinCount` options to
+`proteins-to-pathogens.py` to make HTML output less confusing when running
+on RVDB or OKIAV databases.  Removed highlighting of pathogens with high
+protein fraction since that was done in a non-useful way. Removed index
+field from HTML output and removed HSP count unless it differs from the
+read count.
+
+## 3.0.78 Aug 2, 2019
+
+Fixed silly import error.
+
+## 3.0.77 Aug 2, 2019
+
+Added link to per-pathogen reads in protein-to-pathogens HTML output for
+Julia.
+
+## 3.0.76 Jul 31, 2019
+
+Slightly adjust appearance of HTML links for pathogens.
+
+## 3.0.75 Jul 31, 2019
+
+Added search link for ICTV for viruses in HTML output.
+
+## 3.0.74 Jul 30, 2019
+
+Added `--whitelistFile` and `--blacklistFile` options to
+`noninteractive-alignment-panel.py`.
+
+## 3.0.73 Jul 30, 2019
+
+Adjust how protein and genome accession numbers are looked for in
+`ProteinGrouper` depending on whether we guess they are NCBI or RVDB
+sequence ids.
+
+## 3.0.72 Jul 30, 2019
+
+Make `NCBISequenceLinkURL` raise a more informative `IndexError` when it
+cannot extract the wanted field.
+
+## 3.0.71 Jul 30, 2019
+
+Fixed stupid typo in `proteins-to-pathogens.py`.
+
+## 3.0.70 Jul 30, 2019
+
+Added `titleRegex` and `negativeTitleRegex` to `ProteinGrouper` class and
+`--titleRegex` and `--negativeTitleRegex` arguments to
+`proteins-to-pathogens.py`.
+
+## 3.0.69 Jul 30, 2019
+
+Added `--title` and `--preamble` args to output from
+`proteins-to-pathogens.py`.  Fixed `ProteinGrouper` HTML NCBI protein link
+and added genome link. Added positive and negative filtering by regex to
+`TitlesAlignments` and tests. Improved NCBI link generation and tests.
+>>>>>>> master
 
 ## 3.0.68 Jun 9, 2019
 

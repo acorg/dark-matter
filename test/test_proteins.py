@@ -217,13 +217,14 @@ class TestProteinGrouper(TestCase):
         If a protein grouper is given duplicate information for a
         pathogen/protein/sample combination it must raise a ValueError.
         """
-        fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'ubiquitin [Lausannevirus]\n')
         pg = ProteinGrouper()
         pg.addFile('sample', fp)
         fp.seek(0)
-        error = ("^Protein 'gi\\|327\\|X\\|I44.6 ubiquitin' already seen for "
-                 "pathogen 'Lausannevirus' sample 'sample'\\.$")
+        error = ("^Protein 'acc\\|GENBANK\\|I44.6\\|GENBANK\\|J77|"
+                 "ubiquitin' already seen for pathogen 'Lausannevirus' "
+                 "sample 'sample'\\.$")
         assertRaisesRegex(self, ValueError, error, pg.addFile, 'sample', fp)
 
     def testOneLineInOneFile(self):
@@ -231,8 +232,8 @@ class TestProteinGrouper(TestCase):
         If a protein grouper is given one file with one line, its pathogenNames
         dict must be as expected.
         """
-        fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'ubiquitin [Lausannevirus]\n')
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
         self.assertEqual(
@@ -240,7 +241,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'sample-filename': {
                         'proteins': {
-                            'gi|327|X|I44.6 ubiquitin': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|ubiquitin': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.77,
@@ -250,10 +251,15 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'out',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327|X|I44.6 ubiquitin',
+                                'proteinName': ('acc|GENBANK|I44.6|GENBANK|'
+                                                'J77|ubiquitin'),
                                 'proteinURL': (
-                                    'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/'
+                                    'I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -267,8 +273,8 @@ class TestProteinGrouper(TestCase):
         If a protein grouper is given a different assetDir name,
         the outDir needs to have that same name, as expected.
         """
-        fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'ubiquitin [Lausannevirus]\n')
         pg = ProteinGrouper(assetDir='differentname')
         pg.addFile('sample-filename', fp)
         self.assertEqual(
@@ -276,7 +282,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'sample-filename': {
                         'proteins': {
-                            'gi|327|X|I44.6 ubiquitin': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|ubiquitin': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'differentname/0.png',
                                 'coverage': 0.77,
@@ -286,10 +292,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'differentname',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327|X|I44.6 ubiquitin',
-                                'proteinURL': (
-                                    'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
+                                'proteinName': ('acc|GENBANK|I44.6|GENBANK|'
+                                                'J77|ubiquitin'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -303,8 +313,8 @@ class TestProteinGrouper(TestCase):
         If a protein grouper is given one file with one line, its pathogenNames
         dict must be as expected, including for a FASTQ file.
         """
-        fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'ubiquitin [Lausannevirus]\n')
         pg = ProteinGrouper(format_='fastq')
         pg.addFile('sample-filename', fp)
         self.assertEqual(
@@ -312,7 +322,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'sample-filename': {
                         'proteins': {
-                            'gi|327|X|I44.6 ubiquitin': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|ubiquitin': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.77,
@@ -322,10 +332,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'out',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327|X|I44.6 ubiquitin',
-                                'proteinURL': (
-                                    'http://www.ncbi.nlm.nih.gov/nuccore/I44'),
+                                'proteinName': ('acc|GENBANK|I44.6|GENBANK|'
+                                                'J77|ubiquitin'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -339,8 +353,8 @@ class TestProteinGrouper(TestCase):
         If a protein grouper is given one file with one line, its _title method
         must return the expected string.
         """
-        fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n')
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'ubiquitin [Lausannevirus]\n')
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
         self.assertEqual(
@@ -354,8 +368,10 @@ class TestProteinGrouper(TestCase):
         string.
         """
         fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [Lausannevirus]\n'
-            '0.77 46.6 48.1 5 6 74 gi|327|X|I44.6 ubiquitin [X Virus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+            'ubiquitin [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+            'ubiquitin [X Virus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
@@ -369,8 +385,10 @@ class TestProteinGrouper(TestCase):
         pathogen, its pathogenNames dict must be as expected.
         """
         fp = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
@@ -379,7 +397,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'sample-filename': {
                         'proteins': {
-                            'gi|327410| protein 77': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.63,
@@ -389,11 +407,16 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 41.3,
                                 'outDir': 'out',
                                 'proteinLength': 12,
-                                'proteinName': 'gi|327410| protein 77',
-                                'proteinURL': None,
+                                'proteinName': ('acc|GENBANK|I44.6|GENBANK|'
+                                                'J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
-                            'gi|327409| ubiquitin': {
+                            'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/1.png',
                                 'coverage': 0.77,
@@ -403,9 +426,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'out',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327409| ubiquitin',
-                                'proteinURL': None,
+                                'proteinName': ('acc|GENBANK|I44.7|GENBANK|'
+                                                'J78|VP2'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.7'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -420,8 +448,10 @@ class TestProteinGrouper(TestCase):
         pathogens, its pathogenNames dict must be as expected.
         """
         fp = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Hepatitis B virus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
@@ -430,7 +460,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'sample-filename': {
                         'proteins': {
-                            'gi|327410| protein 77': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.63,
@@ -440,9 +470,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 41.3,
                                 'outDir': 'out',
                                 'proteinLength': 12,
-                                'proteinName': 'gi|327410| protein 77',
-                                'proteinURL': None,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -451,7 +486,7 @@ class TestProteinGrouper(TestCase):
                 'Hepatitis B virus': {
                     'sample-filename': {
                         'proteins': {
-                            'gi|327409| ubiquitin': {
+                            'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/1.png',
                                 'coverage': 0.77,
@@ -461,9 +496,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'out',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327409| ubiquitin',
-                                'proteinURL': None,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.7|GENBANK|J78|VP2'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.7'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -478,10 +518,12 @@ class TestProteinGrouper(TestCase):
         same pathogen, its pathogenNames dict must be as expected.
         """
         fp1 = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
         )
         fp2 = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('sample-filename-1', fp1)
@@ -491,7 +533,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'sample-filename-1': {
                         'proteins': {
-                            'gi|327410| protein 77': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.63,
@@ -501,16 +543,21 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 41.3,
                                 'outDir': 'out',
                                 'proteinLength': 12,
-                                'proteinName': 'gi|327410| protein 77',
-                                'proteinURL': None,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
                     },
                     'sample-filename-2': {
                         'proteins': {
-                            'gi|327409| ubiquitin': {
+                            'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'out/0.png',
                                 'coverage': 0.77,
@@ -520,9 +567,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'out',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327409| ubiquitin',
-                                'proteinURL': None,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.7|GENBANK|J78|VP2'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.7'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -537,10 +589,12 @@ class TestProteinGrouper(TestCase):
         same pathogen, its _title method must return the expected string.
         """
         fp1 = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
         )
         fp2 = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('sample-filename-1', fp1)
@@ -556,10 +610,12 @@ class TestProteinGrouper(TestCase):
         must be as expected.
         """
         fp1 = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
         )
         fp2 = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Hepatitis B virus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('dir-1/sample-filename-1', fp1)
@@ -569,7 +625,7 @@ class TestProteinGrouper(TestCase):
                 'Lausannevirus': {
                     'dir-1/sample-filename-1': {
                         'proteins': {
-                            'gi|327410| protein 77': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
                                 'bestScore': 44.2,
                                 'bluePlotFilename': 'dir-1/out/0.png',
                                 'coverage': 0.63,
@@ -579,9 +635,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 41.3,
                                 'outDir': 'dir-1/out',
                                 'proteinLength': 12,
-                                'proteinName': 'gi|327410| protein 77',
-                                'proteinURL': None,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                                 'readCount': 9,
+                                'readAndHspCountStr': '9',
                             },
                         },
                         'uniqueReadCount': None,
@@ -590,7 +651,7 @@ class TestProteinGrouper(TestCase):
                 'Hepatitis B virus': {
                     'dir-2/sample-filename-2': {
                         'proteins': {
-                            'gi|327409| ubiquitin': {
+                            'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
                                 'bestScore': 48.1,
                                 'bluePlotFilename': 'dir-2/out/0.png',
                                 'coverage': 0.77,
@@ -600,9 +661,14 @@ class TestProteinGrouper(TestCase):
                                 'medianScore': 46.6,
                                 'outDir': 'dir-2/out',
                                 'proteinLength': 74,
-                                'proteinName': 'gi|327409| ubiquitin',
-                                'proteinURL': None,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.7|GENBANK|J78|VP2'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.7'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
                                 'readCount': 5,
+                                'readAndHspCountStr': '5/6',
                             },
                         },
                         'uniqueReadCount': None,
@@ -617,10 +683,12 @@ class TestProteinGrouper(TestCase):
         different pathogens, its _title method must return the expected string.
         """
         fp1 = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
         )
         fp2 = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [HBV]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
         )
         pg = ProteinGrouper()
         pg.addFile('sample-filename-1', fp1)
@@ -636,25 +704,146 @@ class TestProteinGrouper(TestCase):
         """
         pg = ProteinGrouper()
         self.assertEqual(
+            'Summary of pathogens\n'
+            '\n'
             'Overall, proteins from 0 pathogens were found in 0 samples.\n',
             pg.toStr())
+
+    def testNoFilesToStrWithTitle(self):
+        """
+        If no files have been given to a protein grouper, its text string
+        format (including a passed title) must as expected.
+        """
+        pg = ProteinGrouper()
+        self.assertEqual(
+            'The title...\n'
+            '\n'
+            'Overall, proteins from 0 pathogens were found in 0 samples.\n',
+            pg.toStr(title='The title...'))
+
+    def testNoFilesToStrWithTitleAndPreamble(self):
+        """
+        If no files have been given to a protein grouper, its text string
+        format (including a passed title and preamble) must as expected.
+        """
+        pg = ProteinGrouper()
+        self.assertEqual(
+            'The title...\n'
+            '\n'
+            'The preamble...\n'
+            '\n'
+            'Overall, proteins from 0 pathogens were found in 0 samples.\n',
+            pg.toStr(title='The title...', preamble='The preamble...'))
 
     def testOneLineInOneFileToStr(self):
         """
         If a protein grouper is given one file with one line, its toStr method
         must produce the expected result.
         """
-        fp = StringIO(
-            '0.77 46.6 48.1 5 6 74 gi|32|X|I4 protein X [HBV]\n')
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'VP1 [Lausannevirus]\n')
         pg = ProteinGrouper()
         pg.addFile('sample-filename', fp)
         self.assertEqual(
+            'Summary of pathogens\n'
+            '\n'
             'Overall, proteins from 1 pathogen were found in 1 sample.\n'
             '\n'
-            'HBV (in 1 sample)\n'
+            'Lausannevirus (in 1 sample)\n'
             '  sample-filename (1 protein, 5 reads)\n'
-            '    0.77\t46.60\t48.10\t   5\t   6\t  0\tgi|32|X|I4 protein X\n',
+            '    0.77\t46.60\t48.10\t        5/6\tacc|'
+            'GENBANK|I44.6|GENBANK|J77|VP1\n',
             pg.toStr())
+
+    def testPathogenNameRegex(self):
+        """
+        If a protein grouper is given one file with two lines from different
+        pathogens, and one pathogen title does not match a passed title regex,
+        the pathogenNames dict must be as expected.
+        """
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
+        )
+        pg = ProteinGrouper(titleRegex='Lausannevirus')
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            {
+                'Lausannevirus': {
+                    'sample-filename': {
+                        'proteins': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'readsFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
+                                'readCount': 9,
+                                'readAndHspCountStr': '9',
+                            },
+                        },
+                        'uniqueReadCount': None,
+                    },
+                },
+            },
+            pg.pathogenNames)
+
+    def testPathogenNegativeNameRegex(self):
+        """
+        If a protein grouper is given one file with two lines from different
+        pathogens, and one pathogen title does not match a passed negative
+        title regex, the pathogenNames dict must be as expected.
+        """
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Hepatitis B virus]\n'
+        )
+        pg = ProteinGrouper(negativeTitleRegex='Hepatitis')
+        pg.addFile('sample-filename', fp)
+        self.assertEqual(
+            {
+                'Lausannevirus': {
+                    'sample-filename': {
+                        'proteins': {
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
+                                'bestScore': 44.2,
+                                'bluePlotFilename': 'out/0.png',
+                                'coverage': 0.63,
+                                'readsFilename': 'out/0.fasta',
+                                'hspCount': 9,
+                                'index': 0,
+                                'medianScore': 41.3,
+                                'outDir': 'out',
+                                'proteinLength': 12,
+                                'proteinName': (
+                                    'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                                'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                               'nuccore/I44.6'),
+                                'genomeURL': (
+                                    'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
+                                'readCount': 9,
+                                'readAndHspCountStr': '9',
+                            },
+                        },
+                        'uniqueReadCount': None,
+                    },
+                },
+            },
+            pg.pathogenNames)
 
 
 class TestPathogenSampleFiles(TestCase):
@@ -668,7 +857,7 @@ class TestPathogenSampleFiles(TestCase):
         being raised.
         """
         pg = ProteinGrouper()
-        error = "^format_ must be either 'fasta' or 'fastq'\\.$"
+        error = r"^format_ must be either 'fasta' or 'fastq'\.$"
         assertRaisesRegex(self, ValueError, error, PathogenSampleFiles,
                           pg, format_='unknown')
 
@@ -700,9 +889,8 @@ class TestPathogenSampleFiles(TestCase):
                         'Filename: %r, Args: %r, Keyword args: %r.' %
                         (filename, args, kwargs))
 
-        fp = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
-        )
+        fp = StringIO('0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|'
+                      'VP1 [Lausannevirus]\n')
         fastaIO = StringIO()
 
         @contextmanager
@@ -754,8 +942,10 @@ class TestPathogenSampleFiles(TestCase):
                         return self.manager
 
         fp = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
         )
         fastaIO = StringIO()
 
@@ -774,6 +964,63 @@ class TestPathogenSampleFiles(TestCase):
 
         self.assertEqual('out/pathogen-0-sample-0.fasta', filename)
         self.assertEqual('>id1\nACTG\n>id2\nCAGT\n', fastaIO.getvalue())
+        # Make sure all expected filenames were seen by the mocked open.
+        self.assertEqual(set(), opener.expectedFilenames)
+
+    def testPathogenIndex(self):
+        """
+        A pathogen index must be retrievable via the pathogenIndex function.
+        """
+        class Open(object):
+            def __init__(self, test, manager):
+                self.test = test
+                self.manager = manager
+                self.expectedFilenames = {'out/0.fasta', 'out/1.fasta',
+                                          'out/pathogen-0-sample-0.fasta'}
+
+            def sideEffect(self, filename, *args, **kwargs):
+                try:
+                    self.expectedFilenames.remove(filename)
+                except KeyError:
+                    self.test.fail(
+                        'Open called with unexpected filename: %r, Args: %r, '
+                        'Keyword args: %r.' % (filename, args, kwargs))
+                else:
+                    if filename == 'out/0.fasta':
+                        return StringIO('>id1\nACTG\n')
+                    elif filename == 'out/1.fasta':
+                        return StringIO('>id1\nACTG\n>id2\nCAGT\n')
+                    else:
+                        return self.manager
+
+        fp = StringIO(
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
+        )
+        fastaIO = StringIO()
+
+        @contextmanager
+        def manager():
+            yield fastaIO
+
+        pg = ProteinGrouper()
+        pg.addFile('filename-1', fp)
+        pathogenSampleFiles = PathogenSampleFiles(pg)
+
+        opener = Open(self, manager())
+        with patch.object(builtins, 'open') as mockMethod:
+            mockMethod.side_effect = opener.sideEffect
+            filename = pathogenSampleFiles.add('Lausannevirus', 'filename-1')
+
+        # Leaving this line in so we can explicitly see that the first
+        # pathogen has index zero.
+        self.assertEqual('out/pathogen-0-sample-0.fasta', filename)
+
+        # Here's the pathogen index we're actually interested in testing.
+        self.assertEqual(0, pathogenSampleFiles.pathogenIndex('Lausannevirus'))
+
         # Make sure all expected filenames were seen by the mocked open.
         self.assertEqual(set(), opener.expectedFilenames)
 
@@ -803,8 +1050,10 @@ class TestPathogenSampleFiles(TestCase):
                         'Keyword args: %r.' % (filename, args, kwargs))
 
         fp = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
         )
         fastaIO = StringIO()
 
@@ -823,34 +1072,44 @@ class TestPathogenSampleFiles(TestCase):
         self.assertEqual(
             {
                 'proteins': {
-                    'gi|327409| ubiquitin': {
-                        'bestScore': 48.1,
-                        'bluePlotFilename': 'out/1.png',
-                        'coverage': 0.77,
-                        'hspCount': 6,
-                        'index': 1,
-                        'medianScore': 46.6,
-                        'outDir': 'out',
-                        'proteinLength': 74,
-                        'proteinName': 'gi|327409| ubiquitin',
-                        'proteinURL': None,
-                        'readCount': 5,
-                        'readsFilename': 'out/1.fasta',
-                    },
-                    'gi|327410| protein 77': {
+                    'acc|GENBANK|I44.6|GENBANK|J77|VP1': {
                         'bestScore': 44.2,
                         'bluePlotFilename': 'out/0.png',
                         'coverage': 0.63,
+                        'readsFilename': 'out/0.fasta',
                         'hspCount': 9,
                         'index': 0,
                         'medianScore': 41.3,
                         'outDir': 'out',
                         'proteinLength': 12,
-                        'proteinName': 'gi|327410| protein 77',
-                        'proteinURL': None,
+                        'proteinName': (
+                            'acc|GENBANK|I44.6|GENBANK|J77|VP1'),
+                        'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                       'nuccore/I44.6'),
+                        'genomeURL': (
+                            'http://www.ncbi.nlm.nih.gov/nuccore/J77'),
                         'readCount': 9,
-                        'readsFilename': 'out/0.fasta',
-                    }
+                        'readAndHspCountStr': '9',
+                    },
+                    'acc|GENBANK|I44.7|GENBANK|J78|VP2': {
+                        'bestScore': 48.1,
+                        'bluePlotFilename': 'out/1.png',
+                        'coverage': 0.77,
+                        'readsFilename': 'out/1.fasta',
+                        'hspCount': 6,
+                        'index': 1,
+                        'medianScore': 46.6,
+                        'outDir': 'out',
+                        'proteinLength': 74,
+                        'proteinName': (
+                            'acc|GENBANK|I44.7|GENBANK|J78|VP2'),
+                        'proteinURL': ('http://www.ncbi.nlm.nih.gov/'
+                                       'nuccore/I44.7'),
+                        'genomeURL': (
+                            'http://www.ncbi.nlm.nih.gov/nuccore/J78'),
+                        'readCount': 5,
+                        'readAndHspCountStr': '5/6',
+                    },
                 },
                 'uniqueReadCount': 3,
             },
@@ -882,8 +1141,10 @@ class TestPathogenSampleFiles(TestCase):
                         'Keyword args: %r.' % (filename, args, kwargs))
 
         fp = StringIO(
-            '0.63 41.3 44.2 9 9 12 gi|327410| protein 77 [Lausannevirus]\n'
-            '0.77 46.6 48.1 5 6 74 gi|327409| ubiquitin [Lausannevirus]\n'
+            '0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 '
+            '[Lausannevirus]\n'
+            '0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 '
+            '[Lausannevirus]\n'
         )
         fastaIO = StringIO()
 
@@ -901,10 +1162,11 @@ class TestPathogenSampleFiles(TestCase):
 
         # Read lengths must be saved correctly.
         proteins = pg.pathogenNames['Lausannevirus']['filename-1']['proteins']
-        self.assertEqual((4,),
-                         proteins['gi|327410| protein 77']['readLengths'])
-        self.assertEqual((2, 7),
-                         proteins['gi|327409| ubiquitin']['readLengths'])
+        self.assertEqual(
+            (4,), proteins['acc|GENBANK|I44.6|GENBANK|J77|VP1']['readLengths'])
+        self.assertEqual(
+            (2, 7),
+            proteins['acc|GENBANK|I44.7|GENBANK|J78|VP2']['readLengths'])
 
     def testWriteSampleIndex(self):
         """

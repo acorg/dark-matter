@@ -5,35 +5,46 @@ from IPython.display import HTML
 from dark.fastq import FastqReads
 
 
-def NCBISequenceLinkURL(title, default=None):
+def NCBISequenceLinkURL(title, field=None, delim='|'):
     """
-    Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
+    Given a sequence title, like
+        "acc|GENBANK|AY516849.1|GENBANK|42768646 Homo sapiens",
     return the URL of a link to the info page at NCBI.
 
-    title: the sequence title to produce a link URL for.
-    default: the value to return if the title cannot be parsed.
+    @param title: The C{str} sequence title to produce a link URL for.
+    @param field: The C{int} field number to use (as delimited by C{delim})
+        or C{None} if no field splitting should be done.
+    @param delim: The C{str} to split the title on (if C{field} is not
+        C{None}).
+    @return: A C{str} URL.
     """
-    try:
-        ref = title.split('|')[3].split('.')[0]
-    except IndexError:
-        return default
+    if field is None:
+        ref = title
     else:
-        return 'http://www.ncbi.nlm.nih.gov/nuccore/%s' % (ref,)
+        try:
+            ref = title.split(delim)[field]
+        except IndexError:
+            raise IndexError(
+                'Could not extract field %d from sequence title %r' %
+                (field, title))
+    return 'http://www.ncbi.nlm.nih.gov/nuccore/' + ref
 
 
-def NCBISequenceLink(title, default=None):
+def NCBISequenceLink(title, field=None, delim='|'):
     """
-    Given a sequence title, like "gi|42768646|gb|AY516849.1| Homo sapiens",
-    return an HTML A tag dispalying a link to the info page at NCBI.
+    Given a sequence title, like
+        "acc|GENBANK|AY516849.1|GENBANK|42768646 Homo sapiens",
+    return an HTML <A> tag displaying a link to the info page at NCBI.
 
-    title: the sequence title to produce an HTML link for.
-    default: the value to return if the title cannot be parsed.
+    @param title: The C{str} sequence title to produce a link URL for.
+    @param field: The C{int} field number to use (as delimited by C{delim})
+        or C{None} if no field splitting should be done.
+    @param delim: The C{str} to split the title on (if C{field} is not
+        C{None}).
+    @return: A C{str} HTML <A> tag.
     """
-    url = NCBISequenceLinkURL(title)
-    if url is None:
-        return default
-    else:
-        return '<a href="%s" target="_blank">%s</a>' % (url, title)
+    return '<a href="%s" target="_blank">%s</a>' % (
+        NCBISequenceLinkURL(title, field, delim), title)
 
 
 def _sortHTML(titlesAlignments, by, limit=None):

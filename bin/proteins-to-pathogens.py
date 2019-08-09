@@ -147,7 +147,45 @@ if __name__ == '__main__':
         '--assetDir', default='out',
         help=('The output directory where noninteractive-alignment-panel.py '
               'puts its HTML, plots and FASTA or FASTQ files, needed for '
-              'using --html'))
+              'using --html.'))
+
+    parser.add_argument(
+        '--pathogenDataDir', default='pathogen-data',
+        help=('The directory where per-pathogen information (e.g., collected '
+              'reads across all samples) should be written.'))
+
+    parser.add_argument(
+        '--title', default='Summary of pathogens',
+        help='The title to show at the top of the output.')
+
+    parser.add_argument(
+        '--preamble',
+        help='Optional preamble text to show after the title.')
+
+    parser.add_argument(
+        '--titleRegex', default=None,
+        help='A regex that pathogen names must match.')
+
+    parser.add_argument(
+        '--negativeTitleRegex', default=None,
+        help='a regex that pathogen names must not match.')
+
+    parser.add_argument(
+        '--omitVirusLinks', default=False, action='store_true',
+        help=('If specified, the HTML output (use --html to get this) for '
+              'viruses will not contain links to ICTV and ViralZone. '
+              'This should be used when working with viruses that do not yet '
+              'have names that can be looked up.'))
+
+    parser.add_argument(
+        '--omitSampleProteinCount', default=False, action='store_true',
+        help=('If specified, the HTML output (use --html to get this) for '
+              'viruses will not contain counts of the number of proteins '
+              'matched by each sample for a given pathogen. This should be '
+              'used when working with RVDB where there are many sequences '
+              'for some proteins and a sample matches many of them, leading '
+              'to incorrect reporting of the number of proteins of a pathogen '
+              'that are matched by samples.'))
 
     args = parser.parse_args()
 
@@ -165,6 +203,19 @@ if __name__ == '__main__':
             print('It does not make sense to use --pathogenIndexFilename '
                   'without also using --html', file=sys.stderr)
             sys.exit(1)
+        if args.omitVirusLinks:
+            print('It does not make sense to use --omitVirusLinks '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+        if args.omitSampleProteinCount:
+            print('It does not make sense to use --omitSampleProteinCount '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+
+    if args.omitVirusLinks and args.pathogenType != 'viral':
+        print('The --omitVirusLinks option only makes sense with '
+              '--pathogenType viral', file=sys.stderr)
+        sys.exit(1)
 
     if args.proteinFastaFilename:
         # Flatten lists of lists that we get from using both nargs='+' and
@@ -184,7 +235,10 @@ if __name__ == '__main__':
                              sampleNameRegex=args.sampleNameRegex,
                              format_=args.format,
                              proteinFastaFilenames=proteinFastaFilenames,
-                             saveReadLengths=args.showReadLengths)
+                             saveReadLengths=args.showReadLengths,
+                             titleRegex=args.titleRegex,
+                             negativeTitleRegex=args.negativeTitleRegex,
+                             pathogenDataDir=args.pathogenDataDir)
 
     if args.filenames:
         filenames = args.filenames
@@ -196,10 +250,14 @@ if __name__ == '__main__':
             grouper.addFile(filename, fp)
 
     if args.html:
-        print(grouper.toHTML(args.pathogenPanelFilename,
-                             minProteinFraction=args.minProteinFraction,
-                             pathogenType=args.pathogenType,
-                             sampleIndexFilename=args.sampleIndexFilename,
-                             pathogenIndexFilename=args.pathogenIndexFilename))
+        print(grouper.toHTML(
+            args.pathogenPanelFilename,
+            minProteinFraction=args.minProteinFraction,
+            pathogenType=args.pathogenType,
+            title=args.title, preamble=args.preamble,
+            sampleIndexFilename=args.sampleIndexFilename,
+            pathogenIndexFilename=args.pathogenIndexFilename,
+            omitVirusLinks=args.omitVirusLinks,
+            omitSampleProteinCount=args.omitSampleProteinCount))
     else:
         print(grouper.toStr())
