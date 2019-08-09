@@ -16,24 +16,25 @@ class GenomeRanges(object):
 
         Note that this is the string as returned from BioPython SeqIO.parse
         when it parses a GenBank flat file, not the string that is in such a
-        file. For that use C{splitRange}, above.
+        file. For that use the C{splitRange} function you can find in an
+        earlier version of this file (i.e., look in its git history).
 
     @raise ValueError: If C{rangeStr} cannot be correctly parsed.
     @return: A C{list} whose elements are 3-C{tuple}s holding the C{int} start
         and stop offsets and a C{bool} that indicates whether the offsets
         corresponds to the forward strand (i.e., will be C{True} when
-        there is a '(-)' in a range and C{False} when there is a '(-)' which
-        indicates the complement strand).
+        there is a '(+)' in a range and C{False} when there is a '(-)' which
+        indicates the reverse strand).
 
         Example arguments and their return values:
 
-            '[9462:10137](+)' => ((9462, 10137, False),)
+            '[9462:10137](+)' => ((9462, 10137, True),)
 
-            '[11969:12575](-)' => ((11969, 12575, True),)
+            '[11969:12575](-)' => ((11969, 12575, False),)
 
             'join{[126386:126881](-), [125941:126232](+)}' =>
-                ((126386, 126881, True),
-                 (125941, 126232, False))
+                ((126386, 126881, False),
+                 (125941, 126232, True))
     """
     def __init__(self, rangeStr):
         if rangeStr.startswith('join{') and rangeStr[-1] == '}':

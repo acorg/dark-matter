@@ -120,7 +120,7 @@ class TestRanges(TestCase):
         ranges value stored.
         """
         gr = GenomeRanges('[3:5](+)')
-        self.assertEqual(((3, 5, False),), gr.ranges)
+        self.assertEqual(((3, 5, True),), gr.ranges)
 
     def testOneNakedRangeNegative(self):
         """
@@ -128,21 +128,21 @@ class TestRanges(TestCase):
         ranges value stored.
         """
         gr = GenomeRanges('[3:5](-)')
-        self.assertEqual(((3, 5, True),), gr.ranges)
+        self.assertEqual(((3, 5, False),), gr.ranges)
 
     def testTwoJoinedRanges(self):
         """
         Two joined ranges must return the expected result.
         """
         gr = GenomeRanges('join{[3:5](+), [7:9](-)}')
-        self.assertEqual(((3, 5, False), (7, 9, True)), gr.ranges)
+        self.assertEqual(((3, 5, True), (7, 9, False)), gr.ranges)
 
     def testThreeJoinedRanges(self):
         """
         Three joined ranges must return the expected result.
         """
         gr = GenomeRanges('join{[3:5](+), [7:9](-), [17:19](-)}')
-        self.assertEqual(((3, 5, False), (7, 9, True), (17, 19, True)),
+        self.assertEqual(((3, 5, True), (7, 9, False), (17, 19, False)),
                          gr.ranges)
 
     def testTwoJoinedContiguousRangesMismatchedStrands(self):
@@ -151,7 +151,7 @@ class TestRanges(TestCase):
         return the expected unmerged (two-range) result.
         """
         gr = GenomeRanges('join{[3:5](-), [5:9](+)}')
-        self.assertEqual(((3, 5, True), (5, 9, False)), gr.ranges)
+        self.assertEqual(((3, 5, False), (5, 9, True)), gr.ranges)
 
     def testTwoJoinedContiguousRangesComplementStrand(self):
         """
@@ -163,7 +163,7 @@ class TestRanges(TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             gr = GenomeRanges('join{[3:5](-), [5:9](-)}')
-            self.assertEqual(((3, 9, True),), gr.ranges)
+            self.assertEqual(((3, 9, False),), gr.ranges)
             self.assertEqual(1, len(w))
             self.assertEqual(message, str(w[0].message))
 
@@ -177,7 +177,7 @@ class TestRanges(TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             gr = GenomeRanges('join{[3:5](+), [5:9](+)}')
-            self.assertEqual(((3, 9, False),), gr.ranges)
+            self.assertEqual(((3, 9, True),), gr.ranges)
             self.assertEqual(1, len(w))
             self.assertEqual(message, str(w[0].message))
 
@@ -198,7 +198,7 @@ class TestRanges(TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             gr = GenomeRanges('join{[3:5](-), [5:7](-), [7:9](-)}')
-            self.assertEqual(((3, 9, True),), gr.ranges)
+            self.assertEqual(((3, 9, False),), gr.ranges)
             self.assertEqual(2, len(w))
             self.assertEqual(message1, str(w[0].message))
             self.assertEqual(message2, str(w[1].message))
@@ -213,7 +213,7 @@ class TestRanges(TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             gr = GenomeRanges('join{[0:2](-), [3:5](-), [5:9](-), [12:15](-)}')
-            self.assertEqual(((0, 2, True), (3, 9, True), (12, 15, True)),
+            self.assertEqual(((0, 2, False), (3, 9, False), (12, 15, False)),
                              gr.ranges)
             self.assertEqual(1, len(w))
             self.assertEqual(message, str(w[0].message))
@@ -389,7 +389,7 @@ class TestOrientations(TestCase):
         must return just True.
         """
         ranges = GenomeRanges('join{[0:100](-), [400:600](-)}')
-        self.assertEqual({True}, ranges.orientations())
+        self.assertEqual({False}, ranges.orientations())
 
     def testNoComplement(self):
         """
@@ -397,7 +397,7 @@ class TestOrientations(TestCase):
         must return just False.
         """
         ranges = GenomeRanges('join{[0:100](+), [400:600](+)}')
-        self.assertEqual({False}, ranges.orientations())
+        self.assertEqual({True}, ranges.orientations())
 
     def testMixed(self):
         """
