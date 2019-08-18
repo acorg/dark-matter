@@ -11,6 +11,16 @@ from dark.reads import Read, Reads
 from .sample_proteins import SAMPLE_DATA
 
 
+class Genome(object):
+    def __init__(self, id_, description, seq):
+        self.id = id_
+        self.description = description
+        self.seq = seq
+        self.annotations = {
+            'taxonomy': ['no', 'annotations', 'here!'],
+        }
+
+
 @skipUnless(diamondInstalled(), 'DIAMOND is not installed')
 class TestSimpleDiamondSAMWriter(TestCase):
     """
@@ -77,7 +87,9 @@ class TestSimpleDiamondSAMWriter(TestCase):
             proteinAccession, genomeAccession, proteinSequence,
             proteinRange, True, ranges.circular(genomeLen),
             ranges.distinctRangeCount(genomeLen))
-        db.addGenome(genomeAccession, genomeName, genomeSequence, 1)
+
+        genome = Genome(genomeAccession, genomeName, genomeSequence)
+        db.addGenome(genome, 1, 'test-db')
 
         # Make a DIAMOND-to-SAM writer and give it the DIAMOND output.
         writer = SimpleDiamondSAMWriter(SqliteIndex(db._connection))

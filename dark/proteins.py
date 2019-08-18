@@ -13,7 +13,6 @@ from six import string_types
 from textwrap import fill
 import sqlite3
 from Bio import SeqIO
-import gzip
 from cachetools import LRUCache, cachedmethod
 from warnings import warn
 
@@ -24,6 +23,7 @@ from dark.genbank import GenomeRanges
 from dark.filter import TitleFilter
 from dark.html import NCBISequenceLinkURL
 from dark.reads import Reads
+from dark.taxonomy import isRNAVirus
 
 # The following regex is deliberately greedy (using .*) to consume the
 # whole protein name before backtracking to find the last [pathogen name]
@@ -1053,36 +1053,22 @@ class ProteinGrouper(object):
 
 class SqliteIndexWriter(object):
     """
-    Create an Sqlite3 database holding information about proteins and the
-    genomes they come from.
+    Create or update an Sqlite3 database holding information about proteins and
+    the genomes they come from.
 
     @param dbFilename: A C{str} file name containing an sqlite3 database. If
         the file does not exist it will be created. The special string
         ":memory:" can be used to create an in-memory database.
     @param fastaFp: A file-pointer to which the protein FASTA is written.
-    @param force: A C{bool}, which (if C{True}) will overwrite a pre-existing
-        database file.
-    @raises ValueError: If C{dbFilename} already exists and C{force} is
-        C{False}.
     """
     PROTEIN_ACCESSION_FIELD = 2
     GENOME_ACCESSION_FIELD = 4
+    TAXONOMY_SEPARATOR = '\t'
 
-    def __init__(self, dbFilename, fastaFp=sys.stdout, force=False):
-        if dbFilename != ':memory:':
-            if os.path.exists(dbFilename):
-                if force:
-                    os.unlink(dbFilename)
-                else:
-                    raise ValueError(
-                        'Database file %r already exists. Pass force=True to '
-                        'overwrite' % dbFilename)
+    def __init__(self, dbFilename, fastaFp=sys.stdout):
         self._connection = sqlite3.connect(dbFilename)
         self._fastaFp = fastaFp
 
-        # Allow the 'taxid' column to be NULL in creating the genomes table
-        # because that field will be filled in (using self.updateGenomeTaxids)
-        # when the table is otherwise populated.
         cur = self._connection.cursor()
         cur.executescript('''
             CREATE TABLE proteins (
@@ -1107,62 +1093,113 @@ class SqliteIndexWriter(object):
                 sequence VARCHAR NOT NULL,
                 length INTEGER NOT NULL,
                 proteinCount INTEGER NOT NULL,
-                taxid INTEGER);
+                taxonomy VARCHAR NOT NULL,
+                databaseName VARCHAR
+            );
             ''')
         self._connection.commit()
 
-    def addFile(self, filename, accessionToName):
+    def addFile(self, filename, rnaOnly=False, databaseName=None, logfp=None,
+                lineageFetcher=None):
         """
         Add proteins from a new file of GenBank info.
 
         @param filename: A C{str} file name, with the file in GenBank format
             (see https://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html).
-        @param accessionToName: A C{dict} mapping accession number to the
-            C{str} name of the nucleotide sequence used in the FASTA file from
-            which the accession numbers were extracted.
+        @param rnaOnly: If C{True}, only include RNA viruses.
+        @param databaseName: A C{str} indicating the database the records
+            in C{filename} came from (e.g., 'refseq' or 'RVDB').
+        @param logfp: If not C{None}, a file pointer to write verbose
+            progress output to.
+        @param lineageFetcher: A function that returns taxonomy lineage
+            information in the tuple-of-tuples form returned by
+            C{dark.taxonomy.AccessionLineageFetcher.lineage}. Must be given if
+            C{rnaOnly} is C{True}.
         @raise ValueError: If a file with this name has already been added or
             if the file contains a protein sequence whose id has already been
             seen.
         @return: A tuple containing two C{int}s: the number of genome sequences
-            in the added file and the number of proteins found.
+            in the added file and the total number of proteins found.
         """
+        if rnaOnly:
+            assert lineageFetcher, (
+                'lineageFetcher must be passed if rnaOnly is True')
+
+        genomeCount = totalProteinCount = 0
+
         with open(filename) as fp:
-            genomeCount = totalProteinCount = 0
             genomes = SeqIO.parse(fp, 'gb')
             with self._connection:
-                for genomeCount, genome in enumerate(genomes, start=1):
-                    genomeName = accessionToName[genome.id]
-                    proteinCount = self._addGenbankProteins(genome, genomeName)
-                    self.addGenome(genome.id, genomeName, str(genome.seq),
-                                   proteinCount)
-                    totalProteinCount += proteinCount
-                return genomeCount, totalProteinCount
+                for genome in genomes:
+                    if logfp:
+                        print('\n%s: %s' % (genome.id, genome.description),
+                              file=logfp)
+                        for k, v in genome.annotations.items():
+                            print('\t%s = %r' % (k, v), file=logfp)
+                    if rnaOnly:
+                        try:
+                            lineage = lineageFetcher(genome.id)
+                        except ValueError as e:
+                            print('ValueError calling lineage fetcher: %s' % e,
+                                  file=sys.stderr)
+                            lineage = None
 
-    def addGenome(self, accession, name, sequence, proteinCount):
+                        if lineage:
+                            if not isRNAVirus(lineage):
+                                if logfp:
+                                    print('%s is not an RNA virus. Skipping.' %
+                                          genome.description, file=logfp)
+                                continue
+                            else:
+                                if logfp:
+                                    print('%s is an RNA virus.' %
+                                          genome.description, file=logfp)
+                        else:
+                            print('Could not look up taxonomy lineage for %s '
+                                  '(%s). Cannot confirm as RNA. Skipping.' % (
+                                      genome.id, genome.description),
+                                  file=sys.stderr)
+                            continue
+
+                    proteinCount = self._addGenbankProteins(genome, logfp)
+                    self.addGenome(genome, proteinCount, databaseName, logfp)
+                    totalProteinCount += proteinCount
+                    genomeCount += 1
+
+        return genomeCount, totalProteinCount
+
+    def addGenome(self, genome, proteinCount, databaseName, logfp=None):
         """
         Add information about a genome to the genomes table.
 
-        @param accession: A C{str} genome accession id.
-        @param name: A C{str} giving the full name of the genome.
-        @param sequence: A C{str} genome nucleotide sequence.
+        @param genome: A GenBank genome record, as parsed by SeqIO.parse
         @param proteinCount: The C{int} number of proteins in the genome.
+        @param databaseName: A C{str} indicating the database the records
+            in C{filename} came from (e.g., 'refseq' or 'RVDB').
+        @param logfp: If not C{None}, a file pointer to write verbose
+            progress output to.
         """
+        sequence = str(genome.seq)
+        taxonomy = self.TAXONOMY_SEPARATOR.join(genome.annotations['taxonomy'])
+
+        if logfp:
+            print('TAXONOMY:', taxonomy, file=logfp)
+
         try:
-            # The taxid column in the genomes table can be filled in using
-            # self.updateGenomeTaxids once we know all the genome accession
-            # numbers needed, so it is not added here.
             self._connection.execute(
                 'INSERT INTO genomes(accession, name, sequence, length, '
-                'proteinCount) VALUES (?, ?, ?, ?, ?)',
-                (accession, name, sequence, len(sequence), proteinCount))
+                'proteinCount, taxonomy, databaseName) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (genome.id, genome.description, sequence, len(sequence),
+                 proteinCount, taxonomy, databaseName))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
-                warn('Genome %r added to database twice.' % accession)
+                warn('Genome %r added to database twice.' % genome.id)
             raise
 
     def addProtein(self, accession, genomeAccession, sequence, offsets,
                    forward, circular, rangeCount, gene=None, note=None,
-                   product=None):
+                   product=None, logfp=None):
         """
         Add information about a protein to the proteins table.
 
@@ -1184,7 +1221,12 @@ class SqliteIndexWriter(object):
         @param note: A C{str} note about the protein, or C{None}.
         @param product: A C{str} description of the protein product (e.g.,
             "putative replication initiation protein"), or C{None}.
+        @param logfp: If not C{None}, a file pointer to write verbose
+            progress output to.
         """
+        if logfp:
+            print('\t\tProtein %s: genome=%s product=%s' % (
+                accession, genomeAccession, product), file=logfp)
         try:
             self._connection.execute(
                 'INSERT INTO proteins('
@@ -1198,13 +1240,14 @@ class SqliteIndexWriter(object):
                 warn('Protein %r added to database twice.' % accession)
             raise
 
-    def _addGenbankProteins(self, genome, genomeName):
+    def _addGenbankProteins(self, genome, logfp=None):
         """
         Add proteins from a Genbank genome record to the proteins database and
         write out its sequence to the proteins FASTA file.
 
         @param genome: A GenBank genome record, as parsed by SeqIO.parse
-        @param genomeName: A C{str} giving the full name of the genome.
+        @param logfp: If not C{None}, a file pointer to write verbose
+            progress output to.
         @return: The C{int} count of the number of proteins added.
         """
         count = 0
@@ -1229,7 +1272,7 @@ class SqliteIndexWriter(object):
                     warn('Genome %r (accession %s) has CDS feature with no '
                          'protein_id feature but has a translation! '
                          'Skipping.\nFeature: %s' %
-                         (genomeName, genome.id, feature))
+                         (genome.description, genome.id, feature))
                 continue
 
             # A translated (i.e., amino acid) sequence is mandatory.
@@ -1237,8 +1280,8 @@ class SqliteIndexWriter(object):
                 translation = qualifiers['translation'][0]
             else:
                 warn('Genome %r (accession %s) has CDS feature with protein '
-                     '%r with no translated sequence. Skipping.\nFeature: %s' %
-                     (genomeName, genome.id, proteinId, feature))
+                     '%r with no translated sequence. Skipping.' %
+                     (genome.description, genome.id, proteinId))
                 continue
 
             genomeLen = len(genome.seq)
@@ -1250,7 +1293,7 @@ class SqliteIndexWriter(object):
             except ValueError as e:
                 warn('Genome %r  (accession %s) contains unparseable CDS '
                      'location for protein %r. Skipping. Error: %s' %
-                     (genomeName, genome.id, proteinId, e))
+                     (genome.description, genome.id, proteinId, e))
                 continue
             else:
                 # Does the protein span the end of the genome? This indicates a
@@ -1260,7 +1303,7 @@ class SqliteIndexWriter(object):
             if feature.location.start >= feature.location.end:
                 warn('Genome %r (accession %s) contains feature with start '
                      '(%d) >= stop (%d). Skipping.\nFeature: %s' %
-                     (genomeName, genome.id, feature.location.start,
+                     (genome.description, genome.id, feature.location.start,
                       feature.location.end, feature))
                 continue
 
@@ -1283,14 +1326,15 @@ class SqliteIndexWriter(object):
                 # with at the moment, just for the sake of one protein in a
                 # frog herpesvirus.
                 warn('Genome %s (accession %s) has protein %r with mixed '
-                     'orientation!' % (genomeName, genome.id, proteinId))
+                     'orientation!' % (genome.description, genome.id,
+                                       proteinId))
                 continue
             elif strand == 0:
                 # This never occurs for proteins corresponding to genomes in
                 # the RVDB database C-RVDBv15.1.
                 warn('Genome %r (accession %s) has protein %r with feature '
                      'with strand of zero!' %
-                     (genomeName, genome.id, proteinId))
+                     (genome.description, genome.id, proteinId))
                 continue
             else:
                 assert strand in (1, -1)
@@ -1306,131 +1350,18 @@ class SqliteIndexWriter(object):
 
             # Write FASTA for the protein.
             print('>acc|GENBANK|%s|GENBANK|%s|%s [%s]\n%s' %
-                  (proteinId, genome.id, product, genomeName, translation),
+                  (proteinId, genome.id, product,
+                   genome.annotations['organism'], translation),
                   file=self._fastaFp)
 
             self.addProtein(
                 proteinId, genome.id, translation, featureLocation, forward,
-                circular, ranges.distinctRangeCount(genomeLen), gene, note,
-                product)
+                circular, ranges.distinctRangeCount(genomeLen), gene=gene,
+                note=note, product=product, logfp=logfp)
 
             count += 1
 
         return count
-
-    def updateGenomeTaxids(self, nucleotideAccessionToTaxidFile,
-                           progressFp=None):
-        """
-        Add taxonomy accession numbers for all genomes.
-
-        @param nucleotideAccessionToTaxidFile: The C{str} name of the
-            nucleotide accession number to taxid file to read.  Must be
-            gzipped (see ../doc/protein-database.md for detail). The file is
-            TAB separated. The nucleotide accession is the second field and
-            the taxonomy id is the third.
-        @param progressFp: If not C{None}, a file pointer to write progress
-            information to (this update can take quite a while).
-        """
-        cur = self._connection.cursor()
-        cur.execute('SELECT accession FROM genomes')
-
-        # The 'wanted' dictionary below is keyed by accession number with no
-        # version, with the dictionary values holding the version suffix.
-        # That's because we're going to examine the nucleotide accession to
-        # taxonomy id file based on the former (with no version) but use the
-        # latter (with the version) to update the taxid in our database. See
-        # the extensive comment below.
-        wanted = dict(row[0].rsplit('.', 1) for row in cur)
-        nWanted = len(wanted)
-
-        if progressFp:
-            from time import time
-            startTime = lastTime = time()
-            REPORT_FREQUENCY = 5000000
-            print('Taxonomy ids needed for %d genome accession ids.' %
-                  nWanted, file=progressFp)
-
-        # Keep track of how many distinct taxonomy ids we encounter.
-        taxids = set()
-
-        with gzip.open(nucleotideAccessionToTaxidFile) as fp:
-            for lineNumber, line in enumerate(fp, start=1):
-                if progressFp and lineNumber % REPORT_FREQUENCY == 0:
-                    thisTime = time()
-                    print('Read %d lines in %.2f seconds (last batch '
-                          'processed in %.2f seconds). Still need %d '
-                          'genome accession id taxonomy ids.' %
-                          (lineNumber, thisTime - startTime,
-                           thisTime - lastTime, len(wanted)), file=progressFp)
-                    lastTime = thisTime
-
-                # Decode the gzip bytes into text.
-                line = line.decode('utf-8')
-
-                # Note that the nucleotide GenBank accession to taxonomy id
-                # file (nucl_gb.accession2taxid.gz) format we're assuming
-                # we're parsing here has (TAB-separated) lines like
-                #
-                # MH675888 MH675888.2 9913 2
-                #
-                # We here extract and match on the first field instead of
-                # the more precise second. That's because the database
-                # subject FASTA (e.g., in C-RVDBv15.1.fasta) might contain
-                # a nucleotide genome with accession number MH675888.1
-                # whereas the accession to taxid file has MH675888.2 in its
-                # second field. That will happen if the subject FASTA file
-                # was made in (say) January using MH675888.1, then MH675888
-                # is updated in February (from .1 to .2), then the
-                # accession to taxid file is downloaded in March and used
-                # here to make a protein database. In that case, MH675888.1
-                # is no longer in the accession to taxid file and cannot be
-                # looked up unless just MH675888 is looked for (in the 1st
-                # field), disregarding the version number. That works fine,
-                # but has the small assumption that the taxonomy id of
-                # MH675888 was not reassigned in the move from MH675888.1
-                # to MH675888.2. I (Terry) don't think there's any downside
-                # here. If the taxonomy of an accession number is changed,
-                # we *want* to assign it the most accurate taxonomy id (not
-                # the original one that was later updated), so matching
-                # based on accession number alone (i.e., excluding version)
-                # is actually preferable.
-                #
-                # BTW, when I ran this code before deciding to use the
-                # accession number without the version (on 2019-03-29), 152
-                # of 25,998 accession+version ids could not be looked up
-                # because they had been updated to a new version since the
-                # C-RVDBv15.1.fasta release on 2019-02-06.  This amounts to
-                # turn-over of ~0.5% of all relevant (to us) accession
-                # numbers in about 1.5 months.
-                accession, _, taxid, _ = line.split('\t')
-                if accession in wanted:
-                    version = wanted[accession]
-                    taxid = int(taxid)
-                    taxids.add(taxid)
-                    cur.execute(
-                        'UPDATE genomes SET taxid = ? WHERE accession = ?',
-                        (taxid, '%s.%s' % (accession, version)))
-                    assert cur.rowcount == 1
-                    del wanted[accession]
-
-                    if not wanted:
-                        # We've found everything we wanted, so we can stop
-                        # reading and parsing the large nucleotide
-                        # accession to taxonomy id file.
-                        break
-
-        self._connection.commit()
-
-        if progressFp:
-            elapsed = time() - startTime
-            print('%d taxonomy ids added added in %.2f seconds (%.2f mins).' %
-                  (len(taxids), elapsed, elapsed / 60.0), file=progressFp)
-
-        if wanted:
-            raise ValueError(
-                ('Found %d wanted accession numbers, but %d were not '
-                 'found. Missing:\n' % (nWanted - len(wanted), len(wanted))) +
-                '\n'.join(sorted(wanted)))
 
     def close(self):
         """
@@ -1520,7 +1451,9 @@ class SqliteIndex(object):
         except IndexError:
             accession = id_
 
-        fields = 'name', 'sequence', 'length', 'proteinCount', 'taxid'
+        # The fields here must be the same as those in the database table.
+        fields = ('name', 'sequence', 'length', 'proteinCount', 'taxonomy',
+                  'databaseName')
 
         cur = self.execute('SELECT %s FROM genomes WHERE accession = ?' %
                            ', '.join(fields), (accession,))
@@ -1529,6 +1462,8 @@ class SqliteIndex(object):
             result = dict(zip(fields, row))
             result['length'] = int(result['length'])
             result['accession'] = accession
+            result['taxonomy'] = result['taxonomy'].split(
+                SqliteIndexWriter.TAXONOMY_SEPARATOR)
             return result
 
     @cachedmethod(attrgetter('_proteinCache'))
@@ -1549,8 +1484,10 @@ class SqliteIndex(object):
         except IndexError:
             accession = id_
 
+        # The fields here must be the same as those in the database table.
         fields = ('genomeAccession', 'sequence', 'length', 'offsets',
-                  'forward', 'circular', 'rangeCount', 'gene', 'note')
+                  'forward', 'circular', 'rangeCount', 'gene', 'note',
+                  'product')
 
         cur = self.execute('SELECT %s FROM proteins WHERE accession = ?' %
                            ','.join(fields), (accession,))

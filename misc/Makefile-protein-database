@@ -3,32 +3,26 @@
 # The following assumes you have run pip install dark-matter to install the
 # Dark Matter tools (see https://github.com/acorg/dark-matter).
 
-# The current version of RVDB, as on March 23, 2019. Note that we use the
-# clustered version, not the unclustered.
+# Version 15 of RVDB, as on March 23, 2019. Note that we use the clustered
+# version, not the unclustered.  Note that version 16 is now out.
 RVDB := C-RVDBv15.1.fasta
 
-NUCL2TAXID := nucl_gb.accession2taxid.gz
 DB := genomes-proteins.db
 PROTEINS := proteins.fasta
-ACCESSION_NAMES := accession-to-name
 ID_DIR := ids
 
-$(PROTEINS): $(ACCESSION_NAMES)
-	make-protein-database.py --databaseFile $(DB) --gb $(ID_DIR)/ids_*.genbank \
-            --nucleotideAccessionToTaxidFile $(NUCL2TAXID) \
-            --accessionToNameFile $(ACCESSION_NAMES) --force > $@
+$(PROTEINS):
+	make-protein-database.py --databaseFile $(DB) --gb $(ID_DIR)/ids_*.genbank --databaseName refseq > $@
 
-$(ACCESSION_NAMES): $(RVDB)
-	download-genbank.sh $(ID_DIR) $(RVDB) $(ACCESSION_NAMES)
+download-gb:
+	egrep '^>' $(RVDB) | cut -f3 -d\| | download-genbank.sh $(ID_DIR)
 
 clean:
 	rm -f $(ID_DIR)/ids_[a-z][a-z][a-z][a-z][a-z] $(ID_DIR)/ids_[a-z][a-z][a-z][a-z][a-z].params *~
 
 clobber: clean
-	rm -f $(ID_DIR)/ids_[a-z][a-z][a-z][a-z][a-z].genbank $(ACCESSION_NAMES) $(DB) $(PROTEINS)
+	rm -f $(ID_DIR)/ids_[a-z][a-z][a-z][a-z][a-z].genbank $(DB) $(PROTEINS)
 
 download:
 	test -f $(RVDB) || curl -L -O 'https://hive.biochemistry.gwu.edu/prd/rvdb/content/$(RVDB)'
 	chmod a-w $(RVDB)
-	test -f $(NUCL2TAXID) || curl -L -O 'ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/$(NUCL2TAXID)'
-	chmod a-w $(NUCL2TAXID)

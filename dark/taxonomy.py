@@ -1,3 +1,8 @@
+import sqlite3
+from six import string_types
+from operator import attrgetter
+from cachetools import LRUCache, cachedmethod
+
 from dark.database import getDatabaseConnection
 
 
@@ -60,3 +65,120 @@ class LineageFetcher(object):
         self._cursor.close()
         self._db.close()
         self._cursor = self._db = self._cache = None
+
+
+class AccessionLineageFetcher(object):
+    """
+    Provide access to the NCBI taxonomy database so we can retrieve the
+    taxonomy lineage corresponding to an accession number.
+
+    @param dbFilenameOrConnection: Either a C{str} database filename or an
+        open sqlite3 database. The database must contain taxonomy information
+        with tables and columns named as in the building scripts used in
+        https://github.com/acorg/ncbi-taxonomy-database
+    """
+    CACHE_SIZE = 10E6
+
+    def __init__(self, dbFilenameOrConnection):
+        if isinstance(dbFilenameOrConnection, string_types):
+            self._db = sqlite3.connect(dbFilenameOrConnection)
+            self._closeConnection = True
+        else:
+            self._db = dbFilenameOrConnection
+            self._closeConnection = False
+        self._cache = LRUCache(maxsize=self.CACHE_SIZE)
+
+    @cachedmethod(attrgetter('_cache'))
+    def lineage(self, accession):
+        """
+        Get lineage information from the taxonomy database for a given title.
+
+        @param accession: A C{str} accession number. This must of coures
+            include the version (e.g., the ".1" part of "DQ011818.1") if the
+            taxonomy database in use uses it (as is the case with the database
+            built by https://github.com/acorg/ncbi-taxonomy-database
+        @raise ValueError: If a taxonomy id cannot be found in the names or
+            nodes table.
+        @raise AttributeError: If C{self.close} has been called.
+        @return: A C{tuple} of the taxonomic categories of the title. Each
+            tuple element is a 3-tuple of (C{int}, C{str}, C{str}) giving a
+            taxonomy id a (scientific) name, and the rank (species, genus,
+            etc). The first element in the list corresponds to the passed
+            C{accession}, number and each successive element is the parent of
+            the preceeding one. The top level of the taxonomy hierarchy
+            (with taxid = 1) is not included in the returned list. If no
+            taxonomy information is found for C{accession}, return C{None}.
+        """
+        cursor = self._db.cursor()
+        execute = cursor.execute
+        fetchone = cursor.fetchone
+
+        execute('SELECT taxid FROM accession_taxid WHERE accession = ?',
+                (accession,))
+        row = fetchone()
+        if row:
+            taxid = int(row[0])
+            lineage = []
+
+            while taxid != 1:
+                execute('SELECT name FROM names WHERE taxid = ?', (taxid,))
+                result = fetchone()
+                if result is None:
+                    raise ValueError(
+                        'Could not find taxonomy id %r in names table' %
+                        (taxid,))
+                name = result[0]
+                execute('SELECT parent_taxid, rank FROM nodes WHERE taxid = ?',
+                        (taxid,))
+                result = fetchone()
+                if result is None:
+                    raise ValueError(
+                        'Could not find taxonomy id %r in nodes table' %
+                        (taxid,))
+                parentTaxid, rank = result
+                lineage.append((taxid, name, rank))
+                taxid = parentTaxid
+
+            return tuple(lineage) or None
+
+    def close(self):
+        """
+        Close the database connection (if we opened it).
+        """
+        if self._closeConnection:
+            self._db.close()
+        # Set self._db to None so self.lineage will raise an AttributeError
+        # exception if it is called again.
+        self._db = None
+
+
+def isRetrovirus(lineage):
+    """
+    Determine whether a lineage corresponds to a retrovirus.
+
+    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
+        as returned by C{AccessionLineageFetcher.lineage}.
+    @return: C{True} if the lineage corresponds to a retrovirus, C{False}
+        otherwise.
+    """
+    for taxid, name, rank in lineage:
+        if rank == 'family' and name == 'Retroviridae':
+            return True
+
+    return False
+
+
+def isRNAVirus(lineage):
+    """
+    Determine whether a lineage corresponds to an RNA virus.
+
+    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
+        as returned by C{AccessionLineageFetcher.lineage}.
+    @return: C{True} if the lineage corresponds to an RNA virus, C{False}
+        otherwise.
+    """
+    for taxid, name, rank in lineage:
+        if rank == 'realm' and name == 'Riboviria':
+            return True
+
+    return False

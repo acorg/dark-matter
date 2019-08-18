@@ -1,31 +1,26 @@
 #!/bin/bash
 
 # This script downloads flat files (in GenBank format) of sequence info
-# from NCBI.
-#
-# It is one of a set of utilities that we use to make a protein database
-# based on the *clustered* nucleotide genomes found in the RVDB database
-# found at https://hive.biochemistry.gwu.edu/rvdb
+# from NCBI. It is one of a set of utilities that we use to make a protein
+# database.
 #
 # Usage is e.g.:
 #
-#     download-genbank.sh [-n] ID_DIR C-RVDBv15.1.fasta ACCESSION-FILE
+#     download-genbank.sh [-n] [id-dir] < accession-numbers-file
 #
 # where:
 #
-#     ID_DIR is the name of a directory in which to store files of
-#         sequence ids, parameters to cURL, and GenBank files downloaded
-#         from NCBI.
+#     accession-numbers-file is a file containing GenBank accession numbers,
+#         one per line. These should include the version number.
 #
-#     C-RVDBv15.1.fasta is the name of an RVDB clustered nucleotide FASTA file.
+#     id-dir is the name of a directory in which to store files of sequence
+#         ids, parameters to cURL, and GenBank files downloaded from
+#         NCBI. If not given, defaults to the current directory.
 #
-#     ACCESSION-FILE is the name of a file to write accession numbers and
-#         sequence names to (this will also be needed by a later stage of
-#         processing).
-#
-# The -n option can be used to make the script just print out what it would
-# download, rather than actually doing the downloads. The ids directory and
-# accession number to name file are still created.
+#     -n option can be used to make the script just print out what it would
+#         download, rather than actually doing the downloads. In this case,
+#         a temporary id directory will be created and used and its name
+#         will be printed on standard output.
 #
 # See ../doc/protein-database.md for information on the various tools
 # needed to make a protein database and ../misc/Makefile-protein-database
@@ -35,22 +30,23 @@
 # Note that the number of [a-z] repeats in filenames in various places in
 # the code below matches the 5 in the call to split.
 
-
 set -Eeuo pipefail
 
 URL=https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi
 maxIdsPerRequest=200
 
-# These are accession numbers in the RVDB database that correspond to dead
-# (suppressed or withdrawn) sequence records (see ../doc/protein-database.md)
-# for more info.
+# These are accession numbers that correspond to dead (suppressed or
+# withdrawn) sequence records (see ../doc/protein-database.md) for more
+# info. These were all in the RVDB clustered database in early 2019.
 DEAD_REGEX='JX873962|KX912841|NC_021196|NC_036584'
+
+dryRun=0
 
 while [ $# -gt 0 ]
 do
     case "$1" in
         -n)
-            dryRunArg=--dry-run
+            dryRun=1
             shift
             ;;
         *)
@@ -60,22 +56,23 @@ do
 done
 
 case $# in
-    3) idDir=$1; rvdb=$2; accessions=$3;
-    *) echo "Usage: $(basename $0) id-dir RVDB-file.fasta accession-file" >&2; exit 1;;
+    0) idDir=.;;
+    1) idDir=$1;;
+    *) echo "Usage: $(basename $0) [-n] [id-dir]" >&2; exit 1;;
 esac
 
-if [ ! -d $idDir ]
+if [ $dryRun -eq 0 ]
 then
-    mkdir "$idDir"
+    test -d $idDir || mkdir "$idDir"
+else
+    # Use a temporary id directory for a dry run.
+    idDir=$(mktemp -d)
 fi
 
-trap 'rm -f $idDir/ids_[a-z][a-z][a-z][a-z][a-z] $idDir/ids_[a-z][a-z][a-z][a-z][a-z].params' 0 1 2 3 15
-
-set +o pipefail
-egrep '^>' $rvdb | cut -f3,4 -d\| | egrep -v "$DEAD_REGEX_REGEX" > $accessions
-set -o pipefail
-
-cut -f1 -d\| < $accessions | split -a 5 -l $maxIdsPerRequest - $idDir/ids_
+# Read stdin for accession numbers and split them into files we'll use in
+# entrez requests to NCBI.
+egrep -v "$DEAD_REGEX" | split -a 5 -l $maxIdsPerRequest - $idDir/ids_
+count=$(cat $idDir/ids_* | wc -l)
 
 # If the user has an NCBI API key, we can send requests more frequently.
 # See https://www.ncbi.nlm.nih.gov/books/NBK25497/ and man parallel.
@@ -92,7 +89,17 @@ failureCount=0
 attempt=0
 attemptLimit=5
 
+# Note 5 repetitions of [a-z] here (see above comment).
 lastFile=$(ls $idDir/ids_[a-z][a-z][a-z][a-z][a-z] | tail -n 1)
+
+commandFile=$(mktemp)
+
+if [ $dryRun -eq 0 ]
+then
+    # Clean up on exit.
+    # Note 5 repetitions of [a-z] here (see above comment).
+    trap 'rm -f $commandFile $idDir/ids_[a-z][a-z][a-z][a-z][a-z] $idDir/ids_[a-z][a-z][a-z][a-z][a-z].params' 0 1 2 3 15
+fi
 
 while [ $attempt -eq 0 -o $failureCount -gt 0 ]
 do
@@ -100,7 +107,7 @@ do
     
     if [ $attempt -gt $attemptLimit ]
     then
-        echo "Attempt limit ($attemptLimit) reached. $failureCount .genbank files still not downloaded. Exiting." 2>&1
+        echo "Attempt limit ($attemptLimit) reached. $failureCount GenBank files still not downloaded. Exiting." 2>&1
         break
     elif [ $attempt -gt 1 ]
     then
@@ -109,9 +116,10 @@ do
 
     failureCount=0
 
+    # Note 5 repetitions of [a-z] here (see above comment).
     for i in $idDir/ids_[a-z][a-z][a-z][a-z][a-z]
     do
-        out=$i.genbank
+        out=$i.gb
 
         if [ -f $out ]
         then
@@ -137,7 +145,26 @@ do
         echo -n "${apiParam}db=nucleotide&rettype=gb&id=" > $i.params
         cat $i | tr '\n' , | sed -e 's/,$//' >> $i.params
         echo "curl --silent -d @$i.params $URL > $out"
-    done | parallel --bar $dryRunArg $delayArg
+    done > $commandFile
+
+    if [ $dryRun -eq 0 ]
+    then
+        parallel --bar $delayArg < $commandFile
+    fi
 done
+
+if [ $dryRun -eq 1 ]
+then
+    echo "$count Genbank records would be downloaded"
+    echo "The dry run id directory was $idDir"
+    echo "Download commands are in $commandFile"
+    # Just show what we'd do. We could instead cat the command file,
+    # but that can be very verbose. Instead just let the user see the
+    # file name and they can look in it if they care.
+    echo "These would be executed using: parallel --bar $delayArg < $commandFile"
+    echo "To clean up, run: rm -r '$idDir' '$commandFile'"
+else
+    echo "$count Genbank records downloaded"
+fi
 
 exit $failureCount

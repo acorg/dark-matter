@@ -3,13 +3,13 @@
 from __future__ import print_function, division
 
 import sys
-import os
 import warnings
 from time import time
 from itertools import chain
 import argparse
 
 from dark.proteins import SqliteIndexWriter
+from dark.taxonomy import AccessionLineageFetcher
 
 
 parser = argparse.ArgumentParser(
@@ -24,16 +24,25 @@ parser.add_argument(
           'overwrite).'))
 
 parser.add_argument(
-    '--force', default=False, action='store_true',
-    help='If True and the database file already exists, overwrite it.')
+    '--databaseName',
+    help=('The database that the records in the (--gb) GenBank files came '
+          'from (e.g., "refseq" or "RVDB").'))
 
 parser.add_argument(
-    '--quiet', default=False, action='store_true',
-    help='Do not print indexing progress.')
+    '--progress', default=False, action='store_true',
+    help='Print indexing progress.')
+
+parser.add_argument(
+    '--logFile', type=argparse.FileType('w'),
+    help='Write indexing details to a log file.')
 
 parser.add_argument(
     '--noWarnings', default=False, action='store_true',
     help='Do not print warnings about unparseable GenBank records.')
+
+parser.add_argument(
+    '--rnaOnly', default=False, action='store_true',
+    help='If given, only include RNA viruses.')
 
 parser.add_argument(
     '--gb', metavar='GenBank-file', nargs='+', action='append',
@@ -43,25 +52,10 @@ parser.add_argument(
           'a .gz suffix.'))
 
 parser.add_argument(
-    '--accessionToNameFile', required=True,
-    help=('The name of a file containing accession numbers and the '
-          'description (i.e., full FASTA id line, sans leading >) of the '
-          'corresponding nucleotide sequence.'))
-
-parser.add_argument(
-    '--nucleotideAccessionToTaxidFile', default='nucl_gb.accession2taxid.gz',
-    help=('The nucleotide accession number to taxid file to read.  Must be '
-          'gzipped (see ../doc/protein-database.md for detail).'))
-
-args = parser.parse_args()
-
-if os.path.exists(args.databaseFile):
-    if args.force:
-        os.unlink(args.databaseFile)
-    else:
-        print("Output file '%s' already exists. Use --force to overwrite."
-              % args.databaseFile, file=sys.stderr)
-        sys.exit(1)
+    '--taxonomyDatabase',
+    help=('The file holding the sqlite3 taxonomy database. See '
+          'https://github.com/acorg/ncbi-taxonomy-database for how to '
+          'build one.'))
 
 
 def main(args):
@@ -71,6 +65,16 @@ def main(args):
     @param args: The namespace of command-line arguments returned by
         argparse.parse_args()
     """
+    if args.rnaOnly:
+        if args.taxonomyDatabase:
+            lineageFetcher = AccessionLineageFetcher(
+                args.taxonomyDatabase).lineage
+        else:
+            print('If you specify --rnaOnly, you must also give a taxonomy '
+                  'database file with --taxonomyDatabase', file=sys.stderr)
+            sys.exit(1)
+    else:
+        lineageFetcher = None
 
     # Flatten the lists of lists that we get from using both nargs='+' and
     # action='append'. We use both because it allows people to use (e.g.) --gb
@@ -81,48 +85,45 @@ def main(args):
     # https://github.com/acorg/dark-matter/issues/453
     gbFiles = list(chain.from_iterable(args.gb))
 
-    verbose = not args.quiet
+    progress = args.progress
 
-    # Read in the accession number to nucleotide sequence name file (this could
-    # also have been obtained by just reading the full FASTA file of the
-    # nucleotide sequences whose proteins are looked up).
-    accessionToName = {}
-    for line in open(args.accessionToNameFile):
-        name, description = line[:-1].split('|', 1)
-        assert name not in accessionToName
-        accessionToName[name] = description
-
-    if verbose:
+    if progress:
         overallStart = time()
-        totalProteinCount = 0
+        totalGenomeCount = totalProteinCount = 0
 
-    with SqliteIndexWriter(args.databaseFile, force=args.force) as db:
+    with SqliteIndexWriter(args.databaseFile) as db:
         for filename in gbFiles:
-            if verbose:
+            if progress:
                 print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
                 start = time()
 
-            genomeCount, proteinCount = db.addFile(filename, accessionToName)
+            genomeCount, proteinCount = db.addFile(
+                filename, rnaOnly=args.rnaOnly, databaseName=args.databaseName,
+                logfp=args.logFile, lineageFetcher=lineageFetcher)
 
-            if verbose:
-                totalProteinCount += proteinCount
-                elapsed = time() - start
-                print('indexed %d sequence%s containing %d protein%s '
-                      'in %.2f seconds.' %
-                      (genomeCount, '' if genomeCount == 1 else 's',
-                       proteinCount, '' if proteinCount == 1 else 's',
-                       elapsed),
+            if not genomeCount:
+                print('WARNING: no genomes found in %r. Did the GenBank '
+                      'download fail on that file?' % filename,
                       file=sys.stderr)
 
-        db.updateGenomeTaxids(args.nucleotideAccessionToTaxidFile,
-                              progressFp=(verbose and sys.stderr or None))
-    if verbose:
-        elapsed = time() - overallStart
-        print('%d GenBank files (containing a total of %d proteins) processed '
-              'in %.2f seconds (%.2f mins).' %
-              (len(gbFiles), totalProteinCount, elapsed, elapsed / 60),
-              file=sys.stderr)
+            if progress:
+                totalGenomeCount += genomeCount
+                totalProteinCount += proteinCount
+                elapsed = time() - start
+                print('indexed %3d genome%s (%5d protein%s) in %.2f seconds.' %
+                      (genomeCount, '' if genomeCount == 1 else 's',
+                       proteinCount, '' if proteinCount == 1 else 's',
+                       elapsed), file=sys.stderr)
 
+    if progress:
+        elapsed = time() - overallStart
+        print('%d GenBank files (containing %d genomes and %d proteins) '
+              'processed in %.2f seconds (%.2f mins).' %
+              (len(gbFiles), totalGenomeCount, totalProteinCount, elapsed,
+               elapsed / 60), file=sys.stderr)
+
+
+args = parser.parse_args()
 
 if args.noWarnings:
     with warnings.catch_warnings():

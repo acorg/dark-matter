@@ -17,15 +17,19 @@ parser.add_argument(
           'and this number is not present in any file, exit non-zero.'))
 
 parser.add_argument(
+    'files', nargs='+',
+    help='The files to parse.')
+
+parser.add_argument(
     '--quiet', default=False, action='store_true',
-    help='If True, write no output.')
+    help='If given, write no output.')
 
 args = parser.parse_args()
 
 expectedCount = args.expectedCount
 totalCount = 0
 
-for i in sys.argv[1:]:
+for i in args.files:
     count = 0
     try:
         records = SeqIO.parse(open(i), 'gb')

@@ -26,6 +26,7 @@ scripts = [
     'bin/aa-info.py',
     'bin/aa-to-dna.py',
     'bin/aa-to-properties.py',
+    'bin/accession-to-taxonomy.py',
     'bin/adaptor-distances.py',
     'bin/alignments-per-read.py',
     'bin/bit-score-to-e-value.py',
