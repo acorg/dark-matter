@@ -1,3 +1,7 @@
+## 3.0.80 Aug 19, 2019
+
+Added `bin/create-newick-relabeling-output.py` and  `bin/relabel-newick-tree.py`.
+
 ## 3.0.79 Aug 8, 2019
 
 Add `--omitVirusLinks` and `--omitSampleProteinCount` options to
