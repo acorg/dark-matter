@@ -17,6 +17,7 @@ from cachetools import LRUCache, cachedmethod
 from warnings import warn
 
 from dark.dimension import dimensionalIterator
+from dark.errors import DatabaseDuplicationError
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.genbank import GenomeRanges
@@ -1071,7 +1072,7 @@ class SqliteIndexWriter(object):
 
         cur = self._connection.cursor()
         cur.executescript('''
-            CREATE TABLE proteins (
+            CREATE TABLE IF NOT EXISTS proteins (
                 accession VARCHAR UNIQUE PRIMARY KEY,
                 genomeAccession VARCHAR NOT NULL,
                 sequence VARCHAR NOT NULL,
@@ -1087,7 +1088,7 @@ class SqliteIndexWriter(object):
                     REFERENCES genomes (accession)
             );
 
-            CREATE TABLE genomes (
+            CREATE TABLE IF NOT EXISTS genomes (
                 accession VARCHAR UNIQUE PRIMARY KEY,
                 name VARCHAR NOT NULL,
                 sequence VARCHAR NOT NULL,
@@ -1100,7 +1101,7 @@ class SqliteIndexWriter(object):
         self._connection.commit()
 
     def addFile(self, filename, rnaOnly=False, databaseName=None, logfp=None,
-                lineageFetcher=None):
+                lineageFetcher=None, duplicationPolicy='error'):
         """
         Add proteins from a new file of GenBank info.
 
@@ -1115,9 +1116,16 @@ class SqliteIndexWriter(object):
             information in the tuple-of-tuples form returned by
             C{dark.taxonomy.AccessionLineageFetcher.lineage}. Must be given if
             C{rnaOnly} is C{True}.
+        @param duplicationPolicy: A C{str} indicating what to do if a
+            to-be-inserted accession number is already present in the database.
+            "error" results in a ValueError being raised, "ignore" means ignore
+            the duplicate. It should also be possible to update (i.e., replace)
+            but that is not supported yet.
         @raise ValueError: If a file with this name has already been added or
             if the file contains a protein sequence whose id has already been
             seen.
+        @raise DatabaseDuplicationError: If a duplicate accession number is
+            encountered and C{duplicationPolicy} is 'error'.
         @return: A tuple containing two C{int}s: the number of genome sequences
             in the added file and the total number of proteins found.
         """
@@ -1135,7 +1143,9 @@ class SqliteIndexWriter(object):
                         print('\n%s: %s' % (genome.id, genome.description),
                               file=logfp)
                         for k, v in genome.annotations.items():
-                            print('\t%s = %r' % (k, v), file=logfp)
+                            if k not in ('references', 'comment',
+                                         'structured_comment'):
+                                print('  %s = %r' % (k, v), file=logfp)
                     if rnaOnly:
                         try:
                             lineage = lineageFetcher(genome.id)
@@ -1147,12 +1157,13 @@ class SqliteIndexWriter(object):
                         if lineage:
                             if not isRNAVirus(lineage):
                                 if logfp:
-                                    print('%s is not an RNA virus. Skipping.' %
-                                          genome.description, file=logfp)
+                                    print('  %s is not an RNA virus. '
+                                          'Skipping.' % genome.description,
+                                          file=logfp)
                                 continue
                             else:
                                 if logfp:
-                                    print('%s is an RNA virus.' %
+                                    print('  %s is an RNA virus.' %
                                           genome.description, file=logfp)
                         else:
                             print('Could not look up taxonomy lineage for %s '
@@ -1161,14 +1172,21 @@ class SqliteIndexWriter(object):
                                   file=sys.stderr)
                             continue
 
-                    proteinCount = self._addGenbankProteins(genome, logfp)
-                    self.addGenome(genome, proteinCount, databaseName, logfp)
+                    proteinCount = self._addGenbankProteins(
+                        genome, logfp=logfp,
+                        duplicationPolicy=duplicationPolicy)
+
+                    self.addGenome(
+                        genome, proteinCount, databaseName, logfp=logfp,
+                        duplicationPolicy=duplicationPolicy)
+
                     totalProteinCount += proteinCount
                     genomeCount += 1
 
         return genomeCount, totalProteinCount
 
-    def addGenome(self, genome, proteinCount, databaseName, logfp=None):
+    def addGenome(self, genome, proteinCount, databaseName, logfp=None,
+                  duplicationPolicy='error'):
         """
         Add information about a genome to the genomes table.
 
@@ -1178,12 +1196,16 @@ class SqliteIndexWriter(object):
             in C{filename} came from (e.g., 'refseq' or 'RVDB').
         @param logfp: If not C{None}, a file pointer to write verbose
             progress output to.
+        @param duplicationPolicy: A C{str} indicating what to do if a
+            to-be-inserted accession number is already present in the database.
+            "error" results in a ValueError being raised, "ignore" means ignore
+            the duplicate. It should also be possible to update (i.e., replace)
+            but that is not supported yet.
+        @raise DatabaseDuplicationError: If a duplicate accession number is
+            encountered and C{duplicationPolicy} is 'error'.
         """
         sequence = str(genome.seq)
         taxonomy = self.TAXONOMY_SEPARATOR.join(genome.annotations['taxonomy'])
-
-        if logfp:
-            print('TAXONOMY:', taxonomy, file=logfp)
 
         try:
             self._connection.execute(
@@ -1194,12 +1216,26 @@ class SqliteIndexWriter(object):
                  proteinCount, taxonomy, databaseName))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
-                warn('Genome %r added to database twice.' % genome.id)
-            raise
+                if duplicationPolicy == 'error':
+                    raise DatabaseDuplicationError(
+                        'Genome information for %r already present in '
+                        'database.' % genome.id)
+                elif duplicationPolicy == 'ignore':
+                    if logfp:
+                        print(
+                            'Genome information for %r already present in '
+                            'database. Ignoring.' % genome.id)
+                else:
+                    raise NotImplementedError(
+                        'Unknown duplication policy (%s) found when '
+                        'attempting to insert genome information for %s.' %
+                        (duplicationPolicy, genome.id))
+            else:
+                raise
 
     def addProtein(self, accession, genomeAccession, sequence, offsets,
                    forward, circular, rangeCount, gene=None, note=None,
-                   product=None, logfp=None):
+                   product=None, logfp=None, duplicationPolicy='error'):
         """
         Add information about a protein to the proteins table.
 
@@ -1223,9 +1259,16 @@ class SqliteIndexWriter(object):
             "putative replication initiation protein"), or C{None}.
         @param logfp: If not C{None}, a file pointer to write verbose
             progress output to.
+        @param duplicationPolicy: A C{str} indicating what to do if a
+            to-be-inserted accession number is already present in the database.
+            "error" results in a ValueError being raised, "ignore" means ignore
+            the duplicate. It should also be possible to update (i.e., replace)
+            but that is not supported yet.
+        @raise DatabaseDuplicationError: If a duplicate accession number is
+            encountered and C{duplicationPolicy} is 'error'.
         """
         if logfp:
-            print('\t\tProtein %s: genome=%s product=%s' % (
+            print('    Protein %s: genome=%s product=%s' % (
                 accession, genomeAccession, product), file=logfp)
         try:
             self._connection.execute(
@@ -1237,10 +1280,25 @@ class SqliteIndexWriter(object):
                  int(forward), int(circular), rangeCount, gene, note, product))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
-                warn('Protein %r added to database twice.' % accession)
-            raise
+                if duplicationPolicy == 'error':
+                    raise DatabaseDuplicationError(
+                        'Protein information for %r already present in '
+                        'database.' % accession)
+                elif duplicationPolicy == 'ignore':
+                    if logfp:
+                        print(
+                            'Protein information for %r already present in '
+                            'database. Ignoring.' % accession)
+                else:
+                    raise NotImplementedError(
+                        'Unknown duplication policy (%s) found when '
+                        'attempting to insert protein information for %s.' %
+                        (duplicationPolicy, accession))
+            else:
+                raise
 
-    def _addGenbankProteins(self, genome, logfp=None):
+    def _addGenbankProteins(self, genome, logfp=None,
+                            duplicationPolicy='error'):
         """
         Add proteins from a Genbank genome record to the proteins database and
         write out its sequence to the proteins FASTA file.
@@ -1248,6 +1306,13 @@ class SqliteIndexWriter(object):
         @param genome: A GenBank genome record, as parsed by SeqIO.parse
         @param logfp: If not C{None}, a file pointer to write verbose
             progress output to.
+        @param duplicationPolicy: A C{str} indicating what to do if a
+            to-be-inserted accession number is already present in the database.
+            "error" results in a ValueError being raised, "ignore" means ignore
+            the duplicate. It should also be possible to update (i.e., replace)
+            but that is not supported yet.
+        @raise DatabaseDuplicationError: If a duplicate accession number is
+            encountered and C{duplicationPolicy} is 'error'.
         @return: The C{int} count of the number of proteins added.
         """
         count = 0
@@ -1357,7 +1422,8 @@ class SqliteIndexWriter(object):
             self.addProtein(
                 proteinId, genome.id, translation, featureLocation, forward,
                 circular, ranges.distinctRangeCount(genomeLen), gene=gene,
-                note=note, product=product, logfp=logfp)
+                note=note, product=product, logfp=logfp,
+                duplicationPolicy=duplicationPolicy)
 
             count += 1
 
@@ -1368,8 +1434,10 @@ class SqliteIndexWriter(object):
         Create indices on the accesssion ids and close the connection.
         """
         cur = self._connection.cursor()
-        cur.execute('CREATE INDEX protein_idx ON proteins(accession)')
-        cur.execute('CREATE INDEX genomes_idx ON genomes(accession)')
+        cur.execute('CREATE UNIQUE INDEX IF NOT EXISTS protein_idx ON '
+                    'proteins(accession)')
+        cur.execute('CREATE UNIQUE INDEX IF NOT EXISTS genomes_idx ON '
+                    'genomes(accession)')
         self._connection.commit()
         self._connection.close()
         self._connection = None

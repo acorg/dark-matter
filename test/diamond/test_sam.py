@@ -11,7 +11,7 @@ from dark.reads import Read, Reads
 from .sample_proteins import SAMPLE_DATA
 
 
-class Genome(object):
+class GenbankRecord(object):
     def __init__(self, id_, description, seq):
         self.id = id_
         self.description = description
@@ -88,7 +88,7 @@ class TestSimpleDiamondSAMWriter(TestCase):
             proteinRange, True, ranges.circular(genomeLen),
             ranges.distinctRangeCount(genomeLen))
 
-        genome = Genome(genomeAccession, genomeName, genomeSequence)
+        genome = GenbankRecord(genomeAccession, genomeName, genomeSequence)
         db.addGenome(genome, 1, 'test-db')
 
         # Make a DIAMOND-to-SAM writer and give it the DIAMOND output.

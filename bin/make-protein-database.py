@@ -29,6 +29,13 @@ parser.add_argument(
           'from (e.g., "refseq" or "RVDB").'))
 
 parser.add_argument(
+    '--duplicationPolicy', choices=('error', 'ignore'), default='ignore',
+    help=('What to do if a to-be-inserted accession number is already '
+          'present in the database. "error" results in a ValueError being '
+          'raised, "ignore" will ignore the duplicate. It should also be '
+          'possible to update (i.e., replace) but that is not supported yet.'))
+
+parser.add_argument(
     '--progress', default=False, action='store_true',
     help='Print indexing progress.')
 
@@ -99,7 +106,8 @@ def main(args):
 
             genomeCount, proteinCount = db.addFile(
                 filename, rnaOnly=args.rnaOnly, databaseName=args.databaseName,
-                logfp=args.logFile, lineageFetcher=lineageFetcher)
+                logfp=args.logFile, lineageFetcher=lineageFetcher,
+                duplicationPolicy=args.duplicationPolicy)
 
             if not genomeCount:
                 print('WARNING: no genomes found in %r. Did the GenBank '
