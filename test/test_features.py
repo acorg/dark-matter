@@ -17,7 +17,7 @@ except ImportError:
     else:
         raise
 else:
-    matplotlib.use('PDF')
+    matplotlib.use('Agg')
     from matplotlib import pyplot as plt
     havePlt = True
 

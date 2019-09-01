@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from tempfile import mkdtemp
 from shutil import rmtree
 from os.path import join
