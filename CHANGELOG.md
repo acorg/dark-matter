@@ -1,4 +1,8 @@
-## 3.1.1. Sep 1, 2019
+## 3.1.2 Sep 1, 2019
+
+Fixed args in call to `toStr` in `proteins-to-pathogens-civ.py`.
+
+## 3.1.1 Sep 1, 2019
 
 Added `dark.civ` to packages in `setup.py`.
 

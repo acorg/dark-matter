@@ -323,13 +323,15 @@ class ProteinGrouper(object):
             for sampleName in samples:
                 self.pathogenSampleFiles.add(genomeAccession, sampleName)
 
-    def toStr(self, title='Summary of pathogens', preamble=None):
+    def toStr(self, title=None, preamble=None, pathogenType='viral'):
         """
         Produce a string representation of the pathogen summary.
 
         @param title: The C{str} title for the output.
         @param preamble: The C{str} descriptive preamble, or C{None} if no
             preamble is needed.
+        @param pathogenType: A C{str}, either 'viral' or 'bacterial'.
+
         @return: A C{str} suitable for printing.
         """
         # Note that the string representation contains much less
@@ -337,6 +339,12 @@ class ProteinGrouper(object):
         # unique (de-duplicated, by id) read count, since that is only computed
         # when we are making combined FASTA files of reads matching a
         # pathogen.
+
+        assert pathogenType in ('viral', 'bacterial')
+
+        title = title or 'Summary of %s.' % (
+            'bacteria' if pathogenType == 'bacterial' else 'viruses')
+
         readCountGetter = itemgetter('readCount')
         result = []
         append = result.append
@@ -344,7 +352,7 @@ class ProteinGrouper(object):
         result.extend((title, ''))
         if preamble:
             result.extend((preamble, ''))
-        result.extend((self._title(), ''))
+        result.extend((self._title(pathogenType), ''))
 
         for pathogenName in sorted(self.pathogenNames):
             samples = self.pathogenNames[pathogenName]

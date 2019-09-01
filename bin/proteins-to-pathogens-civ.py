@@ -214,4 +214,6 @@ if __name__ == '__main__':
             sampleIndexFilename=args.sampleIndexFilename,
             omitVirusLinks=args.omitVirusLinks))
     else:
-        print(grouper.toStr())
+        print(grouper.toStr(
+            title=args.title, preamble=args.preamble,
+            pathogenType=args.pathogenType))
