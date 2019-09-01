@@ -1,5 +1,4 @@
-# From https://samtools.github.io/hts-specs/SAMv1.pdf
-CINS, CDEL, CMATCH, CEQUAL, CDIFF = 'IDM=X'
+from dark.cigar import CINS, CDEL, CMATCH, CEQUAL, CDIFF
 
 
 def parseBtop(btopString):

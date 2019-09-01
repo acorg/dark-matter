@@ -1,3 +1,11 @@
+## 3.1.0 Aug 31, 2019
+
+Added `make-protein-database.py`, `download-genbank.sh`, and
+`parse-genbank-flat-file.py` scripts, as well as `doc/protein-database.md`
+with some instructions on how to make a protein database. Added CIV
+(Charite Institute of Virology) scripts `proteins-to-pathogens-civ.py` and
+`alignment-panel-civ.py`.
+
 ## 3.0.80 Aug 19, 2019
 
 Added `bin/create-newick-relabeling-output.py` and  `bin/relabel-newick-tree.py`.
@@ -60,6 +68,7 @@ Added `--title` and `--preamble` args to output from
 `proteins-to-pathogens.py`.  Fixed `ProteinGrouper` HTML NCBI protein link
 and added genome link. Added positive and negative filtering by regex to
 `TitlesAlignments` and tests. Improved NCBI link generation and tests.
+>>>>>>> master
 
 ## 3.0.68 Jun 9, 2019
 
@@ -77,6 +86,7 @@ Added `pysam` to `setup.py` `install_requires` list. Removed `cffi`. Fixed
 tests that were failing under Linux (apart from pyfaidx tests which are now
 skipped on Linux). Removed mocking `File` class and replaced it with
 `StringIO`.
+>>>>>>> master
 
 ## 3.0.65 Jan 31, 2019
 

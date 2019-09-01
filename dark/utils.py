@@ -1,5 +1,6 @@
 from __future__ import division
 
+import os
 import string
 import six
 import bz2
@@ -103,27 +104,32 @@ def median(l):
 
 
 @contextmanager
-def asHandle(fileNameOrHandle, mode='r'):
+def asHandle(fileNameOrHandle, mode='rt', encoding='UTF-8'):
     """
-    Decorator for file opening that makes it easy to open compressed files.
+    Decorator for file opening that makes it easy to open compressed files
+    and which can be passed an already-open file handle or a file name.
     Based on L{Bio.File.as_handle}.
 
     @param fileNameOrHandle: Either a C{str} or a file handle.
+    @param mode: The C{str} mode to use for opening the file.
+    @param encoding: The C{str} encoding to use when opening the file.
     @return: A generator that can be turned into a context manager via
         L{contextlib.contextmanager}.
     """
     if isinstance(fileNameOrHandle, six.string_types):
         if fileNameOrHandle.endswith('.gz'):
             if six.PY3:
-                yield gzip.open(fileNameOrHandle, mode='rt', encoding='UTF-8')
+                yield gzip.open(fileNameOrHandle, mode=mode, encoding=encoding)
             else:
-                yield gzip.GzipFile(fileNameOrHandle)
+                yield gzip.GzipFile(fileNameOrHandle, mode=mode)
         elif fileNameOrHandle.endswith('.bz2'):
             if six.PY3:
-                yield bz2.open(fileNameOrHandle, mode='rt', encoding='UTF-8')
+                yield bz2.open(fileNameOrHandle, mode=mode, encoding=encoding)
             else:
-                yield bz2.BZ2File(fileNameOrHandle)
+                yield bz2.BZ2File(fileNameOrHandle, mode=mode)
         else:
+            # Putting mode=mode, encoding=encoding into the following
+            # causes a hard-to-understand error from the mocking library.
             with open(fileNameOrHandle) as fp:
                 yield fp
     else:
@@ -251,3 +257,18 @@ def countPrint(mesg, count, len1, len2=None):
                         mesg,
                         count, len1, percentage(count, len1),
                         count, len2, percentage(count, len2)))
+
+
+@contextmanager
+def cd(newdir):
+    """
+    Trivial context manager for temporarily switching directory.
+
+    @param dir: A C{str} directory to cd to.
+    """
+    olddir = os.getcwd()
+    try:
+        os.chdir(newdir)
+        yield newdir
+    finally:
+        os.chdir(olddir)

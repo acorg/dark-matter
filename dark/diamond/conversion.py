@@ -17,8 +17,8 @@ from dark.diamond.hsp import normalizeHSP
 # command line via --outfmt 6) that must be given to DIAMOND blastx to
 # allow its output to be parsed by convert-diamond-to-sam.py (which uses
 # diamondTabularFormatToDicts (below)).
-FIELDS = ('bitscore btop qframe qend qqual qlen qseq qseqid qstart slen '
-          'sstart stitle')
+FIELDS = ('bitscore btop qframe qend full_qqual qlen full_qseq qseqid '
+          'qstart slen sstart stitle')
 
 # The keys in the following are DIAMOND format 6 field names. The values
 # are one-argument functions that take a string and return an appropriately
@@ -52,55 +52,70 @@ DIAMOND_FIELD_CONVERTER = {
 }
 
 
-def diamondTabularFormatToDicts(filename, fieldNames=None):
+class DiamondTabularFormat(object):
     """
-    Read DIAMOND tabular (--outfmt 6) output and convert lines to dictionaries.
+    Read/convert DIAMOND TAB-separated format (format #6).
 
-    @param filename: Either a C{str} file name or an open file pointer.
     @param fieldNames: A C{list} or C{tuple} of C{str} DIAMOND field names.
         Run 'diamond -help' to see the full list. If C{None}, a default set of
         fields will be used, as compatible with convert-diamond-to-sam.py
-    @raise ValueError: If a line of C{filename} does not have the expected
-        number of TAB-separated fields (i.e., len(fieldNames)). Or if
-        C{fieldNames} is empty or contains duplicates.
-    @return: A generator that yields C{dict}s with keys that are the DIAMOND
-        field names and values as converted by DIAMOND_FIELD_CONVERTER.
     """
-    fieldNames = fieldNames or FIELDS.split()
-    nFields = len(fieldNames)
-    if not nFields:
-        raise ValueError('fieldNames cannot be empty.')
+    def __init__(self, fieldNames=None):
+        self._fieldNames = fieldNames or FIELDS.split()
+        self._nFields = len(self._fieldNames)
+        if not self._nFields:
+            raise ValueError('fieldNames cannot be empty.')
 
-    c = Counter(fieldNames)
-    if c.most_common(1)[0][1] > 1:
-        raise ValueError(
-            'fieldNames contains duplicated names: %s.' %
-            (', '.join(sorted(x[0] for x in c.most_common() if x[1] > 1))))
+        c = Counter(self._fieldNames)
+        if c.most_common(1)[0][1] > 1:
+            raise ValueError(
+                'field names contains duplicated names: %s.' %
+                (', '.join(sorted(x[0] for x in c.most_common() if x[1] > 1))))
 
-    def identity(x):
-        return x
+        def identity(x):
+            return x
 
-    convertFunc = DIAMOND_FIELD_CONVERTER.get
+        self._convertors = tuple(DIAMOND_FIELD_CONVERTER.get(field, identity)
+                                 for field in self._fieldNames)
 
-    with as_handle(filename) as fp:
-        for count, line in enumerate(fp, start=1):
-            result = {}
-            line = line[:-1]
-            values = line.split('\t')
-            if len(values) != nFields:
-                raise ValueError(
-                    'Line %d of %s had %d field values (expected %d). '
-                    'To provide input for this function, DIAMOND must be '
-                    'called with "--outfmt 6 %s" (without the quotes). '
-                    'The offending input line was %r.' %
-                    (count,
-                     (filename if isinstance(filename, six.string_types)
-                      else 'input'),
-                     len(values), nFields, FIELDS, line))
-            for fieldName, value in zip(fieldNames, values):
-                value = convertFunc(fieldName, identity)(value)
-                result[fieldName] = value
-            yield result
+    def diamondFieldsToDict(self, line):
+        """
+        Convert a line of DIAMOND tabular (--outfmt 6) output to a dictionary
+
+        @param line: A C{str} line read from DIAMOND output. This may contain
+            a trailing whitespace (including newline and carriage return).
+        @raise ValueError: If a line of C{filename} does not have the expected
+            number of TAB-separated fields (i.e., len(self._fieldNames)).
+        @return: A C{dict} with keys that are the DIAMOND field names, with
+            values as converted by the functions set up in __init__.
+        """
+        values = line.rstrip().split('\t')
+
+        if len(values) != self._nFields:
+            raise ValueError(
+                'DIAMOND output line had %d field values (expected %d). '
+                'The offending input line was %r.' %
+                (len(values), self._nFields, line))
+
+        return dict(
+            (fieldName, func(value))
+            for fieldName, func, value in zip(
+                self._fieldNames, self._convertors, values))
+
+    def diamondTabularFormatToDicts(self, filename):
+        """
+        Read DIAMOND tabular (--outfmt 6) output and convert lines to
+        dictionaries.
+
+        @param filename: Either a C{str} file name or an open file pointer.
+        @raise ValueError: If a line of C{filename} does not have the expected
+            number of TAB-separated fields (i.e., len(fieldNames)).
+        @return: A generator that yields C{dict}s returned by
+            C{diamondFieldsToDict}, above.
+        """
+        with as_handle(filename) as fp:
+            for line in fp:
+                yield self.diamondFieldsToDict(line)
 
 
 class DiamondTabularFormatReader(object):

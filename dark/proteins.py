@@ -1,4 +1,4 @@
-from __future__ import division, print_function
+from __future__ import print_function, division
 
 import os
 from collections import defaultdict, Counter
@@ -407,8 +407,8 @@ class ProteinGrouper(object):
         Produce a string representation of the pathogen summary.
 
         @param title: The C{str} title for the output.
-        @param preamble: The C{str} descriptive preamble for the HTML page, or
-            C{None} if no preamble is needed.
+        @param preamble: The C{str} descriptive preamble, or C{None} if no
+            preamble is needed.
         @return: A C{str} suitable for printing.
         """
         # Note that the string representation contains much less

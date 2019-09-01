@@ -29,6 +29,8 @@ class Executor(object):
             name), in which case the shell is not used.
         @return: A C{CompletedProcess} instance. This has attributes such as
             C{returncode}, C{stdout}, and C{stderr}. See pydoc subprocess.
+            If C{dryRun} is passed as C{True} to C{__init__}, C{None} is
+            returned.
         """
         if isinstance(command, six.string_types):
             # Can't have newlines in a command given to the shell.
