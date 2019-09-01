@@ -28,7 +28,9 @@ matplotlib.use('PDF')
 from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
-from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
+from dark.civ.graphics import (
+    DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML)
+from dark.civ.proteins import SqliteIndex
 from dark.utils import numericallySortFilenames
 
 
@@ -74,11 +76,16 @@ if __name__ == '__main__':
     # used by those utility functions.
 
     parser = argparse.ArgumentParser(
-        description='Non-interactively generate an alignment panel',
+        description='Produce an alignment panel in HTML',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         epilog=('Given BLAST or DIAMOND JSON output files, the '
                 'corresponding FASTA (or FASTQ) sequence files, and '
                 'filtering criteria, produce an alignment panel.'))
+
+    parser.add_argument(
+        '--proteinGenomeDatabase', required=True,
+        help=('The filename of an Sqlite3 database holding protein and '
+              'genome information, as built by make-protein-database.py'))
 
     parser.add_argument(
         '--earlyExit', default=False, action='store_true',
@@ -98,39 +105,13 @@ if __name__ == '__main__':
 
     group.add_argument(
         '--fasta', metavar='FASTA-file', nargs='+', action='append',
-        help=('the FASTA file(s) of sequences that were given to BLAST '
+        help=('the FASTA file(s) of read sequences that were given to BLAST '
               'or DIAMOND.'))
 
     group.add_argument(
         '--fastq', metavar='FASTQ-file', nargs='+', action='append',
-        help=('the FASTQ file(s) of sequences that were given to BLAST '
+        help=('the FASTQ file(s) of read sequences that were given to BLAST '
               'or DIAMOND.'))
-
-    parser.add_argument(
-        '--databaseFastaFilename',
-        help=('Only used when --showOrfs is also given. '
-              'The filename of the FASTA file used to make the BLAST or '
-              'DIAMOND database. If --matcher diamond is used, either this '
-              'argument or --sqliteDatabaseFilename must be specified. If '
-              '--matcher blast is used these options can be omitted, in '
-              'which case the code will fall back to using blastdbcmd, '
-              'which can be unreliable. See also --sqliteDatabaseFilename '
-              'for a way to enable fast subject lookup for either matcher.'))
-
-    parser.add_argument(
-        '--sqliteDatabaseFilename',
-        help=('Only used when --showOrfs is also given. '
-              'The filename of the sqlite3 database file of FASTA metadata, '
-              'made from the FASTA that was used to make the BLAST or DIAMOND '
-              'database. If --matcher diamond is used, either this argument '
-              'or --databaseFilename must be specified.'))
-
-    parser.add_argument(
-        '--databaseFastaDirectory',
-        help=('Only used when --showOrfs is also given. '
-              'The directory where the FASTA file used to make the BLAST or '
-              'DIAMOND database can be found. This argument is only useful '
-              'when --sqliteDatabaseFilename is specified.'))
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(
@@ -286,12 +267,6 @@ if __name__ == '__main__':
               'the alignment panel.'))
 
     parser.add_argument(
-        '--showOrfs', default=False, action='store_true',
-        help=('If specified, show subject ORFs in the individual panel plots. '
-              'This option requires that you also provide information about '
-              'the subject database, e.g., via --databaseFastaFilename.'))
-
-    parser.add_argument(
         '--sortFilenames', default=False, action='store_true',
         help=('If specified, the JSON and FASTA/Q file names will be '
               'processed in sorted order. The sorting is based on finding '
@@ -341,40 +316,15 @@ if __name__ == '__main__':
     if args.matcher == 'blast':
         from dark.blast.alignments import BlastReadsAlignments
         readsAlignments = BlastReadsAlignments(
-            reads, jsonFiles, databaseFilename=args.databaseFastaFilename,
-            databaseDirectory=args.databaseFastaDirectory,
+            reads, jsonFiles,
             sqliteDatabaseFilename=args.sqliteDatabaseFilename,
             sortBlastFilenames=args.sortFilenames)
     else:
         # Must be 'diamond' (due to parser.add_argument 'choices' argument).
-        if args.showOrfs:
-            if (args.databaseFastaFilename is None and
-                    args.sqliteDatabaseFilename is None):
-                print('Either --databaseFastaFilename or '
-                      '--sqliteDatabaseFilename must be used with --matcher '
-                      'diamond.', file=sys.stderr)
-                sys.exit(1)
-            elif not (args.databaseFastaFilename is None or
-                      args.sqliteDatabaseFilename is None):
-                print('--databaseFastaFilename and --sqliteDatabaseFilename '
-                      'cannot both be used with --matcher diamond.',
-                      file=sys.stderr)
-                sys.exit(1)
-        else:
-            if (args.databaseFastaFilename or args.sqliteDatabaseFilename or
-                    args.databaseFastaDirectory):
-                print('The --databaseFastaFilename, --sqliteDatabaseFilename, '
-                      'and --databaseFastaDirectory options can only be used '
-                      'if --showOrfs is also used.',
-                      file=sys.stderr)
-                sys.exit(1)
-
+        assert args.matcher == 'diamond'
         from dark.diamond.alignments import DiamondReadsAlignments
         readsAlignments = DiamondReadsAlignments(
-            reads, jsonFiles, sortFilenames=args.sortFilenames,
-            databaseFilename=args.databaseFastaFilename,
-            databaseDirectory=args.databaseFastaDirectory,
-            sqliteDatabaseFilename=args.sqliteDatabaseFilename)
+            reads, jsonFiles, sortFilenames=args.sortFilenames)
 
     readsAlignments.filter(
         maxAlignmentsPerRead=args.maxAlignmentsPerRead,
@@ -428,7 +378,8 @@ if __name__ == '__main__':
     idList = parseColors(args.color, args) if args.color else None
 
     alignmentPanelHTML(
-        titlesAlignments, sortOn=args.sortOn, outputDir=args.outputDir,
+        titlesAlignments, SqliteIndex(args.proteinGenomeDatabase),
+        sortOn=args.sortOn, outputDir=args.outputDir,
         idList=idList, equalizeXAxes=args.equalizeXAxes, xRange=args.xRange,
         logLinearXAxis=args.logLinearXAxis, logBase=args.logBase,
-        showFeatures=args.showFeatures, showOrfs=args.showOrfs)
+        showFeatures=args.showFeatures)

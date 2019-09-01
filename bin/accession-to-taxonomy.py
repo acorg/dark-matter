@@ -4,7 +4,7 @@ import sys
 import argparse
 import re
 
-from dark.taxonomy import AccessionLineageFetcher
+from dark.taxonomy import AccessionLineageFetcher, formatLineage
 
 VERSION_REGEX = re.compile(r'\.\d+$')
 
@@ -28,30 +28,7 @@ def taxonomyInfo(accession, db, namesOnly, separator):
         lineage = db.lineage(accession + '.1')
 
     if lineage:
-        taxids, names, ranks = [], [], []
-
-        for (taxid, name, rank) in lineage:
-            taxids.append(str(taxid))
-            ranks.append('-' if rank == 'no rank' else rank)
-            names.append(name)
-
-        if namesOnly:
-            # The separator is guaranteed to be set by our caller.
-            return separator.join(names)
-
-        if separator:
-            return '\n'.join(
-                '%s%s%s%s%s' % (rank, separator, name, separator, taxid)
-                for (taxid, name, rank) in zip(taxids, names, ranks))
-        else:
-            taxidWidth = max(len(x) for x in taxids)
-            nameWidth = max(len(x) for x in names)
-            rankWidth = max(len(x) for x in ranks)
-
-            return '\n'.join(
-                '%-*s %-*s %*s' % (
-                    rankWidth, rank, nameWidth, name, taxidWidth, taxid)
-                for (taxid, name, rank) in zip(taxids, names, ranks))
+        return formatLineage(lineage, namesOnly, separator)
 
 
 if __name__ == '__main__':

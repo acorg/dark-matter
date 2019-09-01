@@ -182,3 +182,41 @@ def isRNAVirus(lineage):
             return True
 
     return False
+
+
+def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
+    """
+    Format a lineage for printing.
+
+    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
+        as returned by C{AccessionLineageFetcher.lineage}.
+    @param namesOnly: If C{True} only print taxonomic names.
+    @param separator: A C{str} separator to put between fields. If C{None},
+        return a space-padded aligned columns.
+    @param prefix: A C{str} to put at the start of each line.
+    @return: A formatted C{str} for printing.
+    """
+    taxids, names, ranks = [], [], []
+
+    for (taxid, name, rank) in lineage:
+        taxids.append(str(taxid))
+        ranks.append('-' if rank == 'no rank' else rank)
+        names.append(name)
+
+    if namesOnly:
+        # The separator is guaranteed to be set by our caller.
+        return prefix + separator.join(names)
+
+    if separator is not None:
+        return '\n'.join(
+            '%s%s%s%s%s%s' % (prefix, rank, separator, name, separator, taxid)
+            for (taxid, name, rank) in zip(taxids, names, ranks))
+    else:
+        taxidWidth = max(len(x) for x in taxids)
+        nameWidth = max(len(x) for x in names)
+        rankWidth = max(len(x) for x in ranks)
+
+        return '\n'.join(
+            '%s%-*s %-*s %*s' % (
+                prefix, rankWidth, rank, nameWidth, name, taxidWidth, taxid)
+            for (taxid, name, rank) in zip(taxids, names, ranks))

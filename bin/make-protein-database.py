@@ -8,15 +8,15 @@ from time import time
 from itertools import chain
 import argparse
 
-from dark.proteins import SqliteIndexWriter
+from dark.civ.proteins import SqliteIndexWriter
 from dark.taxonomy import AccessionLineageFetcher
 
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=('Create an sqlite3 database from AA sequences. '
-                 'The protein sequences for the database are printed to '
-                 'standard output.'))
+    description=('Create a genome/protein sqlite3 database from GenBank '
+                 'and JSON files. The protein sequences for the database are '
+                 'printed to standard output for indexing by other tools.'))
 
 parser.add_argument(
     '--databaseFile', required=True,
@@ -45,7 +45,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--noWarnings', default=False, action='store_true',
-    help='Do not print warnings about unparseable GenBank records.')
+    help='Do not print warnings about unparseable GenBank or JSON records.')
 
 parser.add_argument(
     '--rnaOnly', default=False, action='store_true',
@@ -53,16 +53,64 @@ parser.add_argument(
 
 parser.add_argument(
     '--gb', metavar='GenBank-file', nargs='+', action='append',
-    required=True,
     help=('The GenBank file(s) to make the database from. These may be '
           'uncompressed, or compressed with bgzip (from samtools), with '
           'a .gz suffix.'))
+
+parser.add_argument(
+    '--json', metavar='JSON-file', nargs='+', action='append',
+    help=('The JSON file(s) to make the database from. These contain '
+          'genome and protein information for cases where sequences that '
+          'are not in GenBank should be added.'))
 
 parser.add_argument(
     '--taxonomyDatabase',
     help=('The file holding the sqlite3 taxonomy database. See '
           'https://github.com/acorg/ncbi-taxonomy-database for how to '
           'build one.'))
+
+parser.add_argument(
+    '--proteinSource', default='GENBANK',
+    help=('The source of the accession numbers for the proteins found in the '
+          'input files. This becomes part of the sequence id printed in the '
+          'protein FASTA output.'))
+
+parser.add_argument(
+    '--genomeSource', default='GENBANK',
+    help=('The source of the accession numbers for the genomes in the input '
+          'files. This becomes part of the sequence id printed in the '
+          'protein FASTA output.'))
+
+
+def filenamesAndAdders(args, db):
+    """
+    Get the filenames and database adding functions.
+
+    @param args: A C{Namespace} instance as returned by argparse.
+    @param db: An C{SqliteIndexWriter} instance.
+    @return: A generator yielding 2-tuples containing a filename and a
+        database adder function that can read the file and incorporate it.
+    """
+    # Use chain to flatten the lists of lists that we get from using both
+    # nargs='+' and action='append'. We use both because it allows people
+    # to use (e.g.) --gb on the command line either via "--gb file1 --gb
+    # file2" or "--gb file1 file2", or a combination of these. That way
+    # it's not necessary to remember which way you're supposed to use it
+    # and you also can't be hit by the subtle problem encountered in
+    # https://github.com/acorg/dark-matter/issues/453
+
+    if not (args.gb or args.json):
+        print('At least one of --gb or --json must be used to indicate input '
+              'files to process.', file=sys.stderr)
+        sys.exit(1)
+
+    if args.gb:
+        for filename in chain.from_iterable(args.gb):
+            yield filename, db.addGenBankFile
+
+    if args.json:
+        for filename in chain.from_iterable(args.json):
+            yield filename, db.addJSONFile
 
 
 def main(args):
@@ -83,15 +131,6 @@ def main(args):
     else:
         lineageFetcher = None
 
-    # Flatten the lists of lists that we get from using both nargs='+' and
-    # action='append'. We use both because it allows people to use (e.g.) --gb
-    # on the command line either via "--gb file1 --gb file2" or "--gb file1
-    # file2", or a combination of these. That way it's not necessary to
-    # remember which way you're supposed to use it and you also can't be hit by
-    # the subtle problem encountered in
-    # https://github.com/acorg/dark-matter/issues/453
-    gbFiles = list(chain.from_iterable(args.gb))
-
     progress = args.progress
 
     if progress:
@@ -99,20 +138,27 @@ def main(args):
         totalGenomeCount = totalProteinCount = 0
 
     with SqliteIndexWriter(args.databaseFile) as db:
-        for filename in gbFiles:
+        for fileCount, (filename, addFunc) in enumerate(
+                filenamesAndAdders(args, db), start=1):
             if progress:
                 print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
                 start = time()
 
-            genomeCount, proteinCount = db.addFile(
+            genomeCount, proteinCount = addFunc(
                 filename, rnaOnly=args.rnaOnly, databaseName=args.databaseName,
-                logfp=args.logFile, lineageFetcher=lineageFetcher,
-                duplicationPolicy=args.duplicationPolicy)
+                lineageFetcher=lineageFetcher,
+                proteinSource=args.proteinSource,
+                genomeSource=args.genomeSource,
+                duplicationPolicy=args.duplicationPolicy, logfp=args.logFile)
 
             if not genomeCount:
-                print('WARNING: no genomes found in %r. Did the GenBank '
-                      'download fail on that file?' % filename,
-                      file=sys.stderr)
+                if addFunc is db.addGenBankFile:
+                    print('WARNING: no genomes added from %r. Did the GenBank '
+                          'download fail on that file?' % filename,
+                          file=sys.stderr)
+                else:
+                    print('WARNING: no genomes added from JSON file %r.' %
+                          filename, file=sys.stderr)
 
             if progress:
                 totalGenomeCount += genomeCount
@@ -125,9 +171,9 @@ def main(args):
 
     if progress:
         elapsed = time() - overallStart
-        print('%d GenBank files (containing %d genomes and %d proteins) '
+        print('%d files (containing %d genomes and %d proteins) '
               'processed in %.2f seconds (%.2f mins).' %
-              (len(gbFiles), totalGenomeCount, totalProteinCount, elapsed,
+              (fileCount, totalGenomeCount, totalProteinCount, elapsed,
                elapsed / 60), file=sys.stderr)
 
 

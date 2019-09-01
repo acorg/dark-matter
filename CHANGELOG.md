@@ -1,8 +1,10 @@
-## 3.1.0 Aug XXX, 2019
+## 3.1.0 Aug 31, 2019
 
 Added `make-protein-database.py`, `download-genbank.sh`, and
 `parse-genbank-flat-file.py` scripts, as well as `doc/protein-database.md`
-with some instructions on how to make a protein database.
+with some instructions on how to make a protein database. Added CIV
+(Charite Institute of Virology) scripts `proteins-to-pathogens-civ.py` and
+`alignment-panel-civ.py`.
 
 ## 3.0.80 Aug 19, 2019
 

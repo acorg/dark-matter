@@ -1,3 +1,5 @@
+# THIS IS ALL OUT OF DATE! IGNORE.
+
 # Making a protein database from the RVDB nucleotide database
 
 There is a `Makefile` in the `misc` directory that can perform most of the
