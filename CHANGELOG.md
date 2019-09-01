@@ -1,3 +1,7 @@
+## 3.1.1. Sep 1, 2019
+
+Added `dark.civ` to packages in `setup.py`.
+
 ## 3.1.0 Aug 31, 2019
 
 Added `make-protein-database.py`, `download-genbank.sh`, and
