@@ -354,11 +354,12 @@ class ProteinGrouper(object):
             result.extend((preamble, ''))
         result.extend((self._title(pathogenType), ''))
 
-        for pathogenName in sorted(self.pathogenNames):
-            samples = self.pathogenNames[pathogenName]
+        for genomeAccession, samples in self.genomeAccessions.items():
+            genomeInfo = self._db.findGenome(genomeAccession)
+            genomeName = genomeInfo['name']
             sampleCount = len(samples)
             append('%s (in %d sample%s)' %
-                   (pathogenName,
+                   (genomeName,
                     sampleCount, '' if sampleCount == 1 else 's'))
             for sampleName in sorted(samples):
                 proteins = samples[sampleName]['proteins']

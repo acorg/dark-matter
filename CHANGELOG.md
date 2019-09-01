@@ -1,3 +1,7 @@
+## 3.1.3 Sep 1, 2019
+
+Fixed old code in `toStr`.
+
 ## 3.1.2 Sep 1, 2019
 
 Fixed args in call to `toStr` in `proteins-to-pathogens-civ.py`.
