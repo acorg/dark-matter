@@ -18,7 +18,7 @@ def dimensionalIterator(dimensions, maxItems=-1):
     if nDimensions == 0 or maxItems == 0:
         return
     if any(map(lambda x: x != '*' and x <= 0, dimensions)):
-        raise ValueError
+        raise ValueError('Dimensions not all positive! %r' % (dimensions,))
     odometer = [0, ] * nDimensions
     while maxItems != 0:
         yield tuple(odometer)

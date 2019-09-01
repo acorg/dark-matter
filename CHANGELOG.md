@@ -1,3 +1,8 @@
+## 3.1.4 Sep 1, 2019
+
+Don't try to make a pathogen panel (in the `dark.civ.proteins.py` `toHTML`
+method) if no pathogens were matched.
+
 ## 3.1.3 Sep 1, 2019
 
 Fixed old code in `toStr`.

@@ -571,12 +571,13 @@ class ProteinGrouper(object):
 
         append('</p>')
 
-        if pathogenPanelFilename:
+        if pathogenPanelFilename and genomeAccessions:
+            self.pathogenPanel(pathogenPanelFilename)
             append('<p>')
-            append('<a href="%s">Panel showing read count per pathogen, per '
-                   'sample.</a>' % pathogenPanelFilename)
-            append('Red vertical bars indicate samples with an unusually high '
-                   'read count.')
+            append('<a href="%s">Panel showing read count per pathogen, '
+                   'per sample.</a>' % pathogenPanelFilename)
+            append('Red vertical bars indicate samples with an unusually '
+                   'high read count.')
             append('</p>')
 
         result.extend(proteinFieldsDescription)
@@ -910,7 +911,7 @@ class ProteinGrouper(object):
         @param filename: A C{str} file name to write the image to.
         """
         import matplotlib
-        matplotlib.use('PDF')
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
         self._computeUniqueReadCounts()

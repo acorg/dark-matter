@@ -1,4 +1,6 @@
 from unittest import TestCase
+from six import assertRaisesRegex
+
 from dark.dimension import dimensionalIterator
 
 
@@ -13,10 +15,22 @@ class TestDimensionalIterator(TestCase):
             tuple(dimensionalIterator(())))
 
     def testZeroDimension(self):
-        self.assertRaises(ValueError, next, dimensionalIterator((2, 0, 3)))
+        """
+        Passing a zero dimension must result in a ValueError with the expected
+        error string.
+        """
+        error = r'^Dimensions not all positive! \(2, 0, 3\)$'
+        assertRaisesRegex(self, ValueError, error, next,
+                          dimensionalIterator((2, 0, 3)))
 
     def testNegativeDimension(self):
-        self.assertRaises(ValueError, next, dimensionalIterator((2, -1, 3)))
+        """
+        Passing a negative dimension must result in a ValueError with the
+        expected error string.
+        """
+        error = r'^Dimensions not all positive! \(2, -1, 3\)$'
+        assertRaisesRegex(self, ValueError, error, next,
+                          dimensionalIterator((2, -1, 3)))
 
     def testLimitedTo0Items(self):
         self.assertEqual(
