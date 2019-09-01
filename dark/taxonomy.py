@@ -88,15 +88,45 @@ class AccessionLineageFetcher(object):
             self._closeConnection = False
         self._cache = LRUCache(maxsize=self.CACHE_SIZE)
 
+    def lineageFromTaxid(self, taxid):
+        cursor = self._db.cursor()
+        execute = cursor.execute
+        fetchone = cursor.fetchone
+
+        lineage = []
+
+        while taxid != 1:
+            execute('SELECT name FROM names WHERE taxid = ?', (taxid,))
+            result = fetchone()
+            if result is None:
+                raise ValueError(
+                    'Could not find taxonomy id %r in names table' %
+                    (taxid,))
+            name = result[0]
+            execute('SELECT parent_taxid, rank FROM nodes WHERE taxid = ?',
+                    (taxid,))
+            result = fetchone()
+            if result is None:
+                raise ValueError(
+                    'Could not find taxonomy id %r in nodes table' %
+                    (taxid,))
+            parentTaxid, rank = result
+            lineage.append((taxid, name, rank))
+            taxid = parentTaxid
+
+        return tuple(lineage) or None
+
     @cachedmethod(attrgetter('_cache'))
     def lineage(self, accession):
         """
-        Get lineage information from the taxonomy database for a given title.
+        Get lineage information from the taxonomy database for an
+        accession number or taxonomy id.
 
-        @param accession: A C{str} accession number. This must of coures
-            include the version (e.g., the ".1" part of "DQ011818.1") if the
-            taxonomy database in use uses it (as is the case with the database
-            built by https://github.com/acorg/ncbi-taxonomy-database
+        @param accession: A C{str} accession number or C{int} taxonomy id.
+            If a C{str}, C{accession} must include the version (e.g., the
+            ".1" part of "DQ011818.1") if the taxonomy database in use uses
+            it (as is the case with the database built by
+            https://github.com/acorg/ncbi-taxonomy-database
         @raise ValueError: If a taxonomy id cannot be found in the names or
             nodes table.
         @raise AttributeError: If C{self.close} has been called.
@@ -109,37 +139,18 @@ class AccessionLineageFetcher(object):
             (with taxid = 1) is not included in the returned list. If no
             taxonomy information is found for C{accession}, return C{None}.
         """
-        cursor = self._db.cursor()
-        execute = cursor.execute
-        fetchone = cursor.fetchone
+        if isinstance(accession, int):
+            return self.lineageFromTaxid(accession)
+        else:
+            cursor = self._db.cursor()
+            fetchone = cursor.fetchone
 
-        execute('SELECT taxid FROM accession_taxid WHERE accession = ?',
+            cursor.execute(
+                'SELECT taxid FROM accession_taxid WHERE accession = ?',
                 (accession,))
-        row = fetchone()
-        if row:
-            taxid = int(row[0])
-            lineage = []
-
-            while taxid != 1:
-                execute('SELECT name FROM names WHERE taxid = ?', (taxid,))
-                result = fetchone()
-                if result is None:
-                    raise ValueError(
-                        'Could not find taxonomy id %r in names table' %
-                        (taxid,))
-                name = result[0]
-                execute('SELECT parent_taxid, rank FROM nodes WHERE taxid = ?',
-                        (taxid,))
-                result = fetchone()
-                if result is None:
-                    raise ValueError(
-                        'Could not find taxonomy id %r in nodes table' %
-                        (taxid,))
-                parentTaxid, rank = result
-                lineage.append((taxid, name, rank))
-                taxid = parentTaxid
-
-            return tuple(lineage) or None
+            row = fetchone()
+            if row:
+                return self.lineageFromTaxid(int(row[0]))
 
     def close(self):
         """
@@ -150,6 +161,12 @@ class AccessionLineageFetcher(object):
         # Set self._db to None so self.lineage will raise an AttributeError
         # exception if it is called again.
         self._db = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, excType, excValue, traceback):
+        self.close()
 
 
 def isRetrovirus(lineage):
@@ -184,6 +201,24 @@ def isRNAVirus(lineage):
     return False
 
 
+def _preprocessLineage(lineage):
+    """
+    Pre-process a lineage to make it easier to deal with by others.
+
+    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
+        as returned by C{AccessionLineageFetcher.lineage}.
+    @return: A 3-tuple of taxids, names, and ranks (all as C{str}ings).
+    """
+    taxids, names, ranks = [], [], []
+
+    for (taxid, name, rank) in lineage:
+        taxids.append(str(taxid))
+        ranks.append('-' if rank == 'no rank' else rank)
+        names.append(name)
+
+    return taxids, names, ranks
+
+
 def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
     """
     Format a lineage for printing.
@@ -196,12 +231,7 @@ def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
     @param prefix: A C{str} to put at the start of each line.
     @return: A formatted C{str} for printing.
     """
-    taxids, names, ranks = [], [], []
-
-    for (taxid, name, rank) in lineage:
-        taxids.append(str(taxid))
-        ranks.append('-' if rank == 'no rank' else rank)
-        names.append(name)
+    taxids, names, ranks = _preprocessLineage(lineage)
 
     if namesOnly:
         # The separator is guaranteed to be set by our caller.
@@ -220,3 +250,23 @@ def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
             '%s%-*s %-*s %*s' % (
                 prefix, rankWidth, rank, nameWidth, name, taxidWidth, taxid)
             for (taxid, name, rank) in zip(taxids, names, ranks))
+
+
+def lineageTaxonomyLinks(lineage):
+    """
+    Get HTML links for a lineage.
+
+    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
+        as returned by C{AccessionLineageFetcher.lineage}.
+    @return: A C{list} of HTML C{str} links.
+    """
+    taxids, names, _ = _preprocessLineage(lineage)
+
+    assert names[-1] == 'Viruses'
+    names[0] = 'taxon'
+
+    return [
+        '<a href="%s%s">%s</a>' % (
+            'https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=',
+            taxid, name) for taxid, name in list(zip(taxids, names))[:-1]
+    ]

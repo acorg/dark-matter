@@ -64,6 +64,41 @@ matplotlib.use('PDF')
 # import. So please don't move this import higher in this file.
 
 from dark.civ.proteins import ProteinGrouper, SqliteIndex
+from dark.taxonomy import AccessionLineageFetcher
+
+
+def main(db, taxdb, args):
+    grouper = ProteinGrouper(db, taxdb,
+                             assetDir=args.assetDir,
+                             sampleName=args.sampleName,
+                             sampleNameRegex=args.sampleNameRegex,
+                             format_=args.format,
+                             saveReadLengths=args.showReadLengths,
+                             titleRegex=args.titleRegex,
+                             negativeTitleRegex=args.negativeTitleRegex,
+                             pathogenDataDir=args.pathogenDataDir)
+
+    if args.filenames:
+        filenames = args.filenames
+    else:
+        filenames = (line[:-1] for line in sys.stdin)
+
+    for filename in filenames:
+        with open(filename) as fp:
+            grouper.addFile(filename, fp)
+
+    if args.html:
+        print(grouper.toHTML(
+            args.pathogenPanelFilename,
+            minProteinFraction=args.minProteinFraction,
+            pathogenType=args.pathogenType,
+            title=args.title, preamble=args.preamble,
+            sampleIndexFilename=args.sampleIndexFilename,
+            omitVirusLinks=args.omitVirusLinks))
+    else:
+        print(grouper.toStr(
+            title=args.title, preamble=args.preamble,
+            pathogenType=args.pathogenType))
 
 
 if __name__ == '__main__':
@@ -80,6 +115,12 @@ if __name__ == '__main__':
         '--proteinGenomeDatabase', required=True,
         help=('The filename of an Sqlite3 database holding protein and '
               'genome information, as built by make-protein-database.py'))
+
+    parser.add_argument(
+        '--taxonomyDatabase', required=True,
+        help=('The file holding the sqlite3 taxonomy database. See '
+              'https://github.com/acorg/ncbi-taxonomy-database for how to '
+              'build one.'))
 
     # A mutually exclusive group for either --sampleName or --sampleNameRegex
     group = parser.add_mutually_exclusive_group()
@@ -186,34 +227,6 @@ if __name__ == '__main__':
               '--pathogenType viral', file=sys.stderr)
         sys.exit(1)
 
-    grouper = ProteinGrouper(SqliteIndex(args.proteinGenomeDatabase),
-                             assetDir=args.assetDir,
-                             sampleName=args.sampleName,
-                             sampleNameRegex=args.sampleNameRegex,
-                             format_=args.format,
-                             saveReadLengths=args.showReadLengths,
-                             titleRegex=args.titleRegex,
-                             negativeTitleRegex=args.negativeTitleRegex,
-                             pathogenDataDir=args.pathogenDataDir)
-
-    if args.filenames:
-        filenames = args.filenames
-    else:
-        filenames = (line[:-1] for line in sys.stdin)
-
-    for filename in filenames:
-        with open(filename) as fp:
-            grouper.addFile(filename, fp)
-
-    if args.html:
-        print(grouper.toHTML(
-            args.pathogenPanelFilename,
-            minProteinFraction=args.minProteinFraction,
-            pathogenType=args.pathogenType,
-            title=args.title, preamble=args.preamble,
-            sampleIndexFilename=args.sampleIndexFilename,
-            omitVirusLinks=args.omitVirusLinks))
-    else:
-        print(grouper.toStr(
-            title=args.title, preamble=args.preamble,
-            pathogenType=args.pathogenType))
+    with SqliteIndex(args.proteinGenomeDatabase) as db, \
+            AccessionLineageFetcher(args.taxonomyDatabase) as taxdb:
+        main(db, taxdb, args)

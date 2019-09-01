@@ -22,9 +22,9 @@ from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.filter import TitleFilter
 from dark.genbank import GenomeRanges
-from dark.html import NCBISequenceLinkURL
+from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 from dark.reads import Reads
-from dark.taxonomy import isRNAVirus, formatLineage
+from dark.taxonomy import isRNAVirus, formatLineage, lineageTaxonomyLinks
 
 
 class PathogenSampleFiles(object):
@@ -159,11 +159,12 @@ class ProteinGrouper(object):
     READCOUNT_MARKER = '*READ-COUNT*'
     READ_AND_HSP_COUNT_STR_SEP = '/'
 
-    def __init__(self, proteinGenomeDatabase, assetDir='out', sampleName=None,
-                 sampleNameRegex=None, format_='fasta',
+    def __init__(self, proteinGenomeDatabase, taxonomyDatabase, assetDir='out',
+                 sampleName=None, sampleNameRegex=None, format_='fasta',
                  saveReadLengths=False, titleRegex=None,
                  negativeTitleRegex=None, pathogenDataDir='pathogen-data'):
         self._db = proteinGenomeDatabase
+        self._taxdb = taxonomyDatabase
         self._assetDir = assetDir
         self._sampleName = sampleName
         self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
@@ -379,6 +380,15 @@ class ProteinGrouper(object):
 
         return '\n'.join(result)
 
+    def _genomeName(self, genomeAccession):
+        """
+        Get the name of a genome, given its accession number.
+
+        @param genomeAccession: A C{str} pathogen accession number.
+        @return: A C{str} genome name.
+        """
+        return self._db.findGenome(genomeAccession)['organism']
+
     def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
                pathogenType='viral', title='Summary of pathogens',
                preamble=None, sampleIndexFilename=None,
@@ -438,8 +448,9 @@ class ProteinGrouper(object):
                     del self.genomeAccessions[genomeAccession][sample]
 
         genomeAccessions = sorted(
-            genomeAccession for genomeAccession in self.genomeAccessions
-            if len(self.genomeAccessions[genomeAccession]) > 0)
+            (genomeAccession for genomeAccession in self.genomeAccessions
+             if len(self.genomeAccessions[genomeAccession]) > 0),
+            key=self._genomeName)
         nPathogenNames = len(genomeAccessions)
         sampleNames = sorted(self.sampleNames)
 
@@ -497,6 +508,9 @@ class ProteinGrouper(object):
                 font-weight: bold;
             }
             .index {
+                font-size: small;
+            }
+            .taxonomy {
                 font-size: small;
             }
             .protein-name {
@@ -612,15 +626,27 @@ class ProteinGrouper(object):
             sampleCount = len(samples)
             genomeInfo = self._db.findGenome(genomeAccession)
             pathogenProteinCount = genomeInfo['proteinCount']
+
+            lineage = self._taxdb.lineage(genomeInfo['taxonomyId'])
+
+            if lineage:
+                lineageHTML = ', '.join(lineageTaxonomyLinks(lineage))
+            else:
+                lineageHTML = ''
+
+            pathogenLinksHTML = ' %s, %s' % (
+                genomeInfo['databaseName'],
+                NCBISequenceLink(genomeAccession))
+
             if pathogenType == 'viral' and not omitVirusLinks:
                 quoted = quote(genomeInfo['organism'])
-                pathogenLinksHTML = (
-                    ' (<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
+                pathogenLinksHTML += (
+                    ', <a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>.'
                 ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
             else:
-                pathogenLinksHTML = ''
+                pathogenLinksHTML += '.'
 
-            withStr = (' with %d protein%s' %
+            withStr = (' %d protein%s' %
                        (pathogenProteinCount,
                         '' if pathogenProteinCount == 1 else 's'))
 
@@ -635,15 +661,19 @@ class ProteinGrouper(object):
                 '<a id="pathogen-%s"></a>'
                 '<p class="pathogen">'
                 '<span class="pathogen-name">%s</span>'
-                '%s %s, '
-                'was matched by %d sample%s '
-                '(<a href="%s">%s</a> in total):'
+                '<br/>%s, '
+                'matched by %d sample%s, '
+                '<a href="%s">%s</a> in total. '
+                '%s'
+                '<br/><span class="taxonomy">Taxonomy: %s.</span>'
                 '</p>' %
                 (genomeAccession,
                  genomeInfo['organism'],
-                 pathogenLinksHTML, withStr,
+                 withStr,
                  sampleCount, '' if sampleCount == 1 else 's',
-                 pathogenReadsFilename, self.READCOUNT_MARKER))
+                 pathogenReadsFilename, self.READCOUNT_MARKER,
+                 pathogenLinksHTML,
+                 lineageHTML))
 
             # Remember where we are in the output result so we can fill in
             # the total read count once we have processed all samples for
@@ -674,7 +704,7 @@ class ProteinGrouper(object):
                 append(
                     '<p class="sample indented">'
                     'Sample <a href="#sample-%s">%s</a> '
-                    '(%s<a href="%s">%d de-duplicated (by id) '
+                    '(%s<a href="%s">%d '
                     'read%s</a>, <a href="%s">panel</a>):</p>' %
                     (sampleName, sampleName,
                      proteinCountHTML,
@@ -706,24 +736,18 @@ class ProteinGrouper(object):
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '
-                        '(<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(readsFilename)s">reads</a>'
+                        '('
                         % proteinMatch)
 
                     if proteinMatch['proteinURL']:
-                        # Append this directly to the last string in result, to
-                        # avoid introducing whitespace when we join result
-                        # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI protein</a>' %
-                                       proteinMatch['proteinURL'])
+                        result[-1] += '<a href="%s">%s</a>, ' % (
+                            proteinMatch['proteinURL'],
+                            proteinMatch['accession'])
 
-                    if proteinMatch['genomeURL']:
-                        # Append this directly to the last string in result, to
-                        # avoid introducing whitespace when we join result
-                        # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI genome</a>' %
-                                       proteinMatch['genomeURL'])
-                    result[-1] += ')'
+                    result[-1] += (
+                        '<a href="%(bluePlotFilename)s">blue plot</a>, '
+                        '<a href="%(readsFilename)s">reads</a>)'
+                        % proteinMatch)
 
                     append('</li>')
 
@@ -754,9 +778,10 @@ class ProteinGrouper(object):
         append('<h1>Samples by pathogen</h1>')
 
         for sampleName in sampleNames:
-            samplePathogenAccessions = [
-                accession for accession in self.genomeAccessions
-                if sampleName in self.genomeAccessions[accession]]
+            samplePathogenAccessions = sorted(
+                (accession for accession in self.genomeAccessions
+                 if sampleName in self.genomeAccessions[accession]),
+                key=self._genomeName)
 
             if len(samplePathogenAccessions):
                 append(
@@ -777,7 +802,7 @@ class ProteinGrouper(object):
                     (sampleName, sampleName))
                 continue
 
-            for genomeAccession in sorted(samplePathogenAccessions):
+            for genomeAccession in samplePathogenAccessions:
                 genomeInfo = self._db.findGenome(genomeAccession)
                 readsFileName = self.pathogenSampleFiles.lookup(
                     genomeAccession, sampleName)
@@ -791,12 +816,23 @@ class ProteinGrouper(object):
                     proteinCount, pathogenProteinCount,
                     '' if pathogenProteinCount == 1 else 's')
 
+                pathogenLinksHTML = ' (%s' % NCBISequenceLink(genomeAccession)
+
+                if pathogenType == 'viral' and not omitVirusLinks:
+                    quoted = quote(genomeInfo['organism'])
+                    pathogenLinksHTML += (
+                        ', <a href="%s%s">ICTV</a>, '
+                        '<a href="%s%s">ViralZone</a>)'
+                    ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
+                else:
+                    pathogenLinksHTML += ')'
+
                 append(
                     '<p class="sample indented">'
-                    '<a href="#pathogen-%s">%s</a> %s, '
-                    '<a href="%s">%d de-duplicated (by id) read%s</a>:</p>' %
+                    '<a href="#pathogen-%s">%s</a> %s %s, '
+                    '<a href="%s">%d read%s</a>:</p>' %
                     (genomeAccession, genomeInfo['organism'],
-                     proteinCountStr, readsFileName,
+                     pathogenLinksHTML, proteinCountStr, readsFileName,
                      uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
                 append('<ul class="protein-list indented">')
                 for proteinAccession in sorted(proteins):
@@ -810,25 +846,21 @@ class ProteinGrouper(object):
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '
-                        '(<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(readsFilename)s">reads</a>'
+                        '('
                         % proteinMatch)
 
                     if proteinMatch['proteinURL']:
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI protein</a>' %
-                                       proteinMatch['proteinURL'])
+                        result[-1] += '<a href="%s">%s</a>, ' % (
+                            proteinMatch['proteinURL'],
+                            proteinMatch['accession'])
 
-                    if proteinMatch['genomeURL']:
-                        # Append this directly to the last string in result, to
-                        # avoid introducing whitespace when we join result
-                        # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI genome</a>' %
-                                       proteinMatch['genomeURL'])
-
-                    result[-1] += ')'
+                    append(
+                        '<a href="%(bluePlotFilename)s">blue plot</a>, '
+                        '<a href="%(readsFilename)s">reads</a>)'
+                        % proteinMatch)
 
                     append('</li>')
 
@@ -1048,6 +1080,7 @@ class SqliteIndexWriter(object):
                 proteinCount INTEGER NOT NULL,
                 host VARCHAR,
                 note VARCHAR,
+                taxonomyId INTEGER,
                 taxonomy VARCHAR NOT NULL,
                 databaseName VARCHAR
             );
@@ -1113,14 +1146,17 @@ class SqliteIndexWriter(object):
                             if k not in ('references', 'comment',
                                          'structured_comment'):
                                 print('  %s = %r' % (k, v), file=logfp)
-                    if rnaOnly:
-                        try:
-                            lineage = lineageFetcher(genome.id)
-                        except ValueError as e:
-                            print('ValueError calling lineage fetcher: %s' % e,
-                                  file=sys.stderr)
-                            lineage = None
 
+                    try:
+                        lineage = lineageFetcher(genome.id)
+                    except ValueError as e:
+                        print('ValueError calling lineage fetcher: %s' % e,
+                              file=sys.stderr)
+                        lineage = taxonomyId = None
+                    else:
+                        taxonomyId = lineage[0][0]
+
+                    if rnaOnly:
                         if lineage:
                             print('  Lineage:', file=logfp)
                             print(formatLineage(lineage, prefix='    '),
@@ -1145,7 +1181,7 @@ class SqliteIndexWriter(object):
                     proteinCount = len(list(self._genomeProteins(genome)))
 
                     if self.addGenome(
-                            genome, proteinCount, databaseName,
+                            genome, taxonomyId, proteinCount, databaseName,
                             duplicationPolicy=duplicationPolicy, logfp=logfp):
 
                         self.addProteins(
@@ -1216,17 +1252,21 @@ class SqliteIndexWriter(object):
                     if k not in ('references', 'comment',
                                  'structured_comment'):
                         print('  %s = %r' % (k, v), file=logfp)
-            if rnaOnly:
-                if genome.lineage:
-                    lineage = genome.lineage
-                else:
-                    try:
-                        lineage = lineageFetcher(genome.id)
-                    except ValueError as e:
-                        print('ValueError calling lineage fetcher: %s' % e,
-                              file=sys.stderr)
-                        lineage = None
 
+            if genome.lineage:
+                lineage = genome.lineage
+                taxonomyId = lineage[0][0]
+            else:
+                try:
+                    lineage = lineageFetcher(genome.id)
+                except ValueError as e:
+                    print('ValueError calling lineage fetcher: %s' % e,
+                          file=sys.stderr)
+                    lineage = taxonomyId = None
+                else:
+                    taxonomyId = lineage[0][0]
+
+            if rnaOnly:
                 if lineage:
                     print('  Lineage:', file=logfp)
                     print(formatLineage(lineage, prefix='    '), file=logfp)
@@ -1249,7 +1289,7 @@ class SqliteIndexWriter(object):
             proteinCount = len(list(self._genomeProteins(genome)))
 
             if self.addGenome(
-                    genome, proteinCount, databaseName,
+                    genome, taxonomyId, proteinCount, databaseName,
                     duplicationPolicy=duplicationPolicy, logfp=logfp):
 
                 self.addProteins(
@@ -1262,12 +1302,14 @@ class SqliteIndexWriter(object):
 
         return genomeCount, totalProteinCount
 
-    def addGenome(self, genome, proteinCount, databaseName,
+    def addGenome(self, genome, taxonomyId, proteinCount, databaseName,
                   duplicationPolicy='error', logfp=None):
         """
         Add information about a genome to the genomes table.
 
         @param genome: A GenBank genome record, as parsed by SeqIO.parse
+        @param taxonomyId: Either an C{int} taxonomy id or C{None} if the
+            genome taxonomy could not be looked up.
         @param proteinCount: The C{int} number of proteins in the genome.
         @param databaseName: A C{str} indicating the database the records
             in C{filename} came from (e.g., 'refseq' or 'RVDB').
@@ -1293,11 +1335,11 @@ class SqliteIndexWriter(object):
         try:
             self._connection.execute(
                 'INSERT INTO genomes(accession, organism, name, sequence, '
-                'length, proteinCount, host, note, taxonomy, databaseName) '
-                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                (genome.id, source['organism'], genome.description, sequence,
-                 len(sequence), proteinCount, source['host'],
-                 source.get('note'), taxonomy, databaseName))
+                'length, proteinCount, host, note, taxonomyId, taxonomy, '
+                'databaseName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (genome.id, source['organism'], genome.description,
+                 sequence, len(sequence), proteinCount, source['host'],
+                 source.get('note'), taxonomyId, taxonomy, databaseName))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
                 if duplicationPolicy == 'error':

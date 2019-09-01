@@ -1,3 +1,7 @@
+## 3.1.6 Sep 1, 2019
+
+Added taxonomy info to HTML output.
+
 ## 3.1.5 Sep 1, 2019
 
 Removed unguarded call to `self.pathogenPanel` that should have been
