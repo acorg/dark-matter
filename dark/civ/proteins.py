@@ -413,9 +413,6 @@ class ProteinGrouper(object):
 
         self._computeUniqueReadCounts()
 
-        if pathogenPanelFilename:
-            self.pathogenPanel(pathogenPanelFilename)
-
         if sampleIndexFilename:
             with open(sampleIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writeSampleIndex(fp)

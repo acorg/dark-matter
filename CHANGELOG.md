@@ -1,3 +1,8 @@
+## 3.1.5 Sep 1, 2019
+
+Removed unguarded call to `self.pathogenPanel` that should have been
+deleted on the last commit in `dark.civ.proteins.py` `toHTML` method.
+
 ## 3.1.4 Sep 1, 2019
 
 Don't try to make a pathogen panel (in the `dark.civ.proteins.py` `toHTML`
