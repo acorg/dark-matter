@@ -1,3 +1,8 @@
+## 3.1.7 Sep 3, 2019
+
+Added extremely basic `bin/describe-protein-database.py` command. To be
+added to.
+
 ## 3.1.6 Sep 1, 2019
 
 Added taxonomy info to HTML output.

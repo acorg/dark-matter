@@ -42,6 +42,7 @@ scripts = [
     'bin/convert-sam-to-fastq.sh',
     'bin/create-newick-relabeling-output.py',
     'bin/dark-matter-version.py',
+    'bin/describe-protein-database.py',
     'bin/dna-to-aa.py',
     'bin/download-genbank.sh',
     'bin/e-value-to-bit-score.py',

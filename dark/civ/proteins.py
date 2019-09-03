@@ -373,7 +373,7 @@ class ProteinGrouper(object):
                 for proteinName in sorted(proteins):
                     append(
                         '    %(coverage).2f\t%(medianScore).2f\t'
-                        '%(bestScore).2f\t%(readAndHspCountStr)11s\t'
+                        '%(bestScore).2f\t%(readAndHspCountStr)3s\t'
                         '%(proteinName)s'
                         % proteins[proteinName])
             append('')
@@ -508,6 +508,9 @@ class ProteinGrouper(object):
                 font-weight: bold;
             }
             .index {
+                font-size: small;
+            }
+            .host {
                 font-size: small;
             }
             .taxonomy {
@@ -646,9 +649,9 @@ class ProteinGrouper(object):
             else:
                 pathogenLinksHTML += '.'
 
-            withStr = (' %d protein%s' %
-                       (pathogenProteinCount,
-                        '' if pathogenProteinCount == 1 else 's'))
+            proteinCountStr = (' %d protein%s' %
+                               (pathogenProteinCount,
+                                '' if pathogenProteinCount == 1 else 's'))
 
             pathogenReadsFilename = join(
                 self._pathogenDataDir,
@@ -660,8 +663,9 @@ class ProteinGrouper(object):
             append(
                 '<a id="pathogen-%s"></a>'
                 '<p class="pathogen">'
-                '<span class="pathogen-name">%s</span>'
-                '<br/>%s, '
+                '<span class="pathogen-name">%s</span> '
+                '<span class="host">(%s)</span>'
+                '<br/>%d nt, %s, '
                 'matched by %d sample%s, '
                 '<a href="%s">%s</a> in total. '
                 '%s'
@@ -669,7 +673,9 @@ class ProteinGrouper(object):
                 '</p>' %
                 (genomeAccession,
                  genomeInfo['organism'],
-                 withStr,
+                 genomeInfo.get('host') or 'unknown host',
+                 genomeInfo['length'],
+                 proteinCountStr,
                  sampleCount, '' if sampleCount == 1 else 's',
                  pathogenReadsFilename, self.READCOUNT_MARKER,
                  pathogenLinksHTML,
@@ -718,7 +724,7 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readAndHspCountStr)11s %(proteinLength)4d'
+                        '%(readAndHspCountStr)3s'
                         % proteinMatch
                     )
 
@@ -736,15 +742,15 @@ class ProteinGrouper(object):
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '
-                        '('
+                        '(%(proteinLength)d aa,'
                         % proteinMatch)
 
                     if proteinMatch['proteinURL']:
-                        result[-1] += '<a href="%s">%s</a>, ' % (
+                        append('<a href="%s">%s</a>, ' % (
                             proteinMatch['proteinURL'],
-                            proteinMatch['accession'])
+                            proteinMatch['accession']))
 
-                    result[-1] += (
+                    append(
                         '<a href="%(bluePlotFilename)s">blue plot</a>, '
                         '<a href="%(readsFilename)s">reads</a>)'
                         % proteinMatch)
@@ -841,21 +847,18 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readAndHspCountStr)11s %(proteinLength)4d '
+                        '%(readAndHspCountStr)3s'
                         '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '
-                        '('
+                        '(%(proteinLength)d aa,'
                         % proteinMatch)
 
                     if proteinMatch['proteinURL']:
-                        # Append this directly to the last string in result, to
-                        # avoid introducing whitespace when we join result
-                        # using '\n'.
-                        result[-1] += '<a href="%s">%s</a>, ' % (
+                        append('<a href="%s">%s</a>, ' % (
                             proteinMatch['proteinURL'],
-                            proteinMatch['accession'])
+                            proteinMatch['accession']))
 
                     append(
                         '<a href="%(bluePlotFilename)s">blue plot</a>, '
@@ -1812,6 +1815,24 @@ class SqliteIndex(object):
         cur = self._connection.cursor()
         cur.execute(query, *args)
         return cur
+
+    def proteinCount(self):
+        """
+        How many proteins are in the database?
+
+        @return: An C{int} protein count.
+        """
+        cur = self.execute('SELECT COUNT(1) FROM proteins')
+        return int(cur.fetchone()[0])
+
+    def genomeCount(self):
+        """
+        How many genomes are in the database?
+
+        @return: An C{int} genome count.
+        """
+        cur = self.execute('SELECT COUNT(1) FROM genomes')
+        return int(cur.fetchone()[0])
 
     def close(self):
         """
