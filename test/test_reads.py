@@ -2847,6 +2847,36 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(removeDuplicatesById=True)
         self.assertEqual([read1], list(result))
 
+    def testFilterDuplicatesUseMD5(self):
+        """
+        Filtering on sequence duplicates must work correctly when MD5 sums
+        are used instead of the sequence. The first of a set of duplicated
+        reads is the one that should be retained.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id2', 'ATCG')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(removeDuplicates=True,
+                              removeDuplicatesUseMD5=True)
+        self.assertEqual([read1], list(result))
+
+    def testFilterDuplicatesByIdMD5(self):
+        """
+        Filtering on read id duplicates must work correctly when MD5 sums
+        are used instead of the read id. The first of a set of duplicated
+        reads is the one that should be retained.
+        """
+        reads = Reads()
+        read1 = Read('id1', 'ATCG')
+        read2 = Read('id1', 'ATTT')
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(removeDuplicatesById=True,
+                              removeDuplicatesUseMD5=True)
+        self.assertEqual([read1], list(result))
+
     def testFilterRemoveDescriptions(self):
         """
         Removing read id descriptions must work correctly.

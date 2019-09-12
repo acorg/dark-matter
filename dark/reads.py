@@ -819,6 +819,9 @@ class ReadFilter(object):
         sequence identity.
     @param removeDuplicatesById: If C{True} remove duplicated reads based
         only on read id.
+    @param removeDuplicatesUseMD5: If C{True}, use MD5 sums instead of the
+        full sequence or read when either C{removeDuplicates} or
+        C{removeDuplicatesById} are C{True}.
     @param removeDescriptions: If C{True} remove the description (the part
         following the first whitespace) from read ids. The description is
         removed after applying the function specified by --idLambda (if any).
@@ -913,11 +916,11 @@ class ReadFilter(object):
                  truncateTitlesAfter=None, keepSequences=None,
                  removeSequences=None, head=None,
                  removeDuplicates=False, removeDuplicatesById=False,
-                 removeDescriptions=False, modifier=None, randomSubset=None,
-                 trueLength=None, sampleFraction=None,
-                 sequenceNumbersFile=None, idLambda=None, readLambda=None,
-                 keepSites=None, removeSites=None, reverse=False,
-                 reverseComplement=False):
+                 removeDuplicatesUseMD5=False, removeDescriptions=False,
+                 modifier=None, randomSubset=None, trueLength=None,
+                 sampleFraction=None, sequenceNumbersFile=None, idLambda=None,
+                 readLambda=None, keepSites=None, removeSites=None,
+                 reverse=False, reverseComplement=False):
 
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -935,6 +938,7 @@ class ReadFilter(object):
         self.head = head
         self.removeDuplicates = removeDuplicates
         self.removeDuplicatesById = removeDuplicatesById
+        self.removeDuplicatesUseMD5 = removeDuplicatesUseMD5
         self.removeDescriptions = removeDescriptions
         self.modifier = modifier
         self.randomSubset = randomSubset
@@ -1122,14 +1126,22 @@ class ReadFilter(object):
             return False
 
         if self.removeDuplicates:
-            if read.sequence in self.sequencesSeen:
+            if self.removeDuplicatesUseMD5:
+                sequence = md5(read.sequence.encode('UTF-8')).digest()
+            else:
+                sequence = read.sequence
+            if sequence in self.sequencesSeen:
                 return False
-            self.sequencesSeen.add(read.sequence)
+            self.sequencesSeen.add(sequence)
 
         if self.removeDuplicatesById:
-            if read.id in self.idsSeen:
+            if self.removeDuplicatesUseMD5:
+                id_ = md5(read.id.encode('UTF-8')).digest()
+            else:
+                id_ = read.id
+            if id_ in self.idsSeen:
                 return False
-            self.idsSeen.add(read.id)
+            self.idsSeen.add(id_)
 
         if self.modifier:
             modified = self.modifier(read)

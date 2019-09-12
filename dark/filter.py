@@ -241,6 +241,14 @@ def addFASTAFilteringCommandLineOptions(parser):
         help=('Duplicate reads will be removed, based only on '
               'read id. The first occurrence is kept.'))
 
+    parser.add_argument(
+        '--removeDuplicatesUseMD5', action='store_true', default=False,
+        help=('MD5 sums will be stored instead of the full sequence or read '
+              'id when either --removeDuplicates or removeDuplicatesById are '
+              'given. Note that this makes duplicate removal probabilistic. '
+              'This option can be used to reduce the amount of RAM consumed '
+              'during duplicate removal.'))
+
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.
     parser.add_argument(
@@ -296,6 +304,7 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
         keepSequences=keepSequences, removeSequences=removeSequences,
         head=args.head, removeDuplicates=args.removeDuplicates,
         removeDuplicatesById=args.removeDuplicatesById,
+        removeDuplicatesUseMD5=args.removeDuplicatesUseMD5,
         randomSubset=args.randomSubset, trueLength=args.trueLength,
         sampleFraction=args.sampleFraction,
         sequenceNumbersFile=args.sequenceNumbersFile)

@@ -3,7 +3,7 @@ import six
 import sqlite3
 
 from dark.taxonomy import (
-    LineageFetcher, AccessionLineageFetcher, isRetrovirus, isRNAVirus)
+    LineageFetcher, Taxonomy, isRetrovirus, isRNAVirus)
 
 
 class FakeCursor(object):
@@ -66,26 +66,26 @@ class TestLineageFetcher(TestCase):
             lineage)
 
 
-class TestAccessionLineageFetcher(TestCase):
+class TestTaxonomy(TestCase):
     """
-    Test the AccessionLineageFetcher class.
+    Test the Taxonomy class.
     """
 
     def _makeFetcher(self, data):
         """
-        Make a taxonomy database and put it into an AccessionLineageFetcher
+        Make a taxonomy database and put it into an Taxonomy
         instance.
 
         @param data: A C{dict} with 'taxids', 'names', and 'nodes' keys,
             each of which is a C{list} of C{tuple}s containing values to
             insert into the respective tables.
-        @return: A C{AccessionLineageFetcher} instance.
+        @return: A C{Taxonomy} instance.
         """
         db = sqlite3.connect(':memory:')
         cursor = db.cursor()
 
         # The tables created here must be identical to those expected by
-        # the AccessionLineageFetcher class. See also
+        # the Taxonomy class. See also
         # https://github.com/acorg/ncbi-taxonomy-database
         cursor.executescript('''
             CREATE TABLE nodes (
@@ -123,7 +123,7 @@ class TestAccessionLineageFetcher(TestCase):
             execute('INSERT INTO nodes VALUES (?, ?, ?)',
                     (taxid, parentTaxid, rank))
 
-        return AccessionLineageFetcher(db)
+        return Taxonomy(db)
 
     def testUnknownTaxid(self):
         """

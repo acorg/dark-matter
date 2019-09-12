@@ -1,3 +1,7 @@
+## 3.1.8 Sep 4, 2019
+
+Added `bin/get-hosts.py` script.
+
 ## 3.1.7 Sep 3, 2019
 
 Added extremely basic `bin/describe-protein-database.py` command. To be

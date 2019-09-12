@@ -24,7 +24,8 @@ from dark.filter import TitleFilter
 from dark.genbank import GenomeRanges
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 from dark.reads import Reads
-from dark.taxonomy import isRNAVirus, formatLineage, lineageTaxonomyLinks
+from dark.taxonomy import (
+    isRNAVirus, formatLineage, lineageTaxonomyLinks, Hierarchy)
 
 
 class PathogenSampleFiles(object):
@@ -244,6 +245,9 @@ class ProteinGrouper(object):
              proteinLength, longName) = proteinLine.split(None, 6)
 
             proteinInfo = self._db.findProtein(longName)
+            if proteinInfo is None:
+                raise ValueError('Could not find protein info for %r.' %
+                                 longName)
             proteinName = (proteinInfo['product'] or proteinInfo['gene'] or
                            'unknown')
             proteinAccession = proteinInfo['accession']
@@ -454,6 +458,8 @@ class ProteinGrouper(object):
         nPathogenNames = len(genomeAccessions)
         sampleNames = sorted(self.sampleNames)
 
+        # Be careful with commas in the following! Long lines that should
+        # be continued unbroken do not end with a comma.
         result = [
             '<html>',
             '<head>',
@@ -461,8 +467,32 @@ class ProteinGrouper(object):
             title,
             '</title>',
             '<meta charset="UTF-8">',
+
+            '<link rel="stylesheet"',
+            'href="https://stackpath.bootstrapcdn.com/bootstrap/'
+            '3.4.1/css/bootstrap.min.css"',
+            'integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5z'
+            'CYotlSAcp1+c8xmyTe9GYg1l9a69psu"',
+            'crossorigin="anonymous">',
+
+            '<link rel="stylesheet" href="bootstrap-treeview.min.css">',
+
             '</head>',
             '<body>',
+            '<script',
+            'src="https://code.jquery.com/jquery-3.4.1.min.js"',
+            'integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="',
+            'crossorigin="anonymous"></script>',
+
+            '<script',
+            'src="https://stackpath.bootstrapcdn.com/bootstrap/'
+            '3.4.1/js/bootstrap.min.js"',
+            'integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5b'
+            'ApTppSuUkhZXN0VxHd"',
+            'crossorigin="anonymous"></script>',
+
+            '<script src="bootstrap-treeview.min.js"></script>',
+
             '<style>',
             '''\
             body {
@@ -562,6 +592,9 @@ class ProteinGrouper(object):
         append('<p>')
         append(self._title(pathogenType))
 
+        # Emit a div to hold the taxonomy tree.
+        append('<div id="tree"></div>')
+
         if minProteinFraction > 0.0:
             percent = minProteinFraction * 100.0
             if nPathogenNames < len(self.genomeAccessions):
@@ -624,6 +657,8 @@ class ProteinGrouper(object):
         append('<hr>')
         append('<h1>Pathogens by sample</h1>')
 
+        taxonomyHierarchy = Hierarchy()
+
         for genomeAccession in genomeAccessions:
             samples = self.genomeAccessions[genomeAccession]
             sampleCount = len(samples)
@@ -633,6 +668,7 @@ class ProteinGrouper(object):
             lineage = self._taxdb.lineage(genomeInfo['taxonomyId'])
 
             if lineage:
+                taxonomyHierarchy.add(lineage, genomeAccession)
                 lineageHTML = ', '.join(lineageTaxonomyLinks(lineage))
             else:
                 lineageHTML = ''
@@ -778,6 +814,17 @@ class ProteinGrouper(object):
                 self.READCOUNT_MARKER,
                 '%d read%s' % (pathogenReadCount,
                                '' if pathogenReadCount == 1 else 's'))
+
+        append('''
+            <script>
+              var tree = %s;
+              $('#tree').treeview({
+                  data: tree,
+                  enableLinks: true,
+                  levels: 5,
+              });
+           </script>
+        ''' % taxonomyHierarchy.toJSON())
 
         # Write all samples (with pathogens (with proteins)).
         append('<hr>')
@@ -1090,22 +1137,29 @@ class SqliteIndexWriter(object):
             ''')
         self._connection.commit()
 
-    def addGenBankFile(self, filename, rnaOnly=False, databaseName=None,
-                       lineageFetcher=None, proteinSource='GENBANK',
-                       genomeSource='GENBANK', duplicationPolicy='error',
-                       logfp=None):
+    def addGenBankFile(self, filename, taxonomyDatabase, rnaOnly=False,
+                       excludeExclusiveHosts=None,
+                       excludeFungusOnlyViruses=False,
+                       excludePlantOnlyViruses=False, databaseName=None,
+                       proteinSource='GENBANK', genomeSource='GENBANK',
+                       duplicationPolicy='error', logfp=None):
         """
         Add proteins from a GenBank file.
 
         @param filename: A C{str} file name, with the file in GenBank format
             (see https://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html).
+        @param taxonomyDatabase: A taxonomy database. Must be given if
+            C{rnaOnly} is C{True} or C{excludeExclusiveHosts} is not C{None}.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param excludeExclusiveHosts: Either C{None} or a set of host types
+            that should cause a genome to be excluded if the genome only
+            has a single host and it is in C{excludeExclusiveHosts}.
+        @param excludeFungusOnlyViruses: If C{True}, do not include fungus-only
+            viruses.
+        @param excludePlantOnlyViruses: If C{True}, do not include plant-only
+            viruses.
         @param databaseName: A C{str} indicating the database the records
             in C{filename} came from (e.g., 'refseq' or 'RVDB').
-        @param lineageFetcher: A function that returns taxonomy lineage
-            information in the tuple-of-tuples form returned by
-            C{dark.taxonomy.AccessionLineageFetcher.lineage}. Must be given if
-            C{rnaOnly} is C{True}.
         @param proteinSource: A C{str} giving the source of the protein
             accession number. This becomes part of the sequence id printed
             in the protein FASTA output.
@@ -1124,94 +1178,46 @@ class SqliteIndexWriter(object):
         @return: A tuple containing two C{int}s: the number of genome sequences
             in the added file and the total number of proteins found.
         """
-        if rnaOnly:
-            assert lineageFetcher, (
-                'a lineage fetcher must be passed if rnaOnly is True.')
 
-        assert self.SEQUENCE_ID_SEPARATOR not in proteinSource, (
-            'proteinSource cannot contain %r as that is used as a separator.' %
-            self.SEQUENCE_ID_SEPARATOR)
-
-        assert self.SEQUENCE_ID_SEPARATOR not in genomeSource, (
-            'genomeSource cannot contain %r as that is used as a separator.' %
-            self.SEQUENCE_ID_SEPARATOR)
-
-        genomeCount = totalProteinCount = 0
+        def lineageFetcher(genome):
+            return taxonomyDatabase.lineage(genome.id)
 
         with open(filename) as fp:
-            genomes = SeqIO.parse(fp, 'gb')
             with self._connection:
-                for genome in genomes:
-                    if logfp:
-                        print('\n%s: %s' % (genome.id, genome.description),
-                              file=logfp)
-                        for k, v in genome.annotations.items():
-                            if k not in ('references', 'comment',
-                                         'structured_comment'):
-                                print('  %s = %r' % (k, v), file=logfp)
+                genomes = SeqIO.parse(fp, 'gb')
+                return self._addGenomes(
+                    genomes, taxonomyDatabase, lineageFetcher,
+                    rnaOnly=rnaOnly,
+                    excludeExclusiveHosts=excludeExclusiveHosts,
+                    excludeFungusOnlyViruses=excludeFungusOnlyViruses,
+                    excludePlantOnlyViruses=excludePlantOnlyViruses,
+                    databaseName=databaseName, proteinSource=proteinSource,
+                    genomeSource=genomeSource,
+                    duplicationPolicy=duplicationPolicy, logfp=logfp)
 
-                    try:
-                        lineage = lineageFetcher(genome.id)
-                    except ValueError as e:
-                        print('ValueError calling lineage fetcher: %s' % e,
-                              file=sys.stderr)
-                        lineage = taxonomyId = None
-                    else:
-                        taxonomyId = lineage[0][0]
-
-                    if rnaOnly:
-                        if lineage:
-                            print('  Lineage:', file=logfp)
-                            print(formatLineage(lineage, prefix='    '),
-                                  file=logfp)
-                            if not isRNAVirus(lineage):
-                                if logfp:
-                                    print('  %s is not an RNA virus. '
-                                          'Skipping.' % genome.description,
-                                          file=logfp)
-                                continue
-                            else:
-                                if logfp:
-                                    print('  %s is an RNA virus.' %
-                                          genome.description, file=logfp)
-                        else:
-                            print('Could not look up taxonomy lineage for %s '
-                                  '(%s). Cannot confirm as RNA. Skipping.' % (
-                                      genome.id, genome.description),
-                                  file=sys.stderr)
-                            continue
-
-                    proteinCount = len(list(self._genomeProteins(genome)))
-
-                    if self.addGenome(
-                            genome, taxonomyId, proteinCount, databaseName,
-                            duplicationPolicy=duplicationPolicy, logfp=logfp):
-
-                        self.addProteins(
-                            genome, proteinSource=proteinSource,
-                            genomeSource=genomeSource,
-                            duplicationPolicy=duplicationPolicy, logfp=logfp)
-
-                        totalProteinCount += proteinCount
-                        genomeCount += 1
-
-        return genomeCount, totalProteinCount
-
-    def addJSONFile(self, filename, rnaOnly=False, databaseName=None,
-                    lineageFetcher=None, proteinSource='GENBANK',
+    def addJSONFile(self, filename, taxonomyDatabase, rnaOnly=False,
+                    excludeExclusiveHosts=None,
+                    excludeFungusOnlyViruses=False,
+                    excludePlantOnlyViruses=False,
+                    databaseName=None, proteinSource='GENBANK',
                     genomeSource='GENBANK', duplicationPolicy='error',
                     logfp=None):
         """
         Add proteins from a JSON infor file.
 
         @param filename: A C{str} file name, in JSON format.
+        @param taxonomyDatabase: A taxonomy database. Must be given if
+            C{rnaOnly} is C{True} or C{excludeExclusiveHosts} is not C{None}.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param excludeExclusiveHosts: Either C{None} or a set of host types
+            that should cause a genome to be excluded if the genome only
+            has a single host and it is in C{excludeExclusiveHosts}.
+        @param excludeFungusOnlyViruses: If C{True}, do not include fungus-only
+            viruses.
+        @param excludePlantOnlyViruses: If C{True}, do not include plant-only
+            viruses.
         @param databaseName: A C{str} indicating the database the records
             in C{filename} came from (e.g., 'refseq' or 'RVDB').
-        @param lineageFetcher: A function that returns taxonomy lineage
-            information in the tuple-of-tuples form returned by
-            C{dark.taxonomy.AccessionLineageFetcher.lineage}. Must be given if
-            C{rnaOnly} is C{True}.
         @param proteinSource: A C{str} giving the source of the protein
             accession number. This becomes part of the sequence id printed
             in the protein FASTA output.
@@ -1230,10 +1236,69 @@ class SqliteIndexWriter(object):
         @return: A tuple containing two C{int}s: the number of genome sequences
             in the added file and the total number of proteins found.
         """
-        if rnaOnly:
-            assert lineageFetcher, (
-                'a lineage fetcher must be passed if rnaOnly is True.')
 
+        def lineageFetcher(genome):
+            return genome.lineage
+
+        with open(filename) as fp:
+            genome = _Genome(load(fp))
+
+        with self._connection:
+            return self._addGenomes(
+                [genome], taxonomyDatabase, lineageFetcher,
+                rnaOnly=rnaOnly,
+                excludeExclusiveHosts=excludeExclusiveHosts,
+                excludeFungusOnlyViruses=excludeFungusOnlyViruses,
+                excludePlantOnlyViruses=excludePlantOnlyViruses,
+                databaseName=databaseName, proteinSource=proteinSource,
+                genomeSource=genomeSource,
+                duplicationPolicy=duplicationPolicy, logfp=logfp)
+
+    def _addGenomes(
+            self, genomes, taxonomyDatabase, lineageFetcher, rnaOnly=False,
+            excludeExclusiveHosts=None, excludeFungusOnlyViruses=False,
+            excludePlantOnlyViruses=False, databaseName=None,
+            proteinSource='GENBANK', genomeSource='GENBANK',
+            duplicationPolicy='error', logfp=None):
+        """
+        Add a bunch of genomes.
+
+        @param genomes: An iterable of genomes. These are either genomes
+            returned by BioPython's GenBank parser or instances of C{_Genome}.
+        @param taxonomyDatabase: A taxonomy database.
+        @param lineageFetcher: A function that takes a genome and returns a
+            C{tuple} of the taxonomic categories of the genome. Each
+            tuple element is a 3-tuple of (C{int}, C{str}, C{str}) giving a
+            taxonomy id a (scientific) name, and the rank (species, genus,
+            etc). I.e., as returned by L{dark.taxonomy.LineageFetcher.lineage}.
+        @param rnaOnly: If C{True}, only include RNA viruses.
+        @param excludeExclusiveHosts: Either C{None} or a set of host types
+            that should cause a genome to be excluded if the genome only
+            has a single host and it is in C{excludeExclusiveHosts}.
+        @param excludeFungusOnlyViruses: If C{True}, do not include fungus-only
+            viruses.
+        @param excludePlantOnlyViruses: If C{True}, do not include plant-only
+            viruses.
+        @param databaseName: A C{str} indicating the database the records
+            in C{filename} came from (e.g., 'refseq' or 'RVDB').
+        @param proteinSource: A C{str} giving the source of the protein
+            accession number. This becomes part of the sequence id printed
+            in the protein FASTA output.
+        @param genomeSource: A C{str} giving the source of the genome
+            accession number. This becomes part of the sequence id printed
+            in the protein FASTA output.
+        @param duplicationPolicy: A C{str} indicating what to do if a
+            to-be-inserted accession number is already present in the database.
+            "error" results in a ValueError being raised, "ignore" means ignore
+            the duplicate. It should also be possible to update (i.e., replace)
+            but that is not supported yet.
+        @param logfp: If not C{None}, a file pointer to write verbose
+            progress output to.
+        @raise DatabaseDuplicationError: If a duplicate accession number is
+            encountered and C{duplicationPolicy} is 'error'.
+        @return: A tuple containing two C{int}s: the number of genome sequences
+            in the added file and the total number of proteins found.
+        """
         assert self.SEQUENCE_ID_SEPARATOR not in proteinSource, (
             'proteinSource cannot contain %r as that is used as a separator.' %
             self.SEQUENCE_ID_SEPARATOR)
@@ -1244,30 +1309,22 @@ class SqliteIndexWriter(object):
 
         genomeCount = totalProteinCount = 0
 
-        with open(filename) as fp:
-            genome = _Genome(load(fp))
-
-        with self._connection:
+        for genome in genomes:
             if logfp:
-                print('\n%s: %s' % (genome.id, genome.description),
-                      file=logfp)
+                print('\n%s: %s' % (genome.id, genome.description), file=logfp)
                 for k, v in genome.annotations.items():
                     if k not in ('references', 'comment',
                                  'structured_comment'):
                         print('  %s = %r' % (k, v), file=logfp)
 
-            if genome.lineage:
-                lineage = genome.lineage
-                taxonomyId = lineage[0][0]
+            try:
+                lineage = lineageFetcher(genome)
+            except ValueError as e:
+                print('ValueError calling lineage fetcher: %s' % e,
+                      file=sys.stderr)
+                lineage = taxonomyId = None
             else:
-                try:
-                    lineage = lineageFetcher(genome.id)
-                except ValueError as e:
-                    print('ValueError calling lineage fetcher: %s' % e,
-                          file=sys.stderr)
-                    lineage = taxonomyId = None
-                else:
-                    taxonomyId = lineage[0][0]
+                taxonomyId = lineage[0][0]
 
             if rnaOnly:
                 if lineage:
@@ -1275,19 +1332,73 @@ class SqliteIndexWriter(object):
                     print(formatLineage(lineage, prefix='    '), file=logfp)
                     if not isRNAVirus(lineage):
                         if logfp:
-                            print('  %s is not an RNA virus. Skipping.' %
-                                  genome.description, file=logfp)
-                        return (0, 0)
+                            print('  %s (%s) is not an RNA virus. Skipping.' %
+                                  (genome.id, genome.description), file=logfp)
+                        continue
                     else:
                         if logfp:
-                            print('  %s is an RNA virus.' %
-                                  genome.description, file=logfp)
+                            print('  %s (%s) is an RNA virus.' %
+                                  (genome.id, genome.description), file=logfp)
                 else:
-                    print('Could not find taxonomy lineage for %s '
-                          '(%s). Cannot confirm as RNA. Skipping.' % (
-                              genome.id, genome.description),
-                          file=sys.stderr)
-                    return (0, 0)
+                    print('Could not look up taxonomy lineage for %s (%s). '
+                          'Cannot confirm as RNA. Skipping.' %
+                          (genome.id, genome.description), file=logfp)
+                    continue
+
+            if excludeFungusOnlyViruses:
+                if lineage is None:
+                    print('Could not look up taxonomy lineage for %s '
+                          '(%s). Cannot confirm as fungus-only virus. '
+                          'Skipping.' %
+                          (genome.id, genome.description), file=logfp)
+                else:
+                    if taxonomyDatabase.isFungusOnlyVirus(
+                            lineage, genome.description):
+                        if logfp:
+                            print('  %s (%s) is a fungus-only virus.' %
+                                  (genome.id, genome.description), file=logfp)
+                        continue
+                    else:
+                        if logfp:
+                            print('  %s (%s) is not a fungus-only virus.' %
+                                  (genome.id, genome.description), file=logfp)
+
+            if excludePlantOnlyViruses:
+                if lineage is None:
+                    print('Could not look up taxonomy lineage for %s '
+                          '(%s). Cannot confirm as plant-only virus. '
+                          'Skipping.' %
+                          (genome.id, genome.description), file=logfp)
+                else:
+                    if taxonomyDatabase.isPlantOnlyVirus(
+                            lineage, genome.description):
+                        if logfp:
+                            print('  %s (%s) is a plant-only virus.' %
+                                  (genome.id, genome.description), file=logfp)
+                        continue
+                    else:
+                        if logfp:
+                            print('  %s (%s) is not a plant-only virus.' %
+                                  (genome.id, genome.description), file=logfp)
+
+            if excludeExclusiveHosts:
+                if taxonomyId is None:
+                    print('Could not find taxonomy id for %s (%s). '
+                          'Cannot exclude due to exclusive host criteria.' %
+                          (genome.id, genome.description), file=logfp)
+                else:
+                    hosts = taxonomyDatabase.hosts(taxonomyId)
+                    if hosts is None:
+                        print('Could not find hosts for %s (%s). Cannot '
+                              'exclude due to exclusive host criteria.' %
+                              (genome.id, genome.description), file=logfp)
+                    else:
+                        if (len(hosts) == 1 and
+                                hosts.pop() in excludeExclusiveHosts):
+                            print('Excluding %s (%s) due to exclusive host '
+                                  'criteria.' %
+                                  (genome.id, genome.description), file=logfp)
+                            continue
 
             proteinCount = len(list(self._genomeProteins(genome)))
 
@@ -1302,6 +1413,10 @@ class SqliteIndexWriter(object):
 
                 totalProteinCount += proteinCount
                 genomeCount += 1
+
+                print('  Added %s (%s) with %d protein%s to database.' %
+                      (genome.id, genome.description, proteinCount,
+                       '' if proteinCount == 1 else 's'), file=logfp)
 
         return genomeCount, totalProteinCount
 
@@ -1364,6 +1479,60 @@ class SqliteIndexWriter(object):
                 raise
         else:
             return True
+
+    def addProteins(self, genome, proteinSource='GENBANK',
+                    genomeSource='GENBANK', duplicationPolicy='error',
+                    logfp=None):
+        """
+        Add proteins from a Genbank genome record to the proteins database and
+        write out their sequences to the proteins FASTA file (in
+        C{self._fastaFp}).
+
+        @param genome: Either a GenBank genome record, as parsed by
+            C{SeqIO.parse} or a C{_Genome} instance (which behaves like the
+            former).
+        @param proteinSource: A C{str} giving the source of the protein
+            accession number. This becomes part of the sequence id printed
+            in the protein FASTA output.
+        @param genomeSource: A C{str} giving the source of the genome
+            accession number. This becomes part of the sequence id printed
+            in the protein FASTA output.
+        @param duplicationPolicy: A C{str} indicating what to do if a
+            to-be-inserted accession number is already present in the database.
+            "error" results in a ValueError being raised, "ignore" means ignore
+            the duplicate. It should also be possible to update (i.e., replace)
+            but that is not supported yet.
+        @param logfp: If not C{None}, a file pointer to write verbose
+            progress output to.
+        @raise DatabaseDuplicationError: If a duplicate accession number is
+            encountered and C{duplicationPolicy} is 'error'.
+        """
+        genomeLen = len(genome.seq)
+        source = self._sourceInfo(genome, logfp=logfp)
+        # source must be present. addGenome would skip this genome otherwise.
+        assert source
+
+        for fInfo in self._genomeProteins(genome, logfp=logfp):
+
+            # Write FASTA for the protein.
+            seqId = self.SEQUENCE_ID_SEPARATOR.join((
+                self.SEQUENCE_ID_PREFIX,
+                proteinSource, fInfo['proteinId'],
+                genomeSource, genome.id,
+                fInfo['product']))
+
+            print('>%s [%s]\n%s' %
+                  (seqId, source['organism'], fInfo['translation']),
+                  file=self._fastaFp)
+
+            self.addProtein(
+                fInfo['proteinId'], genome.id, fInfo['translation'],
+                fInfo['featureLocation'], fInfo['forward'],
+                fInfo['circular'],
+                fInfo['ranges'].distinctRangeCount(genomeLen),
+                gene=fInfo['gene'], note=fInfo['note'],
+                product=fInfo['product'], duplicationPolicy=duplicationPolicy,
+                logfp=logfp)
 
     def addProtein(self, accession, genomeAccession, sequence, offsets,
                    forward, circular, rangeCount, gene=None, note=None,
@@ -1429,60 +1598,6 @@ class SqliteIndexWriter(object):
             if logfp:
                 print('    Protein %s: genome=%s product=%s' % (
                     accession, genomeAccession, product), file=logfp)
-
-    def addProteins(self, genome, proteinSource='GENBANK',
-                    genomeSource='GENBANK', duplicationPolicy='error',
-                    logfp=None):
-        """
-        Add proteins from a Genbank genome record to the proteins database and
-        write out their sequences to the proteins FASTA file (in
-        C{self._fastaFp}).
-
-        @param genome: Either a GenBank genome record, as parsed by
-            C{SeqIO.parse} or a C{_Genome} instance (which behaves like the
-            former).
-        @param proteinSource: A C{str} giving the source of the protein
-            accession number. This becomes part of the sequence id printed
-            in the protein FASTA output.
-        @param genomeSource: A C{str} giving the source of the genome
-            accession number. This becomes part of the sequence id printed
-            in the protein FASTA output.
-        @param duplicationPolicy: A C{str} indicating what to do if a
-            to-be-inserted accession number is already present in the database.
-            "error" results in a ValueError being raised, "ignore" means ignore
-            the duplicate. It should also be possible to update (i.e., replace)
-            but that is not supported yet.
-        @param logfp: If not C{None}, a file pointer to write verbose
-            progress output to.
-        @raise DatabaseDuplicationError: If a duplicate accession number is
-            encountered and C{duplicationPolicy} is 'error'.
-        """
-        genomeLen = len(genome.seq)
-        source = self._sourceInfo(genome, logfp=logfp)
-        # source must be present. addGenome would skip this genome otherwise.
-        assert source
-
-        for fInfo in self._genomeProteins(genome, logfp=logfp):
-
-            # Write FASTA for the protein.
-            seqId = self.SEQUENCE_ID_SEPARATOR.join((
-                self.SEQUENCE_ID_PREFIX,
-                proteinSource, fInfo['proteinId'],
-                genomeSource, genome.id,
-                fInfo['product']))
-
-            print('>%s [%s]\n%s' %
-                  (seqId, source['organism'], fInfo['translation']),
-                  file=self._fastaFp)
-
-            self.addProtein(
-                fInfo['proteinId'], genome.id, fInfo['translation'],
-                fInfo['featureLocation'], fInfo['forward'],
-                fInfo['circular'],
-                fInfo['ranges'].distinctRangeCount(genomeLen),
-                gene=fInfo['gene'], note=fInfo['note'],
-                product=fInfo['product'], duplicationPolicy=duplicationPolicy,
-                logfp=logfp)
 
     def _sourceInfo(self, genome, logfp):
         """
