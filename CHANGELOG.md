@@ -1,6 +1,10 @@
+## 3.1.9 Sep 12, 2019
+
+Fixed `setup.py` error.
+
 ## 3.1.8 Sep 4, 2019
 
-Added `bin/get-hosts.py` script.
+Added `get-hosts.py` and `get-taxonomy.py` scripts.
 
 ## 3.1.7 Sep 3, 2019
 
