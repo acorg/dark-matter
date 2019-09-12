@@ -9,7 +9,7 @@ from itertools import chain
 import argparse
 
 from dark.civ.proteins import SqliteIndexWriter
-from dark.taxonomy import AccessionLineageFetcher
+from dark.taxonomy import Taxonomy
 
 
 parser = argparse.ArgumentParser(
@@ -22,6 +22,12 @@ parser.add_argument(
     '--databaseFile', required=True,
     help=('The output file. This file must not exist (use --force to '
           'overwrite).'))
+
+parser.add_argument(
+    '--taxonomyDatabase', required=True,
+    help=('The file holding the sqlite3 taxonomy database. See '
+          'https://github.com/acorg/ncbi-taxonomy-database for how to '
+          'build one.'))
 
 parser.add_argument(
     '--databaseName',
@@ -52,6 +58,16 @@ parser.add_argument(
     help='If given, only include RNA viruses.')
 
 parser.add_argument(
+    '--excludeFungusOnlyViruses', default=False, action='store_true',
+    help=('If given, exclude fungus-only viruses (i.e., viruses that only '
+          'infect fungi host species).'))
+
+parser.add_argument(
+    '--excludePlantOnlyViruses', default=False, action='store_true',
+    help=('If given, exclude plant-only viruses (i.e., viruses that only '
+          'infect plant host species).'))
+
+parser.add_argument(
     '--gb', metavar='GenBank-file', nargs='+', action='append',
     help=('The GenBank file(s) to make the database from. These may be '
           'uncompressed, or compressed with bgzip (from samtools), with '
@@ -64,12 +80,6 @@ parser.add_argument(
           'are not in GenBank should be added.'))
 
 parser.add_argument(
-    '--taxonomyDatabase',
-    help=('The file holding the sqlite3 taxonomy database. See '
-          'https://github.com/acorg/ncbi-taxonomy-database for how to '
-          'build one.'))
-
-parser.add_argument(
     '--proteinSource', default='GENBANK',
     help=('The source of the accession numbers for the proteins found in the '
           'input files. This becomes part of the sequence id printed in the '
@@ -80,6 +90,14 @@ parser.add_argument(
     help=('The source of the accession numbers for the genomes in the input '
           'files. This becomes part of the sequence id printed in the '
           'protein FASTA output.'))
+
+parser.add_argument(
+    '--excludeExclusiveHost', metavar='hostname', nargs='+', action='append',
+    choices=('algae', 'archaea', 'bacteria', 'diatom', 'environment',
+             'eukaryotes', 'fungi', 'human', 'invertebrates', 'plants',
+             'protozoa', 'vertebrates'),
+    help=('A host type that should be excluded, but only if this is the only '
+          'host of the virus.'))
 
 
 def filenamesAndAdders(args, db):
@@ -120,16 +138,23 @@ def main(args):
     @param args: The namespace of command-line arguments returned by
         argparse.parse_args()
     """
-    if args.rnaOnly:
+
+    if args.excludeExclusiveHost:
+        excludeExclusiveHosts = set(chain.from_iterable(
+            args.excludeExclusiveHost))
+    else:
+        excludeExclusiveHosts = None
+
+    if args.rnaOnly or excludeExclusiveHosts:
         if args.taxonomyDatabase:
-            lineageFetcher = AccessionLineageFetcher(
-                args.taxonomyDatabase).lineage
+            taxonomyDatabase = Taxonomy(args.taxonomyDatabase)
         else:
-            print('If you specify --rnaOnly, you must also give a taxonomy '
-                  'database file with --taxonomyDatabase', file=sys.stderr)
+            print('If you specify --rnaOnly or --excludeExclusiveHost, you '
+                  'must also give a taxonomy database file with '
+                  '--taxonomyDatabase', file=sys.stderr)
             sys.exit(1)
     else:
-        lineageFetcher = None
+        taxonomyDatabase = None
 
     progress = args.progress
 
@@ -145,8 +170,12 @@ def main(args):
                 start = time()
 
             genomeCount, proteinCount = addFunc(
-                filename, rnaOnly=args.rnaOnly, databaseName=args.databaseName,
-                lineageFetcher=lineageFetcher,
+                filename, rnaOnly=args.rnaOnly,
+                excludeExclusiveHosts=excludeExclusiveHosts,
+                excludeFungusOnlyViruses=args.excludeFungusOnlyViruses,
+                excludePlantOnlyViruses=args.excludePlantOnlyViruses,
+                databaseName=args.databaseName,
+                taxonomyDatabase=taxonomyDatabase,
                 proteinSource=args.proteinSource,
                 genomeSource=args.genomeSource,
                 duplicationPolicy=args.duplicationPolicy, logfp=args.logFile)

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from IPython.display import HTML
+from six.moves.urllib.parse import quote
 
 from dark.fastq import FastqReads
 
@@ -27,7 +28,7 @@ def NCBISequenceLinkURL(title, field=None, delim='|'):
             raise IndexError(
                 'Could not extract field %d from sequence title %r' %
                 (field, title))
-    return 'http://www.ncbi.nlm.nih.gov/nuccore/' + ref
+    return 'http://www.ncbi.nlm.nih.gov/nuccore/' + quote(ref)
 
 
 def NCBISequenceLink(title, field=None, delim='|'):

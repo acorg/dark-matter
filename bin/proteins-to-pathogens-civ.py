@@ -64,7 +64,7 @@ matplotlib.use('PDF')
 # import. So please don't move this import higher in this file.
 
 from dark.civ.proteins import ProteinGrouper, SqliteIndex
-from dark.taxonomy import AccessionLineageFetcher
+from dark.taxonomy import Taxonomy
 
 
 def main(db, taxdb, args):
@@ -228,5 +228,5 @@ if __name__ == '__main__':
         sys.exit(1)
 
     with SqliteIndex(args.proteinGenomeDatabase) as db, \
-            AccessionLineageFetcher(args.taxonomyDatabase) as taxdb:
+            Taxonomy(args.taxonomyDatabase) as taxdb:
         main(db, taxdb, args)
