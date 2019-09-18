@@ -1,3 +1,8 @@
+## 3.1.10 Sep 18, 2019
+
+Make it so `get-taxonomy.py` and `get-hosts.py` can accept a name (e.g.,
+Hymenoptera) as well as a taxonomy id or accession number.
+
 ## 3.1.9 Sep 12, 2019
 
 Fixed `setup.py` error.

@@ -26,7 +26,7 @@ wc:
 clean:
 	find . \( -name '*.pyc' -o -name '*~' \) -print0 | $(XARGS) -0 rm
 	find . -name '__pycache__' -type d -print0 | $(XARGS) -0 rmdir
-	find . -name '_trial_temp' -type d -print0 | $(XARGS) -0 rm
+	find . -name '_trial_temp' -type d -print0 | $(XARGS) -0 rm -r
 	rm -fr dark_matter.egg-info
 	python setup.py clean
 

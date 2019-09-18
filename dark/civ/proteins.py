@@ -821,7 +821,7 @@ class ProteinGrouper(object):
               $('#tree').treeview({
                   data: tree,
                   enableLinks: true,
-                  levels: 5,
+                  levels: 0,
               });
            </script>
         ''' % taxonomyHierarchy.toJSON())

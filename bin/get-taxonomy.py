@@ -47,9 +47,9 @@ if __name__ == '__main__':
 
     parser.add_argument(
         'ids', nargs='*',
-        help=('The ids (accession numbers or taxonomy ids) to print taxonomy '
-              'information for. If not given, ids are read from standard '
-              'input, one per line.'))
+        help=('The ids (accession numbers, names, or taxonomy ids) to print '
+              'taxonomy information for. If not given, ids are read from '
+              'standard input, one per line.'))
 
     parser.add_argument(
         '--separator',

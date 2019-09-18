@@ -169,16 +169,17 @@ class Taxonomy(object):
         return tuple(lineage) or None
 
     @cachedmethod(attrgetter('_lineageCache'))
-    def lineage(self, accession):
+    def lineage(self, id_):
         """
         Get lineage information from the taxonomy database for an
-        accession number or taxonomy id.
+        accession number, name, or taxonomy id.
 
-        @param accession: A C{str} accession number or C{int} taxonomy id.
-            If a C{str}, C{accession} must include the version (e.g., the
-            ".1" part of "DQ011818.1") if the taxonomy database in use uses
-            it (as is the case with the database built by
-            https://github.com/acorg/ncbi-taxonomy-database
+        @param id_: A C{str} accession number, C{str} name (e.g.,
+            'Hymenoptera'), or an C{int} taxonomy id. If a C{str} accession
+            number, C{id_} must include the version (e.g., the ".1" part of
+            "DQ011818.1") if the taxonomy database in use uses it (as is the
+            case with the database built by
+            https://github.com/acorg/ncbi-taxonomy-database)
         @raise ValueError: If a taxonomy id cannot be found in the names or
             nodes table.
         @raise AttributeError: If C{self.close} has been called.
@@ -186,22 +187,26 @@ class Taxonomy(object):
             tuple element is a 3-tuple of (C{int}, C{str}, C{str}) giving a
             taxonomy id a (scientific) name, and the rank (species, genus,
             etc). The first element in the list corresponds to the passed
-            C{accession}, number and each successive element is the parent of
-            the preceeding one. The top level of the taxonomy hierarchy
-            (with taxid = 1) is not included in the returned list. If no
-            taxonomy information is found for C{accession}, return C{None}.
+            C{id_} and each successive element is the parent of the preceeding
+            one. The top level of the taxonomy hierarchy (with taxid = 1) is
+            not included in the returned list. If no taxonomy information is
+            found for C{id_}, return C{None}.
         """
-        if isinstance(accession, int):
-            return self.lineageFromTaxid(accession)
-        else:
-            cursor = self._db.cursor()
+        if isinstance(id_, int):
+            return self.lineageFromTaxid(id_)
 
-            cursor.execute(
-                'SELECT taxid FROM accession_taxid WHERE accession = ?',
-                (accession,))
-            row = cursor.fetchone()
-            if row:
-                return self.lineageFromTaxid(int(row[0]))
+        cursor = self._db.cursor()
+
+        cursor.execute(
+            'SELECT taxid FROM accession_taxid WHERE accession = ?', (id_,))
+        row = cursor.fetchone()
+        if row:
+            return self.lineageFromTaxid(int(row[0]))
+
+        cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
+        row = cursor.fetchone()
+        if row:
+            return self.lineageFromTaxid(int(row[0]))
 
     @cachedmethod(attrgetter('_hostsCache'))
     def hostsFromTaxid(self, taxid):
@@ -219,13 +224,13 @@ class Taxonomy(object):
         if row:
             return set(row[0].split(','))
 
-    def hosts(self, accession):
+    def hosts(self, id_):
         """
         Get host information from the taxonomy database for an accession number
         or taxonomy id.
 
-        @param accession: A C{str} accession number or C{int} taxonomy id.
-            If a C{str}, C{accession} must include the version (e.g., the
+        @param id_: A C{str} accession number or C{int} taxonomy id.
+            If a C{str}, C{id_} must include the version (e.g., the
             ".1" part of "DQ011818.1") if the taxonomy database in use uses
             it (as is the case with the database built by
             https://github.com/acorg/ncbi-taxonomy-database
@@ -233,17 +238,22 @@ class Taxonomy(object):
         @return: A C{set} of C{str} host names, or C{None} if no host
             information.
         """
-        if isinstance(accession, int):
-            return self.hostsFromTaxid(accession)
-        else:
-            cursor = self._db.cursor()
+        if isinstance(id_, int):
+            return self.hostsFromTaxid(id_)
 
-            cursor.execute(
-                'SELECT taxid FROM accession_taxid WHERE accession = ?',
-                (accession,))
-            row = cursor.fetchone()
-            if row:
-                return self.hostsFromTaxid(int(row[0]))
+        cursor = self._db.cursor()
+
+        cursor.execute(
+            'SELECT taxid FROM accession_taxid WHERE accession = ?',
+            (id_,))
+        row = cursor.fetchone()
+        if row:
+            return self.hostsFromTaxid(int(row[0]))
+
+        cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
+        row = cursor.fetchone()
+        if row:
+            return self.hostsFromTaxid(int(row[0]))
 
     @cachedmethod(attrgetter('_fungusVirusCache'))
     def isFungusOnlyVirus(self, lineage, title=None):
