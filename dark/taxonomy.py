@@ -4,9 +4,15 @@ from operator import attrgetter
 from cachetools import LRUCache, cachedmethod
 from json import dumps
 import re
+from collections import namedtuple
+from os import environ
 
 from dark.database import getDatabaseConnection
 
+TAXONOMY_DATABASE_ENV_VAR = 'DARK_MATTER_TAXONOMY_DATABASE'
+TAXONOMY_DATABASE_COMMAND_LINE_OPTION = 'taxonomyDatabase'
+
+LineageElement = namedtuple('LineageElement', ('taxid', 'name', 'rank'))
 
 FUNGUS_ONLY_VIRUS_REGEX = re.compile(
     r'\b(?:mycovirus)\b',
@@ -140,7 +146,30 @@ class Taxonomy(object):
         self._plantVirusCache = LRUCache(maxsize=self.CACHE_SIZE)
         self._fungusVirusCache = LRUCache(maxsize=self.CACHE_SIZE)
 
-    def lineageFromTaxid(self, taxid):
+    def lineageFromTaxid(self, taxid, skipFunc=None, stopFunc=None):
+        """
+        Get lineage information from the taxonomy database for a taxonomy id.
+
+        @param taxid: An C{int} taxonomy id.
+        @param skipFunc: A function that takes a C{LineageElement} instance
+            and returns C{True} if this lineage item should be excluded from
+            the returned C{tuple}.
+        @param stopFunc: A function that takes a C{LineageElement} instance
+            and returns C{True} if the lineage processing should be stopped.
+            The final lineage element is still added to the returned value,
+            unless a C{skipFunc} is passed that returns C{True} for it.
+        @raise ValueError: If the taxonomy id cannot be found in the names
+            table or a taxonomy id cannot be found in the nodes table.
+        @raise AttributeError: If C{self.close} has been called.
+        @return: A C{tuple} of the taxonomic categories of the title. Each
+            tuple element is a C{LineageElement}, giving a taxonomy id a
+            (scientific) name, and the rank (species, genus, etc). The first
+            element in the list corresponds to the passed C{taxid} and each
+            successive element is the parent of the preceeding one. The top
+            level of the taxonomy hierarchy (with taxid = 1) is not included
+            in the returned list. If no taxonomy information is found for
+            C{taxid}, return C{None}.
+        """
         cursor = self._db.cursor()
         execute = cursor.execute
         fetchone = cursor.fetchone
@@ -162,14 +191,22 @@ class Taxonomy(object):
                 raise ValueError(
                     'Could not find taxonomy id %r in nodes table' %
                     (taxid,))
+
             parentTaxid, rank = result
-            lineage.append((taxid, name, rank))
+            element = LineageElement(taxid, name, rank)
+
+            if not (skipFunc and skipFunc(element)):
+                lineage.append(element)
+
+            if stopFunc and stopFunc(element):
+                break
+
             taxid = parentTaxid
 
         return tuple(lineage) or None
 
     @cachedmethod(attrgetter('_lineageCache'))
-    def lineage(self, id_):
+    def lineage(self, id_, skipFunc=None, stopFunc=None):
         """
         Get lineage information from the taxonomy database for an
         accession number, name, or taxonomy id.
@@ -180,20 +217,28 @@ class Taxonomy(object):
             "DQ011818.1") if the taxonomy database in use uses it (as is the
             case with the database built by
             https://github.com/acorg/ncbi-taxonomy-database)
+        @param skipFunc: A function that takes a C{LineageElement} instance
+            and returns C{True} if this lineage item should be excluded from
+            the returned C{tuple}.
+        @param stopFunc: A function that takes a C{LineageElement} instance
+            and returns C{True} if the lineage processing should be stopped.
+            The final lineage element is still added to the returned value,
+            unless a C{skipFunc} is passed that returns C{True} for it.
         @raise ValueError: If a taxonomy id cannot be found in the names or
             nodes table.
         @raise AttributeError: If C{self.close} has been called.
         @return: A C{tuple} of the taxonomic categories of the title. Each
-            tuple element is a 3-tuple of (C{int}, C{str}, C{str}) giving a
-            taxonomy id a (scientific) name, and the rank (species, genus,
-            etc). The first element in the list corresponds to the passed
-            C{id_} and each successive element is the parent of the preceeding
-            one. The top level of the taxonomy hierarchy (with taxid = 1) is
-            not included in the returned list. If no taxonomy information is
-            found for C{id_}, return C{None}.
+            tuple element is a C{LineageElement}, giving a taxonomy id a
+            (scientific) name, and the rank (species, genus, etc). The first
+            element in the list corresponds to the passed C{id_} and each
+            successive element is the parent of the preceeding one. The top
+            level of the taxonomy hierarchy (with taxid = 1) is not included
+            in the returned list. If no taxonomy information is found for
+            C{id_}, return C{None}.
         """
         if isinstance(id_, int):
-            return self.lineageFromTaxid(id_)
+            return self.lineageFromTaxid(
+                id_, skipFunc=skipFunc, stopFunc=stopFunc)
 
         cursor = self._db.cursor()
 
@@ -201,12 +246,14 @@ class Taxonomy(object):
             'SELECT taxid FROM accession_taxid WHERE accession = ?', (id_,))
         row = cursor.fetchone()
         if row:
-            return self.lineageFromTaxid(int(row[0]))
+            return self.lineageFromTaxid(
+                int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
 
         cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
         row = cursor.fetchone()
         if row:
-            return self.lineageFromTaxid(int(row[0]))
+            return self.lineageFromTaxid(
+                int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
 
     @cachedmethod(attrgetter('_hostsCache'))
     def hostsFromTaxid(self, taxid):
@@ -261,8 +308,8 @@ class Taxonomy(object):
         Determine whether a lineage corresponds to a fungus-only virus (i.e.,
         a virus that only infects fungi hosts).
 
-        @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-            as returned by C{Taxonomy.lineage}.
+        @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+            name, and rank as returned by C{Taxonomy.lineage}.
         @param title: If not C{None}, a C{str} title of the virus.
         @return: C{True} if the lineage corresponds to a fungus-only virus,
             C{False} otherwise.
@@ -291,8 +338,8 @@ class Taxonomy(object):
         Determine whether a lineage corresponds to a plant-only virus (i.e.,
         a virus that only infects plant hosts).
 
-        @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-            as returned by C{Taxonomy.lineage}.
+        @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+            name, and rank as returned by C{Taxonomy.lineage}.
         @param title: If not C{None}, a C{str} title of the virus.
         @return: C{True} if the lineage corresponds to a plant-only virus,
             C{False} otherwise.
@@ -315,6 +362,23 @@ class Taxonomy(object):
 
         return False
 
+    @staticmethod
+    def subsetLineageByRanks(lineage, func):
+        """
+        Extract certain ranks from a lineage.
+
+        @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+            name, and rank as returned by C{Taxonomy.lineage}.
+        @param func: A function that accepts a C{str} rank (which may be '-')
+            and returns C{True} or C{False} according to whether the lineage
+            element should be retained.
+        @return: A filter object that yields C{tuple}s of taxonomy id,
+            scientific name, and rank, where the elements are those that
+            C{func} returns C{True}. The elements in the returned value will
+            be in the order in which they are present in C{lineage}.
+        """
+        return filter(lambda l: func(l.rank), lineage)
+
     def close(self):
         """
         Close the database connection (if we opened it).
@@ -336,8 +400,8 @@ def isRetrovirus(lineage):
     """
     Determine whether a lineage corresponds to a retrovirus.
 
-    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-        as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+        name, and rank as returned by C{Taxonomy.lineage}.
     @return: C{True} if the lineage corresponds to a retrovirus, C{False}
         otherwise.
     """
@@ -352,8 +416,8 @@ def isRNAVirus(lineage):
     """
     Determine whether a lineage corresponds to an RNA virus.
 
-    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-        as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+        name, and rank as returned by C{Taxonomy.lineage}.
     @return: C{True} if the lineage corresponds to an RNA virus, C{False}
         otherwise.
     """
@@ -364,69 +428,51 @@ def isRNAVirus(lineage):
     return False
 
 
-def _preprocessLineage(lineage):
-    """
-    Pre-process a lineage to make it easier to deal with by others.
-
-    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-        as returned by C{Taxonomy.lineage}.
-    @return: A 3-tuple of taxids, names, and ranks (all as C{str}ings).
-    """
-    taxids, names, ranks = [], [], []
-
-    for (taxid, name, rank) in lineage:
-        taxids.append(str(taxid))
-        ranks.append('-' if rank == 'no rank' else rank)
-        names.append(name)
-
-    return taxids, names, ranks
-
-
 def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
     """
     Format a lineage for printing.
 
-    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-        as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+        name, and rank as returned by C{Taxonomy.lineage}.
     @param namesOnly: If C{True} only print taxonomic names.
     @param separator: A C{str} separator to put between fields. If C{None},
         return a space-padded aligned columns.
     @param prefix: A C{str} to put at the start of each line.
     @return: A formatted C{str} for printing.
     """
-    taxids, names, ranks = _preprocessLineage(lineage)
-
     if namesOnly:
         # The separator is guaranteed to be set by our caller.
-        return prefix + separator.join(names)
+        return prefix + separator.join(l.name for l in lineage)
 
     if separator is not None:
         return '\n'.join(
             '%s%s%s%s%s%s' % (prefix, rank, separator, name, separator, taxid)
-            for (taxid, name, rank) in zip(taxids, names, ranks))
-    else:
-        taxidWidth = max(len(x) for x in taxids)
-        nameWidth = max(len(x) for x in names)
-        rankWidth = max(len(x) for x in ranks)
+            for (taxid, name, rank) in lineage)
 
-        return '\n'.join(
-            '%s%-*s %-*s %*s' % (
-                prefix, rankWidth, rank, nameWidth, name, taxidWidth, taxid)
-            for (taxid, name, rank) in zip(taxids, names, ranks))
+    # This is a bit slow, walking through the lineage list 3 times.
+    taxidWidth = max(len(str(l.taxid)) for l in lineage)
+    nameWidth = max(len(l.name) for l in lineage)
+    rankWidth = max(len(l.rank) for l in lineage)
+
+    return '\n'.join(
+        '%s%-*s %-*s %*d' % (
+            prefix, rankWidth, rank, nameWidth, name, taxidWidth, taxid)
+        for (taxid, name, rank) in lineage)
 
 
 def lineageTaxonomyLinks(lineage):
     """
     Get HTML links for a lineage.
 
-    @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-        as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+        name, and rank as returned by C{Taxonomy.lineage}.
     @return: A C{list} of HTML C{str} links.
     """
-    taxids, names, _ = _preprocessLineage(lineage)
-
+    names = [l.name for l in lineage]
     assert names[-1] == 'Viruses'
     names[0] = 'taxon'
+
+    taxids = [l.taxid for l in lineage]
 
     return [
         '<a href="%s%s">%s</a>' % (
@@ -484,11 +530,11 @@ class Hierarchy(object):
         """
         Add a new lineage.
 
-        @param lineage: A C{tuple} of taxonomy id, scientific name, and rank
-            as returned by C{Taxonomy.lineage}.
+        @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
+            name, and rank as returned by C{Taxonomy.lineage}.
         @param genomeAccession: A C{str} pathogen accession number.
         """
-        _, names, _ = _preprocessLineage(lineage)
+        names = [l.name for l in lineage]
 
         assert names[-1] == 'Viruses'
 
@@ -503,3 +549,43 @@ class Hierarchy(object):
 
     def toJSON(self):
         return dumps([self._root.toDict()])
+
+
+def addTaxonomyDatabaseCommandLineOptions(parser):
+    """
+    Add standard taxonomy database command-line options to an argparse parser.
+
+    @param parser: An C{argparse.ArgumentParser} instance.
+    """
+    parser.add_argument(
+        '--' + TAXONOMY_DATABASE_COMMAND_LINE_OPTION, metavar='DATABASE-FILE',
+        help=('The file holding an sqlite3 taxonomy database. See '
+              'https://github.com/acorg/ncbi-taxonomy-database for how to '
+              'build one. If not specified, the value in the %r environment '
+              'variable (if any) will be used.' % TAXONOMY_DATABASE_ENV_VAR), )
+
+
+def parseTaxonomyDatabaseCommandLineOptions(args, parser):
+    """
+    Examine parsed command-line options and return a Taxonomy instance. Exits
+    if no taxonomy database is given or named in the TAXONOMY_DATABASE_ENV_VAR
+    environment variable.
+
+    @param args: An argparse namespace, as returned by the argparse
+        C{parse_args} function.
+    @param parser: An C{argparse.ArgumentParser} instance.
+    @return: A C{Taxonomy} instance, or C{None} if no database filename is
+        given or set via the environment variable named in
+        TAXONOMY_DATABASE_ENV_VAR.
+    """
+    filename = args.taxonomyDatabase or environ.get(
+        TAXONOMY_DATABASE_ENV_VAR)
+
+    if filename:
+        with Taxonomy(filename) as db:
+            return db
+    else:
+        parser.error(
+            'A taxonomy database file must be given, either via --%s on '
+            'the command line or via the %r environment variable.' %
+            (TAXONOMY_DATABASE_COMMAND_LINE_OPTION, TAXONOMY_DATABASE_ENV_VAR))

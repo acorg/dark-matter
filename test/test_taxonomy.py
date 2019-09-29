@@ -3,7 +3,7 @@ import six
 import sqlite3
 
 from dark.taxonomy import (
-    LineageFetcher, Taxonomy, isRetrovirus, isRNAVirus)
+    LineageElement as LE, LineageFetcher, Taxonomy, isRetrovirus, isRNAVirus)
 
 
 class FakeCursor(object):
@@ -178,7 +178,7 @@ class TestTaxonomy(TestCase):
                               'DQ011818.1')
         fetcher.close()
 
-    def testFullLookup(self):
+    def testLookupByAccession(self):
         """
         The full taxonomy of an accession number must be retrievable.
         """
@@ -207,6 +207,187 @@ class TestTaxonomy(TestCase):
             fetcher.lineage('DQ011818.1'))
         fetcher.close()
 
+    def testLookupByName(self):
+        """
+        The taxonomy must be retrievable by name.
+        """
+        fetcher = self._makeFetcher({
+            'taxids': (
+                ('DQ011818.1', 500),
+            ),
+            'names': (
+                (500, 'Porcine endogenous retrovirus A'),
+                (400, 'Retroviruses'),
+                (300, 'Viruses'),
+            ),
+            'nodes': (
+                (500, 400, 'species'),
+                (400, 300, 'genus'),
+                (300, 1, 'realm')
+            ),
+        })
+
+        self.assertEqual(
+            (
+                (500, 'Porcine endogenous retrovirus A', 'species'),
+                (400, 'Retroviruses', 'genus'),
+                (300, 'Viruses', 'realm'),
+            ),
+            fetcher.lineage('Porcine endogenous retrovirus A'))
+        fetcher.close()
+
+    def testLookupByTaxid(self):
+        """
+        The taxonomy must be retrievable by taxonomy id.
+        """
+        fetcher = self._makeFetcher({
+            'taxids': (
+                ('DQ011818.1', 500),
+            ),
+            'names': (
+                (500, 'Porcine endogenous retrovirus A'),
+                (400, 'Retroviruses'),
+                (300, 'Viruses'),
+            ),
+            'nodes': (
+                (500, 400, 'species'),
+                (400, 300, 'genus'),
+                (300, 1, 'realm')
+            ),
+        })
+
+        self.assertEqual(
+            (
+                (500, 'Porcine endogenous retrovirus A', 'species'),
+                (400, 'Retroviruses', 'genus'),
+                (300, 'Viruses', 'realm'),
+            ),
+            fetcher.lineage(500))
+        fetcher.close()
+
+    def testLookupWithSkip(self):
+        """
+        It must be possible to skip a level when retrieving a taxonomy.
+        """
+        def skipFunc(lineageElement):
+            return lineageElement.rank == 'genus'
+
+        fetcher = self._makeFetcher({
+            'taxids': (
+                ('DQ011818.1', 500),
+            ),
+            'names': (
+                (500, 'Porcine endogenous retrovirus A'),
+                (400, 'Retroviruses'),
+                (300, 'Viruses'),
+            ),
+            'nodes': (
+                (500, 400, 'species'),
+                (400, 300, 'genus'),
+                (300, 1, 'realm')
+            ),
+        })
+
+        self.assertEqual(
+            (
+                (500, 'Porcine endogenous retrovirus A', 'species'),
+                (300, 'Viruses', 'realm'),
+            ),
+            fetcher.lineage(500, skipFunc=skipFunc))
+        fetcher.close()
+
+    def testLookupWithStop(self):
+        """
+        It must be possible to stop at a level when retrieving a taxonomy.
+        """
+        def stopFunc(lineageElement):
+            return lineageElement.rank == 'genus'
+
+        fetcher = self._makeFetcher({
+            'taxids': (
+                ('DQ011818.1', 500),
+            ),
+            'names': (
+                (500, 'Porcine endogenous retrovirus A'),
+                (400, 'Retroviruses'),
+                (300, 'Viruses'),
+            ),
+            'nodes': (
+                (500, 400, 'species'),
+                (400, 300, 'genus'),
+                (300, 1, 'realm')
+            ),
+        })
+
+        self.assertEqual(
+            (
+                (500, 'Porcine endogenous retrovirus A', 'species'),
+                (400, 'Retroviruses', 'genus'),
+            ),
+            fetcher.lineage(500, stopFunc=stopFunc))
+        fetcher.close()
+
+    def testLookupWithSkipAndStop(self):
+        """
+        It must be possible to stop at a level when retrieving a taxonomy
+        and skip the last (stopping) level.
+        """
+        def skipFunc(lineageElement):
+            return lineageElement.rank == 'genus'
+
+        def stopFunc(lineageElement):
+            return lineageElement.rank == 'genus'
+
+        fetcher = self._makeFetcher({
+            'taxids': (
+                ('DQ011818.1', 500),
+            ),
+            'names': (
+                (500, 'Porcine endogenous retrovirus A'),
+                (400, 'Retroviruses'),
+                (300, 'Viruses'),
+            ),
+            'nodes': (
+                (500, 400, 'species'),
+                (400, 300, 'genus'),
+                (300, 1, 'realm')
+            ),
+        })
+
+        self.assertEqual(
+            (
+                (500, 'Porcine endogenous retrovirus A', 'species'),
+            ),
+            fetcher.lineage(500, skipFunc=skipFunc, stopFunc=stopFunc))
+        fetcher.close()
+
+    def testSubsetLineageByRanks(self):
+        """
+        Test the Taxonomy.subsetLineageByRanks static method.
+        """
+        lineage = (
+            LE(11234, 'Measles morbillivirus', 'species'),
+            LE(11229, 'Morbillivirus', 'genus'),
+            LE(2560076, 'Orthoparamyxovirinae', 'subfamily'),
+            LE(11158, 'Paramyxoviridae', 'family'),
+            LE(11157, 'Mononegavirales', 'order'),
+            LE(2497574, 'Monjiviricetes', 'class'),
+            LE(2497570, 'Haploviricotina', 'subphylum'),
+            LE(2497569, 'Negarnaviricota', 'phylum'),
+            LE(2559587, 'Riboviria', 'realm'),
+            LE(10239, 'Viruses', 'superkingdom'),
+        )
+
+        def filterFunc(rank):
+            return rank in {'phylum', 'genus'}
+
+        self.assertEqual(
+            (
+                LE(11229, 'Morbillivirus', 'genus'),
+                LE(2497569, 'Negarnaviricota', 'phylum'),
+            ),
+            tuple(Taxonomy.subsetLineageByRanks(lineage, filterFunc)))
+
 
 class TestIsRetrovirus(TestCase):
     """
@@ -218,12 +399,12 @@ class TestIsRetrovirus(TestCase):
         """
         self.assertTrue(
             isRetrovirus((
-                (11676, 'Human immunodeficiency virus 1', 'species'),
-                (11646, 'Lentivirus', 'genus'),
-                (327045, 'Orthoretrovirinae', 'subfamily'),
-                (11632, 'Retroviridae', 'family'),
-                (2169561, 'Ortervirales', 'order'),
-                (10239, 'Viruses', 'superkingdom'),
+                LE(11676, 'Human immunodeficiency virus 1', 'species'),
+                LE(11646, 'Lentivirus', 'genus'),
+                LE(327045, 'Orthoretrovirinae', 'subfamily'),
+                LE(11632, 'Retroviridae', 'family'),
+                LE(2169561, 'Ortervirales', 'order'),
+                LE(10239, 'Viruses', 'superkingdom'),
             )))
 
     def testNo(self):
@@ -232,12 +413,12 @@ class TestIsRetrovirus(TestCase):
         """
         self.assertFalse(
             isRetrovirus((
-                (10310, 'Human alphaherpesvirus 2', 'species'),
-                (10294, 'Simplexvirus', 'genus'),
-                (10293, 'Alphaherpesvirinae', 'subfamily'),
-                (10292, 'Herpesviridae', 'family'),
-                (548681, 'Herpesvirales', 'order'),
-                (10239, 'Viruses', 'superkingdom'),
+                LE(10310, 'Human alphaherpesvirus 2', 'species'),
+                LE(10294, 'Simplexvirus', 'genus'),
+                LE(10293, 'Alphaherpesvirinae', 'subfamily'),
+                LE(10292, 'Herpesviridae', 'family'),
+                LE(548681, 'Herpesvirales', 'order'),
+                LE(10239, 'Viruses', 'superkingdom'),
             )))
 
 
@@ -251,16 +432,16 @@ class TestIsRNAVirus(TestCase):
         """
         self.assertTrue(
             isRNAVirus((
-                (11234, 'Measles morbillivirus', 'species'),
-                (11229, 'Morbillivirus', 'genus'),
-                (2560076, 'Orthoparamyxovirinae', 'subfamily'),
-                (11158, 'Paramyxoviridae', 'family'),
-                (11157, 'Mononegavirales', 'order'),
-                (2497574, 'Monjiviricetes', 'class'),
-                (2497570, 'Haploviricotina', 'subphylum'),
-                (2497569, 'Negarnaviricota', 'phylum'),
-                (2559587, 'Riboviria', 'realm'),
-                (10239, 'Viruses', 'superkingdom'),
+                LE(11234, 'Measles morbillivirus', 'species'),
+                LE(11229, 'Morbillivirus', 'genus'),
+                LE(2560076, 'Orthoparamyxovirinae', 'subfamily'),
+                LE(11158, 'Paramyxoviridae', 'family'),
+                LE(11157, 'Mononegavirales', 'order'),
+                LE(2497574, 'Monjiviricetes', 'class'),
+                LE(2497570, 'Haploviricotina', 'subphylum'),
+                LE(2497569, 'Negarnaviricota', 'phylum'),
+                LE(2559587, 'Riboviria', 'realm'),
+                LE(10239, 'Viruses', 'superkingdom'),
             )))
 
     def testHBV(self):
@@ -269,8 +450,37 @@ class TestIsRNAVirus(TestCase):
         """
         self.assertFalse(
             isRNAVirus((
-                (1508712, 'Tent-making bat hepatitis B virus', 'species'),
-                (10405, 'Orthohepadnavirus', 'genus'),
-                (10404, 'Hepadnaviridae', 'family'),
-                (10239, 'Viruses', 'superkingdom'),
+                LE(1508712, 'Tent-making bat hepatitis B virus', 'species'),
+                LE(10405, 'Orthohepadnavirus', 'genus'),
+                LE(10404, 'Hepadnaviridae', 'family'),
+                LE(10239, 'Viruses', 'superkingdom'),
             )))
+
+
+class TestLineageElement(TestCase):
+    """
+    Test the LineageElement named tuple.
+    """
+    def testTaxid(self):
+        """
+        The taxid attribute must be set as expected.
+        """
+        element = LE(245, 'no name', 'species')
+        self.assertEqual(245, element.taxid)
+        self.assertEqual(245, element[0])
+
+    def testName(self):
+        """
+        The name attribute must be set as expected.
+        """
+        element = LE(245, 'no name', 'species')
+        self.assertEqual('no name', element.name)
+        self.assertEqual('no name', element[1])
+
+    def testRank(self):
+        """
+        The rank attribute must be set as expected.
+        """
+        element = LE(245, 'no name', 'species')
+        self.assertEqual('species', element.rank)
+        self.assertEqual('species', element[2])

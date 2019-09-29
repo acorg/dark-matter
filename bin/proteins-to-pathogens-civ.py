@@ -64,7 +64,9 @@ matplotlib.use('PDF')
 # import. So please don't move this import higher in this file.
 
 from dark.civ.proteins import ProteinGrouper, SqliteIndex
-from dark.taxonomy import Taxonomy
+from dark.taxonomy import (
+    addTaxonomyDatabaseCommandLineOptions,
+    parseTaxonomyDatabaseCommandLineOptions)
 
 
 def main(db, taxdb, args):
@@ -115,12 +117,6 @@ if __name__ == '__main__':
         '--proteinGenomeDatabase', required=True,
         help=('The filename of an Sqlite3 database holding protein and '
               'genome information, as built by make-protein-database.py'))
-
-    parser.add_argument(
-        '--taxonomyDatabase', required=True,
-        help=('The file holding the sqlite3 taxonomy database. See '
-              'https://github.com/acorg/ncbi-taxonomy-database for how to '
-              'build one.'))
 
     # A mutually exclusive group for either --sampleName or --sampleNameRegex
     group = parser.add_mutually_exclusive_group()
@@ -210,6 +206,8 @@ if __name__ == '__main__':
               'This should be used when working with viruses that do not yet '
               'have names that can be looked up.'))
 
+    addTaxonomyDatabaseCommandLineOptions(parser)
+
     args = parser.parse_args()
 
     if not args.html:
@@ -227,6 +225,6 @@ if __name__ == '__main__':
               '--pathogenType viral', file=sys.stderr)
         sys.exit(1)
 
-    with SqliteIndex(args.proteinGenomeDatabase) as db, \
-            Taxonomy(args.taxonomyDatabase) as taxdb:
+    with SqliteIndex(args.proteinGenomeDatabase) as db:
+        taxdb = parseTaxonomyDatabaseCommandLineOptions(args, parser)
         main(db, taxdb, args)

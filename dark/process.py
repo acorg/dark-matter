@@ -13,6 +13,10 @@ else:
 class Executor(object):
     """
     Log and execute shell commands.
+
+    @param dryRun: If C{True}, do not execute commands, just log them.
+        This sets the default and can be overidden for a specific command
+        by passing C{dryRun} to the C{execute} method.
     """
     def __init__(self, dryRun=False):
         self._dryRun = dryRun
@@ -20,17 +24,28 @@ class Executor(object):
             '# Executor created at %s. Dry run = %s.' % (ctime(time()), dryRun)
         ]
 
-    def execute(self, command):
+    def execute(self, command, dryRun=None, useStderr=True, **kwargs):
         """
         Execute (or simulate) a command. Add to our log.
 
         @param command: Either a C{str} command (which will be passed to the
             shell) or a C{list} of command arguments (including the executable
             name), in which case the shell is not used.
+        @param dryRun: If C{True}, do not execute commands, just log them.
+            If C{False}, execute the commands. If not given or C{None}, use
+            the default setting (in C{self._dryRun}).
+        @param useStderr: If C{True} print a summary of the command standard
+            output and standard error to sys.stderr if the command results in
+            an error.
+        @param kwargs: Keyword arguments that will be passed to subprocess.run
+            (or subprocess.check_call for Python version 2). Note that keyword
+            arguments are not currently logged (the logging is slightly
+            problematic since a keyword argument might be an environment
+            dictionary).
+        @raise CalledProcessError: If the command results in an error.
         @return: A C{CompletedProcess} instance. This has attributes such as
             C{returncode}, C{stdout}, and C{stderr}. See pydoc subprocess.
-            If C{dryRun} is passed as C{True} to C{__init__}, C{None} is
-            returned.
+            If C{dryRun} is C{True}, C{None} is returned.
         """
         if isinstance(command, six.string_types):
             # Can't have newlines in a command given to the shell.
@@ -40,7 +55,9 @@ class Executor(object):
             strCommand = ' '.join(command)
             shell = False
 
-        if self._dryRun:
+        dryRun = self._dryRun if dryRun is None else dryRun
+
+        if dryRun:
             self.log.append('$ ' + strCommand)
             return
 
@@ -52,23 +69,26 @@ class Executor(object):
 
         if six.PY3:
             try:
-                result = run(command, check=True, stdout=PIPE,
-                             stderr=PIPE, shell=shell, universal_newlines=True)
+                result = run(command, check=True, stdout=PIPE, stderr=PIPE,
+                             shell=shell, universal_newlines=True, **kwargs)
             except CalledProcessError as e:
-                from sys import stderr
-                print('CalledProcessError:', e, file=stderr)
-                print('STDOUT:\n%s' % e.stdout, file=stderr)
-                print('STDERR:\n%s' % e.stderr, file=stderr)
+                if useStderr:
+                    import sys
+                    print('CalledProcessError:', e, file=sys.stderr)
+                    print('STDOUT:\n%s' % e.stdout, file=sys.stderr)
+                    print('STDERR:\n%s' % e.stderr, file=sys.stderr)
                 raise
         else:
             try:
                 result = check_call(command, stdout=PIPE, stderr=PIPE,
-                                    shell=shell, universal_newlines=True)
+                                    shell=shell, universal_newlines=True,
+                                    **kwargs)
             except CalledProcessError as e:
-                from sys import stderr
-                print('CalledProcessError:', e, file=stderr)
-                print('Return code: %s' % e.returncode, file=stderr)
-                print('Output:\n%s' % e.output, file=stderr)
+                if useStderr:
+                    import sys
+                    print('CalledProcessError:', e, file=sys.stderr)
+                    print('Return code: %s' % e.returncode, file=sys.stderr)
+                    print('Output:\n%s' % e.output, file=sys.stderr)
                 raise
 
         stop = time()

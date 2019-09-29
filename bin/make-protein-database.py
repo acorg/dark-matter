@@ -9,7 +9,111 @@ from itertools import chain
 import argparse
 
 from dark.civ.proteins import SqliteIndexWriter
-from dark.taxonomy import Taxonomy
+from dark.taxonomy import (
+    addTaxonomyDatabaseCommandLineOptions,
+    parseTaxonomyDatabaseCommandLineOptions)
+
+
+def filenamesAndAdders(args, db):
+    """
+    Get the filenames and database adding functions.
+
+    @param args: A C{Namespace} instance as returned by argparse.
+    @param db: An C{SqliteIndexWriter} instance.
+    @return: A generator yielding 2-tuples containing a filename and a
+        database adder function that can read the file and incorporate it.
+    """
+    # Use chain to flatten the lists of lists that we get from using both
+    # nargs='+' and action='append'. We use both because it allows people
+    # to use (e.g.) --gb on the command line either via "--gb file1 --gb
+    # file2" or "--gb file1 file2", or a combination of these. That way
+    # it's not necessary to remember which way you're supposed to use it
+    # and you also can't be hit by the subtle problem encountered in
+    # https://github.com/acorg/dark-matter/issues/453
+
+    if not (args.gb or args.json):
+        print('At least one of --gb or --json must be used to indicate input '
+              'files to process.', file=sys.stderr)
+        sys.exit(1)
+
+    if args.gb:
+        for filename in chain.from_iterable(args.gb):
+            yield filename, db.addGenBankFile
+
+    if args.json:
+        for filename in chain.from_iterable(args.json):
+            yield filename, db.addJSONFile
+
+
+def main(args, parser):
+    """
+    Build the protein database.
+
+    @param args: The namespace of command-line arguments returned by
+        argparse.parse_args()
+    @param parser: An C{argparse.ArgumentParser} instance.
+    """
+
+    if args.excludeExclusiveHost:
+        excludeExclusiveHosts = set(chain.from_iterable(
+            args.excludeExclusiveHost))
+    else:
+        excludeExclusiveHosts = None
+
+    if args.rnaOnly or excludeExclusiveHosts:
+        taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(
+            args, parser)
+    else:
+        taxonomyDatabase = None
+
+    progress = args.progress
+
+    if progress:
+        overallStart = time()
+        totalGenomeCount = totalProteinCount = 0
+
+    with SqliteIndexWriter(args.databaseFile) as db:
+        for fileCount, (filename, addFunc) in enumerate(
+                filenamesAndAdders(args, db), start=1):
+            if progress:
+                print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
+                start = time()
+
+            genomeCount, proteinCount = addFunc(
+                filename, rnaOnly=args.rnaOnly,
+                excludeExclusiveHosts=excludeExclusiveHosts,
+                excludeFungusOnlyViruses=args.excludeFungusOnlyViruses,
+                excludePlantOnlyViruses=args.excludePlantOnlyViruses,
+                databaseName=args.databaseName,
+                taxonomyDatabase=taxonomyDatabase,
+                proteinSource=args.proteinSource,
+                genomeSource=args.genomeSource,
+                duplicationPolicy=args.duplicationPolicy, logfp=args.logFile)
+
+            if not genomeCount:
+                if addFunc is db.addGenBankFile:
+                    print('WARNING: no genomes added from %r. Did the GenBank '
+                          'download fail on that file?' % filename,
+                          file=sys.stderr)
+                else:
+                    print('WARNING: no genomes added from JSON file %r.' %
+                          filename, file=sys.stderr)
+
+            if progress:
+                totalGenomeCount += genomeCount
+                totalProteinCount += proteinCount
+                elapsed = time() - start
+                print('indexed %3d genome%s (%5d protein%s) in %.2f seconds.' %
+                      (genomeCount, '' if genomeCount == 1 else 's',
+                       proteinCount, '' if proteinCount == 1 else 's',
+                       elapsed), file=sys.stderr)
+
+    if progress:
+        elapsed = time() - overallStart
+        print('%d files (containing %d genomes and %d proteins) '
+              'processed in %.2f seconds (%.2f mins).' %
+              (fileCount, totalGenomeCount, totalProteinCount, elapsed,
+               elapsed / 60), file=sys.stderr)
 
 
 parser = argparse.ArgumentParser(
@@ -22,12 +126,6 @@ parser.add_argument(
     '--databaseFile', required=True,
     help=('The output file. This file must not exist (use --force to '
           'overwrite).'))
-
-parser.add_argument(
-    '--taxonomyDatabase', required=True,
-    help=('The file holding the sqlite3 taxonomy database. See '
-          'https://github.com/acorg/ncbi-taxonomy-database for how to '
-          'build one.'))
 
 parser.add_argument(
     '--databaseName',
@@ -99,112 +197,7 @@ parser.add_argument(
     help=('A host type that should be excluded, but only if this is the only '
           'host of the virus.'))
 
-
-def filenamesAndAdders(args, db):
-    """
-    Get the filenames and database adding functions.
-
-    @param args: A C{Namespace} instance as returned by argparse.
-    @param db: An C{SqliteIndexWriter} instance.
-    @return: A generator yielding 2-tuples containing a filename and a
-        database adder function that can read the file and incorporate it.
-    """
-    # Use chain to flatten the lists of lists that we get from using both
-    # nargs='+' and action='append'. We use both because it allows people
-    # to use (e.g.) --gb on the command line either via "--gb file1 --gb
-    # file2" or "--gb file1 file2", or a combination of these. That way
-    # it's not necessary to remember which way you're supposed to use it
-    # and you also can't be hit by the subtle problem encountered in
-    # https://github.com/acorg/dark-matter/issues/453
-
-    if not (args.gb or args.json):
-        print('At least one of --gb or --json must be used to indicate input '
-              'files to process.', file=sys.stderr)
-        sys.exit(1)
-
-    if args.gb:
-        for filename in chain.from_iterable(args.gb):
-            yield filename, db.addGenBankFile
-
-    if args.json:
-        for filename in chain.from_iterable(args.json):
-            yield filename, db.addJSONFile
-
-
-def main(args):
-    """
-    Build the protein database.
-
-    @param args: The namespace of command-line arguments returned by
-        argparse.parse_args()
-    """
-
-    if args.excludeExclusiveHost:
-        excludeExclusiveHosts = set(chain.from_iterable(
-            args.excludeExclusiveHost))
-    else:
-        excludeExclusiveHosts = None
-
-    if args.rnaOnly or excludeExclusiveHosts:
-        if args.taxonomyDatabase:
-            taxonomyDatabase = Taxonomy(args.taxonomyDatabase)
-        else:
-            print('If you specify --rnaOnly or --excludeExclusiveHost, you '
-                  'must also give a taxonomy database file with '
-                  '--taxonomyDatabase', file=sys.stderr)
-            sys.exit(1)
-    else:
-        taxonomyDatabase = None
-
-    progress = args.progress
-
-    if progress:
-        overallStart = time()
-        totalGenomeCount = totalProteinCount = 0
-
-    with SqliteIndexWriter(args.databaseFile) as db:
-        for fileCount, (filename, addFunc) in enumerate(
-                filenamesAndAdders(args, db), start=1):
-            if progress:
-                print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
-                start = time()
-
-            genomeCount, proteinCount = addFunc(
-                filename, rnaOnly=args.rnaOnly,
-                excludeExclusiveHosts=excludeExclusiveHosts,
-                excludeFungusOnlyViruses=args.excludeFungusOnlyViruses,
-                excludePlantOnlyViruses=args.excludePlantOnlyViruses,
-                databaseName=args.databaseName,
-                taxonomyDatabase=taxonomyDatabase,
-                proteinSource=args.proteinSource,
-                genomeSource=args.genomeSource,
-                duplicationPolicy=args.duplicationPolicy, logfp=args.logFile)
-
-            if not genomeCount:
-                if addFunc is db.addGenBankFile:
-                    print('WARNING: no genomes added from %r. Did the GenBank '
-                          'download fail on that file?' % filename,
-                          file=sys.stderr)
-                else:
-                    print('WARNING: no genomes added from JSON file %r.' %
-                          filename, file=sys.stderr)
-
-            if progress:
-                totalGenomeCount += genomeCount
-                totalProteinCount += proteinCount
-                elapsed = time() - start
-                print('indexed %3d genome%s (%5d protein%s) in %.2f seconds.' %
-                      (genomeCount, '' if genomeCount == 1 else 's',
-                       proteinCount, '' if proteinCount == 1 else 's',
-                       elapsed), file=sys.stderr)
-
-    if progress:
-        elapsed = time() - overallStart
-        print('%d files (containing %d genomes and %d proteins) '
-              'processed in %.2f seconds (%.2f mins).' %
-              (fileCount, totalGenomeCount, totalProteinCount, elapsed,
-               elapsed / 60), file=sys.stderr)
-
+addTaxonomyDatabaseCommandLineOptions(parser)
 
 args = parser.parse_args()
 
@@ -213,4 +206,4 @@ if args.noWarnings:
         warnings.simplefilter('ignore')
         main(args)
 else:
-    main(args)
+    main(args, parser)

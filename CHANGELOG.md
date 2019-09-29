@@ -1,3 +1,18 @@
+## 3.1.11 Sep 29, 2019
+
+Standardized scripts that need a taxonomy database to use
+`--taxonomyDatabase` on the command line and two utility functions in
+`dark/taxonomy.py` to read them and also look in the
+`DARK_MATTER_TAXONOMY_DATABASE` environment variable.
+
+Added `dryRun`, `useStderr`, and handling of keyword arguments to the
+`Executor.execute` method (in `dark/process.py`).
+
+Add `LineageElement` to `taxonomy.py`. Get rid of `_preprocessLineage`
+function and instead just have the `Taxonomy.lineageFromTaxid` method
+adjust the 'no rank' ranks to be `-`. Added `skipFunc` and `stopFunc` to
+lineage processing.
+
 ## 3.1.10 Sep 18, 2019
 
 Make it so `get-taxonomy.py` and `get-hosts.py` can accept a name (e.g.,

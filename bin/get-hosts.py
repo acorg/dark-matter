@@ -6,7 +6,9 @@ import sys
 import argparse
 import re
 
-from dark.taxonomy import Taxonomy
+from dark.taxonomy import (
+    addTaxonomyDatabaseCommandLineOptions,
+    parseTaxonomyDatabaseCommandLineOptions)
 
 VERSION_REGEX = re.compile(r'\.\d+$')
 
@@ -54,9 +56,11 @@ if __name__ == '__main__':
         '--printId', default=False, action='store_true',
         help='If specified, also print the id.')
 
+    addTaxonomyDatabaseCommandLineOptions(parser)
+
     args = parser.parse_args()
 
-    db = Taxonomy(args.database)
+    db = parseTaxonomyDatabaseCommandLineOptions(args, parser)
 
     if args.ids:
         ids = args.ids

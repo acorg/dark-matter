@@ -6,7 +6,9 @@ import sys
 import argparse
 import re
 
-from dark.taxonomy import Taxonomy, formatLineage
+from dark.taxonomy import (
+    formatLineage, addTaxonomyDatabaseCommandLineOptions,
+    parseTaxonomyDatabaseCommandLineOptions)
 
 VERSION_REGEX = re.compile(r'\.\d+$')
 
@@ -46,7 +48,7 @@ if __name__ == '__main__':
                      'taxonomy ids.'))
 
     parser.add_argument(
-        'ids', nargs='*',
+        'ids', nargs='*', metavar='id',
         help=('The ids (accession numbers, names, or taxonomy ids) to print '
               'taxonomy information for. If not given, ids are read from '
               'standard input, one per line.'))
@@ -58,12 +60,6 @@ if __name__ == '__main__':
               '--namesOnly is used).'))
 
     parser.add_argument(
-        '--database', required=True,
-        help=('The file holding the sqlite3 taxonomy database. See '
-              'https://github.com/acorg/ncbi-taxonomy-database for how to '
-              'build one.'))
-
-    parser.add_argument(
         '--namesOnly', default=False, action='store_true',
         help='If specified, only print the taxonomic names.')
 
@@ -71,14 +67,16 @@ if __name__ == '__main__':
         '--print', default=False, action='store_true',
         help='If specified, also print the id.')
 
+    addTaxonomyDatabaseCommandLineOptions(parser)
+
     args = parser.parse_args()
 
-    db = Taxonomy(args.database)
+    db = parseTaxonomyDatabaseCommandLineOptions(args, parser)
 
     if args.ids:
         ids = args.ids
     else:
-        ids = (line[:-1] for line in sys.stdin)
+        ids = (line.strip() for line in sys.stdin)
 
     separator = args.separator
 
