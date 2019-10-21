@@ -582,8 +582,7 @@ def parseTaxonomyDatabaseCommandLineOptions(args, parser):
         TAXONOMY_DATABASE_ENV_VAR)
 
     if filename:
-        with Taxonomy(filename) as db:
-            return db
+        return Taxonomy(filename)
     else:
         parser.error(
             'A taxonomy database file must be given, either via --%s on '

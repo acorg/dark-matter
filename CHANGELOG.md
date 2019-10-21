@@ -1,3 +1,8 @@
+## 3.1.12 Oct 21, 2019
+
+Fixed incorrect `with` statement in `taxonomy.py`. Improved description of
+fields in civ proteins HTML.
+
 ## 3.1.11 Sep 29, 2019
 
 Standardized scripts that need a taxonomy database to use

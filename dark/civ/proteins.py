@@ -563,7 +563,7 @@ class ProteinGrouper(object):
         proteinFieldsDescription = [
             '<p>',
             'In all bullet point protein lists below, there are the following '
-            'fields:',
+            'numeric fields:',
             '<ol>',
             '<li>Coverage fraction.</li>',
             '<li>Median bit score.</li>',
@@ -571,7 +571,6 @@ class ProteinGrouper(object):
             '<li>Read count (if the HSP count differs, read and HSP ',
             ('counts are both given, separated by "%s").</li>' %
              self.READ_AND_HSP_COUNT_STR_SEP),
-            '<li>Protein length (in amino acids).</li>',
         ]
 
         if self._saveReadLengths:
