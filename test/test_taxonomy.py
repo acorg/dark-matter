@@ -128,10 +128,13 @@ class TestTaxonomy(TestCase):
     def testUnknownTaxid(self):
         """
         If a taxonomy id is not present in the accession_taxid table, the
-        lineage fetcher must return C{None}.
+        lineage fetcher must raise a C{ValueError}.
         """
         fetcher = self._makeFetcher({})
-        self.assertIsNone(fetcher.lineage('DQ011818.1'))
+        error = (r"^Could not find taxonomy id 'DQ011818\.1' in "
+                 r"accession_taxid or names tables$")
+        six.assertRaisesRegex(self, ValueError, error, fetcher.lineage,
+                              'DQ011818.1')
         fetcher.close()
 
     def testReusingClosedFetcher(self):
@@ -453,6 +456,20 @@ class TestIsRNAVirus(TestCase):
                 LE(1508712, 'Tent-making bat hepatitis B virus', 'species'),
                 LE(10405, 'Orthohepadnavirus', 'genus'),
                 LE(10404, 'Hepadnaviridae', 'family'),
+                LE(10239, 'Viruses', 'superkingdom'),
+            )))
+
+    def testHIV(self):
+        """
+        An HIV virus must be classified as an RNA virus.
+        """
+        self.assertTrue(
+            isRNAVirus((
+                LE(11676, 'Human immunodeficiency virus 1', 'species'),
+                LE(11646, 'Lentivirus', 'genus'),
+                LE(327045, 'Orthoretrovirinae', 'subfamily'),
+                LE(11632, 'Retroviridae', 'family'),
+                LE(2169561, 'Ortervirales', 'order'),
                 LE(10239, 'Viruses', 'superkingdom'),
             )))
 

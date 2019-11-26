@@ -14,6 +14,14 @@ TAXONOMY_DATABASE_COMMAND_LINE_OPTION = 'taxonomyDatabase'
 
 LineageElement = namedtuple('LineageElement', ('taxid', 'name', 'rank'))
 
+# These are rank/name tuples that indicate that a lineage is from an RNA
+# virus.
+RNA_VIRUS_LINEAGE_ELEMENTS = set((
+    ('family', 'Retroviridae'),
+    ('family', 'Pseudoviridae'),
+    ('realm', 'Riboviria'),
+))
+
 FUNGUS_ONLY_VIRUS_REGEX = re.compile(
     r'\b(?:mycovirus)\b',
     re.I)
@@ -50,6 +58,7 @@ PLANT_ONLY_FAMILIES = {
     'Avsunviroidae',  # Viroids.
     'Betaflexiviridae',  # In Tymovirales.
     'Bromoviridae',  # Unassigned.
+    'Caulimoviridae',  # In Ortervirales.
     'Closteroviridae',  # Unassigned.
     'Geminiviridae',  # Unassigned.
     'Luteoviridae',  # Unassigned.
@@ -159,7 +168,8 @@ class Taxonomy(object):
             The final lineage element is still added to the returned value,
             unless a C{skipFunc} is passed that returns C{True} for it.
         @raise ValueError: If the taxonomy id cannot be found in the names
-            table or a taxonomy id cannot be found in the nodes table.
+            table or if any taxonomy id cannot be found in the nodes table
+            as we move up the hierarchy.
         @raise AttributeError: If C{self.close} has been called.
         @return: A C{tuple} of the taxonomic categories of the title. Each
             tuple element is a C{LineageElement}, giving a taxonomy id a
@@ -167,8 +177,8 @@ class Taxonomy(object):
             element in the list corresponds to the passed C{taxid} and each
             successive element is the parent of the preceeding one. The top
             level of the taxonomy hierarchy (with taxid = 1) is not included
-            in the returned list. If no taxonomy information is found for
-            C{taxid}, return C{None}.
+            in the returned list. Note that the returned C{tuple} may be empty,
+            depending on C{skipFunc} and C{stopFunc}.
         """
         cursor = self._db.cursor()
         execute = cursor.execute
@@ -203,7 +213,7 @@ class Taxonomy(object):
 
             taxid = parentTaxid
 
-        return tuple(lineage) or None
+        return tuple(lineage)
 
     @cachedmethod(attrgetter('_lineageCache'))
     def lineage(self, id_, skipFunc=None, stopFunc=None):
@@ -224,17 +234,16 @@ class Taxonomy(object):
             and returns C{True} if the lineage processing should be stopped.
             The final lineage element is still added to the returned value,
             unless a C{skipFunc} is passed that returns C{True} for it.
-        @raise ValueError: If a taxonomy id cannot be found in the names or
-            nodes table.
+        @raise ValueError: If a taxonomy id (or one of its higher-level
+            taxonomy ids) cannot be found.
         @raise AttributeError: If C{self.close} has been called.
         @return: A C{tuple} of the taxonomic categories of the title. Each
             tuple element is a C{LineageElement}, giving a taxonomy id a
             (scientific) name, and the rank (species, genus, etc). The first
-            element in the list corresponds to the passed C{id_} and each
+            element in the tuple corresponds to the passed C{id_} and each
             successive element is the parent of the preceeding one. The top
             level of the taxonomy hierarchy (with taxid = 1) is not included
-            in the returned list. If no taxonomy information is found for
-            C{id_}, return C{None}.
+            in the returned tuple.
         """
         if isinstance(id_, int):
             return self.lineageFromTaxid(
@@ -254,6 +263,9 @@ class Taxonomy(object):
         if row:
             return self.lineageFromTaxid(
                 int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
+
+        raise ValueError('Could not find taxonomy id %r in accession_taxid '
+                         'or names tables' % id_)
 
     @cachedmethod(attrgetter('_hostsCache'))
     def hostsFromTaxid(self, taxid):
@@ -400,13 +412,12 @@ def isRetrovirus(lineage):
     """
     Determine whether a lineage corresponds to a retrovirus.
 
-    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
-        name, and rank as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{LineageElement} instances.
     @return: C{True} if the lineage corresponds to a retrovirus, C{False}
         otherwise.
     """
-    for taxid, name, rank in lineage:
-        if rank == 'family' and name == 'Retroviridae':
+    for l in lineage:
+        if l.rank == 'family' and l.name == 'Retroviridae':
             return True
 
     return False
@@ -416,24 +427,33 @@ def isRNAVirus(lineage):
     """
     Determine whether a lineage corresponds to an RNA virus.
 
-    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
-        name, and rank as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{LineageElement} instances.
     @return: C{True} if the lineage corresponds to an RNA virus, C{False}
         otherwise.
     """
-    for taxid, name, rank in lineage:
-        if rank == 'realm' and name == 'Riboviria':
+    for l in lineage:
+        if (l.rank, l.name) in RNA_VIRUS_LINEAGE_ELEMENTS:
             return True
 
     return False
+
+
+def isDNAVirus(lineage):
+    """
+    Determine whether a lineage corresponds to an DNA virus.
+
+    @param lineage: An iterable of C{LineageElement} instances.
+    @return: C{True} if the lineage corresponds to a DNA virus, C{False}
+        otherwise.
+    """
+    return not isRNAVirus(lineage)
 
 
 def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
     """
     Format a lineage for printing.
 
-    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
-        name, and rank as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{LineageElement} instances.
     @param namesOnly: If C{True} only print taxonomic names.
     @param separator: A C{str} separator to put between fields. If C{None},
         return a space-padded aligned columns.
@@ -464,8 +484,7 @@ def lineageTaxonomyLinks(lineage):
     """
     Get HTML links for a lineage.
 
-    @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
-        name, and rank as returned by C{Taxonomy.lineage}.
+    @param lineage: An iterable of C{LineageElement} instances.
     @return: A C{list} of HTML C{str} links.
     """
     names = [l.name for l in lineage]
@@ -530,8 +549,7 @@ class Hierarchy(object):
         """
         Add a new lineage.
 
-        @param lineage: An iterable of C{tuple}s of taxonomy id, scientific
-            name, and rank as returned by C{Taxonomy.lineage}.
+        @param lineage: An iterable of C{LineageElement} instances.
         @param genomeAccession: A C{str} pathogen accession number.
         """
         names = [l.name for l in lineage]

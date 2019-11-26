@@ -25,7 +25,8 @@ from dark.genbank import GenomeRanges
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 from dark.reads import Reads
 from dark.taxonomy import (
-    isRNAVirus, formatLineage, lineageTaxonomyLinks, Hierarchy)
+    isDNAVirus, isRNAVirus, formatLineage, lineageTaxonomyLinks, Hierarchy,
+    LineageElement)
 
 
 class PathogenSampleFiles(object):
@@ -1044,7 +1045,8 @@ class _Genome(object):
         self.annotations = {
             'taxonomy': d['taxonomy'],
         }
-        self.lineage = d.get('lineage')
+        self.lineage = [LineageElement(*lineage)
+                        for lineage in d.get('lineage', [])]
         self.features = [_GenomeFeature(f) for f in d['features']]
 
 
@@ -1136,7 +1138,8 @@ class SqliteIndexWriter(object):
             ''')
         self._connection.commit()
 
-    def addGenBankFile(self, filename, taxonomyDatabase, rnaOnly=False,
+    def addGenBankFile(self, filename, taxonomyDatabase, dnaOnly=False,
+                       rnaOnly=False, maxGenomeLength=None,
                        excludeExclusiveHosts=None,
                        excludeFungusOnlyViruses=False,
                        excludePlantOnlyViruses=False, databaseName=None,
@@ -1148,8 +1151,12 @@ class SqliteIndexWriter(object):
         @param filename: A C{str} file name, with the file in GenBank format
             (see https://www.ncbi.nlm.nih.gov/Sitemap/samplerecord.html).
         @param taxonomyDatabase: A taxonomy database. Must be given if
-            C{rnaOnly} is C{True} or C{excludeExclusiveHosts} is not C{None}.
+            C{dnaOnly} is C{True} or C{rnaOnly} is C{True} or
+            C{excludeExclusiveHosts} is not C{None}.
+        @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param maxGenomeLength: If not C{None}, genomes of a length greater
+            than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
             that should cause a genome to be excluded if the genome only
             has a single host and it is in C{excludeExclusiveHosts}.
@@ -1186,7 +1193,8 @@ class SqliteIndexWriter(object):
                 genomes = SeqIO.parse(fp, 'gb')
                 return self._addGenomes(
                     genomes, taxonomyDatabase, lineageFetcher,
-                    rnaOnly=rnaOnly,
+                    dnaOnly=dnaOnly, rnaOnly=rnaOnly,
+                    maxGenomeLength=maxGenomeLength,
                     excludeExclusiveHosts=excludeExclusiveHosts,
                     excludeFungusOnlyViruses=excludeFungusOnlyViruses,
                     excludePlantOnlyViruses=excludePlantOnlyViruses,
@@ -1194,7 +1202,8 @@ class SqliteIndexWriter(object):
                     genomeSource=genomeSource,
                     duplicationPolicy=duplicationPolicy, logfp=logfp)
 
-    def addJSONFile(self, filename, taxonomyDatabase, rnaOnly=False,
+    def addJSONFile(self, filename, taxonomyDatabase, dnaOnly=False,
+                    rnaOnly=False, maxGenomeLength=None,
                     excludeExclusiveHosts=None,
                     excludeFungusOnlyViruses=False,
                     excludePlantOnlyViruses=False,
@@ -1206,8 +1215,12 @@ class SqliteIndexWriter(object):
 
         @param filename: A C{str} file name, in JSON format.
         @param taxonomyDatabase: A taxonomy database. Must be given if
-            C{rnaOnly} is C{True} or C{excludeExclusiveHosts} is not C{None}.
+            C{dnaOnly} is C{True} or C{rnaOnly} is C{True} or
+            C{excludeExclusiveHosts} is not C{None}.
+        @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param maxGenomeLength: If not C{None}, genomes of a length greater
+            than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
             that should cause a genome to be excluded if the genome only
             has a single host and it is in C{excludeExclusiveHosts}.
@@ -1245,7 +1258,8 @@ class SqliteIndexWriter(object):
         with self._connection:
             return self._addGenomes(
                 [genome], taxonomyDatabase, lineageFetcher,
-                rnaOnly=rnaOnly,
+                dnaOnly=dnaOnly, rnaOnly=rnaOnly,
+                maxGenomeLength=maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
                 excludeFungusOnlyViruses=excludeFungusOnlyViruses,
                 excludePlantOnlyViruses=excludePlantOnlyViruses,
@@ -1254,7 +1268,8 @@ class SqliteIndexWriter(object):
                 duplicationPolicy=duplicationPolicy, logfp=logfp)
 
     def _addGenomes(
-            self, genomes, taxonomyDatabase, lineageFetcher, rnaOnly=False,
+            self, genomes, taxonomyDatabase, lineageFetcher, dnaOnly=False,
+            rnaOnly=False, maxGenomeLength=None,
             excludeExclusiveHosts=None, excludeFungusOnlyViruses=False,
             excludePlantOnlyViruses=False, databaseName=None,
             proteinSource='GENBANK', genomeSource='GENBANK',
@@ -1270,7 +1285,10 @@ class SqliteIndexWriter(object):
             tuple element is a 3-tuple of (C{int}, C{str}, C{str}) giving a
             taxonomy id a (scientific) name, and the rank (species, genus,
             etc). I.e., as returned by L{dark.taxonomy.LineageFetcher.lineage}.
+        @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param maxGenomeLength: If not C{None}, genomes of a length greater
+            than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
             that should cause a genome to be excluded if the genome only
             has a single host and it is in C{excludeExclusiveHosts}.
@@ -1295,8 +1313,9 @@ class SqliteIndexWriter(object):
             progress output to.
         @raise DatabaseDuplicationError: If a duplicate accession number is
             encountered and C{duplicationPolicy} is 'error'.
-        @return: A tuple containing two C{int}s: the number of genome sequences
-            in the added file and the total number of proteins found.
+        @return: A C{tuple} containing three C{int}s: the number of genome
+            sequences examined (for potential addition), the number of genomes
+            actually added, and the total number of proteins added.
         """
         assert self.SEQUENCE_ID_SEPARATOR not in proteinSource, (
             'proteinSource cannot contain %r as that is used as a separator.' %
@@ -1306,38 +1325,68 @@ class SqliteIndexWriter(object):
             'genomeSource cannot contain %r as that is used as a separator.' %
             self.SEQUENCE_ID_SEPARATOR)
 
-        genomeCount = totalProteinCount = 0
+        assert not (dnaOnly and rnaOnly), (
+            'dnaOnly and rnaOnly cannot both be True.')
+
+        examinedGenomeCount = addedGenomeCount = addedProteinCount = 0
 
         for genome in genomes:
+            examinedGenomeCount += 1
+            genomeLength = len(str(genome.seq))
             if logfp:
                 print('\n%s: %s' % (genome.id, genome.description), file=logfp)
+                print('  length = %d' % genomeLength, file=logfp)
                 for k, v in genome.annotations.items():
                     if k not in ('references', 'comment',
                                  'structured_comment'):
                         print('  %s = %r' % (k, v), file=logfp)
 
+            if maxGenomeLength is not None and genomeLength > maxGenomeLength:
+                if logfp:
+                    print('  Genome too long. Skipping.', file=logfp)
+                continue
+
             try:
                 lineage = lineageFetcher(genome)
             except ValueError as e:
-                print('ValueError calling lineage fetcher: %s' % e,
-                      file=sys.stderr)
+                print('ValueError calling lineage fetcher for %s (%s): %s' %
+                      (genome.id, genome.description, e), file=sys.stderr)
                 lineage = taxonomyId = None
             else:
                 taxonomyId = lineage[0][0]
+
+            if dnaOnly:
+                if lineage:
+                    print('  Lineage:', file=logfp)
+                    print(formatLineage(lineage, prefix='    '), file=logfp)
+                    if isDNAVirus(lineage):
+                        if logfp:
+                            print('  %s (%s) is a DNA virus.' %
+                                  (genome.id, genome.description), file=logfp)
+                    else:
+                        if logfp:
+                            print('  %s (%s) is not a DNA virus. Skipping.' %
+                                  (genome.id, genome.description), file=logfp)
+                        continue
+                else:
+                    print('Could not look up taxonomy lineage for %s (%s). '
+                          'Cannot confirm as DNA. Skipping.' %
+                          (genome.id, genome.description), file=logfp)
+                    continue
 
             if rnaOnly:
                 if lineage:
                     print('  Lineage:', file=logfp)
                     print(formatLineage(lineage, prefix='    '), file=logfp)
-                    if not isRNAVirus(lineage):
+                    if isRNAVirus(lineage):
+                        if logfp:
+                            print('  %s (%s) is an RNA virus.' %
+                                  (genome.id, genome.description), file=logfp)
+                    else:
                         if logfp:
                             print('  %s (%s) is not an RNA virus. Skipping.' %
                                   (genome.id, genome.description), file=logfp)
                         continue
-                    else:
-                        if logfp:
-                            print('  %s (%s) is an RNA virus.' %
-                                  (genome.id, genome.description), file=logfp)
                 else:
                     print('Could not look up taxonomy lineage for %s (%s). '
                           'Cannot confirm as RNA. Skipping.' %
@@ -1410,14 +1459,14 @@ class SqliteIndexWriter(object):
                     genomeSource=genomeSource,
                     duplicationPolicy=duplicationPolicy, logfp=logfp)
 
-                totalProteinCount += proteinCount
-                genomeCount += 1
+                addedProteinCount += proteinCount
+                addedGenomeCount += 1
 
                 print('  Added %s (%s) with %d protein%s to database.' %
                       (genome.id, genome.description, proteinCount,
                        '' if proteinCount == 1 else 's'), file=logfp)
 
-        return genomeCount, totalProteinCount
+        return examinedGenomeCount, addedGenomeCount, addedProteinCount
 
     def addGenome(self, genome, taxonomyId, proteinCount, databaseName,
                   duplicationPolicy='error', logfp=None):

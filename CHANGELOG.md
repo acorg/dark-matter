@@ -1,3 +1,10 @@
+## 3.1.13 Nov 26, 2019
+
+Added `--dnaOnly` and `--maxGenomeLength` args to `make-protein-database.py`.
+Improved `isRNAVirus` function so it returns `True` on retroviridae.
+Improved the log output of the same script. Added a test (for HIV as an RNA
+virus) and some small clean-ups.
+
 ## 3.1.12 Oct 21, 2019
 
 Fixed incorrect `with` statement in `taxonomy.py`. Improved description of

@@ -20,8 +20,9 @@ def filenamesAndAdders(args, db):
 
     @param args: A C{Namespace} instance as returned by argparse.
     @param db: An C{SqliteIndexWriter} instance.
-    @return: A generator yielding 2-tuples containing a filename and a
-        database adder function that can read the file and incorporate it.
+    @return: A generator yielding 3-tuples containing a filename, a
+        database adder function that can read the file and incorporate it,
+        and a C{str} that is either 'gb' or 'json'.
     """
     # Use chain to flatten the lists of lists that we get from using both
     # nargs='+' and action='append'. We use both because it allows people
@@ -38,11 +39,11 @@ def filenamesAndAdders(args, db):
 
     if args.gb:
         for filename in chain.from_iterable(args.gb):
-            yield filename, db.addGenBankFile
+            yield filename, db.addGenBankFile, 'gb'
 
     if args.json:
         for filename in chain.from_iterable(args.json):
-            yield filename, db.addJSONFile
+            yield filename, db.addJSONFile, 'json'
 
 
 def main(args, parser):
@@ -60,7 +61,7 @@ def main(args, parser):
     else:
         excludeExclusiveHosts = None
 
-    if args.rnaOnly or excludeExclusiveHosts:
+    if args.dnaOnly or args.rnaOnly or excludeExclusiveHosts:
         taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(
             args, parser)
     else:
@@ -73,14 +74,19 @@ def main(args, parser):
         totalGenomeCount = totalProteinCount = 0
 
     with SqliteIndexWriter(args.databaseFile) as db:
-        for fileCount, (filename, addFunc) in enumerate(
+        for fileCount, (filename, addFunc, type_) in enumerate(
                 filenamesAndAdders(args, db), start=1):
+
+            if args.logFile:
+                print("\n>>> Indexing '%s'." % filename, end='\n\n',
+                      file=args.logFile)
+
             if progress:
-                print("Indexing '%s' ... " % filename, end='', file=sys.stderr)
                 start = time()
 
-            genomeCount, proteinCount = addFunc(
-                filename, rnaOnly=args.rnaOnly,
+            examinedGenomeCount, genomeCount, proteinCount = addFunc(
+                filename, dnaOnly=args.dnaOnly, rnaOnly=args.rnaOnly,
+                maxGenomeLength=args.maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
                 excludeFungusOnlyViruses=args.excludeFungusOnlyViruses,
                 excludePlantOnlyViruses=args.excludePlantOnlyViruses,
@@ -90,28 +96,31 @@ def main(args, parser):
                 genomeSource=args.genomeSource,
                 duplicationPolicy=args.duplicationPolicy, logfp=args.logFile)
 
-            if not genomeCount:
-                if addFunc is db.addGenBankFile:
-                    print('WARNING: no genomes added from %r. Did the GenBank '
+            if examinedGenomeCount == 0:
+                if type_ == 'gb':
+                    print('WARNING: No genomes found in %r. Did the GenBank '
                           'download fail on that file?' % filename,
                           file=sys.stderr)
                 else:
-                    print('WARNING: no genomes added from JSON file %r.' %
+                    assert type_ == 'json'
+                    print('WARNING: no genomes found in JSON file %r.' %
                           filename, file=sys.stderr)
 
             if progress:
+                elapsed = time() - start
                 totalGenomeCount += genomeCount
                 totalProteinCount += proteinCount
-                elapsed = time() - start
-                print('indexed %3d genome%s (%5d protein%s) in %.2f seconds.' %
-                      (genomeCount, '' if genomeCount == 1 else 's',
-                       proteinCount, '' if proteinCount == 1 else 's',
-                       elapsed), file=sys.stderr)
+                print('Processed %r: added %3d of %3d genome%s (%5d '
+                      'protein%s) in %.2f seconds.' %
+                      (filename, genomeCount, examinedGenomeCount,
+                       '' if genomeCount == 1 else 's', proteinCount,
+                       '' if proteinCount == 1 else 's', elapsed),
+                      file=sys.stderr)
 
     if progress:
         elapsed = time() - overallStart
         print('%d files (containing %d genomes and %d proteins) '
-              'processed in %.2f seconds (%.2f mins).' %
+              'indexed in %.2f seconds (%.2f mins).' %
               (fileCount, totalGenomeCount, totalProteinCount, elapsed,
                elapsed / 60), file=sys.stderr)
 
@@ -151,9 +160,20 @@ parser.add_argument(
     '--noWarnings', default=False, action='store_true',
     help='Do not print warnings about unparseable GenBank or JSON records.')
 
-parser.add_argument(
+# A mutually exclusive group for DNA/RNA only.
+group = parser.add_mutually_exclusive_group()
+
+group.add_argument(
+    '--dnaOnly', default=False, action='store_true',
+    help='If given, only include DNA viruses.')
+
+group.add_argument(
     '--rnaOnly', default=False, action='store_true',
     help='If given, only include RNA viruses.')
+
+parser.add_argument(
+    '--maxGenomeLength', type=int,
+    help='Genomes longer than this will not be considered.')
 
 parser.add_argument(
     '--excludeFungusOnlyViruses', default=False, action='store_true',
