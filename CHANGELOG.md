@@ -1,3 +1,7 @@
+## 3.1.14 Nov 28, 2019
+
+Added a const value for `--pathogenPanelFilename` in `proteins-to-pathogens-civ.py`.
+
 ## 3.1.13 Nov 26, 2019
 
 Added `--dnaOnly` and `--maxGenomeLength` args to `make-protein-database.py`.

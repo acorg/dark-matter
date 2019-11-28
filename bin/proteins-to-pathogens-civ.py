@@ -135,7 +135,7 @@ if __name__ == '__main__':
               'should be used as the sample name.'))
 
     parser.add_argument(
-        '--pathogenPanelFilename',
+        '--pathogenPanelFilename', nargs='?', const=None,
         help=('An (optional) filename to write a pathogen-sample panel PNG '
               'image to.'))
 
