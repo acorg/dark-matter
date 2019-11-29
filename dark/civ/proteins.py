@@ -795,13 +795,8 @@ class ProteinGrouper(object):
                         appendNoSpace(' (%s)' % ', '.join(
                             map(str, sorted(proteinMatch['readLengths']))))
 
-                    # Add the </span> with no intermediate whitespace
-                    # because the 'stats' CSS class uses 'pre' on
-                    # whitespace, which results in a newline when we use
-                    # '\n'.join(result).
-                    appendNoSpace('</span>')
-
                     appendNoSpace(
+                        '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '

@@ -1,3 +1,7 @@
+## 3.1.18 Nov 29, 2019
+
+Fix (again) newline in HTML summary output.
+
 ## 3.1.17 Nov 29, 2019
 
 Fix newline in HTML summary output.
