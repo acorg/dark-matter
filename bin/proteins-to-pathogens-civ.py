@@ -64,6 +64,7 @@ matplotlib.use('PDF')
 # import. So please don't move this import higher in this file.
 
 from dark.civ.proteins import ProteinGrouper, SqliteIndex
+from dark.colors import ColorsForCounts
 from dark.taxonomy import (
     addTaxonomyDatabaseCommandLineOptions,
     parseTaxonomyDatabaseCommandLineOptions)
@@ -90,8 +91,12 @@ def main(db, taxdb, args):
             grouper.addFile(filename, fp)
 
     if args.html:
+        readCountColors = ColorsForCounts(args.readCountColor,
+                                          args.defaultReadCountColor)
+
         print(grouper.toHTML(
             args.pathogenPanelFilename,
+            readCountColors=readCountColors,
             minProteinFraction=args.minProteinFraction,
             pathogenType=args.pathogenType,
             title=args.title, preamble=args.preamble,
@@ -206,6 +211,25 @@ if __name__ == '__main__':
               'This should be used when working with viruses that do not yet '
               'have names that can be looked up.'))
 
+    parser.add_argument(
+        '--defaultReadCountColor', default='black',
+        help=('The font color for read counts. This will be used for all '
+              'read counts that do not otherwise have a color due to use of '
+              '--readCountColor. Only valid if --html is used.'))
+
+    parser.add_argument(
+        '--readCountColor', action='append',
+        help=('Specify read count coloring. This option must be given as '
+              'a space separated "value color" pair. The value is an integer '
+              'read count and the color is any color specification that can '
+              'be given to CSS. This argument can be repeated. E.g., '
+              '--readCountColor "0.9 red" --readCountColor '
+              '"0.75 rgb(23, 190, 207)" --readCountColor "0.1 #CF3CF3". Read '
+              'counts will be colored using the color of the highest count '
+              'threshold they satisfy. The default is to color all read '
+              'counts with the --defaultReadCountColor color. Only valid if '
+              '--html is used.'))
+
     addTaxonomyDatabaseCommandLineOptions(parser)
 
     args = parser.parse_args()
@@ -217,6 +241,10 @@ if __name__ == '__main__':
             sys.exit(1)
         if args.omitVirusLinks:
             print('It does not make sense to use --omitVirusLinks '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+        if args.readCountColor:
+            print('It does not make sense to use --readCountColor '
                   'without also using --html', file=sys.stderr)
             sys.exit(1)
 

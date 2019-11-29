@@ -37,7 +37,7 @@ FUNGUS_ONLY_FAMILIES = {
 PLANT_ONLY_VIRUS_REGEX = re.compile(
     r'\b(?:grapevine|mosaic|mottle|blotch virus|viroid|'
     r'tombus|cherry virus|bean endornavirus|coffee ringspot virus|'
-    r'wheat stripe virus|Lettuce necrotic yellows virus|'
+    r'wheat stripe virus|Lettuce necrotic yellows virus|citrus yellow|'
     r'Maize fine streak virus|dwarf (fiji)?virus|maize stripe virus|'
     r'chlorotic spot virus)\b',
     re.I)
