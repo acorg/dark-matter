@@ -19,7 +19,7 @@ def thresholdToCssName(threshold):
     Turn a floating point threshold into a string that can be used as a CSS
     class name.
 
-    param: The C{float} threshold.
+    param threshold: The C{float} threshold.
     return: A C{str} CSS class name.
     """
     # '.' is illegal in a CSS class name.
@@ -495,7 +495,7 @@ if __name__ == '__main__':
         '--color', action='append',
         help=('Specify cell background coloring. This option must be given as '
               'a space separated "value color" pair. The value is an identity '
-              'fraction in [0..1] and the color is anything color '
+              'fraction in [0..1] and the color is any color '
               'specification that can be given to CSS. This argument can be '
               'repeated. E.g., --color "0.9 red" --color "0.75 rgb(23, 190, '
               '207)" --color "0.1 #CF3CF3". Cells will be colored using the '

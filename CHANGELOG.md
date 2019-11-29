@@ -1,3 +1,10 @@
+## 3.1.15 Nov 29, 2019
+
+Added `--readCountColor` and `--defaultReadCountColor` to
+`proteins-to-pathogens-civ.py` for differential coloring of read
+counts. Added `citrus yellow` to plant-only virus name regex in
+`dark/taxonomy.py`.
+
 ## 3.1.14 Nov 28, 2019
 
 Added a const value for `--pathogenPanelFilename` in `proteins-to-pathogens-civ.py`.

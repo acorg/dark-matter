@@ -394,21 +394,25 @@ class ProteinGrouper(object):
         """
         return self._db.findGenome(genomeAccession)['organism']
 
-    def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
-               pathogenType='viral', title='Summary of pathogens',
-               preamble=None, sampleIndexFilename=None,
+    def toHTML(self, pathogenPanelFilename=None, readCountColors=None,
+               minProteinFraction=0.0, pathogenType='viral',
+               title=None, preamble=None, sampleIndexFilename=None,
                omitVirusLinks=False):
         """
         Produce an HTML string representation of the pathogen summary.
 
         @param pathogenPanelFilename: If not C{None}, a C{str} filename to
             write a pathogen panel PNG image to.
+        @param readCountColors: Either a C{dark.colors.colorsForCounts}
+            instance or C{None} for no read count coloring.
         @param minProteinFraction: The C{float} minimum fraction of proteins
             in a pathogen that must be matched by a sample in order for that
             pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
             either 'bacterial' or 'viral'.
-        @param title: The C{str} title for the HTML page.
+        @param title: The C{str} title for the HTML page or C{None} to get a
+            default generic title depending on whether a viral or bacterial
+            database was matched against.
         @param preamble: The C{str} descriptive preamble for the HTML page, or
             C{None} if no preamble is needed.
         @param sampleIndexFilename: A C{str} filename to write a sample index
@@ -425,6 +429,9 @@ class ProteinGrouper(object):
 
         if not exists(self._pathogenDataDir):
             os.mkdir(self._pathogenDataDir)
+
+        title = title or 'Summary of ' + (
+            'bacteria' if pathogenType == 'bacterial' else 'viruses')
 
         self._computeUniqueReadCounts()
 
@@ -459,8 +466,8 @@ class ProteinGrouper(object):
         nPathogenNames = len(genomeAccessions)
         sampleNames = sorted(self.sampleNames)
 
-        # Be careful with commas in the following! Long lines that should
-        # be continued unbroken do not end with a comma.
+        # Be very careful with commas in the following! Long lines that
+        # should be continued unbroken must not end with a comma.
         result = [
             '<html>',
             '<head>',
@@ -560,6 +567,14 @@ class ProteinGrouper(object):
             '</head>',
             '<body>',
         ]
+
+        if readCountColors:
+            result.append('<style>')
+            for threshold, color in readCountColors.colors:
+                result.append(
+                    '.%s { color: %s; }' %
+                    (readCountColors.thresholdToCssName(threshold), color))
+            result.append('</style>')
 
         proteinFieldsDescription = [
             '<p>',
@@ -760,9 +775,18 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readAndHspCountStr)3s'
                         % proteinMatch
                     )
+
+                    if readCountColors:
+                        countClass = readCountColors.thresholdToCssName(
+                            readCountColors.thresholdForCount(
+                                proteinMatch['readCount']))
+                        append('<span class="%s">'
+                               '%(readAndHspCountStr)3s'
+                               '</span>' % (countClass, proteinMatch))
+                    else:
+                        append('%(readAndHspCountStr)3s' % proteinMatch)
 
                     if self._saveReadLengths:
                         append(' (%s)' % ', '.join(
@@ -894,7 +918,19 @@ class ProteinGrouper(object):
                         '<li>'
                         '<span class="stats">'
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readAndHspCountStr)3s'
+                        % proteinMatch)
+
+                    if readCountColors:
+                        countClass = readCountColors.thresholdToCssName(
+                            readCountColors.thresholdForCount(
+                                proteinMatch['readCount']))
+                        append('<span class="%s">'
+                               '%(readAndHspCountStr)3s'
+                               '</span>' % (countClass, proteinMatch))
+                    else:
+                        append('%(readAndHspCountStr)3s' % proteinMatch)
+
+                    append(
                         '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'
