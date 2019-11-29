@@ -1,3 +1,9 @@
+## 3.1.19 Nov 29, 2019
+
+Added read count color levels indicator in HTML. Added
+`--bootstrapTreeviewDir` to `proteins-to-pathogens-civ.py` and the `toHTML`
+method of `dark.civ.proteins.ProteinGrouper`.
+
 ## 3.1.18 Nov 29, 2019
 
 Fix (again) newline in HTML summary output.

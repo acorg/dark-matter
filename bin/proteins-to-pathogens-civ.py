@@ -101,7 +101,8 @@ def main(db, taxdb, args):
             pathogenType=args.pathogenType,
             title=args.title, preamble=args.preamble,
             sampleIndexFilename=args.sampleIndexFilename,
-            omitVirusLinks=args.omitVirusLinks))
+            omitVirusLinks=args.omitVirusLinks,
+            bootstrapTreeviewDir=args.bootstrapTreeviewDir))
     else:
         print(grouper.toStr(
             title=args.title, preamble=args.preamble,
@@ -197,11 +198,11 @@ if __name__ == '__main__':
         help='Optional preamble text to show after the title.')
 
     parser.add_argument(
-        '--titleRegex', default=None,
+        '--titleRegex',
         help='A regex that pathogen names must match.')
 
     parser.add_argument(
-        '--negativeTitleRegex', default=None,
+        '--negativeTitleRegex',
         help='a regex that pathogen names must not match.')
 
     parser.add_argument(
@@ -230,6 +231,16 @@ if __name__ == '__main__':
               'counts with the --defaultReadCountColor color. Only valid if '
               '--html is used.'))
 
+    parser.add_argument(
+        '--bootstrapTreeviewDir',
+        help=('The directory where the bootstrap treeview JS and CSS files '
+              'can be found. This can be a relative path from the location '
+              'where the output HTML will be served from or can be a URL '
+              'directory. In both cases, HTML will be emitted looking for '
+              'files with names bootstrap-treeview.min.css and '
+              'bootstrap-treeview.min.js in the directory (or URL directory). '
+              'Only valid if --html is used.'))
+
     addTaxonomyDatabaseCommandLineOptions(parser)
 
     args = parser.parse_args()
@@ -245,6 +256,10 @@ if __name__ == '__main__':
             sys.exit(1)
         if args.readCountColor:
             print('It does not make sense to use --readCountColor '
+                  'without also using --html', file=sys.stderr)
+            sys.exit(1)
+        if args.bootstrapTreeviewDir:
+            print('It does not make sense to use --bootstrapTreeviewDir '
                   'without also using --html', file=sys.stderr)
             sys.exit(1)
 

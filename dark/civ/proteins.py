@@ -397,7 +397,7 @@ class ProteinGrouper(object):
     def toHTML(self, pathogenPanelFilename=None, readCountColors=None,
                minProteinFraction=0.0, pathogenType='viral',
                title=None, preamble=None, sampleIndexFilename=None,
-               omitVirusLinks=False):
+               omitVirusLinks=False, bootstrapTreeviewDir=None):
         """
         Produce an HTML string representation of the pathogen summary.
 
@@ -420,6 +420,9 @@ class ProteinGrouper(object):
             then the sample name.
         @param omitVirusLinks: If C{True}, links to ICTV and ViralZone will be
             omitted in output.
+        @param bootstrapTreeviewDir: A C{str} giving the directory where the
+            bootstrap-treeview JS and CSS files may be found. Or C{None} if no
+            bootstrap-treeview output should be generated.
         @return: An HTML C{str} suitable for printing.
         """
         if pathogenType not in ('bacterial', 'viral'):
@@ -482,9 +485,14 @@ class ProteinGrouper(object):
             'integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5z'
             'CYotlSAcp1+c8xmyTe9GYg1l9a69psu"',
             'crossorigin="anonymous">',
+        ]
 
-            '<link rel="stylesheet" href="bootstrap-treeview.min.css">',
+        if bootstrapTreeviewDir:
+            result.append(
+                '<link rel="stylesheet" href="%s/bootstrap-treeview.min.css">'
+                % bootstrapTreeviewDir)
 
+        result.extend([
             '</head>',
             '<body>',
             '<script',
@@ -497,10 +505,14 @@ class ProteinGrouper(object):
             '3.4.1/js/bootstrap.min.js"',
             'integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5b'
             'ApTppSuUkhZXN0VxHd"',
-            'crossorigin="anonymous"></script>',
+            'crossorigin="anonymous"></script>'])
 
-            '<script src="bootstrap-treeview.min.js"></script>',
+        if bootstrapTreeviewDir:
+            result.append(
+                '<script src="%s/bootstrap-treeview.min.js"></script>'
+                % bootstrapTreeviewDir)
 
+        result.extend([
             '<style>',
             '''\
             body {
@@ -566,15 +578,21 @@ class ProteinGrouper(object):
             '</style>',
             '</head>',
             '<body>',
-        ]
+        ])
 
         if readCountColors:
+            levels = []
             result.append('<style>')
             for threshold, color in readCountColors.colors:
-                result.append(
-                    '.%s { color: %s; }' %
-                    (readCountColors.thresholdToCssName(threshold), color))
+                klass = readCountColors.thresholdToCssName(threshold)
+                result.append('.%s { color: %s; font-weight: bold; }' %
+                              (klass, color))
+                levels.append('<span class="%s">%d</span>' %
+                              (klass, threshold))
             result.append('</style>')
+            readCountColorLegend = ' Color levels: ' + ', '.join(levels) + '.'
+        else:
+            readCountColorLegend = ''
 
         proteinFieldsDescription = [
             '<p>',
@@ -584,9 +602,9 @@ class ProteinGrouper(object):
             '<li>Coverage fraction.</li>',
             '<li>Median bit score.</li>',
             '<li>Best bit score.</li>',
-            '<li>Read count (if the HSP count differs, read and HSP ',
-            ('counts are both given, separated by "%s").</li>' %
-             self.READ_AND_HSP_COUNT_STR_SEP),
+            '<li>Read count (if read and HSP counts differ, ',
+            ('both are given, separated by "%s").%s</li>' %
+             (self.READ_AND_HSP_COUNT_STR_SEP, readCountColorLegend)),
         ]
 
         if self._saveReadLengths:
@@ -837,16 +855,17 @@ class ProteinGrouper(object):
                 '%d read%s' % (pathogenReadCount,
                                '' if pathogenReadCount == 1 else 's'))
 
-        append('''
-            <script>
-              var tree = %s;
-              $('#tree').treeview({
-                  data: tree,
-                  enableLinks: true,
-                  levels: 0,
-              });
-           </script>
-        ''' % taxonomyHierarchy.toJSON())
+        if bootstrapTreeviewDir:
+            append('''
+                <script>
+                  var tree = %s;
+                  $('#tree').treeview({
+                      data: tree,
+                      enableLinks: true,
+                      levels: 0,
+                  });
+               </script>
+            ''' % taxonomyHierarchy.toJSON())
 
         # Write all samples (with pathogens (with proteins)).
         append('<hr>')
