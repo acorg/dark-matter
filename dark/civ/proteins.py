@@ -601,6 +601,10 @@ class ProteinGrouper(object):
 
         append = result.append
 
+        def appendNoSpace(s):
+            assert result, ('Cannot append %r to empty result list' % s)
+            result[-1] += s
+
         append('<h1>%s</h1>' % title)
         if preamble:
             append('<p>%s</p>' % preamble)
@@ -654,7 +658,7 @@ class ProteinGrouper(object):
             append('&middot;')
         # Get rid of final middle dot and add a period.
         result.pop()
-        result[-1] += '.'
+        appendNoSpace('.')
         append('</span></p>')
 
         # Write a linked table of contents by sample.
@@ -665,7 +669,7 @@ class ProteinGrouper(object):
             append('&middot;')
         # Get rid of final middle dot and add a period.
         result.pop()
-        result[-1] += '.'
+        appendNoSpace('.')
         append('</span></p>')
 
         # Write all pathogens (with samples (with proteins)).
@@ -782,22 +786,22 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        append('<span class="%s">%3s</span>' % (
+                        appendNoSpace('<span class="%s">%3s</span>' % (
                             countClass, proteinMatch['readAndHspCountStr']))
                     else:
-                        append('%(readAndHspCountStr)3s' % proteinMatch)
+                        appendNoSpace('%(readAndHspCountStr)3s' % proteinMatch)
 
                     if self._saveReadLengths:
-                        append(' (%s)' % ', '.join(
+                        appendNoSpace(' (%s)' % ', '.join(
                             map(str, sorted(proteinMatch['readLengths']))))
 
                     # Add the </span> with no intermediate whitespace
                     # because the 'stats' CSS class uses 'pre' on
                     # whitespace, which results in a newline when we use
                     # '\n'.join(result).
-                    result[-1] += '</span>'
+                    appendNoSpace('</span>')
 
-                    append(
+                    appendNoSpace(
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '
@@ -923,12 +927,12 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        append('<span class="%s">%3s</span>' % (
+                        appendNoSpace('<span class="%s">%3s</span>' % (
                             countClass, proteinMatch['readAndHspCountStr']))
                     else:
-                        append('%(readAndHspCountStr)3s' % proteinMatch)
+                        appendNoSpace('%(readAndHspCountStr)3s' % proteinMatch)
 
-                    append(
+                    appendNoSpace(
                         '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'
@@ -1050,15 +1054,12 @@ class ProteinGrouper(object):
             ax[row][col].axis('off')
 
         figure.suptitle(
-            ('Per-sample read count for %d pathogen%s and %d sample%s.\n\n'
-             'Sample name%s: %s') % (
-                 len(genomeAccessions),
-                 '' if len(genomeAccessions) == 1 else 's',
-                 len(sampleNames),
-                 '' if len(sampleNames) == 1 else 's',
-                 '' if len(sampleNames) == 1 else 's',
-                 fill(', '.join(sampleNames), 50)),
-            fontsize=20)
+            'Per-sample read count for %d pathogen%s and %d sample%s.\n\n' % (
+                len(genomeAccessions),
+                '' if len(genomeAccessions) == 1 else 's',
+                len(sampleNames),
+                '' if len(sampleNames) == 1 else 's'),
+            fontsize=18)
         figure.set_size_inches(5.0 * cols, 2.0 * rows, forward=True)
         plt.subplots_adjust(hspace=0.4)
 

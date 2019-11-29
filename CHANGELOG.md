@@ -1,3 +1,7 @@
+## 3.1.17 Nov 29, 2019
+
+Fix newline in HTML summary output.
+
 ## 3.1.16 Nov 29, 2019
 
 Fix tiny bug in print arguments in `dark/civ/proteins.py`.
