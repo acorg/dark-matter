@@ -782,9 +782,8 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        append('<span class="%s">'
-                               '%(readAndHspCountStr)3s'
-                               '</span>' % (countClass, proteinMatch))
+                        append('<span class="%s">%3s</span>' % (
+                            countClass, proteinMatch['readAndHspCountStr']))
                     else:
                         append('%(readAndHspCountStr)3s' % proteinMatch)
 
@@ -924,9 +923,8 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        append('<span class="%s">'
-                               '%(readAndHspCountStr)3s'
-                               '</span>' % (countClass, proteinMatch))
+                        append('<span class="%s">%3s</span>' % (
+                            countClass, proteinMatch['readAndHspCountStr']))
                     else:
                         append('%(readAndHspCountStr)3s' % proteinMatch)
 

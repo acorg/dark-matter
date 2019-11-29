@@ -1,3 +1,7 @@
+## 3.1.16 Nov 29, 2019
+
+Fix tiny bug in print arguments in `dark/civ/proteins.py`.
+
 ## 3.1.15 Nov 29, 2019
 
 Added `--readCountColor` and `--defaultReadCountColor` to
