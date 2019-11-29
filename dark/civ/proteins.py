@@ -623,14 +623,15 @@ class ProteinGrouper(object):
             assert result, ('Cannot append %r to empty result list' % s)
             result[-1] += s
 
-        append('<h1>%s</h1>' % title)
+        append('<h2>%s</h2>' % title)
         if preamble:
-            append('<p>%s</p>' % preamble)
+            append(preamble)
         append('<p>')
         append(self._title(pathogenType))
 
-        # Emit a div to hold the taxonomy tree.
-        append('<div id="tree"></div>')
+        if bootstrapTreeviewDir:
+            # A <div> to hold the taxonomy tree.
+            append('<div id="tree"></div>')
 
         if minProteinFraction > 0.0:
             percent = minProteinFraction * 100.0

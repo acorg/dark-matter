@@ -1,3 +1,8 @@
+## 3.1.20 Nov 30, 2019
+
+Allow multiple `--preamble` args to `proteins-to-pathogens-civ.py`. Tiny
+cosmetic adjustments to output HTML.
+
 ## 3.1.19 Nov 29, 2019
 
 Added read count color levels indicator in HTML. Added

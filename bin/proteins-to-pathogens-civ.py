@@ -53,6 +53,7 @@ Fields must be whitespace separated. The seven fields are:
 from __future__ import print_function
 import argparse
 import sys
+from os.path import exists
 
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
@@ -90,6 +91,14 @@ def main(db, taxdb, args):
         with open(filename) as fp:
             grouper.addFile(filename, fp)
 
+    preambleText = ''
+    if args.preamble:
+        for preamble in args.preamble:
+            if exists(preamble):
+                preambleText += open(preamble).read()
+            else:
+                preambleText += preamble
+
     if args.html:
         readCountColors = ColorsForCounts(args.readCountColor,
                                           args.defaultReadCountColor)
@@ -99,7 +108,7 @@ def main(db, taxdb, args):
             readCountColors=readCountColors,
             minProteinFraction=args.minProteinFraction,
             pathogenType=args.pathogenType,
-            title=args.title, preamble=args.preamble,
+            title=args.title, preamble=preambleText,
             sampleIndexFilename=args.sampleIndexFilename,
             omitVirusLinks=args.omitVirusLinks,
             bootstrapTreeviewDir=args.bootstrapTreeviewDir))
@@ -194,8 +203,10 @@ if __name__ == '__main__':
         help='The title to show at the top of the output.')
 
     parser.add_argument(
-        '--preamble',
-        help='Optional preamble text to show after the title.')
+        '--preamble', action='append',
+        help=('Optional preamble text to show after the title. The argument '
+              'value may also name a file, in which case the file contents '
+              'will be inserted into the output. May be repeated.'))
 
     parser.add_argument(
         '--titleRegex',
