@@ -1,3 +1,7 @@
+## 3.1.21 Nov 30, 2019
+
+Minor changes to HTML output.
+
 ## 3.1.20 Nov 30, 2019
 
 Allow multiple `--preamble` args to `proteins-to-pathogens-civ.py`. Tiny

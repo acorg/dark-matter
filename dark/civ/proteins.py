@@ -590,7 +590,8 @@ class ProteinGrouper(object):
                 levels.append('<span class="%s">%d</span>' %
                               (klass, threshold))
             result.append('</style>')
-            readCountColorLegend = ' Color levels: ' + ', '.join(levels) + '.'
+            readCountColorLegend = (
+                ' Color levels: ' + ', '.join(reversed(levels)) + '.')
         else:
             readCountColorLegend = ''
 
@@ -693,7 +694,8 @@ class ProteinGrouper(object):
 
         # Write all pathogens (with samples (with proteins)).
         append('<hr>')
-        append('<h1>Pathogens by sample</h1>')
+        append('<h1>%s by sample</h1>' %
+               ('Bacteria' if pathogenType == 'bacterial' else 'Viruses'))
 
         taxonomyHierarchy = Hierarchy()
 
@@ -870,7 +872,8 @@ class ProteinGrouper(object):
 
         # Write all samples (with pathogens (with proteins)).
         append('<hr>')
-        append('<h1>Samples by pathogen</h1>')
+        append('<h1>Samples by %s</h1>' %
+               ('bacteria' if pathogenType == 'bacterial' else 'viruses'))
 
         for sampleName in sampleNames:
             samplePathogenAccessions = sorted(

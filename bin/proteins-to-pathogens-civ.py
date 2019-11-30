@@ -199,7 +199,7 @@ if __name__ == '__main__':
               'reads across all samples) should be written.'))
 
     parser.add_argument(
-        '--title', default='Summary of pathogens',
+        '--title',
         help='The title to show at the top of the output.')
 
     parser.add_argument(
