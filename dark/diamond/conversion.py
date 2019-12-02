@@ -123,12 +123,25 @@ class DiamondTabularFormatReader(object):
     Provide a method that yields parsed tabular records from a file. Store and
     make accessible the global DIAMOND parameters.
 
-    Make sure you run DIAMOND with the right output format. You must use:
-        --outfmt 6 qtitle stitle bitscore evalue qframe qseq qstart qend sseq
-                   sstart send slen btop nident positive
+    Make sure you run DIAMOND with the right output format. You must have run
+    with --outfmt 6 and one of the following sets of arguments (in the given
+    order):
+
+        13 arg version:
+        qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
+            slen btop
+
+        14 arg version:
+        qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
+            slen btop pident
+
+        15 arg version:
+        qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
+            slen btop nident positive
 
     @param filename: A C{str} filename or an open file pointer, containing
         DIAMOND tabular records.
+
     """
 
     def __init__(self, filename):
@@ -159,36 +172,36 @@ class DiamondTabularFormatReader(object):
             record = {}
             for line in fp:
                 line = line[:-1]
-                try:
-                    (qtitle, stitle, bitscore, evalue, qframe, qseq,
-                     qstart, qend, sseq, sstart, send, slen, btop, nident,
-                     positive) = line.split('\t')
-                except ValueError as e:
-                    # We may not be able to find 'nident' and 'positives'
-                    # because they were added in version 2.0.3 and will not
-                    # be present in any of our JSON output generated before
-                    # that. So those values will be None when reading
-                    # DIAMOND output without those fields, but that's much
-                    # better than no longer being able to read that data.
-                    if six.PY2:
-                        error = 'need more than 13 values to unpack'
-                    else:
-                        error = (
-                            'not enough values to unpack (expected 15, '
-                            'got 13)')
-                    if str(e) == error:
-                        (qtitle, stitle, bitscore, evalue, qframe,
-                         qseq, qstart, qend, sseq, sstart, send, slen,
-                         btop) = line.split('\t')
-                        nident = positive = None
-                    else:
-                        raise
+                fields = line.split('\t')
+                nFields = len(fields)
+
+                if nFields == 13:
+                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
+                     qend, sseq, sstart, send, slen, btop) = fields
+                    nident = positive = pident = None
+                elif nFields == 14:
+                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
+                     qend, sseq, sstart, send, slen, btop, pident) = fields
+                    nident = positive = None
+                elif nFields == 15:
+                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
+                     qend, sseq, sstart, send, slen, btop, nident,
+                     positive) = fields
+                    pident = None
+                else:
+                    raise ValueError(
+                        'Could not make sense of DIAMOND output. You must use '
+                        '--outfmt 6 with 13, 14, or 15 arguments. See %s for '
+                        'their names.' % __file__)
+
                 hsp = {
                     'bits': float(bitscore),
                     'btop': btop,
                     'expect': float(evalue),
                     'frame': int(qframe),
                     'identicalCount': None if nident is None else int(nident),
+                    'percentIdentical': (
+                        None if pident is None else float(pident)),
                     'positiveCount': (
                         None if positive is None else int(positive)),
                     'query': qseq,
@@ -198,6 +211,7 @@ class DiamondTabularFormatReader(object):
                     'sbjct_start': int(sstart),
                     'sbjct_end': int(send),
                 }
+
                 if previousQtitle == qtitle:
                     # We have already started accumulating alignments for this
                     # query.
@@ -346,14 +360,17 @@ class JSONRecordsReader(object):
                     subjectEnd=normalized['subjectEnd'],
                     readMatchedSequence=diamondHsp['query'],
                     subjectMatchedSequence=diamondHsp['sbjct'],
-                    # Use diamondHsp.get on identicalCount and positiveCount
-                    # because they were added in version 2.0.3 and will not
-                    # be present in any of our JSON output generated before
-                    # that. Those values will be None for those JSON files,
-                    # but that's much better than no longer being able to
-                    # read all that data.
+                    # Use diamondHsp.get on identicalCount, positiveCount,
+                    # and percentIdentical because they were either added
+                    # in version 2.0.3 or we didn't start using them until
+                    # much later and so will not be present in any of our
+                    # JSON output generated before that. Those values will
+                    # be None when reading those JSON files, but that's
+                    # much better than no longer being able to read all
+                    # that earlier data.
                     identicalCount=diamondHsp.get('identicalCount'),
-                    positiveCount=diamondHsp.get('positiveCount'))
+                    positiveCount=diamondHsp.get('positiveCount'),
+                    percentIdentical=diamondHsp.get('percentIdentical'))
 
                 alignment.addHsp(hsp)
 

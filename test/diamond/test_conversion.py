@@ -64,6 +64,28 @@ BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8
 BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5
 """
 
+# The 14 fields expected in the DIAMOND output with pident (percent identical).
+#
+# qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend, sseq, sstart,
+# send, slen, btop, pident
+#
+# See the --outfmt section of 'diamond help' for detail on these directives.
+#
+# Note that the fields below must be separated by TABs.
+DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL = """\
+ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4	5.0
+ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3	10.0
+ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5	15.0
+ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6	20.0
+ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6	25.0
+ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290	9	30.0
+ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270	10	35.0
+AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306	8	40.0
+AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294	8	45.0
+BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8	50.0
+BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	55.0
+"""
+
 DIAMOND_RECORD_WITH_SPACES_IN_TITLES = """\
 ACC 94	IN SV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
 """
@@ -87,6 +109,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.003,
                         "frame": 1,
                         "identicalCount": 0,
+                        "percentIdentical": None,
                         "positiveCount": 1,
                         "query": "EFII",
                         "query_end": 295,
@@ -107,6 +130,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.008,
                         "frame": 1,
                         "identicalCount": 1,
+                        "percentIdentical": None,
                         "positiveCount": 2,
                         "query": "KLL",
                         "query_end": 37,
@@ -127,6 +151,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.009,
                         "frame": 1,
                         "identicalCount": 2,
+                        "percentIdentical": None,
                         "positiveCount": 3,
                         "query": "IKSKL",
                         "query_end": 35,
@@ -141,6 +166,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.21,
                         "frame": 1,
                         "identicalCount": 3,
+                        "percentIdentical": None,
                         "positiveCount": 4,
                         "query": "TIMSVV",
                         "query_end": 240,
@@ -161,6 +187,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.084,
                         "frame": 1,
                         "identicalCount": 4,
+                        "percentIdentical": None,
                         "positiveCount": 5,
                         "query": "LHVNYL",
                         "query_end": 203,
@@ -175,6 +202,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 9.1,
                         "frame": 1,
                         "identicalCount": 5,
+                        "percentIdentical": None,
                         "positiveCount": 6,
                         "query": "SEIICEVLK",
                         "query_end": 257,
@@ -195,6 +223,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.11,
                         "frame": 1,
                         "identicalCount": 6,
+                        "percentIdentical": None,
                         "positiveCount": 7,
                         "query": "YSCFT-NSEK",
                         "query_end": 276,
@@ -220,6 +249,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.0,
                         "frame": 1,
                         "identicalCount": 7,
+                        "percentIdentical": None,
                         "positiveCount": 8,
                         "query": "GEPFSVYG",
                         "query_end": 306,
@@ -240,6 +270,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 7e-143,
                         "frame": 1,
                         "identicalCount": 8,
+                        "percentIdentical": None,
                         "positiveCount": 9,
                         "query": "PFSVYGRF",
                         "query_end": 306,
@@ -265,6 +296,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.008,
                         "frame": 1,
                         "identicalCount": 9,
+                        "percentIdentical": None,
                         "positiveCount": 10,
                         "query": "PKELHGLI",
                         "query_end": 118,
@@ -285,7 +317,254 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "expect": 0.009,
                         "frame": 1,
                         "identicalCount": 10,
+                        "percentIdentical": None,
                         "positiveCount": 11,
+                        "query": "CRPTF",
+                        "query_end": 293,
+                        "query_start": 4,
+                        "sbjct": "EFVFIY",
+                        "sbjct_end": 342,
+                        "sbjct_start": 6
+                    }
+                ],
+                "length": 343,
+                "title": "SouthBay"
+            }
+        ],
+        "query": "BHAV"
+    }, sort_keys=True)
+]) + '\n'
+
+
+DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
+    dumps({
+        "application": "DIAMOND",
+        "reference": ("Buchfink et al., Fast and Sensitive "
+                      "Protein Alignment using DIAMOND, Nature Methods, "
+                      "12, 59-60 (2015)"),
+        "task": "blastx",
+        "version": "v0.8.23"
+    }, sort_keys=True),
+    dumps({
+        "alignments": [
+            {
+                "hsps": [
+                    {
+                        "bits": 29.6,
+                        "btop": "4",
+                        "expect": 0.003,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 5.0,
+                        "positiveCount": None,
+                        "query": "EFII",
+                        "query_end": 295,
+                        "query_start": 178,
+                        "sbjct": "SSSEV",
+                        "sbjct_end": 285,
+                        "sbjct_start": 175
+                    }
+                ],
+                "length": 295,
+                "title": "INSV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "btop": "3",
+                        "expect": 0.008,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 10.0,
+                        "positiveCount": None,
+                        "query": "KLL",
+                        "query_end": 37,
+                        "query_start": 7,
+                        "sbjct": "ITRV",
+                        "sbjct_end": 39,
+                        "sbjct_start": 9
+                    }
+                ],
+                "length": 300,
+                "title": "CASV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "btop": "5",
+                        "expect": 0.009,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 15.0,
+                        "positiveCount": None,
+                        "query": "IKSKL",
+                        "query_end": 35,
+                        "query_start": 7,
+                        "sbjct": "EETSR",
+                        "sbjct_end": 37,
+                        "sbjct_start": 9
+                    },
+                    {
+                        "bits": 23.5,
+                        "btop": "6",
+                        "expect": 0.21,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 20.0,
+                        "positiveCount": None,
+                        "query": "TIMSVV",
+                        "query_end": 240,
+                        "query_start": 177,
+                        "sbjct": "DDMV",
+                        "sbjct_end": 235,
+                        "sbjct_start": 179
+                    }
+                ],
+                "length": 293,
+                "title": "GoldenGate"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 25.0,
+                        "btop": "6",
+                        "expect": 0.084,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 25.0,
+                        "positiveCount": None,
+                        "query": "LHVNYL",
+                        "query_end": 203,
+                        "query_start": 1,
+                        "sbjct": "DEELKA",
+                        "sbjct_end": 210,
+                        "sbjct_start": 2
+                    },
+                    {
+                        "bits": 18.5,
+                        "btop": "9",
+                        "expect": 9.1,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 30.0,
+                        "positiveCount": None,
+                        "query": "SEIICEVLK",
+                        "query_end": 257,
+                        "query_start": 226,
+                        "sbjct": "VETVAQ",
+                        "sbjct_end": 45,
+                        "sbjct_start": 20
+                    }
+                ],
+                "length": 290,
+                "title": "InfluenzaC"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 24.6,
+                        "btop": "10",
+                        "expect": 0.11,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 35.0,
+                        "positiveCount": None,
+                        "query": "YSCFT-NSEK",
+                        "query_end": 276,
+                        "query_start": 176,
+                        "sbjct": "LGKRMFC",
+                        "sbjct_end": 243,
+                        "sbjct_start": 152
+                    }
+                ],
+                "length": 270,
+                "title": "FERV"
+            }
+        ],
+        "query": "ACC94"
+    }, sort_keys=True),
+    dumps({
+        "alignments": [
+            {
+                "hsps": [
+                    {
+                        "bits": 634.0,
+                        "btop": "8",
+                        "expect": 0.0,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 40.0,
+                        "positiveCount": None,
+                        "query": "GEPFSVYG",
+                        "query_end": 306,
+                        "query_start": 1,
+                        "sbjct": "NIYGEP",
+                        "sbjct_end": 306,
+                        "sbjct_start": 1
+                    }
+                ],
+                "length": 306,
+                "title": "AKAV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 401.0,
+                        "btop": "8",
+                        "expect": 7e-143,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 45.0,
+                        "positiveCount": None,
+                        "query": "PFSVYGRF",
+                        "query_end": 306,
+                        "query_start": 1,
+                        "sbjct": "GEPMS",
+                        "sbjct_end": 294,
+                        "sbjct_start": 1
+                    }
+                ],
+                "length": 294,
+                "title": "WYOV"
+            }
+        ],
+        "query": "AKAV"
+    }, sort_keys=True),
+    dumps({
+        "alignments": [
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "btop": "8",
+                        "expect": 0.008,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 50.0,
+                        "positiveCount": None,
+                        "query": "PKELHGLI",
+                        "query_end": 118,
+                        "query_start": 14,
+                        "sbjct": "SLKSKE",
+                        "sbjct_end": 131,
+                        "sbjct_start": 15
+                    }
+                ],
+                "length": 307,
+                "title": "TAIV"
+            },
+            {
+                "hsps": [
+                    {
+                        "bits": 28.1,
+                        "btop": "5",
+                        "expect": 0.009,
+                        "frame": 1,
+                        "identicalCount": None,
+                        "percentIdentical": 55.0,
+                        "positiveCount": None,
                         "query": "CRPTF",
                         "query_end": 293,
                         "query_start": 4,
@@ -345,7 +624,7 @@ class TestDiamondTabularFormatReader(TestCase):
     def testDiamondInputWithoutNidentOrPositives(self):
         """
         Test conversion of a chunk of DIAMOND output that does not contain the
-        nident or positives fields.
+        nident, positives, or pident fields.
         """
         mockOpener = mockOpen(
             read_data=DIAMOND_RECORDS_WITHOUT_NIDENT_AND_POSITIVE)
@@ -356,6 +635,8 @@ class TestDiamondTabularFormatReader(TestCase):
                 for alignment in record['alignments']:
                     for hsp in alignment['hsps']:
                         self.assertIs(None, hsp['identicalCount'])
+                        self.assertIs(None, hsp['positiveCount'])
+                        self.assertIs(None, hsp['percentIdentical'])
 
     def testSaveAsJSON(self):
         """
@@ -368,6 +649,20 @@ class TestDiamondTabularFormatReader(TestCase):
             reader.saveAsJSON(fp)
             self.maxDiff = None
             self.assertEqual(DIAMOND_RECORDS_DUMPED, fp.getvalue())
+
+    def testSaveAsJSONWithPercentIdentical(self):
+        """
+        A DiamondTabularFormatReader must be able to save itself as JSON
+        when the percentIdentical field is present.
+        """
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = DiamondTabularFormatReader('file.txt')
+            fp = StringIO()
+            reader.saveAsJSON(fp)
+            self.maxDiff = None
+            self.assertEqual(DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED,
+                             fp.getvalue())
 
     def testSaveAsJSONBzip2(self):
         """
@@ -383,6 +678,23 @@ class TestDiamondTabularFormatReader(TestCase):
             fp.close()
             self.assertEqual(
                 compress(DIAMOND_RECORDS_DUMPED.encode('UTF-8')),
+                data.getvalue())
+
+    def testSaveAsJSONBzip2WithPercentIdentical(self):
+        """
+        A DiamondTabularFormatReader must be able to save itself as bzip2'd
+        JSON when the percentIdentical field is present.
+        """
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL)
+        with patch.object(builtins, 'open', mockOpener):
+            reader = DiamondTabularFormatReader('file.txt')
+            data = BytesIO()
+            fp = bz2file.BZ2File(data, 'w')
+            reader.saveAsJSON(fp, writeBytes=True)
+            fp.close()
+            self.assertEqual(
+                compress(DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED.encode(
+                    'UTF-8')),
                 data.getvalue())
 
     def testSpacesMustBePreserved(self):

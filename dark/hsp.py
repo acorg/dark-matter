@@ -62,12 +62,14 @@ class _Base(object):
         and query had a positive score in the scoring matrix used during
         matching (this is probably only different from the C{identicalCount}
         when matching amino acids (i.e., not nucleotides).
+    @param percentIdentical: A C{float} percentage (i.e., ranging from 0.0 to
+        100.0, NOT a fraction) of amino acids that were identical in the match.
     """
     def __init__(self, readStart=None, readEnd=None, readStartInSubject=None,
                  readEndInSubject=None, readFrame=None, subjectStart=None,
                  subjectEnd=None, subjectFrame=None, readMatchedSequence=None,
                  subjectMatchedSequence=None, identicalCount=None,
-                 positiveCount=None):
+                 positiveCount=None, percentIdentical=None):
         self.readStart = readStart
         self.readEnd = readEnd
         self.readStartInSubject = readStartInSubject
@@ -80,6 +82,7 @@ class _Base(object):
         self.subjectMatchedSequence = subjectMatchedSequence
         self.identicalCount = identicalCount
         self.positiveCount = positiveCount
+        self.percentIdentical = percentIdentical
 
     def __lt__(self, other):
         return self.score < other.score
@@ -115,6 +118,7 @@ class _Base(object):
             'subjectMatchedSequence': self.subjectMatchedSequence,
             'identicalCount': self.identicalCount,
             'positiveCount': self.positiveCount,
+            'percentIdentical': self.percentIdentical,
         }
 
 

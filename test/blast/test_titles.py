@@ -313,6 +313,7 @@ class TestTitlesAlignments(TestCase):
                                 'hsps': [
                                     {
                                         'identicalCount': None,
+                                        'percentIdentical': None,
                                         'positiveCount': None,
                                         'readEnd': 68,
                                         'readEndInSubject': 1405,
@@ -337,6 +338,7 @@ class TestTitlesAlignments(TestCase):
                                 'hsps': [
                                     {
                                         'identicalCount': None,
+                                        'percentIdentical': None,
                                         'positiveCount': None,
                                         'readEnd': 68,
                                         'readEndInSubject': 1405,
@@ -368,6 +370,7 @@ class TestTitlesAlignments(TestCase):
                                 'hsps': [
                                     {
                                         'identicalCount': None,
+                                        'percentIdentical': None,
                                         'positiveCount': None,
                                         'readEnd': 68,
                                         'readEndInSubject': 11405,
@@ -399,6 +402,7 @@ class TestTitlesAlignments(TestCase):
                                 'hsps': [
                                     {
                                         'identicalCount': None,
+                                        'percentIdentical': None,
                                         'positiveCount': None,
                                         'readEnd': 68,
                                         'readEndInSubject': 10405,
@@ -430,6 +434,7 @@ class TestTitlesAlignments(TestCase):
                                 'hsps': [
                                     {
                                         'identicalCount': None,
+                                        'percentIdentical': None,
                                         'positiveCount': None,
                                         'readEnd': 68,
                                         'readEndInSubject': 15405,
@@ -461,6 +466,7 @@ class TestTitlesAlignments(TestCase):
                                 'hsps': [
                                     {
                                         'identicalCount': None,
+                                        'percentIdentical': None,
                                         'positiveCount': None,
                                         'readEnd': 68,
                                         'readEndInSubject': 12405,
