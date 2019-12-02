@@ -58,7 +58,7 @@ def parseColors(colors, defaultColor):
     result = []
     if colors:
         for colorInfo in colors:
-            fields = colorInfo.split(maxsplit=1)
+            fields = colorInfo.split(None, 1)
             if len(fields) == 2:
                 threshold, color = fields
                 try:

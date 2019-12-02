@@ -1,3 +1,7 @@
+## 3.1.23 Dec 3, 2019
+
+Fixed trivial Python2 incompatibility.
+
 ## 3.1.22 Dec 3, 2019
 
 Added `--percentageIdenticalCutoff` argument to `alignment-panel-civ.py`
