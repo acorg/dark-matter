@@ -613,7 +613,6 @@ class ProteinGrouper(object):
                 '<li>All read lengths (in parentheses).</li>')
 
         proteinFieldsDescription.extend([
-            '<li>Protein name.</li>',
             '</ol>',
             '</p>',
         ])
@@ -669,7 +668,8 @@ class ProteinGrouper(object):
         result.extend(proteinFieldsDescription)
 
         # Write a linked table of contents by pathogen.
-        append('<p><span class="index-name">Pathogen index:</span>')
+        append('<p><span class="index-name">%s index:</span>' % (
+            'Bacterium' if pathogenType == 'bacterial' else 'Virus'))
         append('<span class="index">')
         for genomeAccession in genomeAccessions:
             genomeInfo = self._db.findGenome(genomeAccession)
@@ -807,7 +807,7 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        appendNoSpace('<span class="%s">%3s</span>' % (
+                        appendNoSpace('<span class="%s">%4s</span>' % (
                             countClass, proteinMatch['readAndHspCountStr']))
                     else:
                         appendNoSpace('%(readAndHspCountStr)3s' % proteinMatch)
@@ -861,13 +861,15 @@ class ProteinGrouper(object):
         if bootstrapTreeviewDir:
             append('''
                 <script>
-                  var tree = %s;
-                  $('#tree').treeview({
-                      data: tree,
-                      enableLinks: true,
-                      levels: 0,
-                  });
-               </script>
+                $(document).ready(function(){
+                    var tree = %s;
+                    $('#tree').treeview({
+                        data: tree,
+                        enableLinks: true,
+                        levels: 0,
+                    });
+                });
+                </script>
             ''' % taxonomyHierarchy.toJSON())
 
         # Write all samples (with pathogens (with proteins)).
@@ -945,7 +947,7 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        appendNoSpace('<span class="%s">%3s</span>' % (
+                        appendNoSpace('<span class="%s">%4s</span>' % (
                             countClass, proteinMatch['readAndHspCountStr']))
                     else:
                         appendNoSpace('%(readAndHspCountStr)3s' % proteinMatch)
@@ -1025,14 +1027,17 @@ class ProteinGrouper(object):
         ax.set_xticks([])
         ax.set_xlim((-0.5, nSamples - 0.5))
         ax.vlines(x, yMin, readCounts, color=color)
+
+        genomeInfo = self._db.findGenome(genomeAccession)
+
         if highlighted:
             title = '%s\nIn red: %s' % (
-                genomeAccession, fill(', '.join(highlighted), 50))
+                genomeInfo['organism'], fill(', '.join(highlighted), 50))
         else:
             # Add a newline to keep the first line of each title at the
             # same place as those titles that have an "In red:" second
             # line.
-            title = genomeAccession + '\n'
+            title = genomeInfo['organism'] + '\n'
 
         ax.set_title(title, fontsize=10)
         ax.tick_params(axis='both', which='major', labelsize=8)

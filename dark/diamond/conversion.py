@@ -346,7 +346,7 @@ class JSONRecordsReader(object):
                     subjectEnd=normalized['subjectEnd'],
                     readMatchedSequence=diamondHsp['query'],
                     subjectMatchedSequence=diamondHsp['sbjct'],
-                    # Use blastHsp.get on identicalCount and positiveCount
+                    # Use diamondHsp.get on identicalCount and positiveCount
                     # because they were added in version 2.0.3 and will not
                     # be present in any of our JSON output generated before
                     # that. Those values will be None for those JSON files,
