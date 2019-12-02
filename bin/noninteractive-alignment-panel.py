@@ -134,12 +134,12 @@ if __name__ == '__main__':
 
     # Args for filtering on ReadsAlignments.
     parser.add_argument(
-        '--minStart', type=int, default=None,
+        '--minStart', type=int,
         help='Reads that start before this subject offset should not be '
         'shown.')
 
     parser.add_argument(
-        '--maxStop', type=int, default=None,
+        '--maxStop', type=int,
         help='Reads that end after this subject offset should not be shown.')
 
     parser.add_argument(
@@ -147,94 +147,99 @@ if __name__ == '__main__':
         help='If True, only keep the best alignment for each read.')
 
     parser.add_argument(
-        '--maxAlignmentsPerRead', type=int, default=None,
+        '--maxAlignmentsPerRead', type=int,
         help=('Reads with more than this many alignments will be elided. Pass '
               'zero to only keep reads with no matches (alignments).'))
 
     parser.add_argument(
-        '--scoreCutoff', type=float, default=None,
+        '--scoreCutoff', type=float,
         help=('A float score. Matches with scores worse than this will be '
               'ignored.'))
 
     parser.add_argument(
-        '--maxHspsPerHit', type=int, default=None,
+        '--percentageIdenticalCutoff', type=float,
+        help=('A float percentage identity (0.0 to 100.0). Matches with '
+              'percent identity scores less than this will be ignored.'))
+
+    parser.add_argument(
+        '--maxHspsPerHit', type=int,
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
     parser.add_argument(
-        '--whitelist', nargs='+', default=None, action='append',
+        '--whitelist', nargs='+', action='append',
         help='sequence titles that should be whitelisted')
 
     parser.add_argument(
-        '--whitelistFile', default=None,
+        '--whitelistFile',
         help=('A file containing sequence titles (one per line) to be '
               'whitelisted'))
 
     parser.add_argument(
-        '--blacklist', nargs='+', default=None, action='append',
+        '--blacklist', nargs='+', action='append',
         help='sequence titles that should be blacklisted')
 
     parser.add_argument(
-        '--blacklistFile', default=None,
+        '--blacklistFile',
         help=('A file containing sequence titles (one per line) to be '
               'blacklisted'))
 
     parser.add_argument(
-        '--titleRegex', default=None,
+        '--titleRegex',
         help='a regex that sequence titles must match.')
 
     parser.add_argument(
-        '--negativeTitleRegex', default=None,
+        '--negativeTitleRegex',
         help='a regex that sequence titles must not match.')
 
     parser.add_argument(
-        '--truncateTitlesAfter', default=None,
+        '--truncateTitlesAfter',
         help=('a string that titles will be truncated beyond. If the '
               'truncated version of a title has already been seen, '
               'that title will be skipped.'))
 
     parser.add_argument(
-        '--minSequenceLen', type=int, default=None,
+        '--minSequenceLen', type=int,
         help='sequences of lesser length will be elided.')
 
     parser.add_argument(
-        '--maxSequenceLen', type=int, default=None,
+        '--maxSequenceLen', type=int,
         help='sequences of greater length will be elided.')
 
     parser.add_argument(
-        '--taxonomy', default=None,
+        '--taxonomy',
         help=('a string of the taxonomic group on which should be '
               'filtered. eg "Vira" will filter on viruses.'))
 
     # Args for filtering on TitlesAlignments.
     parser.add_argument(
-        '--minMatchingReads', type=int, default=None,
+        '--minMatchingReads', type=int,
         help='sequences that are matched by fewer reads will be elided.')
 
     parser.add_argument(
-        '--minMedianScore', type=float, default=None,
+        '--minMedianScore', type=float,
         help=('sequences that are matched with a median score that is '
               'worse will be elided.'))
 
     parser.add_argument(
-        '--withScoreBetterThan', type=float, default=None,
+        '--withScoreBetterThan', type=float,
         help=('sequences that are matched without at least one score '
               'at least this good will be elided.'))
 
     parser.add_argument(
-        '--minNewReads', type=float, default=None,
+        '--minNewReads', type=float,
         help=('The fraction of its reads by which a new read set must differ '
               'from all previously seen read sets in order to be considered '
               'acceptably different.'))
 
     parser.add_argument(
-        '--maxTitles', type=int, default=None,
+        '--maxTitles', type=int,
         help=('The maximum number of titles to keep. If more titles than '
               'this result from the filtering, titles will be sorted '
               '(according to the --sortOn value) and only the best will be '
               'retained.'))
 
     parser.add_argument(
-        '--minCoverage', type=float, default=None,
+        '--minCoverage', type=float,
         help=('The (0.0 to 1.0) minimum fraction of a subject sequence that '
               'must be matched by at least one read.'))
 
@@ -250,7 +255,7 @@ if __name__ == '__main__':
               'the score.'))
 
     parser.add_argument(
-        '--outputDir', default=None, required=True,
+        '--outputDir', required=True,
         help='Specifies a directory to write the HTML summary to. Required.')
 
     parser.add_argument(
@@ -384,6 +389,7 @@ if __name__ == '__main__':
         oneAlignmentPerRead=args.oneAlignmentPerRead,
         maxHspsPerHit=args.maxHspsPerHit,
         scoreCutoff=args.scoreCutoff,
+        percentageIdenticalCutoff=args.percentageIdenticalCutoff,
         whitelist=whitelist, blacklist=blacklist,
         whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
         titleRegex=args.titleRegex, negativeTitleRegex=args.negativeTitleRegex,

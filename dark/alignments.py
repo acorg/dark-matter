@@ -105,6 +105,9 @@ class ReadsAlignmentsFilter(object):
         alignment for each read.
     @param scoreCutoff: A C{float} score. Matches with scores that are not
         better than this score will be ignored.
+    @param percentageIdenticalCutoff: A C{float} percentage identity (i.e.,
+        0.0 to 100.0 NOT a fraction). Matches with percentage identity less
+        than this will be ignored.
     @param whitelist: If not C{None}, a set of exact titles that are always
         acceptable (though the match info for a whitelist title may rule it
         out for other reasons).
@@ -130,7 +133,8 @@ class ReadsAlignmentsFilter(object):
                  minSequenceLen=None, maxSequenceLen=None,
                  minStart=None, maxStop=None,
                  oneAlignmentPerRead=False, maxHspsPerHit=None,
-                 scoreCutoff=None, whitelist=None, blacklist=None,
+                 scoreCutoff=None, percentageIdenticalCutoff=None,
+                 whitelist=None, blacklist=None,
                  whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
                  truncateTitlesAfter=None, taxonomy=None, readIdRegex=None):
@@ -144,6 +148,7 @@ class ReadsAlignmentsFilter(object):
         self.oneAlignmentPerRead = oneAlignmentPerRead
         self.maxHspsPerHit = maxHspsPerHit
         self.scoreCutoff = scoreCutoff
+        self.percentageIdenticalCutoff = percentageIdenticalCutoff
 
         # If we've been asked to filter on matched sequence titles in any way,
         # build a title filter.
@@ -288,6 +293,29 @@ class ReadsAlignmentsFilter(object):
                 wantedHsps = []
                 for hsp in hsps:
                     if hsp.betterThan(self.scoreCutoff):
+                        wantedHsps.append(hsp)
+                if wantedHsps:
+                    alignment.hsps = wantedHsps
+                    wantedAlignments.append(alignment)
+            if wantedAlignments:
+                readAlignments[:] = wantedAlignments
+            else:
+                return False
+
+        # Throw out HSPs whose percentage identical is not good enough.
+        #
+        # Note that if the percentIdentical is None it means that we did
+        # not run DIAMOND or BLAST in a way that generated that output, so
+        # we cannot eliminate such an HSP.
+        if self.percentageIdenticalCutoff is not None:
+            cutoff = self.percentageIdenticalCutoff
+            wantedAlignments = []
+            for alignment in readAlignments:
+                hsps = alignment.hsps
+                wantedHsps = []
+                for hsp in hsps:
+                    percentIdentical = hsp.percentIdentical
+                    if percentIdentical is None or percentIdentical >= cutoff:
                         wantedHsps.append(hsp)
                 if wantedHsps:
                     alignment.hsps = wantedHsps

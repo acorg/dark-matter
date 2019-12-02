@@ -783,6 +783,73 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result[0]))
             self.assertEqual('Merkel2', result[0][0].subjectTitle)
 
+    def testPercentIdentityCutoffRemovesEntireAlignment(self):
+        """
+        If the L{DiamondReadsAlignments} filter function is supposed to filter
+        on a percent identity cut-off and the cut-off value results in an
+        alignment with no HSPs, then the alignment must be removed entirely.
+        """
+        record = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 961,
+                    "hsps": [
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 150,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 40.0,
+                        },
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 740,
+                    "hsps": [
+                        {
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 180,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 45.0,
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
+            readsAlignments = DiamondReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            result = list(readsAlignments.filter(
+                percentageIdenticalCutoff=41.0))
+            self.assertEqual(1, len(result))
+            self.assertEqual(1, len(result[0]))
+            self.assertEqual('Merkel2', result[0][0].subjectTitle)
+
     def testScoreCutoffRemovesHsps_Bits(self):
         """
         If the L{DiamondRecords} records function is supposed to filter on
@@ -951,6 +1018,182 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             # The second alignment should also be present.
             self.assertEqual(1, len(result[0][1].hsps))
             self.assertEqual(LSP(1.25e-43), result[0][1].hsps[0])
+
+    def testPercentIdentityCutoffRemovesHsps(self):
+        """
+        If the L{DiamondRecords} records function is supposed to filter on
+        percentage identical cut-off and the cut-off value results in some HSPs
+        being invalid, then those HSPs must be removed entirely.
+        """
+        record = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 961,
+                    "hsps": [
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 150,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 30.0,
+                        },
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25e-20,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 170,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 70.0,
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 740,
+                    "hsps": [
+                        {
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 180,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 80.0,
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
+            readsAlignments = DiamondReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            result = list(readsAlignments.filter(
+                percentageIdenticalCutoff=50.0))
+
+            # There should only be one HSP left in the alignments for the
+            # first read, and it should have the right score (bit score).
+            self.assertEqual(1, len(result[0][0].hsps))
+            self.assertEqual(70.0, result[0][0].hsps[0].percentIdentical)
+
+            # The second alignment should also be present.
+            self.assertEqual(1, len(result[0][1].hsps))
+            self.assertEqual(80.0, result[0][1].hsps[0].percentIdentical)
+
+    def testPercentIdentityCutoffIgnoresNoneValues(self):
+        """
+        If the L{DiamondRecords} records function is supposed to filter on
+        percentage identical cut-off and the cut-off value in some HSPs
+        are None, then those HSPs must not be removed.
+        """
+        record = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 961,
+                    "hsps": [
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 150,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": None,
+                        },
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25e-20,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 170,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 70.0,
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 740,
+                    "hsps": [
+                        {
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 180,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 80.0,
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
+            readsAlignments = DiamondReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            result = list(readsAlignments.filter(
+                percentageIdenticalCutoff=75.0))
+
+            # Only one HSP should be left in the alignments for the first
+            # read, and it should have a None percent identity score.
+            self.assertEqual(1, len(result[0][0].hsps))
+            self.assertIs(None, result[0][0].hsps[0].percentIdentical)
+
+            # The second alignment should also be present.
+            self.assertEqual(1, len(result[0][1].hsps))
+            self.assertEqual(80.0, result[0][1].hsps[0].percentIdentical)
 
     def testTitleByRegexCaseInvariant(self):
         """
