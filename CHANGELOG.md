@@ -1,3 +1,7 @@
+## 3.1.24 Dec 3, 2019
+
+Fixed a tiny Python <= 3.6 test output difference.
+
 ## 3.1.23 Dec 3, 2019
 
 Fixed trivial Python2 incompatibility.

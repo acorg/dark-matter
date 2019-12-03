@@ -1,4 +1,6 @@
-from unittest import TestCase
+import sys
+import six
+from unittest import TestCase, skipUnless
 from six import assertRaisesRegex
 from subprocess import CalledProcessError
 
@@ -15,8 +17,9 @@ class TestProcess(TestCase):
         """
         e = Executor()
         # Presumably there will not be an executable with this name!
-        command = '/'.join(['dev', 'non-existent', '@' * 200])
-        error = r"^Command '%s' returned non-zero exit status 127\.$" % command
+        command = '/'.join(['dev', 'non-existent', '@' * 20])
+        error = r"^Command '%s' returned non-zero exit status 127%s$" % (
+            command, '' if sys.version_info < (3, 6) else r'\.')
         assertRaisesRegex(self, CalledProcessError, error, e.execute, command,
                           useStderr=False)
 
@@ -36,6 +39,7 @@ class TestProcess(TestCase):
         self.assertIsNone(result)
         self.assertEqual('$ date', e.log[-1])
 
+    @skipUnless(six.PY3, 'subprocess output skipped under PY2')
     def testEchoStr(self):
         """
         We should be able to call echo using a string command.
@@ -45,6 +49,7 @@ class TestProcess(TestCase):
         self.assertEqual('hello', result.stdout.strip())
         self.assertTrue('$ echo hello' in e.log)
 
+    @skipUnless(six.PY3, 'subprocess output skipped under PY2')
     def testEchoList(self):
         """
         We should be able to call echo using a list command.
@@ -54,6 +59,7 @@ class TestProcess(TestCase):
         self.assertEqual('hello', result.stdout.strip())
         self.assertTrue('$ echo hello' in e.log)
 
+    @skipUnless(six.PY3, 'subprocess output skipped under PY2')
     def testPipe(self):
         """
         We should be able to pipe echo into wc -c.
