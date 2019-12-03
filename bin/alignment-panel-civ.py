@@ -143,6 +143,14 @@ if __name__ == '__main__':
               'percent identity scores less than this will be ignored.'))
 
     parser.add_argument(
+        '--percentagePositiveCutoff', type=float,
+        help=('A float percentage (0.0 to 100.0). Matches with percent '
+              'positive scores less than this will be ignored. A single AA '
+              'match is considered positive (by DIAMOND) if its entry in the '
+              'substitution (scoring) matrix is positive. DIAMOND uses '
+              'the BLOSUM62 matrix by default.'))
+
+    parser.add_argument(
         '--maxHspsPerHit', type=int,
         help='A numeric max number of HSPs to show for each hit on hitId.')
 
@@ -340,6 +348,7 @@ if __name__ == '__main__':
         maxHspsPerHit=args.maxHspsPerHit,
         scoreCutoff=args.scoreCutoff,
         percentageIdenticalCutoff=args.percentageIdenticalCutoff,
+        percentagePositiveCutoff=args.percentagePositiveCutoff,
         whitelist=whitelist, blacklist=blacklist,
         whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
         titleRegex=args.titleRegex, negativeTitleRegex=args.negativeTitleRegex,

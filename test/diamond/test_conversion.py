@@ -30,15 +30,15 @@ from dark.reads import Reads, AARead
 DIAMOND_RECORDS = """\
 ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4	0	1
 ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3	1	2
-ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5	2	3
-ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6	3	4
-ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6	4	5
-ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290	9	5	6
-ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270	10	6	7
-AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306	8	7	8
-AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294	8	8	9
-BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8	9	10
-BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	10	11
+ACC94	Golden	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5	2	3
+ACC94	Golden	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6	3	4
+ACC94	HCoV	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6	4	5
+ACC94	HCoV	18.5	9.1	1	SEIICE	226	257	VETVAQ	20	45	290	9	5	6
+ACC94	FERV	24.6	0.11	1	YSCFT	176	276	LGKRMFC	152	243	270	10	6	7
+AKAV	AKAV	634	0.0	1	GEPFSV	1	306	NIYGEP	1	306	306	8	7	8
+AKAV	WYOV	401	7e-143	1	PFSVYG	1	306	GEPMS	1	294	294	8	8	9
+BHAV	TAIV	28.1	0.008	1	PKELHG	14	118	SLKSKE	15	131	307	8	9	10
+BHAV	SBAY	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	10	11
 """
 
 # The 13 fields expected in the DIAMOND output before we added identities
@@ -53,37 +53,38 @@ BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	10	11
 DIAMOND_RECORDS_WITHOUT_NIDENT_AND_POSITIVE = """\
 ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
 ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3
-ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5
-ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6
-ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6
-ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290	9
-ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270	10
-AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306	8
-AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294	8
-BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8
-BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5
+ACC94	Golden	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5
+ACC94	Golden	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6
+ACC94	HCoV	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6
+ACC94	HCoV	18.5	9.1	1	SEIICE	226	257	VETVAQ	20	45	290	9
+ACC94	FERV	24.6	0.11	1	YSCFT	176	276	LGKRMFC	152	243	270	10
+AKAV	AKAV	634	0.0	1	GEPFSV	1	306	NIYGEP	1	306	306	8
+AKAV	WYOV	401	7e-143	1	PFSVYG	1	306	GEPMS	1	294	294	8
+BHAV	TAIV	28.1	0.008	1	PKELHG	14	118	SLKSKE	15	131	307	8
+BHAV	SBAY	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5
 """
 
-# The 14 fields expected in the DIAMOND output with pident (percent identical).
+# The 17 fields expected in the DIAMOND output with nident, pident (number
+# and percent identical) and positive & ppos (number and percent positive).
 #
 # qtitle, stitle, bitscore, evalue, qframe, qseq, qstart, qend, sseq, sstart,
-# send, slen, btop, pident
+# send, slen, btop, nident, pident, positive, ppos
 #
 # See the --outfmt section of 'diamond help' for detail on these directives.
 #
 # Note that the fields below must be separated by TABs.
-DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL = """\
-ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4	5.0
-ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3	10.0
-ACC94	GoldenGate	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5	15.0
-ACC94	GoldenGate	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6	20.0
-ACC94	InfluenzaC	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6	25.0
-ACC94	InfluenzaC	18.5	9.1	1	SEIICEVLK	226	257	VETVAQ	20	45	290	9	30.0
-ACC94	FERV	24.6	0.11	1	YSCFT-NSEK	176	276	LGKRMFC	152	243	270	10	35.0
-AKAV	AKAV	634	0.0	1	GEPFSVYG	1	306	NIYGEP	1	306	306	8	40.0
-AKAV	WYOV	401	7e-143	1	PFSVYGRF	1	306	GEPMS	1	294	294	8	45.0
-BHAV	TAIV	28.1	0.008	1	PKELHGLI	14	118	SLKSKE	15	131	307	8	50.0
-BHAV	SouthBay	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	55.0
+DIAMOND_RECORDS_WITH_PERCENTS = """\
+ACC94	INSV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4	2	5.0	1	4.0
+ACC94	CASV	28.1	0.008	1	KLL	7	37	ITRV	9	39	300	3	3	10.0	2	9.0
+ACC94	Golden	28.1	0.009	1	IKSKL	7	35	EETSR	9	37	293	5	4	15.0	3	14.0
+ACC94	Golden	23.5	0.21	1	TIMSVV	177	240	DDMV	179	235	293	6	5	20.0	4	19.0
+ACC94	HCoV	25.0	0.084	1	LHVNYL	1	203	DEELKA	2	210	290	6	6	25.0	5	24.0
+ACC94	HCoV	18.5	9.1	1	SEIICE	226	257	VETVAQ	20	45	290	9	7	30.0	6	29.0
+ACC94	FERV	24.6	0.11	1	YSCFT	176	276	LGKRMFC	152	243	270	10	8	35.0	7	34.0
+AKAV	AKAV	634	0.0	1	GEPFSV	1	306	NIYGEP	1	306	306	8	9	40.0	8	39.0
+AKAV	WYOV	401	7e-143	1	PFSVYG	1	306	GEPMS	1	294	294	8	10	45.0	9	44.0
+BHAV	TAIV	28.1	0.008	1	PKELHG	14	118	SLKSKE	15	131	307	8	11	50.0	10	49.0
+BHAV	SBAY	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	12	55.0	11	54.0
 """
 
 DIAMOND_RECORD_WITH_SPACES_IN_TITLES = """\
@@ -111,6 +112,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 0,
                         "percentIdentical": None,
                         "positiveCount": 1,
+                        "percentPositive": None,
                         "query": "EFII",
                         "query_end": 295,
                         "query_start": 178,
@@ -132,6 +134,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 1,
                         "percentIdentical": None,
                         "positiveCount": 2,
+                        "percentPositive": None,
                         "query": "KLL",
                         "query_end": 37,
                         "query_start": 7,
@@ -153,6 +156,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 2,
                         "percentIdentical": None,
                         "positiveCount": 3,
+                        "percentPositive": None,
                         "query": "IKSKL",
                         "query_end": 35,
                         "query_start": 7,
@@ -168,6 +172,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 3,
                         "percentIdentical": None,
                         "positiveCount": 4,
+                        "percentPositive": None,
                         "query": "TIMSVV",
                         "query_end": 240,
                         "query_start": 177,
@@ -177,7 +182,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                     }
                 ],
                 "length": 293,
-                "title": "GoldenGate"
+                "title": "Golden"
             },
             {
                 "hsps": [
@@ -189,6 +194,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 4,
                         "percentIdentical": None,
                         "positiveCount": 5,
+                        "percentPositive": None,
                         "query": "LHVNYL",
                         "query_end": 203,
                         "query_start": 1,
@@ -204,7 +210,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 5,
                         "percentIdentical": None,
                         "positiveCount": 6,
-                        "query": "SEIICEVLK",
+                        "percentPositive": None,
+                        "query": "SEIICE",
                         "query_end": 257,
                         "query_start": 226,
                         "sbjct": "VETVAQ",
@@ -213,7 +220,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                     }
                 ],
                 "length": 290,
-                "title": "InfluenzaC"
+                "title": "HCoV"
             },
             {
                 "hsps": [
@@ -225,7 +232,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 6,
                         "percentIdentical": None,
                         "positiveCount": 7,
-                        "query": "YSCFT-NSEK",
+                        "percentPositive": None,
+                        "query": "YSCFT",
                         "query_end": 276,
                         "query_start": 176,
                         "sbjct": "LGKRMFC",
@@ -251,7 +259,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 7,
                         "percentIdentical": None,
                         "positiveCount": 8,
-                        "query": "GEPFSVYG",
+                        "percentPositive": None,
+                        "query": "GEPFSV",
                         "query_end": 306,
                         "query_start": 1,
                         "sbjct": "NIYGEP",
@@ -272,7 +281,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 8,
                         "percentIdentical": None,
                         "positiveCount": 9,
-                        "query": "PFSVYGRF",
+                        "percentPositive": None,
+                        "query": "PFSVYG",
                         "query_end": 306,
                         "query_start": 1,
                         "sbjct": "GEPMS",
@@ -298,7 +308,8 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 9,
                         "percentIdentical": None,
                         "positiveCount": 10,
-                        "query": "PKELHGLI",
+                        "percentPositive": None,
+                        "query": "PKELHG",
                         "query_end": 118,
                         "query_start": 14,
                         "sbjct": "SLKSKE",
@@ -319,6 +330,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                         "identicalCount": 10,
                         "percentIdentical": None,
                         "positiveCount": 11,
+                        "percentPositive": None,
                         "query": "CRPTF",
                         "query_end": 293,
                         "query_start": 4,
@@ -328,7 +340,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
                     }
                 ],
                 "length": 343,
-                "title": "SouthBay"
+                "title": "SBAY"
             }
         ],
         "query": "BHAV"
@@ -336,7 +348,7 @@ DIAMOND_RECORDS_DUMPED = '\n'.join([
 ]) + '\n'
 
 
-DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
+DIAMOND_RECORDS_WITH_PERCENTS_DUMPED = '\n'.join([
     dumps({
         "application": "DIAMOND",
         "reference": ("Buchfink et al., Fast and Sensitive "
@@ -354,9 +366,10 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "4",
                         "expect": 0.003,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 2,
                         "percentIdentical": 5.0,
-                        "positiveCount": None,
+                        "percentPositive": 4.0,
+                        "positiveCount": 1,
                         "query": "EFII",
                         "query_end": 295,
                         "query_start": 178,
@@ -375,9 +388,10 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "3",
                         "expect": 0.008,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 3,
                         "percentIdentical": 10.0,
-                        "positiveCount": None,
+                        "percentPositive": 9.0,
+                        "positiveCount": 2,
                         "query": "KLL",
                         "query_end": 37,
                         "query_start": 7,
@@ -396,9 +410,10 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "5",
                         "expect": 0.009,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 4,
                         "percentIdentical": 15.0,
-                        "positiveCount": None,
+                        "percentPositive": 14.0,
+                        "positiveCount": 3,
                         "query": "IKSKL",
                         "query_end": 35,
                         "query_start": 7,
@@ -411,9 +426,10 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "6",
                         "expect": 0.21,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 5,
                         "percentIdentical": 20.0,
-                        "positiveCount": None,
+                        "percentPositive": 19.0,
+                        "positiveCount": 4,
                         "query": "TIMSVV",
                         "query_end": 240,
                         "query_start": 177,
@@ -423,7 +439,7 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                     }
                 ],
                 "length": 293,
-                "title": "GoldenGate"
+                "title": "Golden"
             },
             {
                 "hsps": [
@@ -432,9 +448,10 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "6",
                         "expect": 0.084,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 6,
                         "percentIdentical": 25.0,
-                        "positiveCount": None,
+                        "percentPositive": 24.0,
+                        "positiveCount": 5,
                         "query": "LHVNYL",
                         "query_end": 203,
                         "query_start": 1,
@@ -447,10 +464,11 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "9",
                         "expect": 9.1,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 7,
                         "percentIdentical": 30.0,
-                        "positiveCount": None,
-                        "query": "SEIICEVLK",
+                        "percentPositive": 29.0,
+                        "positiveCount": 6,
+                        "query": "SEIICE",
                         "query_end": 257,
                         "query_start": 226,
                         "sbjct": "VETVAQ",
@@ -459,7 +477,7 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                     }
                 ],
                 "length": 290,
-                "title": "InfluenzaC"
+                "title": "HCoV"
             },
             {
                 "hsps": [
@@ -468,10 +486,11 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "10",
                         "expect": 0.11,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 8,
                         "percentIdentical": 35.0,
-                        "positiveCount": None,
-                        "query": "YSCFT-NSEK",
+                        "percentPositive": 34.0,
+                        "positiveCount": 7,
+                        "query": "YSCFT",
                         "query_end": 276,
                         "query_start": 176,
                         "sbjct": "LGKRMFC",
@@ -494,10 +513,11 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "8",
                         "expect": 0.0,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 9,
                         "percentIdentical": 40.0,
-                        "positiveCount": None,
-                        "query": "GEPFSVYG",
+                        "percentPositive": 39.0,
+                        "positiveCount": 8,
+                        "query": "GEPFSV",
                         "query_end": 306,
                         "query_start": 1,
                         "sbjct": "NIYGEP",
@@ -515,10 +535,11 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "8",
                         "expect": 7e-143,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 10,
                         "percentIdentical": 45.0,
-                        "positiveCount": None,
-                        "query": "PFSVYGRF",
+                        "percentPositive": 44.0,
+                        "positiveCount": 9,
+                        "query": "PFSVYG",
                         "query_end": 306,
                         "query_start": 1,
                         "sbjct": "GEPMS",
@@ -541,10 +562,11 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "8",
                         "expect": 0.008,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 11,
                         "percentIdentical": 50.0,
-                        "positiveCount": None,
-                        "query": "PKELHGLI",
+                        "percentPositive": 49.0,
+                        "positiveCount": 10,
+                        "query": "PKELHG",
                         "query_end": 118,
                         "query_start": 14,
                         "sbjct": "SLKSKE",
@@ -562,9 +584,10 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                         "btop": "5",
                         "expect": 0.009,
                         "frame": 1,
-                        "identicalCount": None,
+                        "identicalCount": 12,
                         "percentIdentical": 55.0,
-                        "positiveCount": None,
+                        "percentPositive": 54.0,
+                        "positiveCount": 11,
                         "query": "CRPTF",
                         "query_end": 293,
                         "query_start": 4,
@@ -574,7 +597,7 @@ DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED = '\n'.join([
                     }
                 ],
                 "length": 343,
-                "title": "SouthBay"
+                "title": "SBAY"
             }
         ],
         "query": "BHAV"
@@ -655,13 +678,13 @@ class TestDiamondTabularFormatReader(TestCase):
         A DiamondTabularFormatReader must be able to save itself as JSON
         when the percentIdentical field is present.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL)
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENTS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             fp = StringIO()
             reader.saveAsJSON(fp)
             self.maxDiff = None
-            self.assertEqual(DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED,
+            self.assertEqual(DIAMOND_RECORDS_WITH_PERCENTS_DUMPED,
                              fp.getvalue())
 
     def testSaveAsJSONBzip2(self):
@@ -685,7 +708,7 @@ class TestDiamondTabularFormatReader(TestCase):
         A DiamondTabularFormatReader must be able to save itself as bzip2'd
         JSON when the percentIdentical field is present.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL)
+        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENTS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             data = BytesIO()
@@ -693,8 +716,7 @@ class TestDiamondTabularFormatReader(TestCase):
             reader.saveAsJSON(fp, writeBytes=True)
             fp.close()
             self.assertEqual(
-                compress(DIAMOND_RECORDS_WITH_PERCENT_IDENTICAL_DUMPED.encode(
-                    'UTF-8')),
+                compress(DIAMOND_RECORDS_WITH_PERCENTS_DUMPED.encode('UTF-8')),
                 data.getvalue())
 
     def testSpacesMustBePreserved(self):

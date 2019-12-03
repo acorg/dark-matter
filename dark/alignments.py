@@ -108,6 +108,10 @@ class ReadsAlignmentsFilter(object):
     @param percentageIdenticalCutoff: A C{float} percentage identity (i.e.,
         0.0 to 100.0 NOT a fraction). Matches with percentage identity less
         than this will be ignored.
+    @param percentagePositiveCutoff: A C{float} percentage (i.e.,
+        0.0 to 100.0 NOT a fraction). Matches with a percentage positive less
+        than this will be ignored. An AA match is considered positive (by
+        DIAMOND) if its entry in the substitution (scoring) matrix is positive.
     @param whitelist: If not C{None}, a set of exact titles that are always
         acceptable (though the match info for a whitelist title may rule it
         out for other reasons).
@@ -134,6 +138,7 @@ class ReadsAlignmentsFilter(object):
                  minStart=None, maxStop=None,
                  oneAlignmentPerRead=False, maxHspsPerHit=None,
                  scoreCutoff=None, percentageIdenticalCutoff=None,
+                 percentagePositiveCutoff=None,
                  whitelist=None, blacklist=None,
                  whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
@@ -149,6 +154,7 @@ class ReadsAlignmentsFilter(object):
         self.maxHspsPerHit = maxHspsPerHit
         self.scoreCutoff = scoreCutoff
         self.percentageIdenticalCutoff = percentageIdenticalCutoff
+        self.percentagePositiveCutoff = percentagePositiveCutoff
 
         # If we've been asked to filter on matched sequence titles in any way,
         # build a title filter.
@@ -302,20 +308,27 @@ class ReadsAlignmentsFilter(object):
             else:
                 return False
 
-        # Throw out HSPs whose percentage identical is not good enough.
+        # Throw out HSPs whose percentage identical or positive is not good
+        # enough.
         #
-        # Note that if the percentIdentical is None it means that we did
-        # not run DIAMOND or BLAST in a way that generated that output, so
-        # we cannot eliminate such an HSP.
-        if self.percentageIdenticalCutoff is not None:
-            cutoff = self.percentageIdenticalCutoff
+        # Note that if percentIdentical or percentPositive is None it means
+        # that we did not run DIAMOND or BLAST in a way that generated that
+        # output, so we cannot eliminate such an HSP.
+        if (self.percentageIdenticalCutoff is not None or
+                self.percentagePositiveCutoff is not None):
+
+            piCutoff = self.percentageIdenticalCutoff
+            ppCutoff = self.percentagePositiveCutoff
             wantedAlignments = []
+
             for alignment in readAlignments:
                 hsps = alignment.hsps
                 wantedHsps = []
                 for hsp in hsps:
-                    percentIdentical = hsp.percentIdentical
-                    if percentIdentical is None or percentIdentical >= cutoff:
+                    pi = hsp.percentIdentical
+                    pp = hsp.percentPositive
+                    if ((pi is None or pi >= piCutoff) and
+                            (pp is None or pp >= ppCutoff)):
                         wantedHsps.append(hsp)
                 if wantedHsps:
                     alignment.hsps = wantedHsps

@@ -64,7 +64,7 @@ class TestHSP(TestCase):
                   subjectStart=5, subjectEnd=6,
                   readMatchedSequence='aaa', subjectMatchedSequence='ccc',
                   readFrame=7, subjectFrame=8, identicalCount=9,
-                  positiveCount=10, percentIdentical=99.3)
+                  percentIdentical=99.3, positiveCount=10, percentPositive=3.0)
 
         self.assertEqual(
             {
@@ -78,10 +78,11 @@ class TestHSP(TestCase):
                 'readFrame': 7,
                 'subjectFrame': 8,
                 'identicalCount': 9,
+                'percentIdentical': 99.3,
                 'positiveCount': 10,
+                'percentPositive': 3.0,
                 'readMatchedSequence': 'aaa',
                 'subjectMatchedSequence': 'ccc',
-                'percentIdentical': 99.3,
             },
             hsp.toDict())
 
@@ -147,7 +148,8 @@ class TestLSP(TestCase):
                   subjectStart=5, subjectEnd=6,
                   readMatchedSequence='aaa', subjectMatchedSequence='ccc',
                   readFrame=7, subjectFrame=8, identicalCount=9,
-                  positiveCount=10, percentIdentical=99.3)
+                  percentIdentical=99.3, positiveCount=10,
+                  percentPositive=9.9)
 
         self.assertEqual(
             {
@@ -161,9 +163,10 @@ class TestLSP(TestCase):
                 'readFrame': 7,
                 'subjectFrame': 8,
                 'identicalCount': 9,
+                'percentIdentical': 99.3,
                 'positiveCount': 10,
+                'percentPositive': 9.9,
                 'readMatchedSequence': 'aaa',
                 'subjectMatchedSequence': 'ccc',
-                'percentIdentical': 99.3,
             },
             lsp.toDict())
