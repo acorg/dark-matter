@@ -107,6 +107,7 @@ def main(db, taxdb, args):
             args.pathogenPanelFilename,
             readCountColors=readCountColors,
             minProteinFraction=args.minProteinFraction,
+            minProteinCount=args.minProteinCount,
             pathogenType=args.pathogenType,
             title=args.title, preamble=preambleText,
             sampleIndexFilename=args.sampleIndexFilename,
@@ -174,6 +175,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--minProteinFraction', type=float, default=0.0,
         help=('The minimum fraction of proteins in a pathogen that must be '
+              'matched by a particular sample in order for that pathogen to '
+              'be displayed for that sample.'))
+
+    parser.add_argument(
+        '--minProteinCount', type=int, default=0,
+        help=('The minimum number of proteins in a pathogen that must be '
               'matched by a particular sample in order for that pathogen to '
               'be displayed for that sample.'))
 
