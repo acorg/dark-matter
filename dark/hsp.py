@@ -69,7 +69,8 @@ class _Base(object):
                  readEndInSubject=None, readFrame=None, subjectStart=None,
                  subjectEnd=None, subjectFrame=None, readMatchedSequence=None,
                  subjectMatchedSequence=None, identicalCount=None,
-                 positiveCount=None, percentIdentical=None):
+                 percentIdentical=None, positiveCount=None,
+                 percentPositive=None):
         self.readStart = readStart
         self.readEnd = readEnd
         self.readStartInSubject = readStartInSubject
@@ -81,8 +82,9 @@ class _Base(object):
         self.readMatchedSequence = readMatchedSequence
         self.subjectMatchedSequence = subjectMatchedSequence
         self.identicalCount = identicalCount
-        self.positiveCount = positiveCount
         self.percentIdentical = percentIdentical
+        self.positiveCount = positiveCount
+        self.percentPositive = percentPositive
 
     def __lt__(self, other):
         return self.score < other.score
@@ -117,8 +119,9 @@ class _Base(object):
             'readMatchedSequence': self.readMatchedSequence,
             'subjectMatchedSequence': self.subjectMatchedSequence,
             'identicalCount': self.identicalCount,
-            'positiveCount': self.positiveCount,
             'percentIdentical': self.percentIdentical,
+            'positiveCount': self.positiveCount,
+            'percentPositive': self.percentPositive,
         }
 
 

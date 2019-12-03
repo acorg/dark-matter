@@ -58,13 +58,15 @@ class TestTitleAlignment(TestCase):
                    subjectStart=5, subjectEnd=6,
                    readMatchedSequence='aaa', subjectMatchedSequence='ccc',
                    readFrame=7, subjectFrame=8, identicalCount=9,
-                   positiveCount=10, percentIdentical=31.3)
+                   percentIdentical=31.3, positiveCount=10,
+                   percentPositive=4.5)
         hsp2 = HSP(10, readStart=11, readEnd=12,
                    readStartInSubject=13, readEndInSubject=14,
                    subjectStart=15, subjectEnd=16,
                    readMatchedSequence='ggg', subjectMatchedSequence='ttt',
                    readFrame=17, subjectFrame=18, identicalCount=19,
-                   positiveCount=20, percentIdentical=32.3)
+                   percentIdentical=32.3, positiveCount=20,
+                   percentPositive=4.6)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
 
         self.assertEqual(
@@ -81,10 +83,11 @@ class TestTitleAlignment(TestCase):
                         'readFrame': 7,
                         'subjectFrame': 8,
                         'identicalCount': 9,
+                        'percentIdentical': 31.3,
                         'positiveCount': 10,
+                        'percentPositive': 4.5,
                         'readMatchedSequence': 'aaa',
                         'subjectMatchedSequence': 'ccc',
-                        'percentIdentical': 31.3,
                     },
                     {
                         'score': 10,
@@ -97,10 +100,11 @@ class TestTitleAlignment(TestCase):
                         'readFrame': 17,
                         'subjectFrame': 18,
                         'identicalCount': 19,
+                        'percentIdentical': 32.3,
                         'positiveCount': 20,
+                        'percentPositive': 4.6,
                         'readMatchedSequence': 'ggg',
                         'subjectMatchedSequence': 'ttt',
-                        'percentIdentical': 32.3,
                     },
                 ],
                 'read': {
@@ -901,13 +905,15 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
                    subjectStart=5, subjectEnd=6,
                    readMatchedSequence='aaa', subjectMatchedSequence='ccc',
                    readFrame=7, subjectFrame=8, identicalCount=9,
-                   positiveCount=10, percentIdentical=17.9)
+                   percentIdentical=17.9, positiveCount=10,
+                   percentPositive=3.9)
         hsp2 = HSP(10, readStart=11, readEnd=12,
                    readStartInSubject=13, readEndInSubject=14,
                    subjectStart=15, subjectEnd=16,
                    readMatchedSequence='ggg', subjectMatchedSequence='ttt',
                    readFrame=17, subjectFrame=18, identicalCount=19,
-                   positiveCount=20, percentIdentical=27.9)
+                   percentIdentical=27.9, positiveCount=20,
+                   percentPositive=3.8)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments = TitleAlignments('subject title', 10)
         titleAlignments.addAlignment(titleAlignment)
@@ -930,10 +936,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
                                 'readFrame': 7,
                                 'subjectFrame': 8,
                                 'identicalCount': 9,
+                                'percentIdentical': 17.9,
                                 'positiveCount': 10,
+                                'percentPositive': 3.9,
                                 'readMatchedSequence': 'aaa',
                                 'subjectMatchedSequence': 'ccc',
-                                'percentIdentical': 17.9,
                             },
                             {
                                 'score': 10,
@@ -946,10 +953,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
                                 'readFrame': 17,
                                 'subjectFrame': 18,
                                 'identicalCount': 19,
+                                'percentIdentical': 27.9,
                                 'positiveCount': 20,
+                                'percentPositive': 3.8,
                                 'readMatchedSequence': 'ggg',
                                 'subjectMatchedSequence': 'ttt',
-                                'percentIdentical': 27.9,
                             },
                         ],
                         'read': {

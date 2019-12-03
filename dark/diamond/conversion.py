@@ -131,13 +131,13 @@ class DiamondTabularFormatReader(object):
         qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
             slen btop
 
-        14 arg version:
-        qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
-            slen btop pident
-
         15 arg version:
         qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
             slen btop nident positive
+
+        17 arg version:
+        qtitle stitle bitscore evalue qframe qseq qstart qend sseq sstart send
+            slen btop nident pident positive ppos
 
     @param filename: A C{str} filename or an open file pointer, containing
         DIAMOND tabular records.
@@ -178,21 +178,21 @@ class DiamondTabularFormatReader(object):
                 if nFields == 13:
                     (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
                      qend, sseq, sstart, send, slen, btop) = fields
-                    nident = positive = pident = None
-                elif nFields == 14:
-                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
-                     qend, sseq, sstart, send, slen, btop, pident) = fields
-                    nident = positive = None
+                    nident = pident = positive = ppos = None
                 elif nFields == 15:
                     (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
                      qend, sseq, sstart, send, slen, btop, nident,
                      positive) = fields
-                    pident = None
+                    pident = ppos = None
+                elif nFields == 17:
+                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
+                     qend, sseq, sstart, send, slen, btop, nident, pident,
+                     positive, ppos) = fields
                 else:
                     raise ValueError(
                         'Could not make sense of DIAMOND output. You must use '
-                        '--outfmt 6 with 13, 14, or 15 arguments. See %s for '
-                        'their names.' % __file__)
+                        '--outfmt 6 with 13, 15, or 17 arguments. See %s for '
+                        'the expected names and order.' % __file__)
 
                 hsp = {
                     'bits': float(bitscore),
@@ -204,6 +204,8 @@ class DiamondTabularFormatReader(object):
                         None if pident is None else float(pident)),
                     'positiveCount': (
                         None if positive is None else int(positive)),
+                    'percentPositive': (
+                        None if ppos is None else float(ppos)),
                     'query': qseq,
                     'query_start': int(qstart),
                     'query_end': int(qend),
@@ -361,16 +363,17 @@ class JSONRecordsReader(object):
                     readMatchedSequence=diamondHsp['query'],
                     subjectMatchedSequence=diamondHsp['sbjct'],
                     # Use diamondHsp.get on identicalCount, positiveCount,
-                    # and percentIdentical because they were either added
-                    # in version 2.0.3 or we didn't start using them until
-                    # much later and so will not be present in any of our
-                    # JSON output generated before that. Those values will
-                    # be None when reading those JSON files, but that's
-                    # much better than no longer being able to read all
-                    # that earlier data.
+                    # percentPositive, and percentIdentical because they
+                    # were either added in version 2.0.3 or we didn't start
+                    # using them until much later and so will not be
+                    # present in any of our JSON output generated before
+                    # that. Those values will be None when reading those
+                    # JSON files, but that's much better than no longer
+                    # being able to read all that earlier data.
                     identicalCount=diamondHsp.get('identicalCount'),
                     positiveCount=diamondHsp.get('positiveCount'),
-                    percentIdentical=diamondHsp.get('percentIdentical'))
+                    percentIdentical=diamondHsp.get('percentIdentical'),
+                    percentPositive=diamondHsp.get('percentPositive'))
 
                 alignment.addHsp(hsp)
 

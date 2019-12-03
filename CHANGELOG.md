@@ -1,3 +1,10 @@
+## 3.1.26 Dec 3, 2019
+
+Added `--percentagePositiveCutoff` argument to `alignment-panel-civ.py`
+and `noninteractive-alignment-panel.py` and all that implies, down to
+reading DIAMOND output with the `ppos` value, storing it, restoring it,
+and filtering on it in `dark.alignments.ReadsAlignmentsFilter`, plus tests.
+
 ## 3.1.25 Dec 3, 2019
 
 Added `--minProteinCount` argument to `proteins-to-pathogens-civ.py` and
