@@ -450,16 +450,19 @@ class ProteinGrouper(object):
         return '\n'.join(result)
 
     def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
-               pathogenType='viral', title='Summary of pathogens',
-               preamble=None, sampleIndexFilename=None,
-               pathogenIndexFilename=None, omitVirusLinks=False,
-               omitSampleProteinCount=False):
+               minProteinCount=0, pathogenType='viral',
+               title='Summary of pathogens', preamble=None,
+               sampleIndexFilename=None, pathogenIndexFilename=None,
+               omitVirusLinks=False, omitSampleProteinCount=False):
         """
         Produce an HTML string representation of the pathogen summary.
 
         @param pathogenPanelFilename: If not C{None}, a C{str} filename to
             write a pathogen panel PNG image to.
         @param minProteinFraction: The C{float} minimum fraction of proteins
+            in a pathogen that must be matched by a sample in order for that
+            pathogen to be displayed for that sample.
+        @param minProteinCount: The C{int} minimum number of proteins
             in a pathogen that must be matched by a sample in order for that
             pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
@@ -503,26 +506,28 @@ class ProteinGrouper(object):
             with open(pathogenIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writePathogenIndex(fp)
 
-        # Figure out if we have to delete some pathogens because the
-        # fraction of their proteins that we have matches for is too low.
-        if minProteinFraction > 0.0:
+        # Figure out if we have to delete some pathogens because the number
+        # or fraction of its proteins that we have matches for is too low.
+        if minProteinFraction > 0.0 or minProteinCount > 0:
             toDelete = defaultdict(list)
-            for pathogenName in self.pathogenNames:
-                proteinCount = self._pathogenProteinCount[pathogenName]
-                for s in self.pathogenNames[pathogenName]:
-                    if proteinCount:
-                        sampleProteinFraction = (
-                            len(self.pathogenNames[
-                                pathogenName][s]['proteins']) /
-                            proteinCount)
+            for genomeAccession in self.genomeAccessions:
+                genomeInfo = self._db.findGenome(genomeAccession)
+                pathogenProteinCount = genomeInfo['proteinCount']
+                assert pathogenProteinCount > 0
+                for s in self.genomeAccessions[genomeAccession]:
+                    sampleProteinCount = len(self.genomeAccessions[
+                        genomeAccession][s]['proteins'])
+                    if sampleProteinCount < minProteinCount:
+                        toDelete[genomeAccession].append(s)
                     else:
-                        sampleProteinFraction = 1.0
-                    if sampleProteinFraction < minProteinFraction:
-                        toDelete[pathogenName].append(s)
+                        sampleProteinFraction = (
+                            sampleProteinCount / pathogenProteinCount)
+                        if sampleProteinFraction < minProteinFraction:
+                            toDelete[genomeAccession].append(s)
 
-            for pathogenName in toDelete:
-                for sample in toDelete[pathogenName]:
-                    del self.pathogenNames[pathogenName][sample]
+            for genomeAccession, samples in toDelete.items():
+                for sample in samples:
+                    del self.genomeAccessions[genomeAccession][sample]
 
         pathogenNames = sorted(
             pathogenName for pathogenName in self.pathogenNames

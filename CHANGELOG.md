@@ -1,3 +1,8 @@
+## 3.1.25 Dec 3, 2019
+
+Added `--minProteinCount` argument to `proteins-to-pathogens-civ.py` and
+`proteins-to-pathogens.py`
+
 ## 3.1.24 Dec 3, 2019
 
 Fixed a tiny Python <= 3.6 test output difference.

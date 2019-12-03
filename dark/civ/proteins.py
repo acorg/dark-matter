@@ -395,9 +395,10 @@ class ProteinGrouper(object):
         return self._db.findGenome(genomeAccession)['organism']
 
     def toHTML(self, pathogenPanelFilename=None, readCountColors=None,
-               minProteinFraction=0.0, pathogenType='viral',
-               title=None, preamble=None, sampleIndexFilename=None,
-               omitVirusLinks=False, bootstrapTreeviewDir=None):
+               minProteinFraction=0.0, minProteinCount=0,
+               pathogenType='viral', title=None, preamble=None,
+               sampleIndexFilename=None, omitVirusLinks=False,
+               bootstrapTreeviewDir=None):
         """
         Produce an HTML string representation of the pathogen summary.
 
@@ -406,6 +407,9 @@ class ProteinGrouper(object):
         @param readCountColors: Either a C{dark.colors.colorsForCounts}
             instance or C{None} for no read count coloring.
         @param minProteinFraction: The C{float} minimum fraction of proteins
+            in a pathogen that must be matched by a sample in order for that
+            pathogen to be displayed for that sample.
+        @param minProteinCount: The C{int} minimum number of proteins
             in a pathogen that must be matched by a sample in order for that
             pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
@@ -442,21 +446,24 @@ class ProteinGrouper(object):
             with open(sampleIndexFilename, 'w') as fp:
                 self.pathogenSampleFiles.writeSampleIndex(fp)
 
-        # Figure out if we have to delete some pathogens because the
-        # fraction of their proteins that we have matches for is too low.
-        if minProteinFraction > 0.0:
+        # Figure out if we have to delete some pathogens because the number
+        # or fraction of its proteins that we have matches for is too low.
+        if minProteinFraction > 0.0 or minProteinCount > 0:
             toDelete = defaultdict(list)
             for genomeAccession in self.genomeAccessions:
                 genomeInfo = self._db.findGenome(genomeAccession)
-                proteinCount = genomeInfo['proteinCount']
-                assert proteinCount > 0
+                pathogenProteinCount = genomeInfo['proteinCount']
+                assert pathogenProteinCount > 0
                 for s in self.genomeAccessions[genomeAccession]:
-                    sampleProteinFraction = (
-                        len(self.genomeAccessions[
-                            genomeAccession][s]['proteins']) /
-                        proteinCount)
-                    if sampleProteinFraction < minProteinFraction:
+                    sampleProteinCount = len(self.genomeAccessions[
+                        genomeAccession][s]['proteins'])
+                    if sampleProteinCount < minProteinCount:
                         toDelete[genomeAccession].append(s)
+                    else:
+                        sampleProteinFraction = (
+                            sampleProteinCount / pathogenProteinCount)
+                        if sampleProteinFraction < minProteinFraction:
+                            toDelete[genomeAccession].append(s)
 
             for genomeAccession, samples in toDelete.items():
                 for sample in samples:
