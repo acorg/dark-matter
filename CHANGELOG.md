@@ -1,3 +1,7 @@
+## 3.1.27 Dec 3, 2019
+
+Fixed silly bug in alignment filtering code that was somehow not tested.
+
 ## 3.1.26 Dec 3, 2019
 
 Added `--percentagePositiveCutoff` argument to `alignment-panel-civ.py`

@@ -183,9 +183,8 @@ class TestReadsAlignments(TestCase):
 
     # NOTE: The ReadsAlignments class is a base class for concrete
     # implementations, such as BlastReadsAlignments. So it can only be
-    # tested minimally by itself. For full tests see the
-    # TestBlastReadsAlignments and TestBlastReadsAlignmentsFiltering
-    # classes in test/blast/blast_alignments.py
+    # tested minimally by itself. For full(er) tests see
+    # diamond/test_alignments.py and blast/test_alignments.py.
 
     def testExpectedAttrs(self):
         """
