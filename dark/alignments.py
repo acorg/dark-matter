@@ -308,27 +308,43 @@ class ReadsAlignmentsFilter(object):
             else:
                 return False
 
-        # Throw out HSPs whose percentage identical or positive is not good
-        # enough.
+        # Throw out HSPs whose percentage identical is not good enough.
         #
-        # Note that if percentIdentical or percentPositive is None it means
-        # that we did not run DIAMOND or BLAST in a way that generated that
+        # Note that if percentIdentical is None in the HSP it means that
+        # we did not run DIAMOND or BLAST in a way that generated that
         # output, so we cannot eliminate such an HSP.
-        if (self.percentageIdenticalCutoff is not None or
-                self.percentagePositiveCutoff is not None):
-
+        if self.percentageIdenticalCutoff is not None:
             piCutoff = self.percentageIdenticalCutoff
-            ppCutoff = self.percentagePositiveCutoff
             wantedAlignments = []
-
             for alignment in readAlignments:
                 hsps = alignment.hsps
                 wantedHsps = []
                 for hsp in hsps:
                     pi = hsp.percentIdentical
+                    if pi is None or pi >= piCutoff:
+                        wantedHsps.append(hsp)
+                if wantedHsps:
+                    alignment.hsps = wantedHsps
+                    wantedAlignments.append(alignment)
+            if wantedAlignments:
+                readAlignments[:] = wantedAlignments
+            else:
+                return False
+
+        # Throw out HSPs whose percentage positive is not good enough.
+        #
+        # Note that if percentPositive is None in the HSP it means that
+        # we did not run DIAMOND or BLAST in a way that generated that
+        # output, so we cannot eliminate such an HSP.
+        if self.percentagePositiveCutoff is not None:
+            ppCutoff = self.percentagePositiveCutoff
+            wantedAlignments = []
+            for alignment in readAlignments:
+                hsps = alignment.hsps
+                wantedHsps = []
+                for hsp in hsps:
                     pp = hsp.percentPositive
-                    if ((pi is None or pi >= piCutoff) and
-                            (pp is None or pp >= ppCutoff)):
+                    if pp is None or pp >= ppCutoff:
                         wantedHsps.append(hsp)
                 if wantedHsps:
                     alignment.hsps = wantedHsps

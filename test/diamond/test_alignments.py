@@ -1438,6 +1438,99 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             self.assertEqual(1, len(result[0][1].hsps))
             self.assertEqual(80.0, result[0][1].hsps[0].percentPositive)
 
+    def testPercentPositiveFilterWithPercentIdenticalValues(self):
+        """
+        If the L{DiamondRecords} records function is supposed to filter on
+        percentage positive cut-offs, the result must be as excpected when
+        a percentIdentical value is also present in the HSPs.
+        """
+        # This is a failing test for a cut & paste bug that was encountered
+        # on Dec 04, 2019.
+        record = {
+            "query": "H6E8I1T01BFUH9",
+            "alignments": [
+                {
+                    "length": 961,
+                    "hsps": [
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25854e-10,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 150,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 33.0,
+                            "percentPositive": None,
+                        },
+                        {
+                            "sbjct_end": 869,
+                            "expect": 1.25e-20,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 836,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 170,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 33.0,
+                            "percentPositive": 70.0,
+                        }
+                    ],
+                    "title": "Merkel1"
+                },
+                {
+                    "length": 740,
+                    "hsps": [
+                        {
+                            "sbjct_end": 647,
+                            "expect": 1.25e-43,
+                            "sbjct": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                            "sbjct_start": 614,
+                            "query": ("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                      "AAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                            "frame": 1,
+                            "query_end": 462,
+                            "bits": 180,
+                            "btop": "",
+                            "query_start": 362,
+                            "percentIdentical": 33.0,
+                            "percentPositive": 80.0,
+                        }
+                    ],
+                    "title": "Merkel2"
+                }
+            ]
+        }
+
+        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
+                              dumps(record) + '\n')
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
+            readsAlignments = DiamondReadsAlignments(
+                reads, 'file.json', databaseFilename='database.fasta')
+            result = list(readsAlignments.filter(
+                percentagePositiveCutoff=75.0))
+
+            # Only one HSP should be left in the alignments for the first
+            # read, and it should have a None percent identity score.
+            self.assertEqual(1, len(result[0][0].hsps))
+            self.assertIs(None, result[0][0].hsps[0].percentPositive)
+
+            # The second alignment should also be present.
+            self.assertEqual(1, len(result[0][1].hsps))
+            self.assertEqual(80.0, result[0][1].hsps[0].percentPositive)
+
     def testTitleByRegexCaseInvariant(self):
         """
         Filtering with a title regex must work independent of case.
