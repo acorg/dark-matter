@@ -131,8 +131,8 @@ class TestTaxonomy(TestCase):
         lineage fetcher must raise a C{ValueError}.
         """
         fetcher = self._makeFetcher({})
-        error = (r"^Could not find taxonomy id 'DQ011818\.1' in "
-                 r"accession_taxid or names tables$")
+        error = (r"^Could not find 'DQ011818\.1' in accession_taxid or names "
+                 r"tables$")
         six.assertRaisesRegex(self, ValueError, error, fetcher.lineage,
                               'DQ011818.1')
         fetcher.close()

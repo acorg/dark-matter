@@ -258,14 +258,23 @@ class Taxonomy(object):
             return self.lineageFromTaxid(
                 int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
 
-        cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
-        row = cursor.fetchone()
-        if row:
-            return self.lineageFromTaxid(
-                int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
+        # cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
+        # row = cursor.fetchone()
+        # if row:
+        #     return self.lineageFromTaxid(
+        #         int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
 
-        raise ValueError('Could not find taxonomy id %r in accession_taxid '
-                         'or names tables' % id_)
+        try:
+            taxid = self.taxIdFromName(id_)
+        except ValueError:
+            # We'll raise a more informative ValueError below.
+            pass
+        else:
+            return self.lineageFromTaxid(
+                taxid, skipFunc=skipFunc, stopFunc=stopFunc)
+
+        raise ValueError(
+            'Could not find %r in accession_taxid or names tables' % id_)
 
     @cachedmethod(attrgetter('_hostsCache'))
     def hostsFromTaxid(self, taxid):
@@ -282,6 +291,23 @@ class Taxonomy(object):
         row = cursor.fetchone()
         if row:
             return set(row[0].split(','))
+
+    def taxIdFromName(self, name):
+        """
+        Get a taxonomy id from a name.
+
+        @param name: A C{str} taxonomy name. This must be a unique name, as
+            found in the names.dmp file of the NCBI taxonomy names.dmp file.
+        @raise ValueError: If a taxonomy id cannot be found for C{name}.
+        @return: An C{int} taxonomy id.
+        """
+        cursor = self._db.cursor()
+        cursor.execute('SELECT taxid FROM names WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        if row:
+            return int(row[0])
+
+        raise ValueError('Could not find name %r in names tables' % name)
 
     def hosts(self, id_):
         """

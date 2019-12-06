@@ -25,7 +25,8 @@ from dark.genbank import GenomeRanges
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 from dark.reads import Reads
 from dark.taxonomy import (
-    isDNAVirus, isRNAVirus, formatLineage, lineageTaxonomyLinks, Hierarchy,
+    # isDNAVirus, isRNAVirus, formatLineage,
+    lineageTaxonomyLinks, Hierarchy,
     LineageElement)
 
 
@@ -1397,14 +1398,25 @@ class SqliteIndexWriter(object):
 
         for genome in genomes:
             examinedGenomeCount += 1
+            source = self._sourceInfo(genome, logfp=logfp)
+
+            if source is None:
+                # The lack of a source is logged by self._sourceInfo.
+                continue
+
             genomeLength = len(str(genome.seq))
+
             if logfp:
                 print('\n%s: %s' % (genome.id, genome.description), file=logfp)
                 print('  length = %d' % genomeLength, file=logfp)
+                print('  Source:', file=logfp)
+                for k, v in source.items():
+                    print('    %s = %r' % (k, v), file=logfp)
+                print('  Annotations:', file=logfp)
                 for k, v in genome.annotations.items():
                     if k not in ('references', 'comment',
                                  'structured_comment'):
-                        print('  %s = %r' % (k, v), file=logfp)
+                        print('    %s = %r' % (k, v), file=logfp)
 
             if maxGenomeLength is not None and genomeLength > maxGenomeLength:
                 if logfp:
@@ -1415,48 +1427,62 @@ class SqliteIndexWriter(object):
                 lineage = lineageFetcher(genome)
             except ValueError as e:
                 print('ValueError calling lineage fetcher for %s (%s): %s' %
-                      (genome.id, genome.description, e), file=sys.stderr)
+                      (genome.id, genome.description, e), file=logfp)
                 lineage = taxonomyId = None
             else:
                 taxonomyId = lineage[0][0]
 
             if dnaOnly:
-                if lineage:
-                    print('  Lineage:', file=logfp)
-                    print(formatLineage(lineage, prefix='    '), file=logfp)
-                    if isDNAVirus(lineage):
-                        if logfp:
-                            print('  %s (%s) is a DNA virus.' %
-                                  (genome.id, genome.description), file=logfp)
-                    else:
-                        if logfp:
-                            print('  %s (%s) is not a DNA virus. Skipping.' %
-                                  (genome.id, genome.description), file=logfp)
-                        continue
-                else:
-                    print('Could not look up taxonomy lineage for %s (%s). '
-                          'Cannot confirm as DNA. Skipping.' %
-                          (genome.id, genome.description), file=logfp)
+                if not source['mol_type'].endswith('DNA'):
+                    if logfp:
+                        print('  %s (%s) is not a DNA virus (mol_type).' %
+                              (genome.id, genome.description), file=logfp)
                     continue
+                # if lineage:
+                #     print('  Lineage:', file=logfp)
+                #     print(formatLineage(lineage, prefix='    '), file=logfp)
+                #     if isDNAVirus(lineage):
+                #         if logfp:
+                #             print('  %s (%s) is a DNA virus.' %
+                #                   (genome.id, genome.description),
+                #                   file=logfp)
+                #     else:
+                #         if logfp:
+                #             print('  %s (%s) is not a DNA virus.' %
+                #                   (genome.id, genome.description),
+                #                   file=logfp)
+                #         continue
+                # else:
+                #     print('Could not look up taxonomy lineage for %s (%s). '
+                #           'Cannot confirm as DNA.' %
+                #           (genome.id, genome.description), file=logfp)
+                #     continue
 
             if rnaOnly:
-                if lineage:
-                    print('  Lineage:', file=logfp)
-                    print(formatLineage(lineage, prefix='    '), file=logfp)
-                    if isRNAVirus(lineage):
-                        if logfp:
-                            print('  %s (%s) is an RNA virus.' %
-                                  (genome.id, genome.description), file=logfp)
-                    else:
-                        if logfp:
-                            print('  %s (%s) is not an RNA virus. Skipping.' %
-                                  (genome.id, genome.description), file=logfp)
-                        continue
-                else:
-                    print('Could not look up taxonomy lineage for %s (%s). '
-                          'Cannot confirm as RNA. Skipping.' %
-                          (genome.id, genome.description), file=logfp)
+                if not source['mol_type'].endswith('RNA'):
+                    if logfp:
+                        print('  %s (%s) is not a RNA virus (mol_type).' %
+                              (genome.id, genome.description), file=logfp)
                     continue
+                # if lineage:
+                #     print('  Lineage:', file=logfp)
+                #     print(formatLineage(lineage, prefix='    '), file=logfp)
+                #     if isRNAVirus(lineage):
+                #         if logfp:
+                #             print('  %s (%s) is an RNA virus.' %
+                #                   (genome.id, genome.description),
+                #                   file=logfp)
+                #     else:
+                #         if logfp:
+                #             print('  %s (%s) is not an RNA virus. Skipping.'
+                #                   % (genome.id, genome.description),
+                #                   file=logfp)
+                #         continue
+                # else:
+                #     print('Could not look up taxonomy lineage for %s (%s). '
+                #           'Cannot confirm as RNA. Skipping.' %
+                #           (genome.id, genome.description), file=logfp)
+                #     continue
 
             if excludeFungusOnlyViruses:
                 if lineage is None:
@@ -1516,11 +1542,11 @@ class SqliteIndexWriter(object):
             proteinCount = len(list(self._genomeProteins(genome)))
 
             if self.addGenome(
-                    genome, taxonomyId, proteinCount, databaseName,
+                    genome, source, taxonomyId, proteinCount, databaseName,
                     duplicationPolicy=duplicationPolicy, logfp=logfp):
 
                 self.addProteins(
-                    genome, proteinSource=proteinSource,
+                    genome, source, proteinSource=proteinSource,
                     genomeSource=genomeSource,
                     duplicationPolicy=duplicationPolicy, logfp=logfp)
 
@@ -1533,12 +1559,14 @@ class SqliteIndexWriter(object):
 
         return examinedGenomeCount, addedGenomeCount, addedProteinCount
 
-    def addGenome(self, genome, taxonomyId, proteinCount, databaseName,
+    def addGenome(self, genome, source, taxonomyId, proteinCount, databaseName,
                   duplicationPolicy='error', logfp=None):
         """
         Add information about a genome to the genomes table.
 
         @param genome: A GenBank genome record, as parsed by SeqIO.parse
+        @param source: A C{dict} containing genome source information, as
+            returned by C{self._sourceInfo}.
         @param taxonomyId: Either an C{int} taxonomy id or C{None} if the
             genome taxonomy could not be looked up.
         @param proteinCount: The C{int} number of proteins in the genome.
@@ -1557,11 +1585,6 @@ class SqliteIndexWriter(object):
         """
         sequence = str(genome.seq)
         taxonomy = self.TAXONOMY_SEPARATOR.join(genome.annotations['taxonomy'])
-        source = self._sourceInfo(genome, logfp=logfp)
-
-        if source is None:
-            # The lack of a source is logged by self._sourceInfo.
-            return False
 
         try:
             self._connection.execute(
@@ -1593,7 +1616,7 @@ class SqliteIndexWriter(object):
         else:
             return True
 
-    def addProteins(self, genome, proteinSource='GENBANK',
+    def addProteins(self, genome, source, proteinSource='GENBANK',
                     genomeSource='GENBANK', duplicationPolicy='error',
                     logfp=None):
         """
@@ -1604,6 +1627,8 @@ class SqliteIndexWriter(object):
         @param genome: Either a GenBank genome record, as parsed by
             C{SeqIO.parse} or a C{_Genome} instance (which behaves like the
             former).
+        @param source: A C{dict} containing genome source information, as
+            returned by C{self._sourceInfo}.
         @param proteinSource: A C{str} giving the source of the protein
             accession number. This becomes part of the sequence id printed
             in the protein FASTA output.
@@ -1621,9 +1646,6 @@ class SqliteIndexWriter(object):
             encountered and C{duplicationPolicy} is 'error'.
         """
         genomeLen = len(genome.seq)
-        source = self._sourceInfo(genome, logfp=logfp)
-        # source must be present. addGenome would skip this genome otherwise.
-        assert source
 
         for fInfo in self._genomeProteins(genome, logfp=logfp):
 
@@ -1721,26 +1743,44 @@ class SqliteIndexWriter(object):
             progress output to.
         @return: A C{dict} with keys for the various pieces of information
             (if any) found in the source feature (see the return value below
-            for detail). Or C{None} if no source feature is found.
+            for detail). Or C{None} if no source feature is found or a source
+            feature does not have length 1.
         """
         result = {}
 
         for feature in genome.features:
             if feature.type == 'source':
-                for key in 'host', 'note', 'organism':
+                for key in 'host', 'note', 'organism', 'mol_type':
                     try:
                         values = feature.qualifiers[key]
                     except KeyError:
                         value = None
+                        if key != 'note':
+                            print('Genome %r (accession %s) source info has '
+                                  'no %r feature.' %
+                                  (genome.description, genome.id, key),
+                                  file=logfp)
                     else:
-                        assert len(values) == 1
-                        value = values[0]
+                        if len(values) == 1:
+                            value = values[0]
+
+                            if key == 'mol_type':
+                                assert value[-3:] in ('DNA', 'RNA')
+
+                        elif len(values) > 1 and key == 'host':
+                            value = ', '.join(values)
+                        else:
+                            print('Genome %r (accession %s) has source '
+                                  'feature %r with length != 1: %r' % (
+                                      genome.description, genome.id, key,
+                                      values), file=logfp)
+                            return
 
                     result[key] = value
                 break
         else:
-            warn('Genome %r (accession %s) had no source feature! '
-                 'Skipping.' % (genome.description, genome.id))
+            print('Genome %r (accession %s) had no source feature! '
+                  'Skipping.' % (genome.description, genome.id), file=logfp)
             return
 
         return result

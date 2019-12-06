@@ -113,9 +113,9 @@ def main(args, parser):
                 print('Processed %r: added %3d of %3d genome%s (%5d '
                       'protein%s) in %.2f seconds.' %
                       (filename, genomeCount, examinedGenomeCount,
-                       '' if genomeCount == 1 else 's', proteinCount,
-                       '' if proteinCount == 1 else 's', elapsed),
-                      file=sys.stderr)
+                       ' ' if examinedGenomeCount == 1 else 's',
+                       proteinCount, '' if proteinCount == 1 else 's',
+                       elapsed), file=sys.stderr)
 
     if progress:
         elapsed = time() - overallStart
