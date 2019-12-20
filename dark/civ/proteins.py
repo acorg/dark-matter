@@ -713,7 +713,9 @@ class ProteinGrouper(object):
             genomeInfo = self._db.findGenome(genomeAccession)
             pathogenProteinCount = genomeInfo['proteinCount']
 
-            lineage = self._taxdb.lineage(genomeInfo['taxonomyId'])
+            lineage = (self._taxdb.lineage(genomeInfo['taxonomyId'])
+                       if genomeInfo['taxonomyId'] is not None
+                       else None)
 
             if lineage:
                 taxonomyHierarchy.add(lineage, genomeAccession)
@@ -1108,9 +1110,7 @@ class _Genome(object):
         self.id = d['id']
         self.description = d['name']
         self.seq = d['sequence']
-        self.annotations = {
-            'taxonomy': d['taxonomy'],
-        }
+        self.annotations = {}
         self.lineage = [LineageElement(*lineage)
                         for lineage in d.get('lineage', [])]
         self.features = [_GenomeFeature(f) for f in d['features']]
@@ -1162,7 +1162,6 @@ class SqliteIndexWriter(object):
     """
     PROTEIN_ACCESSION_FIELD = 2
     GENOME_ACCESSION_FIELD = 4
-    TAXONOMY_SEPARATOR = '\t'
     SEQUENCE_ID_PREFIX = 'civ'
     SEQUENCE_ID_SEPARATOR = '|'
 
@@ -1198,7 +1197,6 @@ class SqliteIndexWriter(object):
                 host VARCHAR,
                 note VARCHAR,
                 taxonomyId INTEGER,
-                taxonomy VARCHAR NOT NULL,
                 databaseName VARCHAR
             );
             ''')
@@ -1584,27 +1582,27 @@ class SqliteIndexWriter(object):
         @return: C{True} if the genome was added, else C{False}.
         """
         sequence = str(genome.seq)
-        taxonomy = self.TAXONOMY_SEPARATOR.join(genome.annotations['taxonomy'])
 
         try:
             self._connection.execute(
                 'INSERT INTO genomes(accession, organism, name, sequence, '
-                'length, proteinCount, host, note, taxonomyId, taxonomy, '
-                'databaseName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'length, proteinCount, host, note, taxonomyId, databaseName) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (genome.id, source['organism'], genome.description,
                  sequence, len(sequence), proteinCount, source['host'],
-                 source.get('note'), taxonomyId, taxonomy, databaseName))
+                 source.get('note'), taxonomyId, databaseName))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
                 if duplicationPolicy == 'error':
                     raise DatabaseDuplicationError(
                         'Genome information for %r already present in '
-                        'database.' % genome.id)
+                        'database: %s' % (genome.id, e))
                 elif duplicationPolicy == 'ignore':
                     if logfp:
                         print(
                             'Genome information for %r already present in '
-                            'database. Ignoring.' % genome.id, file=logfp)
+                            'database. Ignoring: %s' % (genome.id, e),
+                            file=logfp)
                     return False
                 else:
                     raise NotImplementedError(
@@ -2006,8 +2004,6 @@ class SqliteIndex(object):
         if row:
             result = dict(row)
             result['accession'] = accession
-            result['taxonomy'] = result['taxonomy'].split(
-                SqliteIndexWriter.TAXONOMY_SEPARATOR)
             return result
 
     def findGenome(self, id_):

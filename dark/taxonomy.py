@@ -70,6 +70,10 @@ PLANT_ONLY_FAMILIES = {
 }
 
 
+class _UnknownNameError(Exception):
+    "An unknown name was used."
+
+
 class LineageFetcher(object):
     """
     Provide access to the NCBI taxonomy database so we can retrieve the lineage
@@ -258,23 +262,14 @@ class Taxonomy(object):
             return self.lineageFromTaxid(
                 int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
 
-        # cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
-        # row = cursor.fetchone()
-        # if row:
-        #     return self.lineageFromTaxid(
-        #         int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
-
         try:
             taxid = self.taxIdFromName(id_)
-        except ValueError:
-            # We'll raise a more informative ValueError below.
-            pass
+        except _UnknownNameError:
+            raise ValueError(
+                'Could not find %r in accession_taxid or names tables' % id_)
         else:
             return self.lineageFromTaxid(
                 taxid, skipFunc=skipFunc, stopFunc=stopFunc)
-
-        raise ValueError(
-            'Could not find %r in accession_taxid or names tables' % id_)
 
     @cachedmethod(attrgetter('_hostsCache'))
     def hostsFromTaxid(self, taxid):
@@ -298,7 +293,7 @@ class Taxonomy(object):
 
         @param name: A C{str} taxonomy name. This must be a unique name, as
             found in the names.dmp file of the NCBI taxonomy names.dmp file.
-        @raise ValueError: If a taxonomy id cannot be found for C{name}.
+        @raise _UnknownNameError: If a taxonomy id cannot be found for C{name}.
         @return: An C{int} taxonomy id.
         """
         cursor = self._db.cursor()
@@ -307,7 +302,7 @@ class Taxonomy(object):
         if row:
             return int(row[0])
 
-        raise ValueError('Could not find name %r in names tables' % name)
+        raise _UnknownNameError('Name %r not found in names tables' % name)
 
     def hosts(self, id_):
         """

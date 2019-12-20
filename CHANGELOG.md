@@ -1,3 +1,8 @@
+## 3.1.28 Dec 20, 2019
+
+Removed the unused `taxonomy` (`VARCHAR`) column from the genomes table of
+the protein database.
+
 ## 3.1.27 Dec 3, 2019
 
 Fixed silly bug in alignment filtering code that was somehow not tested.
