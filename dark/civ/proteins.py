@@ -2003,6 +2003,7 @@ class SqliteIndex(object):
 
         if row:
             result = dict(row)
+            # TODO: the following line can be removed, I think.
             result['accession'] = accession
             return result
 
@@ -2043,6 +2044,7 @@ class SqliteIndex(object):
             result['forward'] = bool(result['forward'])
             result['circular'] = bool(result['circular'])
             result['length'] = int(result['length'])
+            # TODO: the following line can be removed, I think.
             result['accession'] = accession
             return result
 
@@ -2064,6 +2066,48 @@ class SqliteIndex(object):
             accession = id_
 
         return self._findProtein(accession)
+
+    def _yieldProteins(self, rows, cur):
+        """
+        Helper function for self.findProteinsForGenome.
+
+        @param rows: A C{list} of protein database lookup results.
+        @param cur: An sqlite3 cursor.
+        @return: A generator that yields C{dict}s with keys corresponding to
+            the names of the columns in the proteins database table.
+        """
+        while rows:
+            for row in rows:
+                result = dict(row)
+                result['forward'] = bool(result['forward'])
+                result['circular'] = bool(result['circular'])
+                result['length'] = int(result['length'])
+                yield result
+            rows = cur.fetchmany()
+
+    def findProteinsForGenome(self, id_):
+        """
+        Find all proteins for a genome id.
+
+        @param id_: A C{str} sequence id. This is either of the form
+            'civ|GENBANK|%s|GENBANK|%s|%s [%s]' where the genome id is in the
+            5th '|'-delimited field, or else is the nucleotide sequence
+            accession number as already extracted.
+        @return: A generator that yields C{dict}s with keys corresponding to
+            the names of the columns in the proteins database table, else
+            C{None} if C{id_} cannot be found.
+        """
+        try:
+            accession = self.genomeAccession(id_)
+        except IndexError:
+            accession = id_
+
+        cur = self.execute(
+            'SELECT * FROM proteins WHERE genomeAccession = ?', (accession,))
+
+        rows = cur.fetchmany()
+        if rows:
+            return self._yieldProteins(rows, cur)
 
     def execute(self, query, *args):
         """

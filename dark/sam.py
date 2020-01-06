@@ -40,6 +40,24 @@ def samfile(filename):
     f.close()
 
 
+def samReferences(filenameOrSamfile):
+    """
+    List SAM/BAM file reference names.
+
+    @param filenameOrSamfile: Either a C{str} SAM/BAM file name or an
+        instance of C{pysam.AlignmentFile}.
+    @return: A C{list} of C{str} reference names from the SAM file.
+    """
+    def _references(sam):
+        return [sam.get_reference_name(i) for i in range(sam.nreferences)]
+
+    if isinstance(filenameOrSamfile, six.string_types):
+        with samfile(filenameOrSamfile) as sam:
+            return _references(sam)
+    else:
+        return _references(filenameOrSamfile)
+
+
 def samReferencesToStr(filenameOrSamfile, indent=0):
     """
     List SAM/BAM file reference names and lengths.
@@ -208,26 +226,56 @@ class SAMFilter(object):
         self.scoreTag = scoreTag
 
     @staticmethod
-    def addFilteringOptions(parser, samfileIsPositionalArg=False):
+    def addFilteringOptions(parser, samfileIsPositional=False,
+                            samfileAction='store', samfileRequired=True,
+                            samfileNargs=None, referenceIdRequired=False):
         """
         Add options to an argument parser for filtering SAM/BAM.
 
-        @param samfileIsPositionalArg: If C{True} the SAM/BAM file must
+        @param parser: An C{argparse.ArgumentParser} instance.
+        @param samfileIsPositional: If C{True} the SAM/BAM file must
             be given as the final argument on the command line (without
             being preceded by --samfile).
-        @param parser: An C{argparse.ArgumentParser} instance.
+        @param samfileAction: A C{str} action to take when 'samfile' arguments
+            are found on the command line. Pass 'append' to allow multiple SAM
+            files.
+        @param samfileRequired: If C{True}, --samfile must be given on the
+            command line. This is only relevant when samfileIsPositional is
+            C{False} because positional arguments are always required. It may
+            seem strange to allow no --samfile argument in a class that filters
+            SAM files, but this option can be used in conjuction with scripts
+            that can optionally take a SAM file (e.g.,
+            genome-protein-summary.py).
+        @param samfileNargs: The value to pass for 'nargs' in adding the
+            samfile option.
+        @param referenceIdRequired: If C{True}, make the --referenceId option
+            required.
         """
-        if samfileIsPositionalArg:
-            parser.add_argument(
-                'samfile',
-                help='The SAM/BAM file to filter.')
+        if samfileIsPositional:
+            # Positional arguments are always required.
+            assert samfileRequired, ('samfileIsPositional is True, so '
+                                     'samfileRequired must also be True.')
+            if samfileNargs is None:
+                parser.add_argument(
+                    'samfile', action=samfileAction,
+                    help='The SAM/BAM file to filter.')
+            else:
+                parser.add_argument(
+                    'samfile', action=samfileAction, nargs=samfileNargs,
+                    help='The SAM/BAM file to filter.')
         else:
-            parser.add_argument(
-                '--samfile', required=True,
-                help='The SAM/BAM file to filter.')
+            if samfileNargs is None:
+                parser.add_argument(
+                    '--samfile', required=samfileRequired,
+                    action=samfileAction, help='The SAM/BAM file to filter.')
+            else:
+                parser.add_argument(
+                    '--samfile', required=samfileRequired, nargs=samfileNargs,
+                    action=samfileAction, help='The SAM/BAM file to filter.')
 
         parser.add_argument(
-            '--referenceId', metavar='ID', nargs='+', action='append',
+            '--referenceId', metavar='ID', action='append',
+            required=referenceIdRequired,
             help=('A reference sequence id whose alignments should be kept '
                   '(alignments against other references will be dropped). '
                   'If omitted, alignments against all references will be '

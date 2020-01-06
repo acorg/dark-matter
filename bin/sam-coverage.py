@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(
     description='Print SAM/BAM file coverage statistics.')
 
 addFASTAFilteringCommandLineOptions(parser)
-SAMFilter.addFilteringOptions(parser, samfileIsPositionalArg=True)
+SAMFilter.addFilteringOptions(parser, samfileIsPositional=True)
 
 args = parser.parse_args()
 

@@ -61,12 +61,7 @@ def main(args, parser):
     else:
         excludeExclusiveHosts = None
 
-    if args.dnaOnly or args.rnaOnly or excludeExclusiveHosts:
-        taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(
-            args, parser)
-    else:
-        taxonomyDatabase = None
-
+    taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(args, parser)
     progress = args.progress
 
     if progress:
