@@ -55,6 +55,12 @@ def main(args, parser):
     @param parser: An C{argparse.ArgumentParser} instance.
     """
 
+    if (args.minGenomeLength is not None and
+            args.maxGenomeLength is not None and
+            args.minGenomeLength > args.maxGenomeLength):
+        raise ValueError(
+            '--minGenomeLength cannot be larger than --maxGenomeLength')
+
     if args.excludeExclusiveHost:
         excludeExclusiveHosts = set(chain.from_iterable(
             args.excludeExclusiveHost))
@@ -81,6 +87,7 @@ def main(args, parser):
 
             examinedGenomeCount, genomeCount, proteinCount = addFunc(
                 filename, dnaOnly=args.dnaOnly, rnaOnly=args.rnaOnly,
+                minGenomeLength=args.minGenomeLength,
                 maxGenomeLength=args.maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
                 excludeFungusOnlyViruses=args.excludeFungusOnlyViruses,
@@ -169,6 +176,10 @@ group.add_argument(
 parser.add_argument(
     '--maxGenomeLength', type=int,
     help='Genomes longer than this will not be considered.')
+
+parser.add_argument(
+    '--minGenomeLength', type=int,
+    help='Genomes shorter than this will not be considered.')
 
 parser.add_argument(
     '--excludeFungusOnlyViruses', default=False, action='store_true',

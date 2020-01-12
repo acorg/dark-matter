@@ -1,3 +1,7 @@
+## 3.1.30 Jan 13, 2020
+
+Added `--minGenomeLength` to `make-protein-database.py`.
+
 ## 3.1.28 Dec 20, 2019
 
 Removed the unused `taxonomy` (`VARCHAR`) column from the genomes table of

@@ -1203,8 +1203,8 @@ class SqliteIndexWriter(object):
         self._connection.commit()
 
     def addGenBankFile(self, filename, taxonomyDatabase, dnaOnly=False,
-                       rnaOnly=False, maxGenomeLength=None,
-                       excludeExclusiveHosts=None,
+                       rnaOnly=False, minGenomeLength=None,
+                       maxGenomeLength=None, excludeExclusiveHosts=None,
                        excludeFungusOnlyViruses=False,
                        excludePlantOnlyViruses=False, databaseName=None,
                        proteinSource='GENBANK', genomeSource='GENBANK',
@@ -1219,6 +1219,8 @@ class SqliteIndexWriter(object):
             C{excludeExclusiveHosts} is not C{None}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param minGenomeLength: If not C{None}, genomes of a length shorter
+            than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
             than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
@@ -1258,6 +1260,7 @@ class SqliteIndexWriter(object):
                 return self._addGenomes(
                     genomes, taxonomyDatabase, lineageFetcher,
                     dnaOnly=dnaOnly, rnaOnly=rnaOnly,
+                    minGenomeLength=minGenomeLength,
                     maxGenomeLength=maxGenomeLength,
                     excludeExclusiveHosts=excludeExclusiveHosts,
                     excludeFungusOnlyViruses=excludeFungusOnlyViruses,
@@ -1267,7 +1270,7 @@ class SqliteIndexWriter(object):
                     duplicationPolicy=duplicationPolicy, logfp=logfp)
 
     def addJSONFile(self, filename, taxonomyDatabase, dnaOnly=False,
-                    rnaOnly=False, maxGenomeLength=None,
+                    rnaOnly=False, minGenomeLength=None, maxGenomeLength=None,
                     excludeExclusiveHosts=None,
                     excludeFungusOnlyViruses=False,
                     excludePlantOnlyViruses=False,
@@ -1283,6 +1286,8 @@ class SqliteIndexWriter(object):
             C{excludeExclusiveHosts} is not C{None}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param minGenomeLength: If not C{None}, genomes of a length shorter
+            than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
             than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
@@ -1323,6 +1328,7 @@ class SqliteIndexWriter(object):
             return self._addGenomes(
                 [genome], taxonomyDatabase, lineageFetcher,
                 dnaOnly=dnaOnly, rnaOnly=rnaOnly,
+                minGenomeLength=minGenomeLength,
                 maxGenomeLength=maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
                 excludeFungusOnlyViruses=excludeFungusOnlyViruses,
@@ -1333,7 +1339,7 @@ class SqliteIndexWriter(object):
 
     def _addGenomes(
             self, genomes, taxonomyDatabase, lineageFetcher, dnaOnly=False,
-            rnaOnly=False, maxGenomeLength=None,
+            rnaOnly=False, minGenomeLength=None, maxGenomeLength=None,
             excludeExclusiveHosts=None, excludeFungusOnlyViruses=False,
             excludePlantOnlyViruses=False, databaseName=None,
             proteinSource='GENBANK', genomeSource='GENBANK',
@@ -1351,6 +1357,8 @@ class SqliteIndexWriter(object):
             etc). I.e., as returned by L{dark.taxonomy.LineageFetcher.lineage}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param minGenomeLength: If not C{None}, genomes of a length shorter
+            than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
             than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
@@ -1415,6 +1423,11 @@ class SqliteIndexWriter(object):
                     if k not in ('references', 'comment',
                                  'structured_comment'):
                         print('    %s = %r' % (k, v), file=logfp)
+
+            if minGenomeLength is not None and genomeLength < minGenomeLength:
+                if logfp:
+                    print('  Genome too short. Skipping.', file=logfp)
+                continue
 
             if maxGenomeLength is not None and genomeLength > maxGenomeLength:
                 if logfp:
