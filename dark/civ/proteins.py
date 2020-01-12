@@ -25,7 +25,8 @@ from dark.genbank import GenomeRanges
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 from dark.reads import Reads
 from dark.taxonomy import (
-    isDNAVirus, isRNAVirus, formatLineage, lineageTaxonomyLinks, Hierarchy,
+    # isDNAVirus, isRNAVirus, formatLineage,
+    lineageTaxonomyLinks, Hierarchy,
     LineageElement)
 
 
@@ -712,7 +713,9 @@ class ProteinGrouper(object):
             genomeInfo = self._db.findGenome(genomeAccession)
             pathogenProteinCount = genomeInfo['proteinCount']
 
-            lineage = self._taxdb.lineage(genomeInfo['taxonomyId'])
+            lineage = (self._taxdb.lineage(genomeInfo['taxonomyId'])
+                       if genomeInfo['taxonomyId'] is not None
+                       else None)
 
             if lineage:
                 taxonomyHierarchy.add(lineage, genomeAccession)
@@ -1107,9 +1110,7 @@ class _Genome(object):
         self.id = d['id']
         self.description = d['name']
         self.seq = d['sequence']
-        self.annotations = {
-            'taxonomy': d['taxonomy'],
-        }
+        self.annotations = {}
         self.lineage = [LineageElement(*lineage)
                         for lineage in d.get('lineage', [])]
         self.features = [_GenomeFeature(f) for f in d['features']]
@@ -1161,7 +1162,6 @@ class SqliteIndexWriter(object):
     """
     PROTEIN_ACCESSION_FIELD = 2
     GENOME_ACCESSION_FIELD = 4
-    TAXONOMY_SEPARATOR = '\t'
     SEQUENCE_ID_PREFIX = 'civ'
     SEQUENCE_ID_SEPARATOR = '|'
 
@@ -1197,15 +1197,14 @@ class SqliteIndexWriter(object):
                 host VARCHAR,
                 note VARCHAR,
                 taxonomyId INTEGER,
-                taxonomy VARCHAR NOT NULL,
                 databaseName VARCHAR
             );
             ''')
         self._connection.commit()
 
     def addGenBankFile(self, filename, taxonomyDatabase, dnaOnly=False,
-                       rnaOnly=False, maxGenomeLength=None,
-                       excludeExclusiveHosts=None,
+                       rnaOnly=False, minGenomeLength=None,
+                       maxGenomeLength=None, excludeExclusiveHosts=None,
                        excludeFungusOnlyViruses=False,
                        excludePlantOnlyViruses=False, databaseName=None,
                        proteinSource='GENBANK', genomeSource='GENBANK',
@@ -1220,6 +1219,8 @@ class SqliteIndexWriter(object):
             C{excludeExclusiveHosts} is not C{None}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param minGenomeLength: If not C{None}, genomes of a length shorter
+            than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
             than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
@@ -1259,6 +1260,7 @@ class SqliteIndexWriter(object):
                 return self._addGenomes(
                     genomes, taxonomyDatabase, lineageFetcher,
                     dnaOnly=dnaOnly, rnaOnly=rnaOnly,
+                    minGenomeLength=minGenomeLength,
                     maxGenomeLength=maxGenomeLength,
                     excludeExclusiveHosts=excludeExclusiveHosts,
                     excludeFungusOnlyViruses=excludeFungusOnlyViruses,
@@ -1268,7 +1270,7 @@ class SqliteIndexWriter(object):
                     duplicationPolicy=duplicationPolicy, logfp=logfp)
 
     def addJSONFile(self, filename, taxonomyDatabase, dnaOnly=False,
-                    rnaOnly=False, maxGenomeLength=None,
+                    rnaOnly=False, minGenomeLength=None, maxGenomeLength=None,
                     excludeExclusiveHosts=None,
                     excludeFungusOnlyViruses=False,
                     excludePlantOnlyViruses=False,
@@ -1284,6 +1286,8 @@ class SqliteIndexWriter(object):
             C{excludeExclusiveHosts} is not C{None}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param minGenomeLength: If not C{None}, genomes of a length shorter
+            than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
             than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
@@ -1324,6 +1328,7 @@ class SqliteIndexWriter(object):
             return self._addGenomes(
                 [genome], taxonomyDatabase, lineageFetcher,
                 dnaOnly=dnaOnly, rnaOnly=rnaOnly,
+                minGenomeLength=minGenomeLength,
                 maxGenomeLength=maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
                 excludeFungusOnlyViruses=excludeFungusOnlyViruses,
@@ -1334,7 +1339,7 @@ class SqliteIndexWriter(object):
 
     def _addGenomes(
             self, genomes, taxonomyDatabase, lineageFetcher, dnaOnly=False,
-            rnaOnly=False, maxGenomeLength=None,
+            rnaOnly=False, minGenomeLength=None, maxGenomeLength=None,
             excludeExclusiveHosts=None, excludeFungusOnlyViruses=False,
             excludePlantOnlyViruses=False, databaseName=None,
             proteinSource='GENBANK', genomeSource='GENBANK',
@@ -1352,6 +1357,8 @@ class SqliteIndexWriter(object):
             etc). I.e., as returned by L{dark.taxonomy.LineageFetcher.lineage}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param minGenomeLength: If not C{None}, genomes of a length shorter
+            than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
             than this should not be added.
         @param excludeExclusiveHosts: Either C{None} or a set of host types
@@ -1397,14 +1404,30 @@ class SqliteIndexWriter(object):
 
         for genome in genomes:
             examinedGenomeCount += 1
+            source = self._sourceInfo(genome, logfp=logfp)
+
+            if source is None:
+                # The lack of a source is logged by self._sourceInfo.
+                continue
+
             genomeLength = len(str(genome.seq))
+
             if logfp:
                 print('\n%s: %s' % (genome.id, genome.description), file=logfp)
                 print('  length = %d' % genomeLength, file=logfp)
+                print('  Source:', file=logfp)
+                for k, v in source.items():
+                    print('    %s = %r' % (k, v), file=logfp)
+                print('  Annotations:', file=logfp)
                 for k, v in genome.annotations.items():
                     if k not in ('references', 'comment',
                                  'structured_comment'):
-                        print('  %s = %r' % (k, v), file=logfp)
+                        print('    %s = %r' % (k, v), file=logfp)
+
+            if minGenomeLength is not None and genomeLength < minGenomeLength:
+                if logfp:
+                    print('  Genome too short. Skipping.', file=logfp)
+                continue
 
             if maxGenomeLength is not None and genomeLength > maxGenomeLength:
                 if logfp:
@@ -1415,48 +1438,62 @@ class SqliteIndexWriter(object):
                 lineage = lineageFetcher(genome)
             except ValueError as e:
                 print('ValueError calling lineage fetcher for %s (%s): %s' %
-                      (genome.id, genome.description, e), file=sys.stderr)
+                      (genome.id, genome.description, e), file=logfp)
                 lineage = taxonomyId = None
             else:
                 taxonomyId = lineage[0][0]
 
             if dnaOnly:
-                if lineage:
-                    print('  Lineage:', file=logfp)
-                    print(formatLineage(lineage, prefix='    '), file=logfp)
-                    if isDNAVirus(lineage):
-                        if logfp:
-                            print('  %s (%s) is a DNA virus.' %
-                                  (genome.id, genome.description), file=logfp)
-                    else:
-                        if logfp:
-                            print('  %s (%s) is not a DNA virus. Skipping.' %
-                                  (genome.id, genome.description), file=logfp)
-                        continue
-                else:
-                    print('Could not look up taxonomy lineage for %s (%s). '
-                          'Cannot confirm as DNA. Skipping.' %
-                          (genome.id, genome.description), file=logfp)
+                if not source['mol_type'].endswith('DNA'):
+                    if logfp:
+                        print('  %s (%s) is not a DNA virus (mol_type).' %
+                              (genome.id, genome.description), file=logfp)
                     continue
+                # if lineage:
+                #     print('  Lineage:', file=logfp)
+                #     print(formatLineage(lineage, prefix='    '), file=logfp)
+                #     if isDNAVirus(lineage):
+                #         if logfp:
+                #             print('  %s (%s) is a DNA virus.' %
+                #                   (genome.id, genome.description),
+                #                   file=logfp)
+                #     else:
+                #         if logfp:
+                #             print('  %s (%s) is not a DNA virus.' %
+                #                   (genome.id, genome.description),
+                #                   file=logfp)
+                #         continue
+                # else:
+                #     print('Could not look up taxonomy lineage for %s (%s). '
+                #           'Cannot confirm as DNA.' %
+                #           (genome.id, genome.description), file=logfp)
+                #     continue
 
             if rnaOnly:
-                if lineage:
-                    print('  Lineage:', file=logfp)
-                    print(formatLineage(lineage, prefix='    '), file=logfp)
-                    if isRNAVirus(lineage):
-                        if logfp:
-                            print('  %s (%s) is an RNA virus.' %
-                                  (genome.id, genome.description), file=logfp)
-                    else:
-                        if logfp:
-                            print('  %s (%s) is not an RNA virus. Skipping.' %
-                                  (genome.id, genome.description), file=logfp)
-                        continue
-                else:
-                    print('Could not look up taxonomy lineage for %s (%s). '
-                          'Cannot confirm as RNA. Skipping.' %
-                          (genome.id, genome.description), file=logfp)
+                if not source['mol_type'].endswith('RNA'):
+                    if logfp:
+                        print('  %s (%s) is not a RNA virus (mol_type).' %
+                              (genome.id, genome.description), file=logfp)
                     continue
+                # if lineage:
+                #     print('  Lineage:', file=logfp)
+                #     print(formatLineage(lineage, prefix='    '), file=logfp)
+                #     if isRNAVirus(lineage):
+                #         if logfp:
+                #             print('  %s (%s) is an RNA virus.' %
+                #                   (genome.id, genome.description),
+                #                   file=logfp)
+                #     else:
+                #         if logfp:
+                #             print('  %s (%s) is not an RNA virus. Skipping.'
+                #                   % (genome.id, genome.description),
+                #                   file=logfp)
+                #         continue
+                # else:
+                #     print('Could not look up taxonomy lineage for %s (%s). '
+                #           'Cannot confirm as RNA. Skipping.' %
+                #           (genome.id, genome.description), file=logfp)
+                #     continue
 
             if excludeFungusOnlyViruses:
                 if lineage is None:
@@ -1516,11 +1553,11 @@ class SqliteIndexWriter(object):
             proteinCount = len(list(self._genomeProteins(genome)))
 
             if self.addGenome(
-                    genome, taxonomyId, proteinCount, databaseName,
+                    genome, source, taxonomyId, proteinCount, databaseName,
                     duplicationPolicy=duplicationPolicy, logfp=logfp):
 
                 self.addProteins(
-                    genome, proteinSource=proteinSource,
+                    genome, source, proteinSource=proteinSource,
                     genomeSource=genomeSource,
                     duplicationPolicy=duplicationPolicy, logfp=logfp)
 
@@ -1533,12 +1570,14 @@ class SqliteIndexWriter(object):
 
         return examinedGenomeCount, addedGenomeCount, addedProteinCount
 
-    def addGenome(self, genome, taxonomyId, proteinCount, databaseName,
+    def addGenome(self, genome, source, taxonomyId, proteinCount, databaseName,
                   duplicationPolicy='error', logfp=None):
         """
         Add information about a genome to the genomes table.
 
         @param genome: A GenBank genome record, as parsed by SeqIO.parse
+        @param source: A C{dict} containing genome source information, as
+            returned by C{self._sourceInfo}.
         @param taxonomyId: Either an C{int} taxonomy id or C{None} if the
             genome taxonomy could not be looked up.
         @param proteinCount: The C{int} number of proteins in the genome.
@@ -1556,32 +1595,27 @@ class SqliteIndexWriter(object):
         @return: C{True} if the genome was added, else C{False}.
         """
         sequence = str(genome.seq)
-        taxonomy = self.TAXONOMY_SEPARATOR.join(genome.annotations['taxonomy'])
-        source = self._sourceInfo(genome, logfp=logfp)
-
-        if source is None:
-            # The lack of a source is logged by self._sourceInfo.
-            return False
 
         try:
             self._connection.execute(
                 'INSERT INTO genomes(accession, organism, name, sequence, '
-                'length, proteinCount, host, note, taxonomyId, taxonomy, '
-                'databaseName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'length, proteinCount, host, note, taxonomyId, databaseName) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 (genome.id, source['organism'], genome.description,
                  sequence, len(sequence), proteinCount, source['host'],
-                 source.get('note'), taxonomyId, taxonomy, databaseName))
+                 source.get('note'), taxonomyId, databaseName))
         except sqlite3.IntegrityError as e:
             if str(e).find('UNIQUE constraint failed') > -1:
                 if duplicationPolicy == 'error':
                     raise DatabaseDuplicationError(
                         'Genome information for %r already present in '
-                        'database.' % genome.id)
+                        'database: %s' % (genome.id, e))
                 elif duplicationPolicy == 'ignore':
                     if logfp:
                         print(
                             'Genome information for %r already present in '
-                            'database. Ignoring.' % genome.id, file=logfp)
+                            'database. Ignoring: %s' % (genome.id, e),
+                            file=logfp)
                     return False
                 else:
                     raise NotImplementedError(
@@ -1593,7 +1627,7 @@ class SqliteIndexWriter(object):
         else:
             return True
 
-    def addProteins(self, genome, proteinSource='GENBANK',
+    def addProteins(self, genome, source, proteinSource='GENBANK',
                     genomeSource='GENBANK', duplicationPolicy='error',
                     logfp=None):
         """
@@ -1604,6 +1638,8 @@ class SqliteIndexWriter(object):
         @param genome: Either a GenBank genome record, as parsed by
             C{SeqIO.parse} or a C{_Genome} instance (which behaves like the
             former).
+        @param source: A C{dict} containing genome source information, as
+            returned by C{self._sourceInfo}.
         @param proteinSource: A C{str} giving the source of the protein
             accession number. This becomes part of the sequence id printed
             in the protein FASTA output.
@@ -1621,9 +1657,6 @@ class SqliteIndexWriter(object):
             encountered and C{duplicationPolicy} is 'error'.
         """
         genomeLen = len(genome.seq)
-        source = self._sourceInfo(genome, logfp=logfp)
-        # source must be present. addGenome would skip this genome otherwise.
-        assert source
 
         for fInfo in self._genomeProteins(genome, logfp=logfp):
 
@@ -1721,26 +1754,44 @@ class SqliteIndexWriter(object):
             progress output to.
         @return: A C{dict} with keys for the various pieces of information
             (if any) found in the source feature (see the return value below
-            for detail). Or C{None} if no source feature is found.
+            for detail). Or C{None} if no source feature is found or a source
+            feature does not have length 1.
         """
         result = {}
 
         for feature in genome.features:
             if feature.type == 'source':
-                for key in 'host', 'note', 'organism':
+                for key in 'host', 'note', 'organism', 'mol_type':
                     try:
                         values = feature.qualifiers[key]
                     except KeyError:
                         value = None
+                        if key != 'note':
+                            print('Genome %r (accession %s) source info has '
+                                  'no %r feature.' %
+                                  (genome.description, genome.id, key),
+                                  file=logfp)
                     else:
-                        assert len(values) == 1
-                        value = values[0]
+                        if len(values) == 1:
+                            value = values[0]
+
+                            if key == 'mol_type':
+                                assert value[-3:] in ('DNA', 'RNA')
+
+                        elif len(values) > 1 and key == 'host':
+                            value = ', '.join(values)
+                        else:
+                            print('Genome %r (accession %s) has source '
+                                  'feature %r with length != 1: %r' % (
+                                      genome.description, genome.id, key,
+                                      values), file=logfp)
+                            return
 
                     result[key] = value
                 break
         else:
-            warn('Genome %r (accession %s) had no source feature! '
-                 'Skipping.' % (genome.description, genome.id))
+            print('Genome %r (accession %s) had no source feature! '
+                  'Skipping.' % (genome.description, genome.id), file=logfp)
             return
 
         return result
@@ -1965,9 +2016,8 @@ class SqliteIndex(object):
 
         if row:
             result = dict(row)
+            # TODO: the following line can be removed, I think.
             result['accession'] = accession
-            result['taxonomy'] = result['taxonomy'].split(
-                SqliteIndexWriter.TAXONOMY_SEPARATOR)
             return result
 
     def findGenome(self, id_):
@@ -2007,6 +2057,7 @@ class SqliteIndex(object):
             result['forward'] = bool(result['forward'])
             result['circular'] = bool(result['circular'])
             result['length'] = int(result['length'])
+            # TODO: the following line can be removed, I think.
             result['accession'] = accession
             return result
 
@@ -2028,6 +2079,48 @@ class SqliteIndex(object):
             accession = id_
 
         return self._findProtein(accession)
+
+    def _yieldProteins(self, rows, cur):
+        """
+        Helper function for self.findProteinsForGenome.
+
+        @param rows: A C{list} of protein database lookup results.
+        @param cur: An sqlite3 cursor.
+        @return: A generator that yields C{dict}s with keys corresponding to
+            the names of the columns in the proteins database table.
+        """
+        while rows:
+            for row in rows:
+                result = dict(row)
+                result['forward'] = bool(result['forward'])
+                result['circular'] = bool(result['circular'])
+                result['length'] = int(result['length'])
+                yield result
+            rows = cur.fetchmany()
+
+    def findProteinsForGenome(self, id_):
+        """
+        Find all proteins for a genome id.
+
+        @param id_: A C{str} sequence id. This is either of the form
+            'civ|GENBANK|%s|GENBANK|%s|%s [%s]' where the genome id is in the
+            5th '|'-delimited field, or else is the nucleotide sequence
+            accession number as already extracted.
+        @return: A generator that yields C{dict}s with keys corresponding to
+            the names of the columns in the proteins database table, else
+            C{None} if C{id_} cannot be found.
+        """
+        try:
+            accession = self.genomeAccession(id_)
+        except IndexError:
+            accession = id_
+
+        cur = self.execute(
+            'SELECT * FROM proteins WHERE genomeAccession = ?', (accession,))
+
+        rows = cur.fetchmany()
+        if rows:
+            return self._yieldProteins(rows, cur)
 
     def execute(self, query, *args):
         """

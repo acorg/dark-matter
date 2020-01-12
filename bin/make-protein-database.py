@@ -55,18 +55,19 @@ def main(args, parser):
     @param parser: An C{argparse.ArgumentParser} instance.
     """
 
+    if (args.minGenomeLength is not None and
+            args.maxGenomeLength is not None and
+            args.minGenomeLength > args.maxGenomeLength):
+        raise ValueError(
+            '--minGenomeLength cannot be larger than --maxGenomeLength')
+
     if args.excludeExclusiveHost:
         excludeExclusiveHosts = set(chain.from_iterable(
             args.excludeExclusiveHost))
     else:
         excludeExclusiveHosts = None
 
-    if args.dnaOnly or args.rnaOnly or excludeExclusiveHosts:
-        taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(
-            args, parser)
-    else:
-        taxonomyDatabase = None
-
+    taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(args, parser)
     progress = args.progress
 
     if progress:
@@ -86,6 +87,7 @@ def main(args, parser):
 
             examinedGenomeCount, genomeCount, proteinCount = addFunc(
                 filename, dnaOnly=args.dnaOnly, rnaOnly=args.rnaOnly,
+                minGenomeLength=args.minGenomeLength,
                 maxGenomeLength=args.maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
                 excludeFungusOnlyViruses=args.excludeFungusOnlyViruses,
@@ -113,9 +115,9 @@ def main(args, parser):
                 print('Processed %r: added %3d of %3d genome%s (%5d '
                       'protein%s) in %.2f seconds.' %
                       (filename, genomeCount, examinedGenomeCount,
-                       '' if genomeCount == 1 else 's', proteinCount,
-                       '' if proteinCount == 1 else 's', elapsed),
-                      file=sys.stderr)
+                       ' ' if examinedGenomeCount == 1 else 's',
+                       proteinCount, '' if proteinCount == 1 else 's',
+                       elapsed), file=sys.stderr)
 
     if progress:
         elapsed = time() - overallStart
@@ -174,6 +176,10 @@ group.add_argument(
 parser.add_argument(
     '--maxGenomeLength', type=int,
     help='Genomes longer than this will not be considered.')
+
+parser.add_argument(
+    '--minGenomeLength', type=int,
+    help='Genomes shorter than this will not be considered.')
 
 parser.add_argument(
     '--excludeFungusOnlyViruses', default=False, action='store_true',

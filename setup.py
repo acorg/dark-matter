@@ -66,6 +66,7 @@ scripts = [
     'bin/filter-reads-alignments.py',
     'bin/filter-sam.py',
     'bin/find-hits.py',
+    'bin/genome-protein-summary.py',
     'bin/get-features.py',
     'bin/get-hosts.py',
     'bin/get-reads.py',
