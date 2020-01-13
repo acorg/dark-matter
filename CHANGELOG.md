@@ -1,3 +1,7 @@
+## 3.1.35 Jan 13, 2020
+
+Drop Python2 from Travis and tox checking. Ugh.
+
 ## 3.1.34 Jan 13, 2020
 
 Made sequence translation code work under Python 2 (again, even more hopefully than the last time).

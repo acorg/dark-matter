@@ -91,6 +91,7 @@ scripts = [
     'bin/read-blast-xml.py',
     'bin/relabel-newick-tree.py',
     'bin/sam-coverage.py',
+    'bin/sam-coverage-depth.py',
     'bin/sam-to-fasta-alignment.py',
     'bin/sam-reference-read-counts.py',
     'bin/sam-references.py',

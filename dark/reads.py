@@ -50,10 +50,10 @@ else:
         for _from, to in complementData.items():
             fromList.append(_from[0].lower())
             fromList.append(_from[0].upper())
-            toList.append(ord(to[0].lower()))
-            toList.append(ord(to[0].upper()))
+            toList.append(to[0].lower())
+            toList.append(to[0].upper())
 
-        return string.maketrans(''.join(fromList), toList)
+        return string.maketrans(''.join(fromList), ''.join(toList))
 
 
 @total_ordering
