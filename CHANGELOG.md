@@ -1,3 +1,7 @@
+## 3.1.31 Jan 13, 2020
+
+Added `bin/genome-protein-summary.py` script.
+
 ## 3.1.30 Jan 13, 2020
 
 Added `--minGenomeLength` to `make-protein-database.py`.
