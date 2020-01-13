@@ -14,22 +14,19 @@ from dark.genbank import GenomeRanges
 from dark.genomes import GenomeProteinInfo
 from dark.reads import Reads
 from dark.sam import SAMFilter, samReferences
+from dark.utils import pct
 
 
-def pct(a, b):
-    assert a <= b
-    if b:
-        return ('%d/%d (%.3f%%)' %
-                (a, b, (a / b if b else 0.0) * 100.0))
-    else:
-        return '0/0 (0.00%)'
-
-
-def summarize(gpi, sortOn):
+def summarize(gpi, sortOn, minReadOffsetCount):
     """
     Print a summary of the genome proteins.
 
     @param gpi: A C{GenomeProteinInfo} instance.
+    @param sortOn: How to sort proteins for output. One of 'coverage',
+        'depth', 'name', 'offset', or 'readCount'.
+    @param minReadOffsetCount: The minimum number of reads offsets that must
+        overlap a protein for the read to be considered as sufficiently
+        intersecting the protein.
     """
     genome = gpi.genome
 
@@ -101,7 +98,8 @@ def summarize(gpi, sortOn):
               (i, protein['product'], protein['length'],
                protein['length'] * 3 + 3, protein['accession']))
 
-        coverage = gpi.proteinCoverageInfo(proteinAccession)
+        coverage = gpi.proteinCoverageInfo(proteinAccession,
+                                           minReadOffsetCount)
 
         print('      Read count: %d' % len(coverage['readIds']))
 
@@ -128,6 +126,14 @@ if __name__ == '__main__':
         '--sortOn', default='readCount',
         choices=('coverage', 'depth', 'name', 'offset', 'readCount'),
         help='How to sort proteins for output.')
+
+    parser.add_argument(
+        '--minReadOffsetCount', type=int,
+        help=('The minimum number of reads offsets that must overlap a '
+              'protein for the read to be considered as sufficiently '
+              'intersecting the protein. Use this to prevent reads that '
+              'just overlap the protein in a very small number offsets '
+              'from being counted.'))
 
     parser.add_argument(
         '--skipTranslationChecks', dest='checkTranslations',
@@ -191,4 +197,4 @@ if __name__ == '__main__':
                     print('  %d: %s' % (i, filename), file=sys.stderr)
                     gpInfo.addSAM(filename, filterAlignment)
 
-            summarize(gpInfo, args.sortOn)
+            summarize(gpInfo, args.sortOn, args.minReadOffsetCount)

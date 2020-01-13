@@ -172,3 +172,32 @@ class TestGenomeProteinInfo(TestCase):
         self.assertEqual(750, info['totalBases'])
         self.assertEqual((3221 - 2306) + (1623 - 0), info['ntLength'])
         self.assertEqual({'query1', 'query2', 'query3'}, info['readIds'])
+
+    def testTooFewReadOffsetsBAM1(self):
+        """
+        Test that a read is not returned as overlapping a protein unless it
+        meets the minimum number of required overlapping offsets.
+        """
+        gpi = GenomeProteinInfo('KJ586809.1', DB, True)
+        gpi.addSAM(BAM1)
+
+        # Look at protein AJF20804.1 coverage (its ranges are 2306-3221 and
+        # 0-1623). There should be no matching reads because the query
+        # (query1) is only 200 nt long and so cannot match with at least
+        # 500 nucleotides.
+        info = gpi.proteinCoverageInfo('AJF20804.1', 500)
+        self.assertEqual(set(), info['readIds'])
+
+    def testSufficientReadOffsetsBAM1(self):
+        """
+        Test that a read is returned as overlapping a protein when it meets
+        the minimum number of required overlapping offsets.
+        """
+        gpi = GenomeProteinInfo('KJ586809.1', DB, True)
+        gpi.addSAM(BAM1)
+
+        # Look at protein AJF20804.1 coverage (its ranges are 2306-3221 and
+        # 0-1623). The query (query1) must be returned as it has 200
+        # matching nucleotides.
+        info = gpi.proteinCoverageInfo('AJF20804.1', 199)
+        self.assertEqual({'query1'}, info['readIds'])
