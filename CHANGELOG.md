@@ -1,6 +1,30 @@
+## 3.1.36 Jan 13, 2020
+
+Add `genome-protein-summary.py` script.
+
+## 3.1.35 Jan 13, 2020
+
+Drop Python 3.8 from Travis and tox checking.
+
+## 3.1.35 Jan 13, 2020
+
+Drop Python2 from Travis and tox checking. Ugh.
+
+## 3.1.34 Jan 13, 2020
+
+Made sequence translation code work under Python 2 (again, even more hopefully than the last time).
+
+## 3.1.33 Jan 13, 2020
+
+Made sequence translation code work under Python 2 (again, even more hopefully).
+
+## 3.1.32 Jan 13, 2020
+
+Made sequence translation code work under Python 2 (hopefully).
+
 ## 3.1.31 Jan 13, 2020
 
-Added `bin/genome-protein-summary.py` script.
+Added `sam-coverage-depth.py`.
 
 ## 3.1.30 Jan 13, 2020
 

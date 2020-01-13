@@ -1,6 +1,5 @@
 import six
 
-from itertools import chain
 from contextlib import contextmanager
 from collections import Counter, defaultdict
 
@@ -334,13 +333,10 @@ class SAMFilter(object):
             SAM/BAM file is read.
         @return: A C{SAMFilter} instance.
         """
-        referenceIds = (set(chain.from_iterable(args.referenceId))
-                        if args.referenceId else None)
-
         return cls(
             args.samfile,
             filterRead=filterRead,
-            referenceIds=referenceIds,
+            referenceIds=set(args.referenceId) if args.referenceId else None,
             storeQueryIds=storeQueryIds,
             dropUnmapped=args.dropUnmapped,
             dropSecondary=args.dropSecondary,

@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import six
+
 from tempfile import mkdtemp
 from shutil import rmtree
 from os.path import join
@@ -47,8 +49,13 @@ class DiamondExecutor(object):
         @param subject: A C{dark.reads.Read} instance.
         """
         if self._subjectsFp is None:
-            self._subjectsFp = open(join(self._dir, self.SUBJECTS_FILENAME),
-                                    'a', encoding='utf-8')
+            if six.PY3:
+                self._subjectsFp = open(
+                    join(self._dir, self.SUBJECTS_FILENAME), 'a',
+                    encoding='utf-8')
+            else:
+                self._subjectsFp = open(
+                    join(self._dir, self.SUBJECTS_FILENAME), 'a')
 
         print(subject.toString('fasta'), end='', file=self._subjectsFp)
         self._subjectsExist = self._dirty = True

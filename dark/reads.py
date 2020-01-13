@@ -15,21 +15,45 @@ from dark.filter import TitleFilter
 from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
 
 
-def _makeComplementTable(complementData):
-    """
-    Make a sequence complement table.
+if six.PY3:
+    def _makeComplementTable(complementData):
+        """
+        Make a sequence complement table.
 
-    @param complementData: A C{dict} whose keys and values are strings of
-        length one. A key, value pair indicates a substitution that should
-        be performed during complementation.
-    @return: A 256 character string that can be used as a translation table
-        by the C{translate} method of a Python string.
-    """
-    table = list(range(256))
-    for _from, to in complementData.items():
-        table[ord(_from[0].lower())] = ord(to[0].lower())
-        table[ord(_from[0].upper())] = ord(to[0].upper())
-    return ''.join(map(chr, table))
+        @param complementData: A C{dict} whose keys and values are strings of
+            length one. A key, value pair indicates a substitution that should
+            be performed during complementation.
+        @return: A 256 character string that can be used as a translation table
+            by the C{translate} method of a Python string.
+        """
+        table = list(range(256))
+        for _from, to in complementData.items():
+            table[ord(_from[0].lower())] = ord(to[0].lower())
+            table[ord(_from[0].upper())] = ord(to[0].upper())
+        return ''.join(map(chr, table))
+else:
+    def _makeComplementTable(complementData):
+        """
+        Make a sequence complement table.
+
+        @param complementData: A C{dict} whose keys and values are strings of
+            length one. A key, value pair indicates a substitution that should
+            be performed during complementation.
+        @return: A translation table that can be used by the C{translate}
+            method of a Python2 string.
+        """
+        import string
+
+        fromList = []
+        toList = []
+
+        for _from, to in complementData.items():
+            fromList.append(_from[0].lower())
+            fromList.append(_from[0].upper())
+            toList.append(to[0].lower())
+            toList.append(to[0].upper())
+
+        return string.maketrans(''.join(fromList), ''.join(toList))
 
 
 @total_ordering

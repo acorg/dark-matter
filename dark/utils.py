@@ -259,6 +259,22 @@ def countPrint(mesg, count, len1, len2=None):
                         count, len2, percentage(count, len2)))
 
 
+def pct(a, b):
+    """
+    Format a string showing two integers and what percentage the first
+    is of the second.
+
+    @param a: An C{int}, the numerator.
+    @param b: An C{int}, the denominator.
+    """
+    assert 0 <= a <= b
+    if b:
+        return ('%d/%d (%.3f%%)' %
+                (a, b, (a / b if b else 0.0) * 100.0))
+    else:
+        return '0/0 (0.000%)'
+
+
 @contextmanager
 def cd(newdir):
     """
