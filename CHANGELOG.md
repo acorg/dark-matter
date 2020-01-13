@@ -1,3 +1,7 @@
+## 3.1.38 Jan 13, 2020
+
+Fix problem with bash set -u checking in `download-genbank.sh`.
+
 ## 3.1.37 Jan 13, 2020
 
 Add final `genome-protein-summary.py` script.

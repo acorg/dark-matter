@@ -76,6 +76,10 @@ count=$(cat $idDir/ids_* | wc -l)
 
 # If the user has an NCBI API key, we can send requests more frequently.
 # See https://www.ncbi.nlm.nih.gov/books/NBK25497/ and man parallel.
+#
+# Temporarily turn off undefined variable usage errors because the user may
+# not have the NCBI_API_KEY variable set.
+set +u
 if [ -z "$NCBI_API_KEY" ]
 then
     delayArg='--delay 0.35s'
@@ -84,6 +88,7 @@ else
     delayArg='--delay 0.1s'
     apiParam="api_key=${NCBI_API_KEY}&"
 fi
+set -u
 
 failureCount=0
 attempt=0
