@@ -1,3 +1,7 @@
+## 3.1.34 Jan 13, 2020
+
+Made sequence translation code work under Python 2 (again, even more hopefully than the last time).
+
 ## 3.1.33 Jan 13, 2020
 
 Made sequence translation code work under Python 2 (again, even more hopefully).

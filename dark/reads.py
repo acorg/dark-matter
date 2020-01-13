@@ -48,12 +48,12 @@ else:
         toList = []
 
         for _from, to in complementData.items():
-            fromList.append(ord(_from[0].lower()))
-            fromList.append(ord(_from[0].upper()))
+            fromList.append(_from[0].lower())
+            fromList.append(_from[0].upper())
             toList.append(ord(to[0].lower()))
             toList.append(ord(to[0].upper()))
 
-        return string.maketrans(fromList, toList)
+        return string.maketrans(''.join(fromList), toList)
 
 
 @total_ordering
