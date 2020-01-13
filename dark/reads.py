@@ -44,16 +44,16 @@ else:
         """
         import string
 
-        fromStr = ''
-        toStr = ''
+        fromList = []
+        toList = []
 
         for _from, to in complementData.items():
-            fromStr += _from[0].lower()
-            fromStr += _from[0].upper()
-            toStr += to[0].lower()
-            toStr += to[0].upper()
+            fromList.append(ord(_from[0].lower()))
+            fromList.append(ord(_from[0].upper()))
+            toList.append(ord(to[0].lower()))
+            toList.append(ord(to[0].upper()))
 
-        return string.maketrans(fromStr, toStr)
+        return string.maketrans(fromList, toList)
 
 
 @total_ordering
