@@ -1,6 +1,5 @@
 import six
 
-from itertools import chain
 from contextlib import contextmanager
 from collections import Counter, defaultdict
 
