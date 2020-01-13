@@ -1,3 +1,7 @@
+## 3.1.32 Jan 13, 2020
+
+Made sequence translation code work under Python 2 (hopefully).
+
 ## 3.1.31 Jan 13, 2020
 
 Added `sam-coverage-depth.py`.
