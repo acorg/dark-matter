@@ -14,22 +14,19 @@ from dark.genbank import GenomeRanges
 from dark.genomes import GenomeProteinInfo
 from dark.reads import Reads
 from dark.sam import SAMFilter, samReferences
+from dark.utils import pct
 
 
-def pct(a, b):
-    assert a <= b
-    if b:
-        return ('%d/%d (%.3f%%)' %
-                (a, b, (a / b if b else 0.0) * 100.0))
-    else:
-        return '0/0 (0.00%)'
-
-
-def summarize(gpi, sortOn):
+def summarize(gpi, sortOn, minReadOffsetCount):
     """
     Print a summary of the genome proteins.
 
     @param gpi: A C{GenomeProteinInfo} instance.
+    @param sortOn: How to sort proteins for output. One of 'coverage',
+        'depth', 'name', 'offset', or 'readCount'.
+    @param minReadOffsetCount: The minimum number of reads offsets that must
+        overlap a protein for the read to be considered as sufficiently
+        intersecting the protein.
     """
     genome = gpi.genome
 
@@ -48,9 +45,9 @@ def summarize(gpi, sortOn):
 
     print('  Whole genome coverage (not just proteins):')
     print('    Reads matching genome: %d' % len(gpi.readIdsMatchingGenome))
-    print('    Covered offsets: %s' % (
+    print('    Covered genome offsets: %s' % (
         pct(len(gpi.coveredOffsetCount), genome['length'])))
-    print('    Average depth: %.3f' % (
+    print('    Average depth across genome: %.3f' % (
         sum(gpi.coveredOffsetCount.values()) / genome['length']))
 
     coveredProteinOffsetCount = coveredProteinBasesCount = 0
@@ -58,15 +55,14 @@ def summarize(gpi, sortOn):
         coveredProteinOffsetCount += bool(gpi.coveredOffsetCount[offset])
         coveredProteinBasesCount += gpi.coveredOffsetCount[offset]
 
-    print('  Total protein coverage:')
+    print('  Total protein coverage (irrespective of minReadOffsetCount):')
     print('    Reads matching proteins: %d' % len(gpi.readIdsForAllProteins()))
-    print('    Covered offsets: %s' % (
+    print('    Proteins with any coverage: %s' %
+          pct(len(gpi.coveredProteins), genome['proteinCount']))
+    print('    Covered protein offsets: %s' % (
         pct(coveredProteinOffsetCount, len(gpi.offsets))))
-    print('    Average depth: %.3f' % (
+    print('    Average depth across proteins: %.3f' % (
         coveredProteinBasesCount / len(gpi.offsets)))
-
-    print('  Proteins matched: %s (sorted by %s):' % (
-        pct(len(gpi.coveredProteins), genome['proteinCount']), sortOn))
 
     if sortOn == 'name':
         def key(proteinAccession):
@@ -93,25 +89,41 @@ def summarize(gpi, sortOn):
             return coverage['totalBases'] / coverage['ntLength']
         reverse = True
 
-    for i, proteinAccession in enumerate(
-            sorted(gpi.coveredProteins, key=key, reverse=reverse),
-            start=1):
+    if minReadOffsetCount is None:
+        print('  Proteins covered (no minReadOffsetCount):')
+    else:
+        print('  Proteins covered (minReadOffsetCount=%d):' %
+              minReadOffsetCount)
+
+    proteinCount = 0
+    for proteinAccession in sorted(gpi.coveredProteins, key=key,
+                                   reverse=reverse):
         protein = gpi.proteins[proteinAccession]
-        print('    %d: %s (%d AA, %d nt with stop codon, %s)' %
-              (i, protein['product'], protein['length'],
-               protein['length'] * 3 + 3, protein['accession']))
 
-        coverage = gpi.proteinCoverageInfo(proteinAccession)
+        coverage = gpi.proteinCoverageInfo(proteinAccession,
+                                           minReadOffsetCount)
 
-        print('      Read count: %d' % len(coverage['readIds']))
+        readCount = len(coverage['readIds'])
 
-        print('      Covered offsets: %s' % (
-            pct(coverage['coveredOffsets'], coverage['ntLength'])))
+        if readCount:
+            proteinCount += 1
 
-        print('      Average depth: %.3f' % (
-            coverage['totalBases'] / coverage['ntLength']))
+            print('    %d: %s (%d AA, %d nt with stop codon, %s)' %
+                  (proteinCount, protein['product'], protein['length'],
+                   protein['length'] * 3 + 3, protein['accession']))
 
-        print('      Offsets: %s' % protein['offsets'])
+            print('      Read count: %d' % readCount)
+
+            print('      Covered offsets: %s' % (
+                pct(coverage['coveredOffsets'], coverage['ntLength'])))
+
+            print('      Average depth: %.3f' % (
+                coverage['totalBases'] / coverage['ntLength']))
+
+            print('      Offsets: %s' % protein['offsets'])
+
+    print('  Proteins matched: %s (sorted by %s):' % (
+        pct(proteinCount, genome['proteinCount']), sortOn))
 
 
 if __name__ == '__main__':
@@ -125,9 +137,21 @@ if __name__ == '__main__':
               'genome information, as built by make-protein-database.py'))
 
     parser.add_argument(
+        '--progress', default=False, action='store_true',
+        help='Print progress info to standard error.')
+
+    parser.add_argument(
         '--sortOn', default='readCount',
         choices=('coverage', 'depth', 'name', 'offset', 'readCount'),
         help='How to sort proteins for output.')
+
+    parser.add_argument(
+        '--minReadOffsetCount', type=int,
+        help=('The minimum number of reads offsets that must overlap a '
+              'protein for the read to be considered as sufficiently '
+              'intersecting the protein. Use this to prevent reads that '
+              'just overlap the protein in a very small number offsets '
+              'from being counted.'))
 
     parser.add_argument(
         '--skipTranslationChecks', dest='checkTranslations',
@@ -184,11 +208,13 @@ if __name__ == '__main__':
                   referenceId, file=sys.stderr)
         else:
             if samfiles:
-                print('Processing %d SAM file%s for matches with %r:' %
-                      (len(samfiles), '' if len(samfiles) == 1 else 's',
-                       referenceId), file=sys.stderr)
+                if args.progress:
+                    print('Processing %d SAM file%s for matches with %r:' %
+                          (len(samfiles), '' if len(samfiles) == 1 else 's',
+                           referenceId), file=sys.stderr)
                 for i, filename in enumerate(samfiles, start=1):
-                    print('  %d: %s' % (i, filename), file=sys.stderr)
+                    if args.progress:
+                        print('  %d: %s' % (i, filename), file=sys.stderr)
                     gpInfo.addSAM(filename, filterAlignment)
 
-            summarize(gpInfo, args.sortOn)
+            summarize(gpInfo, args.sortOn, args.minReadOffsetCount)

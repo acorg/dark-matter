@@ -24,10 +24,11 @@ class GenomeProteinInfo(object):
         # self.proteins is keyed by protein accession number.
         self.proteins = {}
         self.coveredProteins = set()
-        # self.offsets is keyed by offset, values are dicts that contain a list
-        # of protein accession numbers that overlap that offset and a set of
-        # read ids (if any) that match at that offset. The offsets keys are
-        # only those that correspond to a protein.
+        # self.offsets is keyed by genome offset, values are dicts that
+        # contain a list of protein accession numbers that overlap that
+        # offset and a set of read ids (if any) that match at that offset.
+        # The offsets keys are only those that correspond to one or more
+        # proteins in the genome.
         self.offsets = {}
         # self.coveredOffsetCount holds the read counts for all offsets covered
         # by reads, regardless of whether the offsets correspond to proteins or
@@ -123,11 +124,17 @@ class GenomeProteinInfo(object):
                                 offsetInfo['proteinAccessions'])
                             offsetInfo['readIds'].add(readId)
 
-    def proteinCoverageInfo(self, proteinAccession):
+    def proteinCoverageInfo(self, proteinAccession, minReadOffsetCount=None):
         """
         Calculate coverage information for a protein.
 
         @param proteinAccession: A C{str} accession number.
+        @param minReadOffsetCount: An C{int}, specifying the minimum number of
+            reads offsets that must overlap the protein for the read to be
+            considered as sufficiently intersecting the protein. Use this to
+            prevent reads that just overlap the protein in a very small number
+            offsets from being counted. Or C{None} to indicate that no such
+            filtering should be applied.
         @raises KeyError: If C{proteinAccession} is not known.
         @return: A C{dict} containing
                 * the number of covered offsets,
@@ -143,6 +150,13 @@ class GenomeProteinInfo(object):
         offsetsSeen = set()
         proteinLength = 0
 
+        if minReadOffsetCount is not None and minReadOffsetCount < 2:
+            # Zero or one is equivalent to not giving a value.
+            minReadOffsetCount = None
+
+        if minReadOffsetCount:
+            readOffsetCounts = Counter()
+
         for (start, stop, forward) in GenomeRanges(protein['offsets']).ranges:
             proteinLength += stop - start
             for offset in range(start, stop):
@@ -153,16 +167,27 @@ class GenomeProteinInfo(object):
                     coveredOffsets += 1
                     totalBases += len(readIds)
                     allReadIds.update(readIds)
+                    if minReadOffsetCount:
+                        readOffsetCounts.update(readIds)
 
-        # The +3 in the following is because the database holds the AA length,
-        # not including the stop codon. But the database range covers the stop
-        # codon.
+        # Sanity check that the sum of the range lengths is the same as the
+        # overall length given in the database.
+        #
+        # The +3 in the following is because the database holds the AA
+        # length, not including the stop codon. But the database range
+        # covers the stop codon.
         dbProteinLength = self.proteins[proteinAccession]['length'] * 3 + 3
         if proteinLength != dbProteinLength:
             raise ValueError(
                 'Sum of protein database ranges (%d) does not agree with '
                 'database protein length (%d) for protein %s!' %
                 (proteinLength, dbProteinLength, proteinAccession))
+
+        # Do not report on reads whose overlapping offset count is too low.
+        if minReadOffsetCount:
+            unwanted = set(readId for readId in readOffsetCounts
+                           if readOffsetCounts[readId] < minReadOffsetCount)
+            allReadIds.symmetric_difference_update(unwanted)
 
         return {
             'coveredOffsets': coveredOffsets,

@@ -1,3 +1,7 @@
+## 3.1.37 Jan 13, 2020
+
+Add final `genome-protein-summary.py` script.
+
 ## 3.1.35 Jan 13, 2020
 
 Drop Python 3.8 from Travis and tox checking.
