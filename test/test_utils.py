@@ -14,8 +14,8 @@ except ImportError:
 from .mocking import mockOpen
 
 from dark.utils import (
-    numericallySortFilenames, median, asHandle, parseRangeString, StringIO,
-    baseCountsToStr, nucleotidesToStr, countPrint)
+    numericallySortFilenames, median, asHandle, parseRangeString, pct,
+    StringIO, baseCountsToStr, nucleotidesToStr, countPrint)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -382,3 +382,36 @@ class TestCountPrint(TestCase):
             ' 2/8 (25.00%) of sequence 2',
             countPrint('Count is', count, len1, len2)
         )
+
+
+class TestPct(TestCase):
+    """
+    Test the pct function.
+    """
+    def testZeroNumerator(self):
+        """
+        The pct function must produce the correct result if the numerator is
+        zero.
+        """
+        self.assertEqual('0/10 (0.000%)', pct(0, 10))
+
+    def testZeroDenominator(self):
+        """
+        The pct function must produce the correct result if the denominator is
+        zero.
+        """
+        self.assertEqual('0/0 (0.000%)', pct(0, 0))
+
+    def testOneHalf(self):
+        """
+        The pct function must produce the correct result if the numerator is
+        one half of the denominator.
+        """
+        self.assertEqual('5/10 (50.000%)', pct(5, 10))
+
+    def testOneSeventh(self):
+        """
+        The pct function must produce the correct result if the numerator is
+        one seventh of the denominator.
+        """
+        self.assertEqual('2/14 (14.286%)', pct(2, 14))
