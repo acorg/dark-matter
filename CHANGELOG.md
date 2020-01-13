@@ -1,6 +1,6 @@
-## 3.1.36 Jan 13, 2020
+## 3.1.37 Jan 13, 2020
 
-Add `genome-protein-summary.py` script.
+Add final `genome-protein-summary.py` script.
 
 ## 3.1.35 Jan 13, 2020
 
