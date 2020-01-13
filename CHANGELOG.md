@@ -1,5 +1,9 @@
 ## 3.1.35 Jan 13, 2020
 
+Drop Python 3.8 from Travis and tox checking.
+
+## 3.1.35 Jan 13, 2020
+
 Drop Python2 from Travis and tox checking. Ugh.
 
 ## 3.1.34 Jan 13, 2020
