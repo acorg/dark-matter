@@ -1,3 +1,8 @@
+## 3.1.40 Jan 17, 2020
+
+Make `compare-sequences.py` fall back to use `stretcher` if the call to
+`needle` fails because the sequences are too long.
+
 ## 3.1.39 Jan 17, 2020
 
 Fixed incorrect calculation of covered offset and total bases counts when

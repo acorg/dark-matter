@@ -6,6 +6,7 @@ import sys
 import argparse
 from os.path import join
 from math import log10
+from subprocess import CalledProcessError
 
 from dark.dna import compareDNAReads, matchToString
 from dark.fasta import FastaReads
@@ -15,11 +16,12 @@ from dark.process import Executor
 from dark.utils import parseRangeString
 
 
-def needle(reads):
+def needle(reads, verbose=False):
     """
     Run a Needleman-Wunsch alignment and return the two sequences.
 
     @param reads: An iterable of two reads.
+    @param verbose: If C{True} print progress info to sys.stderr.
     @return: A C{Reads} instance with the two aligned sequences.
     """
     from tempfile import mkdtemp
@@ -37,9 +39,26 @@ def needle(reads):
 
     out = join(dir, 'result.fasta')
 
-    Executor().execute("needle -asequence '%s' -bsequence '%s' -auto "
-                       "-outfile '%s' -aformat fasta" % (
-                           file1, file2, out))
+    def useStderr(e):
+        return "Sequences too big. Try 'stretcher'" not in e.stderr
+
+    if verbose:
+        print('Running needle.', file=sys.stderr)
+    try:
+        Executor().execute("needle -asequence '%s' -bsequence '%s' -auto "
+                           "-outfile '%s' -aformat fasta" % (
+                               file1, file2, out), useStderr=useStderr)
+    except CalledProcessError as e:
+        if useStderr(e):
+            raise
+        else:
+            if verbose:
+                print('Sequences too long for needle. Falling back to '
+                      'stretcher. Be patient!', file=sys.stderr)
+            Executor().execute("stretcher -asequence '%s' -bsequence '%s' "
+                               "-auto "
+                               "-outfile '%s' -aformat fasta" % (
+                                   file1, file2, out))
 
     # Use 'list' in the following to force reading the FASTA from disk.
     result = Reads(list(FastaReads(out)))
@@ -71,6 +90,16 @@ parser.add_argument(
 parser.add_argument(
     '--strict', default=False, action='store_true',
     help='If given, do not allow ambiguous nucleotide symbols to match')
+
+parser.add_argument(
+    '--quiet', dest='verbose', default=True, action='store_false',
+    help=('Do not print information about aligning, or falling back to '
+          'stretcher.'))
+
+parser.add_argument(
+    '--noGapLocations', dest='includeGapLocations', action='store_false',
+    default=True,
+    help='Do not indicate the (1-based) locations of sequence gaps.')
 
 parser.add_argument(
     '--sites',
@@ -113,7 +142,7 @@ if args.align:
             len1, len2, abs(len1 - len2)))
 
     # Align.
-    reads = needle(reads)
+    reads = needle(reads, args.verbose)
 
     if args.alignmentFile:
         assert reads.save(args.alignmentFile) == 2
@@ -140,7 +169,8 @@ else:
                                                   abs(len1 - len2)))
 
 print(matchToString(match, read1, read2, matchAmbiguous=(not args.strict),
-                    offsets=offsets))
+                    offsets=offsets,
+                    includeGapLocations=args.includeGapLocations))
 
 if args.showDiffs:
     # Print all sites where the sequences differ.
