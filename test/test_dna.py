@@ -780,6 +780,62 @@ Mismatches: 0
             matchToString(match, read1, read2, matchAmbiguous=True)
         )
 
+    def testGapLocations(self):
+        """
+        Gap locations must be returned correctly.
+        """
+        read1 = Read('id1', 'TTTTTAAAAAAGCGCG')
+        read2 = Read('id2', 'TTTTT------GCGCG')
+        match = compareDNAReads(read1, read2)
+        self.maxDiff = None
+        self.assertEqual(
+            '''\
+Exact matches: 10/16 (62.50%)
+Ambiguous matches: 0
+Mismatches: 6/16 (37.50%)
+  Not involving gaps (i.e., conflicts): 0
+  Involving a gap in one sequence: 6/16 (37.50%)
+  Involving a gap in both sequences: 0
+  Id: id1
+    Length: 16
+    Gaps: 0
+    Ambiguous: 0
+  Id: id2
+    Length: 16
+    Gaps: 6/16 (37.50%)
+    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    Ambiguous: 0''',
+            matchToString(match, read1, read2)
+        )
+
+    def testExcludeGapLocations(self):
+        """
+        If gap locations are not wanted, they should not appear in the result
+        of a call to matchToString.
+        """
+        read1 = Read('id1', 'TTTTTAAAAAAGCGCG')
+        read2 = Read('id2', 'TTTTT------GCGCG')
+        match = compareDNAReads(read1, read2)
+        self.maxDiff = None
+        self.assertEqual(
+            '''\
+Exact matches: 10/16 (62.50%)
+Ambiguous matches: 0
+Mismatches: 6/16 (37.50%)
+  Not involving gaps (i.e., conflicts): 0
+  Involving a gap in one sequence: 6/16 (37.50%)
+  Involving a gap in both sequences: 0
+  Id: id1
+    Length: 16
+    Gaps: 0
+    Ambiguous: 0
+  Id: id2
+    Length: 16
+    Gaps: 6/16 (37.50%)
+    Ambiguous: 0''',
+            matchToString(match, read1, read2, includeGapLocations=False)
+        )
+
 
 class TestFindKozakConsensus(TestCase):
     """

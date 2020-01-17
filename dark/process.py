@@ -36,7 +36,9 @@ class Executor(object):
             the default setting (in C{self._dryRun}).
         @param useStderr: If C{True} print a summary of the command standard
             output and standard error to sys.stderr if the command results in
-            an error.
+            an exception. If a function is passed, the exception is passed to
+            the function and the summary is printed to sys.stderr if the
+            function returns C{True}.
         @param kwargs: Keyword arguments that will be passed to subprocess.run
             (or subprocess.check_call for Python version 2). Note that keyword
             arguments are not currently logged (the logging is slightly
@@ -72,6 +74,8 @@ class Executor(object):
                 result = run(command, check=True, stdout=PIPE, stderr=PIPE,
                              shell=shell, universal_newlines=True, **kwargs)
             except CalledProcessError as e:
+                if callable(useStderr):
+                    useStderr = useStderr(e)
                 if useStderr:
                     import sys
                     print('CalledProcessError:', e, file=sys.stderr)
@@ -84,6 +88,8 @@ class Executor(object):
                                     shell=shell, universal_newlines=True,
                                     **kwargs)
             except CalledProcessError as e:
+                if callable(useStderr):
+                    useStderr = useStderr(e)
                 if useStderr:
                     import sys
                     print('CalledProcessError:', e, file=sys.stderr)

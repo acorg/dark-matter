@@ -37,7 +37,7 @@ BASES_TO_AMBIGUOUS = dict(
 
 
 def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
-                  offsets=None):
+                  offsets=None, includeGapLocations=True):
     """
     Format a DNA match as a string.
 
@@ -51,6 +51,8 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
     @param indent: A C{str} to indent all returned lines with.
     @param offsets: If not C{None}, a C{set} of offsets of interest that were
         only considered when making C{match}.
+    @param includeGapLocations: If C{True} indicate the (1-based) locations of
+        gaps.
     @return: A C{str} describing the match.
     """
     match = dnaMatch['match']
@@ -94,7 +96,7 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
         append('%s    Length: %d' % (indent, length))
         gapCount = len(dnaMatch[key]['gapOffsets'])
         append(countPrint('%s    Gaps' % indent, gapCount, length))
-        if gapCount:
+        if includeGapLocations and gapCount:
             append(
                 '%s    Gap locations (1-based): %s' %
                 (indent,
