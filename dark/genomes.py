@@ -151,24 +151,25 @@ class GenomeProteinInfo(object):
         proteinLength = 0
 
         if minReadOffsetCount is not None and minReadOffsetCount < 2:
-            # Zero or one is equivalent to not giving a value.
+            # A minimum of zero or one is equivalent to not giving a value.
             minReadOffsetCount = None
 
         if minReadOffsetCount:
             readOffsetCounts = Counter()
 
-        for (start, stop, forward) in GenomeRanges(protein['offsets']).ranges:
+        proteinRanges = GenomeRanges(protein['offsets']).ranges
+
+        # Do an initial pass across all the offsets of the protein to see
+        # which reads intersect and where. We will then do a second pass in
+        # which we ignore reads that do not sufficiently overlap.
+        for (start, stop, forward) in proteinRanges:
             proteinLength += stop - start
             for offset in range(start, stop):
                 assert offset not in offsetsSeen
                 offsetsSeen.add(offset)
                 readIds = self.offsets[offset]['readIds']
-                if readIds:
-                    coveredOffsets += 1
-                    totalBases += len(readIds)
-                    allReadIds.update(readIds)
-                    if minReadOffsetCount:
-                        readOffsetCounts.update(readIds)
+                if readIds and minReadOffsetCount:
+                    readOffsetCounts.update(readIds)
 
         # Sanity check that the sum of the range lengths is the same as the
         # overall length given in the database.
@@ -183,11 +184,23 @@ class GenomeProteinInfo(object):
                 'database protein length (%d) for protein %s!' %
                 (proteinLength, dbProteinLength, proteinAccession))
 
-        # Do not report on reads whose overlapping offset count is too low.
+        # If we are not reporting reads whose overlapping offset count is
+        # too low, make a set of such reads.
         if minReadOffsetCount:
             unwanted = set(readId for readId in readOffsetCounts
                            if readOffsetCounts[readId] < minReadOffsetCount)
-            allReadIds.symmetric_difference_update(unwanted)
+        else:
+            unwanted = set()
+
+        # Second pass, in which we ignore unwanted (i.e., insufficiently
+        # overlapping) reads.
+        for (start, stop, forward) in proteinRanges:
+            for offset in range(start, stop):
+                readIds = set(self.offsets[offset]['readIds']) - unwanted
+                if readIds:
+                    allReadIds.update(readIds)
+                    coveredOffsets += 1
+                    totalBases += len(readIds)
 
         return {
             'coveredOffsets': coveredOffsets,

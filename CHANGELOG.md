@@ -1,3 +1,9 @@
+## 3.1.39 Jan 17, 2020
+
+Fixed incorrect calculation of covered offset and total bases counts when
+excluding reads based on minimum number of overlapping offsets in
+`dark/genomes.py`.
+
 ## 3.1.38 Jan 13, 2020
 
 Fix problem with bash set -u checking in `download-genbank.sh`.

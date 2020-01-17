@@ -184,9 +184,12 @@ class TestGenomeProteinInfo(TestCase):
         # Look at protein AJF20804.1 coverage (its ranges are 2306-3221 and
         # 0-1623). There should be no matching reads because the query
         # (query1) is only 200 nt long and so cannot match with at least
-        # 500 nucleotides.
+        # 500 nucleotides. The number of covered offsets and total bases
+        # should both also be zero for the same reason.
         info = gpi.proteinCoverageInfo('AJF20804.1', 500)
         self.assertEqual(set(), info['readIds'])
+        self.assertEqual(0, info['totalBases'])
+        self.assertEqual(0, info['coveredOffsets'])
 
     def testSufficientReadOffsetsBAM1(self):
         """
