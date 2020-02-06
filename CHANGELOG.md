@@ -1,3 +1,7 @@
+## 3.1.41 Feb 6, 2020
+
+Added `run-bowtie2.py` command.
+
 ## 3.1.40 Jan 17, 2020
 
 Make `compare-sequences.py` fall back to use `stretcher` if the call to

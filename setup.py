@@ -90,6 +90,8 @@ scripts = [
     'bin/read-blast-json.py',
     'bin/read-blast-xml.py',
     'bin/relabel-newick-tree.py',
+    'bin/run-bwa.py',
+    'bin/run-bowtie2.py',
     'bin/sam-coverage.py',
     'bin/sam-coverage-depth.py',
     'bin/sam-to-fasta-alignment.py',
