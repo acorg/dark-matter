@@ -1,3 +1,8 @@
+## 3.1.42 Feb 6, 2020
+
+Added `--picard` to `run-bowtie2.py` command to allow removal of duplicates
+found by Picard.
+
 ## 3.1.41 Feb 6, 2020
 
 Added `run-bowtie2.py` command.

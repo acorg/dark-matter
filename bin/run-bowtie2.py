@@ -101,6 +101,12 @@ parser.add_argument(
           'and no filename is given via --query, an error will be thrown.'))
 
 parser.add_argument(
+    '--picard',
+    help=('The path to the Picard jar file. If given, Picard will be used to '
+          'mark duplicates, which will then be removed using samtools. See '
+          'https://github.com/broadinstitute/picard for details on Picard.'))
+
+parser.add_argument(
     '--verbose', default=False, action='store_true',
     help='Print the commands that were (or would be) executed.')
 
@@ -238,6 +244,23 @@ if not args.noBAM:
         e.execute("samtools sort '%s' > '%s'" % (bamFile, sortedBamFile))
 
         e.execute("mv '%s' '%s'" % (sortedBamFile, bamFile))
+
+        if args.picard:
+            if args.verbose and not args.dryRun:
+                print('Marking duplicates with Picard.', file=sys.stderr)
+
+            tempDir = tempDir or mkdtemp()
+            tempBAMFile = join(tempDir, 'picard.bam')
+            tempErrFile = join(tempDir, 'picard.errs')
+            e.execute('java -Xmn2g -Xms2g -Xmx2g -jar %s '
+                      'MarkDuplicates I="%s" O="%s" M=/dev/null >"%s" 2>&1' %
+                      (args.picard, bamFile, tempBAMFile, tempErrFile))
+
+            if args.verbose and not args.dryRun:
+                print('Removing duplicates marked by Picard.', file=sys.stderr)
+
+            e.execute("samtools view -b -F 1024 < '%s' > '%s'" %
+                      (tempBAMFile, bamFile))
 
         if not args.noIndex:
             if args.verbose and not args.dryRun:
