@@ -15,7 +15,7 @@ class Bowtie2(object):
     def __init__(self, executor=None, threads=None, verboseFp=None,
                  dryRun=False, reference=None, tempdir=None):
         self._executor = executor or Executor(dryRun)
-        self.tempdir = '/tmp/xxx' if dryRun else mkdtemp(
+        self.tempdir = (tempdir or '/tmp/xxx') if dryRun else mkdtemp(
             prefix='bt2-', dir=tempdir)
         self._samFile = join(self.tempdir, 'result.sam')
         self._bamFile = join(self.tempdir, 'result.bam')

@@ -1,3 +1,7 @@
+## 3.1.46 Feb 19, 2020
+
+Trivial change to setting of `tempdir` in `run-bowtie2.py`.
+
 ## 3.1.45 Feb 19, 2020
 
 Change call to samtools.
