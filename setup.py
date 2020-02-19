@@ -73,6 +73,7 @@ scripts = [
     'bin/get-taxonomy.py',
     'bin/graph-evalues.py',
     'bin/local-align.py',
+    'bin/make-consensus.py',
     'bin/make-fasta-database.py',
     'bin/make-protein-database.py',
     'bin/ncbi-fetch-id.py',

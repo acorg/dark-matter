@@ -5,12 +5,16 @@ from __future__ import print_function
 import os
 import sys
 import argparse
-import requests
 import multiprocessing
-from os.path import basename, exists, join
+from os.path import exists, join
 from tempfile import mkdtemp
+import pysam
 
 from dark.process import Executor
+from dark.bowtie2 import Bowtie2
+
+DEFAULT_SAMTOOLS_VIEW_FLAGS = (
+    pysam.FUNMAP | pysam.FSECONDARY | pysam.FDUP | pysam.FSUPPLEMENTARY)
 
 
 def saveStdin():
@@ -33,247 +37,340 @@ def saveStdin():
     return dirname, filename
 
 
-def makeIndexFromFastaFile(fastaFilename, tempdir, base, e):
-    dirname = tempdir or mkdtemp()
-    index = join(dirname, basename(base))
+def processMatch(args, e):
+    """
+    Run Bowtie2 to find matches.
+    """
+    if not args.index and not args.reference:
+        print('One of --index or --reference must be given.', file=sys.stderr)
+        sys.exit(0)
 
-    e.execute("bowtie2-build --quiet '%s' '%s'" %
-              (fastaFilename, index))
+    if args.markDuplicatesPicard or args.callHaplotypesGATK:
+        if args.picardJar:
+            picardJar = args.picardJar
+        else:
+            try:
+                picardJar = os.environ['PICARD_JAR']
+            except KeyError:
+                print('If you use --markDuplicatesPicard or '
+                      '--callHaplotypesGATK, you must give a Picard JAR file '
+                      'with --picardJar or else set PICARD_JAR in your '
+                      'environment.', file=sys.stderr)
+                sys.exit(0)
 
-    return dirname, index
+    bt2 = Bowtie2(
+        executor=e,
+        threads=(multiprocessing.cpu_count() if args.threads is None
+                 else args.threads),
+        verboseFp=(sys.stderr if args.verbose else None),
+        dryRun=args.dryRun)
 
+    bt2.buildIndex(args.index or args.reference)
 
-def makeIndexFromAccession(accessionId, tempdir, base, e, verbose, dryRun):
-    dirname = tempdir or mkdtemp()
-    fastaFilename = join(dirname, accessionId + '.fasta')
-    index = join(dirname, basename(base))
-
-    if not dryRun:
-        if verbose:
-            print('Downloading FASTA for accession %s from NCBI.' %
-                  accessionId, file=sys.stderr)
-
-        URL = ('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?'
-               'db=%(database)s&id=%(id)s&rettype=fasta&retmode=text')
-
-        with open(fastaFilename, 'w') as fp:
-            print(requests.get(
-                URL % {'database': 'nucleotide', 'id': accessionId}
-            ).text.rstrip('\n'), file=fp)
-
-    e.execute("bowtie2-build --quiet '%s' '%s'" %
-              (fastaFilename, index))
-
-    return dirname, index
-
-
-parser = argparse.ArgumentParser(
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=('Run bowtie2 on a FASTA file. Optionally convert the result '
-                 'to BAM, sorting, and indexing.'))
-
-parser.add_argument(
-    '--index', required=True,
-    help=('Either: an accession number, a filename (ending in .fasta or .fa), '
-          'or the name of a pre-existing bowtie2 index (created with '
-          'bowtie2-build index).'))
-
-parser.add_argument(
-    '--query',
-    help=('The FASTQ reads to match against the bowtie2 index given by '
-          '--index. If not given, standard input will be read.'))
-
-parser.add_argument(
-    '--bowtie2Args', default='--end-to-end --no-unal',
-    help=('Extra arguments to be passed to Bowtie2. Use --threads to specify '
-          'a thread count.'))
-
-parser.add_argument(
-    # 3332 = UNMAP,SECONDARY,DUP,SUPPLEMENTARY
-    '--samtoolsViewArgs', default='-F 3332 -q 30',
-    help='Arguments to be passed to samtools view when creating the BAM file.')
-
-parser.add_argument(
-    '--base',
-    help=('The base name of files to create. Suffixes such as .sam and .bam '
-          'will be added. If not given, the prefix of the --query file '
-          '(if any) will be used, stripped of its final suffix. If not given '
-          'and no filename is given via --query, an error will be thrown.'))
-
-parser.add_argument(
-    '--picard',
-    help=('The path to the Picard jar file. If given, Picard will be used to '
-          'mark duplicates, which will then be removed using samtools. See '
-          'https://github.com/broadinstitute/picard for details on Picard.'))
-
-parser.add_argument(
-    '--verbose', default=False, action='store_true',
-    help='Print the commands that were (or would be) executed.')
-
-parser.add_argument(
-    '--log', default=False, action='store_true',
-    help='Show a log of commands that were (or would be) executed.')
-
-parser.add_argument(
-    '--threads', type=int,
-    help='The number of threads to use when running bowtie2')
-
-parser.add_argument(
-    '--noBAM', default=False, action='store_true',
-    help='If specified, do not convert SAM to BAM.')
-
-parser.add_argument(
-    '--noSort', default=False, action='store_true',
-    help='If specified, do not sort the BAM.')
-
-parser.add_argument(
-    '--noIndex', default=False, action='store_true',
-    help='If specified, do not index the sorted BAM.')
-
-parser.add_argument(
-    '--noClean', default=False, action='store_true',
-    help=('If specified, do not remove intermediate .sam and .bam files or '
-          'the temporary directory (if one is actually made).'))
-
-parser.add_argument(
-    '--force', default=False, action='store_true',
-    help='If specified, overwrite pre-existing output files.')
-
-parser.add_argument(
-    '--dryRun', default=False, action='store_true',
-    help='Do not run commands, just print what would be done.')
-
-args = parser.parse_args()
-
-if args.threads is None:
-    nThreads = multiprocessing.cpu_count()
-else:
-    nThreads = args.threads
-
-
-if args.query:
-    tempDir, queryFile = None, args.query
-else:
-    tempDir, queryFile = saveStdin()
-
-
-if args.base is None:
-    if args.query is None:
-        print('You must either use --base to specify an output file basename '
-              'or else use --query to give an input name (whose suffix will '
-              'be stripped and used as the output name.', file=sys.stderr)
-        sys.exit(1)
-    else:
-        fields = args.query.rsplit('.', 1)
-        if len(fields) < 2:
-            print('No --base argument was given and the --query argument '
-                  'does not have a .suffix that can be stripped.',
-                  file=sys.stderr)
-            sys.exit(1)
-        base = fields[0]
-else:
-    base = args.base
-
-e = Executor(args.dryRun)
-
-# Find or make the bowtie2 index.
-
-if exists(args.index):
-    # Check if this is a pre-existing bowtie2 index. Look for and remove a
-    # bowtie2 suffix, if any (otherwise bowtie2 will complain). We do
-    # things this way to allow the user to use --index on the command line
-    # and let TAB completion give them the full path to any bowtie index
-    # file.
-    for suffix in '1.bt2 2.bt2 3.bt2 4.bt2 rev.1.bt2 rev.2.bt2'.split():
-        suffix = '.' + suffix
-        if args.index.endswith(suffix):
-            indexName = args.index[:-len(suffix)]
-            break
-    else:
-        # Assume a FASTA file and make an index.
-        tempDir, indexName = makeIndexFromFastaFile(
-            args.index, tempDir, base, e)
-else:
-    # Not a filename. So either the start of the path to a bowtie2 index or
-    # else an accession number.
-    if exists(args.index + '.1.bt2'):
-        indexName = args.index
-    else:
-        # Assume an accession number.
-        tempDir, indexName = makeIndexFromAccession(
-            args.index, tempDir, base, e, args.verbose, args.dryRun)
-
-samFile = base + '.sam'
-bamFile = base + '.bam'
-sortedBamFile = base + '-sorted.bam'
-
-if not (args.force or args.dryRun):
-    existing = []
-    for filename in samFile, bamFile, sortedBamFile:
-        if exists(filename):
-            existing.append(filename)
-    if existing:
-        print('Will not overwrite pre-existing file%s %s. '
-              'Use --force to make me.' % (
-                  '' if len(existing) == 1 else 's',
-                  ', '.join(existing)),
-              file=sys.stderr)
-        sys.exit(2)
-
-if args.verbose and not args.dryRun:
-    print('Running bowtie2.', file=sys.stderr)
-
-e.execute("bowtie2 %s --threads %d -x '%s' '%s' > '%s'" % (
-    args.bowtie2Args, nThreads, indexName, queryFile, samFile))
-
-
-if not args.noBAM:
-    if args.verbose and not args.dryRun:
-        print('Converting SAM to BAM.', file=sys.stderr)
-
-    e.execute("samtools view -b %s < '%s' > '%s'" %
-              (args.samtoolsViewArgs, samFile, bamFile))
-
-    if not args.noClean:
-        e.execute("rm '%s'" % samFile)
-
-    if not args.noSort:
-        if args.verbose and not args.dryRun:
-            print('Sorting BAM.', file=sys.stderr)
-
-        e.execute("samtools sort '%s' > '%s'" % (bamFile, sortedBamFile))
-
-        e.execute("mv '%s' '%s'" % (sortedBamFile, bamFile))
-
-        if args.picard:
-            if args.verbose and not args.dryRun:
-                print('Marking duplicates with Picard.', file=sys.stderr)
-
-            tempDir = tempDir or mkdtemp()
-            tempBAMFile = join(tempDir, 'picard.bam')
-            tempErrFile = join(tempDir, 'picard.errs')
-            e.execute('java -Xmn2g -Xms2g -Xmx2g -jar %s '
-                      'MarkDuplicates I="%s" O="%s" M=/dev/null >"%s" 2>&1' %
-                      (args.picard, bamFile, tempBAMFile, tempErrFile))
-
-            if args.verbose and not args.dryRun:
-                print('Removing duplicates marked by Picard.', file=sys.stderr)
-
-            e.execute("samtools view -b -F 1024 < '%s' > '%s'" %
-                      (tempBAMFile, bamFile))
-
-        if not args.noIndex:
-            if args.verbose and not args.dryRun:
-                print('Indexing BAM.', file=sys.stderr)
-
-            e.execute("samtools index '%s'" % bamFile)
-
-if tempDir:
-    if args.noClean:
+    if not args.align:
         if args.verbose:
-            print('Temporary directory was %r' % tempDir, file=sys.stderr)
-    else:
-        e.execute("rm -r '%s'" % tempDir)
+            print('Bowtie2 alignment not done due to --noAlign.',
+                  file=sys.stderr)
+        print('Bowtie2 temporary directory %r.' % bt2.tempdir, file=sys.stderr)
+        sys.exit(0)
 
-if args.dryRun or args.log:
-    print('\n'.join(e.log), file=sys.stderr)
+    if args.fastq1:
+        stdinDir, fastq1, fastq2 = None, args.fastq1, args.fastq2
+    else:
+        stdinDir, fastq1 = saveStdin()
+        fastq2 = None
+
+    if args.out:
+        if exists(args.out) and not (args.force or args.dryRun):
+            print('Will not overwrite pre-existing output file %r. '
+                  'Use --force to make me.' % args.out, file=sys.stderr)
+            sys.exit(1)
+
+        if args.indexBAM:
+            bai = args.out + '.bai'
+            if exists(bai) and not (args.force or args.dryRun):
+                print('Will not overwrite pre-existing output file %r. '
+                      'Use --force to make me.' % bai, file=sys.stderr)
+                sys.exit(1)
+            needBAI = True
+        else:
+            needBAI = False
+
+    if args.callHaplotypesGATK:
+        if args.vcfFile:
+            for filename in (args.vcfFile, args.vcfFile + '.tbi'):
+                if exists(filename) and not args.force:
+                    print('Will not overwrite pre-existing VCF file %r. '
+                          'Use --force to make me.' % filename,
+                          file=sys.stderr)
+                    sys.exit(1)
+
+    bt2.align(bowtie2Args=args.bowtie2Args, fastq1=fastq1, fastq2=fastq2)
+
+    if args.bam:
+        bt2.makeBAM(args.samtoolsViewArgs)
+
+    if args.sort and not (
+            args.markDuplicatesPicard or args.markDuplicatesGATK):
+        bt2.sort()
+
+    if args.markDuplicatesPicard:
+        bt2.sort()
+        bt2.picard(picardJar)
+
+    if args.markDuplicatesGATK:
+        bt2.sort(byName=True)
+        bt2.markDuplicatesGATK()
+
+    if args.removeDuplicates:
+        bt2.removeDuplicates()
+
+    if args.callHaplotypesGATK:
+        bt2.indexBAM()
+        bt2.callHaplotypesGATK(picardJar=picardJar, vcfFile=args.vcfFile,
+                               referenceFasta=args.reference)
+
+    if args.bam and args.indexBAM:
+        bt2.indexBAM()
+
+    if args.out:
+        e.execute("mv '%s' '%s'" % (bt2.outputFile(), args.out))
+        if needBAI:
+            e.execute("mv '%s.bai' '%s.bai'" % (bt2.outputFile(), args.out))
+    else:
+        if not args.dryRun:
+            with open(bt2.outputFile(), 'rb') as fp:
+                read, write = fp.read, sys.stdout.write
+                while True:
+                    data = read(2048)
+                    if data:
+                        write(data)
+                    else:
+                        break
+
+    if stdinDir:
+        # Remove the directory where we stashed standard input.
+        e.execute("rm -r '%s'" % stdinDir)
+
+    if args.clean:
+        bt2.close()
+    else:
+        print('Bowtie2 temporary directory %r.' % bt2.tempdir, file=sys.stderr)
+
+
+def processOneIgnore(args, index, count, tempdir, e):
+    """
+    Process one ignored index.
+    """
+    if args.verbose:
+        print('Preparing to ignore reads matching index %r.' % index,
+              file=sys.stderr)
+
+    bt2 = Bowtie2(
+        executor=e,
+        threads=(multiprocessing.cpu_count() if args.threads is None
+                 else args.threads),
+        verboseFp=(sys.stderr if args.verbose else None),
+        dryRun=args.dryRun)
+
+    bt2.buildIndex(index)
+
+    unAlignedFile = join(tempdir, 'unaligned-%d' % count)
+
+    if args.fastq1 and args.fastq2:
+        bt2.align(
+            bowtie2Args='%s --un-conc-gz %s' % (args.bowtie2Args,
+                                                unAlignedFile),
+            fastq1=args.fastq1, fastq2=args.fastq2, discardSAM=True)
+
+        for i in '1', '2':
+            src = unAlignedFile + '.' + i
+            dst = src + '.gz'
+            e.execute("mv '%s' '%s'" % (src, dst))
+            setattr(args, 'fastq' + i, dst)
+
+        if not e.dryRun:
+            assert exists(args.fastq1)
+            assert exists(args.fastq2)
+    else:
+        bt2.align(
+            bowtie2Args='%s --un-gz %s' % (args.bowtie2Args,
+                                           unAlignedFile),
+            fastq1=args.fastq1, discardSAM=True)
+
+        e.execute("mv '%s' '%s.gz'" % (unAlignedFile, unAlignedFile))
+        args.fastq1 = unAlignedFile + '.gz'
+        if not e.dryRun:
+            assert exists(args.fastq1)
+
+    if args.clean:
+        bt2.close()
+    else:
+        print('Bowtie2 temporary ignore index directory %r.' % bt2.tempdir,
+              file=sys.stderr)
+
+
+def processIgnores(args, e):
+    """
+    Ignore the indices in args.ignoredIndices
+    """
+    tempdir = '/tmp/ignores' if e.dryRun else mkdtemp(prefix='bt2-ignores-')
+    for count, ignoreIndex in enumerate(args.ignoredIndices):
+        processOneIgnore(args, ignoreIndex, count, tempdir, e)
+    return tempdir
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=('Run bowtie2 on a FASTA file. Optionally convert the '
+                     'result to BAM, sorting, and indexing.'))
+
+    parser.add_argument(
+        '--index',
+        help=('Either: an accession number, a filename or the name of a '
+              'pre-existing bowtie2 index (created with bowtie2-build). If '
+              'not given and --reference is used, the reference will be '
+              'used to build a bowtie2 index.'))
+
+    parser.add_argument(
+        '--ignoreIndex', action='append', dest='ignoredIndices',
+        help=('Either: an accession number, a filename or the name of a '
+              'pre-existing bowtie2 index (created with bowtie2-build). '
+              'Reads matching this index will be ignored. May be repeated.'))
+
+    parser.add_argument(
+        '--fastq1', '-1',
+        help=('The FASTQ reads to match against the bowtie2 index given by '
+              '--index. Also use --fast2 if you have paired reads. '
+              'If not given, single-end FASTQ reads will be read from '
+              'standard input.'))
+
+    parser.add_argument(
+        '--fastq2', '-2',
+        help=('The FASTQ reads to match against the bowtie2 index given by '
+              '--index. Use this with --fastq1 to specify the mate '
+              'file for paired-end reads.'))
+
+    parser.add_argument(
+        '--bowtie2Args', default='--no-unal',
+        help=('Extra arguments to be passed to Bowtie2 (use --threads to '
+              'specify a thread count).'))
+
+    parser.add_argument(
+        '--samtoolsViewArgs',
+        default='-F %d -q 30' % DEFAULT_SAMTOOLS_VIEW_FLAGS,
+        help='Arguments to be passed to samtools view to create the BAM file.')
+
+    parser.add_argument(
+        '--out', '-o',
+        help=('The output file name. If not given, the resulting SAM or BAM '
+              'will be written to standard output will be used.'))
+
+    parser.add_argument(
+        '--reference',
+        help=('The reference FASTA file for use with --callHaplotypesGATK. '
+              'This will be used to build a Bowtie2 index if --index is not '
+              'given.'))
+
+    parser.add_argument(
+        '--vcfFile',
+        help='The file to write VCF info to if --callHaplotypesGATK is used')
+
+    parser.add_argument(
+        '--markDuplicatesGATK', default=False, action='store_true',
+        help=('Use GATK to mark duplicates. See '
+              'https://gatk.broadinstitute.org for details on GATK.'))
+
+    parser.add_argument(
+        '--markDuplicatesPicard', default=False, action='store_true',
+        help=('Use Picard to mark duplicates. See '
+              'https://github.com/broadinstitute/picard for details on '
+              'Picard.'))
+
+    parser.add_argument(
+        '--picardJar',
+        help=('The path to the Picard jar file. See '
+              'https://github.com/broadinstitute/picard for details on '
+              'Picard.'))
+
+    parser.add_argument(
+        '--callHaplotypesGATK', default=False, action='store_true',
+        help=('Use GATK to call haplotypes. See '
+              'https://gatk.broadinstitute.org for details on GATK.'))
+
+    parser.add_argument(
+        '--removeDuplicates', default=False, action='store_true',
+        help=('Remove duplicates from the resulting SAM/BAM file. Best used '
+              'in combination with an option that marks duplicates, such as '
+              '--markDuplicatesGATK.'))
+
+    parser.add_argument(
+        '--verbose', default=False, action='store_true',
+        help=('Print a description of commands as they are (or would be, if '
+              '--dryRun is used) executed.'))
+
+    parser.add_argument(
+        '--log', default=False, action='store_true',
+        help=('Show a log of commands that were (or would be, if --dryRun is '
+              'used) executed.'))
+
+    parser.add_argument(
+        '--threads', type=int,
+        help='The number of threads to use when running bowtie2 commands.')
+
+    parser.add_argument(
+        '--noAlign', default=True, action='store_false', dest='align',
+        help='Do not align with Bowtie2, just build an index.')
+
+    parser.add_argument(
+        '--noBAM', default=True, action='store_false', dest='bam',
+        help='Do not convert SAM to BAM.')
+
+    parser.add_argument(
+        '--noSort', default=True, action='store_false', dest='sort',
+        help='Do not sort the BAM.')
+
+    parser.add_argument(
+        '--noIndexBAM', default=True, action='store_false', dest='indexBAM',
+        help='Do not index the BAM file.')
+
+    parser.add_argument(
+        '--noClean', default=True, action='store_false', dest='clean',
+        help=('Do not remove intermediate files or the temporary directory.'))
+
+    parser.add_argument(
+        '--force', default=False, action='store_true',
+        help='Overwrite pre-existing output file.')
+
+    parser.add_argument(
+        '--dryRun', default=False, action='store_true',
+        help='Do not run commands, just print what would be done.')
+
+    args = parser.parse_args()
+
+    if args.indexBAM and not args.bam:
+        print('The --indexBAM option only makes sense if you do not use '
+              '--noBAM.', file=sys.stderr)
+        sys.exit(1)
+
+    e = Executor(args.dryRun)
+
+    if args.ignoredIndices:
+        ignoresDir = processIgnores(args, e)
+
+    processMatch(args, e)
+
+    if args.ignoredIndices:
+        if args.clean:
+            e.execute("rm -r '%s'" % ignoresDir)
+        else:
+            print('Temporary directory with non-ignored inputs %r.' %
+                  ignoresDir, file=sys.stderr)
+
+    if args.dryRun or args.log:
+        print('\n'.join(e.log), file=sys.stderr)
+
+
+if __name__ == '__main__':
+    main()

@@ -430,7 +430,7 @@ class TestBlastReadsAlignments(TestCase):
                     self.count += 1
                     return StringIO('>id1 Description\nAA\n')
                 else:
-                    self.fail('Unexpected third call to open.')
+                    self.test.fail('Unexpected third call to open.')
 
         sideEffect = SideEffect(self)
 
@@ -498,7 +498,7 @@ class TestBlastReadsAlignments(TestCase):
                     self.count += 1
                     return StringIO('>seqid\nAA\n')
                 else:
-                    self.fail('Unexpected third call to open.')
+                    self.test.fail('Unexpected third call to open.')
 
         connectSideEffect = ConnectSideEffect()
         with patch.object(sqlite3, 'connect') as mockMethod:
