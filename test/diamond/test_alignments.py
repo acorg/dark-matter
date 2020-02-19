@@ -305,7 +305,7 @@ class TestDiamondReadsAlignments(TestCase):
                     self.count += 1
                     return StringIO('>id1 Description\nAA\n')
                 else:
-                    self.fail('Unexpected third call to open.')
+                    self.test.fail('Unexpected third call to open.')
 
         sideEffect = SideEffect(self)
 

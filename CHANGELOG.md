@@ -1,3 +1,8 @@
+## 3.1.43 Feb 19, 2020
+
+Added `make-consensus.py` script and tests (for a new `dark/bowtie2.py`
+file). Upgraded `run-bowtie2.py`.
+
 ## 3.1.42 Feb 6, 2020
 
 Added `--picard` to `run-bowtie2.py` command to allow removal of duplicates

@@ -19,10 +19,18 @@ class Executor(object):
         by passing C{dryRun} to the C{execute} method.
     """
     def __init__(self, dryRun=False):
-        self._dryRun = dryRun
+        self.dryRun = dryRun
         self.log = [
             '# Executor created at %s. Dry run = %s.' % (ctime(time()), dryRun)
         ]
+
+    def dryRun(self):
+        """
+        Is this a dry run?
+
+        @return: A Boolean indicating whether this is a dry run.
+        """
+        return self._dryRun
 
     def execute(self, command, dryRun=None, useStderr=True, **kwargs):
         """
@@ -33,7 +41,7 @@ class Executor(object):
             name), in which case the shell is not used.
         @param dryRun: If C{True}, do not execute commands, just log them.
             If C{False}, execute the commands. If not given or C{None}, use
-            the default setting (in C{self._dryRun}).
+            the default setting (in C{self.dryRun}).
         @param useStderr: If C{True} print a summary of the command standard
             output and standard error to sys.stderr if the command results in
             an exception. If a function is passed, the exception is passed to
@@ -57,7 +65,7 @@ class Executor(object):
             strCommand = ' '.join(command)
             shell = False
 
-        dryRun = self._dryRun if dryRun is None else dryRun
+        dryRun = self.dryRun if dryRun is None else dryRun
 
         if dryRun:
             self.log.append('$ ' + strCommand)

@@ -23,6 +23,20 @@ class TestProcess(TestCase):
         assertRaisesRegex(self, CalledProcessError, error, e.execute, command,
                           useStderr=False)
 
+    def testDryRunTrue(self):
+        """
+        The dryRun attribute must be set when dryRun=True.
+        """
+        e = Executor(dryRun=True)
+        self.assertTrue(e.dryRun)
+
+    def testDryRunFalse(self):
+        """
+        The dryRun attribute must be set when dryRun=False.
+        """
+        e = Executor(dryRun=False)
+        self.assertFalse(e.dryRun)
+
     def testDryRunDefault(self):
         e = Executor(dryRun=True)
         result = e.execute('date')
