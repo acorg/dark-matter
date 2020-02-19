@@ -1,3 +1,7 @@
+## 3.1.44 Feb 19, 2020
+
+Added `--tempdir` argument to `run-bowtie2.py`.
+
 ## 3.1.43 Feb 19, 2020
 
 Added `make-consensus.py` script and tests (for a new `dark/bowtie2.py`

@@ -17,11 +17,11 @@ DEFAULT_SAMTOOLS_VIEW_FLAGS = (
     pysam.FUNMAP | pysam.FSECONDARY | pysam.FDUP | pysam.FSUPPLEMENTARY)
 
 
-def saveStdin():
+def saveStdin(args):
     if os.isatty(0):
         print('Reading sequences to match against from stdin.',
               file=sys.stderr)
-    dirname = mkdtemp()
+    dirname = mkdtemp(prefix='run-bt2-stdin-', dir=args.tempdir)
     filename = join(dirname, 'stdin.fastq')
     count = 0
 
@@ -63,7 +63,7 @@ def processMatch(args, e):
         threads=(multiprocessing.cpu_count() if args.threads is None
                  else args.threads),
         verboseFp=(sys.stderr if args.verbose else None),
-        dryRun=args.dryRun)
+        dryRun=args.dryRun, tempdir=args.tempdir)
 
     bt2.buildIndex(args.index or args.reference)
 
@@ -77,7 +77,7 @@ def processMatch(args, e):
     if args.fastq1:
         stdinDir, fastq1, fastq2 = None, args.fastq1, args.fastq2
     else:
-        stdinDir, fastq1 = saveStdin()
+        stdinDir, fastq1 = saveStdin(args)
         fastq2 = None
 
     if args.out:
@@ -171,7 +171,7 @@ def processOneIgnore(args, index, count, tempdir, e):
         threads=(multiprocessing.cpu_count() if args.threads is None
                  else args.threads),
         verboseFp=(sys.stderr if args.verbose else None),
-        dryRun=args.dryRun)
+        dryRun=args.dryRun, tempdir=tempdir)
 
     bt2.buildIndex(index)
 
@@ -214,7 +214,8 @@ def processIgnores(args, e):
     """
     Ignore the indices in args.ignoredIndices
     """
-    tempdir = '/tmp/ignores' if e.dryRun else mkdtemp(prefix='bt2-ignores-')
+    tempdir = '/tmp/ignores' if e.dryRun else mkdtemp(
+        prefix='bt2-ignores-', dir=args.tempdir)
     for count, ignoreIndex in enumerate(args.ignoredIndices):
         processOneIgnore(args, ignoreIndex, count, tempdir, e)
     return tempdir
@@ -261,6 +262,12 @@ def main():
         '--samtoolsViewArgs',
         default='-F %d -q 30' % DEFAULT_SAMTOOLS_VIEW_FLAGS,
         help='Arguments to be passed to samtools view to create the BAM file.')
+
+    parser.add_argument(
+        '--tempdir',
+        help=('The temporary directory to use. If not specified, the value '
+              'of the TMPDIR environment variable (if any) is used, or else '
+              '/tmp.'))
 
     parser.add_argument(
         '--out', '-o',
@@ -355,6 +362,9 @@ def main():
         sys.exit(1)
 
     e = Executor(args.dryRun)
+
+    if args.tempdir is None:
+        args.tempdir = os.environ.get('TMPDIR', '/tmp')
 
     if args.ignoredIndices:
         ignoresDir = processIgnores(args, e)
