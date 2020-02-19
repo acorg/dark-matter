@@ -200,7 +200,7 @@ class TestBowtie2(TestCase):
         bt.removeDuplicates()
         log = fp.getvalue()
         self.assertTrue(log.endswith('\nRemoving marked duplicates.\n'))
-        self.assertEqual("$ samtools view -b -F 1024 < '/tmp/xxx/result.sam' "
+        self.assertEqual("$ samtools view -b -F 1024 '/tmp/xxx/result.sam' "
                          "> '/tmp/xxx/non-duplicates.sam'", e.log[-2])
         self.assertEqual("$ mv '/tmp/xxx/non-duplicates.sam' "
                          "'/tmp/xxx/result.sam'", e.log[-1])

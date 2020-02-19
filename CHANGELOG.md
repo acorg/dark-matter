@@ -1,3 +1,7 @@
+## 3.1.45 Feb 19, 2020
+
+Change call to samtools.
+
 ## 3.1.44 Feb 19, 2020
 
 Added `--tempdir` argument to `run-bowtie2.py`.

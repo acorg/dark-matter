@@ -45,6 +45,17 @@ follow
 [the installation instructions](http://samtools.github.io/bcftools/howtos/install.html)
 or, if you use [brew](https://brew.sh/) (or Linux brew), `brew install bcftools`.
 
+### samtools
+
+The `run-bowtie2.py` and `run-bwa.py` scripts both make use of
+[samtools](https://www.htslib.org/).
+
+### EMBOSS
+
+The `compare-sequences.py` script (if called with `--align`) requires the
+`needle` and (possibly) `stretcher` from
+[EMBOSS](http://emboss.sourceforge.net/).
+
 ### iPython Notebook
 
 If you are using dark matter in an

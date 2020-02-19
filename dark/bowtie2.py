@@ -254,7 +254,7 @@ class Bowtie2(object):
         tempFile = join(self.tempdir, 'non-duplicates.' + which.lower())
 
         self._executor.execute(
-            "samtools view -b -F 1024 < '%s' > '%s'" % (inFile, tempFile))
+            "samtools view -b -F 1024 '%s' > '%s'" % (inFile, tempFile))
         self._executor.execute("mv '%s' '%s'" % (tempFile, inFile))
 
     def _makeIndexFromFastaFile(self, fastaFilename):
