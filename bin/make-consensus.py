@@ -109,7 +109,7 @@ def main():
         consensus.id = args.id
     elif args.idLambda is not None:
         idLambda = eval(args.idLambda)
-        consensus.id = idLambda(args.id)
+        consensus.id = idLambda(consensus.id)
 
     print(consensus.toString('fasta'), end='')
 

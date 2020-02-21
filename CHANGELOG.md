@@ -1,3 +1,7 @@
+## 3.1.51 Feb 21, 2020
+
+Pass the reference id to the `idLambda` function in `make-consensus.py`.
+
 ## 3.1.50 Feb 21, 2020
 
 Moved `tempdir` assignment in `make-consensus.py` out one level so that it
