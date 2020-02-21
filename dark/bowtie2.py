@@ -59,7 +59,8 @@ class Bowtie2(object):
         self._indexCalled = True
 
     def align(self, bowtie2Args='--no-unal', fastq1=None, fastq2=None,
-              threads=None, discardSAM=False):
+              threads=None, discardSAM=False, readGroup='orig',
+              sampleName='orig'):
         """
         Run Bowtie2.
         """
@@ -73,15 +74,16 @@ class Bowtie2(object):
 
         if fastq1 and fastq2:
             self._executor.execute(
-                "bowtie2 %s --threads %d --rg-id orig --rg SM:orig -x '%s' "
+                "bowtie2 %s --threads %d --rg-id '%s' --rg 'SM:%s' -x '%s' "
                 "-1 '%s' -2 '%s' > '%s'" % (
-                    bowtie2Args, nThreads, self._indexFile, fastq1, fastq2,
-                    samFile))
+                    bowtie2Args, nThreads, readGroup, sampleName,
+                    self._indexFile, fastq1, fastq2, samFile))
         elif fastq1:
             self._executor.execute(
-                "bowtie2 %s --threads %d --rg-id orig --rg SM:orig -x '%s' "
+                "bowtie2 %s --threads %d --rg-id '%s' --rg 'SM:%s' -x '%s' "
                 "-U '%s' > '%s'" % (
-                    bowtie2Args, nThreads, self._indexFile, fastq1, samFile))
+                    bowtie2Args, nThreads, readGroup, sampleName,
+                    self._indexFile, fastq1, samFile))
         else:
             raise ValueError('At least fastq1 must be passed.')
 
@@ -200,14 +202,13 @@ class Bowtie2(object):
         inFile = self._bamFile if which == 'BAM' else self._samFile
         vcfFile = vcfFile or join(self.tempdir, 'output.g.vcf.gz')
 
-        if not referenceFasta:
+        if referenceFasta is None:
             if self._reference:
                 self._report('Using %s as a reference.' % self._reference)
+                referenceFasta = self._reference
             else:
                 raise ValueError('No reference was passed, given to the '
                                  'Bowtie2 __init__, or used in buildIndex.')
-
-        referenceFasta = referenceFasta or self._reference
 
         indexFile = referenceFasta + '.fai'
         if os.path.exists(indexFile):
