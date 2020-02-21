@@ -1,3 +1,13 @@
+## 3.1.48 Feb 21, 2020
+
+
+
+## 3.1.47 Feb 19, 2020
+
+Added `--sampleName` and `--readGroup` options to `Bowtie2.align`. Added
+`--id` and `--idLambda` options to `make-consensus.py` to make it possible
+to set (or adjust) the name of the generated consensus.
+
 ## 3.1.46 Feb 19, 2020
 
 Trivial change to setting of `tempdir` in `run-bowtie2.py`.

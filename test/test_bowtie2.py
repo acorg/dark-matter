@@ -110,8 +110,48 @@ class TestBowtie2(TestCase):
         bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
         bt.buildIndex('file.fasta')
         bt.align(fastq1='file1.fastq', threads=4)
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
         self.assertEqual(
-            "$ bowtie2 --no-unal --threads 4 --rg-id orig --rg SM:orig "
+            "$ bowtie2 --no-unal --threads 4 --rg-id 'orig' --rg 'SM:orig' "
+            "-x '/tmp/xxx/index' "
+            "-U 'file1.fastq' > '/tmp/xxx/result.sam'", e.log[-1])
+
+    @patch('os.path.exists')
+    def testAlignOneFASTQWithReadGroup(self, existsMock):
+        """
+        Making a Bowtie index from a file name and running an alignment with
+        one FASTQ file and specifying a read group must result in the expected
+        commands being run and output being produced.
+        """
+        e = Executor(dryRun=True)
+        fp = StringIO()
+        bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
+        bt.buildIndex('file.fasta')
+        bt.align(fastq1='file1.fastq', threads=4, readGroup='xxx')
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
+        self.assertEqual(
+            "$ bowtie2 --no-unal --threads 4 --rg-id 'xxx' --rg 'SM:orig' "
+            "-x '/tmp/xxx/index' "
+            "-U 'file1.fastq' > '/tmp/xxx/result.sam'", e.log[-1])
+
+    @patch('os.path.exists')
+    def testAlignOneFASTQWithSampleName(self, existsMock):
+        """
+        Making a Bowtie index from a file name and running an alignment with
+        one FASTQ file and specifying a sample name must result in the expected
+        commands being run and output being produced.
+        """
+        e = Executor(dryRun=True)
+        fp = StringIO()
+        bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
+        bt.buildIndex('file.fasta')
+        bt.align(fastq1='file1.fastq', threads=4, sampleName='xxx')
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
+        self.assertEqual(
+            "$ bowtie2 --no-unal --threads 4 --rg-id 'orig' --rg 'SM:xxx' "
             "-x '/tmp/xxx/index' "
             "-U 'file1.fastq' > '/tmp/xxx/result.sam'", e.log[-1])
 
@@ -126,9 +166,11 @@ class TestBowtie2(TestCase):
         fp = StringIO()
         bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
         bt.buildIndex('file.fasta')
-        bt.align(fastq1='file1.fastq', threads=4, bowtie2Args='--up --down')
+        bt.align(fastq1='file1.fastq', threads=4, bowtie2Args='--up --dn')
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
         self.assertEqual(
-            "$ bowtie2 --up --down --threads 4 --rg-id orig --rg SM:orig -x "
+            "$ bowtie2 --up --dn --threads 4 --rg-id 'orig' --rg 'SM:orig' -x "
             "'/tmp/xxx/index' -U 'file1.fastq' > '/tmp/xxx/result.sam'",
             e.log[-1])
 
@@ -144,8 +186,52 @@ class TestBowtie2(TestCase):
         bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
         bt.buildIndex('file.fasta')
         bt.align(fastq1='file1.fastq', fastq2='file2.fastq', threads=4)
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
         self.assertEqual(
-            "$ bowtie2 --no-unal --threads 4 --rg-id orig --rg SM:orig -x "
+            "$ bowtie2 --no-unal --threads 4 --rg-id 'orig' --rg 'SM:orig' -x "
+            "'/tmp/xxx/index' "
+            "-1 'file1.fastq' -2 'file2.fastq' > '/tmp/xxx/result.sam'",
+            e.log[-1])
+
+    @patch('os.path.exists')
+    def testAlignTwoFASTQsWithReadGroup(self, existsMock):
+        """
+        Making a Bowtie index from a file name and running an alignment with
+        two FASTQ files and a read group must result in the expected commands
+        being run and output being produced.
+        """
+        e = Executor(dryRun=True)
+        fp = StringIO()
+        bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
+        bt.buildIndex('file.fasta')
+        bt.align(fastq1='file1.fastq', fastq2='file2.fastq', threads=4,
+                 readGroup='xxx')
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
+        self.assertEqual(
+            "$ bowtie2 --no-unal --threads 4 --rg-id 'xxx' --rg 'SM:orig' -x "
+            "'/tmp/xxx/index' "
+            "-1 'file1.fastq' -2 'file2.fastq' > '/tmp/xxx/result.sam'",
+            e.log[-1])
+
+    @patch('os.path.exists')
+    def testAlignTwoFASTQsWithSampleName(self, existsMock):
+        """
+        Making a Bowtie index from a file name and running an alignment with
+        two FASTQ files and a sample name must result in the expected commands
+        being run and output being produced.
+        """
+        e = Executor(dryRun=True)
+        fp = StringIO()
+        bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
+        bt.buildIndex('file.fasta')
+        bt.align(fastq1='file1.fastq', fastq2='file2.fastq', threads=4,
+                 sampleName='xxx')
+        log = fp.getvalue()
+        self.assertTrue(log.endswith('\nAligning with Bowtie2.\n'))
+        self.assertEqual(
+            "$ bowtie2 --no-unal --threads 4 --rg-id 'orig' --rg 'SM:xxx' -x "
             "'/tmp/xxx/index' "
             "-1 'file1.fastq' -2 'file2.fastq' > '/tmp/xxx/result.sam'",
             e.log[-1])
