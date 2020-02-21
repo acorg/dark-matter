@@ -192,7 +192,7 @@ if args.alignmentFile:
 if args.align:
     len1, len2 = map(len, reads)
     if len1 == len2:
-        print('Pre-alignment, sequence lengths were identical: %s' % len1)
+        print('Pre-alignment, sequence lengths were identical: %d' % len1)
     else:
         print('Pre-alignment, sequence lengths: %d, %d (difference %d)' % (
             len1, len2, abs(len1 - len2)))

@@ -303,19 +303,19 @@ class SAMFilter(object):
                   'failures will be included in the output.'))
 
         parser.add_argument(
-            '--minScore', type=float,
+            '--minScore', type=float, metavar='FLOAT',
             help=('If given, alignments with --scoreTag (default AS) values '
                   'less than this value will not be output. If given, '
                   'alignments that do not have a score will not be output.'))
 
         parser.add_argument(
-            '--maxScore', type=float,
+            '--maxScore', type=float, metavar='FLOAT',
             help=('If given, alignments with --scoreTag (default AS) values '
                   'greater than this value will not be output. If given, '
                   'alignments that do not have a score will not be output.'))
 
         parser.add_argument(
-            '--scoreTag', default='AS',
+            '--scoreTag', default='AS', metavar='TAG',
             help=('The alignment tag to extract for --minScore and --maxScore '
                   'comparisons.'))
 

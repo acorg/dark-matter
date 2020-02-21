@@ -180,49 +180,50 @@ def addFASTAFilteringCommandLineOptions(parser):
     @param parser: An C{argparse.ArgumentParser} instance.
     """
     parser.add_argument(
-        '--minLength', type=int,
+        '--minLength', type=int, metavar='N',
         help='The minimum sequence length')
 
     parser.add_argument(
-        '--maxLength', type=int,
+        '--maxLength', type=int, metavar='N',
         help='The maximum sequence length')
 
     parser.add_argument(
-        '--whitelist', action='append',
+        '--whitelist', action='append', metavar='SEQUENCE-ID',
         help='Sequence titles (ids) that should be whitelisted')
 
     parser.add_argument(
-        '--blacklist', action='append',
+        '--blacklist', action='append', metavar='SEQUENCE-ID',
         help='Sequence titles (ids) that should be blacklisted')
 
     parser.add_argument(
-        '--whitelistFile',
+        '--whitelistFile', metavar='SEQUENCE-ID-FILE',
         help=('The name of a file that contains sequence titles (ids) that '
               'should be whitelisted, one per line'))
 
     parser.add_argument(
-        '--blacklistFile',
+        '--blacklistFile', metavar='SEQUENCE-ID-FILE',
         help=('The name of a file that contains sequence titles (ids) that '
               'should be blacklisted, one per line'))
 
     parser.add_argument(
-        '--titleRegex', help='A regex that sequence titles (ids) must match.')
+        '--titleRegex', metavar='REGEX',
+        help='A regex that sequence titles (ids) must match.')
 
     parser.add_argument(
-        '--negativeTitleRegex',
+        '--negativeTitleRegex', metavar='REGEX',
         help='A regex that sequence titles (ids) must not match.')
 
     # A mutually exclusive group for --keepSequences and --removeSequences.
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
-        '--keepSequences',
+        '--keepSequences', metavar='NUMBER,RANGE,...',
         help=('Specify (1-based) ranges of sequence numbers that should be '
               'kept. E.g., --keepSequences 1-3,5 will output just the 1st, '
               '2nd, 3rd, and 5th sequences. All others will be omitted.'))
 
     group.add_argument(
-        '--removeSequences',
+        '--removeSequences', metavar='NUMBER,RANGE,...',
         help=('Specify (1-based) ranges of sequence numbers that should be '
               'removed. E.g., --removeSequences 1-3,5 will output all but the '
               '1st, 2nd, 3rd, and 5th sequences. All others will be ouput.'))
@@ -252,26 +253,26 @@ def addFASTAFilteringCommandLineOptions(parser):
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.
     parser.add_argument(
-        '--randomSubset', type=int,
+        '--randomSubset', type=int, metavar='N',
         help=('An integer giving the number of sequences that should be kept. '
               'These will be selected at random.'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # trueLength.
     parser.add_argument(
-        '--trueLength', type=int,
+        '--trueLength', type=int, metavar='N',
         help=('The number of reads in the FASTA input. Only to be used with '
               'randomSubset'))
 
     parser.add_argument(
-        '--sampleFraction', type=float,
+        '--sampleFraction', type=float, metavar='FRACTION',
         help=('A [0.0, 1.0] C{float} indicating a fraction of the reads that '
               'should be allowed to pass through the filter. The sample size '
               'will only be approximately the product of the sample fraction '
               'and the number of reads. The sample is taken at random.'))
 
     parser.add_argument(
-        '--sequenceNumbersFile',
+        '--sequenceNumbersFile', metavar='FILENAME',
         help=('A file of (1-based) sequence numbers to retain. Numbers must '
               'be one per line.'))
 
