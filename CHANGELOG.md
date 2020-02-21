@@ -1,3 +1,8 @@
+## 3.1.50 Feb 21, 2020
+
+Moved `tempdir` assignment in `make-consensus.py` out one level so that it
+happens including when we are given a VCF file.
+
 ## 3.1.49 Feb 21, 2020
 
 Wrapped reads saving in a `Reads()` instance in `compare-sequences.py`.

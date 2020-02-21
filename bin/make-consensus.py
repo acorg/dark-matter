@@ -78,9 +78,10 @@ def main():
 
     e = Executor(args.dryRun)
 
+    tempdir = mkdtemp(prefix='consensus-')
+
     if args.bam:
-        # Make a VCF file.
-        tempdir = mkdtemp(prefix='consensus-')
+        # No VCF file provided, so make one.
         vcfFile = join(tempdir, 'vcf.gz')
         e.execute("bcftools mpileup -Ou -f '%s' '%s' | "
                   "bcftools call -mv -Oz -o '%s'" %
@@ -88,7 +89,6 @@ def main():
 
         e.execute("bcftools index '%s'" % vcfFile)
     else:
-        tempdir = None
         vcfFile = args.vcfFile
 
     if args.sample:
