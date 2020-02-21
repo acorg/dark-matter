@@ -38,7 +38,7 @@ def mafft(reads, verbose=False, options=None, threads=None):
     infile = join(tempdir, 'input.fasta')
     out = join(tempdir, 'result.fasta')
 
-    reads.save(infile)
+    Reads(reads).save(infile)
 
     if verbose:
         print('Running mafft.', file=sys.stderr)

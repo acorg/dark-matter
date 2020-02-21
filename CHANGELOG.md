@@ -1,6 +1,10 @@
+## 3.1.49 Feb 21, 2020
+
+Wrapped reads saving in a `Reads()` instance in `compare-sequences.py`.
+
 ## 3.1.48 Feb 21, 2020
 
-
+Unreleased.
 
 ## 3.1.47 Feb 19, 2020
 
