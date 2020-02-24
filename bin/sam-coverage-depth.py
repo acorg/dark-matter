@@ -117,6 +117,12 @@ if printStats:
     print('Bases covered: %s' % pct(len(counts), referenceLength))
     print('Min coverage depth: %d' % (
         0 if len(counts) < referenceLength else min(counts)))
-    print('Max coverage depth: %d' % max(counts))
+    if counts:
+        # Don't use Python3 default= option on max. Trying to keep Python 2
+        # compatibility.
+        print('Max coverage depth: %d' % max(counts))
+    else:
+        print('Max coverage depth: 0')
     print('Mean coverage depth: %.3f' % (sum(counts) / referenceLength))
-    print('Coverage depth s.d.: %.3f' % std(counts))
+    if counts:
+        print('Coverage depth s.d.: %.3f' % std(counts))

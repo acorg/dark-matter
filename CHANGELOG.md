@@ -1,3 +1,8 @@
+## 3.1.52 Feb 21, 2020
+
+Make `sam-coverage-depth.py` not throw an error if there is no coverage at
+all.
+
 ## 3.1.51 Feb 21, 2020
 
 Pass the reference id to the `idLambda` function in `make-consensus.py`.
