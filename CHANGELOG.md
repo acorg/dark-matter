@@ -1,3 +1,8 @@
+## 3.1.54 Feb 21, 2020
+
+Improve the printing of ambiguous sites to not show gaps in
+`compare-sequences.py`.
+
 ## 3.1.53 Feb 21, 2020
 
 Added `--showAmbiguous` to `compare-sequences.py`. Pass `--iupac-codes` to

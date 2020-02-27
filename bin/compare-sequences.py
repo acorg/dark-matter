@@ -11,7 +11,7 @@ import multiprocessing
 from tempfile import mkdtemp
 from shutil import rmtree
 
-from dark.dna import compareDNAReads, matchToString
+from dark.dna import compareDNAReads, matchToString, AMBIGUOUS
 from dark.fasta import FastaReads
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
@@ -267,7 +267,7 @@ if args.showAmbiguous:
     headerPrinted = False
     for site, (a, b) in enumerate(zip(read1.sequence, read2.sequence),
                                   start=1):
-        if not (a in 'ACGT' and b in 'ACGT'):
+        if len(AMBIGUOUS.get(a, '')) > 1 or len(AMBIGUOUS.get(b, '')) > 1:
             if not headerPrinted:
                 print('Ambiguities (site, %s, %s):' % (read1.id, read2.id))
                 headerPrinted = True
