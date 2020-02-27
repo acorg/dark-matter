@@ -167,6 +167,11 @@ parser.add_argument(
     '--showDiffs', default=False, action='store_true',
     help='Print (1-based) sites where the sequence nucleotides differ.')
 
+parser.add_argument(
+    '--showAmbiguous', default=False, action='store_true',
+    help=('Print (1-based) sites where either sequence has an ambiguous '
+          'nucleotide code.'))
+
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
 
@@ -256,3 +261,17 @@ if args.showDiffs:
 
     if not headerPrinted:
         print('No sequence differences found.')
+
+if args.showAmbiguous:
+    width = int(log10(max(len1, len2))) + 1
+    headerPrinted = False
+    for site, (a, b) in enumerate(zip(read1.sequence, read2.sequence),
+                                  start=1):
+        if not (a in 'ACGT' and b in 'ACGT'):
+            if not headerPrinted:
+                print('Ambiguities (site, %s, %s):' % (read1.id, read2.id))
+                headerPrinted = True
+            print('  %*d %s %s' % (width, site, a, b))
+
+    if not headerPrinted:
+        print('No sequence ambiguities found.')

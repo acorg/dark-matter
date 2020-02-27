@@ -80,7 +80,7 @@ with samfile(args.samfile) as sam:
 
     if samFilter.referenceIds:
         # No need to check if the given reference id is in referenceLengths
-        # because the samFilter.referenceLengths call above catched that.
+        # because the samFilter.referenceLengths call above catches that.
         referenceId = samFilter.referenceIds.pop()
     else:
         if len(referenceLengths) == 1:

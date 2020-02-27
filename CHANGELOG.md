@@ -1,3 +1,9 @@
+## 3.1.53 Feb 21, 2020
+
+Added `--showAmbiguous` to `compare-sequences.py`. Pass `--iupac-codes` to
+`bcftools consensus` in `make-consensus.py`. Add `--max-depth 5000` to
+`bcftools mpileup` call, also in `make-consensus.py`.
+
 ## 3.1.52 Feb 21, 2020
 
 Make `sam-coverage-depth.py` not throw an error if there is no coverage at

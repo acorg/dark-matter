@@ -83,7 +83,7 @@ def main():
     if args.bam:
         # No VCF file provided, so make one.
         vcfFile = join(tempdir, 'vcf.gz')
-        e.execute("bcftools mpileup -Ou -f '%s' '%s' | "
+        e.execute("bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
                   "bcftools call -mv -Oz -o '%s'" %
                   (args.reference, args.bam, vcfFile))
 
@@ -100,7 +100,8 @@ def main():
 
     consensusFile = join(tempdir, 'consensus.fasta')
     result = e.execute(
-        "bcftools consensus --sample '%s' --fasta-ref '%s' '%s' > '%s'" %
+        "bcftools consensus --sample '%s' --iupac-codes --fasta-ref "
+        "'%s' '%s' > '%s'" %
         (sample, args.reference, vcfFile, consensusFile))
 
     consensus = list(FastaReads(consensusFile))[0]
