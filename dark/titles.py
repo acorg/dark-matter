@@ -280,29 +280,23 @@ class TitlesAlignments(dict):
     @param readSetFilter: An instance of dark.filter.ReadSetFilter, or C{None}.
         This can be used to pass a previously used title filter for ongoing
         use in filtering.
-    @param importReadsAlignmentsTitles: If C{True}, titles from
-        C{readsAlignments} will be added to self. This argument is only used
-        by the filtering function to make a new instance without reading its
-        titles.
     """
 
-    def __init__(self, readsAlignments, scoreClass=None, readSetFilter=None,
-                 importReadsAlignmentsTitles=True):
+    def __init__(self, readsAlignments, scoreClass=None, readSetFilter=None):
         dict.__init__(self)
         self.readsAlignments = readsAlignments
         self.scoreClass = scoreClass or readsAlignments.scoreClass
         self.readSetFilter = readSetFilter
-        if importReadsAlignmentsTitles:
-            for readAlignments in readsAlignments:
-                for alignment in readAlignments:
-                    title = alignment.subjectTitle
-                    try:
-                        titleAlignments = self[title]
-                    except KeyError:
-                        titleAlignments = self[title] = TitleAlignments(
-                            title, alignment.subjectLength)
-                    titleAlignments.addAlignment(
-                        TitleAlignment(readAlignments.read, alignment.hsps))
+        for readAlignments in readsAlignments:
+            for alignment in readAlignments:
+                title = alignment.subjectTitle
+                try:
+                    titleAlignments = self[title]
+                except KeyError:
+                    titleAlignments = self[title] = TitleAlignments(
+                        title, alignment.subjectLength)
+                titleAlignments.addAlignment(
+                    TitleAlignment(readAlignments.read, alignment.hsps))
 
     def addTitle(self, title, titleAlignments):
         """
@@ -323,7 +317,7 @@ class TitlesAlignments(dict):
                maxTitles=None, sortOn='maxScore', titleRegex=None,
                negativeTitleRegex=None):
         """
-        Filter the titles in self to create another TitlesAlignments.
+        Filter the titles in self.
 
         @param minMatchingReads: titles that are matched by fewer reads
             are unacceptable.
@@ -347,8 +341,7 @@ class TitlesAlignments(dict):
         @param negativeTitleRegex: A regex that read ids must not match.
         @raise: C{ValueError} if C{maxTitles} is less than zero or the value of
             C{sortOn} is unknown.
-        @return: A new L{TitlesAlignments} instance containing only the
-            matching titles.
+        @return: C{self}, with non-matching titles removed.
         """
         # Use a ReadSetFilter only if we're checking that read sets are
         # sufficiently new.
@@ -358,10 +351,6 @@ class TitlesAlignments(dict):
             if self.readSetFilter is None:
                 self.readSetFilter = ReadSetFilter(minNewReads)
             readSetFilter = self.readSetFilter
-
-        result = TitlesAlignments(
-            self.readsAlignments, self.scoreClass, self.readSetFilter,
-            importReadsAlignmentsTitles=False)
 
         if maxTitles is not None and len(self) > maxTitles:
             if maxTitles < 0:
@@ -385,9 +374,11 @@ class TitlesAlignments(dict):
         else:
             titleFilter = None
 
+        titlesToKeep = set()
+
         for title in titles:
             # Test max titles up front, as it may be zero.
-            if maxTitles is not None and len(result) == maxTitles:
+            if maxTitles is not None and len(titlesToKeep) == maxTitles:
                 break
 
             # Test positive and negative regexps.
@@ -422,9 +413,14 @@ class TitlesAlignments(dict):
                     readSetFilter.accept(title, titleAlignments)):
                 continue
 
-            result.addTitle(title, titleAlignments)
+            titlesToKeep.add(title)
 
-        return result
+        # Filter self.
+        for title in list(self):
+            if title not in titlesToKeep:
+                del self[title]
+
+        return self
 
     def hsps(self):
         """
