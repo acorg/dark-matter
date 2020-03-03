@@ -1,5 +1,7 @@
 from __future__ import division
 
+from collections import defaultdict
+
 from dark.utils import countPrint
 from dark.reads import DNAKozakRead
 try:
@@ -253,3 +255,114 @@ def findKozakConsensus(read):
                         yield DNAKozakRead(read, offset - 6, offset + 4,
                                            kozakQualityPercent)
             offset += 1
+
+
+class FloatBaseCounts(object):
+    """
+    Hold a floating point count of possible nucleotide bases.
+
+    @param codes: An iterable of nucleotide codes.
+    """
+    def __init__(self, codes):
+        self.codes = list(codes)
+        self.n = len(self.codes)
+        counts = defaultdict(float)
+
+        for code in codes:
+            possible = AMBIGUOUS.get(code, {'-'})
+            frac = 1.0 / len(possible)
+            for p in possible:
+                counts[p] += frac
+
+        # Sort first by base.
+        _sorted = [(base, counts[base]) for base in sorted(counts)]
+
+        # Then by count (reversed).
+        def key(item):
+            return item[1]
+
+        self._sorted = sorted(_sorted, key=key, reverse=True)
+        self.counts = counts
+
+    def homogeneous(self, level):
+        """
+        Does the most frequent base occurs at least C{level} fraction of the
+        time?
+
+        @param level: A C{float} fraction.
+        @return: C{True} if the most common base occurs at least C{level}
+            fraction of the time. If there are no bases at all, this is
+            considered homogeneous.
+        """
+        if len(self.counts) < 2:
+            return True
+        else:
+            return (self._sorted[0][1] / float(self.n)) >= level
+
+    def __str__(self):
+        fmt = '%d' if all(c == int(c) for b, c in self._sorted) else '%.2f'
+        return ' '.join(('%s:' + fmt) % (b, c) for b, c in self._sorted)
+
+    def variable(self, confirmed=True):
+        """
+        Are the nucleotides variable?
+
+        @param confirmed: If C{True}, confirm that there is variability by
+            looking at the ambiguous nucleotides. Else just report C{True}
+            if there is more than one code (which might not indicate actual
+            variability, since two codes could be ambiguous and have a
+            nucleotide in common).
+        """
+        codes = self.codes
+
+        if confirmed:
+            unambiguous = set()
+            ambiguousIntersection = None
+            for code in codes:
+                possible = AMBIGUOUS.get(code, {'-'})
+                if len(possible) == 1:
+                    unambiguous.add(code)
+                else:
+                    if ambiguousIntersection is None:
+                        ambiguousIntersection = set(possible)
+                    else:
+                        ambiguousIntersection.intersection_update(possible)
+
+            if len(unambiguous) == 0:
+                # There were no unambiguous nucleotide codes.
+
+                # Sanity check: there must have been some ambiguous sites.
+                assert ambiguousIntersection is not None
+
+                if len(ambiguousIntersection) == 0:
+                    # The ambiguous sites had nothing in common, so
+                    # variation must exist (it cannot be determined what
+                    # the variation is, but we don't care about that).
+                    return True
+                else:
+                    # All the ambiguous sites have at least one nucleotide
+                    # in common, so we can't be sure there's any variation.
+                    pass
+            elif len(unambiguous) == 1:
+                # All the unambiguous sites agree. Do any of the ambiguous
+                # sites (if any) not allow the unambiguous nucleotide in
+                # their possibilities?
+                if ambiguousIntersection is None:
+                    # There were no ambiguous sites, so there's no
+                    # variation here.
+                    pass
+                else:
+                    # If any of the ambiguous sites excludes the single
+                    # unambiguous nucleotide, then variation must exist.
+                    nt = unambiguous.pop()
+                    for code in codes:
+                        possible = AMBIGUOUS[code]
+                        if nt not in possible:
+                            return True
+            elif len(unambiguous) > 1:
+                return True
+        else:
+            if len(codes) > 1:
+                return True
+
+        return False

@@ -4,7 +4,7 @@ from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 
 from dark.dna import (
     AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString,
-    findKozakConsensus)
+    findKozakConsensus, FloatBaseCounts)
 from dark.reads import Read, DNARead, DNAKozakRead
 
 
@@ -920,3 +920,163 @@ class TestFindKozakConsensus(TestCase):
         """
         read = DNARead('id', 'AAAAAAATTGCCGCCATG')
         self.assertEqual([], list(findKozakConsensus(read)))
+
+
+class TestFloatBaseCounts(TestCase):
+    """
+    Test the FloatBaseCounts class.
+    """
+    def testOneUnambiguousHomogeneous(self):
+        """
+        If one unambiguous code is passed to FloatBaseCounts, it must be
+        considered homogeneous correctly, depending on the passed level.
+        """
+        counts = FloatBaseCounts('A')
+        self.assertTrue(counts.homogeneous(1.0))
+        self.assertTrue(counts.homogeneous(0.75))
+        self.assertTrue(counts.homogeneous(0.0))
+
+    def testTwoIdenticalUnambiguoussHomogeneous(self):
+        """
+        If an unambiguous code is passed to FloatBaseCounts twice, they must be
+        considered homogeneous correctly, depending on the passed level.
+        """
+        counts = FloatBaseCounts('AA')
+        self.assertTrue(counts.homogeneous(1.0))
+        self.assertTrue(counts.homogeneous(0.75))
+        self.assertTrue(counts.homogeneous(0.0))
+
+    def testTwoDifferentUnambiguoussHomogeneous(self):
+        """
+        If two different unambiguous codes are passed to FloatBaseCounts,
+        they must be considered homogeneous correctly, depending on the passed
+        level.
+        """
+        counts = FloatBaseCounts('AG')
+        self.assertFalse(counts.homogeneous(1.0))
+        self.assertTrue(counts.homogeneous(0.5))
+        self.assertTrue(counts.homogeneous(0.2))
+
+    def testOneAmbiguousHomogeneousM(self):
+        """
+        If one ambiguous code (M = A, C) is passed to FloatBaseCounts, it must
+        be considered homogeneous correctly, depending on the passed level.
+        """
+        counts = FloatBaseCounts('M')
+        self.assertFalse(counts.homogeneous(1.0))
+        self.assertFalse(counts.homogeneous(0.75))
+        self.assertTrue(counts.homogeneous(0.0))
+
+    def testOneAmbiguousHomogeneousV(self):
+        """
+        If one ambiguous code (V = A, C, G) is passed to FloatBaseCounts, it
+        must be considered homogeneous correctly, depending on the passed
+        level.
+        """
+        counts = FloatBaseCounts('V')
+        self.assertFalse(counts.homogeneous(1.0))
+        self.assertFalse(counts.homogeneous(0.75))
+        self.assertTrue(counts.homogeneous(0.2))
+        self.assertTrue(counts.homogeneous(0.0))
+
+    def testTwoIdenticalUnambiguoussVariable(self):
+        """
+        If an unambiguous code is passed to FloatBaseCounts twice, they must be
+        considered non-variable.
+        """
+        counts = FloatBaseCounts('AA')
+        self.assertFalse(counts.variable())
+
+    def testTwoDifferentUnambiguoussVariable(self):
+        """
+        If two different unambiguous codes are passed to FloatBaseCounts,
+        they must be considered variable.
+        """
+        counts = FloatBaseCounts('AT')
+        self.assertTrue(counts.variable())
+
+    def testOneUnambiguousOneAmbiguousVariable(self):
+        """
+        If one unambiguous code and one incompatible ambiguous code are passed
+        to FloatBaseCounts, they must be considered confirmed variable.
+        """
+        counts = FloatBaseCounts('AS')
+        self.assertTrue(counts.variable(confirmed=True))
+
+    def testOneUnambiguousOneAmbiguousNonVariable(self):
+        """
+        If one unambiguous code and one compatible ambiguous code are passed
+        to FloatBaseCounts, they must not be considered confirmed variable
+        if confirmed is True.
+        """
+        counts = FloatBaseCounts('AM')
+        self.assertFalse(counts.variable(confirmed=True))
+
+    def testOneUnambiguousOneAmbiguousVariableUnconfirmed(self):
+        """
+        If one unambiguous code and one compatible ambiguous code are passed
+        to FloatBaseCounts, they must be considered variable if confirmed
+        is False.
+        """
+        counts = FloatBaseCounts('AM')
+        self.assertTrue(counts.variable(confirmed=False))
+
+    def testOneUnambiguousOneAmbiguousVariableConfirmed(self):
+        """
+        If one unambiguous code and one incompatible ambiguous code are passed
+        to FloatBaseCounts, they must be considered variable if confirmed
+        is True.
+        """
+        counts = FloatBaseCounts('AY')
+        self.assertTrue(counts.variable(confirmed=True))
+
+    def testTwoAmbiguousVariableConfirmedFalse(self):
+        """
+        If two compatible but different ambiguous codes are passed to
+        FloatBaseCounts, they must be considered variable if confirmed
+        is False.
+        """
+        counts = FloatBaseCounts('MR')
+        self.assertTrue(counts.variable(confirmed=False))
+
+    def testTwoAmbiguousVariableConfirmedTrue(self):
+        """
+        If two compatible but different ambiguous codes are passed to
+        FloatBaseCounts, they must not be considered variable if
+        confirmed is True.
+        """
+        counts = FloatBaseCounts('MR')
+        self.assertFalse(counts.variable(confirmed=True))
+
+    def testOneGapVariableUnconfirmed(self):
+        """
+        If one gap and one unambiguous code are passed to FloatBaseCounts,
+        they must be considered variable if confirmed is False.
+        """
+        counts = FloatBaseCounts('A-')
+        self.assertTrue(counts.variable(confirmed=False))
+
+    def testOneGapVariableConfirmed(self):
+        """
+        If one gap and one unambiguous code are passed to FloatBaseCounts,
+        they must be considered variable if confirmed is True.
+        """
+        counts = FloatBaseCounts('A-')
+        self.assertTrue(counts.variable(confirmed=True))
+
+    def testTwoAmbiguousStr(self):
+        """
+        If two compatible but different ambiguous codes are passed to
+        FloatBaseCounts, they must be converted into a string correctly.
+        """
+        counts = FloatBaseCounts('MR')
+        self.assertEqual('A:1.00 C:0.50 G:0.50', str(counts))
+
+    def testTwoAmbiguousStrWithIntegerTotals(self):
+        """
+        If two 2-way ambiguous codes are passed to
+        FloatBaseCounts, they must be converted into a string correctly
+        (i.e., with integer counts).
+        """
+        counts = FloatBaseCounts('MM')
+        self.assertEqual('A:1 C:1', str(counts))
