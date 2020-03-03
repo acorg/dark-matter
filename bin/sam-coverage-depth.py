@@ -11,18 +11,7 @@ from dark.filter import (
     addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions)
 from dark.reads import Reads
 from dark.sam import samfile, SAMFilter, samReferences, UnknownReference
-from dark.utils import pct
-
-
-def baseCountsToStr(counts):
-    """
-    Convert base counts to a string.
-
-    @param counts: A C{Counter} instance.
-    @return: A C{str} representation of nucleotide counts.
-    """
-    return ' '.join([
-        ('%s:%d' % (base, counts[base])) for base in sorted(counts)])
+from dark.utils import baseCountsToStr, pct
 
 
 parser = argparse.ArgumentParser(

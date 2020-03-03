@@ -1,3 +1,7 @@
+## 3.1.55 March 3, 2020
+
+Added `fasta-variable-sites.py` script.
+
 ## 3.1.54 Feb 21, 2020
 
 Improve the printing of ambiguous sites to not show gaps in

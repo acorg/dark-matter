@@ -1,8 +1,8 @@
 # Note: Tests for the TitlesAlignments class are in blast/test_titles.py
-#       because that class needs a concrete (iterable)
-#       dark.alignments.ReadsAlignments class passed to its __init__.  The
-#       tests below test the simpler dark.titles classes, TitleAlignment
-#       and TitleAlignments.
+#       and diamond/test_titles.py because that class needs a concrete
+#       (iterable) dark.alignments.ReadsAlignments class passed to its
+#       __init__.  The tests below test the simpler dark.titles classes,
+#       TitleAlignment and TitleAlignments.
 
 from collections import Counter
 import six

@@ -8,3 +8,7 @@ class NoSuchGenomeError(Exception):
 
 class NoSuchProteinError(Exception):
     """A protein accession number could not be found."""
+
+
+class ReadLengthsNotIdenticalError(Exception):
+    """Not all read lengths are identical."""
