@@ -10,9 +10,11 @@ from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
-from dark.aa import AA_LETTERS, NAMES as AA_NAMES
+from dark.aa import (
+    AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE)
 from dark.filter import TitleFilter
-from dark.aa import PROPERTIES, PROPERTY_DETAILS, NONE
+from dark.dna import FloatBaseCounts
+from dark.errors import ReadLengthsNotIdenticalError
 
 
 if six.PY3:
@@ -1465,6 +1467,42 @@ class Reads(object):
 
         # Make sure we don't return None.
         return result or set()
+
+    def variableSites(self, confirm=False, homogeneityLevel=1.0,
+                      unknownAreAmbiguous=False):
+        """
+        Find the variable sites in a set of reads.
+
+        @param confirm: If C{True} only return sites where there is confirm
+            variation (i.e., ambiguous sites that are compatible with there
+            being no variation are not returned).
+        @homogeneityLevel: If the frequency of the most-common nucleotide at
+            a site is at least this value, the site will be considered
+            homogeneous.
+        @param unknownAreAmbiguous: If C{True}, any unknown character (e.g., a
+            '-' gap or '?' unknown base) will be treated as being fully
+            ambiguous (i.e., could be any of ACGT). Otherwise, all unknown
+            characters are collected under the count for '-'.
+        @return: A C{dict} keyed by C{int} site number (0-based) with values
+            that are C{FloatBaseCounts} instances giving the base counts at
+            the site.
+        """
+        reads = list(self)
+        varSites = {}
+
+        if reads:
+            length = len(reads[0].sequence)
+            if not all(len(read.sequence) == length for read in reads):
+                raise ReadLengthsNotIdenticalError()
+            for site in range(length):
+                counts = FloatBaseCounts(
+                    [r.sequence[site] for r in reads],
+                    unknownAreAmbiguous=unknownAreAmbiguous)
+                if (counts.variable(confirm) and
+                        not counts.homogeneous(homogeneityLevel)):
+                    varSites[site] = counts
+
+        return varSites
 
 
 class ReadsInRAM(Reads):

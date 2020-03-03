@@ -13,6 +13,7 @@ from .mocking import mockOpen
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
     TINY)
+from dark.errors import ReadLengthsNotIdenticalError
 from dark.fasta import FastaReads
 from dark.hsp import HSP
 from dark.reads import (
@@ -89,8 +90,8 @@ class TestRead(TestCase):
         Attempting to construct a read whose sequence and quality strings are
         of different lengths must raise a ValueError.
         """
-        error = ('Invalid read: sequence length \\(4\\) != quality '
-                 'length \\(3\\)')
+        error = (r'Invalid read: sequence length \(4\) != quality '
+                 r'length \(3\)')
         with six.assertRaisesRegex(self, ValueError, error):
             Read('id', 'ACGT', '!!!')
 
@@ -131,7 +132,7 @@ class TestRead(TestCase):
         format.
         """
         read = Read('id', 'ACGT', '!!!!')
-        error = "Format must be either 'fasta', 'fastq' or 'fasta-ss'\\."
+        error = r"Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
         six.assertRaisesRegex(self, ValueError, error, read.toString,
                               'unknown')
 
@@ -528,8 +529,8 @@ class TestRead(TestCase):
         function must raise an IndexError.
         """
         read = DNARead('id', 'ARSTGATGCASASASASASAS')
-        error = ("Read alphabet \\('ACGRST'\\) is not a subset of expected "
-                 "alphabet \\('ACGT'\\) for read class DNARead.")
+        error = (r"Read alphabet \('ACGRST'\) is not a subset of expected "
+                 r"alphabet \('ACGT'\) for read class DNARead.")
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
     def testKeepSites(self):
@@ -864,7 +865,7 @@ class TestDNAKozakRead(TestCase):
         A DNAKozakRead start offset must not be greater than its stop offset.
         """
         originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
-        error = 'start offset \\(4\\) greater than stop offset \\(0\\)'
+        error = r'start offset \(4\) greater than stop offset \(0\)'
         six.assertRaisesRegex(
             self, ValueError, error, DNAKozakRead, originalRead, 4, 0, 100.0)
 
@@ -874,7 +875,7 @@ class TestDNAKozakRead(TestCase):
         original sequence.
         """
         originalRead = DNARead('id', 'AAGTAA')
-        error = 'stop offset \\(10\\) > original read length \\(6\\)'
+        error = r'stop offset \(10\) > original read length \(6\)'
         six.assertRaisesRegex(
             self, ValueError, error, DNAKozakRead, originalRead, 0, 10, 100.0)
 
@@ -1581,7 +1582,7 @@ class TestAAReadORF(TestCase):
         An AAReadORF start offset must not be greater than its stop offset.
         """
         originalRead = AARead('id', 'ADRADR')
-        error = 'start offset \\(4\\) greater than stop offset \\(0\\)'
+        error = r'start offset \(4\) greater than stop offset \(0\)'
         six.assertRaisesRegex(
             self, ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
 
@@ -1590,7 +1591,7 @@ class TestAAReadORF(TestCase):
         An AAReadORF start offset must not be less than zero.
         """
         originalRead = AARead('id', 'ADRADR')
-        error = 'start offset \\(-1\\) less than zero'
+        error = r'start offset \(-1\) less than zero'
         six.assertRaisesRegex(
             self, ValueError, error, AAReadORF, originalRead, -1, 6, True,
             True)
@@ -1601,7 +1602,7 @@ class TestAAReadORF(TestCase):
         original sequence.
         """
         originalRead = AARead('id', 'ADRADR')
-        error = 'stop offset \\(10\\) > original read length \\(6\\)'
+        error = r'stop offset \(10\) > original read length \(6\)'
         six.assertRaisesRegex(
             self, ValueError, error, AAReadORF, originalRead, 0, 10, True,
             True)
@@ -1690,8 +1691,8 @@ class _TestSSAAReadMixin(object):
         lengths that are the same.
         """
         error = (
-            '^Invalid read: sequence length \\(4\\) != structure '
-            'length \\(3\\)$')
+            r'^Invalid read: sequence length \(4\) != structure '
+            r'length \(3\)$')
         with six.assertRaisesRegex(self, ValueError, error):
             self.CLASS('id', 'ACGT', '!!!')
 
@@ -1826,7 +1827,7 @@ class _TestSSAAReadMixin(object):
         'fasta-ss' is passed as the C{format_} argument.
         """
         read = self.CLASS('id-1234', 'FFMM', 'HHHH')
-        error = "^Format must be either 'fasta', 'fastq' or 'fasta-ss'\\."
+        error = r"^Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
         six.assertRaisesRegex(
             self, ValueError, error, read.toString, format_='pasta')
 
@@ -2267,7 +2268,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        error = "Format must be either 'fasta', 'fastq' or 'fasta-ss'\\."
+        error = r"Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
         six.assertRaisesRegex(self, ValueError, error, reads.save, 'file',
                               'xxx')
         # The output file must not exist following the save() failure.
@@ -2392,8 +2393,8 @@ class TestReads(TestCase):
         is called before it has been iterated.
         """
         reads = Reads()
-        error = ('^The unfiltered length of a Reads instance is unknown until '
-                 'it has been iterated\\.$')
+        error = (r'^The unfiltered length of a Reads instance is unknown '
+                 r'until it has been iterated\.$')
         six.assertRaisesRegex(self, RuntimeError, error,
                               reads.unfilteredLength)
 
@@ -2548,6 +2549,163 @@ class TestReads(TestCase):
         reads.filter(maxLength=3)
         self.assertEqual(sorted([read2, read3]), sorted(reads))
         self.assertEqual(3, reads.unfilteredLength())
+
+    def testNoVariableSitesConfirm(self):
+        """
+        If two Reads have no bases that are variable, nothing should be
+        returned by the C{variableSites} method when confirm is True.
+        """
+        read1 = Read('id1', 'AC')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=True)
+        self.assertEqual([], list(varSites))
+
+    def testNoVariableSitesUnconfirm(self):
+        """
+        If two Reads have no bases that are variable, nothing should be
+        returned by the C{variableSites} method when confirm is False.
+        """
+        read1 = Read('id1', 'AC')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=False)
+        self.assertEqual([], list(varSites))
+
+    def testOneVariableSitesConfirm(self):
+        """
+        If two Reads have one base that is variable, the site must be returned
+        by the C{variableSites} method when confirm is True.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=True)
+        self.assertEqual([1], list(varSites))
+
+    def testOneVariableSitesUnconfirm(self):
+        """
+        If two Reads have one base that is variable, the site must be returned
+        by the C{variableSites} method when confirm is False.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=False)
+        self.assertEqual([1], list(varSites))
+
+    def testOneAmbiguousIncompatibleVariableSitesConfirm(self):
+        """
+        If two Reads have one base that is variable and ambiguous (but
+        incompatible) in one read, the site must be returned by the
+        C{variableSites} method when confirm is True.
+        """
+        read1 = Read('id1', 'AW')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=True)
+        self.assertEqual([1], list(varSites))
+
+    def testOneAmbiguousIncompatibleVariableSitesUnconfirm(self):
+        """
+        If two Reads have one base that is variable and ambiguous (but
+        incompatible) in one read, the site must be returned by the
+        C{variableSites} method when confirm is False.
+        """
+        read1 = Read('id1', 'AW')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=False)
+        self.assertEqual([1], list(varSites))
+
+    def testOneAmbiguousCompatibleVariableSitesConfirm(self):
+        """
+        If two Reads have one base that is variable and ambiguous (and
+        compatible) in one read, the site must not be returned by the
+        C{variableSites} method when confirm is True.
+        """
+        read1 = Read('id1', 'AM')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=True)
+        self.assertEqual([], list(varSites))
+
+    def testOneAmbiguousCompatibleVariableSitesUnconfirm(self):
+        """
+        If two Reads have one base that is variable and ambiguous (and
+        compatible) in one read, the site must be returned by the
+        C{variableSites} method when confirm is False.
+        """
+        read1 = Read('id1', 'AM')
+        read2 = Read('id2', 'AC')
+
+        reads = Reads([read1, read2])
+        varSites = reads.variableSites(confirm=False)
+        self.assertEqual([1], list(varSites))
+
+    def testVariableSitesTooHomogeneous(self):
+        """
+        If three Reads have one base that is variable but the site
+        is too homogeneous, the site must not be returned by the
+        C{variableSites} method.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        read3 = Read('id3', 'AC')
+
+        reads = Reads([read1, read2, read3])
+        varSites = reads.variableSites(homogeneityLevel=0.6)
+        self.assertEqual([], list(varSites))
+
+    def testVariableSitesHeterogeneous(self):
+        """
+        If three Reads have one base that is variable and the site
+        is not too homogeneous, the site must be returned by the
+        C{variableSites} method.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        read3 = Read('id3', 'AG')
+
+        reads = Reads([read1, read2, read3])
+        varSites = reads.variableSites(homogeneityLevel=0.6)
+        self.assertEqual([1], list(varSites))
+
+    def testVariableSitesHeterogeneousCounts(self):
+        """
+        If three Reads have one base that is variable and the site
+        is not too homogeneous, the site must be returned by the
+        C{variableSites} method and the counts must be as expected.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'AC')
+        read3 = Read('id3', 'AG')
+
+        reads = Reads([read1, read2, read3])
+        varSites = reads.variableSites(homogeneityLevel=0.6)
+        self.assertEqual([1], list(varSites))
+        self.assertEqual(
+            {'T': 1.0, 'C': 1.0, 'G': 1.0}, varSites[1].counts)
+
+    def testVariableSitesUnequalLengths(self):
+        """
+        The C{variableSites} method must raise a ReadLengthsNotIdenticalError
+        if all reads do not have the same length.
+        """
+        read1 = Read('id1', 'AT')
+        read2 = Read('id2', 'ACG')
+
+        reads = Reads([read1, read2])
+        error = r'^$'
+        six.assertRaisesRegex(self, ReadLengthsNotIdenticalError, error,
+                              reads.variableSites)
 
 
 class TestReadsFiltering(TestCase):
@@ -3035,9 +3193,9 @@ class TestReadsFiltering(TestCase):
         same time must raise a ValueError.
         """
         reads = Reads()
-        error = ("^randomSubset and sampleFraction cannot be used "
-                 "simultaneously in a filter. Make two read filters "
-                 "instead\\.$")
+        error = (r"^randomSubset and sampleFraction cannot be used "
+                 r"simultaneously in a filter. Make two read filters "
+                 r"instead\.$")
         six.assertRaisesRegex(self, ValueError, error, reads.filter,
                               sampleFraction=0.1, randomSubset=3)
 
@@ -3047,7 +3205,7 @@ class TestReadsFiltering(TestCase):
         must raise a ValueError.
         """
         reads = Reads()
-        error = "^trueLength must be supplied if randomSubset is specified\\.$"
+        error = r"^trueLength must be supplied if randomSubset is specified\.$"
         six.assertRaisesRegex(self, ValueError, error, reads.filter,
                               randomSubset=3)
 
@@ -3098,8 +3256,8 @@ class TestReadsFiltering(TestCase):
         mockOpener = mockOpen(read_data=data)
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads([])
-            error = ("^First line of sequence number file 'file' must be at "
-                     "least 1\\.$")
+            error = (r"^First line of sequence number file 'file' must be at "
+                     r"least 1\.$")
             with six.assertRaisesRegex(self, ValueError, error):
                 reads.filter(sequenceNumbersFile='file')
 
@@ -3115,8 +3273,8 @@ class TestReadsFiltering(TestCase):
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')
             reads = Reads(initialReads=[read1, read2, read3])
-            error = ("^Line number file 'file' contains non-ascending numbers "
-                     "2 and 2\\.$")
+            error = (r"^Line number file 'file' contains non-ascending "
+                     r"numbers 2 and 2\.$")
             with six.assertRaisesRegex(self, ValueError, error):
                 list(reads.filter(sequenceNumbersFile='file'))
 
@@ -3326,8 +3484,8 @@ class TestReadsFiltering(TestCase):
         Passing a keepSites and a removeSites set to reads.filter
         must result in a ValueError.
         """
-        error = ('^Cannot simultaneously filter using keepSites and '
-                 'removeSites\\. Call filter twice in succession instead\\.$')
+        error = (r'^Cannot simultaneously filter using keepSites and '
+                 r'removeSites\. Call filter twice in succession instead\.$')
         six.assertRaisesRegex(self, ValueError, error, Reads().filter,
                               keepSites={4}, removeSites={5})
 

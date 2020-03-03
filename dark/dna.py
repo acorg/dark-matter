@@ -3,7 +3,7 @@ from __future__ import division
 from collections import defaultdict
 
 from dark.utils import countPrint
-from dark.reads import DNAKozakRead
+
 try:
     from itertools import zip_longest
 except ImportError:
@@ -235,6 +235,8 @@ def findKozakConsensus(read):
     @param read: A C{DNARead} instance to be checked for Kozak consensi.
     @return: A generator that yields C{DNAKozakRead} instances.
     """
+    from dark.reads import DNAKozakRead
+
     readLen = len(read)
     if readLen > 9:
         offset = 6
@@ -262,14 +264,21 @@ class FloatBaseCounts(object):
     Hold a floating point count of possible nucleotide bases.
 
     @param codes: An iterable of nucleotide codes.
+    @param unknownAreAmbiguous: If C{True}, any unknown character (e.g., a '-'
+        gap or '?' unknown base) will be treated as being fully ambiguous
+        (i.e., could be any of ACGT). Otherwise, all unknown characters are
+        collected under the count for '-'.
     """
-    def __init__(self, codes):
-        self.codes = list(codes)
+    def __init__(self, codes, unknownAreAmbiguous=False):
+        self.codes = list(map(str.upper, codes))
+        self.unknownAreAmbiguous = unknownAreAmbiguous
         self.n = len(self.codes)
         counts = defaultdict(float)
 
-        for code in codes:
-            possible = AMBIGUOUS.get(code, {'-'})
+        default = self._default = set('ACGT') if unknownAreAmbiguous else {'-'}
+
+        for code in self.codes:
+            possible = AMBIGUOUS.get(code, default)
             frac = 1.0 / len(possible)
             for p in possible:
                 counts[p] += frac
@@ -284,6 +293,26 @@ class FloatBaseCounts(object):
         self._sorted = sorted(_sorted, key=key, reverse=True)
         self.counts = counts
 
+    def mostFrequent(self):
+        """
+        Which bases are the most frequent?
+
+        @return: A C{set} of the most frequent bases.
+        """
+        maxCount = self._sorted[0][1]
+        return set(base for base, count in self._sorted if count == maxCount)
+
+    def highestFrequency(self):
+        """
+        What is the frequency of the most frequent base?
+
+        @return: The C{float} frequency of the most common base.
+        """
+        if len(self.counts) < 2:
+            return 1.0
+        else:
+            return self._sorted[0][1] / float(self.n)
+
     def homogeneous(self, level):
         """
         Does the most frequent base occurs at least C{level} fraction of the
@@ -294,20 +323,22 @@ class FloatBaseCounts(object):
             fraction of the time. If there are no bases at all, this is
             considered homogeneous.
         """
-        if len(self.counts) < 2:
-            return True
-        else:
-            return (self._sorted[0][1] / float(self.n)) >= level
+        return self.highestFrequency() >= level
+
+    def __len__(self):
+        return len(self.counts)
 
     def __str__(self):
         fmt = '%d' if all(c == int(c) for b, c in self._sorted) else '%.2f'
-        return ' '.join(('%s:' + fmt) % (b, c) for b, c in self._sorted)
+        return '%s (%.3f)' % (
+            ' '.join(('%s:' + fmt) % (b, c) for b, c in self._sorted),
+            self.highestFrequency())
 
-    def variable(self, confirmed=True):
+    def variable(self, confirm=True):
         """
         Are the nucleotides variable?
 
-        @param confirmed: If C{True}, confirm that there is variability by
+        @param confirm: If C{True}, confirm that there is variability by
             looking at the ambiguous nucleotides. Else just report C{True}
             if there is more than one code (which might not indicate actual
             variability, since two codes could be ambiguous and have a
@@ -315,11 +346,12 @@ class FloatBaseCounts(object):
         """
         codes = self.codes
 
-        if confirmed:
+        if confirm:
             unambiguous = set()
             ambiguousIntersection = None
+            default = self._default
             for code in codes:
-                possible = AMBIGUOUS.get(code, {'-'})
+                possible = AMBIGUOUS.get(code, default)
                 if len(possible) == 1:
                     unambiguous.add(code)
                 else:
@@ -356,7 +388,7 @@ class FloatBaseCounts(object):
                     # unambiguous nucleotide, then variation must exist.
                     nt = unambiguous.pop()
                     for code in codes:
-                        possible = AMBIGUOUS[code]
+                        possible = AMBIGUOUS.get(code, default)
                         if nt not in possible:
                             return True
             elif len(unambiguous) > 1:
