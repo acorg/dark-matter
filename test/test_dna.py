@@ -1,10 +1,11 @@
+import six
 from unittest import TestCase
 
 from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 
 from dark.dna import (
     AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString,
-    findKozakConsensus, FloatBaseCounts)
+    findKozakConsensus, FloatBaseCounts, sequenceToRegex)
 from dark.reads import Read, DNARead, DNAKozakRead
 
 
@@ -1160,3 +1161,71 @@ class TestFloatBaseCounts(TestCase):
         """
         counts = FloatBaseCounts('MRC')
         self.assertEqual(3, len(counts))
+
+
+class TestSequenceToRegex(TestCase):
+    """
+    Test the sequenceToRegex function.
+    """
+    def testEmpty(self):
+        """
+        The empty string should result in an empty regex.
+        """
+        self.assertEqual('', sequenceToRegex(''))
+
+    def testUnambiguous(self):
+        """
+        An unambiguous string should result in an identical regex.
+        """
+        self.assertEqual('ACGT', sequenceToRegex('ACGT'))
+
+    def testOneAmbiguous(self):
+        """
+        One ambiguous characters should result in the expected regex.
+        """
+        self.assertEqual('[AG]', sequenceToRegex('R'))
+
+    def testTwoAmbiguous(self):
+        """
+        Two ambiguous characters should result in the expected regex.
+        """
+        self.assertEqual('[AG][ACG]', sequenceToRegex('RV'))
+
+    def testMixed(self):
+        """
+        Mixed ambiguous and non-ambiguous characters should result in the
+        expected regex.
+        """
+        self.assertEqual('A[AG]C[ACG]T', sequenceToRegex('ARCVT'))
+
+    def testN(self):
+        """
+        An 'N' should result in an ACGT regex.
+        """
+        self.assertEqual('[ACGT]', sequenceToRegex('N'))
+
+    def testQuestionMark(self):
+        """
+        A '?' should result in an ACGT regex.
+        """
+        self.assertEqual('[ACGT]', sequenceToRegex('?'))
+
+    def testGap(self):
+        """
+        A '-' should result in an ACGT regex.
+        """
+        self.assertEqual('[ACGT]', sequenceToRegex('-'))
+
+    def testWildcard(self):
+        """
+        An explicit wildcard should result in an ACGT regex.
+        """
+        self.assertEqual('[ACGT][ACGT][ACGT]',
+                         sequenceToRegex('*#!', wildcards='#*!'))
+
+    def testUnknown(self):
+        """
+        An unknown character should result in a KeyError.
+        """
+        error = "^'5'$"
+        six.assertRaisesRegex(self, KeyError, error, sequenceToRegex, '5')

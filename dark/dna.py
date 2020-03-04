@@ -398,3 +398,35 @@ class FloatBaseCounts(object):
                 return True
 
         return False
+
+
+def sequenceToRegex(sequence, wildcards='-?'):
+    """
+    Convert a potentially ambiguous DNA sequence into a regular expression.
+    '?' and '-' are translated into [ACGT].
+
+    @param sequence: A C{str} DNA sequence, possibly with ambiguous codes.
+        Case insensitive.
+    @param wildcards: A C{set} (or C{str}) with characters that should be
+        translated to '[ACGT]'. Note that this happens only if the standard
+        ambiguous lookup fails (the order could be changed one day if we need
+        to override, or we could allow the passing of an ambiguity mapping).
+        Wildcards are case sensitive.
+    @raise KeyError: If any character in C{sequence} is unknown.
+    @return: A C{str} regular expression with [...] for the ambiguous codes in
+        C{sequence}.
+    """
+    result = []
+    append = result.append
+    for base in sequence.upper():
+        try:
+            possible = ''.join(sorted(AMBIGUOUS[base]))
+        except KeyError:
+            if base in wildcards:
+                possible = 'ACGT'
+            else:
+                raise
+
+        append(('[%s]' % possible) if len(possible) > 1 else possible)
+
+    return ''.join(result)

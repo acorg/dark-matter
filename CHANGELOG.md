@@ -1,3 +1,7 @@
+## 3.1.56 March 4, 2020
+
+Added `sequenceToRegex` function to `dark/dna.py`.
+
 ## 3.1.55 March 3, 2020
 
 Added `fasta-variable-sites.py` script.
