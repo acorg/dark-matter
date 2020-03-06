@@ -18,14 +18,14 @@ def main():
         '--reference', required=True,
         help='The reference FASTA file.')
 
-    group = parser.add_mutually_exclusive_group(required=True)
-
-    group.add_argument(
+    parser.add_argument(
         '--bam',
-        help=('The BAM file from which the consensus should be made. Only '
-              'used if a VCF file is not provided.'))
+        help=('The BAM file from which the consensus should be made. '
+              'Required if --maskNoCoverage is used. If no BAM file is '
+              'given, a VCF file must be provided. If both a BAM and a VCF '
+              'file are given, the VCF file will take precedence.'))
 
-    group.add_argument(
+    parser.add_argument(
         '--vcfFile',
         help=('The VCF file. If omitted, bcftools will be used to make a VCF '
               'file from the BAM file.'))
@@ -58,6 +58,10 @@ def main():
         help='Do not run commands, just print what would be done.')
 
     parser.add_argument(
+        '--maskNoCoverage', default=False, action='store_true',
+        help='Put an N into sites where there is no coverage. Requires --bam.')
+
+    parser.add_argument(
         '--log', default=False, action='store_true',
         help=('Show a log of commands that were (or would be, if --dryRun is '
               'used) executed.'))
@@ -68,19 +72,23 @@ def main():
 
     args = parser.parse_args()
 
-    if args.bam and args.vcfFile:
-        print('Only of --bam or --vcfFile can be given.', file=sys.stderr)
+    if not (args.bam or args.vcfFile):
+        print('At least one of --bam or --vcfFile must be given.',
+              file=sys.stderr)
         sys.exit(0)
 
-    if not (args.bam or args.vcfFile):
-        print('One of --bam or --vcfFile must be given.', file=sys.stderr)
+    if args.maskNoCoverage and not args.bam:
+        print('If --maskNoCoverage is used, --bam must be too.',
+              file=sys.stderr)
         sys.exit(0)
 
     e = Executor(args.dryRun)
 
     tempdir = mkdtemp(prefix='consensus-')
 
-    if args.bam:
+    if args.vcfFile:
+        vcfFile = args.vcfFile
+    else:
         # No VCF file provided, so make one.
         vcfFile = join(tempdir, 'vcf.gz')
         e.execute("bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
@@ -88,8 +96,18 @@ def main():
                   (args.reference, args.bam, vcfFile))
 
         e.execute("bcftools index '%s'" % vcfFile)
+
+    if args.maskNoCoverage:
+        # Make a BED file.
+        bedFile = join(tempdir, 'mask.bed')
+        e.execute(
+            "samtools depth -a '%s' | "
+            "awk '$3 == 0 {printf \"%s\\t%d\\t%d\\n\", "
+            "$1, $2 - 1, $2}' > '%s'" %
+            (args.bam, bedFile))
+        maskArg = '--mask ' + bedFile
     else:
-        vcfFile = args.vcfFile
+        maskArg = ''
 
     if args.sample:
         sample = args.sample
@@ -101,8 +119,8 @@ def main():
     consensusFile = join(tempdir, 'consensus.fasta')
     result = e.execute(
         "bcftools consensus --sample '%s' --iupac-codes --fasta-ref "
-        "'%s' '%s' > '%s'" %
-        (sample, args.reference, vcfFile, consensusFile))
+        "%s '%s' '%s' > '%s'" %
+        (sample, maskArg, args.reference, vcfFile, consensusFile))
 
     consensus = list(FastaReads(consensusFile))[0]
 

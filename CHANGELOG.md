@@ -1,3 +1,7 @@
+## 3.1.57 March 6, 2020
+
+Added `--maskNoCoverage` option to `make-consensus.py`.
+
 ## 3.1.56 March 4, 2020
 
 Added `sequenceToRegex` function to `dark/dna.py`.
