@@ -120,8 +120,8 @@ def main():
 
     consensusFile = join(tempdir, 'consensus.fasta')
     result = e.execute(
-        "bcftools consensus --sample '%s' --iupac-codes --fasta-ref "
-        "%s '%s' '%s' > '%s'" %
+        "bcftools consensus --sample '%s' --iupac-codes %s --fasta-ref "
+        "'%s' '%s' > '%s'" %
         (sample, maskArg, args.reference, vcfFile, consensusFile))
 
     consensus = list(FastaReads(consensusFile))[0]

@@ -1,3 +1,8 @@
+## 3.1.59 March 6, 2020
+
+Fixed stupid argument mixup in calling `bcftools consensus` in
+`make-consensus.py`.
+
 ## 3.1.58 March 6, 2020
 
 Doubled some undoubled percentages in format string in `make-consensus.py`.
