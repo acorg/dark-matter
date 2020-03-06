@@ -100,9 +100,11 @@ def main():
     if args.maskNoCoverage:
         # Make a BED file.
         bedFile = join(tempdir, 'mask.bed')
+        # The doubled-% below are so that Python doesn't try to fill in the
+        # values and instead just generates a single % that awk sees.
         e.execute(
             "samtools depth -a '%s' | "
-            "awk '$3 == 0 {printf \"%s\\t%d\\t%d\\n\", "
+            "awk '$3 == 0 {printf \"%%s\\t%%d\\t%%d\\n\", "
             "$1, $2 - 1, $2}' > '%s'" %
             (args.bam, bedFile))
         maskArg = '--mask ' + bedFile

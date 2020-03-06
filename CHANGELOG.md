@@ -1,3 +1,7 @@
+## 3.1.58 March 6, 2020
+
+Doubled some undoubled percentages in format string in `make-consensus.py`.
+
 ## 3.1.57 March 6, 2020
 
 Added `--maskNoCoverage` option to `make-consensus.py`.
