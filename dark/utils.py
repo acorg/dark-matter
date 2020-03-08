@@ -1,6 +1,7 @@
 from __future__ import division
 
 import os
+import re
 import string
 import six
 import bz2
@@ -139,6 +140,9 @@ def asHandle(fileNameOrHandle, mode='rt', encoding='UTF-8'):
 _rangeRegex = compile(r'^\s*(\d+)(?:\s*-\s*(\d+))?\s*$')
 
 
+# Note: the parseRangeExpression, which uses the following function as a
+#       helper (see below) is more general / powerful than this function on
+#       its own.
 def parseRangeString(s, convertToZeroBased=False):
     """
     Parse a range string of the form 1-5,12,100-200.
@@ -147,6 +151,7 @@ def parseRangeString(s, convertToZeroBased=False):
         comma separated numeric ranges or individual indices.
     @param convertToZeroBased: If C{True} all indices will have one
         subtracted from them.
+    @raise ValueError: If the range in C{s} cannot be parsed.
     @return: A C{set} of all C{int}s in the specified set.
     """
 
@@ -172,6 +177,52 @@ def parseRangeString(s, convertToZeroBased=False):
                 'number-number.' % _range)
 
     return result
+
+
+# The following matches range expressions such as
+#
+#   3
+#   3-4
+#   3-4,5
+#   3-4,6,9-10,99
+#
+# including any embedded whitespace.
+_rangeExpressionRegex = re.compile(
+    r'\d+(:?\s*-\s*\d+)?(:?\s*,\s*\d+(:?\s*-\s*\d+)?)*')
+
+
+def parseRangeExpression(s, convertToZeroBased=False):
+    """
+    Parse a range string expression of the form "1-5,6 & (12 | 100-200)".
+
+    @param s: A C{str} specifiying a range expression, given in the form of
+        comma separated numeric ranges or individual indices, interspersed
+        with (), |, and &.
+    @param convertToZeroBased: If C{True} all indices will have one
+        subtracted from them.
+    @raise ValueError: If the expression in C{s} cannot be evaluated.
+    @return: A C{set} of all C{int}s in the specified expression.
+    """
+    if not s:
+        return set()
+
+    pos = 0
+    expr = ''
+    for match in _rangeExpressionRegex.finditer(s):
+        start, end = match.span()
+        if start > pos:
+            expr += s[pos:start]
+        expr += '{%s}' % ','.join(
+            map(str, parseRangeString(match.group(0), convertToZeroBased)))
+        pos = end
+
+    if pos < len(s):
+        expr += s[pos:]
+
+    try:
+        return eval(expr)
+    except Exception:
+        raise ValueError(expr)
 
 
 if six.PY3:

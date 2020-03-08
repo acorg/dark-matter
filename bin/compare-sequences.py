@@ -16,7 +16,7 @@ from dark.fasta import FastaReads
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
 from dark.process import Executor
-from dark.utils import parseRangeString
+from dark.utils import parseRangeExpression
 
 MAFFT_DEFAULT_ARGS = '--globalpair --maxiterate 1000 --preservecase'
 MAFFT_ALGORITHMS_URL = (
@@ -222,7 +222,7 @@ if args.align:
     if args.alignmentFile:
         assert reads.save(args.alignmentFile) == 2
 
-offsets = (parseRangeString(args.sites, convertToZeroBased=True)
+offsets = (parseRangeExpression(args.sites, convertToZeroBased=True)
            if args.sites else None)
 
 read1, read2 = reads
