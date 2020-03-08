@@ -1,3 +1,9 @@
+## 3.1.61 March 8, 2020
+
+Improve error messages to help debugging etc., when proteins cannot be
+looked up and when exclusive host viruses are excluded in making a
+protein/genome database.
+
 ## 3.1.60 March 8, 2020
 
 Added `parseRangeExpression` to `utils.py`.
