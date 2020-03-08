@@ -248,8 +248,17 @@ class ProteinGrouper(object):
 
             proteinInfo = self._db.findProtein(longName)
             if proteinInfo is None:
-                raise ValueError('Could not find protein info for %r.' %
-                                 longName)
+                try:
+                    accession = self.proteinAccession(longName)
+                except IndexError:
+                    accession = longName
+                # We could arguably just emit a warning here. This situation
+                # arises (at least) when we are re-processing output from an
+                # earlier run that used a different genome/protein database. If
+                # NCBI
+                raise ValueError(
+                    'Could not find protein info for accession number %r '
+                    '(extracted from %r).' % (accession, longName))
             proteinName = (proteinInfo['product'] or proteinInfo['gene'] or
                            'unknown')
             proteinAccession = proteinInfo['accession']
@@ -1543,12 +1552,15 @@ class SqliteIndexWriter(object):
                               'exclude due to exclusive host criteria.' %
                               (genome.id, genome.description), file=logfp)
                     else:
-                        if (len(hosts) == 1 and
-                                hosts.pop() in excludeExclusiveHosts):
-                            print('Excluding %s (%s) due to exclusive host '
-                                  'criteria.' %
-                                  (genome.id, genome.description), file=logfp)
-                            continue
+                        if len(hosts) == 1:
+                            host = hosts.pop()
+                            if host in excludeExclusiveHosts:
+                                print(
+                                    'Excluding %s (%s) due to exclusive '
+                                    'host criteria (infects only %s hosts).' %
+                                    (genome.id, genome.description, host),
+                                    file=logfp)
+                                continue
 
             proteinCount = len(list(self._genomeProteins(genome)))
 
