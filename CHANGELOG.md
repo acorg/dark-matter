@@ -1,3 +1,9 @@
+## 3.1.63 March 8, 2020
+
+Added long comment and `ValueError` explanation regarding protein look-up
+error likely due a protein database that's out-of-date with respect to
+earlier result files.
+
 ## 3.1.62 March 8, 2020
 
 Fix dumb error in accessing `proteinAccession` method.

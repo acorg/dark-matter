@@ -254,11 +254,31 @@ class ProteinGrouper(object):
                     accession = longName
                 # We could arguably just emit a warning here. This situation
                 # arises (at least) when we are re-processing output from an
-                # earlier run that used a different genome/protein database. If
-                # NCBI
+                # earlier run that used a different genome/protein
+                # database. For example, the host specificity information about
+                # a virus might change or the NCBI might withdraw it, causing
+                # it to be excluded from a new database that we make. If an
+                # now-not-present accession number appears in the DIAMOND or
+                # alignment panel summary protein file, it will trigger this
+                # error.
+                #
+                # For now I (Terry) have decided to keep things strict here and
+                # raise an Exception. Otherwise I don't think there's any
+                # guarantee that a warning to stderr would be seen, and only
+                # issuing a warning would risk silently being in a situation
+                # where nothing at all matched, e.g., due to passing an
+                # incorrect database name. This error happens infrequently and
+                # IMO it's better that we cause an error, force the user
+                # (usually me, unfortunately) to investigate, clean up
+                # properly, and re-run.
                 raise ValueError(
                     'Could not find protein info for accession number %r '
-                    '(extracted from %r).' % (accession, longName))
+                    '(extracted from %r). In the past, this hard-to-debug '
+                    '(hence this long message!) error has resulted from using '
+                    'a new genome/protein database to process results that '
+                    'were generated based on an earlier version of the '
+                    'database, in which case proteins that were present then '
+                    'are not now in the database.' % (accession, longName))
             proteinName = (proteinInfo['product'] or proteinInfo['gene'] or
                            'unknown')
             proteinAccession = proteinInfo['accession']
