@@ -1,3 +1,7 @@
+## 3.1.62 March 8, 2020
+
+Fix dumb error in accessing `proteinAccession` method.
+
 ## 3.1.61 March 8, 2020
 
 Improve error messages to help debugging etc., when proteins cannot be

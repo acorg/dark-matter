@@ -249,7 +249,7 @@ class ProteinGrouper(object):
             proteinInfo = self._db.findProtein(longName)
             if proteinInfo is None:
                 try:
-                    accession = self.proteinAccession(longName)
+                    accession = self._db.proteinAccession(longName)
                 except IndexError:
                     accession = longName
                 # We could arguably just emit a warning here. This situation
