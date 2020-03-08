@@ -513,7 +513,7 @@ class ProteinGrouper(object):
         # 'else' to the 'for' loop, but that causes flake8 to complain that the
         # unused _key function (in the except) has been redefined (in the
         # else).
-        allSampleNamesHaveIntThirdField = False
+        allSampleNamesHaveIntThirdField = True
         for sampleName in self.sampleNames:
             try:
                 int(sampleName.split('_', maxsplit=3)[2])

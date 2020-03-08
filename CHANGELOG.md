@@ -1,3 +1,8 @@
+## 3.1.65 March 8, 2020
+
+Fix idiotic logic error. Working too fast on complicated HTML-producing
+code with no tests. But still idiotic.
+
 ## 3.1.64 March 8, 2020
 
 Sort sample names in HTML output of `civ/proteins.py`. Added several names
