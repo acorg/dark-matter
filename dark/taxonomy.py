@@ -35,10 +35,13 @@ FUNGUS_ONLY_FAMILIES = {
 }
 
 PLANT_ONLY_VIRUS_REGEX = re.compile(
-    r'\b(?:grapevine|mosaic|mottle|blotch virus|viroid|'
+    r'\b(?:grapevine|mosaic|mottle|blotch virus|viroid|tobacco|'
     r'tombus|cherry virus|bean endornavirus|coffee ringspot virus|'
+    r'Odontoglossum ringspot virus|hibiscus|Obuda pepper virus|'
+    r'tobamovirus|'
     r'wheat stripe virus|Lettuce necrotic yellows virus|citrus yellow|'
     r'Maize fine streak virus|dwarf (fiji)?virus|maize stripe virus|'
+    r'tomato brown rugose fruit virus|turnip vein-clearing virus|'
     r'chlorotic spot virus)\b',
     re.I)
 

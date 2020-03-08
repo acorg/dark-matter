@@ -504,7 +504,31 @@ class ProteinGrouper(object):
              if len(self.genomeAccessions[genomeAccession]) > 0),
             key=self._genomeName)
         nPathogenNames = len(genomeAccessions)
-        sampleNames = sorted(self.sampleNames)
+
+        # Make a function to sort sample names with, using the 3rd
+        # underscore-separated field of each name as an integer, if possible.
+        #
+        # Note: we could do this without the allSampleNamesHaveIntThirdField
+        # variable by defining a function in the 'except' clause and adding an
+        # 'else' to the 'for' loop, but that causes flake8 to complain that the
+        # unused _key function (in the except) has been redefined (in the
+        # else).
+        allSampleNamesHaveIntThirdField = False
+        for sampleName in self.sampleNames:
+            try:
+                int(sampleName.split('_', maxsplit=3)[2])
+            except (IndexError, ValueError):
+                allSampleNamesHaveIntThirdField = False
+                break
+
+        if allSampleNamesHaveIntThirdField:
+            def _key(sampleName):
+                return int(sampleName.split('_', maxsplit=3)[2])
+        else:
+            def _key(sampleName):
+                return sampleName
+
+        sampleNames = sorted(self.sampleNames, key=_key)
 
         # Be very careful with commas in the following! Long lines that
         # should be continued unbroken must not end with a comma.

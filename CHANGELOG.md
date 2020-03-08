@@ -1,3 +1,8 @@
+## 3.1.64 March 8, 2020
+
+Sort sample names in HTML output of `civ/proteins.py`. Added several names
+to `PLANT_ONLY_VIRUS_REGEX` in `taxonomy.py`.
+
 ## 3.1.63 March 8, 2020
 
 Added long comment and `ValueError` explanation regarding protein look-up
