@@ -200,7 +200,7 @@ class Bowtie2(object):
         self._report('Calling haplotypes with GATK.')
 
         inFile = self._bamFile if which == 'BAM' else self._samFile
-        vcfFile = vcfFile or join(self.tempdir, 'output.g.vcf.gz')
+        vcfFile = vcfFile or join(self.tempdir, 'output.vcf.gz')
 
         if referenceFasta is None:
             if self._reference:

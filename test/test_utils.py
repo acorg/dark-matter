@@ -14,8 +14,9 @@ except ImportError:
 from .mocking import mockOpen
 
 from dark.utils import (
-    numericallySortFilenames, median, asHandle, parseRangeString, pct,
-    StringIO, baseCountsToStr, nucleotidesToStr, countPrint)
+    numericallySortFilenames, median, asHandle, parseRangeString,
+    parseRangeExpression, pct, StringIO, baseCountsToStr, nucleotidesToStr,
+    countPrint)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -279,6 +280,102 @@ class TestParseRangeString(TestCase):
         self.assertEqual({3, 5, 6, 7, 8, 9, 10, 11},
                          parseRangeString('6-8,9,10-12,4',
                                           convertToZeroBased=True))
+
+
+class TestParseRangeExpression(TestCase):
+    """
+    Check that the parseRangeExpression function works as expected.
+    """
+    def testInvalidExpression(self):
+        """
+        An invalid string must raise a ValueError.
+        """
+        error = r'^\($'
+        assertRaisesRegex(self, ValueError, error, parseRangeExpression, '(')
+        error = r'^hey$'
+        assertRaisesRegex(self, ValueError, error, parseRangeExpression, 'hey')
+
+    def testEmptyString(self):
+        """
+        An empty string must produce an empty set.
+        """
+        self.assertEqual(set(), parseRangeExpression(''))
+
+    def testOneRange(self):
+        """
+        A simple 3-4 string must produce the expected set.
+        """
+        self.assertEqual({3, 4}, parseRangeExpression('3-4'))
+
+    def testOneRangeZeroBased(self):
+        """
+        A simple 3-4 string must produce the expected set when
+        convertToZeroBased is True.
+        """
+        self.assertEqual({2, 3}, parseRangeExpression('3-4', True))
+
+    def testCommas(self):
+        """
+        A simple 3,4,5 string must produce the expected set.
+        """
+        self.assertEqual({3, 4, 5}, parseRangeExpression('3,4,5'))
+
+    def testCommasAndRange(self):
+        """
+        A simple 3,4,5-7 string must produce the expected set.
+        """
+        self.assertEqual({3, 4, 5, 6, 7}, parseRangeExpression('3,4,5-7'))
+
+    def testTwoRanges(self):
+        """
+        A simple 3-4,6-8 string must produce the expected set.
+        """
+        self.assertEqual({3, 4, 6, 7, 8}, parseRangeExpression('3-4,6-8'))
+
+    def testTwoRangesWithSpace(self):
+        """
+        A simple 3-4, 6-8 string must produce the expected set.
+        """
+        self.assertEqual({3, 4, 6, 7, 8}, parseRangeExpression('3-4, 6-8'))
+
+    def testUnion(self):
+        """
+        A union such as 3-4 | 6-8 must produce the expected set.
+        """
+        self.assertEqual({3, 4, 6, 7, 8}, parseRangeExpression('3-4 | 6-8'))
+
+    def testIntersection(self):
+        """
+        An intersection such as 3-4 & 4-8 must produce the expected set.
+        """
+        self.assertEqual({4}, parseRangeExpression('3-4 & 4-8'))
+
+    def testDifferenceNoSpaces(self):
+        """
+        A difference such as 6-10-7-8 must produce the expected set.
+        """
+        self.assertEqual({6, 9, 10}, parseRangeExpression('6-10-7-8'))
+
+    def testDifferenceWithSpaces(self):
+        """
+        A difference such as 6-10 - 7-8 must produce the expected set.
+        """
+        self.assertEqual({6, 9, 10}, parseRangeExpression('6-10 - 7-8'))
+
+    def testParens(self):
+        """
+        A difference with parentheses such as '(3-5 | 7-9) & 5-7' must produce
+        the expected set.
+        """
+        self.assertEqual({5, 7}, parseRangeExpression('(3-5 | 7-9) & 5-7'))
+
+    def testDoubleParens(self):
+        """
+        A difference with two parentheses such as '(3-5 | 7-9) & (5-7 | 9-11)'
+        must produce the expected set.
+        """
+        self.assertEqual({5, 7, 9},
+                         parseRangeExpression('(3-5 | 7-9) & (5-7 | 9-11)'))
 
 
 class TestStringIO(TestCase):

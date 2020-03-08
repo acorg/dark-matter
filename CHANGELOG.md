@@ -1,3 +1,7 @@
+## 3.1.60 March 8, 2020
+
+Added `parseRangeExpression` to `utils.py`.
+
 ## 3.1.59 March 6, 2020
 
 Fixed stupid argument mixup in calling `bcftools consensus` in

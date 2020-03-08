@@ -3,7 +3,7 @@ from math import ceil
 from collections import OrderedDict
 
 from dark.simplify import simplifyTitle
-from dark.utils import parseRangeString
+from dark.utils import parseRangeExpression
 
 
 class TitleFilter(object):
@@ -288,11 +288,11 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
     @return: The filtered C{Reads} instance.
     """
     keepSequences = (
-        parseRangeString(args.keepSequences, convertToZeroBased=True)
+        parseRangeExpression(args.keepSequences, convertToZeroBased=True)
         if args.keepSequences else None)
 
     removeSequences = (
-        parseRangeString(args.removeSequences, convertToZeroBased=True)
+        parseRangeExpression(args.removeSequences, convertToZeroBased=True)
         if args.removeSequences else None)
 
     return reads.filter(
@@ -413,7 +413,7 @@ def parseFASTAEditingCommandLineOptions(args, reads):
     removeDescriptions = args.removeDescriptions
     truncateTitlesAfter = args.truncateTitlesAfter
     keepSites = (
-        parseRangeString(args.keepSites, convertToZeroBased=True)
+        parseRangeExpression(args.keepSites, convertToZeroBased=True)
         if args.keepSites else None)
 
     if args.keepSitesFile:
@@ -422,14 +422,14 @@ def parseFASTAEditingCommandLineOptions(args, reads):
             for lineNumber, line in enumerate(fp):
                 try:
                     keepSites.update(
-                        parseRangeString(line, convertToZeroBased=True))
+                        parseRangeExpression(line, convertToZeroBased=True))
                 except ValueError as e:
                     raise ValueError(
                         'Keep sites file %r line %d could not be parsed: '
                         '%s' % (args.keepSitesFile, lineNumber, e))
 
     removeSites = (
-        parseRangeString(args.removeSites, convertToZeroBased=True)
+        parseRangeExpression(args.removeSites, convertToZeroBased=True)
         if args.removeSites else None)
 
     if args.removeSitesFile:
@@ -438,7 +438,7 @@ def parseFASTAEditingCommandLineOptions(args, reads):
             for lineNumber, line in enumerate(fp):
                 try:
                     removeSites.update(
-                        parseRangeString(line, convertToZeroBased=True))
+                        parseRangeExpression(line, convertToZeroBased=True))
                 except ValueError as e:
                     raise ValueError(
                         'Remove sites file %r line %d parse error: %s'
