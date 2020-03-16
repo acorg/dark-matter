@@ -749,7 +749,7 @@ class ProteinGrouper(object):
             else:
                 append(
                     '<a id="sample-%s"></a>'
-                    '<span class="sample">Sample '
+                    '<span class="sample">'
                     '<span class="sample-name">%s</span> '
                     'did not match anything.</span>' %
                     (sampleName, sampleName))
