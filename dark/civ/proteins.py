@@ -8,6 +8,7 @@ import numpy as np
 from Bio import SeqIO
 from cachetools import LRUCache, cachedmethod
 from collections import defaultdict
+from functools import partial
 from json import load
 from operator import attrgetter, itemgetter
 from os.path import dirname, exists, join
@@ -215,7 +216,7 @@ class ProteinGrouper(object):
             what = 'virus%s' % ('' if nPathogens == 1 else 'es')
 
         return (
-            'Overall, proteins from %d %s were found in %d sample%s.' %
+            'Proteins from %d %s were found in %d sample%s.' %
             (nPathogens, what, nSamples, '' if nSamples == 1 else 's'))
 
     def addFile(self, filename, fp):
@@ -424,6 +425,33 @@ class ProteinGrouper(object):
         """
         return self._db.findGenome(genomeAccession)['organism']
 
+    def _makeSampleSorter(self):
+        """
+        Make a function to sort sample names with, using the 3rd
+        underscore-separated field of each name as an integer, if possible.
+        """
+        # Note: we could do this without the allSampleNamesHaveIntThirdField
+        # variable by defining a function in the 'except' clause and adding an
+        # 'else' to the 'for' loop, but that causes flake8 to complain that the
+        # unused _key function (in the except) has been redefined (in the
+        # else).
+        allSampleNamesHaveIntThirdField = True
+        for sampleName in self.sampleNames:
+            try:
+                int(sampleName.split('_', maxsplit=3)[2])
+            except (IndexError, ValueError):
+                allSampleNamesHaveIntThirdField = False
+                break
+
+        if allSampleNamesHaveIntThirdField:
+            def _key(sampleName):
+                return int(sampleName.split('_', maxsplit=3)[2])
+        else:
+            def _key(sampleName):
+                return sampleName
+
+        self.sampleSort = partial(sorted, key=_key)
+
     def toHTML(self, pathogenPanelFilename=None, readCountColors=None,
                minProteinFraction=0.0, minProteinCount=0,
                pathogenType='viral', title=None, preamble=None,
@@ -459,7 +487,11 @@ class ProteinGrouper(object):
             bootstrap-treeview output should be generated.
         @return: An HTML C{str} suitable for printing.
         """
-        if pathogenType not in ('bacterial', 'viral'):
+        if pathogenType == 'bacterial':
+            singular, plural = 'bacterium', 'bacteria'
+        elif pathogenType == 'viral':
+            singular, plural = 'virus', 'viruses'
+        else:
             raise ValueError(
                 "Unrecognized pathogenType argument: %r. Value must be either "
                 "'bacterial' or 'viral'." % pathogenType)
@@ -467,9 +499,9 @@ class ProteinGrouper(object):
         if not exists(self._pathogenDataDir):
             os.mkdir(self._pathogenDataDir)
 
-        title = title or 'Summary of ' + (
-            'bacteria' if pathogenType == 'bacterial' else 'viruses')
+        title = title or 'Summary of ' + plural
 
+        self._makeSampleSorter()
         self._computeUniqueReadCounts()
 
         if sampleIndexFilename:
@@ -505,30 +537,7 @@ class ProteinGrouper(object):
             key=self._genomeName)
         nPathogenNames = len(genomeAccessions)
 
-        # Make a function to sort sample names with, using the 3rd
-        # underscore-separated field of each name as an integer, if possible.
-        #
-        # Note: we could do this without the allSampleNamesHaveIntThirdField
-        # variable by defining a function in the 'except' clause and adding an
-        # 'else' to the 'for' loop, but that causes flake8 to complain that the
-        # unused _key function (in the except) has been redefined (in the
-        # else).
-        allSampleNamesHaveIntThirdField = True
-        for sampleName in self.sampleNames:
-            try:
-                int(sampleName.split('_', maxsplit=3)[2])
-            except (IndexError, ValueError):
-                allSampleNamesHaveIntThirdField = False
-                break
-
-        if allSampleNamesHaveIntThirdField:
-            def _key(sampleName):
-                return int(sampleName.split('_', maxsplit=3)[2])
-        else:
-            def _key(sampleName):
-                return sampleName
-
-        sampleNames = sorted(self.sampleNames, key=_key)
+        sampleNames = self.sampleSort(self.sampleNames)
 
         # Be very careful with commas in the following! Long lines that
         # should be continued unbroken must not end with a comma.
@@ -608,11 +617,11 @@ class ProteinGrouper(object):
                 margin-left: 2em;
             }
             .sample-name {
-                font-size: 125%;
+                font-size: 115%;
                 font-weight: bold;
             }
             .pathogen-name {
-                font-size: 125%;
+                font-size: 115%;
                 font-weight: bold;
             }
             .index-name {
@@ -620,6 +629,10 @@ class ProteinGrouper(object):
             }
             .index {
                 font-size: small;
+            }
+            .index-letter {
+                font-size: 115%;
+                font-weight: bold;
             }
             .host {
                 font-size: small;
@@ -641,58 +654,15 @@ class ProteinGrouper(object):
             '<body>',
         ])
 
-        if readCountColors:
-            levels = []
-            result.append('<style>')
-            for threshold, color in readCountColors.colors:
-                klass = readCountColors.thresholdToCssName(threshold)
-                result.append('.%s { color: %s; font-weight: bold; }' %
-                              (klass, color))
-                levels.append('<span class="%s">%d</span>' %
-                              (klass, threshold))
-            result.append('</style>')
-            readCountColorLegend = (
-                ' Color levels: ' + ', '.join(reversed(levels)) + '.')
-        else:
-            readCountColorLegend = ''
-
-        proteinFieldsDescription = [
-            '<p>',
-            'In all bullet point protein lists below, there are the following '
-            'numeric fields:',
-            '<ol>',
-            '<li>Coverage fraction.</li>',
-            '<li>Median bit score.</li>',
-            '<li>Best bit score.</li>',
-            '<li>Read count (if read and HSP counts differ, ',
-            ('both are given, separated by "%s").%s</li>' %
-             (self.READ_AND_HSP_COUNT_STR_SEP, readCountColorLegend)),
-        ]
-
-        if self._saveReadLengths:
-            proteinFieldsDescription.append(
-                '<li>All read lengths (in parentheses).</li>')
-
-        proteinFieldsDescription.extend([
-            '</ol>',
-            '</p>',
-        ])
-
         append = result.append
 
-        def appendNoSpace(s):
-            assert result, ('Cannot append %r to empty result list' % s)
-            result[-1] += s
+        proteinFieldsDescription = self._help(readCountColors, result)
 
         append('<h2>%s</h2>' % title)
+        append(self._title(pathogenType))
         if preamble:
             append(preamble)
         append('<p>')
-        append(self._title(pathogenType))
-
-        if bootstrapTreeviewDir:
-            # A <div> to hold the taxonomy tree.
-            append('<div id="tree"></div>')
 
         if minProteinFraction > 0.0:
             percent = minProteinFraction * 100.0
@@ -728,217 +698,30 @@ class ProteinGrouper(object):
 
         result.extend(proteinFieldsDescription)
 
-        # Write a linked table of contents by pathogen.
-        append('<p><span class="index-name">%s index:</span>' % (
-            'Bacterium' if pathogenType == 'bacterial' else 'Virus'))
-        append('<span class="index">')
-        for genomeAccession in genomeAccessions:
-            genomeInfo = self._db.findGenome(genomeAccession)
-            append('<a href="#pathogen-%s">%s</a>' % (genomeAccession,
-                                                      genomeInfo['organism']))
-            append('&middot;')
-        # Get rid of final middle dot and add a period.
-        result.pop()
-        appendNoSpace('.')
-        append('</span></p>')
+        append('<h2>Indices</h2>')
+        self._sampleIndex(sampleNames, result)
+        self._pathogenIndex(genomeAccessions, result, singular, plural)
 
-        # Write a linked table of contents by sample.
-        append('<p><span class="index-name">Sample index:</span>')
-        append('<span class="index">')
-        for sampleName in sampleNames:
-            append('<a href="#sample-%s">%s</a>' % (sampleName, sampleName))
-            append('&middot;')
-        # Get rid of final middle dot and add a period.
-        result.pop()
-        appendNoSpace('.')
-        append('</span></p>')
+        self._samplesToHTML(
+            result, pathogenType, omitVirusLinks, sampleNames, readCountColors,
+            singular, plural)
 
-        # Write all pathogens (with samples (with proteins)).
-        append('<hr>')
-        append('<h1>%s by sample</h1>' %
-               ('Bacteria' if pathogenType == 'bacterial' else 'Viruses'))
+        self._pathogensToHTML(
+            result, pathogenType, genomeAccessions, omitVirusLinks,
+            readCountColors, bootstrapTreeviewDir, plural)
 
-        taxonomyHierarchy = Hierarchy()
+        append('</body>')
+        append('</html>')
 
-        for genomeAccession in genomeAccessions:
-            samples = self.genomeAccessions[genomeAccession]
-            sampleCount = len(samples)
-            genomeInfo = self._db.findGenome(genomeAccession)
-            pathogenProteinCount = genomeInfo['proteinCount']
+        return '\n'.join(result)
 
-            lineage = (self._taxdb.lineage(genomeInfo['taxonomyId'])
-                       if genomeInfo['taxonomyId'] is not None
-                       else None)
-
-            if lineage:
-                taxonomyHierarchy.add(lineage, genomeAccession)
-                lineageHTML = ', '.join(lineageTaxonomyLinks(lineage))
-            else:
-                lineageHTML = ''
-
-            pathogenLinksHTML = ' %s, %s' % (
-                genomeInfo['databaseName'],
-                NCBISequenceLink(genomeAccession))
-
-            if pathogenType == 'viral' and not omitVirusLinks:
-                quoted = quote(genomeInfo['organism'])
-                pathogenLinksHTML += (
-                    ', <a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>.'
-                ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
-            else:
-                pathogenLinksHTML += '.'
-
-            proteinCountStr = (' %d protein%s' %
-                               (pathogenProteinCount,
-                                '' if pathogenProteinCount == 1 else 's'))
-
-            pathogenReadsFilename = join(
-                self._pathogenDataDir,
-                'pathogen-%s.%s' % (genomeAccession, self._format))
-
-            pathogenReadsFp = open(pathogenReadsFilename, 'w')
-            pathogenReadCount = 0
-
-            append(
-                '<a id="pathogen-%s"></a>'
-                '<p class="pathogen">'
-                '<span class="pathogen-name">%s</span> '
-                '<span class="host">(%s)</span>'
-                '<br/>%d nt, %s, '
-                'matched by %d sample%s, '
-                '<a href="%s">%s</a> in total. '
-                '%s'
-                '<br/><span class="taxonomy">Taxonomy: %s.</span>'
-                '</p>' %
-                (genomeAccession,
-                 genomeInfo['organism'],
-                 genomeInfo.get('host') or 'unknown host',
-                 genomeInfo['length'],
-                 proteinCountStr,
-                 sampleCount, '' if sampleCount == 1 else 's',
-                 pathogenReadsFilename, self.READCOUNT_MARKER,
-                 pathogenLinksHTML,
-                 lineageHTML))
-
-            # Remember where we are in the output result so we can fill in
-            # the total read count once we have processed all samples for
-            # this pathogen. Not nice, I know.
-            pathogenReadCountLineIndex = len(result) - 1
-
-            for sampleName in sorted(samples):
-                readsFileName = self.pathogenSampleFiles.lookup(
-                    genomeAccession, sampleName)
-
-                # Copy the read data from the per-sample reads for this
-                # pathogen into the per-pathogen file of reads.
-                with open(readsFileName) as readsFp:
-                    while True:
-                        data = readsFp.read(4096)
-                        if data:
-                            pathogenReadsFp.write(data)
-                        else:
-                            break
-
-                proteins = samples[sampleName]['proteins']
-                proteinCount = len(proteins)
-                uniqueReadCount = samples[sampleName]['uniqueReadCount']
-                pathogenReadCount += uniqueReadCount
-                proteinCountHTML = '%d protein%s, ' % (
-                    proteinCount, '' if proteinCount == 1 else 's')
-
-                append(
-                    '<p class="sample indented">'
-                    'Sample <a href="#sample-%s">%s</a> '
-                    '(%s<a href="%s">%d '
-                    'read%s</a>, <a href="%s">panel</a>):</p>' %
-                    (sampleName, sampleName,
-                     proteinCountHTML,
-                     readsFileName,
-                     uniqueReadCount, '' if uniqueReadCount == 1 else 's',
-                     self.sampleNames[sampleName]))
-                append('<ul class="protein-list indented">')
-                for proteinName in sorted(proteins):
-                    proteinMatch = proteins[proteinName]
-                    append(
-                        '<li>'
-                        '<span class="stats">'
-                        '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        % proteinMatch
-                    )
-
-                    if readCountColors:
-                        countClass = readCountColors.thresholdToCssName(
-                            readCountColors.thresholdForCount(
-                                proteinMatch['readCount']))
-                        appendNoSpace('<span class="%s">%4s</span>' % (
-                            countClass, proteinMatch['readAndHspCountStr']))
-                    else:
-                        appendNoSpace('%(readAndHspCountStr)3s' % proteinMatch)
-
-                    if self._saveReadLengths:
-                        appendNoSpace(' (%s)' % ', '.join(
-                            map(str, sorted(proteinMatch['readLengths']))))
-
-                    appendNoSpace(
-                        '</span> '
-                        '<span class="protein-name">'
-                        '%(proteinName)s'
-                        '</span> '
-                        '(%(proteinLength)d aa,'
-                        % proteinMatch)
-
-                    if proteinMatch['proteinURL']:
-                        append('<a href="%s">%s</a>, ' % (
-                            proteinMatch['proteinURL'],
-                            proteinMatch['accession']))
-
-                    append(
-                        '<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(readsFilename)s">reads</a>)'
-                        % proteinMatch)
-
-                    append('</li>')
-
-                append('</ul>')
-
-            pathogenReadsFp.close()
-
-            # Sanity check there's a read count marker text in our output
-            # where we expect it.
-            readCountLine = result[pathogenReadCountLineIndex]
-            if readCountLine.find(self.READCOUNT_MARKER) == -1:
-                raise ValueError(
-                    'Could not find pathogen read count marker (%s) in result '
-                    'index %d text (%s).' %
-                    (self.READCOUNT_MARKER, pathogenReadCountLineIndex,
-                     readCountLine))
-
-            # Put the read count into the pathogen summary line we wrote
-            # earlier, replacing the read count marker with the correct
-            # text.
-            result[pathogenReadCountLineIndex] = readCountLine.replace(
-                self.READCOUNT_MARKER,
-                '%d read%s' % (pathogenReadCount,
-                               '' if pathogenReadCount == 1 else 's'))
-
-        if bootstrapTreeviewDir:
-            append('''
-                <script>
-                $(document).ready(function(){
-                    var tree = %s;
-                    $('#tree').treeview({
-                        data: tree,
-                        enableLinks: true,
-                        levels: 0,
-                    });
-                });
-                </script>
-            ''' % taxonomyHierarchy.toJSON())
-
-        # Write all samples (with pathogens (with proteins)).
-        append('<hr>')
-        append('<h1>Samples by %s</h1>' %
-               ('bacteria' if pathogenType == 'bacterial' else 'viruses'))
+    def _samplesToHTML(self, result, pathogenType, omitVirusLinks,
+                       sampleNames, readCountColors, singular, plural):
+        """
+        Write all samples (with pathogens (with proteins)).
+        """
+        append = result.append
+        append('<h2>Samples</h2>')
 
         for sampleName in sampleNames:
             samplePathogenAccessions = sorted(
@@ -946,24 +729,35 @@ class ProteinGrouper(object):
                  if sampleName in self.genomeAccessions[accession]),
                 key=self._genomeName)
 
+            append('<div>')
+
+            append('<button type="button" class="btn btn-default btn-sm" '
+                   'data-toggle="collapse" data-target="#sample-%s-collapse">'
+                   '<span class="glyphicon glyphicon-plus"></span></button>' %
+                   sampleName)
+
             if len(samplePathogenAccessions):
                 append(
                     '<a id="sample-%s"></a>'
-                    '<p class="sample">Sample '
-                    '<span class="sample-name">%s</span> '
-                    'matched proteins from %d pathogen%s, '
-                    '<a href="%s">panel</a>:</p>' %
+                    '<span class="sample"><span class="sample-name">%s</span> '
+                    'matched proteins from %d %s, '
+                    '<a href="%s">panel</a>.</span>' %
                     (sampleName, sampleName, len(samplePathogenAccessions),
-                     '' if len(samplePathogenAccessions) == 1 else 's',
+                     (singular if len(samplePathogenAccessions) == 1
+                      else plural),
                      self.sampleNames[sampleName]))
             else:
                 append(
                     '<a id="sample-%s"></a>'
-                    '<p class="sample">Sample '
+                    '<span class="sample">Sample '
                     '<span class="sample-name">%s</span> '
-                    'did not match anything.</p>' %
+                    'did not match anything.</span>' %
                     (sampleName, sampleName))
                 continue
+
+            append('</div>')
+            append('<div class="collapse" id="sample-%s-collapse">' %
+                   sampleName)
 
             for genomeAccession in samplePathogenAccessions:
                 genomeInfo = self._db.findGenome(genomeAccession)
@@ -1010,18 +804,193 @@ class ProteinGrouper(object):
                         countClass = readCountColors.thresholdToCssName(
                             readCountColors.thresholdForCount(
                                 proteinMatch['readCount']))
-                        appendNoSpace('<span class="%s">%4s</span>' % (
-                            countClass, proteinMatch['readAndHspCountStr']))
+                        self._appendNoSpace('<span class="%s">%4s</span>' % (
+                            countClass, proteinMatch['readAndHspCountStr']),
+                            result)
                     else:
-                        appendNoSpace('%(readAndHspCountStr)3s' % proteinMatch)
+                        self._appendNoSpace('%(readAndHspCountStr)3s' %
+                                            proteinMatch, result)
 
-                    appendNoSpace(
+                    self._appendNoSpace(
                         '</span> '
                         '<span class="protein-name">'
                         '%(proteinName)s'
                         '</span> '
                         '(%(proteinLength)d aa,'
+                        % proteinMatch, result)
+
+                    if proteinMatch['proteinURL']:
+                        append('<a href="%s">%s</a>, ' % (
+                            proteinMatch['proteinURL'],
+                            proteinMatch['accession']))
+
+                    append(
+                        '<a href="%(bluePlotFilename)s">blue plot</a>, '
+                        '<a href="%(readsFilename)s">reads</a>)'
                         % proteinMatch)
+
+                    append('</li>')
+
+                append('</ul>')
+            append('</div>')
+
+    def _pathogensToHTML(self, result, pathogenType, genomeAccessions,
+                         omitVirusLinks, readCountColors,
+                         bootstrapTreeviewDir, plural):
+        """
+        Write all pathogens (with samples (with proteins)).
+        """
+        append = result.append
+        append('<h2>%s</h2>' % plural.title())
+
+        if bootstrapTreeviewDir:
+            # A <div> to hold the taxonomy tree.
+            append('<div id="tree"></div>')
+
+        taxonomyHierarchy = Hierarchy()
+
+        for genomeAccession in genomeAccessions:
+            samples = self.genomeAccessions[genomeAccession]
+            sampleCount = len(samples)
+            genomeInfo = self._db.findGenome(genomeAccession)
+            pathogenProteinCount = genomeInfo['proteinCount']
+
+            lineage = (None if genomeInfo['taxonomyId'] is None
+                       else self._taxdb.lineage(genomeInfo['taxonomyId']))
+
+            if lineage:
+                taxonomyHierarchy.add(lineage, genomeAccession)
+                lineageHTML = ', '.join(lineageTaxonomyLinks(lineage))
+            else:
+                lineageHTML = ''
+
+            pathogenLinksHTML = ' %s, %s' % (
+                genomeInfo['databaseName'],
+                NCBISequenceLink(genomeAccession))
+
+            if pathogenType == 'viral' and not omitVirusLinks:
+                quoted = quote(genomeInfo['organism'])
+                pathogenLinksHTML += (
+                    ', <a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>.'
+                ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
+            else:
+                pathogenLinksHTML += '.'
+
+            proteinCountStr = (' %d protein%s' %
+                               (pathogenProteinCount,
+                                '' if pathogenProteinCount == 1 else 's'))
+
+            pathogenReadsFilename = join(
+                self._pathogenDataDir,
+                'pathogen-%s.%s' % (genomeAccession, self._format))
+
+            pathogenReadsFp = open(pathogenReadsFilename, 'w')
+            pathogenReadCount = 0
+
+            append('<div>')  # Button and following summary.
+
+            append('<button type="button" class="btn btn-default btn-sm" '
+                   'data-toggle="collapse" '
+                   'data-target="#pathogen-%s-collapse">'
+                   '<span class="glyphicon glyphicon-plus"></span></button>' %
+                   genomeAccession.replace('.', '-'))
+
+            append(
+                '<a id="pathogen-%s"></a>'
+                '<span class="pathogen">'
+                '<span class="pathogen-name">%s</span> '
+                '<span class="host">(%s)</span>'
+                '<br/>%d nt, %s, '
+                'matched by %d sample%s, '
+                '<a href="%s">%s</a> in total. '
+                '%s'
+                '<br/><span class="taxonomy">Taxonomy: %s.</span>'
+                '</span>' %
+                (genomeAccession,
+                 genomeInfo['organism'],
+                 genomeInfo.get('host') or 'unknown host',
+                 genomeInfo['length'],
+                 proteinCountStr,
+                 sampleCount, '' if sampleCount == 1 else 's',
+                 pathogenReadsFilename, self.READCOUNT_MARKER,
+                 pathogenLinksHTML,
+                 lineageHTML))
+
+            # Remember where we are in the output result so we can fill in
+            # the total read count once we have processed all samples for
+            # this pathogen. Not nice, I know.
+            pathogenReadCountLineIndex = len(result) - 1
+
+            append('</div>')  # End of button summary.
+
+            append('<div class="collapse" id="pathogen-%s-collapse">' %
+                   genomeAccession.replace('.', '-'))
+
+            for sampleName in self.sampleSort(samples):
+                readsFileName = self.pathogenSampleFiles.lookup(
+                    genomeAccession, sampleName)
+
+                # Copy the read data from the per-sample reads for this
+                # pathogen into the per-pathogen file of reads.
+                with open(readsFileName) as readsFp:
+                    while True:
+                        data = readsFp.read(4096)
+                        if data:
+                            pathogenReadsFp.write(data)
+                        else:
+                            break
+
+                proteins = samples[sampleName]['proteins']
+                proteinCount = len(proteins)
+                uniqueReadCount = samples[sampleName]['uniqueReadCount']
+                pathogenReadCount += uniqueReadCount
+                proteinCountHTML = '%d protein%s, ' % (
+                    proteinCount, '' if proteinCount == 1 else 's')
+
+                append(
+                    '<p class="sample indented">'
+                    'Sample <a href="#sample-%s">%s</a> '
+                    '(%s<a href="%s">%d '
+                    'read%s</a>, <a href="%s">panel</a>).</p>' %
+                    (sampleName, sampleName,
+                     proteinCountHTML,
+                     readsFileName,
+                     uniqueReadCount, '' if uniqueReadCount == 1 else 's',
+                     self.sampleNames[sampleName]))
+
+                append('<ul class="protein-list indented">')
+                for proteinName in sorted(proteins):
+                    proteinMatch = proteins[proteinName]
+                    append(
+                        '<li>'
+                        '<span class="stats">'
+                        '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
+                        % proteinMatch
+                    )
+
+                    if readCountColors:
+                        countClass = readCountColors.thresholdToCssName(
+                            readCountColors.thresholdForCount(
+                                proteinMatch['readCount']))
+                        self._appendNoSpace('<span class="%s">%4s</span>' % (
+                            countClass, proteinMatch['readAndHspCountStr']),
+                            result)
+                    else:
+                        self._appendNoSpace('%(readAndHspCountStr)3s' %
+                                            proteinMatch, result)
+
+                    if self._saveReadLengths:
+                        self._appendNoSpace(' (%s)' % ', '.join(
+                            map(str, sorted(proteinMatch['readLengths']))),
+                            result)
+
+                    self._appendNoSpace(
+                        '</span> '
+                        '<span class="protein-name">'
+                        '%(proteinName)s'
+                        '</span> '
+                        '(%(proteinLength)d aa,'
+                        % proteinMatch, result)
 
                     if proteinMatch['proteinURL']:
                         append('<a href="%s">%s</a>, ' % (
@@ -1037,10 +1006,157 @@ class ProteinGrouper(object):
 
                 append('</ul>')
 
-        append('</body>')
-        append('</html>')
+            append('</div>')
 
-        return '\n'.join(result)
+            pathogenReadsFp.close()
+
+            # Sanity check there's a read count marker text in our output
+            # where we expect it.
+            readCountLine = result[pathogenReadCountLineIndex]
+            if readCountLine.find(self.READCOUNT_MARKER) == -1:
+                raise ValueError(
+                    'Could not find pathogen read count marker (%s) in result '
+                    'index %d text (%s).' %
+                    (self.READCOUNT_MARKER, pathogenReadCountLineIndex,
+                     readCountLine))
+
+            # Put the read count into the pathogen summary line we wrote
+            # earlier, replacing the read count marker with the correct
+            # text.
+            result[pathogenReadCountLineIndex] = readCountLine.replace(
+                self.READCOUNT_MARKER,
+                '%d read%s' % (pathogenReadCount,
+                               '' if pathogenReadCount == 1 else 's'))
+
+        if bootstrapTreeviewDir:
+            append('''
+                <script>
+                $(document).ready(function(){
+                    var tree = %s;
+                    $('#tree').treeview({
+                        data: tree,
+                        enableLinks: true,
+                        levels: 0,
+                    });
+                });
+                </script>
+            ''' % taxonomyHierarchy.toJSON())
+
+    def _help(self, readCountColors, result):
+        append = result.append
+
+        append('''
+        <script>
+            $(document).ready(function(){
+                $("#help-button").click(function(){
+                    var self=$(this);
+                    if (self.val() === "Show"){
+                        self.val("Hide");
+                    }
+                    else {
+                        self.val("Show");
+                    }
+                    $("#help-details").toggle();
+                });
+            });
+        </script>
+        ''')
+
+        if readCountColors:
+            levels = []
+            append('<style>')
+            for threshold, color in readCountColors.colors:
+                klass = readCountColors.thresholdToCssName(threshold)
+                append('.%s { color: %s; font-weight: bold; }' %
+                       (klass, color))
+                levels.append('<span class="%s">%d</span>' %
+                              (klass, threshold))
+            append('</style>')
+            readCountColorLegend = (
+                ' Color levels: ' + ', '.join(reversed(levels)) + '.')
+        else:
+            readCountColorLegend = ''
+
+        proteinFieldsDescription = [
+            'Help: <input type="button" id="help-button" value="Show" /><br>',
+            '<div id="help-details" style="display:none;">',
+            'In all bullet point protein lists below, there are the following '
+            'numeric fields:',
+            '<ol>',
+            '<li>Coverage fraction.</li>',
+            '<li>Median bit score.</li>',
+            '<li>Best bit score.</li>',
+            '<li>Read count (if read and HSP counts differ, ',
+            ('both are given, separated by "%s").%s</li>' %
+             (self.READ_AND_HSP_COUNT_STR_SEP, readCountColorLegend)),
+        ]
+
+        if self._saveReadLengths:
+            proteinFieldsDescription.append(
+                '<li>All read lengths (in parentheses).</li>')
+
+        proteinFieldsDescription.extend([
+            '</ol>',
+            '</div>',
+        ])
+
+        return proteinFieldsDescription
+
+    def _appendNoSpace(self, s, result):
+        assert result, ('Cannot append %r to empty result list' % s)
+        result[-1] += s
+
+    def _sampleIndex(self, sampleNames, result):
+        """
+        Write a linked table of contents by sample.
+        """
+        append = result.append
+
+        if len(sampleNames) == 1:
+            title = 'Sample'
+        else:
+            title = 'Samples (%d)' % len(sampleNames)
+
+        append('<p><span class="index-name">%s:</span>' % title)
+        append('<span class="index">')
+        for count, sampleName in enumerate(sampleNames, start=1):
+            append('<span class="index-letter">%d</span> '
+                   '<a href="#sample-%s">%s</a>' %
+                   (count, sampleName, sampleName))
+            append('&middot;')
+        # Get rid of final middle dot and add a period.
+        result.pop()
+        self._appendNoSpace('.', result)
+        append('</span></p>')
+
+    def _pathogenIndex(self, genomeAccessions, result, singular, plural):
+        """
+        Create a linked table of contents by pathogen.
+        """
+        append = result.append
+
+        if len(genomeAccessions) == 1:
+            title = singular.title()
+        else:
+            title = '%s (%d)' % (plural.title(), len(genomeAccessions))
+
+        append('<p><span class="index-name">%s:</span>' % title)
+        append('<span class="index">')
+        lastLetter = None
+        for genomeAccession in genomeAccessions:
+            genomeInfo = self._db.findGenome(genomeAccession)
+            organism = genomeInfo['organism']
+            letter = organism[0]
+            if letter != lastLetter:
+                append('<span class="index-letter">%s</span>' % letter)
+                lastLetter = letter
+            append('<a href="#pathogen-%s">%s</a>' % (genomeAccession,
+                                                      genomeInfo['organism']))
+            append('&middot;')
+        # Get rid of final middle dot and add a period.
+        result.pop()
+        self._appendNoSpace('.', result)
+        append('</span></p>')
 
     def _pathogenSamplePlot(self, genomeAccession, sampleNames, ax):
         """
