@@ -662,9 +662,9 @@ class ProteinGrouper(object):
         append(self._title(pathogenType))
         if preamble:
             append(preamble)
-        append('<p>')
 
         if minProteinFraction > 0.0:
+            append('<p>')
             percent = minProteinFraction * 100.0
             if nPathogenNames < len(self.genomeAccessions):
                 if nPathogenNames == 1:
@@ -684,8 +684,7 @@ class ProteinGrouper(object):
                 append('Pathogen protein fraction filtering was applied, '
                        'but all pathogens have at least %.2f%% of their '
                        'proteins matched by at least one sample.' % percent)
-
-        append('</p>')
+            append('</p>')
 
         if pathogenPanelFilename and genomeAccessions:
             self.pathogenPanel(pathogenPanelFilename)
@@ -697,6 +696,25 @@ class ProteinGrouper(object):
             append('</p>')
 
         result.extend(proteinFieldsDescription)
+
+        append('<p style="margin-top: 10px;">Global: ')
+        append('<button type="button" class="btn btn-default btn-sm" '
+               'id="expand-all-button">Expand all</button>')
+
+        append('<button type="button" class="btn btn-default btn-sm" '
+               'id="collapse-all-button">Collapse all</button>')
+        append('</p>')
+
+        append('''
+        <script>
+        $("#expand-all-button").click(function(){
+            $(".collapse").collapse("show");
+        });
+        $("#collapse-all-button").click(function(){
+            $(".collapse").collapse("hide");
+        });
+        </script>
+        ''')
 
         append('<h2>Indices</h2>')
         self._sampleIndex(sampleNames, result)
@@ -1078,7 +1096,8 @@ class ProteinGrouper(object):
             readCountColorLegend = ''
 
         proteinFieldsDescription = [
-            'Help: <input type="button" id="help-button" value="Show" /><br>',
+            'Help: <button type="button" class="btn btn-default btn-sm" '
+            'id="help-button">Show</button><br>',
             '<div id="help-details" style="display:none;">',
             'In all bullet point protein lists below, there are the following '
             'numeric fields:',
