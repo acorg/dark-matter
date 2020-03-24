@@ -2550,6 +2550,46 @@ class TestReads(TestCase):
         self.assertEqual(sorted([read2, read3]), sorted(reads))
         self.assertEqual(3, reads.unfilteredLength())
 
+    def testMaxNFractionAllPassNoNs(self):
+        """
+        Test filtering by maximum fraction of Ns. If there are no Ns in the
+        sequences, all must pass the filtering.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'ATTAAC')
+        initialReads = Reads([read1, read2])
+        initialReads.filter(maxNFraction=0.9)
+
+        reads = Reads(initialReads)
+        self.assertEqual([read1, read2], list(reads))
+
+    def testMaxNFractionOnePasses(self):
+        """
+        Test filtering by maximum fraction of Ns. If there are too many Ns in
+        one of the sequences, only one must pass the filtering.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'ATTNNN')
+        initialReads = Reads([read1, read2])
+        initialReads.filter(maxNFraction=0.4)
+
+        reads = Reads(initialReads)
+        self.assertEqual([read1], list(reads))
+
+    def testMaxNFractionAllPassNs(self):
+        """
+        Test filtering by maximum fraction of Ns. If there are Ns in the
+        sequence, but below the threshold, all sequences must pass the
+        filtering.
+        """
+        read1 = Read('id1', 'ATTA')
+        read2 = Read('id2', 'ATTNNN')
+        initialReads = Reads([read1, read2])
+        initialReads.filter(maxNFraction=0.6)
+
+        reads = Reads(initialReads)
+        self.assertEqual([read1, read2], list(reads))
+
     def testNoVariableSitesConfirm(self):
         """
         If two Reads have no bases that are variable, nothing should be

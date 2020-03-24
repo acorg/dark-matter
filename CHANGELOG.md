@@ -1,3 +1,7 @@
+## 3.1.70 March 24, 2020
+
+Added `--maxNFraction` arg to `filter-fasta.py`.
+
 ## 3.1.69 March 23, 2020
 
 Added `--md5` arg to `fasta-sequences.py`.
@@ -429,9 +433,9 @@ Removed bone-headed use of full path to `fasta-join.sh` from
 
 ## 3.0.63 Jan 14, 2019
 
-Added `compareAaReads` and `matchToString` to `aa.py`. Wrote tests in 
+Added `compareAaReads` and `matchToString` to `aa.py`. Wrote tests in
 `test_aa.py` for both. Moved `countPrint` to utils, used by `matchToString`
-in `dna.py` and `aa.py`. Added `compare-aa-sequences.py` to the bin. 
+in `dna.py` and `aa.py`. Added `compare-aa-sequences.py` to the bin.
 
 ## 3.0.62 Dec 30, 2018
 
@@ -444,9 +448,9 @@ and the underlying `ReadFilter` class.
 
 ## 3.0.60 Dec 13, 2018
 
-In `reads.py`, changed the `_makeComplementTable` function so that 
+In `reads.py`, changed the `_makeComplementTable` function so that
 uppercase and lowercase bases are correctly reverse complemented into their
-respective uppercase and lowercase complementary letters. Added a test to 
+respective uppercase and lowercase complementary letters. Added a test to
 `test/reads.py` to confirm that `reverseComplement` does this.
 
 ## 3.0.59 Dec 11, 2018
