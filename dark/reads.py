@@ -1129,9 +1129,10 @@ class ReadFilter(object):
                 (self.maxLength is not None and readLen > self.maxLength)):
             return False
 
-        nFraction = read.sequence.count('N') / readLen
-        if self.maxNFraction is not None and self.maxNFraction < nFraction:
-            return False
+        if self.maxNFraction is not None:
+            nFraction = read.sequence.count('N') / readLen
+            if self.maxNFraction < nFraction:
+                return False
 
         if self.removeGaps:
             if read.quality is None:
