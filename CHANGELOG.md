@@ -1,6 +1,12 @@
+## 3.1.71 March 24, 2020
+
+Added `--md5OneLine` argument to `fasta-sequences.py`. Prints TAB-separated
+MD5 (sequence) sum, then the read id, then the sequence (and quality, if
+any).
+
 ## 3.1.70 March 24, 2020
 
-Added `--maxNFraction` arg to `filter-fasta.py`.
+Added `--maxNFraction` argument to `filter-fasta.py`.
 
 ## 3.1.69 March 23, 2020
 
