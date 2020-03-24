@@ -817,6 +817,8 @@ class ReadFilter(object):
 
     @param minLength: The minimum acceptable length.
     @param maxLength: The maximum acceptable length.
+    @param maxNFraction: The maximum fraction of Ns that can be present in the
+        sequence.
     @param removeGaps: If C{True} remove all gaps ('-' characters) from the
         read sequences.
     @param whitelist: If not C{None}, a set of exact read ids that are
@@ -935,8 +937,8 @@ class ReadFilter(object):
     # save and restore the state of the RNG and/or to optionally add
     # 'seed=XXX' to the end of the id of the first read, etc.
 
-    def __init__(self, minLength=None, maxLength=None, removeGaps=False,
-                 whitelist=None, blacklist=None,
+    def __init__(self, minLength=None, maxLength=None, maxNFraction=None,
+                 removeGaps=False, whitelist=None, blacklist=None,
                  whitelistFile=None, blacklistFile=None,
                  titleRegex=None, negativeTitleRegex=None,
                  truncateTitlesAfter=None, keepSequences=None,
@@ -960,6 +962,7 @@ class ReadFilter(object):
 
         self.minLength = minLength
         self.maxLength = maxLength
+        self.maxNFraction = maxNFraction
         self.removeGaps = removeGaps
         self.head = head
         self.removeDuplicates = removeDuplicates
@@ -1124,6 +1127,10 @@ class ReadFilter(object):
         readLen = len(read)
         if ((self.minLength is not None and readLen < self.minLength) or
                 (self.maxLength is not None and readLen > self.maxLength)):
+            return False
+
+        nFraction = read.sequence.count('N') / readLen
+        if self.maxNFraction is not None and self.maxNFraction < nFraction:
             return False
 
         if self.removeGaps:

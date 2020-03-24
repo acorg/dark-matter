@@ -188,6 +188,10 @@ def addFASTAFilteringCommandLineOptions(parser):
         help='The maximum sequence length')
 
     parser.add_argument(
+        '--maxNFraction', type=float, metavar='N',
+        help='The maximum fraction of Ns that can be present in the sequence')
+
+    parser.add_argument(
         '--whitelist', action='append', metavar='SEQUENCE-ID',
         help='Sequence titles (ids) that should be whitelisted')
 
@@ -297,6 +301,7 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
 
     return reads.filter(
         minLength=args.minLength, maxLength=args.maxLength,
+        maxNFraction=args.maxNFraction,
         whitelist=set(args.whitelist) if args.whitelist else None,
         blacklist=set(args.blacklist) if args.blacklist else None,
         whitelistFile=args.whitelistFile, blacklistFile=args.blacklistFile,
