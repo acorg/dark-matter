@@ -1,3 +1,8 @@
+## 3.1.72 March 27, 2020
+
+Added `format-fasta.py` script. Reverted unecessary hacks to
+`fasta-sequences.py` to print MD5 sums, etc.
+
 ## 3.1.71 March 24, 2020
 
 Added `--md5OneLine` argument to `fasta-sequences.py`. Prints TAB-separated
