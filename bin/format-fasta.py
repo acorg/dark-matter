@@ -21,6 +21,10 @@ if __name__ == '__main__':
               'Python 3.6 and later, or else "" (i.e., regular strings).'))
 
     parser.add_argument(
+        '--start', default=1, type=int,
+        help='The integer to start counting from, for the "count" variable.')
+
+    parser.add_argument(
         '--end',
         help=('A string to use as the "end" keyword argument for print(). '
               'This will be passed to eval, allowing convenient use of '
@@ -32,7 +36,7 @@ if __name__ == '__main__':
         help=("The output format. The default is to reproduce the input. "
               "The format can be that used by Python to specify items in a "
               'dictionary. Available dictionary items are "id", "sequence", '
-              '"quality", "length", and "md5" (of the sequence). A '
+              '"quality", "length", "count", and "md5" (of the sequence). A '
               "dark.reads.Read instance (named 'read') and an 'md5' "
               "function (that takes and returns a string) are both also in "
               "scope for each FASTA record and these can be accessed using "
@@ -63,9 +67,10 @@ if __name__ == '__main__':
     def md5(s):
         return hashlib.md5(s.encode('utf-8')).hexdigest()
 
-    for read in reads:
+    for count, read in enumerate(reads, start=args.start):
         sequence = read.sequence
         d = {
+            'count': count,
             'id': read.id,
             'quality': read.quality,
             'sequence': sequence,

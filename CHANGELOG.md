@@ -1,3 +1,8 @@
+## 3.1.73 March 27, 2020
+
+Added `count` variable to `format-fasta.py` and a `--start` option to set
+its starting value.
+
 ## 3.1.72 March 27, 2020
 
 Added `format-fasta.py` script. Reverted unecessary hacks to
