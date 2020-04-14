@@ -54,7 +54,7 @@ NAMES = {
     'Y': 'Tyrosine',
 }
 
-AA_LETTERS = sorted(NAMES.keys())
+AA_LETTERS = sorted(NAMES)
 
 NAMES_TO_ABBREV1 = dict((name, abbrev1) for abbrev1, name in NAMES.items())
 
@@ -985,8 +985,7 @@ def find(s):
 
     @param s: A C{str} amino acid specifier. This may be a full name,
         a 3-letter abbreviation or a 1-letter abbreviation. Case is ignored.
-    return: An L{AminoAcid} instance or C{None} if no matching amino acid can
-        be located.
+    return: A generator that yields matching L{AminoAcid} instances.
     """
 
     abbrev1 = None
@@ -1016,7 +1015,17 @@ def find(s):
         abbrev1 = findCodon(origS.upper())
 
     if abbrev1:
-        return AminoAcid(
+        abbrev1s = [abbrev1]
+    else:
+        # Try partial matching on names.
+        abbrev1s = []
+        sLower = s.lower()
+        for abbrev1, name in NAMES.items():
+            if name.lower().find(sLower) > -1:
+                abbrev1s.append(abbrev1)
+
+    for abbrev1 in abbrev1s:
+        yield AminoAcid(
             NAMES[abbrev1], ABBREV3[abbrev1], abbrev1, CODONS[abbrev1],
             PROPERTIES[abbrev1], PROPERTY_DETAILS[abbrev1],
             PROPERTY_CLUSTERS[abbrev1])

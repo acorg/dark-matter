@@ -293,15 +293,16 @@ class TestFind(TestCase):
 
     def testFindUnknown(self):
         """
-        find must return C{None} when called with an unrecognized value.
+        find must return an empty generator when called with an unrecognized
+        value.
         """
-        self.assertEqual(None, find('silly'))
+        self.assertEqual([], list(find('silly')))
 
     def testFindByAbbrev1(self):
         """
         It must be possible to find an amino acid by its 1-letter abbreviation.
         """
-        aa = find('A')
+        aa = list(find('A'))[0]
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
@@ -340,7 +341,7 @@ class TestFind(TestCase):
         """
         It must be possible to find an amino acid by its 3-letter abbreviation.
         """
-        aa = find('Ala')
+        aa = list(find('Ala'))[0]
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
@@ -379,7 +380,7 @@ class TestFind(TestCase):
         """
         It must be possible to find an amino acid by a 3-letter codon.
         """
-        aa = find('GCC')
+        aa = list(find('GCC'))[0]
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
@@ -418,7 +419,7 @@ class TestFind(TestCase):
         """
         It must be possible to find an amino acid by its name.
         """
-        aa = find('Alanine')
+        aa = list(find('Alanine'))[0]
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
@@ -458,7 +459,7 @@ class TestFind(TestCase):
         It must be possible to find an amino acid by its name when the name is
         given in mixed case.
         """
-        aa = find('alaNIne')
+        aa = list(find('alaNIne'))[0]
         self.assertEqual('Alanine', aa.name)
         self.assertEqual('Ala', aa.abbrev3)
         self.assertEqual('A', aa.abbrev1)
@@ -498,7 +499,7 @@ class TestFind(TestCase):
         It must be possible to find an amino acid by its name when the name is
         given in mixed case, including if the name has a space in it.
         """
-        aa = find('asparTIC aCId')
+        aa = list(find('asparTIC aCId'))[0]
         self.assertEqual('Aspartic acid', aa.name)
         self.assertEqual('Asp', aa.abbrev3)
         self.assertEqual('D', aa.abbrev1)
@@ -532,6 +533,28 @@ class TestFind(TestCase):
                 'volume': 3,
             },
             aa.propertyClusters)
+
+    def testFindByPartialName(self):
+        """
+        It must be possible to find an amino acid by a partial name.
+        """
+        aa = list(find('nine'))[0]
+        self.assertEqual('Alanine', aa.name)
+
+    def testFindByPartialNameMixedCase(self):
+        """
+        It must be possible to find an amino acid by a mixed-case partial name.
+        """
+        aa = list(find('NiNe'))[0]
+        self.assertEqual('Alanine', aa.name)
+
+    def testFindMultipleMatches(self):
+        """
+        It must be possible to find more than one matching amino acid.
+        """
+        aa1, aa2 = list(find('acid'))
+        self.assertEqual('Aspartic acid', aa1.name)
+        self.assertEqual('Glutamic acid', aa2.name)
 
 
 class TestPropertyClusters(TestCase):

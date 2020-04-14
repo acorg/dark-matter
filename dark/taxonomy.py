@@ -66,10 +66,17 @@ PLANT_ONLY_FAMILIES = {
     'Geminiviridae',  # Unassigned.
     'Luteoviridae',  # Unassigned.
     'Nanoviridae',  # Unassigned.
+    'Partitiviridae',  # Unassigned.
     'Pospiviroidae',  # Unassigned (viroids).
     'Secoviridae',  # In Picornavirales.
     'Tombusviridae',  # Unassigned.
     'Tospoviridae',  # In Bunyavirales.
+    'Virgaviridae',  # Unassigned.
+}
+
+
+PLANT_ONLY_ORDERS = {
+    'Tymovirales'
 }
 
 
@@ -381,7 +388,8 @@ class Taxonomy(object):
             C{False} otherwise.
         """
         for taxid, name, rank in lineage:
-            if (rank == 'family' and name in PLANT_ONLY_FAMILIES or
+            if (rank == 'order' and name in PLANT_ONLY_ORDERS or
+                    rank == 'family' and name in PLANT_ONLY_FAMILIES or
                     rank == 'genus' and name in PLANT_ONLY_GENERA):
                 return True
 

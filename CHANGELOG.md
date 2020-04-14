@@ -1,3 +1,8 @@
+## 3.1.74 April 14, 2020
+
+Improved `aa-info.py` to also match on partial full names. Improved
+taxonomic detection of plant-only viruses.
+
 ## 3.1.73 March 27, 2020
 
 Added `count` variable to `format-fasta.py` and a `--start` option to set
