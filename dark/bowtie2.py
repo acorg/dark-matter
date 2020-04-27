@@ -235,6 +235,7 @@ class Bowtie2(object):
             "--reference '%s' "
             "--input '%s' "
             "--output '%s' "
+            "--sample-ploidy 1 "
             '-ERC GVCF' %
             (referenceFasta, inFile, vcfFile))
 

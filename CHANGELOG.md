@@ -1,3 +1,7 @@
+## 3.1.75 April 27, 2020
+
+Added `--sample-ploidy 1` to halpotype calling in `bowtie2.py`.
+
 ## 3.1.74 April 14, 2020
 
 Improved `aa-info.py` to also match on partial full names. Improved
