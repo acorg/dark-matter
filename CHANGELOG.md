@@ -1,3 +1,7 @@
+## 3.1.71 April 27, 2020
+
+Added `--sample-ploidy 1` to halpotype calling in `bowtie2.py`.
+
 ## 3.1.70 March 24, 2020
 
 Added `--maxNFraction` arg to `filter-fasta.py`.
