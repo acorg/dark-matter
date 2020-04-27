@@ -1,10 +1,31 @@
-## 3.1.71 April 27, 2020
+## 3.1.75 April 27, 2020
 
 Added `--sample-ploidy 1` to halpotype calling in `bowtie2.py`.
 
+## 3.1.74 April 14, 2020
+
+Improved `aa-info.py` to also match on partial full names. Improved
+taxonomic detection of plant-only viruses.
+
+## 3.1.73 March 27, 2020
+
+Added `count` variable to `format-fasta.py` and a `--start` option to set
+its starting value.
+
+## 3.1.72 March 27, 2020
+
+Added `format-fasta.py` script. Reverted unecessary hacks to
+`fasta-sequences.py` to print MD5 sums, etc.
+
+## 3.1.71 March 24, 2020
+
+Added `--md5OneLine` argument to `fasta-sequences.py`. Prints TAB-separated
+MD5 (sequence) sum, then the read id, then the sequence (and quality, if
+any).
+
 ## 3.1.70 March 24, 2020
 
-Added `--maxNFraction` arg to `filter-fasta.py`.
+Added `--maxNFraction` argument to `filter-fasta.py`.
 
 ## 3.1.69 March 23, 2020
 

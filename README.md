@@ -9,7 +9,13 @@ Runs under Python 2.7 (mostly), 3.5, 3.6, and 3.7. [Change log](CHANGELOG.md)
 
 ## Installation
 
-You should be able to install via
+On Linux (at least) you will need to first:
+
+```sh
+sudo apt install zlib1g-dev libbz2-dev liblzma-dev
+```
+
+Then you should be able to install via
 
 ```sh
 $ pip install dark-matter
