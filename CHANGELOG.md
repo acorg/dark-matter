@@ -1,3 +1,9 @@
+## 3.1.76 May 3, 2020
+
+Changed `--maskNoCoverage` to `--maskLowCoverage` in `make-consensus.py` and
+have it take an argument of the minimum coverage at which to call the
+consensus.
+
 ## 3.1.75 April 27, 2020
 
 Added `--sample-ploidy 1` to halpotype calling in `bowtie2.py`.
