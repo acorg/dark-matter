@@ -98,7 +98,7 @@ def main():
 
         e.execute("bcftools index '%s'" % vcfFile)
 
-    if args.maskLowCoverage and args.maskLowCoverage not < 0:
+    if args.maskLowCoverage >= 0:
         # Make a BED file.
         bedFile = join(tempdir, 'mask.bed')
         # The doubled-% below are so that Python doesn't try to fill in the
