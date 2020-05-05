@@ -60,7 +60,8 @@ def main():
     parser.add_argument(
         '--maskLowCoverage', default=0, type=int,
         help=('Put an N into sites where the coverage is below the specified '
-              'cutoff. Requires --bam.'))
+              'cutoff. If you specify a negative numer, masking will be '
+              'turned off. Requires --bam.'))
 
     parser.add_argument(
         '--log', default=False, action='store_true',
