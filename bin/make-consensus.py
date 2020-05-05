@@ -58,7 +58,7 @@ def main():
         help='Do not run commands, just print what would be done.')
 
     parser.add_argument(
-        '--maskLowCoverage', default=False, type=int,
+        '--maskLowCoverage', default=0, type=int,
         help=('Put an N into sites where the coverage is below the specified '
               'cutoff. Requires --bam.'))
 
@@ -98,7 +98,7 @@ def main():
 
         e.execute("bcftools index '%s'" % vcfFile)
 
-    if args.maskLowCoverage:
+    if args.maskLowCoverage and args.maskLowCoverage not < 0:
         # Make a BED file.
         bedFile = join(tempdir, 'mask.bed')
         # The doubled-% below are so that Python doesn't try to fill in the
