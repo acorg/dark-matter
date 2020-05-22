@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+
+import sys
+import argparse
+import multiprocessing
+
+from dark.aligners import mafft
+from dark.reads import DNARead, Reads
+from dark.fasta import FastaReads
+
+MAFFT_DEFAULT_ARGS = '--globalpair --maxiterate 1000 --preservecase'
+MAFFT_ALGORITHMS_URL = (
+    'https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='Combine multiple sequences into a single sequence.')
+
+    parser.add_argument(
+        '--fastaFiles', required=True, nargs='+',
+        help=('The name of the FASTA files containing the sequences to be '
+              'combined.'))
+
+parser.add_argument(
+    '--threads', type=int, default=multiprocessing.cpu_count(),
+    help=('The number of threads to use when running the aligner (if --align '
+          'is used and the alignment algorithm can make use of multiple '
+          'threads (mafft can, needle cannot)).'))
+
+parser.add_argument(
+    '--alignerOptions',
+    help=('Optional arguments to pass to the alignment algorithm. The default '
+          'options are "%s". See %s for some possible option combinations.' %
+          (MAFFT_DEFAULT_ARGS, MAFFT_ALGORITHMS_URL)))
+
+args = parser.parse_args()
+
+reads = Reads()
+
+for fastaFile in args.fastaFiles:
+    for read in FastaReads(fastaFile):
+        reads.add(read)
+
+reads = list(reads)
+
+if len(reads) == 1:
+    print('Cannot combine just one read. Exiting.')
+    sys.exit(1)
+
+options = (MAFFT_DEFAULT_ARGS if args.alignerOptions is None
+           else args.alignerOptions)
+alignedReads = mafft(reads, options=options, threads=args.threads)
+
+combinedSequence = alignedReads.combineReads()
+
+print(DNARead('Combined', combinedSequence).toString(format_='fasta'))
