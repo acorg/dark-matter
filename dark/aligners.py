@@ -1,3 +1,4 @@
+import sys
 from os.path import join
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
@@ -10,12 +11,12 @@ from dark.reads import Reads
 
 def mafft(reads, verbose=False, options=None, threads=None):
     """
-    Run a MAFFT alignment and return the two sequences.
+    Run a MAFFT alignment and return the sequences.
 
-    @param reads: An iterable of two reads.
+    @param reads: An iterable of multiple reads.
     @param verbose: If C{True} print progress info to sys.stderr.
     @param options: A C{str} of options to pass to mafft.
-    @return: A C{Reads} instance with the two aligned sequences.
+    @return: A C{Reads} instance with the aligned sequences.
     """
     tempdir = mkdtemp()
 
@@ -27,7 +28,7 @@ def mafft(reads, verbose=False, options=None, threads=None):
     if verbose:
         print('Running mafft.', file=sys.stderr)
 
-    Executor().execute("mafft %s %d %s '%s' > '%s'" % (
+    Executor().execute("mafft %s %s '%s' > '%s'" % (
         ('' if threads is None else '--thread %d' % threads),
         options or '', infile, out))
 

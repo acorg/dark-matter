@@ -41,10 +41,8 @@ if __name__ == '__main__':
     for fastaFile in args.fastaFiles:
         reads.extend(FastaReads(fastaFile))
 
-    reads = list(reads)
-
     if len(reads) == 1:
-        print('Cannot combine just one read. Exiting.')
+        print('Cannot combine just one read. Exiting.', file=sys.stderr)
         sys.exit(1)
 
     alignedReads = mafft(reads, options=args.alignerOptions,

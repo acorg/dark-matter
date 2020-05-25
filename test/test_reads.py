@@ -2855,6 +2855,17 @@ class TestReads(TestCase):
         combined = reads.combineReads()
         self.assertEqual('A', combined)
 
+    def testCombineReadsUnequalLengthAssertionError(self):
+        """
+        If combineReads is called with reads of unequal length an
+        AssertionError must be raised.
+        """
+        read1 = Read('id1', 'AAAA')
+        read2 = Read('id2', 'T')
+
+        reads = Reads([read1, read2])
+        self.assertRaises(AssertionError, reads.combineReads)
+
 
 class TestReadsFiltering(TestCase):
     """

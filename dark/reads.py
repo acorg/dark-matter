@@ -5,7 +5,6 @@ from functools import total_ordering
 from collections import Counter
 from hashlib import md5
 from random import uniform
-from itertools import zip_longest
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -1515,21 +1514,20 @@ class Reads(object):
 
     def combineReads(self):
         """
-        Combine all reads into a single read.
+        Combine all reads into a single read. Reads must be of equal length.
 
         @return: a C{str} sequence made from combining all reads.
         """
         reads = list(self)
-        assert len({len(read) for read in self.reads}) == 1
+        assert len({len(read) for read in reads}) == 1
 
         sequence = ''
-        for bases in zip_longest(*(read.sequence for read in reads),
-                                 fillvalue='-'):
-            bases = set(bases)
+        for site in range(len(reads[0])):
+            bases = set([r.sequence[site] for r in reads])
             if len(bases) == 1:
                 sequence += bases.pop()
-            elif (len(bases) == 2 and 'N' in bases and bool(
-                  bases.intersection({'A', 'T', 'G', 'C'}))):
+            elif (len(bases) == 2 and 'N' in bases and
+                  bases.intersection({'A', 'T', 'G', 'C'})):
                 sequence += list(bases.intersection({'A', 'T', 'G', 'C'}))[0]
             else:
                 nucleotides = set()
