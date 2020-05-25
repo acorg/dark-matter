@@ -10,7 +10,7 @@ from dark.reads import Reads
 
 def mafft(reads, verbose=False, options=None, threads=None):
     """
-    Run a MAFT alignment and return the two sequences.
+    Run a MAFFT alignment and return the two sequences.
 
     @param reads: An iterable of two reads.
     @param verbose: If C{True} print progress info to sys.stderr.
@@ -27,8 +27,9 @@ def mafft(reads, verbose=False, options=None, threads=None):
     if verbose:
         print('Running mafft.', file=sys.stderr)
 
-    Executor().execute("mafft --thread %d %s '%s' > '%s'" % (
-        threads, options or '', infile, out))
+    Executor().execute("mafft %s %d %s '%s' > '%s'" % (
+        ('' if threads is None else '--thread %d' % threads),
+        options or '', infile, out))
 
     # Use 'list' in the following to force reading the FASTA from disk.
     result = Reads(list(FastaReads(out)))

@@ -43,7 +43,7 @@ parser.add_argument(
 parser.add_argument(
     '--alignerOptions',
     help=('Optional arguments to pass to the alignment algorithm. If the '
-          'aligner is mafft, the default options are "%s". If needle, "%s". '
+          'aligner is mafft, the default options are %r. If needle, "%s". '
           'Do not try to set the number of threads here - use the --threads '
           'argument instead. If you are using mafft, see %s for some possible '
           'option combinations.' %

@@ -5,6 +5,7 @@ from functools import total_ordering
 from collections import Counter
 from hashlib import md5
 from random import uniform
+from itertools import zip_longest
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -13,7 +14,7 @@ from Bio.Data.IUPACData import (
 from dark.aa import (
     AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE)
 from dark.filter import TitleFilter
-from dark.dna import FloatBaseCounts, AMBIGUOUS
+from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
 
 
@@ -1515,24 +1516,31 @@ class Reads(object):
     def combineReads(self):
         """
         Combine all reads into a single read.
+
+        @return: a C{str} sequence made from combining all reads.
         """
         reads = list(self)
-        length = len(reads[0].sequence)
+        assert len({len(read) for read in self.reads}) == 1
+
         sequence = ''
-        for site in range(length):
-            bases = set([r.sequence[site] for r in reads])
+        for bases in zip_longest(*(read.sequence for read in reads),
+                                 fillvalue='-'):
+            bases = set(bases)
             if len(bases) == 1:
-                sequence += list(bases)[0]
+                sequence += bases.pop()
             elif (len(bases) == 2 and 'N' in bases and bool(
                   bases.intersection({'A', 'T', 'G', 'C'}))):
                 sequence += list(bases.intersection({'A', 'T', 'G', 'C'}))[0]
             else:
                 nucleotides = set()
                 for base in bases:
-                    nucleotides.update(AMBIGUOUS.get(base, ''))
-                for ambiguity, b in AMBIGUOUS.items():
-                    if b == nucleotides:
-                        sequence += ambiguity
+                    nucleotides.update(AMBIGUOUS.get(base, set()))
+                try:
+                    sequence += BASES_TO_AMBIGUOUS[''.join(
+                        sorted(nucleotides))]
+                except KeyError:
+                    raise ValueError('Unknown DNA base(s): %r' %
+                                     nucleotides - set('ACGTN-'))
 
         return sequence
 

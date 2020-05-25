@@ -1,6 +1,6 @@
 ## 3.1.77 May 22, 2020
 
-Added code to combine two or multiple sequences (see `bin/combine-sequences.py`).
+Added code to combine multiple sequences (see `bin/combine-sequences.py`).
 
 ## 3.1.76 May 3, 2020
 
