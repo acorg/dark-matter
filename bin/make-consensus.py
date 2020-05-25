@@ -119,16 +119,24 @@ def main():
                     sys.exit(0)
 
             indexFile = args.reference + '.fai'
-            e.execute("samtools faidx '%s'" % args.reference)
+            if os.path.exists(indexFile):
+                removeIndex = False
+            else:
+                removeIndex = True
+                e.execute("samtools faidx '%s'" % args.reference)
 
             if args.reference.lower().endswith('.fasta'):
                 dictFile = args.reference[:-len('.fasta')] + '.dict'
             else:
                 dictFile = args.reference + '.dict'
 
-            e.execute(
-                "java -jar '%s' CreateSequenceDictionary R='%s' O='%s'" %
-                (picardJar, args.reference, dictFile))
+            if os.path.exists(dictFile):
+                removeDict = False
+            else:
+                removeDict = True
+                e.execute(
+                    "java -jar '%s' CreateSequenceDictionary R='%s' O='%s'"
+                    % (picardJar, args.reference, dictFile))
 
             e.execute(
                 'gatk --java-options -Xmx4g HaplotypeCaller '
@@ -139,8 +147,11 @@ def main():
                 '-ERC GVCF' %
                 (args.reference, args.bam, vcfFile))
 
-            e.execute("rm '%s'" % indexFile)
-            e.execute("rm '%s'" % dictFile)
+            if removeIndex:
+                e.execute("rm '%s'" % indexFile)
+
+            if removeDict:
+                e.execute("rm '%s'" % dictFile)
         else:
             e.execute("bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
                       "bcftools call -mv -Oz -o '%s'" %
