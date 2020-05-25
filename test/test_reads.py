@@ -2747,6 +2747,125 @@ class TestReads(TestCase):
         six.assertRaisesRegex(self, ReadLengthsNotIdenticalError, error,
                               reads.variableSites)
 
+    def testCombineReadsIdentical(self):
+        """
+        Reads that are identical at a position must result in the correct
+        combination.
+        """
+        read1 = Read('id1', 'A')
+        read2 = Read('id2', 'A')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('A', combined)
+
+    def testCombineReadsNBaseTwoReads(self):
+        """
+        Reads where one has an N and the other has a base must result in the
+        correct combination.
+        """
+        read1 = Read('id1', 'A')
+        read2 = Read('id2', 'N')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('A', combined)
+
+    def testCombineReadsNBaseThreeReads(self):
+        """
+        Reads where one has an N and the other two have a base must result in
+        the correct combination.
+        """
+        read1 = Read('id1', 'A')
+        read2 = Read('id2', 'N')
+        read3 = Read('id3', 'A')
+
+        reads = Reads([read1, read2, read3])
+        combined = reads.combineReads()
+        self.assertEqual('A', combined)
+
+    def testCombineReadsTwoDifferentBases(self):
+        """
+        Reads which have two different bases must return the correct
+        combination.
+        """
+        read1 = Read('id1', 'T')
+        read2 = Read('id2', 'A')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('W', combined)
+
+    def testCombineReadsThreeDifferentBases(self):
+        """
+        Reads which have three different bases must return the correct
+        combination.
+        """
+        read1 = Read('id1', 'T')
+        read2 = Read('id2', 'A')
+        read3 = Read('id3', 'G')
+
+        reads = Reads([read1, read2, read3])
+        combined = reads.combineReads()
+        self.assertEqual('D', combined)
+
+    def testCombineReadsAmbiguityBase(self):
+        """
+        Reads where one has an ambiguity and the other has a base must result
+        in the correct combination.
+        """
+        read1 = Read('id1', 'T')
+        read2 = Read('id2', 'S')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('B', combined)
+
+    def testCombineReadsTwoAmbiguities(self):
+        """
+        Reads where one has an ambiguity and the other has a base must result
+        in the correct combination.
+        """
+        read1 = Read('id1', 'M')
+        read2 = Read('id2', 'S')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('V', combined)
+
+    def testCombineReadsNGap(self):
+        """
+        Positions with an N and a gap must result in the correct combination.
+        """
+        read1 = Read('id1', 'N')
+        read2 = Read('id2', '-')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('N', combined)
+
+    def testCombineReadsBaseGap(self):
+        """
+        Positions with a base and a gap must result in the correct combination.
+        """
+        read1 = Read('id1', 'A')
+        read2 = Read('id2', '-')
+
+        reads = Reads([read1, read2])
+        combined = reads.combineReads()
+        self.assertEqual('A', combined)
+
+    def testCombineReadsUnequalLengthAssertionError(self):
+        """
+        If combineReads is called with reads of unequal length an
+        AssertionError must be raised.
+        """
+        read1 = Read('id1', 'AAAA')
+        read2 = Read('id2', 'T')
+
+        reads = Reads([read1, read2])
+        self.assertRaises(AssertionError, reads.combineReads)
+
 
 class TestReadsFiltering(TestCase):
     """
