@@ -1,3 +1,7 @@
+## 3.1.78 May 25, 2020
+
+Added `--callHaplotypesGATK` to `bin-make-consensys.py`.
+
 ## 3.1.77 May 22, 2020
 
 Added code to combine multiple sequences (see `bin/combine-sequences.py`).
