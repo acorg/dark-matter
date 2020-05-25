@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import argparse
 from tempfile import mkdtemp
 from os.path import join
-from os import environ
 
 from dark.fasta import FastaReads
 from dark.process import Executor
@@ -111,7 +111,7 @@ def main():
                 picardJar = args.picardJar
             else:
                 try:
-                    picardJar = environ['PICARD_JAR']
+                    picardJar = os.environ['PICARD_JAR']
                 except KeyError:
                     print('If you use --callHaplotypesGATK, you must give a '
                           'Picard JAR file with --picardJar or else set '
