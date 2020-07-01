@@ -1,3 +1,8 @@
+## 3.1.76 July 1, 2020
+
+Added `--noFilter` option to `sam-coverage.py` and `sam-coverage-depth.py`
+to allow them to run faster when no special filtering is needed.
+
 ## 3.1.75 April 27, 2020
 
 Added `--sample-ploidy 1` to halpotype calling in `bowtie2.py`.

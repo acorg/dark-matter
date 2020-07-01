@@ -30,6 +30,13 @@ parser.add_argument(
     '--noStats', default=False, action='store_true',
     help='Do not print final average and standard deviation statistics.')
 
+parser.add_argument(
+    '--noFilter', default=False, action='store_true',
+    help=('Do not use our SAM filtering. Note that if you give this option, '
+          'any filtering option (other than --referenceIds) you also specify '
+          'that is provided by the SAMFilter.addFilteringOptions will be '
+          'silently ignored!'))
+
 args = parser.parse_args()
 
 if args.noOffsets and args.noStats:
@@ -37,8 +44,9 @@ if args.noOffsets and args.noStats:
           'output!', file=sys.stderr)
     sys.exit(1)
 
-# We don't have a file of reads, we just want a read filter that we
-# can use to filter the SAM file query sequences.
+
+# We don't have a file of reads, we just want a read filter that we can use
+# to filter the SAM file query sequences and to get reference lengths from.
 reads = parseFASTAFilteringCommandLineOptions(args, Reads())
 samFilter = SAMFilter.parseFilteringOptions(args, reads.filterRead)
 
@@ -61,6 +69,17 @@ except UnknownReference:
               referenceId, args.samfile, ', '.join(sorted(referenceIds))),
           file=sys.stderr)
     sys.exit(1)
+
+
+if args.noFilter:
+    # Do not do our custom SAM filtering.
+    def filterRead(read):
+        return not (read.is_del or read.is_refskip)
+else:
+    def filterRead(read):
+        return (not (read.is_del or read.is_refskip) and
+                samFilter.filterAlignment(read.alignment))
+
 
 if printStats:
     counts = []
@@ -85,8 +104,7 @@ with samfile(args.samfile) as sam:
     for column in sam.pileup(reference=referenceId):
         bases = Counter()
         for read in column.pileups:
-            if (not read.is_del and not read.is_refskip and
-                    samFilter.filterAlignment(read.alignment)):
+            if filterRead(read):
                 base = read.alignment.query_sequence[read.query_position]
                 bases[base] += 1
 
