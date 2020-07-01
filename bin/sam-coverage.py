@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--noFilter', default=False, action='store_true',
     help=('Do not use our SAM filtering. Note that if you give this option, '
-          'any filtering option (other than --referenceIds) you also specify '
+          'any filtering option (other than --referenceId) you also specify '
           'that is provided by the SAMFilter.addFilteringOptions will be '
           'silently ignored!'))
 
