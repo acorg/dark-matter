@@ -13,7 +13,7 @@ from Bio.Data.IUPACData import (
 from dark.aa import (
     AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE)
 from dark.filter import TitleFilter
-from dark.dna import FloatBaseCounts
+from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
 
 
@@ -1511,6 +1511,36 @@ class Reads(object):
                     varSites[site] = counts
 
         return varSites
+
+    def combineReads(self):
+        """
+        Combine all reads into a single read. Reads must be of equal length.
+
+        @return: a C{str} sequence made from combining all reads.
+        """
+        reads = list(self)
+        assert len({len(read) for read in reads}) == 1
+
+        sequence = ''
+        for site in range(len(reads[0])):
+            bases = set([r.sequence[site] for r in reads])
+            if len(bases) == 1:
+                sequence += bases.pop()
+            elif (len(bases) == 2 and 'N' in bases and
+                  bases.intersection({'A', 'T', 'G', 'C'})):
+                sequence += list(bases.intersection({'A', 'T', 'G', 'C'}))[0]
+            else:
+                nucleotides = set()
+                for base in bases:
+                    nucleotides.update(AMBIGUOUS.get(base, set()))
+                try:
+                    sequence += BASES_TO_AMBIGUOUS[''.join(
+                        sorted(nucleotides))]
+                except KeyError:
+                    raise ValueError('Unknown DNA base(s): %r' %
+                                     nucleotides - set('ACGTN-'))
+
+        return sequence
 
 
 class ReadsInRAM(Reads):

@@ -1,7 +1,22 @@
-## 3.1.76 July 1, 2020
+## 3.1.79 July 1, 2020
 
 Added `--noFilter` option to `sam-coverage.py` and `sam-coverage-depth.py`
 to allow them to run faster when no special filtering is needed.
+
+## 3.1.78 May 25, 2020
+
+Added `--callHaplotypesGATK` to `bin-make-consensys.py`.
+
+## 3.1.77 May 22, 2020
+
+Added code to combine multiple sequences (see `bin/combine-sequences.py`).
+
+## 3.1.76 May 3, 2020
+
+Changed `--maskNoCoverage` to `--maskLowCoverage` in `make-consensus.py` and
+have it take an argument of the minimum coverage at which to call the
+consensus.
+>>>>>>> 0c971ce9de150ba5cd5b85f80573e78254feff36
 
 ## 3.1.75 April 27, 2020
 

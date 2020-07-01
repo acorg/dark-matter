@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import argparse
 from tempfile import mkdtemp
@@ -21,7 +22,7 @@ def main():
     parser.add_argument(
         '--bam',
         help=('The BAM file from which the consensus should be made. '
-              'Required if --maskNoCoverage is used. If no BAM file is '
+              'Required if --maskLowCoverage is used. If no BAM file is '
               'given, a VCF file must be provided. If both a BAM and a VCF '
               'file are given, the VCF file will take precedence.'))
 
@@ -58,8 +59,10 @@ def main():
         help='Do not run commands, just print what would be done.')
 
     parser.add_argument(
-        '--maskNoCoverage', default=False, action='store_true',
-        help='Put an N into sites where there is no coverage. Requires --bam.')
+        '--maskLowCoverage', default=0, type=int,
+        help=('Put an N into sites where the coverage is below the specified '
+              'cutoff. If you specify a negative numer, masking will be '
+              'turned off. Requires --bam.'))
 
     parser.add_argument(
         '--log', default=False, action='store_true',
@@ -70,6 +73,17 @@ def main():
         '--noClean', default=True, action='store_false', dest='clean',
         help=('Do not remove intermediate files or the temporary directory.'))
 
+    parser.add_argument(
+        '--callHaplotypesGATK', default=False, action='store_true',
+        help=('Use GATK to call haplotypes. See '
+              'https://gatk.broadinstitute.org for details on GATK.'))
+
+    parser.add_argument(
+        '--picardJar',
+        help=('The path to the Picard jar file. See '
+              'https://github.com/broadinstitute/picard for details on '
+              'Picard.'))
+
     args = parser.parse_args()
 
     if not (args.bam or args.vcfFile):
@@ -77,8 +91,8 @@ def main():
               file=sys.stderr)
         sys.exit(0)
 
-    if args.maskNoCoverage and not args.bam:
-        print('If --maskNoCoverage is used, --bam must be too.',
+    if args.maskLowCoverage and not args.bam:
+        print('If --maskLowCoverage is used, --bam must be too.',
               file=sys.stderr)
         sys.exit(0)
 
@@ -91,22 +105,70 @@ def main():
     else:
         # No VCF file provided, so make one.
         vcfFile = join(tempdir, 'vcf.gz')
-        e.execute("bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
-                  "bcftools call -mv -Oz -o '%s'" %
-                  (args.reference, args.bam, vcfFile))
+        if args.callHaplotypesGATK:
+            e.execute("samtools index '%s'" % args.bam)
+            if args.picardJar:
+                picardJar = args.picardJar
+            else:
+                try:
+                    picardJar = os.environ['PICARD_JAR']
+                except KeyError:
+                    print('If you use --callHaplotypesGATK, you must give a '
+                          'Picard JAR file with --picardJar or else set '
+                          'PICARD_JAR in your environment.', file=sys.stderr)
+                    sys.exit(0)
 
-        e.execute("bcftools index '%s'" % vcfFile)
+            indexFile = args.reference + '.fai'
+            if os.path.exists(indexFile):
+                removeIndex = False
+            else:
+                removeIndex = True
+                e.execute("samtools faidx '%s'" % args.reference)
 
-    if args.maskNoCoverage:
+            if args.reference.lower().endswith('.fasta'):
+                dictFile = args.reference[:-len('.fasta')] + '.dict'
+            else:
+                dictFile = args.reference + '.dict'
+
+            if os.path.exists(dictFile):
+                removeDict = False
+            else:
+                removeDict = True
+                e.execute(
+                    "java -jar '%s' CreateSequenceDictionary R='%s' O='%s'"
+                    % (picardJar, args.reference, dictFile))
+
+            e.execute(
+                'gatk --java-options -Xmx4g HaplotypeCaller '
+                "--reference '%s' "
+                "--input '%s' "
+                "--output '%s' "
+                "--sample-ploidy 1 "
+                '-ERC GVCF' %
+                (args.reference, args.bam, vcfFile))
+
+            if removeIndex:
+                e.execute("rm '%s'" % indexFile)
+
+            if removeDict:
+                e.execute("rm '%s'" % dictFile)
+        else:
+            e.execute("bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
+                      "bcftools call -mv -Oz -o '%s'" %
+                      (args.reference, args.bam, vcfFile))
+
+            e.execute("bcftools index '%s'" % vcfFile)
+
+    if args.maskLowCoverage >= 0:
         # Make a BED file.
         bedFile = join(tempdir, 'mask.bed')
         # The doubled-% below are so that Python doesn't try to fill in the
         # values and instead just generates a single % that awk sees.
         e.execute(
             "samtools depth -a '%s' | "
-            "awk '$3 == 0 {printf \"%%s\\t%%d\\t%%d\\n\", "
+            "awk '$3 < %d {printf \"%%s\\t%%d\\t%%d\\n\", "
             "$1, $2 - 1, $2}' > '%s'" %
-            (args.bam, bedFile))
+            (args.bam, args.maskLowCoverage, bedFile))
         maskArg = '--mask ' + bedFile
     else:
         maskArg = ''
