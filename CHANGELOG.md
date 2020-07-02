@@ -1,3 +1,8 @@
+## 3.1.79 July 1, 2020
+
+Added `--noFilter` option to `sam-coverage.py` and `sam-coverage-depth.py`
+to allow them to run faster when no special filtering is needed.
+
 ## 3.1.78 May 25, 2020
 
 Added `--callHaplotypesGATK` to `bin-make-consensys.py`.

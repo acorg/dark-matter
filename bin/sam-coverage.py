@@ -14,13 +14,29 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description='Print SAM/BAM file coverage statistics.')
 
+parser.add_argument(
+    '--noFilter', default=False, action='store_true',
+    help=('Do not use our SAM filtering. Note that if you give this option, '
+          'any filtering option (other than --referenceId) you also specify '
+          'that is provided by the SAMFilter.addFilteringOptions will be '
+          'silently ignored!'))
+
 addFASTAFilteringCommandLineOptions(parser)
 SAMFilter.addFilteringOptions(parser, samfileIsPositional=True)
 
 args = parser.parse_args()
 
-# We don't have a file of reads, we just want a read filter that we
-# can use to filter the SAM file query sequences.
+if args.noFilter:
+    # Do not do our custom SAM filtering.
+    def filterRead(read):
+        return True
+else:
+    def filterRead(read):
+        return (not (read.is_del or read.is_refskip) and
+                samFilter.filterAlignment(read.alignment))
+
+# We don't have a file of reads, we just want a read filter that we can use
+# to filter the SAM file query sequences and to get reference lengths from.
 reads = parseFASTAFilteringCommandLineOptions(args, Reads())
 samFilter = SAMFilter.parseFilteringOptions(args, reads.filterRead)
 
@@ -31,7 +47,7 @@ with samfile(args.samfile) as sam:
     for column in sam.pileup():
         referenceOffset = column.reference_pos
         for read in column.pileups:
-            if samFilter.filterAlignment(read.alignment):
+            if filterRead(read):
                 referenceId = read.alignment.reference_name
                 coveredOffsets[referenceId][referenceOffset] += 1
                 coveringReads[referenceId].add(read.alignment.query_name)
