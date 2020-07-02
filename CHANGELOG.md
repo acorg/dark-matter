@@ -16,7 +16,6 @@ Added code to combine multiple sequences (see `bin/combine-sequences.py`).
 Changed `--maskNoCoverage` to `--maskLowCoverage` in `make-consensus.py` and
 have it take an argument of the minimum coverage at which to call the
 consensus.
->>>>>>> 0c971ce9de150ba5cd5b85f80573e78254feff36
 
 ## 3.1.75 April 27, 2020
 
