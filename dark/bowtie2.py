@@ -245,6 +245,29 @@ class Bowtie2(object):
         if removeDict:
             self._executor.execute("rm '%s'" % dictFile)
 
+    def callHaplotypesBcftools(self, vcfFile=None, referenceFasta=None):
+        """
+        Use bcftools call to call haplotypes.
+        """
+        which = self._SAMorBAM()
+        self._report('Calling haplotypes with bcftools call.')
+
+        inFile = self._bamFile if which == 'BAM' else self._samFile
+        vcfFile = vcfFile or join(self.tempdir, 'output.vcf.gz')
+
+        if referenceFasta is None:
+            if self._reference:
+                self._report('Using %s as a reference.' % self._reference)
+                referenceFasta = self._reference
+            else:
+                raise ValueError('No reference was passed, given to the '
+                                 'Bowtie2 __init__, or used in buildIndex.')
+
+        self._executor.execute(
+            'bcftools mpileup --max-depth 5000 -Ou -f "%s" "%s" | '
+            'bcftools call --ploidy 1 -mv -Oz -o "%s"' %
+            (referenceFasta, inFile, vcfFile))
+
     def removeDuplicates(self):
         """
         Use samtools to remove marked duplicates.
