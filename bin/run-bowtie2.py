@@ -352,7 +352,7 @@ def main():
 
     parser.add_argument(
         '--noClean', default=True, action='store_false', dest='clean',
-        help=('Do not remove intermediate files or the temporary directory.'))
+        help='Do not remove intermediate files or the temporary directory.')
 
     parser.add_argument(
         '--force', default=False, action='store_true',
