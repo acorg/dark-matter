@@ -83,11 +83,11 @@ else:
 del _a
 
 
-def median(l):
+def median(numbers):
     """
     Find the median of a set of numbers.
 
-    @param l: A C{list} of numeric values.
+    @param numbers: A C{list} of numeric values.
     @raise ValueError: If C{l} is empty.
     @return: The median value in C{l}.
     """
@@ -96,12 +96,12 @@ def median(l):
     # implementations do different things. numpy returns nan, whereas Python
     # 3.4 and later raise StatisticsError
 
-    if len(l) == 0:
+    if len(numbers) == 0:
         # Match the empty-argument exception message of Python's built-in max
         # and min functions.
         raise ValueError('arg is an empty sequence')
     else:
-        return _median(l)
+        return _median(numbers)
 
 
 @contextmanager

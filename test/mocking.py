@@ -19,7 +19,8 @@ def _iterate_read_data(read_data):
     # Helper for mock_open:
     # Retrieve lines from read_data via a generator so that separate calls to
     # readline, read, and readlines are properly interleaved
-    data_as_list = ['{}\n'.format(l) for l in read_data.split('\n')]
+    data_as_list = ['{}\n'.format(element)
+                    for element in read_data.split('\n')]
 
     if data_as_list[-1] == '\n':
         # If the last line ended in a newline, the list comprehension will

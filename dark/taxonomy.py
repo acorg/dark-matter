@@ -448,8 +448,8 @@ def isRetrovirus(lineage):
     @return: C{True} if the lineage corresponds to a retrovirus, C{False}
         otherwise.
     """
-    for l in lineage:
-        if l.rank == 'family' and l.name == 'Retroviridae':
+    for element in lineage:
+        if element.rank == 'family' and element.name == 'Retroviridae':
             return True
 
     return False
@@ -463,8 +463,8 @@ def isRNAVirus(lineage):
     @return: C{True} if the lineage corresponds to an RNA virus, C{False}
         otherwise.
     """
-    for l in lineage:
-        if (l.rank, l.name) in RNA_VIRUS_LINEAGE_ELEMENTS:
+    for element in lineage:
+        if (element.rank, element.name) in RNA_VIRUS_LINEAGE_ELEMENTS:
             return True
 
     return False
@@ -494,7 +494,7 @@ def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
     """
     if namesOnly:
         # The separator is guaranteed to be set by our caller.
-        return prefix + separator.join(l.name for l in lineage)
+        return prefix + separator.join(element.name for element in lineage)
 
     if separator is not None:
         return '\n'.join(
@@ -502,9 +502,9 @@ def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
             for (taxid, name, rank) in lineage)
 
     # This is a bit slow, walking through the lineage list 3 times.
-    taxidWidth = max(len(str(l.taxid)) for l in lineage)
-    nameWidth = max(len(l.name) for l in lineage)
-    rankWidth = max(len(l.rank) for l in lineage)
+    taxidWidth = max(len(str(element.taxid)) for element in lineage)
+    nameWidth = max(len(element.name) for element in lineage)
+    rankWidth = max(len(element.rank) for element in lineage)
 
     return '\n'.join(
         '%s%-*s %-*s %*d' % (
@@ -519,11 +519,11 @@ def lineageTaxonomyLinks(lineage):
     @param lineage: An iterable of C{LineageElement} instances.
     @return: A C{list} of HTML C{str} links.
     """
-    names = [l.name for l in lineage]
+    names = [element.name for element in lineage]
     assert names[-1] == 'Viruses'
     names[0] = 'taxon'
 
-    taxids = [l.taxid for l in lineage]
+    taxids = [element.taxid for element in lineage]
 
     return [
         '<a href="%s%s">%s</a>' % (
@@ -584,7 +584,7 @@ class Hierarchy(object):
         @param lineage: An iterable of C{LineageElement} instances.
         @param genomeAccession: A C{str} pathogen accession number.
         """
-        names = [l.name for l in lineage]
+        names = [element.name for element in lineage]
 
         assert names[-1] == 'Viruses'
 
