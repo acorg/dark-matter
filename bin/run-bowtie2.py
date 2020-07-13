@@ -294,7 +294,7 @@ def main():
 
     parser.add_argument(
         '--vcfFile',
-        help=('The file to write VCF info to if --callHaplotypesGATK and '
+        help=('The file to write VCF info to if --callHaplotypesGATK or '
               '--callHaplotypesBcftools are used.'))
 
     parser.add_argument(
@@ -313,15 +313,6 @@ def main():
         help=('The path to the Picard jar file. See '
               'https://github.com/broadinstitute/picard for details on '
               'Picard.'))
-
-    parser.add_argument(
-        '--callHaplotypesGATK', default=False, action='store_true',
-        help=('Use GATK to call haplotypes. See '
-              'https://gatk.broadinstitute.org for details on GATK.'))
-
-    parser.add_argument(
-        '--callHaplotypesBcftools', default=False, action='store_true',
-        help=('Use bcftools call to call haplotypes.'))
 
     parser.add_argument(
         '--removeDuplicates', default=False, action='store_true',
@@ -370,6 +361,17 @@ def main():
     parser.add_argument(
         '--dryRun', default=False, action='store_true',
         help='Do not run commands, just print what would be done.')
+
+    haplotypeCaller = parser.add_mutually_exclusive_group()
+
+    haplotypeCaller.add_argument(
+        '--callHaplotypesGATK', default=False, action='store_true',
+        help=('Use GATK to call haplotypes. See '
+              'https://gatk.broadinstitute.org for details on GATK.'))
+
+    haplotypeCaller.add_argument(
+        '--callHaplotypesBcftools', default=False, action='store_true',
+        help='Use bcftools call to call haplotypes.')
 
     args = parser.parse_args()
 
