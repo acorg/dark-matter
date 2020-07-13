@@ -105,6 +105,13 @@ def processMatch(args, e):
                           file=sys.stderr)
                     sys.exit(1)
 
+    if args.callHaplotypesBcftools:
+        if args.vcfFile:
+            if exists(args.vcfFile) and not args.force:
+                print('Will not overwrite pre-existing VCF file %r. '
+                      'Use --force to make me.' % filename, file=sys.stderr)
+                sys.exit(1)
+
     bt2.align(bowtie2Args=args.bowtie2Args, fastq1=fastq1, fastq2=fastq2)
 
     if args.bam:
@@ -129,6 +136,11 @@ def processMatch(args, e):
         bt2.indexBAM()
         bt2.callHaplotypesGATK(picardJar=picardJar, vcfFile=args.vcfFile,
                                referenceFasta=args.reference)
+
+    if args.callHaplotypesBcftools:
+        bt2.indexBAM()
+        bt2.callHaplotypesBcftools(vcfFile=args.vcfFile,
+                                   referenceFasta=args.reference)
 
     if args.bam and args.indexBAM:
         bt2.indexBAM()
@@ -276,13 +288,14 @@ def main():
 
     parser.add_argument(
         '--reference',
-        help=('The reference FASTA file for use with --callHaplotypesGATK. '
-              'This will be used to build a Bowtie2 index if --index is not '
-              'given.'))
+        help=('The reference FASTA file for use with --callHaplotypesGATK and '
+              '--callHaplotypesBcftools. This will be used to build a Bowtie2 '
+              'index if --index is not given.'))
 
     parser.add_argument(
         '--vcfFile',
-        help='The file to write VCF info to if --callHaplotypesGATK is used')
+        help=('The file to write VCF info to if --callHaplotypesGATK and '
+              '--callHaplotypesBcftools are used.'))
 
     parser.add_argument(
         '--markDuplicatesGATK', default=False, action='store_true',
@@ -305,6 +318,10 @@ def main():
         '--callHaplotypesGATK', default=False, action='store_true',
         help=('Use GATK to call haplotypes. See '
               'https://gatk.broadinstitute.org for details on GATK.'))
+
+    parser.add_argument(
+        '--callHaplotypesBcftools', default=False, action='store_true',
+        help=('Use bcftools call to call haplotypes.'))
 
     parser.add_argument(
         '--removeDuplicates', default=False, action='store_true',

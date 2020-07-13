@@ -154,7 +154,7 @@ def main():
                 e.execute("rm '%s'" % dictFile)
         else:
             e.execute("bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
-                      "bcftools call -mv -Oz -o '%s'" %
+                      "bcftools call --ploidy 1 -mv -Oz -o '%s'" %
                       (args.reference, args.bam, vcfFile))
 
             e.execute("bcftools index '%s'" % vcfFile)
