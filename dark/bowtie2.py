@@ -268,6 +268,8 @@ class Bowtie2(object):
             'bcftools call --ploidy 1 -mv -Oz -o "%s"' %
             (referenceFasta, inFile, vcfFile))
 
+        self._executor.execute('bcftools index %s' % vcfFile)
+
     def removeDuplicates(self):
         """
         Use samtools to remove marked duplicates.
