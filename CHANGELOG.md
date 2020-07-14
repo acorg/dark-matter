@@ -1,3 +1,7 @@
+## 3.1.82 July 14, 2020
+
+Added indexing to `callHaplotypesBcftools` in `bowtie2.py`.
+
 ## 3.1.81 July 13, 2020
 
 Fixed errors from new version of flake8.
