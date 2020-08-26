@@ -62,5 +62,5 @@ for referenceId in sorted(referenceLengths):
           (referenceId, referenceLength, len(coveringReads[referenceId]),
            offsetsCovered, offsetsCovered / referenceLength * 100.0,
            sum(coveredOffsets[referenceId].values()) / referenceLength,
-           min(coveredOffsets[referenceId].values()),
-           max(coveredOffsets[referenceId].values())))
+           min(coveredOffsets[referenceId].values(), default=0),
+           max(coveredOffsets[referenceId].values(), default=0)))
