@@ -9,7 +9,7 @@ import requests
 # for URL format details.
 
 URL = ('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?'
-       'db=%(database)s&id=%(id)s&rettype=fasta&retmode=text')
+       'db=%s&id=%s&rettype=fasta&retmode=text')
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -26,5 +26,5 @@ parser.add_argument(
 args = parser.parse_args()
 
 print(requests.get(
-    URL % {'database': args.database, 'id': args.id}
+    URL % (args.database, args.id)
 ).text.rstrip('\n'))
