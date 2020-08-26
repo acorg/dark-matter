@@ -58,7 +58,9 @@ for referenceId in sorted(referenceLengths):
     offsetsCovered = len(coveredOffsets[referenceId])
     referenceLength = referenceLengths[referenceId]
     print('%s: length %d, covering reads %d, covered sites %d (%.4f%%), '
-          'coverage depth %.4f' %
+          'mean coverage depth %.4f (min: %d, max: %d)' %
           (referenceId, referenceLength, len(coveringReads[referenceId]),
            offsetsCovered, offsetsCovered / referenceLength * 100.0,
-           sum(coveredOffsets[referenceId].values()) / referenceLength))
+           sum(coveredOffsets[referenceId].values()) / referenceLength,
+           min(coveredOffsets[referenceId].values()),
+           max(coveredOffsets[referenceId].values())))

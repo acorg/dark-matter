@@ -1,3 +1,7 @@
+## 3.1.83 August 26, 2020
+
+`sam-coverage.py` now prints the min and max coverage per alignment too.
+
 ## 3.1.82 July 14, 2020
 
 Added indexing to `callHaplotypesBcftools` in `bowtie2.py`.
