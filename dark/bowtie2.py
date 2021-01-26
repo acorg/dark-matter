@@ -156,6 +156,17 @@ class Bowtie2(object):
                 '-n ' if byName else '', inFile, sortedFile))
         self._executor.execute("mv '%s' '%s'" % (sortedFile, inFile))
 
+    def removePrimers(self, bedFile):
+        """
+        Removes the primers specified in the bed file using iVar
+        """
+        assert self._bamExists, 'cannot remove Primers without an existing bam file'
+        self._report("removing primers specified in %s" % bedFile)
+        self._executor.execute(
+            "ivar trim -b %s -p result-trimmed -i %s -q 20 -m 30 -s 4" %
+            (bedFile, self._bamFile))
+        self._executor.execute("mv '%s' '%s'" % ("result-trimmed.bam", self._bamFile))
+
     def markDuplicatesPicard(self, picardFile):
         """
         Use Picard to mark duplicates.
