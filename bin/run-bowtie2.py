@@ -118,8 +118,13 @@ def processMatch(args, e):
         bt2.makeBAM(args.samtoolsViewArgs)
 
     if args.sort and not (
-            args.markDuplicatesPicard or args.markDuplicatesGATK):
+            args.markDuplicatesPicard or args.markDuplicatesGATK
+            or args.removePrimersFromBedFile):
         bt2.sort()
+
+    if args.removePrimersFromBedFile:
+        bt2.sort()
+        bt2.removePrimers(args.removePrimersFromBedFile)
 
     if args.markDuplicatesPicard:
         bt2.sort()
@@ -372,6 +377,11 @@ def main():
     haplotypeCaller.add_argument(
         '--callHaplotypesBcftools', default=False, action='store_true',
         help='Use bcftools call to call haplotypes.')
+
+    parser.add_argument(
+        '--removePrimersFromBedFile',
+        help=('If a bed file with Primers is specified, the Primers '
+              'will be soft-clipped from the bam file using iVar'))
 
     args = parser.parse_args()
 

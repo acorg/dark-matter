@@ -1,3 +1,7 @@
+## 3.1.84 January 27, 2021
+
+Added an option to trim primers using <b>ivar trim</b> to `run-bowtie2.py`
+
 ## 3.1.83 August 26, 2020
 
 `sam-coverage.py` now prints the min and max coverage per alignment too.
