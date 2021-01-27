@@ -158,7 +158,7 @@ class Bowtie2(object):
 
     def removePrimers(self, bedFile):
         """
-        Removes primers specified in the bed file using iVar from the bam file
+        Removes primers specified in the bed file
         """
         which = self._SAMorBAM()
 
