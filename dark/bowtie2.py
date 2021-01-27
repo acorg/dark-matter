@@ -167,9 +167,9 @@ class Bowtie2(object):
 
         self._report("removing primers specified in %s" % bedFile)
         self._executor.execute(
-            "ivar trim -b %s -p result-trimmed -i %s -q 20 -m 30 -s 4" %
+            "ivar trim -b %s -p result-trimmed -i %s -q 20 -m 30 -s 4 -e" %
             (bedFile, self._bamFile))
-        self._executor.execute("mv '%s' '%s'" % ("result-trimmed.bam", self._bamFile))
+        self._executor.execute("mv result-trimmed.bam '%s'" % self._bamFile)
 
     def markDuplicatesPicard(self, picardFile):
         """
