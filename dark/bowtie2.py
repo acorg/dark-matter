@@ -158,9 +158,13 @@ class Bowtie2(object):
 
     def removePrimers(self, bedFile):
         """
-        Removes the primers specified in the bed file using iVar
+        Removes primers specified in the bed file using iVar from the bam file
         """
-        assert self._bamExists, 'cannot remove Primers without an existing bam file'
+        which = self._SAMorBAM()
+
+        if which != 'BAM':
+            raise ValueError('makeBAM() has not yet been called.')
+
         self._report("removing primers specified in %s" % bedFile)
         self._executor.execute(
             "ivar trim -b %s -p result-trimmed -i %s -q 20 -m 30 -s 4" %
