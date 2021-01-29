@@ -251,7 +251,7 @@ class Bowtie2(object):
             "--input '%s' "
             "--output '%s' "
             "--sample-ploidy 1 "
-            "--dont-use-soft-clipped-bases true"
+            "--dont-use-soft-clipped-bases true "
             '-ERC GVCF' %
             (referenceFasta, inFile, vcfFile))
 
