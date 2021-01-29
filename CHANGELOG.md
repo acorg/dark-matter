@@ -1,6 +1,11 @@
+## 3.1.85 January 29, 2021
+
+Added `--removePrimersFromBedFile` option to `run-bowtie2.py`. Fixed small
+bug in `codon-distance.py`.
+
 ## 3.1.84 January 27, 2021
 
-Added an option to trim primers using <b>ivar trim</b> to `run-bowtie2.py`
+Added an option to trim primers using <b>ivar trim</b> to `run-bowtie2.py`.
 
 ## 3.1.83 August 26, 2020
 

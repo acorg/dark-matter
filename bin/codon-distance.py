@@ -31,8 +31,8 @@ if len(sys.argv) != 3:
     print('Usage: %s amino_acid amino_acid' % sys.argv[0], file=sys.stderr)
     sys.exit(1)
 else:
-    aa1 = findOrDie(sys.argv[1])
-    aa2 = findOrDie(sys.argv[2])
+    (aa1,) = findOrDie(sys.argv[1])
+    (aa2,) = findOrDie(sys.argv[2])
 
     distances = codonInformation(aa1.codons, aa2.codons)
     print('Codons:')

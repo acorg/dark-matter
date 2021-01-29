@@ -105,6 +105,7 @@ scripts = [
     'bin/subset-protein-database.py',
     'bin/summarize-fasta-bases.py',
     'bin/summarize-reads.py',
+    'bin/translate.py',
     'bin/trim-primers.py',
     'bin/trim-reads.py',
     'bin/write-htcondor-job-spec.py',
@@ -115,7 +116,8 @@ setup(name='dark-matter',
       packages=['dark', 'dark.blast', 'dark.diamond', 'dark.civ'],
       url='https://github.com/acorg/dark-matter',
       download_url='https://github.com/acorg/dark-matter',
-      author='Terry Jones, Barbara Muehlemann, Tali Veith, Sophie Mathias',
+      author=('Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, '
+              'Udo Gieraths'),
       author_email='tcj25@cam.ac.uk',
       keywords=['virus discovery'],
       classifiers=[
