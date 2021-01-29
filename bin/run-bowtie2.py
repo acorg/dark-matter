@@ -118,8 +118,9 @@ def processMatch(args, e):
         bt2.makeBAM(args.samtoolsViewArgs)
 
     if args.sort and not (
-            args.markDuplicatesPicard or args.markDuplicatesGATK
-            or args.removePrimersFromBedFile):
+            args.markDuplicatesPicard or
+            args.markDuplicatesGATK or
+            args.removePrimersFromBedFile):
         bt2.sort()
 
     if args.removePrimersFromBedFile:
