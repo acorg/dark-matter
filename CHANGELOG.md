@@ -1,3 +1,8 @@
+## 3.2.0 January 31, 2021
+
+Dropped the `FastaFaiIndex` class. Use `SqliteIndex` instead. Fixed two
+skipped Python 3 tests (for gzipped and bz2'd file reading).
+
 ## 3.1.86 January 31, 2021
 
 Fixed two failing tests due to changed DIAMOND (version 2.0.6) bitscore

@@ -11,18 +11,6 @@ class TestLocalAlign(TestCase):
     With match +1, mismatch -1, gap open -1, gap extend -1 and
         gap extend decay 0.0.
     """
-
-    def testNonDNAString(self):
-        """
-        If the sequences do not consist of nucleotides, an exception
-        must be raised.
-        """
-        self.skipTest('Non-DNA raising of ValueError is disabled.')
-        seq1 = Read('seq1', 'xxx')
-        seq2 = Read('seq2', 'yyy')
-        six.assertRaisesRegex(self, ValueError, 'Invalid DNA nucleotide: "X"',
-                              LocalAlignment, seq1, seq2)
-
     def testPositiveMismatch(self):
         """
         If the mismatch value passed is positive, an exception
