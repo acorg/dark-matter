@@ -62,7 +62,7 @@ class TestDiamondExecutor(TestCase):
 
         self.assertEqual(
             {
-                'bitscore': 40.8,
+                'bitscore': 40.0,
                 'btop': '11AN5ST',
                 'qframe': -2,
                 'qend': 3,
@@ -96,7 +96,7 @@ class TestDiamondExecutor(TestCase):
 
         self.assertEqual(
             {
-                'bitscore': 83.6,
+                'bitscore': 82.4,
                 'btop': '40',
                 'qframe': 1,
                 'qend': 120,
