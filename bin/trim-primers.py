@@ -5,7 +5,6 @@ from __future__ import print_function
 import sys
 from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
 from dark.sequence import findPrimerBidiLimits
 
 
@@ -53,5 +52,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    trimPrimers(Seq(args.primer.upper(), IUPAC.unambiguous_dna),
-                args.verbose)
+    trimPrimers(Seq(args.primer.upper()), args.verbose)

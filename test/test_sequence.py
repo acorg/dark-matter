@@ -1,7 +1,6 @@
 from unittest import TestCase
 from dark.sequence import findPrimer, findPrimerBidi, findPrimerBidiLimits
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
 
 
 class TestFindPrimer(TestCase):
@@ -13,7 +12,7 @@ class TestFindPrimer(TestCase):
         """
         If a primer is not found, the empty list must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual([], findPrimer('BLAH', seq))
 
     def testFoundAtStart(self):
@@ -21,7 +20,7 @@ class TestFindPrimer(TestCase):
         If a primer is found at the start of a sequence, a list containing 0
         must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual([0], findPrimer('AC', seq))
 
     def testFoundAtEnd(self):
@@ -29,7 +28,7 @@ class TestFindPrimer(TestCase):
         If a primer is found at the end of a sequence, the correct value
         must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual([2], findPrimer('GT', seq))
 
     def testFoundMultiple(self):
@@ -37,7 +36,7 @@ class TestFindPrimer(TestCase):
         If a primer is found multiple times, the correct value
         must be returned.
         """
-        seq = Seq('ACGTACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGTACGT')
         self.assertEqual([0, 4], findPrimer('ACG', seq))
 
     def testOverlapping(self):
@@ -45,7 +44,7 @@ class TestFindPrimer(TestCase):
         If a primer is present twice but is overlapping, only the first
         instance should be returned.
         """
-        seq = Seq('GAAA', IUPAC.unambiguous_dna)
+        seq = Seq('GAAA')
         self.assertEqual([1], findPrimer('AA', seq))
 
 
@@ -58,7 +57,7 @@ class TestFindPrimerBidi(TestCase):
         """
         If a primer is not found, empty lists must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual(([], []), findPrimerBidi('BLAH', seq))
 
     def testFoundStartEnd(self):
@@ -67,7 +66,7 @@ class TestFindPrimerBidi(TestCase):
         the forward sequence, end of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual(([0], [2]), findPrimerBidi('AC', seq))
 
     def testFoundEndStart(self):
@@ -76,7 +75,7 @@ class TestFindPrimerBidi(TestCase):
         the forward sequence, start of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual(([2], [0]), findPrimerBidi('GT', seq))
 
     def testFoundMultiple(self):
@@ -84,7 +83,7 @@ class TestFindPrimerBidi(TestCase):
         If a primer is found multiple times, the correct value
         must be returned.
         """
-        seq = Seq('ACGTACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGTACGT')
         self.assertEqual(([0, 4], [1, 5]), findPrimerBidi('ACG', seq))
 
     def testOverlappingForwards(self):
@@ -92,7 +91,7 @@ class TestFindPrimerBidi(TestCase):
         If a primer is present twice forwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GAAA', IUPAC.unambiguous_dna)
+        seq = Seq('GAAA')
         self.assertEqual(([1], []), findPrimerBidi('AA', seq))
 
     def testOverlappingBackwards(self):
@@ -100,7 +99,7 @@ class TestFindPrimerBidi(TestCase):
         If a primer is present twice backwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GTTT', IUPAC.unambiguous_dna)
+        seq = Seq('GTTT')
         self.assertEqual(([], [1]), findPrimerBidi('AA', seq))
 
 
@@ -114,7 +113,7 @@ class TestFindPrimerBidiLimits(TestCase):
         If a primer is not found, the returned offsets must include
         the whole sequence.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual((0, 4), findPrimerBidiLimits('BLAH', seq))
 
     def testFoundStartEnd(self):
@@ -123,7 +122,7 @@ class TestFindPrimerBidiLimits(TestCase):
         the forward sequence, end of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual((2, 2), findPrimerBidiLimits('AC', seq))
 
     def testFoundEndStart(self):
@@ -132,7 +131,7 @@ class TestFindPrimerBidiLimits(TestCase):
         the forward sequence, start of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGT')
         self.assertEqual((4, 4), findPrimerBidiLimits('GT', seq))
 
     def testFoundMultiple(self):
@@ -140,7 +139,7 @@ class TestFindPrimerBidiLimits(TestCase):
         If a primer is found multiple times, the correct value
         must be returned.
         """
-        seq = Seq('ACGTACGT', IUPAC.unambiguous_dna)
+        seq = Seq('ACGTACGT')
         self.assertEqual((7, 8), findPrimerBidiLimits('ACG', seq))
 
     def testOverlappingForwards(self):
@@ -148,7 +147,7 @@ class TestFindPrimerBidiLimits(TestCase):
         If a primer is present twice forwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GAAA', IUPAC.unambiguous_dna)
+        seq = Seq('GAAA')
         self.assertEqual((3, 4), findPrimerBidiLimits('AA', seq))
 
     def testOverlappingBackwards(self):
@@ -156,7 +155,7 @@ class TestFindPrimerBidiLimits(TestCase):
         If a primer is present twice backwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GTTT', IUPAC.unambiguous_dna)
+        seq = Seq('GTTT')
         self.assertEqual((0, 1), findPrimerBidiLimits('AA', seq))
 
     def testLonger(self):
@@ -166,6 +165,5 @@ class TestFindPrimerBidiLimits(TestCase):
         seq = Seq('AAAAAAAAAA'
                   'GGGGGGGGGG'
                   'AAAAAAAAAA'
-                  'AAAAAAAAAA',
-                  IUPAC.unambiguous_dna)
+                  'AAAAAAAAAA')
         self.assertEqual((20, 40), findPrimerBidiLimits('GGGGGGGGGG', seq))
