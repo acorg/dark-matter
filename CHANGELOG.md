@@ -1,4 +1,8 @@
-## 3.1.87 January 29, 2021
+## 3.1.88 February 02, 2021
+
+Another attempt to fix the bug in bowtie2 that was introduced by adding the `--removePrimersFromBedFile` option to `run-bowtie2.py`.
+
+## 3.1.87 February 02, 2021
 
 Fixed bug in bowtie2 that was introduced by adding the `--removePrimersFromBedFile` option to `run-bowtie2.py`.
 
