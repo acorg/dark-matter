@@ -1,3 +1,7 @@
+## 3.1.87 January 29, 2021
+
+Fixed bug in bowtie2 that was introduced by adding the `--removePrimersFromBedFile` option to `run-bowtie2.py`.
+
 ## 3.1.86 January 31, 2021
 
 Fixed two failing tests due to changed DIAMOND (version 2.0.6) bitscore
