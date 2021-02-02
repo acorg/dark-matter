@@ -170,7 +170,8 @@ class Bowtie2(object):
         self._executor.execute(
             "ivar trim -b '%s' -p '%s' -i '%s' -q 20 -m 30 -s 4 -e" %
             (bedFile, tempTrimmedBam, self._bamFile))
-        self._executor.execute("mv '%s' '%s'" % (tempTrimmedBam, self._bamFile))
+        self._executor.execute("mv '%s'.bam '%s'" %
+                               (tempTrimmedBam, self._bamFile))
 
     def markDuplicatesPicard(self, picardFile):
         """
