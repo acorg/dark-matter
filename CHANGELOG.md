@@ -3,6 +3,16 @@
 Dropped the `FastaFaiIndex` class. Use `SqliteIndex` instead. Fixed two
 skipped Python 3 tests (for gzipped and bz2'd file reading).
 
+## 3.1.88 February 02, 2021
+
+Another attempt to fix the bug in bowtie2 that was introduced by adding the
+`--removePrimersFromBedFile` option to `run-bowtie2.py`.
+
+## 3.1.87 February 02, 2021
+
+Fixed bug in bowtie2 that was introduced by adding the
+`--removePrimersFromBedFile` option to `run-bowtie2.py`.
+
 ## 3.1.86 January 31, 2021
 
 Fixed two failing tests due to changed DIAMOND (version 2.0.6) bitscore

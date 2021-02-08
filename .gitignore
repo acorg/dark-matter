@@ -4,6 +4,7 @@
 *.so
 .tox
 .DS_Store
+.idea
 _trial_temp
 __pycache__
 build

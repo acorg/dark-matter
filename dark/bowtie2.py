@@ -166,10 +166,12 @@ class Bowtie2(object):
             raise ValueError('makeBAM() has not yet been called.')
 
         self._report("removing primers specified in %s" % bedFile)
+        tempTrimmedBamPrefix = "%s.trimmed" % self._bamFile
         self._executor.execute(
-            "ivar trim -b %s -p result-trimmed -i %s -q 20 -m 30 -s 4 -e" %
-            (bedFile, self._bamFile))
-        self._executor.execute("mv result-trimmed.bam '%s'" % self._bamFile)
+            "ivar trim -b '%s' -p '%s' -i '%s' -q 20 -m 30 -s 4 -e" %
+            (bedFile, tempTrimmedBamPrefix, self._bamFile))
+        self._executor.execute("mv '%s'.bam '%s'" %
+                               (tempTrimmedBamPrefix, self._bamFile))
 
     def markDuplicatesPicard(self, picardFile):
         """
