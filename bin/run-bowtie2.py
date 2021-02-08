@@ -17,11 +17,13 @@ DEFAULT_SAMTOOLS_VIEW_FLAGS = (
     pysam.FUNMAP | pysam.FSECONDARY | pysam.FDUP | pysam.FSUPPLEMENTARY)
 
 
-def saveStdin(args):
+def saveStdin(args, e):
     if os.isatty(0):
         print('Reading sequences to match against from stdin.',
               file=sys.stderr)
     dirname = mkdtemp(prefix='run-bt2-stdin-', dir=args.tempdir)
+    if args.tmpChmod:
+        e.execute(f'chmod {args.tmpChmod} {dirname}')
     filename = join(dirname, 'stdin.fastq')
     count = 0
 
@@ -77,7 +79,7 @@ def processMatch(args, e):
     if args.fastq1:
         stdinDir, fastq1, fastq2 = None, args.fastq1, args.fastq2
     else:
-        stdinDir, fastq1 = saveStdin(args)
+        stdinDir, fastq1 = saveStdin(args, e)
         fastq2 = None
 
     if args.out:
@@ -189,7 +191,7 @@ def processOneIgnore(args, index, count, tempdir, e):
         threads=(multiprocessing.cpu_count() if args.threads is None
                  else args.threads),
         verboseFp=(sys.stderr if args.verbose else None),
-        dryRun=args.dryRun, tempdir=tempdir)
+        dryRun=args.dryRun, tempdir=tempdir, tmpChmod=args.tmpChmod)
 
     bt2.buildIndex(index)
 
@@ -232,8 +234,13 @@ def processIgnores(args, e):
     """
     Ignore the indices in args.ignoredIndices
     """
-    tempdir = '/tmp/ignores' if e.dryRun else mkdtemp(
-        prefix='bt2-ignores-', dir=args.tempdir)
+    if e.dryRun:
+        tempdir = '/tmp/ignores'
+    else:
+        tempdir = mkdtemp(prefix='bt2-ignores-', dir=args.tempdir)
+        if args.tmpChmod:
+            e.execute(f'chmod {args.tmpChmod} {tempdir}')
+
     for count, ignoreIndex in enumerate(args.ignoredIndices):
         processOneIgnore(args, ignoreIndex, count, tempdir, e)
     return tempdir
@@ -319,6 +326,12 @@ def main():
         help=('The path to the Picard jar file. See '
               'https://github.com/broadinstitute/picard for details on '
               'Picard.'))
+
+    parser.add_argument(
+        '--tmpChmod',
+        help=('A chmod string for setting the permission on the temporary '
+              'directory created. This will be passed to chmod(1), so you '
+              'could specify "g+rwx", for example.'))
 
     parser.add_argument(
         '--removeDuplicates', default=False, action='store_true',

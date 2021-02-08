@@ -1,3 +1,9 @@
+## 3.2.1 February 8, 2021
+
+Added warning when `--removeDuplicatesUseMD5` is used without one of
+`--removeDuplicates` or `--removeDuplicatesById`. Added `--chmod` option to
+`run-bowtie2.py`.
+
 ## 3.2.0 January 31, 2021
 
 Dropped the `FastaFaiIndex` class. Use `SqliteIndex` instead. Fixed two

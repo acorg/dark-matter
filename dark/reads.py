@@ -965,13 +965,19 @@ class ReadFilter(object):
         self.maxNFraction = maxNFraction
         self.removeGaps = removeGaps
         self.head = head
-        self.removeDuplicates = removeDuplicates
-        self.removeDuplicatesById = removeDuplicatesById
-        self.removeDuplicatesUseMD5 = removeDuplicatesUseMD5
         self.removeDescriptions = removeDescriptions
         self.modifier = modifier
         self.randomSubset = randomSubset
         self.trueLength = trueLength
+
+        if removeDuplicatesUseMD5 and not (
+                removeDuplicates or removeDuplicatesById):
+            raise ValueError(
+                'If you specify removeDuplicatesUseMD5, you need to also use '
+                'one of removeDuplicates or removeDuplicatesById.')
+        self.removeDuplicates = removeDuplicates
+        self.removeDuplicatesById = removeDuplicatesById
+        self.removeDuplicatesUseMD5 = removeDuplicatesUseMD5
 
         if keepSequences and removeSequences:
             raise ValueError(

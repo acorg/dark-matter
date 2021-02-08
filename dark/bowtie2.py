@@ -13,10 +13,15 @@ class Bowtie2(object):
     """
 
     def __init__(self, executor=None, threads=None, verboseFp=None,
-                 dryRun=False, reference=None, tempdir=None):
+                 dryRun=False, reference=None, tempdir=None,
+                 tmpChmod=None):
         self._executor = executor or Executor(dryRun)
-        self.tempdir = (tempdir or '/tmp/xxx') if dryRun else mkdtemp(
-            prefix='bt2-', dir=tempdir)
+        if dryRun:
+            self.tempdir = (tempdir or '/tmp/xxx')
+        else:
+            self.tempdir = mkdtemp(prefix='bt2-', dir=tempdir)
+            if tmpChmod:
+                executor.execute(f'chmod {tmpChmod} {self.tempdir}')
         self._samFile = join(self.tempdir, 'result.sam')
         self._bamFile = join(self.tempdir, 'result.bam')
         self._indexFile = join(self.tempdir, 'index')
