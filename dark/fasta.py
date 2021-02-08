@@ -4,7 +4,6 @@ import sqlite3
 import os
 
 from Bio import SeqIO, bgzf
-from pyfaidx import Fasta
 
 from dark.reads import Reads, DNARead
 from dark.utils import asHandle
@@ -129,56 +128,6 @@ class FastaReads(Reads):
                         read = self._readClass(seq.description, str(seq.seq))
                         yield read
                         count += 1
-
-
-class FastaFaiReads(Reads):
-    """
-    Subclass of L{dark.reads.Reads} that provides dictionary-like access to
-    FASTA reads using the pyfaidx module.
-
-    @param filename: The C{str} name of a file containing FASTA. This may be an
-        uncompressed file or one that has been compressed with bgzip (from
-        the samtools suite).
-        # The pyfaidx module will create an identically named FASTA index file
-        # with an additional ".fai" extension. An .fai file can also be made
-        # (if desired) with 'samtools faidx' or the 'faidx' command installed
-        # by pyfaidx. If you use the latter, you can preserve full sequence
-        # titles via '-e "lambda x: x".
-    @param readClass: The class of read that should be yielded by iter.
-    @param upperCase: If C{True}, read sequences will be converted to upper
-        case.
-    """
-    def __init__(self, filename, readClass=DNARead, upperCase=False):
-        self._filename = filename
-        self._fasta = Fasta(filename)
-        self._readClass = readClass
-        # TODO: It would be better if upperCase were an argument that could
-        # be passed to Reads.__init__ and that could do the uppercasing in
-        # its add method (as opposed to using it below in our iter method).
-        # In that case, in the iter of this class we'd call self.add on
-        # each of the sequences coming from self._file. Or, if we'd already
-        # read the file we'd return Reads.iter(self) to re-iterate over the
-        # sequences already added from the file.
-        self._upperCase = upperCase
-        if PY3:
-            super().__init__()
-        else:
-            Reads.__init__(self)
-
-    def iter(self):
-        """
-        Iterate over the sequences in the files in self.files_, yielding each
-        as an instance of the desired read class.
-        """
-        if self._upperCase:
-            for id_ in self._fasta:
-                yield self._readClass(id_, str(self._fasta[id_]).upper())
-        else:
-            for id_ in self._fasta:
-                yield self._readClass(id_, str(self._fasta[id_]))
-
-    def __getitem__(self, id_):
-        return self._readClass(str(id_), str(self._fasta[id_]))
 
 
 def combineReads(filename, sequences, readClass=DNARead,

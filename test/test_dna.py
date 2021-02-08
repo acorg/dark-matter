@@ -1,12 +1,16 @@
 import six
 from unittest import TestCase
 
-from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
-
 from dark.dna import (
     AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString,
     findKozakConsensus, FloatBaseCounts, sequenceToRegex)
 from dark.reads import Read, DNARead, DNAKozakRead
+
+# The following are the letters that used to be on
+# from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
+# IUPACAmbiguousDNA.letters
+# But Bio.Alphabet is now deprecated and will be removed.
+AMBIGUOUS_DNA_LETTERS = 'GATCRYWSMKHBVDN'
 
 
 class TestAmbiguousLetters(TestCase):
@@ -17,7 +21,7 @@ class TestAmbiguousLetters(TestCase):
         """
         The ambiguous DNA letters must match those given by IUPAC.
         """
-        self.assertEqual(sorted(IUPACAmbiguousDNA.letters), sorted(AMBIGUOUS))
+        self.assertEqual(sorted(AMBIGUOUS_DNA_LETTERS), sorted(AMBIGUOUS))
 
     def testExpectedLengthOne(self):
         """
@@ -31,7 +35,7 @@ class TestAmbiguousLetters(TestCase):
         The ambiguous DNA letters must be in sets of size greater than one
         and less than 5.
         """
-        for base in set(IUPACAmbiguousDNA.letters) - set('ACGT'):
+        for base in set(AMBIGUOUS_DNA_LETTERS) - set('ACGT'):
             self.assertTrue(5 > len(AMBIGUOUS[base]) > 1)
 
     def testAmbiguousLettersAreAllACGT(self):
