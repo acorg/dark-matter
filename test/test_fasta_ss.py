@@ -3,11 +3,9 @@ from six.moves import builtins
 from unittest import TestCase
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
-
-from .mocking import mockOpen
 
 from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
@@ -24,8 +22,7 @@ class TestSSFastaReads(TestCase):
         An empty PDB FASTA file results in an empty iterator.
         """
         data = ''
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = SSFastaReads(data)
             self.assertEqual([], list(reads))
 
@@ -36,8 +33,7 @@ class TestSSFastaReads(TestCase):
         """
         data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--',
                           '>seq2', 'REAA'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             error = ("^Structure file 'x.fasta' has an odd number of "
                      "records\\.$")
             six.assertRaisesRegex(self, ValueError, error, list,
@@ -50,8 +46,7 @@ class TestSSFastaReads(TestCase):
         """
         data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--',
                           '>seq2', 'REAA', '>str2', 'HH'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             error = (
                 "Sequence 'seq2' length \\(4\\) is not equal to structure "
                 "'str2' length \\(2\\) in input file 'x\\.fasta'\\.$")
@@ -63,8 +58,7 @@ class TestSSFastaReads(TestCase):
         A PDB FASTA file with one read must be read properly.
         """
         data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data))
             self.assertEqual([SSAARead('seq1', 'REDD', 'HH--')], reads)
 
@@ -73,8 +67,7 @@ class TestSSFastaReads(TestCase):
         A PDB FASTA file read must not have any quality information.
         """
         data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data))
             self.assertIs(None, reads[0].quality)
 
@@ -85,8 +78,7 @@ class TestSSFastaReads(TestCase):
         """
         data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--',
                           '>seq2', 'REAA', '>str2', 'HHEE'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data))
             self.assertEqual(2, len(reads))
             self.assertEqual([SSAARead('seq1', 'REDD', 'HH--'),
@@ -99,8 +91,7 @@ class TestSSFastaReads(TestCase):
         are instances of SSAARead.
         """
         data = '\n'.join(['>seq1', 'REDD', '>str1', 'HH--'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data))
             self.assertTrue(isinstance(reads[0], SSAARead))
 
@@ -114,8 +105,7 @@ class TestSSFastaReads(TestCase):
                 pass
 
         data = '\n'.join(['>seq1', 'RRRR', '>str1', 'HHHH'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data, readClass=ReadClass))
             self.assertTrue(isinstance(reads[0], ReadClass))
 
@@ -125,8 +115,7 @@ class TestSSFastaReads(TestCase):
         case if requested.
         """
         data = '\n'.join(['>seq1', 'rrrff', '>str1', 'hheeh'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data, upperCase=True))
             self.assertEqual([SSAARead('seq1', 'RRRFF', 'HHEEH')], reads)
 
@@ -136,8 +125,7 @@ class TestSSFastaReads(TestCase):
         upper case if the conversion is not requested.
         """
         data = '\n'.join(['>seq1', 'rrFF', '>str1', 'HHee'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(SSFastaReads(data))
             self.assertEqual([SSAARead('seq1', 'rrFF', 'HHee')], reads)
 

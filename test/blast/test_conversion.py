@@ -2,11 +2,9 @@ from six.moves import builtins
 from unittest import TestCase
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
-
-from ..mocking import mockOpen
 
 from json import dumps
 
@@ -146,8 +144,8 @@ class TestXMLRecordsReader(TestCase):
         When a BLAST XML file has been read, its parameters must be present
         in the reader instance. We only test a subset of the parameters.
         """
-        mockOpener = mockOpen(read_data=RECORD)
-        with patch.object(builtins, 'open', mockOpener):
+        data = RECORD
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reader = XMLRecordsReader('file.xml')
             list(reader.records())
             self.assertEqual('BLASTN', reader.params['application'])
@@ -158,7 +156,7 @@ class TestXMLRecordsReader(TestCase):
         Test conversion of a chunk of BLAST XML. This is highly incomplete
         in what it tests.
         """
-        mockOpener = mockOpen(read_data=RECORD)
+        mockOpener = mock_open(read_data=RECORD)
         with patch.object(builtins, 'open', mockOpener):
             reader = XMLRecordsReader('file.xml')
             record1, record2 = list(reader.records())
@@ -401,7 +399,7 @@ class TestJSONRecordsReader(TestCase):
         """
         A JSONRecordsReader must return the expected number of read alignments.
         """
-        mockOpener = mockOpen(read_data=JSON)
+        mockOpener = mock_open(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(self.READS))
@@ -434,7 +432,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON)
+        mockOpener = mock_open(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             readAlignments = list(reader.readAlignments(reads))
@@ -444,7 +442,7 @@ class TestJSONRecordsReader(TestCase):
         """
         The identity value must be read correctly from the HSPs.
         """
-        mockOpener = mockOpen(read_data=JSON)
+        mockOpener = mock_open(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             readAlignments = list(reader.readAlignments(self.READS))

@@ -6,11 +6,9 @@ from bz2 import compress
 from six import assertRaisesRegex, StringIO
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
-
-from ..mocking import mockOpen
 
 from json import dumps
 
@@ -615,7 +613,7 @@ class TestDiamondTabularFormatReader(TestCase):
         When a DIAMOND file has been read, its parameters must be present
         in the reader instance.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS)
+        mockOpener = mock_open(read_data=DIAMOND_RECORDS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             list(reader.records())
@@ -636,7 +634,7 @@ class TestDiamondTabularFormatReader(TestCase):
         """
         Test conversion of a chunk of DIAMOND output.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS)
+        mockOpener = mock_open(read_data=DIAMOND_RECORDS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             acc94, akav, bhav = list(reader.records())
@@ -649,7 +647,7 @@ class TestDiamondTabularFormatReader(TestCase):
         Test conversion of a chunk of DIAMOND output that does not contain the
         nident, positives, or pident fields.
         """
-        mockOpener = mockOpen(
+        mockOpener = mock_open(
             read_data=DIAMOND_RECORDS_WITHOUT_NIDENT_AND_POSITIVE)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
@@ -665,7 +663,7 @@ class TestDiamondTabularFormatReader(TestCase):
         """
         A DiamondTabularFormatReader must be able to save itself as JSON.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS)
+        mockOpener = mock_open(read_data=DIAMOND_RECORDS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             fp = StringIO()
@@ -678,7 +676,7 @@ class TestDiamondTabularFormatReader(TestCase):
         A DiamondTabularFormatReader must be able to save itself as JSON
         when the percentIdentical field is present.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENTS)
+        mockOpener = mock_open(read_data=DIAMOND_RECORDS_WITH_PERCENTS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             fp = StringIO()
@@ -692,7 +690,7 @@ class TestDiamondTabularFormatReader(TestCase):
         A DiamondTabularFormatReader must be able to save itself as bzip2'd
         JSON.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS)
+        mockOpener = mock_open(read_data=DIAMOND_RECORDS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             data = BytesIO()
@@ -708,7 +706,7 @@ class TestDiamondTabularFormatReader(TestCase):
         A DiamondTabularFormatReader must be able to save itself as bzip2'd
         JSON when the percentIdentical field is present.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORDS_WITH_PERCENTS)
+        mockOpener = mock_open(read_data=DIAMOND_RECORDS_WITH_PERCENTS)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             data = BytesIO()
@@ -724,7 +722,7 @@ class TestDiamondTabularFormatReader(TestCase):
         If there are spaces in the query title or subject titles, the spaces
         must be preserved.
         """
-        mockOpener = mockOpen(read_data=DIAMOND_RECORD_WITH_SPACES_IN_TITLES)
+        mockOpener = mock_open(read_data=DIAMOND_RECORD_WITH_SPACES_IN_TITLES)
         with patch.object(builtins, 'open', mockOpener):
             reader = DiamondTabularFormatReader('file.txt')
             acc94 = list(reader.records())
@@ -1283,7 +1281,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON)
+        mockOpener = mock_open(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
@@ -1313,7 +1311,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON_ONE_MIDDLE)
+        mockOpener = mock_open(read_data=JSON_ONE_MIDDLE)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
@@ -1344,7 +1342,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON_ONE_END)
+        mockOpener = mock_open(read_data=JSON_ONE_END)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
@@ -1374,7 +1372,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON_ONE_START)
+        mockOpener = mock_open(read_data=JSON_ONE_START)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
@@ -1405,7 +1403,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON_TWO_END)
+        mockOpener = mock_open(read_data=JSON_TWO_END)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignments = list(reader.readAlignments(reads))
@@ -1435,7 +1433,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON_TWO_END)
+        mockOpener = mock_open(read_data=JSON_TWO_END)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignment = list(reader.readAlignments(reads))[0]
@@ -1467,7 +1465,7 @@ class TestJSONRecordsReader(TestCase):
                 'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
         ])
 
-        mockOpener = mockOpen(read_data=JSON)
+        mockOpener = mock_open(read_data=JSON)
         with patch.object(builtins, 'open', mockOpener):
             reader = JSONRecordsReader('file.json')
             alignment = list(reader.readAlignments(reads))[0]

@@ -5,10 +5,9 @@ from random import seed
 from os import stat
 
 try:
-    from unittest.mock import patch, call
+    from unittest.mock import patch, call, mock_open
 except ImportError:
     from mock import patch, call
-from .mocking import mockOpen
 
 from dark.aa import (
     BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
@@ -2284,7 +2283,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        mockOpener = mockOpen()
+        mockOpener = mock_open()
         with patch.object(builtins, 'open', mockOpener):
             reads.save('filename')
         handle = mockOpener()
@@ -2300,7 +2299,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        mockOpener = mockOpen()
+        mockOpener = mock_open()
         with patch.object(builtins, 'open', mockOpener):
             reads.save('filename', 'fasta')
         handle = mockOpener()
@@ -2317,7 +2316,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        mockOpener = mockOpen()
+        mockOpener = mock_open()
         with patch.object(builtins, 'open', mockOpener):
             result = reads.save('filename')
             self.assertIs(2, result)
@@ -2332,7 +2331,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC')
         reads.add(read1)
         reads.add(read2)
-        mockOpener = mockOpen()
+        mockOpener = mock_open()
         with patch.object(builtins, 'open', mockOpener):
             reads.save('filename', 'FASTA')
         handle = mockOpener()
@@ -2348,7 +2347,7 @@ class TestReads(TestCase):
         read2 = Read('id2', 'AC', '@@')
         reads.add(read1)
         reads.add(read2)
-        mockOpener = mockOpen()
+        mockOpener = mock_open()
         with patch.object(builtins, 'open', mockOpener):
             reads.save('filename', 'fastq')
         handle = mockOpener()
@@ -3412,8 +3411,7 @@ class TestReadsFiltering(TestCase):
         less than 1, a ValueError must be raised.
         """
         data = '0\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = Reads([])
             error = (r"^First line of sequence number file 'file' must be at "
                      r"least 1\.$")
@@ -3426,8 +3424,7 @@ class TestReadsFiltering(TestCase):
         line numbers, a ValueError must be raised.
         """
         data = '2\n2\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             read1 = Read('id1', 'ATCG')
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')
@@ -3443,8 +3440,7 @@ class TestReadsFiltering(TestCase):
         be returned.
         """
         data = ''
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             read1 = Read('id1', 'ATCG')
             read2 = Read('id2', 'ATCG')
             reads = Reads(initialReads=[read1, read2])
@@ -3457,8 +3453,7 @@ class TestReadsFiltering(TestCase):
         be returned.
         """
         data = '1\n3\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             read1 = Read('id1', 'ATCG')
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')
@@ -3474,8 +3469,7 @@ class TestReadsFiltering(TestCase):
         be returned.
         """
         data = '1\n3\n200\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             read1 = Read('id1', 'ATCG')
             read2 = Read('id2', 'ATCG')
             read3 = Read('id3', 'ATCG')

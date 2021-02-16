@@ -238,12 +238,16 @@ def addFASTAFilteringCommandLineOptions(parser):
         '--head', type=int, metavar='N',
         help='Only the first N sequences will be printed.')
 
-    parser.add_argument(
+    # A mutually exclusive group for --removeDuplicates and
+    # --removeDuplicatesById
+    _removeGroup = parser.add_mutually_exclusive_group()
+
+    _removeGroup.add_argument(
         '--removeDuplicates', action='store_true', default=False,
         help=('Duplicate reads will be removed, based only on '
               'sequence identity. The first occurrence is kept.'))
 
-    parser.add_argument(
+    _removeGroup.add_argument(
         '--removeDuplicatesById', action='store_true', default=False,
         help=('Duplicate reads will be removed, based only on '
               'read id. The first occurrence is kept.'))
@@ -252,9 +256,10 @@ def addFASTAFilteringCommandLineOptions(parser):
         '--removeDuplicatesUseMD5', action='store_true', default=False,
         help=('MD5 sums will be stored instead of the full sequence or read '
               'id when either --removeDuplicates or removeDuplicatesById are '
-              'given. Note that this makes duplicate removal probabilistic. '
-              'This option can be used to reduce the amount of RAM consumed '
-              'during duplicate removal.'))
+              'given. One of --removeDuplicates and --removeDuplicatesById '
+              'must also be given. Note that this makes duplicate removal '
+              'probabilistic. This option can be used to reduce the amount '
+              'of RAM consumed during duplicate removal.'))
 
     # See the docstring for dark.reads.Reads.filter for more detail on
     # randomSubset.

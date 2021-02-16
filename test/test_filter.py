@@ -2,11 +2,9 @@ from six.moves import builtins
 from unittest import TestCase
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
-
-from .mocking import mockOpen
 
 from dark.filter import ReadSetFilter, TitleFilter
 from dark.reads import Read
@@ -128,8 +126,7 @@ class TitleFilterTest(TestCase):
         Testing for acceptance against a title filter with a blacklist file.
         """
         data = '\n'.join(['id1', 'id2']) + '\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             tf = TitleFilter(blacklistFile='black.txt')
             self.assertEqual(TitleFilter.REJECT, tf.accept('id1'))
             self.assertEqual(TitleFilter.REJECT, tf.accept('id2'))
@@ -141,8 +138,7 @@ class TitleFilterTest(TestCase):
         some specific other blacklist titles.
         """
         data = '\n'.join(['id1', 'id2']) + '\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             tf = TitleFilter(blacklistFile='black.txt', blacklist=set(['id3']))
             self.assertEqual(TitleFilter.REJECT, tf.accept('id1'))
             self.assertEqual(TitleFilter.REJECT, tf.accept('id2'))
@@ -174,8 +170,7 @@ class TitleFilterTest(TestCase):
         and a negative regex that matches everything.
         """
         data = '\n'.join(['id1', 'id2']) + '\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             tf = TitleFilter(whitelistFile='white.txt', negativeRegex='.')
             self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id1'))
             self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id2'))
@@ -188,8 +183,7 @@ class TitleFilterTest(TestCase):
         everything.
         """
         data = '\n'.join(['id1', 'id2']) + '\n'
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             tf = TitleFilter(whitelistFile='white.txt', whitelist=set(['id3']),
                              negativeRegex='.')
             self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept('id1'))

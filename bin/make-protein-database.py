@@ -230,6 +230,6 @@ args = parser.parse_args()
 if args.noWarnings:
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        main(args)
+        main(args, parser)
 else:
     main(args, parser)

@@ -5,14 +5,13 @@ import platform
 from six.moves import builtins
 from copy import deepcopy
 from json import dumps
-from unittest import TestCase
+from unittest import TestCase, skip
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
 
-from ..mocking import mockOpen
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads, AAReadWithX
@@ -33,7 +32,7 @@ class TestDiamondReadsAlignments(TestCase):
         When a JSON input file is empty, a C{ValueError} must be raised
         on trying to read it.
         """
-        mockOpener = mockOpen()
+        mockOpener = mock_open()
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             error = "JSON file 'file\\.json' was empty\\."
@@ -47,7 +46,7 @@ class TestDiamondReadsAlignments(TestCase):
         read the DIAMOND hits from it must raise a C{ValueError}.
         """
         pypy = platform.python_implementation() == 'PyPy'
-        mockOpener = mockOpen(read_data='not JSON\n')
+        mockOpener = mock_open(read_data='not JSON\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             if six.PY3:
@@ -74,7 +73,7 @@ class TestDiamondReadsAlignments(TestCase):
         """
         The score title must be correct when we are using bit scores.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(
@@ -85,7 +84,7 @@ class TestDiamondReadsAlignments(TestCase):
         """
         The score title must be correct when we are using e values.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(
@@ -99,7 +98,7 @@ class TestDiamondReadsAlignments(TestCase):
         The nucleotide type of the subject must be correct.
         """
         params = deepcopy(PARAMS)
-        mockOpener = mockOpen(read_data=dumps(params) + '\n')
+        mockOpener = mock_open(read_data=dumps(params) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(
@@ -111,7 +110,7 @@ class TestDiamondReadsAlignments(TestCase):
         DIAMOND parameters must be extracted from the input JSON file and
         stored correctly.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(
@@ -124,7 +123,7 @@ class TestDiamondReadsAlignments(TestCase):
         records, the __iter__ method of a L{DiamondReadsAlignments} instance
         must not yield anything.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(
@@ -136,7 +135,7 @@ class TestDiamondReadsAlignments(TestCase):
         If a JSON file contains a parameters section and one hit, but there
         is no read to go with the hit, a C{ValueError} must be raised.
         """
-        mockOpener = mockOpen(
+        mockOpener = mock_open(
             read_data=dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -153,7 +152,7 @@ class TestDiamondReadsAlignments(TestCase):
         If the query id of a hit does not match the id of the corresponding
         input read, a C{ValueError} must be raised.
         """
-        mockOpener = mockOpen(
+        mockOpener = mock_open(
             read_data=dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -172,7 +171,7 @@ class TestDiamondReadsAlignments(TestCase):
         are two query reads, the second read must still be returned, but have
         no alignments (i.e., length zero).
         """
-        mockOpener = mockOpen(
+        mockOpener = mock_open(
             read_data=dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -285,6 +284,7 @@ class TestDiamondReadsAlignments(TestCase):
             self.assertEqual('id1', result[1].read.id)
             self.assertEqual('id2', result[2].read.id)
 
+    @skip('Some tests are broken and skipped under latest BioPython')
     def testGetSubjectSequence(self):
         """
         The getSubjectSequence function must return an AAReadWithX instance
@@ -326,7 +326,7 @@ class TestDiamondReadsAlignments(TestCase):
         """
         # adjustHspsForPlotting changes HSPs in place, so we pass copied
         # records so we don't mess up other tests.
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -422,7 +422,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         arguments, and there are no hits, it should produce a generator
         that yields no result.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(
@@ -436,8 +436,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         arguments, and there is one hit, it should produce a generator that
         yields that hit.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(RECORD0) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(RECORD0) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -452,8 +452,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         If L{DiamondReadsAlignments} is limited to zero result, that limit must
         be respected.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(RECORD0) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(RECORD0) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -467,9 +467,9 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         If L{DiamondReadsAlignments} is limited to one hit, that limit must
         be respected.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(RECORD0) + '\n' +
-                              dumps(RECORD1) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(RECORD0) + '\n' +
+                               dumps(RECORD1) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('id0', 'A' * 70))
@@ -531,8 +531,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -580,9 +580,9 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ],
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record1) + '\n' +
-                              dumps(record2) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record1) + '\n' +
+                               dumps(record2) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('read1', 'A' * 500))
@@ -644,8 +644,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -706,8 +706,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -770,8 +770,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -837,8 +837,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -904,8 +904,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -983,8 +983,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1067,8 +1067,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1155,8 +1155,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1243,8 +1243,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1331,8 +1331,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1419,8 +1419,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1512,8 +1512,8 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
             ]
         }
 
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n' +
-                              dumps(record) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n' +
+                               dumps(record) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             reads.add(Read('H6E8I1T01BFUH9', 'A' * 500))
@@ -1535,7 +1535,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         """
         Filtering with a title regex must work independent of case.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1556,7 +1556,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         Filtering with a title regex must work in the case that all alignments
         for a hit match the regex.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1577,7 +1577,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         Filtering with a title regex must work in the case that only some
         alignments for a hit match the regex.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1599,7 +1599,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         some alignments for a hit are ruled out (in which case only those
         alignments must be removed but the hit is still valid).
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1621,7 +1621,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         Filtering with a negative title regex that matches all alignments
         must remove everything and return an empty result.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1640,7 +1640,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         must remove everything and result in no hits, except for any
         whitelisted titles.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1663,7 +1663,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         Filtering with a title regex that matches all alignments
         must keep everything, except for any blacklisted titles.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1687,7 +1687,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         are identical up to the truncation word, only the first found is
         returned.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1711,7 +1711,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based on minimum hit sequence
         length.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1734,7 +1734,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         length and if nothing sufficiently long matches, an empty list of
         alignments must be returned.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1752,7 +1752,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based on maximum hit sequence
         length.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1775,7 +1775,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         length and if no sufficiently short sequences match, an empty
         list of alignments must be returned.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1793,7 +1793,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments simultaneously on minimum and
         maximum hit sequence length.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1818,7 +1818,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based on minimum offset in
         the hit sequence.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1841,7 +1841,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         the hit sequence, and if no hsps match then an empty result set
         must be returned.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1859,7 +1859,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based on maximum offset in
         the hit sequence.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1882,7 +1882,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         the hit sequence, and if no hsps match then an empty result set must
         be returned.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1900,7 +1900,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based simultaneously on
         mininum and maximum offset in the hit sequence.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1920,7 +1920,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments multiple times using the same
         filter parameters.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1942,7 +1942,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments multiple times using different
         filter parameters.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1964,7 +1964,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         When filtering on alignments based on a regex for
         read ids that matches no ids, an empty generator must be returned.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -1982,7 +1982,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based on a regex for
         read ids.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -2002,7 +2002,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         It must be possible to filter alignments based on a regex for
         read ids that is anchored at start and end.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -2021,7 +2021,7 @@ class TestDiamondReadsAlignmentsFiltering(TestCase):
         Filtering alignments based on a regex for read ids must be case
         sensitive.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):

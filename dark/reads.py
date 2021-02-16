@@ -1,6 +1,6 @@
 import sys
 import six
-from os import unlink
+import os
 from functools import total_ordering
 from collections import Counter
 from hashlib import md5
@@ -965,13 +965,19 @@ class ReadFilter(object):
         self.maxNFraction = maxNFraction
         self.removeGaps = removeGaps
         self.head = head
-        self.removeDuplicates = removeDuplicates
-        self.removeDuplicatesById = removeDuplicatesById
-        self.removeDuplicatesUseMD5 = removeDuplicatesUseMD5
         self.removeDescriptions = removeDescriptions
         self.modifier = modifier
         self.randomSubset = randomSubset
         self.trueLength = trueLength
+
+        if removeDuplicatesUseMD5 and not (
+                removeDuplicates or removeDuplicatesById):
+            raise ValueError(
+                'If you specify removeDuplicatesUseMD5, you need to also use '
+                'one of removeDuplicates or removeDuplicatesById.')
+        self.removeDuplicates = removeDuplicates
+        self.removeDuplicatesById = removeDuplicatesById
+        self.removeDuplicatesUseMD5 = removeDuplicatesUseMD5
 
         if keepSequences and removeSequences:
             raise ValueError(
@@ -1388,7 +1394,7 @@ class Reads(object):
                         fp.write(read.toString(format_))
                         count += 1
             except ValueError:
-                unlink(filename)
+                os.unlink(filename)
                 raise
         else:
             # We have a file-like object.

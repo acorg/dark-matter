@@ -226,7 +226,7 @@ def parseRangeExpression(s, convertToZeroBased=False):
 
 
 if six.PY3:
-    from six import StringIO
+    from io import StringIO
 else:
     from six import StringIO as sixStringIO
 
