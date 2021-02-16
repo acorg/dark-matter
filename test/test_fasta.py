@@ -7,11 +7,9 @@ from unittest import TestCase
 from Bio import SeqIO, bgzf
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
-
-from .mocking import mockOpen
 
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
@@ -264,8 +262,7 @@ class TestFastaReads(TestCase):
         """
         An empty FASTA file results in an empty iterator.
         """
-        mockOpener = mockOpen()
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open()):
             reads = FastaReads('filename.fasta')
             self.assertEqual([], list(reads))
 
@@ -274,8 +271,7 @@ class TestFastaReads(TestCase):
         A FASTA file with one read must be read properly.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta'))
             self.assertEqual([Read('id1', 'ACGT')], reads)
 
@@ -284,8 +280,7 @@ class TestFastaReads(TestCase):
         A FASTA file read must not have any quality information.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta'))
             self.assertEqual(None, reads[0].quality)
 
@@ -295,8 +290,7 @@ class TestFastaReads(TestCase):
         sequences must be returned in the correct order.
         """
         data = '\n'.join(['>id1', 'ACGT', '>id2', 'TGCA'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta'))
             self.assertEqual(2, len(reads))
             self.assertEqual([Read('id1', 'ACGT'), Read('id2', 'TGCA')], reads)
@@ -307,8 +301,7 @@ class TestFastaReads(TestCase):
         are instances of DNARead.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta'))
             self.assertTrue(isinstance(reads[0], DNARead))
 
@@ -318,8 +311,7 @@ class TestFastaReads(TestCase):
         are instances of AARead.
         """
         data = '\n'.join(['>id1', 'ACGST'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta', AARead))
             self.assertTrue(isinstance(reads[0], AARead))
 
@@ -329,8 +321,7 @@ class TestFastaReads(TestCase):
         are instances of DNARead.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta', DNARead))
             self.assertTrue(isinstance(reads[0], DNARead))
 
@@ -340,8 +331,7 @@ class TestFastaReads(TestCase):
         are instances of RNARead.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta', RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
 
@@ -350,8 +340,7 @@ class TestFastaReads(TestCase):
         A read needs to be converted from lower to upper case if specified.
         """
         data = '\n'.join(['>id1', 'actgs'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta', readClass=AARead,
                          upperCase=True))
             self.assertEqual([AARead('id1', 'ACTGS')], reads)
@@ -361,8 +350,7 @@ class TestFastaReads(TestCase):
         A read needs to be converted from lower to upper case if specified.
         """
         data = '\n'.join(['>id1', 'actg'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta', upperCase=True))
             self.assertEqual([AARead('id1', 'ACTG')], reads)
 
@@ -371,8 +359,7 @@ class TestFastaReads(TestCase):
         A read must not be converted from lower to upper case if not specified.
         """
         data = '\n'.join(['>id1', 'actgs'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(FastaReads('filename.fasta', readClass=AARead))
             self.assertEqual([AARead('id1', 'actgs')], reads)
 
@@ -383,8 +370,7 @@ class TestFastaReads(TestCase):
         C{trueLength} argument.
         """
         data = ''
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = FastaReads('filename.fasta')
             result = list(reads.filter(randomSubset=0, trueLength=0))
             self.assertEqual([], result)
@@ -396,8 +382,7 @@ class TestFastaReads(TestCase):
         C{trueLength} argument.
         """
         data = '\n'.join(['>id1', 'ACGT', '>id2', 'TGCA'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = FastaReads('filename.fasta')
             result = list(reads.filter(randomSubset=2, trueLength=2))
             self.assertEqual([Read('id1', 'ACGT'), Read('id2', 'TGCA')],
@@ -410,8 +395,7 @@ class TestFastaReads(TestCase):
         C{trueLength} argument.
         """
         data = '\n'.join(['>id', 'ACGT'] * 10)
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = FastaReads('filename.fasta')
             result = list(reads.filter(randomSubset=1, trueLength=10))
             self.assertEqual(1, len(result))
@@ -475,8 +459,7 @@ class TestCombineReads(TestCase):
         FastaReads must contain the expected read.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(combineReads('filename.fasta', None))
             self.assertEqual([Read('id1', 'ACGT')], reads)
 
@@ -486,8 +469,7 @@ class TestCombineReads(TestCase):
         FastaReads must contain the expected read, in the original case.
         """
         data = '\n'.join(['>id1', 'AcgT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(combineReads('filename.fasta', None))
             self.assertEqual([Read('id1', 'AcgT')], reads)
 
@@ -497,8 +479,7 @@ class TestCombineReads(TestCase):
         FastaReads must have the read sequence in uppper case.
         """
         data = '\n'.join(['>id1', 'acgt'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(combineReads('filename.fasta', None, upperCase=True))
             self.assertEqual([Read('id1', 'ACGT')], reads)
 
@@ -552,8 +533,7 @@ class TestCombineReads(TestCase):
         specified sequences.
         """
         data = '\n'.join(['>id1', 'ACGT'])
-        mockOpener = mockOpen(read_data=data)
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open(read_data=data)):
             reads = list(combineReads('filename.fasta', ['ACGT'],
                                       readClass=RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))

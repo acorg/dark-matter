@@ -3,13 +3,12 @@ from json import dumps
 from unittest import TestCase
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock_open
 except ImportError:
     from mock import patch
 
 from six.moves import builtins
 
-from ..mocking import mockOpen
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 from dark.reads import Read, Reads
@@ -29,7 +28,7 @@ class TestTitleCounts(TestCase):
         If passed an empty readsAlignments, titleCounts must return an
         empty dictionary.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(reads, 'file.json')
@@ -40,7 +39,7 @@ class TestTitleCounts(TestCase):
         If alignments for three reads are passed to titleCounts, it must
         return the correct title counts.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -64,7 +63,7 @@ class TestTitleCounts(TestCase):
         If alignments for reads have a common title, the count on that title
         must be correct.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -89,7 +88,7 @@ class TestTitlesAlignments(TestCase):
         An instance of TitlesAlignments must have no titles if passed an
         empty readsAlignments instance.
         """
-        mockOpener = mockOpen(read_data=(dumps(PARAMS) + '\n'))
+        mockOpener = mock_open(read_data=(dumps(PARAMS) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(reads, 'file.json')
@@ -100,7 +99,7 @@ class TestTitlesAlignments(TestCase):
         """
         An instance of TitlesAlignments must have the expected titles.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -125,7 +124,7 @@ class TestTitlesAlignments(TestCase):
         An instance of TitleAlignments in a TitlesAlignments instance must
         have the expected attributes.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -155,7 +154,7 @@ class TestTitlesAlignments(TestCase):
         A title that occurs in the alignments of multiple reads must have
         the data from both reads collected properly.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -184,7 +183,7 @@ class TestTitlesAlignments(TestCase):
         The addTitle function must raise a C{KeyError} if an attempt is made
         to add a pre-existing title to a TitlesAlignments instance.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -205,7 +204,7 @@ class TestTitlesAlignments(TestCase):
         The addTitle function must add a title to the TitlesAlignments
         instance.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -223,7 +222,7 @@ class TestTitlesAlignments(TestCase):
         The hsps function must yield all the hsps for all titles in a
         TitlesAlignments instance.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -242,7 +241,7 @@ class TestTitlesAlignments(TestCase):
         """
         The summary function must return the correct result.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -300,7 +299,7 @@ class TestTitlesAlignments(TestCase):
         """
         The summary function must return the correct result.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -337,7 +336,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function must return a TitlesAlignments instance with all
         the titles of the original when called with no arguments.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
@@ -363,7 +362,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a value for
         minMatchingReads.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -387,7 +386,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a value for
         minMedianScore when using bit scores.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -411,7 +410,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a value for
         minMedianScore when using e values.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -437,7 +436,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a value for
         withScoreBetterThan when using bit scores.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -461,7 +460,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a value for
         withScoreBetterThan when using e values.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -486,7 +485,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a 0.0 value for
         minNewReads, i.e. that considers any read set sufficiently novel.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -514,7 +513,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function work correctly when passed a 1.0 value for
         minNewReads.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -553,7 +552,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The coverage function must return an titlesAlignments instance with
         no titles if none of its titles has sufficient coverage.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -573,7 +572,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The coverage function must return an titlesAlignments instance with
         all titles if all its titles has sufficient coverage.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -602,7 +601,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         only the expected titles if only some of its titles have sufficient
         coverage.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -631,7 +630,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function must raise a ValueError if maxTitles is less than
         zero.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -647,7 +646,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function must raise a ValueError if the passed sortOn
         value isn't recognized.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n'))
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
@@ -664,7 +663,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         """
         The filter function must return an empty result when maxTitles is zero.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -684,7 +683,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function must return just the best title when maxTitles
         is one.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -708,7 +707,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
         The filter function must return the two titles whose sequences are the
         longest when maxTitles is 2 and sortOn is 'length'.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -738,7 +737,7 @@ class TestTitleSorting(TestCase):
         """
         Sorting on an unknown attribute must raise C{ValueError}.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(reads, 'file.json')
@@ -749,7 +748,7 @@ class TestTitleSorting(TestCase):
         """
         Sorting when there are no titles must return the empty list.
         """
-        mockOpener = mockOpen(read_data=dumps(PARAMS) + '\n')
+        mockOpener = mock_open(read_data=dumps(PARAMS) + '\n')
         with patch.object(builtins, 'open', mockOpener):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(reads, 'file.json')
@@ -762,7 +761,7 @@ class TestTitleSorting(TestCase):
         Sorting on median score must work when scores are bit scores,
         including a secondary sort on title.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n' + dumps(RECORD4) + '\n'))
@@ -789,7 +788,7 @@ class TestTitleSorting(TestCase):
         Sorting on median score must work when scores are bit scores,
         including a secondary sort on title.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n' + dumps(RECORD4) + '\n'))
@@ -817,7 +816,7 @@ class TestTitleSorting(TestCase):
         Sorting on max score must work when scores are bit scores, including a
         secondary sort on title.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -843,7 +842,7 @@ class TestTitleSorting(TestCase):
         Sorting on max score must work when scores are e values, including a
         secondary sort on title.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -876,7 +875,7 @@ class TestTitleSorting(TestCase):
         """
         Sorting on read count must work, including a secondary sort on title.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -903,7 +902,7 @@ class TestTitleSorting(TestCase):
         Sorting on sequence length must work, including a secondary sort on
         title.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))
@@ -929,7 +928,7 @@ class TestTitleSorting(TestCase):
         """
         Sorting on title must work.
         """
-        mockOpener = mockOpen(read_data=(
+        mockOpener = mock_open(read_data=(
             dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
             dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
             dumps(RECORD3) + '\n'))

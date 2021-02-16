@@ -2,6 +2,7 @@ import bz2
 import gzip
 from six.moves import builtins
 from unittest import TestCase
+from unittest.mock import mock_open
 from six import assertRaisesRegex
 from collections import Counter
 
@@ -9,8 +10,6 @@ try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
-
-from .mocking import mockOpen
 
 from io import BytesIO
 
@@ -130,8 +129,7 @@ class TestAsHandle(TestCase):
         When an open file pointer is passed to asHandle, that same file
         pointer must be returned.
         """
-        mockOpener = mockOpen()
-        with patch.object(builtins, 'open', mockOpener):
+        with patch.object(builtins, 'open', mock_open()):
             fp = open('file')
             with asHandle(fp) as newfp:
                 self.assertIs(fp, newfp)
@@ -141,7 +139,7 @@ class TestAsHandle(TestCase):
         When a string filename is passed to asHandle, it must be possible to
         read the correct data from the fp that is returned.
         """
-        mockOpener = mockOpen(read_data='xxx')
+        mockOpener = mock_open(read_data='xxx')
         with patch.object(builtins, 'open', mockOpener):
             with asHandle('file') as fp:
                 self.assertEqual('xxx', fp.read())

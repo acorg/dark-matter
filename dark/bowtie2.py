@@ -17,11 +17,11 @@ class Bowtie2(object):
                  tmpChmod=None):
         self._executor = executor or Executor(dryRun)
         if dryRun:
-            self.tempdir = (tempdir or '/tmp/xxx')
+            self.tempdir = tempdir or '/tmp/xxx'
         else:
             self.tempdir = mkdtemp(prefix='bt2-', dir=tempdir)
             if tmpChmod:
-                executor.execute(f'chmod {tmpChmod} {self.tempdir}')
+                self._executor.execute(f'chmod {tmpChmod} {self.tempdir}')
         self._samFile = join(self.tempdir, 'result.sam')
         self._bamFile = join(self.tempdir, 'result.bam')
         self._indexFile = join(self.tempdir, 'index')

@@ -21,7 +21,7 @@ NEEDLE_DEFAULT_ARGS = 'auto'
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=('Compare two sequences.'))
+    description='Compare two sequences.')
 
 parser.add_argument(
     '--index1', type=int, default=1,
@@ -61,7 +61,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--strict', default=False, action='store_true',
-    help='If given, do not allow ambiguous nucleotide symbols to match')
+    help='If given, do not allow ambiguous nucleotide symbols to match.')
 
 parser.add_argument(
     '--quiet', dest='verbose', default=True, action='store_false',
