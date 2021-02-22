@@ -86,13 +86,14 @@ def main():
 
     parser.add_argument(
         '--ivar', default=False, action='store_true',
-        help=('If given, ivar will be used to call the consensus.'))
+        help='If given, ivar will be used to call the consensus.')
 
     parser.add_argument(
-        '--ivarFrequencyThreshold', default='0.6',
+        '--ivarFrequencyThreshold', type=float, default=0.6,
         help=('The frequency threshold used by ivar when calling the '
-              'consensus. 0: majority, 1: Identical. Will have highest '
-              'ambiguities.'))
+              'consensus. 0.0: majority rule consensus, 1: Only position '
+              'where all reads have the same base will be called. The rest '
+              'will have ambiguities.'))
 
     args = parser.parse_args()
 
@@ -110,7 +111,7 @@ def main():
         print('If --ivar is used, --bam must be too.', file=sys.stderr)
         sys.exit(0)
 
-    if args.ivarFrequencyThreshold and not args.ivar:
+    if args.ivarFrequencyThreshold is not None and not args.ivar:
         print('If --ivarFrequencyThreshold is used, --ivar must be too.',
               file=sys.stderr)
         sys.exit(0)
@@ -204,8 +205,8 @@ def main():
     if args.ivar:
         ivarConsensusFile = join(tempdir, 'temporary-consensus')
         result = e.execute(
-            "samtools mpileup -A -Q 0 %s | "
-            "ivar consensus -p %s -q 20 -t %s -m %s" % (
+            "samtools mpileup -A -Q 0 %r | "
+            "ivar consensus -p %r -q 20 -t %r -m %r" % (
                 args.bam, ivarConsensusFile, args.ivarFrequencyThreshold,
                 args.maskLowCoverage))
 
