@@ -1,3 +1,7 @@
+## 3.2.3 February 22, 2021
+
+Added option to use `ivar` for consensus calling in `make-consensus.py`.
+
 ## 3.2.1 February 8, 2021
 
 Added warning when `--removeDuplicatesUseMD5` is used without one of
