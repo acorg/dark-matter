@@ -100,21 +100,21 @@ def main():
     if not (args.bam or args.vcfFile):
         print('At least one of --bam or --vcfFile must be given.',
               file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     if args.maskLowCoverage and not args.bam:
         print('If --maskLowCoverage is used, --bam must be too.',
               file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     if args.ivar and not args.bam:
         print('If --ivar is used, --bam must be too.', file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     if args.ivarFrequencyThreshold is not None and not args.ivar:
         print('If --ivarFrequencyThreshold is used, --ivar must be too.',
               file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     e = Executor(args.dryRun)
 
@@ -136,7 +136,7 @@ def main():
                     print('If you use --callHaplotypesGATK, you must give a '
                           'Picard JAR file with --picardJar or else set '
                           'PICARD_JAR in your environment.', file=sys.stderr)
-                    sys.exit(0)
+                    sys.exit(1)
 
             indexFile = args.reference + '.fai'
             if os.path.exists(indexFile):
