@@ -84,6 +84,16 @@ def main():
               'https://github.com/broadinstitute/picard for details on '
               'Picard.'))
 
+    parser.add_argument(
+        '--ivar', default=False, action='store_true',
+        help=('If given, ivar will be used to call the consensus.'))
+
+    parser.add_argument(
+        '--ivarFrequencyThreshold', default='0.6',
+        help=('The frequency threshold used by ivar when calling the '
+              'consensus. 0: majority, 1: Identical. Will have highest '
+              'ambiguities.'))
+
     args = parser.parse_args()
 
     if not (args.bam or args.vcfFile):
@@ -93,6 +103,15 @@ def main():
 
     if args.maskLowCoverage and not args.bam:
         print('If --maskLowCoverage is used, --bam must be too.',
+              file=sys.stderr)
+        sys.exit(0)
+
+    if args.ivar and not args.bam:
+        print('If --ivar is used, --bam must be too.', file=sys.stderr)
+        sys.exit(0)
+
+    if args.ivarFrequencyThreshold and not args.ivar:
+        print('If --ivarFrequencyThreshold is used, --ivar must be too.',
               file=sys.stderr)
         sys.exit(0)
 
@@ -181,13 +200,25 @@ def main():
         sample = result.stdout.strip()
 
     consensusFile = join(tempdir, 'consensus.fasta')
-    result = e.execute(
-        "bcftools consensus --sample '%s' --iupac-codes %s --fasta-ref "
-        "'%s' '%s' > '%s'" %
-        (sample, maskArg, args.reference, vcfFile, consensusFile))
+
+    if args.ivar:
+        ivarConsensusFile = join(tempdir, 'temporary-consensus')
+        result = e.execute(
+            "samtools mpileup -A -Q 0 %s | "
+            "ivar consensus -p %s -q 20 -t %s -m %s" % (
+                args.bam, ivarConsensusFile, args.ivarFrequencyThreshold,
+                args.maskLowCoverage))
+
+        result = e.execute(
+            "mv %s %s" % (ivarConsensusFile + '.fa', consensusFile))
+
+    else:
+        result = e.execute(
+            "bcftools consensus --sample '%s' --iupac-codes %s --fasta-ref "
+            "'%s' '%s' > '%s'" %
+            (sample, maskArg, args.reference, vcfFile, consensusFile))
 
     consensus = list(FastaReads(consensusFile))[0]
-
     if args.id is not None:
         consensus.id = args.id
     elif args.idLambda is not None:
