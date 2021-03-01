@@ -10,6 +10,8 @@ from dark.fasta import FastaReads
 from dark.process import Executor
 
 IVAR_FREQUENCY_THRESHOLD_DEFAULT = 0.6
+IVAR_DOCS = (
+    'https://andersen-lab.github.io/ivar/html/manualpage.html#autotoc_md19')
 
 
 def main():
@@ -93,10 +95,12 @@ def main():
     parser.add_argument(
         '--ivarFrequencyThreshold', type=float,
         help=(f'The frequency threshold used by ivar when calling the '
-              f'consensus. A value of 0.0 will produce a majority-rules '
-              f'consensus. 1.0 will result in only sites where all reads '
-              f'have the same base being called. Intermediate values may '
-              f'result in ambiguities in the called consensus. If not given, '
+              f'consensus. If the frequency of the most-common nucleotide at '
+              f'a site meets this threshold, the nucleotide will be called. '
+              f'Otherwise, an ambiguous nucleotide code will be produced, '
+              f'based on the smallest set of most-frequent nucleotides whose '
+              f'summed frequencies meet the threshold. See {IVAR_DOCS} for '
+              f'more information. If not given, '
               f'{IVAR_FREQUENCY_THRESHOLD_DEFAULT} is used. Can only be used '
               f'if --ivar is also specified.'))
 
