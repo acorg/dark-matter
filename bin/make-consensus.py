@@ -9,6 +9,8 @@ from os.path import join
 from dark.fasta import FastaReads
 from dark.process import Executor
 
+IVAR_FREQUENCY_THRESHOLD_DEFAULT = 0.6
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -89,11 +91,14 @@ def main():
         help='If given, ivar will be used to call the consensus.')
 
     parser.add_argument(
-        '--ivarFrequencyThreshold', type=float, default=0.6,
-        help=('The frequency threshold used by ivar when calling the '
-              'consensus. 0.0: majority rule consensus, 1: Only position '
-              'where all reads have the same base will be called. The rest '
-              'will have ambiguities.'))
+        '--ivarFrequencyThreshold', type=float,
+        help=(f'The frequency threshold used by ivar when calling the '
+              f'consensus. A value of 0.0 will produce a majority-rules '
+              f'consensus. 1.0 will result in only sites where all reads '
+              f'have the same base being called. Intermediate values may '
+              f'result in ambiguities in the called consensus. If not given, '
+              f'{IVAR_FREQUENCY_THRESHOLD_DEFAULT} is used. Can only be used '
+              f'if --ivar is also specified.'))
 
     args = parser.parse_args()
 
@@ -115,6 +120,9 @@ def main():
         print('If --ivarFrequencyThreshold is used, --ivar must be too.',
               file=sys.stderr)
         sys.exit(1)
+
+    if args.ivar and args.ivarFrequencyThreshold is None:
+        args.ivarFrequencyThreshold = IVAR_FREQUENCY_THRESHOLD_DEFAULT
 
     e = Executor(args.dryRun)
 

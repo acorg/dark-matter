@@ -1,3 +1,8 @@
+## 3.2.4 March 1, 2021
+
+Changed how `ivarFrequencyThreshold` is set and checked in
+`make-consensus.py`.
+
 ## 3.2.3 February 22, 2021
 
 Added option to use `ivar` for consensus calling in `make-consensus.py`.
