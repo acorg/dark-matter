@@ -4,7 +4,7 @@ import os
 import sys
 import argparse
 from tempfile import mkdtemp
-from os.path import join
+from os.path import join, basename
 
 from dark.fasta import FastaReads
 from dark.process import Executor
@@ -103,6 +103,11 @@ def main():
               f'more information. If not given, '
               f'{IVAR_FREQUENCY_THRESHOLD_DEFAULT} is used. Can only be used '
               f'if --ivar is also specified.'))
+
+    parser.add_argument(
+        '--ivarBedFile',
+        help=('If ivar should trim primers, a bed file of the primer '
+              'positions.'))
 
     args = parser.parse_args()
 
@@ -215,11 +220,20 @@ def main():
     consensusFile = join(tempdir, 'consensus.fasta')
 
     if args.ivar:
+        if args.ivarBedFile:
+            tempBamFile = join(tempdir, basename(args.bam) + '-trimmed')
+            result = e.execute(
+                "ivar trim -i %r -b %r -p %r -e" % (
+                    args.bam, args.ivarBedFile, tempBamFile))
+            bamFile = tempBamFile + '.bam'
+        else:
+            bamFile = args.bam
+
         ivarConsensusFile = join(tempdir, 'temporary-consensus')
         result = e.execute(
             "samtools mpileup -A -Q 0 %r | "
             "ivar consensus -p %r -q 20 -t %r -m %r" % (
-                args.bam, ivarConsensusFile, args.ivarFrequencyThreshold,
+                bamFile, ivarConsensusFile, args.ivarFrequencyThreshold,
                 args.maskLowCoverage))
 
         result = e.execute(

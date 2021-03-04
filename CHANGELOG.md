@@ -1,3 +1,8 @@
+## 3.2.5 March 4, 2021
+
+Added ivar primer trimming (via the `--ivarBedFile` argument) to
+`make-consensus.py`.
+
 ## 3.2.4 March 1, 2021
 
 Changed how `ivarFrequencyThreshold` is set and checked in
