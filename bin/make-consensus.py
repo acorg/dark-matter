@@ -223,9 +223,14 @@ def main():
         if args.ivarBedFile:
             tempBamFile = join(tempdir, basename(args.bam) + '-trimmed')
             result = e.execute(
-                "ivar trim -i %r -b %r -p %r -e" % (
+                "ivar trim -i %r -b %r -p %r -e -q 1 -m 10" % (
                     args.bam, args.ivarBedFile, tempBamFile))
-            bamFile = tempBamFile + '.bam'
+            ivarTempBamFile = tempBamFile + '.bam'
+            sortedIvarTempBamFile = tempBamFile + '-trimmed-sorted.bam'
+            result = e.execute(
+                "samtools sort %r -o %r" % (
+                    ivarTempBamFile, sortedIvarTempBamFile))
+            bamFile = sortedIvarTempBamFile
         else:
             bamFile = args.bam
 
