@@ -205,6 +205,10 @@ if __name__ == '__main__':
         help='sequences that are matched by fewer reads will be elided.')
 
     parser.add_argument(
+        '--maxMatchingReads', type=int,
+        help='sequences that are matched by more reads will be elided.')
+
+    parser.add_argument(
         '--minMedianScore', type=float,
         help=('sequences that are matched with a median score that is '
               'worse will be elided.'))
@@ -356,6 +360,7 @@ if __name__ == '__main__':
 
     titlesAlignments = TitlesAlignments(readsAlignments).filter(
         minMatchingReads=args.minMatchingReads,
+        maxMatchingReads=args.maxMatchingReads,
         minMedianScore=args.minMedianScore,
         withScoreBetterThan=args.withScoreBetterThan,
         minNewReads=args.minNewReads, maxTitles=args.maxTitles,

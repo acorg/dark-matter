@@ -64,7 +64,7 @@ class Feature(object):
         maxValueLength = 30
         result = []
         if self.feature.qualifiers:
-            for qualifier in sorted(self.feature.qualifiers.keys()):
+            for qualifier in sorted(self.feature.qualifiers):
                 if qualifier not in excludedQualifiers:
                     value = ', '.join(self.feature.qualifiers[qualifier])
                     if qualifier == 'site_type' and value == 'other':

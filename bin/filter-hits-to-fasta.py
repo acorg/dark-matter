@@ -100,6 +100,10 @@ if __name__ == '__main__':
         help='sequences that are matched by fewer reads will be elided.')
 
     parser.add_argument(
+        '--maxMatchingReads', type=int, default=None,
+        help='sequences that are matched by more reads will be elided.')
+
+    parser.add_argument(
         '--minMedianScore', type=float, default=None,
         help='sequences that are matched with a median score that is '
         'worse will be elided.')
@@ -143,7 +147,8 @@ if __name__ == '__main__':
     reads = Reads()
     count = 0
 
-    if (args.minMatchingReads is None and args.minMedianScore is None and
+    if (args.minMatchingReads is None and
+            args.maxMatchingReads is None and args.minMedianScore is None and
             args.withScoreBetterThan is None and args.minNewReads is None):
         # No need to collect into titles, just get the read ids from
         # the matching alignments.
@@ -154,6 +159,7 @@ if __name__ == '__main__':
         # We need to collect alignments into titles.
         titlesAlignments = TitlesAlignments(readsAlignments).filter(
             minMatchingReads=args.minMatchingReads,
+            maxMatchingReads=args.maxMatchingReads,
             minMedianScore=args.minMedianScore,
             withScoreBetterThan=args.withScoreBetterThan,
             minNewReads=args.minNewReads)

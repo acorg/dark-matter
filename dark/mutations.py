@@ -337,7 +337,7 @@ def makeFrequencyPanel(allFreqs, patientName):
     @param patientName: A C{str}, title for the panel
     """
     titles = sorted(
-        iter(allFreqs.keys()),
+        iter(allFreqs),
         key=lambda title: (allFreqs[title]['bitScoreMax'], title))
 
     origMaxY = 0

@@ -365,7 +365,7 @@ to be read. So if you have a lot of data, it can be slow to create a
 
 A `TitlesAlignments` is just like a Python `dict` (in fact it's a subclass).
 
-    titlesAlignments.keys()[0]
+    list(titlesAlignments)[0]
 
     u'gi|298659151|gb|CY064947.1| Influenza A virus (A/mallard/Netherlands/5/1999(H2N9)) segment 1 sequence'
 
@@ -412,12 +412,14 @@ And, after drilling down sufficiently, we arrive back at an `HSP`.
 There are several ways to filter a `TitlesAlignments` once all matching reads
 for titles have been collected (from the `ReadsAlignments` used to create it):
 
-        def filter(self, minMatchingReads=None, minMedianScore=None,
-                   withScoreBetterThan=None, minNewReads=None):
+        def filter(self, minMatchingReads=None, maxMatchingReads=None,
+                   minMedianScore=None, withScoreBetterThan=None, minNewReads=None):
             """
             Filter the titles in self to create another TitlesAlignments.
 
             @param minMatchingReads: titles that are matched by fewer reads
+                are unacceptable.
+            @param maxMatchingReads: titles that are matched by more reads
                 are unacceptable.
             @param minMedianScore: sequences that are matched with a median
                 bit score that is less are unacceptable.
@@ -436,7 +438,7 @@ for titles have been collected (from the `ReadsAlignments` used to create it):
 
     2
 
-    matchedBySeveralReads.keys()
+    list(matchedBySeveralReads)
 
     [u'gi|355391446|gb|CY080412.1| Influenza A virus (A/mallard/France/090360/2009(H9N2)) segment 1 sequence',
      u'gi|338855247|gb|CY093093.1| Influenza A virus (A/quail/Lebanon/273/2010(H9N2)) polymerase PB2 (PB2) gene, complete cds']
@@ -536,7 +538,7 @@ are the number of reads that matched that title.
 
     30
 
-    sortedTitles = sorted(counts.keys(), key=lambda title: counts[title], reverse=True)
+    sortedTitles = sorted(counts, key=lambda title: counts[title], reverse=True)
     sortedTitles[:5]
 
     [u'gi|338855247|gb|CY093093.1| Influenza A virus (A/quail/Lebanon/273/2010(H9N2)) polymerase PB2 (PB2) gene, complete cds',

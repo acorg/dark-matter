@@ -93,7 +93,7 @@ class TestTitlesAlignments(TestCase):
             reads = Reads()
             readsAlignments = DiamondReadsAlignments(reads, 'file.json')
             titlesAlignments = TitlesAlignments(readsAlignments)
-            self.assertEqual([], list(titlesAlignments.keys()))
+            self.assertEqual([], list(titlesAlignments))
 
     def testExpectedTitles(self):
         """
@@ -117,7 +117,7 @@ class TestTitlesAlignments(TestCase):
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(titlesAlignments.keys()))
+                sorted(titlesAlignments))
 
     def testExpectedTitleDetails(self):
         """
@@ -355,7 +355,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
     def testMinMatchingReads(self):
         """
@@ -379,7 +379,36 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Cowpox virus 15',
                 ],
-                list(result.keys()))
+                list(result))
+
+    def testMaxMatchingReads(self):
+        """
+        The filter function work correctly when passed a value for
+        maxMatchingReads.
+        """
+        mockOpener = mock_open(read_data=(
+            dumps(PARAMS) + '\n' + dumps(RECORD0) + '\n' +
+            dumps(RECORD1) + '\n' + dumps(RECORD2) + '\n' +
+            dumps(RECORD3) + '\n'))
+        with patch.object(builtins, 'open', mockOpener):
+            reads = Reads()
+            reads.add(Read('id0', 'A' * 70))
+            reads.add(Read('id1', 'A' * 70))
+            reads.add(Read('id2', 'A' * 70))
+            reads.add(Read('id3', 'A' * 70))
+            readsAlignments = DiamondReadsAlignments(reads, 'file.json')
+            titlesAlignments = TitlesAlignments(readsAlignments)
+            result = titlesAlignments.filter(maxMatchingReads=1)
+            # Cowpox virus 15 is not in the results as it is matched by two
+            # reads.
+            self.assertEqual(
+                sorted([
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
+                    'gi|887699|gb|DQ37780 Squirrelpox virus 55',
+                    'gi|887699|gb|DQ37780 Monkeypox virus 456',
+                    'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.'
+                ]),
+                sorted(result))
 
     def testMinMedianScore_Bits(self):
         """
@@ -403,7 +432,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                list(result.keys()))
+                list(result))
 
     def testMinMedianScore_EValue(self):
         """
@@ -429,7 +458,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
     def testWithScoreBetterThan_Bits(self):
         """
@@ -453,7 +482,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                list(result.keys()))
+                list(result))
 
     def testWithScoreBetterThan_EValue(self):
         """
@@ -478,7 +507,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                 ],
-                list(result.keys()))
+                list(result))
 
     def testReadSetFilterAllowAnything(self):
         """
@@ -506,7 +535,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
     def testReadSetFilterStrict(self):
         """
@@ -593,7 +622,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
     def testCoverageIncludesSome(self):
         """
@@ -623,7 +652,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                     'gi|887699|gb|DQ37780 Monkeypox virus 456',
                     'gi|887699|gb|DQ37780 Mummypox virus 3000 B.C.',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
     def testMaxTitlesNegative(self):
         """
@@ -700,7 +729,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 [
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
     def testMaxTitlesTwoSortOnLength(self):
         """
@@ -725,7 +754,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                     'gi|887699|gb|DQ37780 Squirrelpox virus 1296/99',
                     'gi|887699|gb|DQ37780 Squirrelpox virus 55',
                 ],
-                sorted(result.keys()))
+                sorted(result))
 
 
 class TestTitleSorting(TestCase):

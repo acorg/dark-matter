@@ -22,7 +22,7 @@ def findOrDie(s):
         return aa
     else:
         print('Unknown amino acid or codon: %s' % s, file=sys.stderr)
-        print('Valid arguments are: %s.' % list(CODONS.keys()),
+        print('Valid arguments are: %s.' % ', '.join(sorted(CODONS)),
               file=sys.stderr)
         sys.exit(1)
 
@@ -40,7 +40,7 @@ else:
     print('%s: %s' % (aa2.name, ', '.join(sorted(aa2.codons))))
 
     print('Distances:')
-    sortedDistances = sorted(distances.keys())
+    sortedDistances = sorted(distances)
     for distance in sortedDistances:
         for codon in distances[distance]:
             print('%d: %s: %s -> %s: %s' % (distance, aa1.name, codon[0],

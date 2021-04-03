@@ -36,7 +36,7 @@ class TestProperties(TestCase):
         """
         The PROPERTIES dict must have the correct AA keys.
         """
-        self.assertEqual(AA_LETTERS, sorted(PROPERTIES.keys()))
+        self.assertEqual(AA_LETTERS, sorted(PROPERTIES))
 
     def testAllProperties(self):
         """
@@ -82,7 +82,7 @@ class TestProperties(TestCase):
         }
 
         # Make sure our 'expected' dict (above) has properties for everything.
-        self.assertEqual(AA_LETTERS, sorted(expected.keys()))
+        self.assertEqual(AA_LETTERS, sorted(expected))
 
         for aa in AA_LETTERS:
             for prop in ALL_PROPERTIES:
@@ -95,7 +95,7 @@ class TestProperties(TestCase):
         """
         The PROPERTY_NAMES dict must have a key for each property.
         """
-        self.assertEqual(sorted(ALL_PROPERTIES), sorted(PROPERTY_NAMES.keys()))
+        self.assertEqual(sorted(ALL_PROPERTIES), sorted(PROPERTY_NAMES))
 
     def testProperyNamesValuesDiffer(self):
         """
@@ -114,7 +114,7 @@ class TestNames(TestCase):
         """
         The NAMES dict must have the correct AA keys.
         """
-        self.assertEqual(AA_LETTERS, sorted(NAMES.keys()))
+        self.assertEqual(AA_LETTERS, sorted(NAMES))
 
     def testValuesDiffer(self):
         """
@@ -146,7 +146,7 @@ class TestAbbrev3(TestCase):
         """
         The ABBREV3 dict must have the correct AA keys.
         """
-        self.assertEqual(AA_LETTERS, sorted(ABBREV3.keys()))
+        self.assertEqual(AA_LETTERS, sorted(ABBREV3))
 
     def testValuesDiffer(self):
         """
@@ -178,7 +178,7 @@ class TestCodons(TestCase):
         """
         The CODONS dict must have the correct AA keys.
         """
-        self.assertEqual(AA_LETTERS, sorted(CODONS.keys()))
+        self.assertEqual(AA_LETTERS, sorted(CODONS))
 
     def testNumberCodons(self):
         """
@@ -565,7 +565,7 @@ class TestPropertyClusters(TestCase):
         """
         The PROPERTY_CLUSTERS dict must contain the right keys.
         """
-        self.assertEqual(AA_LETTERS, sorted(PROPERTY_CLUSTERS.keys()))
+        self.assertEqual(AA_LETTERS, sorted(PROPERTY_CLUSTERS))
 
     def testNumberOfValues(self):
         """
@@ -577,7 +577,7 @@ class TestPropertyClusters(TestCase):
                 'aliphaticity', 'aromaticity', 'composition',
                 'hydrogenation', 'hydropathy', 'hydroxythiolation',
                 'iep', 'polar requirement', 'polarity', 'volume'],
-                sorted(propertyNames.keys()))
+                sorted(propertyNames))
 
     def testAliphaticity(self):
         """
@@ -603,7 +603,7 @@ class TestPropertyDetailsRaw(TestCase):
         """
         The PROPERTY_DETAILS_RAW dict must contain the right keys.
         """
-        self.assertEqual(AA_LETTERS, sorted(PROPERTY_DETAILS_RAW.keys()))
+        self.assertEqual(AA_LETTERS, sorted(PROPERTY_DETAILS_RAW))
 
     def testNumberOfValues(self):
         """
