@@ -225,7 +225,12 @@ def main():
             result = e.execute(
                 "ivar trim -i %r -b %r -p %r -e" % (
                     args.bam, args.ivarBedFile, tempBamFile))
-            bamFile = tempBamFile + '.bam'
+            ivarTempBamFile = tempBamFile + '.bam'
+            sortedIvarTempBamFile = tempBamFile + '-trimmed-sorted.bam'
+            result = e.execute(
+                "samtools sort %r -o %r" % (
+                    ivarTempBamFile, sortedIvarTempBamFile))
+            bamFile = sortedIvarTempBamFile
         else:
             bamFile = args.bam
 

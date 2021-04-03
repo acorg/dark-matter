@@ -1,3 +1,8 @@
+## 3.2.6 April 3, 2021
+
+Added bam file sorting to `make-consensus.py` so ivar primer trimming actually
+works.
+
 ## 3.2.5 March 4, 2021
 
 Added ivar primer trimming (via the `--ivarBedFile` argument) to
