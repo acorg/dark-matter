@@ -48,7 +48,7 @@ def normalizeHSP(hsp, readLen, blastApplication):
         """
         print('normalizeHSP error:')
         print('  readLen: %d' % readLen)
-        for var in sorted(locals.keys()):
+        for var in sorted(locals):
             if var in ('debugPrint', 'hsp'):
                 continue
             print('  %s: %s' % (var, locals[var]))

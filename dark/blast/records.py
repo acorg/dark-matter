@@ -7,7 +7,7 @@ def printBlastRecord(record):
 
     @param record: A BioPython C{Bio.Blast.Record.Blast} instance.
     """
-    for key in sorted(record.__dict__.keys()):
+    for key in sorted(record.__dict__):
         if key not in ['alignments', 'descriptions', 'reference']:
             print('%s: %r' % (key, record.__dict__[key]))
     print('alignments: (%d in total):' % len(record.alignments))

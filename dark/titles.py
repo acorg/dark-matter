@@ -312,14 +312,16 @@ class TitlesAlignments(dict):
         else:
             self[title] = titleAlignments
 
-    def filter(self, minMatchingReads=None, minMedianScore=None,
-               withScoreBetterThan=None, minNewReads=None, minCoverage=None,
-               maxTitles=None, sortOn='maxScore', titleRegex=None,
-               negativeTitleRegex=None):
+    def filter(self, minMatchingReads=None, maxMatchingReads=None,
+               minMedianScore=None, withScoreBetterThan=None, minNewReads=None,
+               minCoverage=None, maxTitles=None, sortOn='maxScore',
+               titleRegex=None, negativeTitleRegex=None):
         """
         Filter the titles in self.
 
         @param minMatchingReads: titles that are matched by fewer reads
+            are unacceptable.
+        @param maxMatchingReads: titles that are matched by more reads
             are unacceptable.
         @param minMedianScore: sequences that are matched with a median
             bit score that is less are unacceptable.
@@ -366,7 +368,7 @@ class TitlesAlignments(dict):
                 # than we should.
                 titles = self.sortTitles(sortOn)
         else:
-            titles = self.keys()
+            titles = list(self)
 
         if (titleRegex or negativeTitleRegex):
             titleFilter = TitleFilter(
@@ -389,6 +391,10 @@ class TitlesAlignments(dict):
             titleAlignments = self[title]
             if (minMatchingReads is not None and
                     titleAlignments.readCount() < minMatchingReads):
+                continue
+
+            if (maxMatchingReads is not None and
+                    titleAlignments.readCount() > maxMatchingReads):
                 continue
 
             # To compare the median score with another score, we must
