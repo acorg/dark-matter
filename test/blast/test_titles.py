@@ -532,7 +532,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testMinMatchingReads(self):
         """
-        The filter function work correctly when passed a value for
+        The filter function must work correctly when passed a value for
         minMatchingReads.
         """
         mockOpener = mock_open(read_data=(
@@ -556,7 +556,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testMaxMatchingReads(self):
         """
-        The filter function work correctly when passed a value for
+        The filter function must work correctly when passed a value for
         maxMatchingReads.
         """
         mockOpener = mock_open(read_data=(
@@ -585,7 +585,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testMinMedianScore_Bits(self):
         """
-        The filter function work correctly when passed a value for
+        The filter function must work correctly when passed a value for
         minMedianScore when using bit scores.
         """
         mockOpener = mock_open(read_data=(
@@ -609,7 +609,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testMinMedianScore_EValue(self):
         """
-        The filter function work correctly when passed a value for
+        The filter function must work correctly when passed a value for
         minMedianScore when using e values.
         """
         mockOpener = mock_open(read_data=(
@@ -635,7 +635,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testWithScoreBetterThan_Bits(self):
         """
-        The filter function work correctly when passed a value for
+        The filter function must work correctly when passed a value for
         withScoreBetterThan when using bit scores.
         """
         mockOpener = mock_open(read_data=(
@@ -659,7 +659,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testWithScoreBetterThan_EValue(self):
         """
-        The filter function work correctly when passed a value for
+        The filter function must work correctly when passed a value for
         withScoreBetterThan when using e values.
         """
         mockOpener = mock_open(read_data=(
@@ -684,7 +684,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testReadSetFilterAllowAnything(self):
         """
-        The filter function work correctly when passed a 0.0 value for
+        The filter function must work correctly when passed a 0.0 value for
         minNewReads, i.e. that considers any read set sufficiently novel.
         """
         mockOpener = mock_open(read_data=(
@@ -712,7 +712,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
 
     def testReadSetFilterStrict(self):
         """
-        The filter function work correctly when passed a 1.0 value for
+        The filter function must work correctly when passed a 1.0 value for
         minNewReads.
         """
         mockOpener = mock_open(read_data=(
