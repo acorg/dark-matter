@@ -27,7 +27,7 @@ clean:
 	find . \( -name '*.pyc' -o -name '*~' \) -print0 | $(XARGS) -0 rm
 	find . -name '__pycache__' -type d -print0 | $(XARGS) -0 rmdir
 	find . -name '_trial_temp' -type d -print0 | $(XARGS) -0 rm -r
-	rm -fr dark_matter.egg-info
+	rm -fr dark_matter.egg-info build dist
 	python setup.py clean
 
 clobber: clean

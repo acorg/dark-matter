@@ -1311,6 +1311,7 @@ class _GenomeLocation(object):
 
     @param start: An C{int} start location.
     @param end: An C{int} stop location.
+    @param strand: The C{int} strand, either 1 for forward or 0 for reverse.
     """
     def __init__(self, start, end, strand):
         self.start = start

@@ -4,6 +4,15 @@ from unittest import TestCase
 from dark.btop import countGaps, parseBtop, btop2cigar
 
 
+def btop2cigarStr(btopString, concise=False, aa=False):
+    """
+    Call btopString and turn its generator result into a string.
+
+    See btopString for the explanation of the args.
+    """
+    return ''.join(btop2cigar(btopString, concise, aa))
+
+
 class TestParseBtop(TestCase):
     """
     Tests for the parseBtop function.
@@ -172,7 +181,7 @@ class TestBtop2CigarPrecise(TestCase):
         """
         An empty BTOP string must result in an empty CIGAR string.
         """
-        self.assertEqual('', btop2cigar('', concise=False))
+        self.assertEqual('', btop2cigarStr('', concise=False))
 
     def testMixedMatch(self):
         """
@@ -180,7 +189,7 @@ class TestBtop2CigarPrecise(TestCase):
         CIGAR sense where M could be identical characters or not), the CIGAR
         string must be all Ms.
         """
-        self.assertEqual('7M', btop2cigar('2GC3AT', concise=False))
+        self.assertEqual('7M', btop2cigarStr('2GC3AT', concise=False))
 
     def testRefenceInsertion(self):
         """
@@ -188,7 +197,7 @@ class TestBtop2CigarPrecise(TestCase):
         subject (reference) does not, the CIGAR string must indicate an
         insertion to the reference.
         """
-        self.assertEqual('1I', btop2cigar('A-', concise=False))
+        self.assertEqual('1I', btop2cigarStr('A-', concise=False))
 
     def testQueryInsertion(self):
         """
@@ -196,7 +205,7 @@ class TestBtop2CigarPrecise(TestCase):
         but the query does not, the CIGAR string must indicate an deletion in
         the reference.
         """
-        self.assertEqual('1D', btop2cigar('-A', concise=False))
+        self.assertEqual('1D', btop2cigarStr('-A', concise=False))
 
     def testAll(self):
         """
@@ -204,7 +213,15 @@ class TestBtop2CigarPrecise(TestCase):
         string must be correct.
         """
         self.assertEqual('7M2I4M2D5M',
-                         btop2cigar('2GC3ATC-G-4-T-A5', concise=False))
+                         btop2cigarStr('2GC3ATC-G-4-T-A5', concise=False))
+
+    def testAllList(self):
+        """
+        If a BTOP string specifies all possible variations, the CIGAR
+        string components must be correct.
+        """
+        self.assertEqual(['7M', '2I', '4M', '2D', '5M'],
+                         list(btop2cigar('2GC3ATC-G-4-T-A5', concise=False)))
 
     def testAllAA(self):
         """
@@ -214,7 +231,17 @@ class TestBtop2CigarPrecise(TestCase):
         """
         self.assertEqual(
             '21M6I12M6D15M',
-            btop2cigar('2GC3ATC-G-4-T-A5', concise=False, aa=True))
+            btop2cigarStr('2GC3ATC-G-4-T-A5', concise=False, aa=True))
+
+    def testAllAAList(self):
+        """
+        If a BTOP string specifies all possible variations, and we indicate
+        that the BTOP string refers to amino acids, the CIGAR string components
+        must be correct (i.e., all counts must be tripled).
+        """
+        self.assertEqual(
+            ['21M', '6I', '12M', '6D', '15M'],
+            list(btop2cigar('2GC3ATC-G-4-T-A5', concise=False, aa=True)))
 
 
 class TestBtop2CigarConcise(TestCase):
@@ -226,14 +253,14 @@ class TestBtop2CigarConcise(TestCase):
         """
         An empty BTOP string must result in an empty CIGAR string.
         """
-        self.assertEqual('', btop2cigar('', concise=True))
+        self.assertEqual('', btop2cigarStr('', concise=True))
 
     def testMixedMatch(self):
         """
         If a BTOP string specifies that some characters match and some do
         not, the CIGAR string must be specific about the matches / mismatches.
         """
-        self.assertEqual('2=1X3=1X', btop2cigar('2GC3AT', concise=True))
+        self.assertEqual('2=1X3=1X', btop2cigarStr('2GC3AT', concise=True))
 
     def testRefenceInsertion(self):
         """
@@ -241,7 +268,7 @@ class TestBtop2CigarConcise(TestCase):
         subject (reference) does not, the CIGAR string must indicate an
         insertion to the reference.
         """
-        self.assertEqual('1I', btop2cigar('A-', concise=True))
+        self.assertEqual('1I', btop2cigarStr('A-', concise=True))
 
     def testQueryInsertion(self):
         """
@@ -249,7 +276,7 @@ class TestBtop2CigarConcise(TestCase):
         but the query does not, the CIGAR string must indicate an deletion in
         the reference.
         """
-        self.assertEqual('1D', btop2cigar('-A', concise=True))
+        self.assertEqual('1D', btop2cigarStr('-A', concise=True))
 
     def testAll(self):
         """
@@ -257,12 +284,12 @@ class TestBtop2CigarConcise(TestCase):
         string must be correct.
         """
         self.assertEqual('2=1X3=1X2I4=2D5=',
-                         btop2cigar('2GC3ATC-G-4-T-A5', concise=True))
+                         btop2cigarStr('2GC3ATC-G-4-T-A5', concise=True))
 
     def testWithAATrue(self):
         """
         If concise and aa are both set to True, a ValueError must be raised.
         """
         error = '^aa and concise cannot both be True$'
-        assertRaisesRegex(self, ValueError, error, btop2cigar, '',
+        assertRaisesRegex(self, ValueError, error, btop2cigarStr, '',
                           concise=True, aa=True)
