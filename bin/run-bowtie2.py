@@ -65,7 +65,7 @@ def processMatch(args, e):
         threads=(multiprocessing.cpu_count() if args.threads is None
                  else args.threads),
         verboseFp=(sys.stderr if args.verbose else None),
-        dryRun=args.dryRun, tempdir=args.tempdir)
+        dryRun=args.dryRun, tempdir=args.tempdir, tmpChmod=args.tmpChmod)
 
     bt2.buildIndex(args.index or args.reference)
 
