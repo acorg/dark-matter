@@ -1,3 +1,12 @@
+## 4.0.0 June 12, 2021
+
+`btop2cigar` now returns a generator that gives the individual parts of a
+CIGAR string. Use `''.join(btop2cigar(...))` to get the full CIGAR string.
+This is not backwards compatible, hence the major version number change.
+
+Pass the `tmpChmod` argument to a call to `Bowtie2` for which it was
+missing.
+
 ## 3.2.7 April 3, 2021
 
 Added `--maxMatchingReads` to title fitering.
