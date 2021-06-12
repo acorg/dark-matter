@@ -88,12 +88,12 @@ def btop2cigar(btopString, concise=False, aa=False):
         they refer to a number of amino acids matching.
     @raise ValueError: If L{parseBtop} finds an error in C{btopString} or
         if C{aa} and C{concise} are both C{True}.
-    @return: A C{str} CIGAR string.
+    @return: A generator that yields C{str} pieces of a CIGAR string. Use
+        ''.join(btopString(...)) to get a complete CIGAR string.
     """
     if aa and concise:
         raise ValueError('aa and concise cannot both be True')
 
-    result = []
     thisLength = thisOperation = currentLength = currentOperation = None
 
     for item in parseBtop(btopString):
@@ -123,10 +123,8 @@ def btop2cigar(btopString, concise=False, aa=False):
             currentLength += thisLength
         else:
             if currentOperation:
-                result.append(
-                    '%d%s' %
-                    ((3 * currentLength) if aa else currentLength,
-                     currentOperation))
+                yield '%d%s' % ((3 * currentLength) if aa else currentLength,
+                                currentOperation)
             currentLength, currentOperation = thisLength, thisOperation
 
     # We reached the end of the BTOP string. If there was an operation
@@ -134,8 +132,5 @@ def btop2cigar(btopString, concise=False, aa=False):
     # case where btopString was empty.
     assert currentOperation or btopString == ''
     if currentOperation:
-        result.append(
-            '%d%s' %
-            ((3 * currentLength) if aa else currentLength, currentOperation))
-
-    return ''.join(result)
+        yield '%d%s' % ((3 * currentLength) if aa else currentLength,
+                        currentOperation)

@@ -7,7 +7,6 @@ from resource import getrlimit, RLIMIT_NOFILE
 from dark.btop import btop2cigar
 from dark.diamond.conversion import DiamondTabularFormat
 from dark.fpcache import FilePointerCache
-from dark.genbank import GenomeRanges
 from dark.reads import DNARead
 from dark.utils import asHandle
 
@@ -160,15 +159,17 @@ class _DiamondSAMWriter(object):
         qseqid = (match['qseqid'] if self._keepDescriptions else
                   match['qseqid'].split(None, 1)[0])
 
-        ranges = GenomeRanges(protein['offsets'])
+        # from dark.genbank import GenomeRanges
+        # ranges = GenomeRanges(protein['offsets'])
 
         # matchStartInGenome = ranges.startInGenome(match)
         # queryStartInGenome = matchStartInGenome - match['qstart'] - 1
         # orientations = ranges.orientations()
 
-        print('ranges', ranges)
-        print('protein', protein)
-        print('match', match)
+        # print('ranges', ranges)
+        # print('protein', protein)
+        # print('match', match)
+
         # If the query frame is less than zero, the match was with a
         # translation of the reverse-complemented query. We'll put the
         # reverse complement into the SAM output. This seems to be standard
@@ -197,7 +198,7 @@ class _DiamondSAMWriter(object):
 
         cigar = (
             ('%dH' % startClipCount if startClipCount else '') +
-            btop2cigar(match['btop'], concise=False, aa=True) +
+            ''.join(btop2cigar(match['btop'], concise=False, aa=True)) +
             ('%dH' % endClipCount if endClipCount else ''))
 
         return '\t'.join(map(str, (

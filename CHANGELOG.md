@@ -1,3 +1,9 @@
+## 4.0.0 DATE......................................................................
+
+`btop2cigar` now returns a generator that gives the individual parts of a
+CIGAR string. Use `''.join(btop2cigar(...))` to get the full CIGAR string.
+This is not backwards compatible, hence the major version number change.
+
 ## 3.2.7 April 3, 2021
 
 Added `--maxMatchingReads` to title fitering.
