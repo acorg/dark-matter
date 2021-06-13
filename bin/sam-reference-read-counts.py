@@ -16,6 +16,11 @@ parser.add_argument(
     'samFile', metavar='FILENAME',
     help='The name of a SAM/BAM alignment file.')
 
+parser.add_argument(
+    '--sort', action='store_true',
+    help=('Sort the output by decreasing read count (i.e., the reference with '
+          'the highest number of matching reads is printed first).'))
+
 args = parser.parse_args()
 
 
@@ -67,7 +72,15 @@ def pct(a, b):
     return (a / b if b else 0.0) * 100.0
 
 
-for referenceId in sorted(referenceReads):
+if args.sort:
+    def key(referenceId):
+        return len(referenceReads[referenceId]['readIds'])
+
+    sortedReferenceReads = sorted(referenceReads, key=key, reverse=True)
+else:
+    sortedReferenceReads = sorted(referenceReads)
+
+for referenceId in sortedReferenceReads:
     stats = referenceReads[referenceId]
     readCount = len(stats['readIds'])
     print('%s: %d/%d (%.2f%%) reads mapped to the reference.\n'

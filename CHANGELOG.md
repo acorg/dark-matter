@@ -1,3 +1,8 @@
+## 4.0.1 June 1, 2021
+
+Added `--sort` option to `sam-reference-read-counts.py` to sort output
+(i.e., matched references) by highest number of mapped reads.
+
 ## 4.0.0 June 12, 2021
 
 `btop2cigar` now returns a generator that gives the individual parts of a

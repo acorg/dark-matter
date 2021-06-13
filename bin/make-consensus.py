@@ -106,7 +106,7 @@ def main():
 
     parser.add_argument(
         '--ivarBedFile',
-        help=('If ivar should trim primers, a bed file of the primer '
+        help=('If ivar should trim primers, a BED file of the primer '
               'positions.'))
 
     args = parser.parse_args()
