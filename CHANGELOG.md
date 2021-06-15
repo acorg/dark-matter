@@ -1,4 +1,13 @@
-## 4.0.1 June 1, 2021
+## 4.0.2 June 15, 2021
+
+Improved `sam-reference-read-counts.py` output to not double-count reads
+that fall into multiple categories and also to report how many reads match
+references that don't match any earlier reported reference (to give some
+idea of how many reads uniquely match references, where 'unique' means
+didn't match any other reported reference (with more reads when `--sort` is
+also used).
+
+## 4.0.1 June 14, 2021
 
 Added `--sort` option to `sam-reference-read-counts.py` to sort output
 (i.e., matched references) by highest number of mapped reads.

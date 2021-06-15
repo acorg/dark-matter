@@ -6,6 +6,8 @@ import argparse
 from collections import defaultdict
 
 from dark.sam import samfile
+from dark.utils import pct
+
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -26,50 +28,51 @@ args = parser.parse_args()
 
 def referenceInfo():
     return {
-        'duplicateCount': 0,
-        'primaryCount': 0,
-        'qcFailCount': 0,
-        'nonDuplicateCount': 0,
+        'duplicate': set(),
+        'primary': set(),
+        'qcFail': set(),
+        'nonDuplicate': set(),
         'readIds': set(),
-        'secondaryCount': 0,
-        'supplementaryCount': 0,
+        'secondary': set(),
+        'supplementary': set(),
     }
 
 
 referenceReads = defaultdict(referenceInfo)
-mappedCount = unmappedCount = 0
+mapped = set()
+unmapped = set()
 readIds = set()
 
 with samfile(args.samFile) as fp:
     for read in fp.fetch():
-        readIds.add(read.query_name)
+        id_ = read.query_name
+        readIds.add(id_)
         if read.is_unmapped:
-            unmappedCount += 1
+            unmapped.add(id_)
         else:
-            mappedCount += 1
+            mapped.add(id_)
             stats = referenceReads[read.reference_name]
-            stats['readIds'].add(read.query_name)
+            stats['readIds'].add(id_)
+
             if read.is_secondary:
-                stats['secondaryCount'] += 1
+                stats['secondary'].add(id_)
             elif read.is_supplementary:
-                stats['supplementaryCount'] += 1
+                stats['supplementary'].add(id_)
             else:
-                stats['primaryCount'] += 1
+                stats['primary'].add(id_)
+
             if read.is_duplicate:
-                stats['duplicateCount'] += 1
+                stats['duplicate'].add(id_)
             else:
-                stats['nonDuplicateCount'] += 1
+                stats['nonDuplicate'].add(id_)
+
             if read.is_qcfail:
-                stats['qcFailCount'] += 1
+                stats['qcFail'].add(id_)
 
 totalReads = len(readIds)
 
 print('Found a total of %d read%s (%d mapped, %d unmapped).' %
-      (totalReads, '' if totalReads == 1 else 's', mappedCount, unmappedCount))
-
-
-def pct(a, b):
-    return (a / b if b else 0.0) * 100.0
+      (totalReads, '' if totalReads == 1 else 's', len(mapped), len(unmapped)))
 
 
 if args.sort:
@@ -80,26 +83,24 @@ if args.sort:
 else:
     sortedReferenceReads = sorted(referenceReads)
 
+cumulativeReadIds = set()
+
 for referenceId in sortedReferenceReads:
     stats = referenceReads[referenceId]
     readCount = len(stats['readIds'])
-    print('%s: %d/%d (%.2f%%) reads mapped to the reference.\n'
-          '  Non-duplicates: %d (%.2f%%), '
-          'Duplicates: %d (%.2f%%), '
-          'QC fails: %d (%.2f%%)\n'
-          '  Primary: %d (%.2f%%), '
-          'Secondary: %d (%.2f%%), '
-          'Supplementary: %d (%.2f%%)' %
-          (referenceId, readCount, totalReads, pct(readCount, totalReads),
-           stats['nonDuplicateCount'],
-           pct(stats['nonDuplicateCount'], readCount),
-           stats['duplicateCount'],
-           pct(stats['duplicateCount'], readCount),
-           stats['qcFailCount'],
-           pct(stats['qcFailCount'], readCount),
-           stats['primaryCount'],
-           pct(stats['primaryCount'], readCount),
-           stats['secondaryCount'],
-           pct(stats['secondaryCount'], readCount),
-           stats['supplementaryCount'],
-           pct(stats['supplementaryCount'], readCount)))
+    newReadCount = len(stats['readIds'] - cumulativeReadIds)
+    cumulativeReadIds.update(stats['readIds'])
+    print('\n%s:\n'
+          '  Overall reads mapped to the reference: %s\n'
+          '  Non-duplicates: %s, Duplicates: %s, QC fails: %s\n'
+          '  Primary: %s, Secondary: %s, Supplementary: %s\n'
+          '  Reads not matching any reference above: %s' %
+          (referenceId,
+           pct(readCount, totalReads),
+           pct(len(stats['nonDuplicate']), readCount),
+           pct(len(stats['duplicate']), readCount),
+           pct(len(stats['qcFail']), readCount),
+           pct(len(stats['primary']), readCount),
+           pct(len(stats['secondary']), readCount),
+           pct(len(stats['supplementary']), readCount),
+           pct(newReadCount, totalReads)))
