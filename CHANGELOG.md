@@ -1,3 +1,9 @@
+## 4.0.3 June 15, 2021
+
+Added `--topReferenceIdsFile` option to `sam-reference-read-counts.py` to
+allow the ids of the best-matching reference to be saved. Probably this
+should save the FASTQ.
+
 ## 4.0.2 June 15, 2021
 
 Improved `sam-reference-read-counts.py` output to not double-count reads
