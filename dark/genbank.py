@@ -138,7 +138,7 @@ class GenomeRanges(object):
         end of the genome (indicating that the genome may be circular).
 
         @param genomeLength: The C{int} length of the genome.
-        @return: A C{bool}, C{True} if the ranges overlaps the genome end.
+        @return: A C{bool}, C{True} if the ranges overlap the genome end.
         """
         if self._nRanges == 1:
             # If there is only one range, we simply return False even though it
@@ -151,17 +151,17 @@ class GenomeRanges(object):
             # False)) on a genome of length 100 will return True.
             #
             # The decision about whether you consider the degenerate case of
-            # ((0, 100, False),) to indicate circularity is a bit
-            # arbitrary. Here I've decided that it should not because I intend
-            # to use this function to decide whether to output multiple SAM
-            # lines for the match of a read against a reference. In this
+            # ((0, 100, False),) to indicate circularity is a bit arbitrary.
+            # Here I've decided that it should not because I intend to use
+            # this function to decide whether to output multiple SAM lines
+            # for the match of a read against a reference. In this
             # degenerate case just a single SAM line suffices, whereas in a
             # non-degenerate case (such as ((0, 75, False), (75, 100, False))
             # on a genome of length 100), a chimeric SAM alignment must be
             # used, which requires quite different processing than a normal
-            # linear match. YMMV, and if you don't like it you can easily add
-            # an argument to this function that changes this behaviour (leaving
-            # the default to do what the code currently does).
+            # linear match. YMMV, and if you don't like it you can easily
+            # add an argument to this function that changes this behaviour
+            # (leaving the default to do what the code currently does).
             return False
 
         for index, (start, stop, _) in enumerate(self.ranges):

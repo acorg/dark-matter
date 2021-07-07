@@ -16,7 +16,7 @@ from io import BytesIO
 from dark.utils import (
     numericallySortFilenames, median, asHandle, parseRangeString,
     parseRangeExpression, pct, StringIO, baseCountsToStr, nucleotidesToStr,
-    countPrint)
+    countPrint, take)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -499,3 +499,45 @@ class TestPct(TestCase):
         one seventh of the denominator.
         """
         self.assertEqual('2/14 (14.286%)', pct(2, 14))
+
+
+class TestTake(TestCase):
+    """
+    Test the take function.
+    """
+    def testNLessThanOne(self):
+        """
+        The take function must raise an AssertionError if passed n < 1.
+        list.
+        """
+        self.assertRaises(AssertionError, next, take([], 0))
+
+    def testEmpty(self):
+        """
+        The take function must return an empty generator if passed an empty
+        list.
+        """
+        self.assertEqual([], list(take([], 4)))
+
+    def testOne(self):
+        """
+        The take function must return individual items if passed n=1.
+        """
+        self.assertEqual([[3], [4], [5]],
+                         list(take([3, 4, 5], 1)))
+
+    def testNBiggerThanPassedList(self):
+        """
+        The take function must return all items if passed an n that is bigger
+        than the passed list.
+        """
+        self.assertEqual([[3, 4, 5]],
+                         list(take([3, 4, 5], 100)))
+
+    def testThree(self):
+        """
+        The take function must return three items at a time if passed n=3, and
+        also return the extra two items.
+        """
+        self.assertEqual([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10]],
+                         list(take(range(11), 3)))
