@@ -1,3 +1,11 @@
+## 4.0.5 July 10, 2021
+
+Added printing of reference lengths to `bin/sam-reference-read-counts.py`.
+Changed the `--sort` option of that script to `--sortBy`. Added options to
+stop printing references once they either have no reads mapped to them or
+the number of new reads mapped to them ("new" as in not already mapping to
+an earlier reference) falls to zero.
+
 ## 4.0.3 June 15, 2021
 
 Added `--topReferenceIdsFile` option to `sam-reference-read-counts.py` to
