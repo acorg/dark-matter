@@ -11,7 +11,7 @@ from dark.reads import Read, Reads
 from .sample_proteins import SAMPLE_DATA
 
 
-@skip('DIAMOND SAM tests work but are wrong. Skipping.')
+@skip('The DIAMOND SAM tests pass but are wrong. Skipping.')
 @skipUnless(diamondInstalled(), 'DIAMOND is not installed')
 class TestSimpleDiamondSAMWriter(TestCase):
     """
@@ -140,7 +140,7 @@ class TestSimpleDiamondSAMWriter(TestCase):
             fp.getvalue())
 
 
-@skip('DIAMOND SAM tests work but are wrong. Skipping.')
+@skip('The DIAMOND SAM tests pass but are wrong. Skipping.')
 @skipUnless(diamondInstalled(), 'DIAMOND is not installed')
 class TestAdw2Polymerase(TestCase):
     """

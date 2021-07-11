@@ -339,3 +339,30 @@ def cd(newdir):
         yield newdir
     finally:
         os.chdir(olddir)
+
+
+def take(iterator, n):
+    """
+    Repeatedly yield lists of C{n} items taken from an iterator.
+
+    @param iterator: Something that can be iterated.
+    @param n: An C{int} number of items to yield each time, greater than zero.
+    @raise AssertionError: If C{n} < 1.
+    @return: A generator that yields lists of length C{n}.
+    """
+    assert n > 0
+    items = []
+    iterator = iter(iterator)
+
+    while True:
+        try:
+            item = next(iterator)
+        except StopIteration:
+            if items:
+                yield items
+            break
+        else:
+            items.append(item)
+            if len(items) == n:
+                yield items
+                items = []
