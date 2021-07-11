@@ -1,3 +1,10 @@
+## 4.0.4 July 7, 2021
+
+Added `fasta-split.py` command to split a FASTA/Q file into multiple files,
+each containing a given number of sequences. Added `dark/utils.py` function
+`take` to repeatedly yield lists of a given number of things from an
+iterable.
+
 ## 4.0.3 June 15, 2021
 
 Added `--topReferenceIdsFile` option to `sam-reference-read-counts.py` to

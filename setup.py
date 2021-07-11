@@ -56,6 +56,7 @@ scripts = [
     'bin/fasta-sequences.py',
     'bin/fasta-sort.py',
     'bin/fasta-split-by-id.py',
+    'bin/fasta-split.py',
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
     'bin/fasta-to-phylip.py',

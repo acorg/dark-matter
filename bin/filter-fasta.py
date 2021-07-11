@@ -40,10 +40,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    reads = parseFASTAEditingCommandLineOptions(
-        args, parseFASTAFilteringCommandLineOptions(
-            args, parseFASTACommandLineOptions(args)))
-
     saveAs = (
         args.saveAs or
         (args.fasta and 'fasta') or
@@ -62,6 +58,10 @@ if __name__ == '__main__':
         raise ValueError(
             'You have specified --saveAs fasta-ss without using --fasta-ss '
             'to indicate that the input is PDB FASTA. Please be explicit.')
+
+    reads = parseFASTAEditingCommandLineOptions(
+        args, parseFASTAFilteringCommandLineOptions(
+            args, parseFASTACommandLineOptions(args)))
 
     write = sys.stdout.write
     kept = 0
