@@ -15,7 +15,7 @@ from dark.utils import take
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description=(
-        'Split sequences in a FASTA file into numerically named files, '
+        'Split sequences in a FASTA/Q file into numerically named files, '
         'each containing a given number of sequences.'))
 
 parser.add_argument(
