@@ -1,3 +1,8 @@
+## 4.0.6 July 24, 2021
+
+Added internal optimization to make the SAM filtering fast when no
+filtering is needed.
+
 ## 4.0.5 July 10, 2021
 
 Added printing of reference lengths to `bin/sam-reference-read-counts.py`.
