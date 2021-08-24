@@ -25,7 +25,7 @@ if __name__ == '__main__':
     sep = args.separator
     reads = parseFASTACommandLineOptions(args)
 
-    # Duplicate code a little so as not to repeatedly do two tests for read.
+    # Duplicate code a little so as not to repeatedly do two tests per read.
     if args.fastq:
         if args.removeIds:
             for read in reads:

@@ -23,7 +23,7 @@ from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.filter import TitleFilter
 from dark.genbank import GenomeRanges
-from dark.html import NCBISequenceLinkURL, NCBISequenceLink
+from dark.html import NCBISequenceLinkURL, NCBISequenceLink, readCountText
 from dark.reads import Reads
 from dark.taxonomy import (
     # isDNAVirus, isRNAVirus, formatLineage,
@@ -818,16 +818,12 @@ class ProteinGrouper(object):
                         '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
                         % proteinMatch)
 
-                    if readCountColors:
-                        countClass = readCountColors.thresholdToCssName(
-                            readCountColors.thresholdForCount(
-                                proteinMatch['readCount']))
-                        self._appendNoSpace('<span class="%s">%4s</span>' % (
-                            countClass, proteinMatch['readAndHspCountStr']),
-                            result)
-                    else:
-                        self._appendNoSpace('%(readAndHspCountStr)3s' %
-                                            proteinMatch, result)
+                    self._appendNoSpace(
+                        readCountText(
+                            readCountColors,
+                            proteinMatch['readCount'],
+                            f"{proteinMatch['readAndHspCountStr']:4s}"),
+                        result)
 
                     self._appendNoSpace(
                         '</span> '
@@ -920,7 +916,7 @@ class ProteinGrouper(object):
                 '<span class="host">(%s)</span>'
                 '<br/>%d nt, %s, '
                 'matched by %d sample%s, '
-                '<a href="%s">%s</a> in total. '
+                '%s <a href="%s">reads</a> in total. '
                 '%s'
                 '<br/><span class="taxonomy">Taxonomy: %s.</span>'
                 '</span>' %
@@ -930,7 +926,7 @@ class ProteinGrouper(object):
                  genomeInfo['length'],
                  proteinCountStr,
                  sampleCount, '' if sampleCount == 1 else 's',
-                 pathogenReadsFilename, self.READCOUNT_MARKER,
+                 self.READCOUNT_MARKER, pathogenReadsFilename,
                  pathogenLinksHTML,
                  lineageHTML))
 
@@ -986,16 +982,12 @@ class ProteinGrouper(object):
                         % proteinMatch
                     )
 
-                    if readCountColors:
-                        countClass = readCountColors.thresholdToCssName(
-                            readCountColors.thresholdForCount(
-                                proteinMatch['readCount']))
-                        self._appendNoSpace('<span class="%s">%4s</span>' % (
-                            countClass, proteinMatch['readAndHspCountStr']),
-                            result)
-                    else:
-                        self._appendNoSpace('%(readAndHspCountStr)3s' %
-                                            proteinMatch, result)
+                    self._appendNoSpace(
+                        readCountText(
+                            readCountColors,
+                            proteinMatch['readCount'],
+                            f"{proteinMatch['readAndHspCountStr']:4s}"),
+                        result)
 
                     if self._saveReadLengths:
                         self._appendNoSpace(' (%s)' % ', '.join(
@@ -1039,12 +1031,16 @@ class ProteinGrouper(object):
                      readCountLine))
 
             # Put the read count into the pathogen summary line we wrote
-            # earlier, replacing the read count marker with the correct
-            # text.
-            result[pathogenReadCountLineIndex] = readCountLine.replace(
+            # earlier, replacing the read count marker with the correct text.
+            readCountLine = readCountLine.replace(
                 self.READCOUNT_MARKER,
-                '%d read%s' % (pathogenReadCount,
-                               '' if pathogenReadCount == 1 else 's'))
+                readCountText(readCountColors, pathogenReadCount))
+            if pathogenReadCount == 1:
+                # Horrible hack to make 'reads' be singular if there's only 1.
+                readCountLine = readCountLine.replace(
+                    '">reads</a> in total.', '">read</a> in total.')
+
+            result[pathogenReadCountLineIndex] = readCountLine
 
         if bootstrapTreeviewDir:
             append('''

@@ -1,3 +1,7 @@
+## 4.0.7 August 24, 2021
+
+Color overall number of reads per pathogen in HTML output.
+
 ## 4.0.6 August 17, 2021
 
 Fixed subtle bug introduced into `bin/filter-fasta.py` due to a code

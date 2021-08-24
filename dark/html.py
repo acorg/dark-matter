@@ -320,3 +320,23 @@ img.full-size {
             for feature in featureList:
                 fp.write('%s\n\n' % feature.feature)
         return basename
+
+
+def readCountText(readCountColors, count, linkText=None):
+    """
+    Produce colored read count text.
+
+    @param readCountColors: Either a C{dark.colors.colorsForCounts}
+        instance or C{None} for no read count coloring.
+    @param count: An C{int} read count.
+    @param linkText: A C{str} for the HTML link text. If C{None}, the
+        count will be used.
+    @return: An HTML span C{str} colored according to the read count,
+        or just the string of the count if no color information is given.
+    """
+    if readCountColors:
+        _class = readCountColors.thresholdToCssName(
+            readCountColors.thresholdForCount(count))
+        return f'<span class="{_class}">{count}</span>'
+    else:
+        return linkText or str(count)
