@@ -706,8 +706,9 @@ class PaddedSAM(object):
 
 class DistanceMatrix:
     """
-    Maintain distance information between reads and reference sequences
-    as read from a SAM file (or files).
+    Maintain score (matching) information between reads and reference sequences
+    as read from a SAM file (or files) and provide methods for calculating
+    distance between references.
     """
     def __init__(self):
         # self._scores is a similarity matrix between references and
