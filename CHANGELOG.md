@@ -1,3 +1,9 @@
+## 4.0.8 September 19, 2021
+
+Added `DistanceMatrix` class to `dark/sam.py` for computing distances
+between references according to which reads match both (and how well, if an
+alignment score tag is given).
+
 ## 4.0.7 August 24, 2021
 
 Color overall number of reads per pathogen in HTML output.

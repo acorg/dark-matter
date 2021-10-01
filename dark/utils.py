@@ -366,3 +366,19 @@ def take(iterator, n):
             if len(items) == n:
                 yield items
                 items = []
+
+
+# This function should have a more general name.
+def readLabels(fp):
+    """
+    Read a file of replacement label names.
+
+    @param fp: An open file pointer to read. The file must contain lines with
+        a name, a TAB, then a replacement name.
+    @return: A C{dict} mapping old names to new names.
+    """
+    result = {}
+    for line in fp:
+        oldName, newName = map(str.strip, line.split('\t'))
+        result[oldName] = newName
+    return result
