@@ -900,7 +900,7 @@ class DistanceMatrix:
             otherwise.  If C{returnDict} is C{True}, return a C{dict} of
             C{dict}s, indexed by the two reference ids, with values as above.
         """
-        referenceIds = tuple(referenceIds if referenceIds else self.scores)
+        referenceIds = tuple(referenceIds or self.scores)
         nIds = len(referenceIds)
         if returnDict:
             matrix = defaultdict(dict)
