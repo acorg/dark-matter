@@ -889,15 +889,16 @@ class DistanceMatrix:
 
         @param referenceIds: An iterable of C{str} reference ids. If C{None},
             all known reference ids will be used.
-        @param metric: A C{str}, either 'soegel' or 'jaccard'.
+        @param metric: A C{str}, either 'soergel' or 'jaccard'.
         @param similarity: If C{True}, return a similarity matrix.
-        @param returnDict: If C{True}, return a C{dict} indexed by two C{str}
-            reference ids.
-        @return: A symmetric square C{np.array} of C{float} inter-reference
-            distances (or similarities if C{similarity} is C{True}) in the
-            range (0.0, 1.0). The order of the entries in the rows and columns
-            of the returned array matches that of C{referenceIds} (if given)
-            or the order in C{self.scores} otherwise.
+        @param returnDict: If C{True}, return a C{dict} (see @return, below).
+        @return: If C{returnDict} is C{False}, return a symmetric square
+            C{np.array} of C{float} inter-reference distances (or similarities
+            if C{similarity} is C{True}) in the range (0.0, 1.0). The order of
+            the entries in the rows and columns of the returned array matches
+            that of C{referenceIds} (if given) or the order in C{self.scores}
+            otherwise.  If C{returnDict} is C{True}, return a C{dict} of
+            C{dict}s, indexed by the two reference ids, with values as above.
         """
         referenceIds = tuple(referenceIds if referenceIds else self.scores)
         nIds = len(referenceIds)
