@@ -904,8 +904,7 @@ class DistanceMatrix:
         referenceIds = tuple(referenceIds or self.scores)
         nIds = len(referenceIds)
         matrix = defaultdict(dict) if returnDict else np.empty((nIds, nIds))
-        diagonalValue = 1.0 if similarity else 0.0
-
+        identityValue = 1.0 if similarity else 0.0
         func = (self.jaccardDistance if metric == 'jaccard' else
                 self.soergelDistance)
 
@@ -919,7 +918,7 @@ class DistanceMatrix:
         for index1, ref1 in enumerate(referenceIds):
             for index2, ref2 in enumerate(referenceIds):
                 i, j = (ref1, ref2) if returnDict else (index1, index2)
-                value = diagonalValue if i == j else metricFunc(ref1, ref2)
+                value = identityValue if i == j else metricFunc(ref1, ref2)
                 matrix[i][j] = matrix[j][i] = value
 
         return matrix
