@@ -902,11 +902,7 @@ class DistanceMatrix:
         """
         referenceIds = tuple(referenceIds or self.scores)
         nIds = len(referenceIds)
-        if returnDict:
-            matrix = defaultdict(dict)
-        else:
-            matrix = np.zeros((nIds, nIds))
-
+        matrix = defaultdict(dict) if returnDict else np.zeros((nIds, nIds))
         diagonalValue = 1.0 if similarity else 0.0
 
         if metric == 'jaccard':
