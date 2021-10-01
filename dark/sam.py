@@ -900,27 +900,21 @@ class DistanceMatrix:
             otherwise.  If C{returnDict} is C{True}, return a C{dict} of
             C{dict}s, indexed by the two reference ids, with values as above.
         """
+        assert metric in {'jaccard', 'soergel'}
         referenceIds = tuple(referenceIds or self.scores)
         nIds = len(referenceIds)
         matrix = defaultdict(dict) if returnDict else np.zeros((nIds, nIds))
         diagonalValue = 1.0 if similarity else 0.0
 
-        if metric == 'jaccard':
-            if similarity:
-                def metricFunc(ref1, ref2):
-                    return 1.0 - self.jaccardDistance(ref1, ref2)
-            else:
-                def metricFunc(ref1, ref2):
-                    return self.jaccardDistance(ref1, ref2)
-        elif metric == 'soergel':
-            if similarity:
-                def metricFunc(ref1, ref2):
-                    return 1.0 - self.soergelDistance(ref1, ref2)
-            else:
-                def metricFunc(ref1, ref2):
-                    return self.soergelDistance(ref1, ref2)
+        func = (self.jaccardDistance if metric == 'jaccard' else
+                self.soergelDistance)
+
+        if similarity:
+            def metricFunc(ref1, ref2):
+                return 1.0 - func(ref1, ref2)
         else:
-            raise ValueError(f'Unknown metric {metric!r}.')
+            def metricFunc(ref1, ref2):
+                return func(ref1, ref2)
 
         for index1, ref1 in enumerate(referenceIds):
             for index2, ref2 in enumerate(referenceIds):
