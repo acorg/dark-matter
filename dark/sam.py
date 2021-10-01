@@ -903,7 +903,7 @@ class DistanceMatrix:
         assert metric in {'jaccard', 'soergel'}
         referenceIds = tuple(referenceIds or self.scores)
         nIds = len(referenceIds)
-        matrix = defaultdict(dict) if returnDict else np.zeros((nIds, nIds))
+        matrix = defaultdict(dict) if returnDict else np.empty((nIds, nIds))
         diagonalValue = 1.0 if similarity else 0.0
 
         func = (self.jaccardDistance if metric == 'jaccard' else
