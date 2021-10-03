@@ -15,14 +15,13 @@ from os.path import dirname, exists, join
 from six import string_types
 from six.moves.urllib.parse import quote
 from textwrap import fill
-from warnings import warn
 
 from dark.dimension import dimensionalIterator
 from dark.errors import DatabaseDuplicationError
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.filter import TitleFilter
-from dark.genbank import GenomeRanges
+from dark.genbank import getCDSInfo, getSourceInfo
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink, readCountText
 from dark.reads import Reads
 from dark.taxonomy import (
@@ -1589,10 +1588,10 @@ class SqliteIndexWriter(object):
 
         for genome in genomes:
             examinedGenomeCount += 1
-            source = self._sourceInfo(genome, logfp=logfp)
+            source = getSourceInfo(genome, logfp=logfp)
 
             if source is None:
-                # The lack of a source is logged by self._sourceInfo.
+                # The lack of a source is logged by getSourceInfo.
                 continue
 
             genomeLength = len(str(genome.seq))
@@ -1765,7 +1764,7 @@ class SqliteIndexWriter(object):
 
         @param genome: A GenBank genome record, as parsed by SeqIO.parse
         @param source: A C{dict} containing genome source information, as
-            returned by C{self._sourceInfo}.
+            returned by C{getSourceInfo}.
         @param taxonomyId: Either an C{int} taxonomy id or C{None} if the
             genome taxonomy could not be looked up.
         @param proteinCount: The C{int} number of proteins in the genome.
@@ -1827,7 +1826,7 @@ class SqliteIndexWriter(object):
             C{SeqIO.parse} or a C{_Genome} instance (which behaves like the
             former).
         @param source: A C{dict} containing genome source information, as
-            returned by C{self._sourceInfo}.
+            returned by C{getSourceInfo}.
         @param proteinSource: A C{str} giving the source of the protein
             accession number. This becomes part of the sequence id printed
             in the protein FASTA output.
@@ -1933,171 +1932,6 @@ class SqliteIndexWriter(object):
                 print('    Protein %s: genome=%s product=%s' % (
                     accession, genomeAccession, product), file=logfp)
 
-    def _sourceInfo(self, genome, logfp):
-        """
-        Extract summary information from a genome source feature.
-
-        @param genome: A GenBank genome record, as parsed by SeqIO.parse
-        @param logfp: If not C{None}, a file pointer to write verbose
-            progress output to.
-        @return: A C{dict} with keys for the various pieces of information
-            (if any) found in the source feature (see the return value below
-            for detail). Or C{None} if no source feature is found or a source
-            feature does not have length 1.
-        """
-        result = {}
-
-        for feature in genome.features:
-            if feature.type == 'source':
-                for key in 'host', 'note', 'organism', 'mol_type':
-                    try:
-                        values = feature.qualifiers[key]
-                    except KeyError:
-                        value = None
-                        if key != 'note':
-                            print('Genome %r (accession %s) source info has '
-                                  'no %r feature.' %
-                                  (genome.description, genome.id, key),
-                                  file=logfp)
-                    else:
-                        if len(values) == 1:
-                            value = values[0]
-
-                            if key == 'mol_type':
-                                assert value[-3:] in ('DNA', 'RNA')
-
-                        elif len(values) > 1 and key == 'host':
-                            value = ', '.join(values)
-                        else:
-                            print('Genome %r (accession %s) has source '
-                                  'feature %r with length != 1: %r' % (
-                                      genome.description, genome.id, key,
-                                      values), file=logfp)
-                            return
-
-                    result[key] = value
-                break
-        else:
-            print('Genome %r (accession %s) had no source feature! '
-                  'Skipping.' % (genome.description, genome.id), file=logfp)
-            return
-
-        return result
-
-    def _cdsInfo(self, genome, feature, logfp=None):
-        """
-        Extract summary information from a genome CDS feature.
-
-        @param genome: A GenBank genome record, as parsed by SeqIO.parse
-        @param feature: A feature from a genome, as produced by BioPython's
-            GenBank parser.
-        @param logfp: If not C{None}, a file pointer to write verbose
-            progress output to.
-        @return: A C{dict} with keys for the various pieces of information
-            found in the feature (see the return value below for detail).
-            Or C{None} if the feature is not of interest or otherwise invalid.
-        """
-        qualifiers = feature.qualifiers
-
-        # Check in advance that all feature qualifiers we're interested in
-        # have the right lengths, if they're present.
-        for key in 'gene', 'note', 'product', 'protein_id', 'translation':
-            if key in qualifiers:
-                assert len(qualifiers[key]) == 1, (
-                    'GenBank qualifier key %s is not length one %r' %
-                    (key, qualifiers[key]))
-
-        # A protein id is mandatory.
-        if 'protein_id' in qualifiers:
-            proteinId = qualifiers['protein_id'][0]
-        else:
-            if 'translation' in qualifiers:
-                warn('Genome %r (accession %s) has CDS feature with no '
-                     'protein_id feature but has a translation! '
-                     'Skipping.\nFeature: %s' %
-                     (genome.description, genome.id, feature))
-            return
-
-        # A translated (i.e., amino acid) sequence is mandatory.
-        if 'translation' in qualifiers:
-            translation = qualifiers['translation'][0]
-        else:
-            warn('Genome %r (accession %s) has CDS feature with protein '
-                 '%r with no translated sequence. Skipping.' %
-                 (genome.description, genome.id, proteinId))
-            return
-
-        featureLocation = str(feature.location)
-
-        # Make sure the feature's location string can be parsed.
-        try:
-            ranges = GenomeRanges(featureLocation)
-        except ValueError as e:
-            warn('Genome %r  (accession %s) contains unparseable CDS '
-                 'location for protein %r. Skipping. Error: %s' %
-                 (genome.description, genome.id, proteinId, e))
-            return
-        else:
-            # Does the protein span the end of the genome? This indicates a
-            # circular genome.
-            circular = int(ranges.circular(len(genome.seq)))
-
-        if feature.location.start >= feature.location.end:
-            warn('Genome %r (accession %s) contains feature with start '
-                 '(%d) >= stop (%d). Skipping.\nFeature: %s' %
-                 (genome.description, genome.id, feature.location.start,
-                  feature.location.end, feature))
-            return
-
-        strand = feature.strand
-        if strand is None:
-            # The strands of the protein in the genome are not all the same
-            # (see Bio.SeqFeature.CompoundLocation._get_strand).  The
-            # protein is formed by the combination of reading one strand in
-            # one direction and the other in the other direction.
-            #
-            # This occurs just once in all 1.17M proteins found in all 700K
-            # RVDB (C-RVDBv15.1) genomes, for protein YP_656697.1 on the
-            # Ranid herpesvirus 1 strain McKinnell genome (NC_008211.1).
-            #
-            # This situation makes turning DIAMOND protein output into
-            # SAM very complicated because a match on such a protein
-            # cannot be stored as a SAM linear alignment. It instead
-            # requires a multi-line 'supplementary' alignment. The code
-            # and tests for that are more complex than I want to deal
-            # with at the moment, just for the sake of one protein in a
-            # frog herpesvirus.
-            warn('Genome %s (accession %s) has protein %r with mixed '
-                 'orientation!' % (genome.description, genome.id,
-                                   proteinId))
-            return
-        elif strand == 0:
-            # This never occurs for proteins corresponding to genomes in
-            # the RVDB database C-RVDBv15.1.
-            warn('Genome %r (accession %s) has protein %r with feature '
-                 'with strand of zero!' %
-                 (genome.description, genome.id, proteinId))
-            return
-        else:
-            assert strand in (1, -1)
-            forward = strand == 1
-            # Make sure the strand agrees with the orientations in the
-            # string BioPython makes out of the locations.
-            assert ranges.orientations() == {forward}
-
-        return {
-            'circular': circular,
-            'featureLocation': featureLocation,
-            'forward': forward,
-            'gene': qualifiers.get('gene', [''])[0],
-            'note': qualifiers.get('note', [''])[0],
-            'product': qualifiers.get('product', ['UNKNOWN'])[0],
-            'proteinId': proteinId,
-            'ranges': ranges,
-            'strand': strand,
-            'translation': translation,
-        }
-
     def _genomeProteins(self, genome, logfp=None):
         """
         Get proteins (CDS features) that we can process from a genome, along
@@ -2107,11 +1941,11 @@ class SqliteIndexWriter(object):
         @param logfp: If not C{None}, a file pointer to write verbose
             progress output to.
         @return: A generator yielding feature info C{dict}s as returned by
-            C{self._cdsInfo}.
+            C{getCDSInfo}.
         """
         for feature in genome.features:
             if feature.type == 'CDS':
-                featureInfo = self._cdsInfo(genome, feature, logfp=None)
+                featureInfo = getCDSInfo(genome, feature)
                 if featureInfo:
                     yield featureInfo
 

@@ -1,4 +1,4 @@
-import warnings
+from warnings import warn
 
 
 class GenomeRanges(object):
@@ -112,10 +112,9 @@ class GenomeRanges(object):
             else:
                 if start == lastStop and forward == lastForward:
                     # This range continues the previous one.
-                    warnings.warn(
-                        'Contiguous GenBank ranges detected: [%d:%d] '
-                        'followed by [%d:%d].' %
-                        (lastStart, lastStop, start, stop))
+                    warn('Contiguous GenBank ranges detected: [%d:%d] '
+                         'followed by [%d:%d].' %
+                         (lastStart, lastStop, start, stop))
                     lastStop = stop
                 else:
                     # Emit the range that just got terminated.
@@ -219,3 +218,178 @@ class GenomeRanges(object):
             contiguous with one another.
         """
         return len(self.ranges) - int(self.circular(genomeLength))
+
+
+def getSourceInfo(genome, keys=('host', 'note', 'organism', 'mol_type'),
+                  logfp=None):
+    """
+    Extract summary information from a genome source feature.
+
+    @param genome: A GenBank genome record, as parsed by SeqIO.parse
+    @param keys: An iterable of C{str} keys to extract from the Genbank
+        source features.
+    @param logfp: If not C{None}, a file pointer to write verbose
+        progress output to.
+    @return: A C{dict} with keys for the various pieces of information
+        (if any) found in the source feature (see the return value below
+        for detail). Or C{None} if no source feature is found or a source
+        feature does not have length 1.
+    """
+    result = {}
+
+    for feature in genome.features:
+        if feature.type == 'source':
+            for key in keys:
+                try:
+                    values = feature.qualifiers[key]
+                except KeyError:
+                    value = None
+                    if key != 'note' and logfp:
+                        print('Genome %r (accession %s) source info has '
+                              'no %r feature.' %
+                              (genome.description, genome.id, key),
+                              file=logfp)
+                else:
+                    if len(values) == 1:
+                        value = values[0]
+
+                        if key == 'mol_type':
+                            assert value[-3:] in ('DNA', 'RNA')
+
+                    elif len(values) > 1 and key == 'host':
+                        value = ', '.join(values)
+                    else:
+                        if logfp:
+                            print('Genome %r (accession %s) has source '
+                                  'feature %r with length != 1: %r' % (
+                                      genome.description, genome.id, key,
+                                      values), file=logfp)
+                        return
+
+                result[key] = value
+
+            # Break so no other features are examined; we only want source.
+            break
+    else:
+        if logfp:
+            print('Genome %r (accession %s) had no source feature! '
+                  'Skipping.' % (genome.description, genome.id), file=logfp)
+        return
+
+    return result
+
+
+def getCDSInfo(genome, feature,
+               keys=('gene', 'note', 'product', 'protein_id', 'translation')):
+    """
+    Extract summary information from a genome CDS feature.
+
+    @param genome: A GenBank genome record, as parsed by SeqIO.parse
+    @param feature: A feature from a genome, as produced by BioPython's
+        GenBank parser.
+    @param keys: An iterable of C{str} keys to extract from the Genbank
+        feature.
+    @return: A C{dict} with keys for the various pieces of information
+        found in the feature (see the return value below for detail).
+        Or C{None} if the feature is not of interest or otherwise invalid.
+    """
+    qualifiers = feature.qualifiers
+
+    # Check in advance that all feature qualifiers we're interested in
+    # have the right lengths, if they're present.
+    for key in 'gene', 'note', 'product', 'protein_id', 'translation':
+        if key in qualifiers:
+            assert len(qualifiers[key]) == 1, (
+                'GenBank qualifier key %s is not length one %r' %
+                (key, qualifiers[key]))
+
+    # A protein id is mandatory.
+    if 'protein_id' in qualifiers:
+        proteinId = qualifiers['protein_id'][0]
+    else:
+        if 'translation' in qualifiers:
+            warn('Genome %r (accession %s) has CDS feature with no '
+                 'protein_id feature but has a translation! '
+                 'Skipping.\nFeature: %s' %
+                 (genome.description, genome.id, feature))
+        return
+
+    # A translated (i.e., amino acid) sequence is mandatory.
+    if 'translation' in qualifiers:
+        translation = qualifiers['translation'][0]
+    else:
+        warn('Genome %r (accession %s) has CDS feature with protein '
+             '%r with no translated sequence. Skipping.' %
+             (genome.description, genome.id, proteinId))
+        return
+
+    featureLocation = str(feature.location)
+
+    # Make sure the feature's location string can be parsed.
+    try:
+        ranges = GenomeRanges(featureLocation)
+    except ValueError as e:
+        warn('Genome %r  (accession %s) contains unparseable CDS '
+             'location for protein %r. Skipping. Error: %s' %
+             (genome.description, genome.id, proteinId, e))
+        return
+    else:
+        # Does the protein span the end of the genome? This indicates a
+        # circular genome.
+        circular = int(ranges.circular(len(genome.seq)))
+
+    if feature.location.start >= feature.location.end:
+        warn('Genome %r (accession %s) contains feature with start '
+             '(%d) >= stop (%d). Skipping.\nFeature: %s' %
+             (genome.description, genome.id, feature.location.start,
+              feature.location.end, feature))
+        return
+
+    strand = feature.strand
+    if strand is None:
+        # The strands of the protein in the genome are not all the same
+        # (see Bio.SeqFeature.CompoundLocation._get_strand).  The
+        # protein is formed by the combination of reading one strand in
+        # one direction and the other in the other direction.
+        #
+        # This occurs just once in all 1.17M proteins found in all 700K
+        # RVDB (C-RVDBv15.1) genomes, for protein YP_656697.1 on the
+        # Ranid herpesvirus 1 strain McKinnell genome (NC_008211.1).
+        #
+        # This situation makes turning DIAMOND protein output into
+        # SAM very complicated because a match on such a protein
+        # cannot be stored as a SAM linear alignment. It instead
+        # requires a multi-line 'supplementary' alignment. The code
+        # and tests for that are more complex than I want to deal
+        # with at the moment, just for the sake of one protein in a
+        # frog herpesvirus.
+        warn('Genome %s (accession %s) has protein %r with mixed '
+             'orientation!' % (genome.description, genome.id,
+                               proteinId))
+        return
+    elif strand == 0:
+        # This never occurs for proteins corresponding to genomes in
+        # the RVDB database C-RVDBv15.1.
+        warn('Genome %r (accession %s) has protein %r with feature '
+             'with strand of zero!' %
+             (genome.description, genome.id, proteinId))
+        return
+    else:
+        assert strand in (1, -1)
+        forward = strand == 1
+        # Make sure the strand agrees with the orientations in the
+        # string BioPython makes out of the locations.
+        assert ranges.orientations() == {forward}
+
+    return {
+        'circular': circular,
+        'featureLocation': featureLocation,
+        'forward': forward,
+        'gene': qualifiers.get('gene', [''])[0],
+        'note': qualifiers.get('note', [''])[0],
+        'product': qualifiers.get('product', ['UNKNOWN'])[0],
+        'proteinId': proteinId,
+        'ranges': ranges,
+        'strand': strand,
+        'translation': translation,
+    }
