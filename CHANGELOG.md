@@ -1,3 +1,8 @@
+## 4.0.9 October 3, 2021
+
+Moved some code out of dark/civ/proteins.py into dark/genbank.py to make it
+more useful to others.
+
 ## 4.0.8 September 19, 2021
 
 Added `DistanceMatrix` class to `dark/sam.py` for computing distances
