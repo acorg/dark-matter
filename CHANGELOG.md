@@ -1,3 +1,7 @@
+## 4.0.10 November 2, 2021
+
+Updated TravisCI config and README build status badge URL.
+
 ## 4.0.9 October 3, 2021
 
 Moved some code out of dark/civ/proteins.py into dark/genbank.py to make it
