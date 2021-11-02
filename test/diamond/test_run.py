@@ -30,7 +30,7 @@ class TestDiamondExecutor(TestCase):
         a ValueError.
         """
         de = DiamondExecutor()
-        de.addSubject(Read('id', 'ACGT'))
+        de.addSubject(Read('id', 'MVMM'))
         queries = Reads()
         error = '^No query sequences were passed$'
         assertRaisesRegex(self, ValueError, error, list, de.search(queries))
@@ -62,7 +62,7 @@ class TestDiamondExecutor(TestCase):
 
         self.assertEqual(
             {
-                'bitscore': 40.0,
+                'bitscore': 40.8,
                 'btop': '11AN5ST',
                 'qframe': -2,
                 'qend': 3,
@@ -96,7 +96,7 @@ class TestDiamondExecutor(TestCase):
 
         self.assertEqual(
             {
-                'bitscore': 82.4,
+                'bitscore': 82.8,
                 'btop': '40',
                 'qframe': 1,
                 'qend': 120,
