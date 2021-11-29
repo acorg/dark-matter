@@ -250,17 +250,18 @@ def main():
             "'%s' '%s' > '%s'" %
             (sample, maskArg, args.reference, vcfFile, consensusFile))
 
-    consensus = list(FastaReads(consensusFile))[0]
-    if args.id is not None:
-        consensus.id = args.id
-    elif args.idLambda is not None:
-        idLambda = eval(args.idLambda)
-        consensus.id = idLambda(consensus.id)
+        if result.stderr:
+            print(result.stderr, end='', file=sys.stderr)
 
-    print(consensus.toString('fasta'), end='')
+    if not args.dryRun:
+        consensus = list(FastaReads(consensusFile))[0]
+        if args.id is not None:
+            consensus.id = args.id
+        elif args.idLambda is not None:
+            idLambda = eval(args.idLambda)
+            consensus.id = idLambda(consensus.id)
 
-    if result.stderr:
-        print(result.stderr, end='', file=sys.stderr)
+        print(consensus.toString('fasta'), end='')
 
     if args.dryRun or args.log:
         print('\n'.join(e.log), file=sys.stderr)

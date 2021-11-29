@@ -1,3 +1,8 @@
+## 4.0.12 November 29, 2021
+
+Fixed another tiny bug when printing dry run output in
+`bin/make-consensus.py`.
+
 ## 4.0.11 November 29, 2021
 
 Fixed tiny bug when printing dry run output in `bin/make-consensus.py`.
