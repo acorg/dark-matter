@@ -1,3 +1,7 @@
+## 4.0.11 November 29, 2021
+
+Fixed tiny bug when printing dry run output in `bin/make-consensus.py`.
+
 ## 4.0.10 November 2, 2021
 
 Updated TravisCI config and README build status badge URL.

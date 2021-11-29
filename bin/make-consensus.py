@@ -215,7 +215,7 @@ def main():
     else:
         result = e.execute(
             "gunzip -c '%s' | egrep -m 1 '^#CHROM' | cut -f10" % vcfFile)
-        sample = result.stdout.strip()
+        sample = 'SAMPLE-NAME' if args.dryRun else result.stdout.strip()
 
     consensusFile = join(tempdir, 'consensus.fasta')
 
