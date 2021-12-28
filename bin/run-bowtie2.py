@@ -111,7 +111,8 @@ def processMatch(args, e):
         if args.vcfFile:
             if exists(args.vcfFile) and not args.force:
                 print('Will not overwrite pre-existing VCF file %r. '
-                      'Use --force to make me.' % filename, file=sys.stderr)
+                      'Use --force to make me.' % args.vcfFile,
+                      file=sys.stderr)
                 sys.exit(1)
 
     bt2.align(bowtie2Args=args.bowtie2Args, fastq1=fastq1, fastq2=fastq2)

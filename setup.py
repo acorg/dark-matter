@@ -48,6 +48,7 @@ scripts = [
     'bin/extract-ORFs.py',
     'bin/fasta-base-indices.py',
     'bin/fasta-count.py',
+    'bin/fasta-count-chars.py',
     'bin/fasta-diff.sh',
     'bin/fasta-identity-table.py',
     'bin/fasta-ids.py',

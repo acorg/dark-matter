@@ -1,3 +1,8 @@
+## 4.0.13 December 28, 2021
+
+Added `bin/fasta-count-chars.py` script. Fixed argument bug in
+`run-bowtie2.py` print statement.
+
 ## 4.0.12 November 29, 2021
 
 Fixed another tiny bug when printing dry run output in
