@@ -56,7 +56,6 @@ def makeBAM(template):
                     quality,
                 ))), file=fp)
 
-        # e.execute(f'cat {samFile}')
         e.execute(f'samtools view -b -o {str(bamFile)!r} {str(samFile)!r}')
         e.execute(f'samtools index {str(bamFile)!r}')
         yield (reference, bamFile)
@@ -64,10 +63,10 @@ def makeBAM(template):
         e.execute(f'rm -fr {dirname!r}')
 
 
-@skipUnless(samtoolsInstalled(), 'samtools is not installed')
-class TestMajority(TestCase):
+class _Mixin:
     """
-    Test making majority consensuses.
+    Common (i.e., with and without considering quality) tests for consensuses
+    making.
     """
     def testNoReadsReference(self):
         """
@@ -78,43 +77,49 @@ class TestMajority(TestCase):
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual(template[0],
-                             consensusFromBAM(bamFilename, reference,
-                                              strategy='majority',
-                                              noCoverage='reference'))
+            self.assertEqual(
+                template[0],
+                consensusFromBAM(bamFilename, reference,
+                                 noCoverage='reference',
+                                 ignoreQuality=self.ignoreQuality))
 
     def testNoReadsN(self):
         """
         If no reads are present and resolution of no-coverage bases is 'N'
         (or '?', etc) a sequence of Ns (or ?s, etc) should be returned.
         """
-        template = ('ACGTTCCG',)
+        template = (
+            'ACGTTCCG',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
             for char in 'N?':
-                self.assertEqual(char * len(template[0]),
-                                 consensusFromBAM(bamFilename, reference,
-                                                  strategy='majority',
-                                                  noCoverage=char))
+                self.assertEqual(
+                    char * len(template[0]),
+                    consensusFromBAM(bamFilename, reference,
+                                     noCoverage=char,
+                                     ignoreQuality=self.ignoreQuality))
 
     def testLowReadsReference(self):
         """
         If fewer reads than needed are present and resolution of low-coverage
         bases is the reference sequence, the reference should be returned.
         """
-        template = ('ACGTTCCG',
-                    '  GTT',
-                    '  ???',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  GTT',
+            '  ???',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual(template[0],
-                             consensusFromBAM(bamFilename, reference,
-                                              strategy='majority',
-                                              lowCoverage='reference',
-                                              minCoverage=2))
+            self.assertEqual(
+                template[0],
+                consensusFromBAM(bamFilename, reference,
+                                 lowCoverage='reference',
+                                 minCoverage=2,
+                                 ignoreQuality=self.ignoreQuality))
 
     def testLowReadsCharNoCoverageConsensus(self):
         """
@@ -123,19 +128,21 @@ class TestMajority(TestCase):
         the low coverage sites, and the reference in the sites with no
         coverage.
         """
-        template = ('ACGTTCCG',
-                    '  GTT',
-                    '  ???',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  GTT',
+            '  ???',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
             for char in 'N?':
-                self.assertEqual('AC' + char * 3 + 'CCG',
-                                 consensusFromBAM(bamFilename, reference,
-                                                  strategy='majority',
-                                                  lowCoverage=char,
-                                                  minCoverage=2))
+                self.assertEqual(
+                    'AC' + char * 3 + 'CCG',
+                    consensusFromBAM(bamFilename, reference,
+                                     lowCoverage=char,
+                                     minCoverage=2,
+                                     ignoreQuality=self.ignoreQuality))
 
     def testLowReadsCharNoCoverageX(self):
         """
@@ -144,20 +151,22 @@ class TestMajority(TestCase):
         the low coverage sites, and (for example) 'X' in the sites with no
         coverage.
         """
-        template = ('ACGTTCCG',
-                    '  GTT',
-                    '  ???',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  GTT',
+            '  ???',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
             for char in 'N?':
-                self.assertEqual('XX' + char * 3 + 'XXX',
-                                 consensusFromBAM(bamFilename, reference,
-                                                  strategy='majority',
-                                                  noCoverage='X',
-                                                  lowCoverage=char,
-                                                  minCoverage=2))
+                self.assertEqual(
+                    'XX' + char * 3 + 'XXX',
+                    consensusFromBAM(bamFilename, reference,
+                                     noCoverage='X',
+                                     lowCoverage=char,
+                                     minCoverage=2,
+                                     ignoreQuality=self.ignoreQuality))
 
     def testOneReadMatchingPartOfTheReference(self):
         """
@@ -165,17 +174,19 @@ class TestMajority(TestCase):
         resolution of no-coverage bases is the reference sequence, the
         reference should be returned.
         """
-        template = ('ACGTTCCG',
-                    '  GTT',
-                    '  ???',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  GTT',
+            '  ???',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual(template[0],
-                             consensusFromBAM(bamFilename, reference,
-                                              strategy='majority',
-                                              noCoverage='reference'))
+            self.assertEqual(
+                template[0],
+                consensusFromBAM(bamFilename, reference,
+                                 noCoverage='reference',
+                                 ignoreQuality=self.ignoreQuality))
 
     def testOneReadDifferingFromPartOfTheReference(self):
         """
@@ -183,17 +194,19 @@ class TestMajority(TestCase):
         resolution of no-coverage bases is the reference sequence, the
         expected hybrid of the read and the reference should be returned.
         """
-        template = ('ACGTTCCG',
-                    '  AAA',
-                    '  ???',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  AAA',
+            '  ???',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual('ACAAACCG',
-                             consensusFromBAM(bamFilename, reference,
-                                              strategy='majority',
-                                              noCoverage='reference'))
+            self.assertEqual(
+                'ACAAACCG',
+                consensusFromBAM(bamFilename, reference,
+                                 noCoverage='reference',
+                                 ignoreQuality=self.ignoreQuality))
 
     def testTwoReadsDifferingFromPartOfTheReferenceSomeLowCoverage(self):
         """
@@ -203,21 +216,23 @@ class TestMajority(TestCase):
         the part of the reads that has insufficient coverage returning the
         low-coverage symbol (here '+').
         """
-        template = ('ACGTTCCG',
-                    '  AAA',
-                    '  ???',
-                    '  AAAT',
-                    '  ????',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  AAA',
+            '  ???',
+            '  AAAT',
+            '  ????',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual('ACAAA+CG',
-                             consensusFromBAM(bamFilename, reference,
-                                              strategy='majority',
-                                              minCoverage=2,
-                                              noCoverage='reference',
-                                              lowCoverage='+'))
+            self.assertEqual(
+                'ACAAA+CG',
+                consensusFromBAM(bamFilename, reference,
+                                 minCoverage=2,
+                                 noCoverage='reference',
+                                 lowCoverage='+',
+                                 ignoreQuality=self.ignoreQuality))
 
     def testTwoReadsDifferingFromPartOfTheReferenceLowAndNoCoverage(self):
         """
@@ -226,60 +241,190 @@ class TestMajority(TestCase):
         and the reference should be returned, with the part of the reads that
         has insufficient coverage returning the low-coverage symbol (here '+').
         """
-        template = ('ACGTTCCG',
-                    '  AAA',
-                    '  ???',
-                    '  AAAT',
-                    '  ????',
-                    )
+        template = (
+            'ACGTTCCG',
+            '  AAA',
+            '  ???',
+            '  AAAT',
+            '  ????',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual('NNAAA+NN',
-                             consensusFromBAM(bamFilename, reference,
-                                              strategy='majority',
-                                              minCoverage=2,
-                                              noCoverage='N',
-                                              lowCoverage='+'))
+            self.assertEqual(
+                'NNAAA+NN',
+                consensusFromBAM(bamFilename, reference,
+                                 minCoverage=2,
+                                 noCoverage='N',
+                                 lowCoverage='+',
+                                 ignoreQuality=self.ignoreQuality))
 
     def testSimpleMajority(self):
         """
         If three reads result in a majority base at a site, that base should
         be in the consensus.
         """
-        template = ('ACGT',
-                    '  A',
-                    '  ?',
-                    '  A',
-                    '  ?',
-                    '  C',
-                    '  ?',
-                    )
+        template = (
+            'ACGT',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  C',
+            '  ?',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual('ACAT',
-                             consensusFromBAM(bamFilename, reference,
-                                              threshold=0.5,
-                                              strategy='majority'))
+            self.assertEqual(
+                'ACAT',
+                consensusFromBAM(bamFilename, reference,
+                                 threshold=0.5,
+                                 ignoreQuality=self.ignoreQuality))
 
     def testSimpleMajorityBelowThreshold(self):
         """
         If conflicting reads at a site do not give a simple (above threshold)
         majority, the ambiguous code should be in the consensus.
         """
-        template = ('ACGT',
-                    '  A',
-                    '  ?',
-                    '  A',
-                    '  ?',
-                    '  C',
-                    '  ?',
-                    )
+        template = (
+            'ACGT',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  C',
+            '  ?',
+        )
 
         with makeBAM(template) as data:
             reference, bamFilename = data
-            self.assertEqual('ACMT',
-                             consensusFromBAM(bamFilename, reference,
-                                              threshold=0.7,
-                                              strategy='majority'))
+            self.assertEqual(
+                'ACMT',
+                consensusFromBAM(bamFilename, reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testGeneiousExamplesNoTie(self):
+        """
+        Test the no-tied counts example from
+        https://assets.geneious.com/manual/2020.1/static/GeneiousManualse43.html
+        """
+        template = (
+            'ACGT',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  G',
+            '  ?',
+            '  G',
+            '  ?',
+            '  G',
+            '  ?',
+            '  T',
+            '  ?',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            for expected, threshold in ('A', 0.4), ('R', 0.7), ('D', 0.95):
+                self.assertEqual(
+                    f'AC{expected}T',
+                    consensusFromBAM(bamFilename, reference,
+                                     threshold=threshold,
+                                     ignoreQuality=self.ignoreQuality))
+
+    def testGeneiousExamplesTie(self):
+        """
+        Test the tied counts example from
+        https://assets.geneious.com/manual/2020.1/static/GeneiousManualse43.html
+        """
+        template = (
+            'ACGT',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  A',
+            '  ?',
+            '  G',
+            '  ?',
+            '  G',
+            '  ?',
+            '  T',
+            '  ?',
+            '  T',
+            '  ?',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            for expected, threshold in ('A', 0.4), ('D', 0.7), ('D', 0.95):
+                self.assertEqual(
+                    f'AC{expected}T',
+                    consensusFromBAM(bamFilename, reference,
+                                     threshold=threshold,
+                                     ignoreQuality=self.ignoreQuality))
+
+
+@skipUnless(samtoolsInstalled(), 'samtools is not installed')
+class TestIgnoreQuality(TestCase, _Mixin):
+    """
+    Test making majority consensuses with quality ignored.
+    """
+    ignoreQuality = True
+
+
+@skipUnless(samtoolsInstalled(), 'samtools is not installed')
+class TestWithQuality(TestCase, _Mixin):
+    """
+    Test making majority consensuses with quality considered.
+    """
+    ignoreQuality = False
+
+    def testHighQualityDominates(self):
+        """
+        If one read has a very high quality base (here 'C', quality ']' = 60)
+        that base should take precedence over two other reads that agree with
+        each other but which have lower ('5' = 30) quality.
+        """
+        template = (
+            'ACGT',
+            '  A',
+            '  5',
+            '  A',
+            '  5',
+            '  C',
+            '  ]',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'ACCT',
+                consensusFromBAM(bamFilename, reference,
+                                 threshold=0.5,
+                                 ignoreQuality=self.ignoreQuality))

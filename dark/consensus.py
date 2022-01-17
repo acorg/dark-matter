@@ -7,7 +7,7 @@ from dark.sam import samfile
 
 def consensusFromBAM(bamFilename, reference, strategy='majority',
                      threshold=0.8, minCoverage=1, lowCoverage='reference',
-                     noCoverage='reference'):
+                     noCoverage='reference', ignoreQuality=False):
     """
     Build a consensus sequence from a BAM file.
 
@@ -33,18 +33,19 @@ def consensusFromBAM(bamFilename, reference, strategy='majority',
         character (e.g., 'N').
     @param noCoverage: A C{str} indicating what to do when no reads cover a
         reference base. Either 'reference' or a single character (e.g., 'N').
+    @param ignoreQuality: If C{True}, ignore quality scores.
     @return: A C{str} consensus sequence.
     """
     with samfile(bamFilename) as fp:
         if strategy == 'majority':
             return _majorityConsensus(fp, reference, threshold, minCoverage,
-                                      lowCoverage, noCoverage)
+                                      lowCoverage, noCoverage, ignoreQuality)
         else:
             raise ValueError(f'Unknown consensus strategy {strategy!r}.')
 
 
 def _majorityConsensus(bam, reference, threshold, minCoverage, lowCoverage,
-                       noCoverage):
+                       noCoverage, ignoreQuality):
     """
     Compute a majority consensus.
 
@@ -62,6 +63,7 @@ def _majorityConsensus(bam, reference, threshold, minCoverage, lowCoverage,
         character (e.g., 'N').
     @param noCoverage: A C{str} indicating what to do when no reads cover a
         reference base. Either 'reference' or a single character (e.g., 'N').
+    @param ignoreQuality: If C{True}, ignore quality scores.
     @return: A C{str} consensus sequence.
     """
     result = list(reference.sequence if noCoverage == 'reference' else
@@ -76,8 +78,9 @@ def _majorityConsensus(bam, reference, threshold, minCoverage, lowCoverage,
         for read in column.pileups:
             readCount += 1
             base = read.alignment.query_sequence[read.query_position]
-            bases[base] += 1
-            # quality = read.alignment.query_qualities[read.query_position]
+            bases[base] += (
+                ignoreQuality or
+                read.alignment.query_qualities[read.query_position])
 
         result[site] = (lowCoverage[site] if readCount < minCoverage else
                         leastAmbiguousFromCounts(bases, threshold))
