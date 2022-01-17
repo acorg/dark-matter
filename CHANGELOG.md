@@ -1,3 +1,7 @@
+## 4.0.14 January 17, 2022
+
+Added a simple consensus caller.
+
 ## 4.0.13 December 28, 2021
 
 Added `bin/fasta-count-chars.py` script. Fixed argument bug in

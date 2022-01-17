@@ -1,6 +1,7 @@
 from __future__ import division
 
 from collections import defaultdict
+from operator import itemgetter
 
 from dark.utils import countPrint
 
@@ -430,3 +431,61 @@ def sequenceToRegex(sequence, wildcards='-?'):
         append(('[%s]' % possible) if len(possible) > 1 else possible)
 
     return ''.join(result)
+
+
+def leastAmbiguous(bases):
+    """
+    Get the least ambiguous code for a set of DNA bases.
+
+    @param bases: An iterable of C{str} DNA bases.
+    @raise KeyError: If C[bases} contains an unknown nucleotide.
+    @return: a C{str} DNA code (one of the values of the
+        BASES_TO_AMBIGUOUS dict defined at top).
+    """
+    return BASES_TO_AMBIGUOUS[''.join(sorted(set(map(str.upper, bases))))]
+
+
+def leastAmbiguousFromCounts(bases, threshold):
+    """
+    Get the least ambiguous code given frequency counts for a set of DNA bases
+    and a homogeneity threshold.
+
+    @param bases: A C{dict} (or C{Counter}) mapping C{str} nucleotide
+        letters to C{int} frequency counts.
+    @param threshold: A C{float} homogeneity frequency.
+    @raise ValueError: If any count or the thrshold is less than zero.
+    @return: a C{str} DNA code (one of the values of the
+        BASES_TO_AMBIGUOUS dict defined at top).
+    """
+    total = 0
+    for base, count in bases.items():
+        if count < 0:
+            raise ValueError(f'Count for base {base!r} is negative ({count}).')
+        total += count
+
+    if threshold < 0:
+        raise ValueError(f'Threshold cannot be negative ({threshold}).')
+
+    if total == 0:
+        return leastAmbiguous('ACGT')
+
+    counts = sorted(bases.items(), key=itemgetter(1), reverse=True)
+    cumulative = 0
+    resultBases = set()
+    for index in range(len(counts)):
+        base, count = counts[index]
+        cumulative += count
+        resultBases.add(base)
+        if cumulative / total >= threshold:
+            break
+
+    # Add bases with counts that tie the most-recently added base.
+    lastCount = count
+    for index in range(index + 1, len(counts)):
+        base, count = counts[index]
+        if count == lastCount:
+            resultBases.add(base)
+        else:
+            break
+
+    return leastAmbiguous(resultBases)

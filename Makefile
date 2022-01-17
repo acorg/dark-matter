@@ -9,7 +9,7 @@ tcheck:
 	env PYTHONPATH=. trial --rterrors test
 
 pytest:
-	env PYTHONPATH=. pytest
+	env PYTHONPATH=. pytest --verbose
 
 pycodestyle:
 	find bin dark test -name '*.py' -print0 | $(XARGS) -0 pycodestyle --ignore E402,W504

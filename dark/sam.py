@@ -4,11 +4,13 @@ import numpy as np
 from json import dump, load
 from contextlib import contextmanager
 from collections import Counter, defaultdict
+from subprocess import CalledProcessError
 
 from pysam import (
     AlignmentFile, CMATCH, CINS, CDEL, CREF_SKIP, CSOFT_CLIP, CHARD_CLIP, CPAD,
     CEQUAL, CDIFF)
 
+from dark.process import Executor
 from dark.reads import Read, DNARead
 
 
@@ -39,6 +41,20 @@ def samfile(filename):
     f = AlignmentFile(filename)
     yield f
     f.close()
+
+
+def samtoolsInstalled():
+    """
+    Test if samtools is installed.
+
+    @return: A C{bool}, which is C{True} if DIAMOND seems to be installed.
+    """
+    try:
+        Executor().execute('samtools help')
+    except CalledProcessError:
+        return False
+    else:
+        return True
 
 
 def samReferences(filenameOrSamfile):
