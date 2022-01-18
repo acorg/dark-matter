@@ -105,6 +105,7 @@ scripts = [
     'bin/sam-reference-read-counts.py',
     'bin/sam-references.py',
     'bin/sff-to-fastq.py',
+    'bin/simple-consensus.py',
     'bin/split-fasta-by-adaptors.py',
     'bin/subset-protein-database.py',
     'bin/summarize-fasta-bases.py',

@@ -22,6 +22,10 @@ class UnknownReference(Exception):
     "Reference sequence not found in SAM/BAM file."
 
 
+class UnspecifiedReference(Exception):
+    "Reference sequence not specified."
+
+
 class InvalidSAM(Exception):
     "SAM/BAM file has unexpected/invalid content."
 
