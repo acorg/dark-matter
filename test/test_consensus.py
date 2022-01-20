@@ -769,6 +769,35 @@ class _Mixin:
                                      threshold=threshold,
                                      ignoreQuality=self.ignoreQuality))
 
+    def testOmicronEPE214Insertion(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected.
+
+        The nucleotide sequence below can be obtained via:
+
+        $ ncbi-fetch-id.py MN908947.3 > MN908947.3.fasta
+        $ describe-genome.py --feature S --printNtSeq < MN908947.3.fasta | \
+              filter-fasta.py --keepSites 630-673 --quiet | tail -n 1
+
+        I then inserted the 9 nucleotide sequence GAGCCAGAA before the TGAT...
+        starting at position 642.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '      AGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
+            '      ??????????????????????????????????????????',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
 
 @skipUnless(samtoolsInstalled(), 'samtools is not installed')
 class TestIgnoreQuality(TestCase, _Mixin):

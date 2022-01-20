@@ -171,8 +171,8 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
             bar.update(readCount)
 
-    result = list(reference.sequence if noCoverage == 'reference' else
-                  noCoverage * referenceLength)
+    orig = list(reference.sequence if noCoverage == 'reference' else
+                noCoverage * referenceLength)
     lowCoverageStr = (reference.sequence if lowCoverage == 'reference' else
                       lowCoverage * referenceLength)
 
@@ -183,6 +183,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     suffix = [None] * (maxCorrespondence - referenceLength + 1
                        if maxCorrespondence >= referenceLength else 0)
 
+    result = list(orig)
     for offset, data in correspondences.items():
         if offset < 0:
             array = prefix
@@ -202,8 +203,6 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
             array[offset] = leastAmbiguousFromCounts(bases, threshold)
 
-    debug(f'  {result=}')
-
     # Do deletions.
     resultWithDeletions = []
     for offset, base in enumerate(result):
@@ -212,9 +211,9 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
     # Do insertions.
     resultWithDeletionsAndInsertions = list(resultWithDeletions)
-    insertCount = 0
+    debug(f'  resultWithDeletionsAndInsertions = '
+          f'{"".join(resultWithDeletionsAndInsertions)}')
     for offset, data in sorted(insertions.items()):
-        assert 0 <= offset < referenceLength
         if len(data) < minCoverage:
             base = lowCoverage
         else:
@@ -224,14 +223,18 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
             base = leastAmbiguousFromCounts(bases, threshold)
 
         deletionCount = sum(x <= offset for x in deletions)
-        resultWithDeletionsAndInsertions.insert(
-            offset + insertCount - deletionCount, base)
-        insertCount += 1
+        resultWithDeletionsAndInsertions.insert(offset - deletionCount, base)
+        debug(f'  resultWithDeletionsAndInsertions = '
+              f'{"".join(resultWithDeletionsAndInsertions)} inserted {base} '
+              f'before {offset - deletionCount}')
 
-    debug(f'{prefix=}')
-    debug(f'{resultWithDeletions=}')
-    debug(f'{resultWithDeletionsAndInsertions=}')
-    debug(f'{suffix=}')
+    debug(f'orig                             = {"".join(orig)}')
+    debug(f'result                           = {"".join(result)}')
+    debug(f'resultWithDeletions              = {"".join(resultWithDeletions)}')
+    debug(f'resultWithDeletionsAndInsertions = '
+          f'{"".join(resultWithDeletionsAndInsertions)}')
+    debug(f'prefix                           = {"".join(prefix)}')
+    debug(f'suffix                           = {"".join(suffix)}')
     return ''.join(prefix + resultWithDeletionsAndInsertions + suffix)
 
 
@@ -263,6 +266,7 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             break
 
     actualReferenceOffset = firstReferenceOffset
+    insertCount = 0
 
     for queryOffset, referenceOffset in pairs:
 
@@ -284,7 +288,10 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             assert queryOffset is not None
             base = query[queryOffset]
             quality = qualities[queryOffset]
-            insertions[actualReferenceOffset].append((base, quality))
+            insertCount = sum(
+                x <= (actualReferenceOffset + insertCount) for x in insertions)
+            insertions[actualReferenceOffset + insertCount].append(
+                (base, quality))
 
         else:
             base = query[queryOffset]
