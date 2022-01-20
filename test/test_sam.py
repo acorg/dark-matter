@@ -52,6 +52,40 @@ class TestSAMFilter(TestCase):
             assertRaisesRegex(self, UnknownReference, error,
                               sam.referenceLengths)
 
+    def testNoFilteringOptions(self):
+        """
+        If no filtering options are given, the noFiltering attribute
+        on the SAM filter must be True.
+        """
+        sf = SAMFilter(None)
+        self.assertTrue(sf.noFiltering)
+
+    def testNoFilteringAllAlignmentsReturned(self):
+        """
+        When no filtering options are given, all alignments must be returned.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:10',
+            'query2 0 ref1 2 60 2= * 0 0 TC ZZ',
+            'query3 0 ref1 2 60 2=2X2M * 0 0 TCTAGG ZZZZZZ AS:i:3',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            sf = SAMFilter(filename)
+            (alignment1, alignment2, alignment3) = list(sf.alignments())
+            self.assertEqual('query1', alignment1.query_name)
+            self.assertEqual('query2', alignment2.query_name)
+            self.assertEqual('query3', alignment3.query_name)
+
+    def testAFilteringOptionSetsNoFiltering(self):
+        """
+        If a filtering options is given, the noFiltering attribute
+        on the SAM filter must be False.
+        """
+        sf = SAMFilter(None, storeQueryIds=True)
+        self.assertFalse(sf.noFiltering)
+
     def testStoreQueryIds(self):
         """
         If we request that query ids are saved, they must be.

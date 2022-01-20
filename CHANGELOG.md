@@ -1,6 +1,11 @@
-## 4.0.14 January 17, 2022
+## 4.0.15 January 20, 2022
 
 Added a simple consensus caller.
+
+## 4.0.14 January 20, 2022
+
+Added internal optimization to make the SAM filtering fast when no
+filtering is needed (this is the merge of a pull request from July 2021).
 
 ## 4.0.13 December 28, 2021
 
