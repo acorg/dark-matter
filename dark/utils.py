@@ -382,3 +382,22 @@ def readLabels(fp):
         oldName, newName = map(str.strip, line.split('\t'))
         result[oldName] = newName
     return result
+
+
+def matchOffset(leftPaddedQuery, leftPaddedReference):
+    """
+    At what reference offset does a query begin to match a reference?
+
+    @param leftPaddedQuery: A left-padded query C{str}.
+    @param leftPaddedReference: A left-padded reference C{str}.
+    @return: An C{int} offset into the (unpadded) reference.
+    """
+    offset = 0
+    for queryChar, referenceChar in zip(leftPaddedQuery, leftPaddedReference):
+        foundReferenceStart = referenceChar not in ' -'
+        if queryChar != ' ' and foundReferenceStart:
+            break
+        if foundReferenceStart:
+            offset += 1
+
+    return offset

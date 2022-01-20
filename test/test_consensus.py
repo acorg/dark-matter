@@ -1,17 +1,19 @@
-from unittest import TestCase, skipUnless, skip
+from unittest import TestCase, skipUnless
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import mkdtemp
 
+from dark.cigar import makeCigar
 from dark.consensus import consensusFromBAM
 from dark.process import Executor
 from dark.reads import DNARead
 from dark.sam import (
     samtoolsInstalled, UnequalReferenceLengthError, UnknownReference,
     UnspecifiedReference)
+from dark.utils import matchOffset
 
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
-CINS, CDEL, CREF_SKIP, CMATCH = 'IDNM'
+CINS, CDEL, CMATCH = 'IDM'
 
 
 @contextmanager
@@ -29,19 +31,21 @@ def makeBAM(template, secondReference=None):
     @return: A context manager that produces a 2-tuple containing the reference
         C{DNARead} instance and the C{Path} of the BAM file.
     """
-    e = Executor()
-    dirname = mkdtemp(prefix='test-consensus-')
+    if len(template) % 2 != 1:
+        raise ValueError(
+            'The template must have an odd number of strings, specifying the '
+            'reference sequence, then zero or more read/quality pairs.')
+
     refId = 'ref-id'
+    leftPaddedReference = template[0]
+    reference = DNARead(refId, leftPaddedReference.lstrip().replace('-', ''))
+    nSeqs = (len(template) - 1) >> 1
+    dirname = mkdtemp(prefix='test-consensus-')
+    e = Executor()
+
     try:
         samFile = Path(dirname) / 'file.sam'
         bamFile = Path(dirname) / 'file.bam'
-        reference = DNARead(refId, template[0].replace('-', ''))
-        if len(template) % 2 != 1:
-            raise ValueError('The template must have an odd number of '
-                             'strings. The reference sequence, followed by '
-                             'zero or more read/quality pairs.')
-        nSeqs = (len(template) - 1) >> 1
-
         with open(samFile, 'w') as fp:
             print(f'@SQ\tSN:{refId}\tLN:{len(reference)}', file=fp)
             if secondReference:
@@ -49,40 +53,29 @@ def makeBAM(template, secondReference=None):
                 print(f'@SQ\tSN:{secondReference}\tLN:100', file=fp)
 
             for count in range(nSeqs):
-                read = template[count * 2 + 1].rstrip()
-                quality = template[count * 2 + 2].rstrip()
-                assert len(read) == len(quality)
-                query = read.lstrip()
-                quality = quality.lstrip()
-                matchOffset = len(read) - len(query)
-                cigar = []
-                for referenceBase, queryBase in zip(
-                        template[0][matchOffset:matchOffset + len(query)],
-                        query):
-                    if referenceBase == '-':
-                        # Insertion to the reference.
-                        assert queryBase != '-'
-                        cigar.append('1' + CINS)
-                    elif queryBase == '-':
-                        # Deletion from the reference.
-                        assert referenceBase != '-'
-                        cigar.append('1' + CDEL)
-                    else:
-                        cigar.append('1' + CMATCH)
-                # import sys
-                # print(f'Q:{query!r} C:{"".join(cigar)}', file=sys.stderr)
+                leftPaddedQuery = template[count * 2 + 1].rstrip()
+                leftPaddedQuality = template[count * 2 + 2].rstrip()
+                assert len(leftPaddedQuery) == len(leftPaddedQuality)
+                query = leftPaddedQuery.lstrip()
+                quality = leftPaddedQuality.lstrip()
+                queryNoGaps = qualityNoGaps = ''
+                for queryBase, qualityBase in zip(query, quality):
+                    if queryBase != '-':
+                        queryNoGaps += queryBase
+                        qualityNoGaps += qualityBase
+
                 print('\t'.join(map(str, (
-                    f'read{count}',  # QUERY ID
+                    f'read{count}',  # QNAME (query name)
                     0,  # FLAGS
-                    refId,  # REF ID
-                    matchOffset + 1,  # POS
-                    30,  # MAPQ
-                    ''.join(cigar),
-                    '*',  # MRNM (Mate reference name)
-                    0,  # MPOS (Mate position)
-                    0,  # ISIZE
-                    query.replace('-', ''),
-                    quality.replace('-', ''),
+                    refId,  # RNAME (reference name)
+                    matchOffset(leftPaddedQuery, leftPaddedReference) + 1,
+                    30,  # MAPQ (mapping quality)
+                    makeCigar(leftPaddedReference, query),  # CIGAR
+                    '*',  # MRNM (mate reference name)
+                    0,  # MPOS (mate position)
+                    0,  # ISIZE (insert size)
+                    queryNoGaps,  # SEQ
+                    qualityNoGaps,  # QUAL
                 ))), file=fp)
 
         e.execute(f'samtools view -b -o {str(bamFile)!r} {str(samFile)!r}')
@@ -478,6 +471,28 @@ class _Mixin:
             self.assertEqual(
                 'ACMT',
                 consensusFromBAM(bamFilename,
+                                 strategy='fetch',
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadHasEarlierSites(self):
+        """
+        If a read has sites that come before the reference, they must
+        be included in the consensus.
+        """
+        template = (
+            ' ACGT',
+            'AA',
+            '??',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'AACGT',
+                consensusFromBAM(bamFilename,
+                                 strategy='fetch',
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
@@ -499,19 +514,17 @@ class _Mixin:
             self.assertEqual(
                 'CAATG',
                 consensusFromBAM(bamFilename,
+                                 strategy='fetch',
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
 
-    @skip('Insertion into reference not implemented yet')
-    def testInsertionInReference(self):
+    def testOneInsertionInReference(self):
         """
         An insertion in the reference must be handled correctly.
         """
         template = (
             'CA-CGTG',
-            ' AAC',
-            ' ???',
             ' AAC',
             ' ???',
         )
@@ -521,6 +534,29 @@ class _Mixin:
             self.assertEqual(
                 'CAACGTG',
                 consensusFromBAM(bamFilename,
+                                 strategy='fetch',
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoInsertionsInReference(self):
+        """
+        An insertion in the reference must be handled correctly.
+        """
+        template = (
+            'CA-CGT-G',
+            ' AAC',
+            ' ???',
+            '     TAG',
+            '     ???',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'CAACGTAG',
+                consensusFromBAM(bamFilename,
+                                 strategy='fetch',
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))

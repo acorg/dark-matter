@@ -52,3 +52,74 @@ def dna2cigar(s1, s2, concise=False):
     result.append('%d%s' % (length, operation))
 
     return ''.join(result)
+
+
+def makeCigar(reference, query):
+    """
+    Make a CIGAR string from an aligned reference and query.
+
+    @param reference: A C{str} reference sequence, possibly padded on
+        the left and right with spaces, and possibly with '-' characters
+        to indicate that the query has an insertion (relative to the
+        reference).
+    @param query: A C{str} reference sequence, possibly padded on
+        the left with spaces, and possibly with '-' characters to indicate
+        that the query has a deletion (relative to the reference).
+    @raise ValueError: If the query or reference is empty.
+    @return: A C{str} CIGAR string.
+    """
+    if not reference:
+        raise ValueError('Empty reference')
+    if not query:
+        raise ValueError('Empty query')
+    cigar = []
+    softClipLeft = softClipRight = 0
+    state = 'start'
+
+    # Pad the reference on the right, if needed.
+    if len(reference) < len(query):
+        reference += ' ' * (len(query) - len(reference))
+
+    for referenceBase, queryBase in zip(reference, query):
+        if referenceBase == ' ':
+            if queryBase == ' ':
+                continue
+            else:
+                if state == 'start':
+                    softClipLeft += 1
+                else:
+                    softClipRight += 1
+        else:
+            state = 'in reference'
+            if queryBase == ' ':
+                continue
+            elif referenceBase == '-':
+                # Insertion to the reference.
+                assert queryBase != '-'
+                cigar.append(CINS)
+            elif queryBase == '-':
+                # Deletion from the reference.
+                assert referenceBase != '-'
+                cigar.append(CDEL)
+            else:
+                cigar.append(CMATCH)
+
+    # Replace strings of identical operations with a count and the operation.
+    lastOp = None
+    count = 0
+    middle = []
+    for op in cigar:
+        if op != lastOp:
+            if count:
+                middle.append(f'{count}{lastOp}')
+            count = 1
+            lastOp = op
+        else:
+            count += 1
+
+    if count:
+        middle.append(f'{count}{lastOp}')
+
+    return ((f'{softClipLeft}S' if softClipLeft else '') +
+            ''.join(middle) +
+            (f'{softClipRight}S' if softClipRight else ''))

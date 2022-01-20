@@ -1,7 +1,6 @@
 from unittest import TestCase
-from six import assertRaisesRegex
 
-from dark.cigar import CINS, CDEL, CMATCH, CEQUAL, CDIFF, dna2cigar
+from dark.cigar import CINS, CDEL, CMATCH, CEQUAL, CDIFF, dna2cigar, makeCigar
 
 
 class TestConstants(TestCase):
@@ -28,14 +27,14 @@ class TestDNA2CIGAR(TestCase):
         If two unequal strings are passed, a ValueError must be raised.
         """
         error = r"^Sequences 'hey' and 'there' of unequal length \(3 != 5\)\.$"
-        assertRaisesRegex(self, ValueError, error, dna2cigar, 'hey', 'there')
+        self.assertRaisesRegex(ValueError, error, dna2cigar, 'hey', 'there')
 
     def testEmptyStrings(self):
         """
         If two empty strings are passed, a ValueError must be raised.
         """
         error = r"^Two sequences of zero length were passed\.$"
-        assertRaisesRegex(self, ValueError, error, dna2cigar, '', '')
+        self.assertRaisesRegex(ValueError, error, dna2cigar, '', '')
 
     def testEqualStringsLength1(self):
         """
@@ -145,3 +144,84 @@ class TestDNA2CIGAR(TestCase):
         self.assertEqual('14M',
                          dna2cigar('ACGTTTTCCCTTGG',
                                    'ACGAAAACCCTTTT', concise=True))
+
+
+class TestMakeCigar(TestCase):
+    """
+    Test making CIGAR strings.
+    """
+    def testEmptyReference(self):
+        """
+        If the reference is empty, a ValueError must be raised.
+        """
+        error = r"^Empty reference$"
+        self.assertRaisesRegex(ValueError, error, makeCigar, '', 'ACGT')
+
+    def testEmptyQuery(self):
+        """
+        If the query is empty, a ValueError must be raised.
+        """
+        error = r"^Empty query$"
+        self.assertRaisesRegex(ValueError, error, makeCigar, 'ACGT', '')
+
+    def testOneBaseInitialMatch(self):
+        """
+        If the query has one base that matches the start of the reference, 1M
+        should be the result.
+        """
+        self.assertEqual('1M', makeCigar('ACGT',
+                                         'A'))
+
+    def testTwoBasesInitialMatch(self):
+        """
+        If the query has two bases that matches the start of the reference,
+        1M1M should be the result.
+        """
+        self.assertEqual('2M', makeCigar('ACGT',
+                                         'AT'))
+
+    def testOneBaseFinalMatch(self):
+        """
+        If the query has one base that matches the end of the reference, 1M
+        should be the result.
+        """
+        self.assertEqual('1M', makeCigar('ACGT',
+                                         '   A'))
+
+    def testTwoBasesFinalMatch(self):
+        """
+        If the query has two bases that matches the end of the reference, 1M1M
+        should be the result.
+        """
+        self.assertEqual('2M', makeCigar('ACGT',
+                                         '  AT'))
+
+    def testEqualStrings(self):
+        """
+        If the query exactly overlaps the reference we should get 'M' as many
+        times as the length of the sequences.
+        """
+        self.assertEqual('4M', makeCigar('ACGT',
+                                         'ATGG'))
+
+    def testLeftClipping(self):
+        """
+        Test that left soft clipping works.
+        """
+        self.assertEqual('2S2M', makeCigar('  ACGT',
+                                           'ATAT'))
+
+    def testRightClippingUnpadded(self):
+        """
+        Test that right soft clipping works when the reference does not
+        have enough padding to match the length of the query.
+        """
+        self.assertEqual('2M2S', makeCigar('  ACGT',
+                                           '    ATAA'))
+
+    def testRightClippingPadded(self):
+        """
+        Test that right soft clipping works.
+        """
+        self.assertEqual('2M2S', makeCigar('  ACGT  ',
+                                           '    ATAA'))
