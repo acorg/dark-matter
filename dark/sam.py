@@ -216,15 +216,23 @@ class SAMFilter(object):
         self.filename = filename
         self.filterRead = filterRead
         self.referenceIds = referenceIds
+        self.storeQueryIds = storeQueryIds
         self.dropUnmapped = dropUnmapped
         self.dropSecondary = dropSecondary
         self.dropSupplementary = dropSupplementary
         self.dropDuplicates = dropDuplicates
         self.keepQCFailures = keepQCFailures
-        self.storeQueryIds = storeQueryIds
         self.minScore = minScore
         self.maxScore = maxScore
         self.scoreTag = scoreTag
+
+        # Detect when there are no filtering criteria, in which case
+        # self.filterAlignment can return immediately.
+        self.noFiltering = all((
+            filterRead is None, referenceIds is None,
+            not any((storeQueryIds, dropUnmapped, dropSecondary,
+                     dropSupplementary, dropDuplicates, keepQCFailures)),
+            minScore is None, maxScore is None))
 
     @staticmethod
     def addFilteringOptions(parser, samfileIsPositional=False,
@@ -356,6 +364,9 @@ class SAMFilter(object):
         @return: A C{bool}, C{True} if the alignment passes our filtering,
             C{False} if it should be discarded.
         """
+        if self.noFiltering:
+            return True
+
         if self.minScore is not None or self.maxScore is not None:
             try:
                 score = alignment.get_tag(self.scoreTag)
@@ -386,16 +397,16 @@ class SAMFilter(object):
         @return: A generator that yields pysam alignment instances that pass
             our filtering criteria.
         """
-        storeQueryIds = self.storeQueryIds
-
-        if storeQueryIds:
-            self.queryIds = queryIds = set()
+        if self.storeQueryIds:
+            queryIds = self.queryIds = set()
+        else:
+            queryIds = None
 
         lastAlignment = None
         count = 0
         with samfile(self.filename) as samAlignment:
             for count, alignment in enumerate(samAlignment.fetch(), start=1):
-                if storeQueryIds:
+                if queryIds is not None:
                     queryIds.add(alignment.query_name)
 
                 # Secondary and supplementary alignments may have a '*'
