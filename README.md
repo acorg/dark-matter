@@ -4,8 +4,9 @@ A collection of Python tools for filtering and visualizing
 [Next Generation Sequencing](https://en.wikipedia.org/wiki/DNA_sequencing#Next-generation_methods)
 reads.
 
-Runs under Python 2.7 (mostly), 3.5, 3.6, and 3.7. [Change log](CHANGELOG.md)
-[![Build Status](https://travis-ci.org/acorg/dark-matter.svg?branch=master)](https://travis-ci.org/acorg/dark-matter)
+Runs under Python 3.6 to 3.9 (though 7 of 1682 tests fail under 3.7 due to the `unittest` module and mocking of `open`).
+[Change log](CHANGELOG.md)
+[![Build Status](https://app.travis-ci.com/acorg/dark-matter.svg?branch=master)](https://app.travis-ci.com/acorg/dark-matter)
 
 ## Installation
 

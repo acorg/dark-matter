@@ -3,13 +3,16 @@ from unittest import TestCase
 from tempfile import mkstemp
 from os import close, unlink, write
 from contextlib import contextmanager
+from io import StringIO
+from json import dumps, loads
+import numpy as np
 
 from pysam import CHARD_CLIP, CMATCH
 
 from dark.reads import Read, ReadFilter
 from dark.sam import (
     PaddedSAM, SAMFilter, UnequalReferenceLengthError, UnknownReference,
-    InvalidSAM, samReferencesToStr, _hardClip)
+    InvalidSAM, samReferencesToStr, _hardClip, DistanceMatrix)
 
 
 # These tests actually use the filesystem to read files. That's due to the API
@@ -1188,3 +1191,669 @@ class TestHardClip(TestCase):
             ('AA', '12', False),
             _hardClip('AA', '12',
                       ((CHARD_CLIP, 1), (CMATCH, 2), (CHARD_CLIP, 3),)))
+
+
+class TestDistanceMatrix(TestCase):
+    """
+    Test the DistanceMatrix class.
+    """
+    def testEmpty(self):
+        """
+        The similarity (scores) matrix must be empty after intitialization.
+        """
+        dm = DistanceMatrix()
+        self.assertEqual({}, dm.scores)
+
+    def testNoMatchesHasNoMatchedReferenceIds(self):
+        """
+        If a SAM file with no query records is added, there should be no
+        matched reference ids (even though there is a reference in the SAM
+        header, it has no matches).
+        """
+        dm = DistanceMatrix()
+        data = '\n'.join([
+            '@SQ SN:id1 LN:90',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual({}, dm.scores)
+
+    def testAddEmptySAMNoScoreTag(self):
+        """
+        If a SAM file with no query records is added and no score tag is
+        passed, the scores matrix must be empty and the distance between
+        two (non-existent) references must be 1.0.
+        """
+        dm = DistanceMatrix()
+        data = '\n'.join([
+            '@SQ SN:id1 LN:90',
+        ]).replace(' ', '\t')
+
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual({}, dm.scores)
+        self.assertEqual(1.0, dm.jaccardDistance('ref1', 'ref2'))
+        self.assertEqual(1.0, dm.soergelDistance('ref1', 'ref2'))
+
+    def testAddEmptySAMWithScoreTag(self):
+        """
+        If a SAM file with no query records is added and a score tag is passed,
+        the similarity (scores) matrix must be empty.
+        """
+        data = '\n'.join([
+            '@SQ SN:id1 LN:90',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual({}, dm.scores)
+        self.assertEqual(1.0, dm.jaccardDistance('ref1', 'ref2'))
+        self.assertEqual(1.0, dm.soergelDistance('ref1', 'ref2'))
+
+    def testOneQueryMappedNoScoreTag(self):
+        """
+        If one query is mapped to one reference, the scores matrix must have
+        a 1.0 score if no score tag is passed.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(
+            {
+                'ref1': {
+                    'query1': 1.0,
+                },
+            },
+            dm.scores)
+
+    def testOneQueryMappedWithScoreTag(self):
+        """
+        If one query is mapped to one reference, the scores matrix must have
+        the correct score if a score tag is passed.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:77',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(
+            {
+                'ref1': {
+                    'query1': 77.0,
+                },
+            },
+            dm.scores)
+
+        self.assertEqual(77.0, dm.score('ref1', 'query1'))
+
+    def testOneQueryMappedWithScoreTagFloat(self):
+        """
+        If one query is mapped to one reference, the scores matrix must have
+        the correct score if a score tag is passed and the score is of type
+        float (the AS:f:77.5 in the SAM record).
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:f:77.5',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(
+            {
+                'ref1': {
+                    'query1': 77.5,
+                },
+            },
+            dm.scores)
+
+        self.assertEqual(77.5, dm.score('ref1', 'query1'))
+
+    def testNonExistentQueryNotMapped(self):
+        """
+        If a query (not even existing in this case) is not mapped to the
+        reference, the score between the two must be zero.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(0.0, dm.score('ref1', 'query1'))
+
+    def testNonExistentQuery(self):
+        """
+        The score for a non-existent query must be zero.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(0.0, dm.score('ref1', 'query1'))
+
+    def testQueryNotMapped(self):
+        """
+        If a query did not map to a reference, the score between the two must
+        be zero.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:77',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(
+            {
+                'ref2': {
+                    'query1': 77,
+                },
+            },
+            dm.scores)
+
+        self.assertEqual(0.0, dm.score('ref1', 'query1'))
+
+    def testJaccardDistanceToSelf(self):
+        """
+        The Jaccard distance between a reference and itself must be zero.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(0.0, dm.jaccardDistance('ref1', 'ref1'))
+
+    def testJaccardDistanceToIdentical(self):
+        """
+        The Jaccard distance between a reference and another with the same set
+        of matching queries must be zero.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(0.0, dm.jaccardDistance('ref1', 'ref1'))
+
+    def testJaccardDistanceWithNoQueriesInCommon(self):
+        """
+        The Jaccarddistance between two references that have no matching
+        queries in common must be 1.0.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(1.0, dm.jaccardDistance('ref1', 'ref2'))
+
+    def testJaccardDistanceWithOneQueryInCommon(self):
+        """
+        The Jaccard similarity between two references with one query in common
+        is one over the number of queries that match them in total (four),
+        i.e., 1/4 and the Jaccard distance is 1.0 minus this, or 3/4.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query4 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(0.75, dm.jaccardDistance('ref1', 'ref2'))
+
+    def testJaccardDistanceWithTwoQueriesInCommon(self):
+        """
+        The Jaccard similarity between two references with two queries in
+        common is two over the number of queries that match them in total
+        (five), i.e., 2/5 and the Jaccard distance is 1.0 minus this, or 3/5.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query4 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query5 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query5 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(0.6, dm.jaccardDistance('ref1', 'ref2'))
+
+    def testSoergelDistanceWithNegativeScore(self):
+        """
+        Soergel distance cannot be computed if a negative score is present.
+        A ValueError must be raised in such cases.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:-50',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            error = (fr"^Alignment 1 in {filename!r} has tag 'AS' with "
+                     fr"negative value \(-50\)\.$")
+            self.assertRaisesRegex(ValueError, error, dm.addFile, filename,
+                                   scoreTag='AS')
+
+    def testSoergelDistanceWithOneQueryInCommonNoScoreTag(self):
+        """
+        The Soergel similarity between two references with one query in common
+        if no score tag was given is one over the number of queries that match
+        them in total (four), i.e., 1/4 and the distance is 1.0 minus this, or
+        3/4.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+            'query4 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename)
+
+        self.assertEqual(0.75, dm.soergelDistance('ref1', 'ref2'))
+
+    def testSoergelDistanceWithNoQueryInCommon(self):
+        """
+        The Soergel similarity between two references with no queries in common
+        when using a score tag given is the sum of the minimum scores (all are
+        zero) over the sum of the maximum scores (50 + 10 + 60 + 30 = 150),
+        i.e., zero, and the distance is 1.0 minus this, or 1.0.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+            'query4 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(1.0, dm.soergelDistance('ref1', 'ref2'))
+
+    def testSoergelDistanceToIdentical(self):
+        """
+        The Soergel similarity between two references with two queries in
+        common with the same scores must be zero.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query2 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:20',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:20',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(0.0, dm.soergelDistance('ref1', 'ref2'))
+
+    def testSoergelDistanceSameQueriesDifferentScores(self):
+        """
+        The Soergel similarity between two references with two queries in
+        common but with different scores is the sum of the minimum scores
+        (10 + 15 = 25) over the sum of the maximum scores (30 + 70 = 100),
+        or 1/4, and the distance is 1.0 minus this, or 3/4. The unrelated
+        query3 and ref3 are ignored.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            '@SQ SN:ref3 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+            'query2 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:15',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:70',
+            'query3 0 ref3 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:70',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(0.75, dm.soergelDistance('ref1', 'ref2'))
+
+    def testSoergelDistanceWithOneQueryInCommon(self):
+        """
+        The Soergel similarity between two references with one query in common
+        when using a score tag given is the sum of the minimum scores (30) over
+        the sum of the maximum scores (50 + 10 + 60 = 120), or 1/4, and the
+        distance is 1.0 minus this, or 3/4.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(0.75, dm.soergelDistance('ref1', 'ref2'))
+
+    def testSoergelDistanceWithTwoQueriesInCommon(self):
+        """
+        The Soergel similarity between two references with two queries in
+        common when using a score tag given is the sum of the minimum scores
+        (10 + 20) over the sum of the maximum scores (50 + 10 + 60 = 120),
+        or 1/4, and the distance is 1.0 minus this, or 3/4.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:20',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        self.assertEqual(0.75, dm.soergelDistance('ref1', 'ref2'))
+
+    def testSave(self):
+        """
+        The save method must write out the correct JSON.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:f:10.0',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:f:11.0',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:f:12.0',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        fp = StringIO()
+        dm.save(fp)
+
+        self.assertEqual(
+            {
+                'ref1': {
+                    'query1': 10.0,
+                },
+                'ref2': {
+                    'query1': 11.0,
+                    'query2': 12.0,
+                },
+            },
+            loads(fp.getvalue()))
+
+    def testLoad(self):
+        """
+        The load method must read the JSON and store it correctly.
+        """
+        data = {
+            'ref1': {
+                'query1': 10.0,
+            },
+            'ref2': {
+                'query1': 11.0,
+                'query2': 12.0,
+            },
+        }
+        dm = DistanceMatrix()
+        fp = StringIO(dumps(data))
+        dm.load(fp)
+        self.assertEqual(data, dm.scores)
+
+    def testJaccardMatrixWithOneQueryInCommon(self):
+        """
+        The Jaccard similarity between two references is the number of reads in
+        common (1) over the number of reads in the union (4) or 0.25. Check
+        that the distance and similarity matrice have the right values.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+            'query4 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        # Test distance.
+        matrix = dm.matrix(metric='jaccard')
+
+        self.assertTrue(np.array_equal(
+            [
+                [0.00, 0.75],
+                [0.75, 0.00],
+            ],
+            matrix))
+
+        # Test similarity.
+        matrix = dm.matrix(metric='jaccard', similarity=True)
+
+        self.assertTrue(np.array_equal(
+            [
+                [1.00, 0.25],
+                [0.25, 1.00],
+            ],
+            matrix))
+
+    def testJaccardMatrixWithOneQueryInCommonReturnDict(self):
+        """
+        The Jaccard similarity between two references is the number of reads in
+        common (1) over the number of reads in the union (4) or 0.25. Check
+        that the distance and similarity matrice have the right values, asking
+        for a dictionary to be returned.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+            'query4 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        # Test distance.
+        matrix = dm.matrix(metric='jaccard', returnDict=True)
+
+        self.assertEqual(
+            {
+                'ref1': {
+                    'ref1': 0.00,
+                    'ref2': 0.75,
+                },
+                'ref2': {
+                    'ref1': 0.75,
+                    'ref2': 0.00,
+                },
+            },
+            matrix)
+
+        # Test similarity.
+        matrix = dm.matrix(metric='jaccard', similarity=True, returnDict=True)
+
+        self.assertEqual(
+            {
+                'ref1': {
+                    'ref1': 1.00,
+                    'ref2': 0.25,
+                },
+                'ref2': {
+                    'ref1': 0.25,
+                    'ref2': 1.00,
+                },
+            },
+            matrix)
+
+    def testSoergelMatrixWithOneQueryInCommon(self):
+        """
+        The Soergel similarity between two references with one query in common
+        when using a score tag given is the sum of the minimum scores (30) over
+        the sum of the maximum scores (50 + 10 + 60 = 120), or 1/4, and the
+        distance is 1.0 minus this, or 3/4. Check that the distance and
+        similarity matrice have the right values.
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        # Test distance.
+        matrix = dm.matrix()
+
+        self.assertTrue(np.array_equal(
+            [
+                [0.00, 0.75],
+                [0.75, 0.00],
+            ],
+            matrix))
+
+        # Test similarity.
+        matrix = dm.matrix(similarity=True)
+
+        self.assertTrue(np.array_equal(
+            [
+                [1.00, 0.25],
+                [0.25, 1.00],
+            ],
+            matrix))
+
+    def testSoergelMatrixWithOneQueryInCommonExplicitReferenceIds(self):
+        """
+        The Soergel similarity between two references with one query in common
+        when using a score tag given is the sum of the minimum scores (30) over
+        the sum of the maximum scores (50 + 10 + 60 = 120), or 1/4, and the
+        distance is 1.0 minus this, or 3/4. Check that the distance and
+        similarity matrice have the right values when an explicit list of
+        reference ids is passed (other references must be ignored).
+        """
+        data = '\n'.join([
+            '@SQ SN:ref1 LN:10',
+            '@SQ SN:ref2 LN:10',
+            '@SQ SN:ref3 LN:10',
+            'query1 0 ref1 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:30',
+            'query1 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:50',
+            'query2 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:10',
+            'query3 0 ref2 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+            'query3 0 ref3 2 60 2=2X2M * 0 0 TCTAGG 123456 AS:i:60',
+        ]).replace(' ', '\t')
+
+        dm = DistanceMatrix()
+        with dataFile(data) as filename:
+            dm.addFile(filename, scoreTag='AS')
+
+        # Test distance.
+        matrix = dm.matrix(referenceIds=('ref1', 'ref2'))
+
+        self.assertTrue(np.array_equal(
+            [
+                [0.00, 0.75],
+                [0.75, 0.00],
+            ],
+            matrix))
+
+        # Test similarity.
+        matrix = dm.matrix(referenceIds=('ref1', 'ref2'), similarity=True)
+
+        self.assertTrue(np.array_equal(
+            [
+                [1.00, 0.25],
+                [0.25, 1.00],
+            ],
+            matrix))

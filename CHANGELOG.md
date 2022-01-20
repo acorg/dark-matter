@@ -1,7 +1,45 @@
-## 4.0.6 July 24, 2021
+## 4.0.14 January 20, 2022
 
 Added internal optimization to make the SAM filtering fast when no
-filtering is needed.
+filtering is needed (this is the merge of a pull request from July 2021).
+
+## 4.0.13 December 28, 2021
+
+Added `bin/fasta-count-chars.py` script. Fixed argument bug in
+`run-bowtie2.py` print statement.
+
+## 4.0.12 November 29, 2021
+
+Fixed another tiny bug when printing dry run output in
+`bin/make-consensus.py`.
+
+## 4.0.11 November 29, 2021
+
+Fixed tiny bug when printing dry run output in `bin/make-consensus.py`.
+
+## 4.0.10 November 2, 2021
+
+Updated TravisCI config and README build status badge URL.
+
+## 4.0.9 October 3, 2021
+
+Moved some code out of dark/civ/proteins.py into dark/genbank.py to make it
+more useful to others.
+
+## 4.0.8 September 19, 2021
+
+Added `DistanceMatrix` class to `dark/sam.py` for computing distances
+between references according to which reads match both (and how well, if an
+alignment score tag is given).
+
+## 4.0.7 August 24, 2021
+
+Color overall number of reads per pathogen in HTML output.
+
+## 4.0.6 August 17, 2021
+
+Fixed subtle bug introduced into `bin/filter-fasta.py` due to a code
+reordering.
 
 ## 4.0.5 July 10, 2021
 
