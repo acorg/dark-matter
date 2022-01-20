@@ -1,17 +1,25 @@
 import sys
 # from time import time
 from collections import defaultdict
+import progressbar
 
 from dark.dna import leastAmbiguousFromCounts
 from dark.sam import (
     samfile, samReferences, UnequalReferenceLengthError,
     UnknownReference, UnspecifiedReference)
 
+DEBUG = True
+
+
+def debug(*msg):
+    if DEBUG:
+        print(*msg, file=sys.stderr)
+
 
 def consensusFromBAM(bamFilename, referenceId=None, reference=None,
                      threshold=0.8, minCoverage=1, lowCoverage='reference',
                      noCoverage='reference', ignoreQuality=False,
-                     strategy='fetch', logfp=None):
+                     strategy='majority', logfp=None):
     """
     Build a consensus sequence from a BAM file.
 
@@ -84,102 +92,11 @@ def consensusFromBAM(bamFilename, referenceId=None, reference=None,
                 f'{str(bamFilename)!r}.')
 
         if strategy == 'majority':
-            return _majorityConsensus(
-                bam, referenceId, reference, referenceLength, threshold,
-                minCoverage, lowCoverage, noCoverage, ignoreQuality, logfp)
-        elif strategy == 'fetch':
             return _fetchConsensus(
                 bam, referenceId, reference, referenceLength, threshold,
                 minCoverage, lowCoverage, noCoverage, ignoreQuality, logfp)
         else:
             raise ValueError(f'Unknown consensus strategy {strategy!r}.')
-
-
-def _majorityConsensus(bam, referenceId, reference, referenceLength, threshold,
-                       minCoverage, lowCoverage, noCoverage, ignoreQuality,
-                       logfp):
-    """Compute a majority consensus.
-
-    @param bam: An open BAM file.
-    @param referenceId: A C{str} reference name indicating which reference to
-        find reads against in the BAM file. If C{None} and there is only one
-        reference in the BAM file, that one will be used, else a ValueError
-        is raised due to not knowing which reference to use.
-    @param reference: A C{Read} instance giving the reference sequence, or
-        C{None} (in which case neither C{lowCoverage} nor C{noCoverage} may be
-        'reference').
-    @param referenceLength: The C{int} length of the reference (note that we
-        may not have the reference sequence but we can still get its length
-        from the BAM file header).
-    @param threshold: A C{float} threshold used when calling the consensus.
-        If the frequency of the most-common nucleotide at a site meets this
-        threshold, that nucleotide will be called. Otherwise, an ambiguous
-        nucleotide code will be produced, based on the smallest set of
-        most-frequent nucleotides whose summed frequencies meet the
-        threshold. If the frequency of the nucleotide that causes the
-        threshold to be reached is the same as that of other nucleotides,
-        all such nucleotides will be included in the ambiguous code.
-    @param minCoverage: An C{int} minimum number of reads that must cover a
-        site for a threshold consensus base to be called. If zero reads
-        cover a site, the C{noCoverage} value is used or if the number is
-        greater than zero but less then C{minCoverage}, the C{lowCoverage}
-        value is used.
-    @param lowCoverage: A C{str} indicating what to do when some reads cover a
-        site, but fewer than C{minCoverage}. Either 'reference' or a single
-        character (e.g., 'N').
-    @param noCoverage: A C{str} indicating what to do when no reads cover a
-        reference base. Either 'reference' or a single character (e.g., 'N').
-    @param ignoreQuality: If C{True}, ignore quality scores.
-    @param logfp: If not C{None}, an open file pointer for writing information
-        to.
-    @return: A C{str} consensus sequence.
-
-    """
-    result = list(reference.sequence if noCoverage == 'reference' else
-                  noCoverage * referenceLength)
-    lowCoverage = (reference.sequence if lowCoverage == 'reference' else
-                   lowCoverage * referenceLength)
-
-    deletedSites = defaultdict(int)
-
-    for column in bam.pileup(reference=referenceId):
-        site = column.reference_pos
-        # print(f'COL {column.reference_pos}', file=sys.stderr)
-        bases = defaultdict(int)
-        readCount = 0
-        for readCount, read in enumerate(column.pileups, start=1):
-            # print(f'  qp {read.query_position!r}')
-            print(f'Site {site}', read, file=sys.stderr)
-            if read.is_del:
-                # print(f'DEL at site {site}', read, file=sys.stderr)
-                deletedSites[site] += 1
-                continue
-            elif read.is_refskip:
-                # The read skips a site in the reference. I.e., there is
-                # a deletion in this read.
-                # print('REF_SKIP:', read, file=sys.stderr)
-                raise NotImplementedError()
-            else:
-                print('NORM:', read, file=sys.stderr)
-                queryPosition = read.query_position
-                base = read.alignment.query_sequence[queryPosition]
-
-                bases[base] += (1 if ignoreQuality else
-                                read.alignment.query_qualities[queryPosition])
-
-        result[site] = (lowCoverage[site] if readCount < minCoverage else
-                        leastAmbiguousFromCounts(bases, threshold))
-
-    newResult = []
-    for site, base in enumerate(result):
-        if site not in deletedSites:
-            newResult.append(base)
-
-    if logfp:
-        for site, count in deletedSites.items():
-            print(f'{site}: {count} deletions', file=logfp)
-
-    return ''.join(newResult)
 
 
 def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
@@ -227,23 +144,32 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     insertions = defaultdict(list)
 
     if reference:
-        print('Reference:', reference.sequence, file=sys.stderr)
+        debug('Reference:', reference.sequence)
 
-    for read in bam.fetch(contig=referenceId):
-        print('query    :', read.query_sequence, file=sys.stderr)
-        print(f'cigar    : {read.cigarstring}', file=sys.stderr)
-        print(f'match    : {read.reference_start}', file=sys.stderr)
-        print(f'Pairs    : {read.get_aligned_pairs()}', file=sys.stderr)
+    nReads = bam.count(contig=referenceId)
+    with progressbar.ProgressBar(max_value=nReads) as bar:
+        for readCount, read in enumerate(bam.fetch(contig=referenceId),
+                                         start=1):
+            if readCount % 100 == 0:
+                print('.', end='', flush=True, file=sys.stderr)
 
-        addPairsInfo(
-            read.get_aligned_pairs(), read.query_sequence,
-            [1] * len(read.query_sequence) if ignoreQuality else
-            read.query_qualities, referenceLength,
-            correspondences, deletions, insertions)
+            debug(f'read id  : {read.query_name}')
+            debug('query    :', read.query_sequence)
+            debug(f'cigar    : {read.cigarstring}')
+            debug(f'match    : {read.reference_start}')
+            debug(f'Pairs    : {read.get_aligned_pairs()}')
 
-    print(f'  {correspondences=}', file=sys.stderr)
-    print(f'  {insertions=}', file=sys.stderr)
-    # print(f'  {deletions=}', file=sys.stderr)
+            addPairsInfo(
+                read.get_aligned_pairs(), read.query_sequence,
+                ([1] * len(read.query_sequence) if ignoreQuality else
+                 read.query_qualities),
+                referenceLength, correspondences, deletions, insertions)
+
+            debug(f'  {correspondences=}')
+            debug(f'  {insertions=}')
+            debug(f'  {deletions=}')
+
+            bar.update(readCount)
 
     result = list(reference.sequence if noCoverage == 'reference' else
                   noCoverage * referenceLength)
@@ -257,12 +183,10 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     suffix = [None] * (maxCorrespondence - referenceLength + 1
                        if maxCorrespondence >= referenceLength else 0)
 
-    print(f'  {suffix=}', file=sys.stderr)
-
     for offset, data in correspondences.items():
-        print(f'  {offset=}', file=sys.stderr)
         if offset < 0:
             array = prefix
+            offset += len(prefix)
         elif offset >= referenceLength:
             array = suffix
             offset = offset - referenceLength
@@ -278,15 +202,19 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
             array[offset] = leastAmbiguousFromCounts(bases, threshold)
 
-    print(f'  {result=}', file=sys.stderr)
-    newResult = []
+    debug(f'  {result=}')
+
+    # Do deletions.
+    resultWithDeletions = []
     for offset, base in enumerate(result):
         if offset not in deletions:
-            newResult.append(base)
+            resultWithDeletions.append(base)
 
+    # Do insertions.
+    resultWithDeletionsAndInsertions = list(resultWithDeletions)
     insertCount = 0
     for offset, data in sorted(insertions.items()):
-        assert 0 <= offset < referenceLength, f'{offset=}'
+        assert 0 <= offset < referenceLength
         if len(data) < minCoverage:
             base = lowCoverage
         else:
@@ -295,12 +223,16 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                 bases[base] += quality
             base = leastAmbiguousFromCounts(bases, threshold)
 
-        print(f'  before insert {newResult=}', file=sys.stderr)
-        newResult.insert(offset + insertCount, base)
-        print(f'  after  insert {newResult=}', file=sys.stderr)
+        deletionCount = sum(x <= offset for x in deletions)
+        resultWithDeletionsAndInsertions.insert(
+            offset + insertCount - deletionCount, base)
         insertCount += 1
 
-    return ''.join(prefix + newResult + suffix)
+    debug(f'{prefix=}')
+    debug(f'{resultWithDeletions=}')
+    debug(f'{resultWithDeletionsAndInsertions=}')
+    debug(f'{suffix=}')
+    return ''.join(prefix + resultWithDeletionsAndInsertions + suffix)
 
 
 def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
@@ -339,8 +271,10 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             # is a deletion from the reference.
             assert referenceOffset is not None
             # Sanity check.
-            assert referenceOffset == actualReferenceOffset
+            if referenceOffset is not None:
+                assert referenceOffset == actualReferenceOffset
             deletions.add(actualReferenceOffset)
+            actualReferenceOffset += 1
 
         elif (referenceOffset is None and
               actualReferenceOffset >= 0 and
@@ -356,6 +290,4 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             base = query[queryOffset]
             quality = qualities[queryOffset]
             correspondences[actualReferenceOffset].append((base, quality))
-
-        if referenceOffset is not None:
             actualReferenceOffset += 1

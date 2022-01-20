@@ -70,7 +70,7 @@ def makeBAM(template, secondReference=None):
                     refId,  # RNAME (reference name)
                     matchOffset(leftPaddedQuery, leftPaddedReference) + 1,
                     30,  # MAPQ (mapping quality)
-                    makeCigar(leftPaddedReference, query),  # CIGAR
+                    makeCigar(leftPaddedReference, leftPaddedQuery),  # CIGAR
                     '*',  # MRNM (mate reference name)
                     0,  # MPOS (mate position)
                     0,  # ISIZE (insert size)
@@ -471,7 +471,6 @@ class _Mixin:
             self.assertEqual(
                 'ACMT',
                 consensusFromBAM(bamFilename,
-                                 strategy='fetch',
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
@@ -492,14 +491,77 @@ class _Mixin:
             self.assertEqual(
                 'AACGT',
                 consensusFromBAM(bamFilename,
-                                 strategy='fetch',
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
 
-    def testDeletionFromReference(self):
+    def testReadHasLaterSites(self):
         """
-        An deletion from the reference must be handled correctly.
+        If a read has sites that come after the reference, they must
+        be included in the consensus.
+        """
+        template = (
+            'ACGT',
+            '   TAA',
+            '   ???',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'ACGTAA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadHasEarlierAndLaterSites(self):
+        """
+        If a read has sites that come before and after the reference, the sites
+        must be included in the consensus.
+        """
+        template = (
+            '  ACGT',
+            'TCACGTGA',
+            '????????',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'TCACGTGA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadsHaveEarlierAndLaterSites(self):
+        """
+        If two reads have sites that come before and after the reference, the
+        sites must be included in the consensus. This is the same as the
+        testReadHasEarlierAndLaterSites test above, but using two reads
+        (instead of one) to give the before and after sites.
+        """
+        template = (
+            '  ACGT',
+            'TCA',
+            '???',
+            '     TGA',
+            '     ???',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'TCACGTGA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOneDeletionFromReference(self):
+        """
+        A deletion from the reference must be handled correctly.
         """
         template = (
             'CACGTG',
@@ -514,7 +576,25 @@ class _Mixin:
             self.assertEqual(
                 'CAATG',
                 consensusFromBAM(bamFilename,
-                                 strategy='fetch',
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoDeletionsFromReference(self):
+        """
+        Two deletions from the reference must be handled correctly.
+        """
+        template = (
+            'CACGTG',
+            ' A-A-G',
+            ' ?-?-?',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'CAAG',
+                consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
@@ -534,14 +614,13 @@ class _Mixin:
             self.assertEqual(
                 'CAACGTG',
                 consensusFromBAM(bamFilename,
-                                 strategy='fetch',
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
 
     def testTwoInsertionsInReference(self):
         """
-        An insertion in the reference must be handled correctly.
+        Two insertions in the reference must be handled correctly.
         """
         template = (
             'CA-CGT-G',
@@ -556,7 +635,50 @@ class _Mixin:
             self.assertEqual(
                 'CAACGTAG',
                 consensusFromBAM(bamFilename,
-                                 strategy='fetch',
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoInsertionsAndOneDeletionInReference(self):
+        """
+        Two insertions and one deletion in the reference must be handled
+        correctly.
+        """
+        template = (
+            'CA-CGT-G',
+            ' AA-G',
+            ' ??-?',
+            '     TAG',
+            '     ???',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'CAAGTAG',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoInsertionsAndTwoDeletionsInReference(self):
+        """
+        Two insertions and two deletions in the reference must be handled
+        correctly.
+        """
+        template = (
+            'CA-CGT-G',
+            ' AA--',
+            ' ??--',
+            '     TAG',
+            '     ???',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'CAATAG',
+                consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))

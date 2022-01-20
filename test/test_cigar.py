@@ -204,24 +204,48 @@ class TestMakeCigar(TestCase):
         self.assertEqual('4M', makeCigar('ACGT',
                                          'ATGG'))
 
-    def testLeftClipping(self):
+    def testLeftClippingOne(self):
         """
-        Test that left soft clipping works.
+        Test that left soft clipping of one base works.
         """
         self.assertEqual('2S2M', makeCigar('  ACGT',
                                            'ATAT'))
 
-    def testRightClippingUnpadded(self):
+    def testLeftClippingTwo(self):
         """
-        Test that right soft clipping works when the reference does not
-        have enough padding to match the length of the query.
+        Test that left soft clipping of two bases works.
+        """
+        self.assertEqual('2S1M', makeCigar('  ACGT',
+                                           'TCA'))
+
+    def testRightClippingUnpaddedOne(self):
+        """
+        Test that right soft clipping of one base works when the reference
+        does not have enough padding to match the length of the query.
+        """
+        self.assertEqual('2M1S', makeCigar('  ACGT',
+                                           '    ATA'))
+
+    def testRightClippingUnpaddedTwo(self):
+        """
+        Test that right soft clipping of two bases works when the reference
+        does not have enough padding to match the length of the query.
         """
         self.assertEqual('2M2S', makeCigar('  ACGT',
                                            '    ATAA'))
 
-    def testRightClippingPadded(self):
+    def testRightClippingPaddedOne(self):
         """
-        Test that right soft clipping works.
+        Test that right soft clipping of one base works when the reference
+        is padded on the right.
+        """
+        self.assertEqual('2M1S', makeCigar('  ACGT ',
+                                           '    ATA'))
+
+    def testRightClippingPaddedTwo(self):
+        """
+        Test that right soft clipping of two bases works when the reference
+        is padded on the right.
         """
         self.assertEqual('2M2S', makeCigar('  ACGT  ',
                                            '    ATAA'))
