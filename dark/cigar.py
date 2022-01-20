@@ -72,25 +72,26 @@ def makeCigar(reference, query):
         raise ValueError('Empty reference')
     if not query:
         raise ValueError('Empty query')
-    cigar = []
-    softClipLeft = softClipRight = 0
-    state = 'start'
 
-    # Pad the reference on the right, if needed.
+    # Pad the reference on the right, if necessary.
     if len(reference) < len(query):
         reference += ' ' * (len(query) - len(reference))
+
+    cigar = []
+    softClipLeft = softClipRight = 0
+    start = True
 
     for referenceBase, queryBase in zip(reference, query):
         if referenceBase == ' ':
             if queryBase == ' ':
                 continue
             else:
-                if state == 'start':
+                if start:
                     softClipLeft += 1
                 else:
                     softClipRight += 1
         else:
-            state = 'in reference'
+            start = False
             if queryBase == ' ':
                 continue
             elif referenceBase == '-':
