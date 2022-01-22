@@ -8,7 +8,7 @@ from dark.sam import (
     samfile, samReferences, UnequalReferenceLengthError,
     UnknownReference, UnspecifiedReference)
 
-DEBUG = True
+DEBUG = False
 
 
 def debug(*msg):
@@ -256,16 +256,28 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
         scores for when a query contains an insertion to the reference.
     """
     # Find the offset of the sequence for the first member of the pair.
-    # This might be negative.
-    count = 0
+    leadingNoneCount = 0
     for _, referenceOffset in pairs:
         if referenceOffset is None:
-            count += 1
+            leadingNoneCount += 1
         else:
-            firstReferenceOffset = referenceOffset - count
             break
+    else:
+        raise ValueError(
+            'This is impossible in real life (though it can be triggered by a '
+            'test), because no nucleotide in the read matches any location in '
+            'the reference. I.e., the read did not map to the reference, '
+            'which is impossible seeing as we are only working with reads '
+            'that mapped.')
 
-    actualReferenceOffset = firstReferenceOffset
+    if referenceOffset == 0:
+        # The previous pairs correspond to nucleotides that match before
+        # the start of the reference. So the actual offset (relative to
+        # reference position 0) is negative.
+        actualReferenceOffset = -leadingNoneCount
+    else:
+        actualReferenceOffset = referenceOffset
+
     insertCount = 0
 
     for queryOffset, referenceOffset in pairs:
@@ -288,8 +300,8 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             assert queryOffset is not None
             base = query[queryOffset]
             quality = qualities[queryOffset]
-            insertCount = sum(
-                x <= (actualReferenceOffset + insertCount) for x in insertions)
+            insertCount = sum(insert <= (actualReferenceOffset + insertCount)
+                              for insert in insertions)
             insertions[actualReferenceOffset + insertCount].append(
                 (base, quality))
 

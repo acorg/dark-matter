@@ -68,7 +68,7 @@ def makeBAM(template, secondReference=None):
                     f'read{count}',  # QNAME (query name)
                     0,  # FLAGS
                     refId,  # RNAME (reference name)
-                    matchOffset(leftPaddedQuery, leftPaddedReference) + 1,
+                    matchOffset(leftPaddedReference, leftPaddedQuery) + 1,
                     30,  # MAPQ (mapping quality)
                     makeCigar(leftPaddedReference, leftPaddedQuery),  # CIGAR
                     '*',  # MRNM (mate reference name)
@@ -794,6 +794,94 @@ class _Mixin:
             reference, bamFilename = data
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214InsertionRightSideExact(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected when the insertion is the very
+        last part of the read.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '      AGTGCGGAGCCAGAA',
+            '      ???????????????',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214InsertionLeftSideExact(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected when the insertion is the very
+        beginning of the read.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '            GAGCCAGAATGATCT',
+            '            ???????????????',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214InsertionInTwoReads(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected, including when the insertion
+        is inferred from two reads that each partially cover it. The
+        nucleotide sequence below is obtained as in the test above.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '      AGTGCGGAGCCA',
+            '      ????????????',
+            '             AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
+            '             ???????????????????????????????????',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214PartialInsertion(self):
+        """
+        Test that a trailing part of the amino acid EPE sequence (here
+        'AGCCAGAA') insertion into the SARS-CoV-2 spike nucleotide sequence
+        that usually is found at location 642 (amino acid location 214) works
+        as expected, including when the insertion is only partial (here we
+        don't have the first nucleotide of the 9 nucleotide insertion).
+        """
+        template = (
+            '--------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
+            '???????????????????????????????????',
+        )
+
+        with makeBAM(template) as data:
+            reference, bamFilename = data
+            self.assertEqual(
+                'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  ignoreQuality=self.ignoreQuality))

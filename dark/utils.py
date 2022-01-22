@@ -384,20 +384,18 @@ def readLabels(fp):
     return result
 
 
-def matchOffset(leftPaddedQuery, leftPaddedReference):
+def matchOffset(leftPaddedReference, leftPaddedQuery):
     """
     At what reference offset does a query begin to match a reference?
 
-    @param leftPaddedQuery: A left-padded query C{str}.
     @param leftPaddedReference: A left-padded reference C{str}.
+    @param leftPaddedQuery: A left-padded query C{str}.
     @return: An C{int} offset into the (unpadded) reference.
     """
     offset = 0
     for queryChar, referenceChar in zip(leftPaddedQuery, leftPaddedReference):
-        foundReferenceStart = referenceChar not in ' -'
-        if queryChar != ' ' and foundReferenceStart:
+        if queryChar not in ' -':
             break
-        if foundReferenceStart:
-            offset += 1
+        offset += referenceChar not in ' -'
 
     return offset
