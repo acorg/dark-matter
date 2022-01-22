@@ -98,8 +98,7 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             strategy = 'xxx'
             error = rf'^Unknown consensus strategy {strategy!r}\.$'
             self.assertRaisesRegex(ValueError, error, consensusFromBAM,
@@ -114,8 +113,7 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             badId = 'bad-id'
             error = (
                 rf'^BAM file {str(bamFilename)!r} does not mention a '
@@ -132,8 +130,7 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             wrongReference = DNARead('unknown-id', template[0])
             error = (
                 rf'^BAM file {str(bamFilename)!r} does not mention a '
@@ -150,8 +147,8 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template, secondReference='zzz') as data:
-            reference, bamFilename = data
+        with makeBAM(template, secondReference='zzz') as (reference,
+                                                          bamFilename):
             error = (
                 rf'^BAM file {str(bamFilename)!r} mentions 2 references '
                 rf'\(ref-id, zzz\) but you have not passed a referenceId '
@@ -169,8 +166,7 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             wrongReference = DNARead(reference.id, 'AA')
             error = (
                 rf'^Reference with id {reference.id!r} has length 2, which '
@@ -198,8 +194,7 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 template[0],
                 consensusFromBAM(bamFilename,
@@ -217,8 +212,7 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'N' * len(template[0]),
                 consensusFromBAM(bamFilename, referenceId=reference.id,
@@ -235,8 +229,7 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'N' * len(template[0]),
                 consensusFromBAM(bamFilename,
@@ -252,8 +245,7 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             for char in 'N?':
                 self.assertEqual(
                     char * len(template[0]),
@@ -273,8 +265,7 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 template[0],
                 consensusFromBAM(bamFilename,
@@ -296,8 +287,7 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             for char in 'N?':
                 self.assertEqual(
                     'AC' + char * 3 + 'CCG',
@@ -320,8 +310,7 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             for char in 'N?':
                 self.assertEqual(
                     'XX' + char * 3 + 'XXX',
@@ -344,8 +333,7 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 template[0],
                 consensusFromBAM(bamFilename,
@@ -365,8 +353,7 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'ACAAACCG',
                 consensusFromBAM(bamFilename,
@@ -390,8 +377,7 @@ class _Mixin:
             '  ????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'ACAAA+CG',
                 consensusFromBAM(bamFilename,
@@ -416,8 +402,7 @@ class _Mixin:
             '  ????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'NNAAA+NN',
                 consensusFromBAM(bamFilename,
@@ -442,8 +427,7 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'ACAT',
                 consensusFromBAM(bamFilename,
@@ -466,8 +450,7 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'ACMT',
                 consensusFromBAM(bamFilename,
@@ -486,8 +469,7 @@ class _Mixin:
             '??',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'AACGT',
                 consensusFromBAM(bamFilename,
@@ -506,8 +488,7 @@ class _Mixin:
             '   ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'ACGTAA',
                 consensusFromBAM(bamFilename,
@@ -526,8 +507,7 @@ class _Mixin:
             '????????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TCACGTGA',
                 consensusFromBAM(bamFilename,
@@ -550,8 +530,7 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TCACGTGA',
                 consensusFromBAM(bamFilename,
@@ -571,8 +550,7 @@ class _Mixin:
             ' ?-?',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'CAATG',
                 consensusFromBAM(bamFilename,
@@ -590,8 +568,7 @@ class _Mixin:
             ' ?-?-?',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'CAAG',
                 consensusFromBAM(bamFilename,
@@ -609,8 +586,7 @@ class _Mixin:
             ' ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'CAACGTG',
                 consensusFromBAM(bamFilename,
@@ -630,8 +606,7 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'CAACGTAG',
                 consensusFromBAM(bamFilename,
@@ -652,8 +627,7 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'CAAGTAG',
                 consensusFromBAM(bamFilename,
@@ -674,8 +648,7 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'CAATAG',
                 consensusFromBAM(bamFilename,
@@ -716,8 +689,7 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             for expected, threshold in ('A', 0.4), ('R', 0.7), ('D', 0.95):
                 self.assertEqual(
                     f'AC{expected}T',
@@ -759,8 +731,7 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             for expected, threshold in ('A', 0.4), ('D', 0.7), ('D', 0.95):
                 self.assertEqual(
                     f'AC{expected}T',
@@ -790,8 +761,7 @@ class _Mixin:
             '      ??????????????????????????????????????????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
@@ -811,8 +781,7 @@ class _Mixin:
             '      ???????????????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
@@ -832,8 +801,7 @@ class _Mixin:
             '            ???????????????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
@@ -856,8 +824,7 @@ class _Mixin:
             '             ???????????????????????????????????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
@@ -878,8 +845,7 @@ class _Mixin:
             '???????????????????????????????????',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
@@ -918,8 +884,7 @@ class TestWithQuality(TestCase, _Mixin):
             '  ]',
         )
 
-        with makeBAM(template) as data:
-            reference, bamFilename = data
+        with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'ACCT',
                 consensusFromBAM(bamFilename,
