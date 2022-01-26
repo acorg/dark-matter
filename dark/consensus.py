@@ -1,5 +1,5 @@
 import sys
-from time import time
+# from time import time
 from collections import defaultdict
 from contextlib import contextmanager
 import progressbar
@@ -10,35 +10,100 @@ from dark.sam import (
     UnknownReference, UnspecifiedReference)
 
 DEBUG = False
-# DEBUG = True
 
 
 def debug(*msg):
     print(*msg, file=sys.stderr)
 
 
-class Insertions:
-    def __init__(self, n):
-        self.n = n
-        self.sets = [set() for _ in range(n)]
+class Insertion:
+    def __init__(self, insertionOffset):
+        self.insertionOffset = insertionOffset
+        self.anchorOffsets = []
+        self.bases = []
 
-    def add(self, i):
-        self.sets[i % self.n].add(i)
+    def __str__(self):
+        result = []
 
-    def countLE(self, value):
-        start = time()
-        count = 0
-        for s in self.sets:
-            for i in s:
-                if i <= value:
-                    count += 1
-        stop = time()
-        total = sum([len(s) for s in self.sets])
+        for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
+            result.append(f'{anchorOffset}: {bases}')
+
+        return f'Insertion at {self.insertionOffset}:\n' + '\n'.join(result)
+
+    __repr__ = __str__
+
+    def start(self, anchorOffset):
+        """
+        Start a new insertion.
+
+        @param anchorOffset: The C{int} offset where the insertion should begin
+            (in the reference). Or C{None} if the insertion comes immediately
+            before {self.insertionOffset}.
+        """
+        self.anchorOffsets.append(anchorOffset)
+        self.bases.append([])
+
+    def add(self, base, quality):
+        """
+        Add a base and quality score to the current list.
+
+        @param base: A C{str} nucleotide base.
+        @param quality: An C{int} nucleotide quality score.
+        """
+        self.bases[-1].append((base, quality))
+
+    def resolve(self, minCoverage, lowCoverage, threshold):
+        """
+        Resolve all lists of insertions at this offset.
+
+        @param minCoverage: An C{int} minimum number of reads that must cover a
+            site for a consensus base to be called, as for C{consensusFromBAM}.
+        @param lowCoverage: A C{str} indicating what to do when some reads
+            cover the site, as for C{consensusFromBAM}.
+        @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
+        @return: A C{list} of nucleotides to be inserted.
+        """
+
+        nInsertions = max(len(bases) for bases in self.bases)
+
+        maxExtra = 0
+        for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
+            if anchorOffset is not None:
+                extra = (self.insertionOffset + nInsertions - anchorOffset -
+                         len(bases) - 1)
+                if DEBUG:
+                    debug(f'{extra} = {self.insertionOffset} + '
+                          f'{nInsertions} - {anchorOffset} - {len(bases)} - 1')
+                if extra > maxExtra:
+                    maxExtra = extra
+
+        nInsertions += maxExtra
+
+        insertion = []
+        for _ in range(nInsertions):
+            insertion.append(Bases())
+
+        for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
+            if anchorOffset is None:
+                startOffset = len(insertion) - len(bases)
+            else:
+                startOffset = 0
+
+            for offset, (base, quality) in enumerate(bases):
+                insertion[startOffset + offset].add(base, quality)
+
         if DEBUG:
-            debug(f'Counting in {total:5d} insert indices took '
-                  f'{stop - start:.6f}  Result={count:5d}')
+            debug('insertion')
+            for i in insertion:
+                debug('\t', i)
 
-        return count
+        result = []
+
+        for bases in insertion:
+            result.append(lowCoverage if bases.count < minCoverage else
+                          bases.leastAmbiguous(threshold))
+
+        return result
 
 
 class Bases:
@@ -46,31 +111,46 @@ class Bases:
 
     def __init__(self):
         self.count = 0
-        # self.counts = defaultdict(int)
         self.counts = dict.fromkeys('ACGT', 0)
 
     def __str__(self):
         return f'<Bases count={self.count}, bases={self.counts}'
 
-    def __repr__(self):
-        return str(self)
+    __repr__ = __str__
 
     def add(self, base, quality):
+        """
+        Add a base, quality pair.
+
+        @param base: A C{str} nucleotide base.
+        @param quality: An C{int} nucleotide quality score.
+        """
         if base != 'N':
             self.count += 1
             self.counts[base] += quality
 
+    def leastAmbiguous(self, threshold):
+        """
+        Get the least-ambiguous nucleotide code for our bases, given a
+        required homogeneity threshold.
+
+        @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
+        @return: A C{str} nucleotide.
+        """
+        return leastAmbiguousFromCounts(self.counts, threshold)
+
 
 @contextmanager
-def maybeProgressBar(show, nReads):
+def maybeProgressBar(show, nReads, prefix=None):
     """
     A context manager to maybe show a progress bar.
 
     @param show: If C{True}, yield a progress bar, else yield C{None}.
     @param nReads: The C{int} number of mapped reads that will be processed.
+    @param prefix: A C{str} prefix, to appear at the start of the progress bar.
     """
     if show:
-        with progressbar.ProgressBar(max_value=nReads) as bar:
+        with progressbar.ProgressBar(max_value=nReads, prefix=prefix) as bar:
             yield bar
     else:
         yield None
@@ -204,11 +284,10 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     """
     correspondences = defaultdict(lambda: Bases())
     deletions = set()
-    insertions = defaultdict(lambda: Bases())
-    insertionSet = Insertions(1)
+    insertions = {}
 
     nReads = bam.count(contig=referenceId)
-    with maybeProgressBar(progress, nReads) as bar:
+    with maybeProgressBar(progress, nReads, prefix='Reads:') as bar:
         for readCount, read in enumerate(bam.fetch(contig=referenceId),
                                          start=1):
 
@@ -216,8 +295,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                 read.get_aligned_pairs(), read.query_sequence,
                 ([1] * len(read.query_sequence) if ignoreQuality else
                  read.query_qualities),
-                referenceLength, correspondences, deletions, insertions,
-                insertionSet)
+                referenceLength, correspondences, deletions, insertions)
 
             if DEBUG:
                 debug(f'read id  : {read.query_name}')
@@ -225,7 +303,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                 debug(f'cigar    : {read.cigarstring}')
                 debug(f'match    : {read.reference_start}')
                 debug(f'Pairs    : {read.get_aligned_pairs()}')
-                debug(f'  {correspondences=}')
+                # debug(f'  {correspondences=}')
                 debug(f'  {insertions=}')
                 debug(f'  {deletions=}')
 
@@ -245,20 +323,25 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                        if maxCorrespondence >= referenceLength else 0)
 
     result = list(orig)
-    for offset, bases in correspondences.items():
-        if offset < 0:
-            array = prefix
-            offset += len(prefix)
-        elif offset >= referenceLength:
-            array = suffix
-            offset = offset - referenceLength
-        else:
-            array = result
+    with maybeProgressBar(progress, len(correspondences),
+                          prefix='Correspondences:') as bar:
+        for count, (offset, bases) in enumerate(
+                sorted(correspondences.items()), start=1):
+            if offset < 0:
+                array = prefix
+                offset += len(prefix)
+            elif offset >= referenceLength:
+                array = suffix
+                offset = offset - referenceLength
+            else:
+                array = result
 
-        if bases.count < minCoverage:
-            array[offset] = lowCoverageStr[offset]
-        else:
-            array[offset] = leastAmbiguousFromCounts(bases.counts, threshold)
+            array[offset] = (
+                lowCoverageStr[offset] if bases.count < minCoverage
+                else bases.leastAmbiguous(threshold))
+
+            if bar:
+                bar.update(count)
 
     # Do deletions.
     resultWithDeletions = []
@@ -271,18 +354,31 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     if DEBUG:
         debug(f'  resultWithDeletionsAndInsertions = '
               f'{"".join(resultWithDeletionsAndInsertions)}')
-    for offset, bases in sorted(insertions.items()):
-        if bases.count < minCoverage:
-            base = lowCoverage
-        else:
-            base = leastAmbiguousFromCounts(bases.counts, threshold)
 
-        deletionCount = sum(x <= offset for x in deletions)
-        resultWithDeletionsAndInsertions.insert(offset - deletionCount, base)
-        if DEBUG:
-            debug(f'  resultWithDeletionsAndInsertions = '
-                  f'{"".join(resultWithDeletionsAndInsertions)} inserted '
-                  f'{base} before {offset - deletionCount}')
+    with maybeProgressBar(progress, len(insertions),
+                          prefix='Insertions:') as bar:
+        insertCount = 0
+        for count, offset in enumerate(sorted(insertions), start=1):
+            if DEBUG:
+                debug('OFFSET:', offset)
+            deletionCount = sum(x <= offset for x in deletions)
+            insertion = insertions[offset].resolve(
+                minCoverage, lowCoverageStr[offset], threshold)
+
+            resultWithDeletionsAndInsertions[
+                offset - deletionCount + insertCount:
+                offset - deletionCount + insertCount] = insertion
+
+            if DEBUG:
+                debug(f'  resultWithDeletionsAndInsertions = '
+                      f'{"".join(resultWithDeletionsAndInsertions)} inserted '
+                      f'{"".join(insertion)} before '
+                      f'{offset - deletionCount + insertCount}.')
+
+            insertCount += len(insertion)
+
+            if bar:
+                bar.update(count)
 
     if DEBUG:
         debug(f'orig                             = {"".join(orig)}')
@@ -298,7 +394,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
 
 def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
-                 deletions, insertions, insertionSet):
+                 deletions, insertions):
     """
     Add information about matched pairs of nucleotides.
 
@@ -314,6 +410,8 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
     @param insertions: A C{defaultdict(list)}, to hold base, quality
         scores for when a query contains an insertion to the reference.
     """
+    if DEBUG:
+        debug(f'Pairs: {pairs}')
     # Find the offset of the sequence for the first member of the pair.
     leadingNoneCount = 0
     for _, referenceOffset in pairs:
@@ -337,7 +435,7 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
     else:
         actualReferenceOffset = referenceOffset
 
-    insertCount = 0
+    referenceInsertOffset = None
 
     for queryOffset, referenceOffset in pairs:
 
@@ -359,18 +457,35 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             assert queryOffset is not None
             base = query[queryOffset]
             quality = qualities[queryOffset]
-            offset = actualReferenceOffset + insertCount
-            # insertCount = sum(insert <= offset for insert in insertionSet)
-            insertCount = insertionSet.countLE(offset)
-            offset = actualReferenceOffset + insertCount
+
+            if referenceInsertOffset is None:
+                referenceInsertOffset = actualReferenceOffset
+                if referenceInsertOffset not in insertions:
+                    insertions[referenceInsertOffset] = Insertion(
+                        referenceInsertOffset)
+                if leadingNoneCount:
+                    # There were some leading None reference offsets, so
+                    # these inserted bases will need to be positioned
+                    # relative to the first non-None reference offset.
+                    insertions[referenceInsertOffset].start(None)
+                else:
+                    insertions[referenceInsertOffset].start(
+                        actualReferenceOffset)
+
             if DEBUG:
                 debug(f'INSERT: {queryOffset=} {actualReferenceOffset=} '
-                      f'{insertCount=}')
-            insertions[offset].add(base, quality)
-            insertionSet.add(offset)
+                      f'{referenceInsertOffset=}')
+
+            insertions[referenceInsertOffset].add(base, quality)
 
         else:
+            referenceInsertOffset = None
             base = query[queryOffset]
             quality = qualities[queryOffset]
             correspondences[actualReferenceOffset].add(base, quality)
             actualReferenceOffset += 1
+
+    if DEBUG:
+        for insertionOffset, theseInsertions in insertions.items():
+            debug(f'Pairs added. Offset {insertionOffset} has '
+                  f'{theseInsertions}.')
