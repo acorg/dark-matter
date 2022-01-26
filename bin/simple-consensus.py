@@ -78,7 +78,7 @@ def main():
               'a single character (e.g., "N").'))
 
     parser.add_argument(
-        '--threshold', type=float, default=0.8,
+        '--threshold', type=float, default=0.6,
         help=('The frequency threshold when calling the consensus. If the '
               'frequency of the most-common nucleotide at a site meets this '
               'threshold, that nucleotide will be called. Otherwise, an '
@@ -93,6 +93,10 @@ def main():
         '--ignoreQuality', action='store_true',
         help=('Ignore FASTQ quality scores. All bases of all reads will be '
               'considered equally reliable.'))
+
+    parser.add_argument(
+        '--progress', action='store_true',
+        help='Show a progress bar.')
 
     args = parser.parse_args()
 
@@ -120,7 +124,7 @@ def main():
                     break
             else:
                 print(f'Could not find a sequence with id '
-                      f'{args.referenceId!r} in {args.reference!r}',
+                      f'{args.referenceId!r} in {args.referenceFasta!r}',
                       file=sys.stderr)
                 sys.exit(1)
 
@@ -142,7 +146,7 @@ def main():
         args.bamFilename, referenceId=args.referenceId, reference=reference,
         threshold=args.threshold, minCoverage=args.minCoverage,
         lowCoverage=args.lowCoverage, noCoverage=args.noCoverage,
-        ignoreQuality=args.ignoreQuality)
+        ignoreQuality=args.ignoreQuality, progress=args.progress)
 
     print(DNARead(consensusId, consensus).toString('fasta'), end='')
 

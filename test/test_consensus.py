@@ -117,7 +117,8 @@ class TestReferenceErrors(TestCase):
             badId = 'bad-id'
             error = (
                 rf'^BAM file {str(bamFilename)!r} does not mention a '
-                rf'reference with id {badId!r}\.$')
+                rf'reference with id {badId!r}\. Known references are: '
+                rf'ref-id\.$')
             self.assertRaisesRegex(UnknownReference, error, consensusFromBAM,
                                    bamFilename, referenceId=badId)
 
@@ -134,7 +135,8 @@ class TestReferenceErrors(TestCase):
             wrongReference = DNARead('unknown-id', template[0])
             error = (
                 rf'^BAM file {str(bamFilename)!r} does not mention a '
-                rf'reference with id {wrongReference.id!r}\.$')
+                rf'reference with id {wrongReference.id!r}\. Known '
+                rf'references are: ref-id\.$')
             self.assertRaisesRegex(UnknownReference, error, consensusFromBAM,
                                    bamFilename, reference=wrongReference)
 
