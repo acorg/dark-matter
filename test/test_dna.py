@@ -4,7 +4,7 @@ from unittest import TestCase
 from dark.dna import (
     AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString,
     findKozakConsensus, FloatBaseCounts, sequenceToRegex, leastAmbiguous,
-    leastAmbiguousFromCounts)
+    leastAmbiguousFromCounts, Bases)
 from dark.reads import Read, DNARead, DNAKozakRead
 
 # The following are the letters that used to be on
@@ -1436,3 +1436,119 @@ class TestLeastAmbiguousFromBases(TestCase):
         self.assertEqual('A', leastAmbiguousFromCounts(counts, 0.4))
         self.assertEqual('D', leastAmbiguousFromCounts(counts, 0.7))
         self.assertEqual('D', leastAmbiguousFromCounts(counts, 0.95))
+
+
+class TestBases(TestCase):
+    """
+    Test the Bases class.
+    """
+    def testEmptyIsFalse(self):
+        """
+        An empty Bases instance must be considered False.
+        """
+        self.assertFalse(Bases())
+
+    def testEmptyHasLengthZero(self):
+        """
+        An empty Bases instance must have length zero.
+        """
+        self.assertEqual(0, len(Bases()))
+
+    def testLengthOneIsTrue(self):
+        """
+        If we append a (base, quality) pair, the instance must be considered
+        True.
+        """
+        b = Bases().append('G', 30)
+        self.assertTrue(b)
+
+    def testLengthOne(self):
+        """
+        If we append a (base, quality) pair, the length must be one.
+        """
+        b = Bases().append('G', 30)
+        self.assertEqual(1, len(b))
+
+    def testGetitem(self):
+        """
+        __getitem__ must work as expected.
+        """
+        b = Bases().append('G', 30)
+        self.assertEqual(30, b['G'])
+
+    def testAdd(self):
+        """
+        Addition must work as expected.
+        """
+        b1 = Bases().append('G', 30)
+        b2 = Bases().append('G', 20)
+        b3 = b1 + b2
+
+        self.assertEqual(1, len(b1))
+        self.assertEqual(1, len(b2))
+        self.assertEqual(2, len(b3))
+        self.assertEqual(50, b3.counts['G'])
+
+    def testIAdd(self):
+        """
+        In-place addition must work as expected.
+        """
+        b1 = Bases().append('G', 30)
+        b2 = Bases().append('G', 20)
+        b2 += b1
+
+        self.assertEqual(1, len(b1))
+        self.assertEqual(2, len(b2))
+        self.assertEqual(50, b2.counts['G'])
+
+    def testConsensusNoReads(self):
+        """
+        The consensus method must return the no coverage string if there are
+        no reads.
+        """
+        b = Bases()
+        self.assertEqual('Z', b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusLowReads(self):
+        """
+        The consensus method must return the low coverage string if there are
+        no reads.
+        """
+        b = Bases().append('G', 20)
+        self.assertEqual('L', b.consensus(0.8, 2, 'L', 'Z'))
+
+    def testConsensusOneBase(self):
+        """
+        If there is a single base, it must be returned.
+        """
+        for base in 'ACGT':
+            b = Bases().append(base, 20)
+            self.assertEqual(base, b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusTwoEqual(self):
+        """
+        If there are two bases with equal counts, the expected ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_PAIRS:
+            b = Bases().append(bases[0], 20).append(bases[1], 20)
+            self.assertEqual(ambiguous, b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusThreeEqual(self):
+        """
+        If there are three bases with equal counts, the expected ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_TRIPLES:
+            b = Bases().append(bases[0], 20).append(bases[1], 20).append(
+                bases[2], 20)
+            self.assertEqual(ambiguous, b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusFourNucleotides(self):
+        """
+        If all four nucleotides have equal counts, 'N' must be returned.
+        """
+        b = Bases()
+        for base in 'ACGT':
+            b.append(base, 20)
+        self.assertEqual('N', b.consensus(0.8, 1, 'L', 'Z'))

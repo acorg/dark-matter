@@ -489,3 +489,76 @@ def leastAmbiguousFromCounts(bases, threshold):
             break
 
     return leastAmbiguous(resultBases)
+
+
+class Bases:
+    """
+    Manage a collection of (base, quality) pairs for a genome site.
+    """
+    __slots__ = ('count', 'counts')
+
+    def __init__(self):
+        self.count = 0
+        self.counts = dict.fromkeys('ACGT', 0)
+
+    def __str__(self):
+        return f'<Bases count={self.count}, bases={self.counts}'
+
+    __repr__ = __str__
+
+    def __getitem__(self, key):
+        return self.counts[key]
+
+    def __len__(self):
+        return self.count
+
+    def __add__(self, other):
+        new = Bases()
+        new.count = self.count + other.count
+        for counts in self.counts, other.counts:
+            for key, count in counts.items():
+                new.counts[key] += count
+        return new
+
+    def __iadd__(self, other):
+        self.count += other.count
+        for key, count in other.counts.items():
+            self.counts[key] += count
+        return self
+
+    def append(self, base, quality):
+        """
+        Append a (base, quality) pair.
+
+        @param base: A C{str} nucleotide base.
+        @param quality: An C{int} nucleotide quality score.
+        @return: C{self}.
+        """
+        if base != 'N':
+            self.count += 1
+            self.counts[base] += quality
+
+        return self
+
+    def consensus(self, threshold, minCoverage, lowCoverage, noCoverage):
+        """
+        Get the base that can be used as part of a consensus.
+
+        If there are sufficient reads, this is the least-ambiguous nucleotide
+        code for our bases, given a required homogeneity threshold. Otherwise,
+        the low coverage value.
+
+        @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
+        @param minCoverage: An C{int} minimum number of reads that must cover a
+            site for a consensus base to be called. If fewer reads cover a
+            site, the C{lowCoverage} value is used.
+        @param lowCoverage: A C{str} indicating what base to use when
+            0 < N < minCoverage reads cover a site.
+        @param noCoverage: A C{str} indicating what base to use when
+            no reads cover the site.
+        @return: A C{str} nucleotide code. This will be an ambiguous code if
+            the homogeneity C{threshold} is not met.
+        """
+        return (noCoverage if self.count == 0 else
+                (lowCoverage if self.count < minCoverage else
+                 leastAmbiguousFromCounts(self.counts, threshold)))

@@ -4,7 +4,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import progressbar
 
-from dark.dna import leastAmbiguousFromCounts
+from dark.dna import Bases
 from dark.sam import (
     samfile, samReferences, UnequalReferenceLengthError,
     UnknownReference, UnspecifiedReference)
@@ -49,9 +49,9 @@ class Insertion:
         self.anchorOffsets.append(anchorOffset)
         self.bases.append([])
 
-    def add(self, base, quality):
+    def append(self, base, quality):
         """
-        Add a base and quality score to the current list.
+        Append a base and quality score to the current list.
 
         @param base: A C{str} nucleotide base.
         @param quality: An C{int} nucleotide quality score.
@@ -91,7 +91,7 @@ class Insertion:
 
         nInsertions += maxExtra
 
-        # Make an array of Bases instances and add the base, quality pairs
+        # Make an array of Bases instances and add the (base, quality) pairs
         # to each one.
         insertion = []
         for _ in range(nInsertions):
@@ -101,7 +101,7 @@ class Insertion:
             startOffset = (
                 nInsertions - len(bases) if anchorOffset is None else 0)
             for offset, (base, quality) in enumerate(bases):
-                insertion[startOffset + offset].add(base, quality)
+                insertion[startOffset + offset].append(base, quality)
 
         if DEBUG:
             debug('insertion')
@@ -111,58 +111,10 @@ class Insertion:
         # Figure out the consensus for the insertion.
         result = []
         for bases in insertion:
-            result.append(bases.consensus(minCoverage, lowCoverage, threshold))
+            result.append(bases.consensus(threshold, minCoverage, lowCoverage,
+                                          None))
 
         return result
-
-
-class Bases:
-    """
-    Manage a collection of bases, quality pairs for a genome site.
-    """
-    __slots__ = ('count', 'counts')
-
-    def __init__(self):
-        self.count = 0
-        self.counts = dict.fromkeys('ACGT', 0)
-
-    def __str__(self):
-        return f'<Bases count={self.count}, bases={self.counts}'
-
-    __repr__ = __str__
-
-    def add(self, base, quality):
-        """
-        Add a base, quality pair.
-
-        @param base: A C{str} nucleotide base.
-        @param quality: An C{int} nucleotide quality score.
-        """
-        if base != 'N':
-            self.count += 1
-            self.counts[base] += quality
-
-    def consensus(self, minCoverage, lowCoverage, threshold):
-        """
-        Get the base that can be used as part of a consensus.
-
-        If there are sufficient reads, this is the least-ambiguous nucleotide
-        code for our bases, given a required homogeneity threshold. Otherwise,
-        the low coverage value.
-
-        @param minCoverage: An C{int} minimum number of reads that must cover a
-            site for a consensus base to be called. If fewer reads cover a
-            site, the C{lowCoverage} value is used. Note that we don't need to
-            worry about the zero reads case - if there were zero reads this
-            Bases instance would not have been created.
-        @param lowCoverage: A C{str} indicating what base to use when
-            insufficient reads cover a site.
-        @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
-        @return: A C{str} nucleotide code. This will be an ambiguous code if
-            the homogeneity C{threshold} is not met.
-        """
-        return (lowCoverage if self.count < minCoverage else
-                leastAmbiguousFromCounts(self.counts, threshold))
 
 
 @contextmanager
@@ -335,8 +287,8 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
             if bar:
                 bar.update(readCount)
 
-    orig = list(reference.sequence if noCoverage == 'reference' else
-                noCoverage * referenceLength)
+    noCoverageStr = (reference.sequence if noCoverage == 'reference' else
+                     noCoverage * referenceLength)
     lowCoverageStr = (reference.sequence if lowCoverage == 'reference' else
                       lowCoverage * referenceLength)
 
@@ -349,7 +301,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     if DEBUG:
         debug(f'  prefix len {len(prefix)} suffix len {len(suffix)}')
 
-    result = list(orig)
+    result = list(noCoverageStr)
     with maybeProgressBar(progress, len(correspondences),
                           prefix='Correspondences:') as bar:
         for count, (offset, bases) in enumerate(
@@ -364,7 +316,8 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                 array = result
 
             array[offset] = bases.consensus(
-                minCoverage, lowCoverageStr[offset], threshold)
+                threshold, minCoverage, lowCoverageStr[offset],
+                noCoverageStr[offset])
 
             if bar:
                 bar.update(count)
@@ -407,7 +360,6 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                 bar.update(count)
 
     if DEBUG:
-        debug(f'orig                             = {"".join(orig)}')
         debug(f'result                           = {"".join(result)}')
         debug(f'resultWithDeletions              = '
               f'{"".join(resultWithDeletions)}')
@@ -429,11 +381,11 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
         an indel mismatch.
     @param query: A C{str} query DNA sequence.
     @param qualities: A C{list} of quality scores.
-    @param correspondences: A C{defaultdict(list)}, to hold base, quality
+    @param correspondences: A C{defaultdict(list)}, to hold (base, quality)
         scores for when a query offset corresponds to a reference offset.
     @param deletions: A C{set} of C{int} reference offsets that are deleted in
         the query.
-    @param insertions: A C{defaultdict(list)}, to hold base, quality
+    @param insertions: A C{defaultdict(list)}, to hold (base, quality)
         scores for when a query contains an insertion to the reference.
     """
     if DEBUG:
@@ -503,12 +455,12 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
                 debug(f'INSERT: {queryOffset=} {actualReferenceOffset=} '
                       f'{actualReferenceOffset=}')
 
-            insertions[actualReferenceOffset].add(base, quality)
+            insertions[actualReferenceOffset].append(base, quality)
 
         else:
             base = query[queryOffset]
             quality = qualities[queryOffset]
-            correspondences[actualReferenceOffset].add(base, quality)
+            correspondences[actualReferenceOffset].append(base, quality)
             actualReferenceOffset += 1
             inInsertion = False
 
