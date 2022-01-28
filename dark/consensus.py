@@ -17,6 +17,12 @@ def debug(*msg):
 
 
 class Insertion:
+    """
+    Manage a collection of bases and quality scores for an insertion that
+    starts at given genome site.
+
+    @param insertionOffset: The C{int} offset of the insertion.
+    """
     def __init__(self, insertionOffset):
         self.insertionOffset = insertionOffset
         self.anchorOffsets = []
@@ -37,8 +43,8 @@ class Insertion:
         Start a new insertion.
 
         @param anchorOffset: The C{int} offset where the insertion should begin
-            (in the reference). Or C{None} if the insertion comes immediately
-            before {self.insertionOffset}.
+            (in the reference). Or C{None} if the insertion should be placed
+            immediately before {self.insertionOffset}.
         """
         self.anchorOffsets.append(anchorOffset)
         self.bases.append([])
@@ -49,23 +55,29 @@ class Insertion:
 
         @param base: A C{str} nucleotide base.
         @param quality: An C{int} nucleotide quality score.
+        @raise IndexError: If C{start} has not already been called.
         """
         self.bases[-1].append((base, quality))
 
     def resolve(self, minCoverage, lowCoverage, threshold):
         """
-        Resolve all lists of insertions at this offset.
+        Resolve the insertion at this offset.
 
         @param minCoverage: An C{int} minimum number of reads that must cover a
             site for a consensus base to be called, as for C{consensusFromBAM}.
         @param lowCoverage: A C{str} indicating what to do when some reads
             cover the site, as for C{consensusFromBAM}.
         @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
-        @return: A C{list} of nucleotides to be inserted.
+        @return: A C{list} of consensus nucleotides to be inserted.
         """
 
+        # The length of the insertion will be at least the length of the
+        # longest sequence of (base, quality) pairs we've been given for
+        # this offset.
         nInsertions = max(len(bases) for bases in self.bases)
 
+        # And we have to potentially add so that if some reads need to be
+        # anchored at a certain starting offset.
         maxExtra = 0
         for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
             if anchorOffset is not None:
@@ -79,16 +91,15 @@ class Insertion:
 
         nInsertions += maxExtra
 
+        # Make an array of Bases instances and add the base, quality pairs
+        # to each one.
         insertion = []
         for _ in range(nInsertions):
             insertion.append(Bases())
 
         for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
-            if anchorOffset is None:
-                startOffset = len(insertion) - len(bases)
-            else:
-                startOffset = 0
-
+            startOffset = (
+                nInsertions - len(bases) if anchorOffset is None else 0)
             for offset, (base, quality) in enumerate(bases):
                 insertion[startOffset + offset].add(base, quality)
 
@@ -97,16 +108,18 @@ class Insertion:
             for i in insertion:
                 debug('\t', i)
 
+        # Figure out the consensus for the insertion.
         result = []
-
         for bases in insertion:
-            result.append(lowCoverage if bases.count < minCoverage else
-                          bases.leastAmbiguous(threshold))
+            result.append(bases.consensus(minCoverage, lowCoverage, threshold))
 
         return result
 
 
 class Bases:
+    """
+    Manage a collection of bases, quality pairs for a genome site.
+    """
     __slots__ = ('count', 'counts')
 
     def __init__(self):
@@ -129,15 +142,27 @@ class Bases:
             self.count += 1
             self.counts[base] += quality
 
-    def leastAmbiguous(self, threshold):
+    def consensus(self, minCoverage, lowCoverage, threshold):
         """
-        Get the least-ambiguous nucleotide code for our bases, given a
-        required homogeneity threshold.
+        Get the base that can be used as part of a consensus.
 
+        If there are sufficient reads, this is the least-ambiguous nucleotide
+        code for our bases, given a required homogeneity threshold. Otherwise,
+        the low coverage value.
+
+        @param minCoverage: An C{int} minimum number of reads that must cover a
+            site for a consensus base to be called. If fewer reads cover a
+            site, the C{lowCoverage} value is used. Note that we don't need to
+            worry about the zero reads case - if there were zero reads this
+            Bases instance would not have been created.
+        @param lowCoverage: A C{str} indicating what base to use when
+            insufficient reads cover a site.
         @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
-        @return: A C{str} nucleotide.
+        @return: A C{str} nucleotide code. This will be an ambiguous code if
+            the homogeneity C{threshold} is not met.
         """
-        return leastAmbiguousFromCounts(self.counts, threshold)
+        return (lowCoverage if self.count < minCoverage else
+                leastAmbiguousFromCounts(self.counts, threshold))
 
 
 @contextmanager
@@ -321,6 +346,8 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     prefix = [None] * (abs(minCorrespondence) if minCorrespondence < 0 else 0)
     suffix = [None] * (maxCorrespondence - referenceLength + 1
                        if maxCorrespondence >= referenceLength else 0)
+    if DEBUG:
+        debug(f'  prefix len {len(prefix)} suffix len {len(suffix)}')
 
     result = list(orig)
     with maybeProgressBar(progress, len(correspondences),
@@ -336,9 +363,8 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
             else:
                 array = result
 
-            array[offset] = (
-                lowCoverageStr[offset] if bases.count < minCoverage
-                else bases.leastAmbiguous(threshold))
+            array[offset] = bases.consensus(
+                minCoverage, lowCoverageStr[offset], threshold)
 
             if bar:
                 bar.update(count)
@@ -435,19 +461,20 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
     else:
         actualReferenceOffset = referenceOffset
 
-    referenceInsertOffset = None
+    inInsertion = False
 
     for queryOffset, referenceOffset in pairs:
+        # Sanity check.
+        if referenceOffset is not None:
+            assert referenceOffset == actualReferenceOffset
 
         if queryOffset is None:
             # The query is missing something that is in the reference. So this
             # is a deletion from the reference.
             assert referenceOffset is not None
-            # Sanity check.
-            if referenceOffset is not None:
-                assert referenceOffset == actualReferenceOffset
             deletions.add(actualReferenceOffset)
             actualReferenceOffset += 1
+            inInsertion = False
 
         elif (referenceOffset is None and
               actualReferenceOffset >= 0 and
@@ -458,32 +485,32 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
             base = query[queryOffset]
             quality = qualities[queryOffset]
 
-            if referenceInsertOffset is None:
-                referenceInsertOffset = actualReferenceOffset
-                if referenceInsertOffset not in insertions:
-                    insertions[referenceInsertOffset] = Insertion(
-                        referenceInsertOffset)
+            if not inInsertion:
+                inInsertion = True
+                if actualReferenceOffset not in insertions:
+                    insertions[actualReferenceOffset] = Insertion(
+                        actualReferenceOffset)
                 if leadingNoneCount:
                     # There were some leading None reference offsets, so
                     # these inserted bases will need to be positioned
                     # relative to the first non-None reference offset.
-                    insertions[referenceInsertOffset].start(None)
+                    insertions[actualReferenceOffset].start(None)
                 else:
-                    insertions[referenceInsertOffset].start(
+                    insertions[actualReferenceOffset].start(
                         actualReferenceOffset)
 
             if DEBUG:
                 debug(f'INSERT: {queryOffset=} {actualReferenceOffset=} '
-                      f'{referenceInsertOffset=}')
+                      f'{actualReferenceOffset=}')
 
-            insertions[referenceInsertOffset].add(base, quality)
+            insertions[actualReferenceOffset].add(base, quality)
 
         else:
-            referenceInsertOffset = None
             base = query[queryOffset]
             quality = qualities[queryOffset]
             correspondences[actualReferenceOffset].add(base, quality)
             actualReferenceOffset += 1
+            inInsertion = False
 
     if DEBUG:
         for insertionOffset, theseInsertions in insertions.items():
