@@ -548,7 +548,17 @@ class Bases:
         code for our bases, given a required homogeneity threshold. Otherwise,
         the low coverage value.
 
-        @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
+        @param threshold: A C{float} threshold. This fraction, at least, of the
+            most-common nucleotides at a site are used to determine the
+            consensus nucleotide (or ambiguous symbol if more than one
+            nucleotide is required to achieve this threshold). If there is a
+            tie in nucleotide counts at a site that causes the threshold to be
+            met, all nucleotides of equeal frequncy will be included in the
+            ambiguous symbol for that site. This is perhaps better explained
+            with an example. See
+            https://assets.geneious.com/manual/2020.1/static/GeneiousManualse43.html
+            and the corresponding testGeneiousExamplesTie test in
+            test/test_dna.py
         @param minCoverage: An C{int} minimum number of reads that must cover a
             site for a consensus base to be called. If fewer reads cover a
             site, the C{lowCoverage} value is used.

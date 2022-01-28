@@ -59,18 +59,12 @@ class Insertion:
         """
         self.bases[-1].append((base, quality))
 
-    def resolve(self, minCoverage, lowCoverage, threshold):
+    def resolve(self):
         """
         Resolve the insertion at this offset.
 
-        @param minCoverage: An C{int} minimum number of reads that must cover a
-            site for a consensus base to be called, as for C{consensusFromBAM}.
-        @param lowCoverage: A C{str} indicating what to do when some reads
-            cover the site, as for C{consensusFromBAM}.
-        @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
-        @return: A C{list} of consensus nucleotides to be inserted.
+        @return: A C{list} of Bases() instances corresponding to the insertion.
         """
-
         # The length of the insertion will be at least the length of the
         # longest sequence of (base, quality) pairs we've been given for
         # this offset.
@@ -108,29 +102,104 @@ class Insertion:
             for i in insertion:
                 debug('\t', i)
 
-        # Figure out the consensus for the insertion.
-        result = []
-        for bases in insertion:
-            result.append(bases.consensus(threshold, minCoverage, lowCoverage,
-                                          None))
-
-        return result
+        return insertion
 
 
 @contextmanager
-def maybeProgressBar(show, nReads, prefix=None):
+def maybeProgressBar(show, maxValue, prefix=None):
     """
     A context manager to maybe show a progress bar.
 
-    @param show: If C{True}, yield a progress bar, else yield C{None}.
-    @param nReads: The C{int} number of mapped reads that will be processed.
+    @param show: If C{True}, yield a progress bar, else a Class with an
+        C{update} method that does nothing.
+    @param maxValue: The C{int} number of tasks to show progress for.
     @param prefix: A C{str} prefix, to appear at the start of the progress bar.
     """
     if show:
-        with progressbar.ProgressBar(max_value=nReads, prefix=prefix) as bar:
+        with progressbar.ProgressBar(max_value=maxValue, prefix=prefix) as bar:
             yield bar
     else:
-        yield None
+        class Bar:
+            update = staticmethod(lambda _: None)
+        yield Bar
+
+
+def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
+                     referenceLength, threshold, minCoverage, lowCoverage,
+                     noCoverage):
+    """
+    Convert a C{dict} of C{Bases} into a consensus.
+
+    @param offsetBases: A C{defaultdict} mapping C{int} offsets to
+        C{Bases} instances.
+    @param otherBases: A C{dict} mapping C{int} offsets to C{str} symbols
+        for the consensus for offsets that we have no reads for.
+    @param originalOffsets: A C{dict} mapping C{int} adjusted offsets to their
+        C{int} original offsets.
+    @param reference: A C{Read} instance giving the reference sequence, or
+        C{None} (in which case C{lowCoverage} and C{noCoverage} may not be
+        'reference'.
+    @param referenceLength: The C{int} length of the reference (note that we
+        may not have the reference sequence but we can still be passed its
+        length, as found in the BAM file header).
+    @param threshold: A C{float} threshold, as for C{consensusFromBAM}.
+    @param minCoverage: An C{int} minimum number of reads that must cover a
+        site for a consensus base to be called. If fewer reads cover a
+        site, the C{lowCoverage} value is used.
+    @param lowCoverage: A C{str} indicating what base to use when
+        0 < N < minCoverage reads cover a site.
+    @param noCoverage: A C{str} indicating what base to use when
+        no reads cover the site.
+    @return: a C{str} consensus sequence.
+    """
+    if DEBUG:
+        debug(f'HERE: {offsetBases=}')
+        debug(f'HERE: {otherBases=}')
+    result = []
+    allOffsets = set(offsetBases) | set(otherBases) | {0}
+    minOffset = min(allOffsets)
+    maxOffset = max(allOffsets)
+
+    # prefixLen = -minOffset if minOffset < 0 else 0
+    # suffixLen = (maxOffset - referenceLength + 1
+    #              if maxOffset >= referenceLength else 0)
+    #
+    # if DEBUG:
+    #     debug(f'  prefix len {prefixLen} suffix len {suffixLen}')
+
+    noCoverageStr = (reference.sequence if noCoverage == 'reference' else
+                     noCoverage * referenceLength)
+    lowCoverageStr = (reference.sequence if lowCoverage == 'reference' else
+                      lowCoverage * referenceLength)
+
+    for offset in range(minOffset, maxOffset + 1):
+        try:
+            originalOffset = originalOffsets[offset]
+            lowCoverageBase = lowCoverageStr[originalOffset]
+            noCoverageBase = noCoverageStr[originalOffset]
+        except (IndexError, KeyError):
+            lowCoverageBase = noCoverageBase = '?'
+
+        # Don't use try/except KeyError here as offsetBases is a defaultdict.
+        if offset in offsetBases:
+            bases = offsetBases[offset]
+
+            if bases is None:
+                if DEBUG:
+                    debug(f'Offset {offset} was deleted. Skipping.')
+            else:
+                result.append(bases.consensus(threshold, minCoverage,
+                                              lowCoverageBase, noCoverageBase))
+        else:
+            assert offset in otherBases, (
+                f'Offset {offset} not found in offsetBases or otherBases.')
+            if otherBases[offset] is None:
+                if DEBUG:
+                    debug(f'Adjusted {offset=} was deleted.')
+            else:
+                result.append(otherBases[offset])
+
+    return ''.join(result)
 
 
 def consensusFromBAM(bamFilename, referenceId=None, reference=None,
@@ -264,7 +333,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     insertions = {}
 
     nReads = bam.count(contig=referenceId)
-    with maybeProgressBar(progress, nReads, prefix='Reads:') as bar:
+    with maybeProgressBar(progress, nReads, prefix='Reads: ') as bar:
         for readCount, read in enumerate(bam.fetch(contig=referenceId),
                                          start=1):
 
@@ -284,91 +353,94 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                 debug(f'  {insertions=}')
                 debug(f'  {deletions=}')
 
-            if bar:
-                bar.update(readCount)
+            bar.update(readCount)
 
-    noCoverageStr = (reference.sequence if noCoverage == 'reference' else
-                     noCoverage * referenceLength)
-    lowCoverageStr = (reference.sequence if lowCoverage == 'reference' else
-                      lowCoverage * referenceLength)
-
-    minCorrespondence = min(correspondences, default=0)
-    maxCorrespondence = max(correspondences, default=0)
-
-    prefix = [None] * (abs(minCorrespondence) if minCorrespondence < 0 else 0)
-    suffix = [None] * (maxCorrespondence - referenceLength + 1
-                       if maxCorrespondence >= referenceLength else 0)
-    if DEBUG:
-        debug(f'  prefix len {len(prefix)} suffix len {len(suffix)}')
-
-    result = list(noCoverageStr)
-    with maybeProgressBar(progress, len(correspondences),
-                          prefix='Correspondences:') as bar:
-        for count, (offset, bases) in enumerate(
-                sorted(correspondences.items()), start=1):
-            if offset < 0:
-                array = prefix
-                offset += len(prefix)
-            elif offset >= referenceLength:
-                array = suffix
-                offset = offset - referenceLength
-            else:
-                array = result
-
-            array[offset] = bases.consensus(
-                threshold, minCoverage, lowCoverageStr[offset],
-                noCoverageStr[offset])
-
-            if bar:
-                bar.update(count)
+    conflicts = set(deletions) & set(insertions)
+    if conflicts:
+        if DEBUG:
+            debug('CONFLICTING OFFSETS:',
+                  ', '.join(sorted(map(str, conflicts))))
 
     # Do deletions.
-    resultWithDeletions = []
-    for offset, base in enumerate(result):
-        if offset not in deletions:
-            resultWithDeletions.append(base)
+    for offset in deletions:
+        correspondences[offset] = None
+
+    if DEBUG:
+        debug(f'There are {len(insertions)} insertions.')
 
     # Do insertions.
-    resultWithDeletionsAndInsertions = list(resultWithDeletions)
-    if DEBUG:
-        debug(f'  resultWithDeletionsAndInsertions = '
-              f'{"".join(resultWithDeletionsAndInsertions)}')
+    allOffsets = set(correspondences) | {0, referenceLength - 1}
+    minOffset = min(allOffsets)
+    maxOffset = max(allOffsets)
 
-    with maybeProgressBar(progress, len(insertions),
-                          prefix='Insertions:') as bar:
-        insertCount = 0
-        for count, offset in enumerate(sorted(insertions), start=1):
+    offsetBases = defaultdict(lambda: Bases())
+    otherBases = {}
+    originalOffsets = {}
+    if DEBUG:
+        debug(f'{correspondences=}')
+        debug(f'{insertions=}')
+
+    with maybeProgressBar(progress, maxOffset - minOffset + 1,
+                          prefix='Sites: ') as bar:
+        insertCount = deletionCount = 0
+        for barCount, offset in enumerate(range(minOffset, maxOffset + 1),
+                                          start=1):
+
             if DEBUG:
                 debug('OFFSET:', offset)
-            deletionCount = sum(x <= offset for x in deletions)
-            insertion = insertions[offset].resolve(
-                minCoverage, lowCoverageStr[offset], threshold)
 
-            resultWithDeletionsAndInsertions[
-                offset - deletionCount + insertCount:
-                offset - deletionCount + insertCount] = insertion
+            if offset in insertions:
+                insertion = insertions[offset]
+                assert offset == insertion.insertionOffset
+                insertionBases = insertion.resolve()
+                insertionLength = len(insertionBases)
+                if DEBUG:
+                    debug('INSERTION:', insertion)
+                    debug(f'{insertionLength=}')
+                    debug(f'{insertionBases=}')
 
-            if DEBUG:
-                debug(f'  resultWithDeletionsAndInsertions = '
-                      f'{"".join(resultWithDeletionsAndInsertions)} inserted '
-                      f'{"".join(insertion)} before '
-                      f'{offset - deletionCount + insertCount}.')
+                for bases in insertionBases:
+                    adjustedOffset = offset + insertCount - deletionCount
+                    offsetBases[adjustedOffset] += bases
+                    insertCount += 1
+                    originalOffsets[adjustedOffset] = offset
 
-            insertCount += len(insertion)
+            adjustedOffset = offset + insertCount - deletionCount
+            originalOffsets[adjustedOffset] = offset
 
-            if bar:
-                bar.update(count)
+            if offset in correspondences:
+                if correspondences[offset] is None:
+                    # This was deleted!
+                    if DEBUG:
+                        debug(f'  CONFLICTING OFFSET {offset}. Could not add '
+                              f'{correspondences[offset]}')
+                    if adjustedOffset in otherBases:
+                        assert otherBases[adjustedOffset] is None
+                    else:
+                        otherBases[adjustedOffset] = None
+                        deletionCount += 1
+                else:
+                    if DEBUG:
+                        debug(f'Adding {correspondences[offset]} from '
+                              f'{offset=} at offset '
+                              f'{adjustedOffset}')
+                    offsetBases[adjustedOffset] += correspondences[offset]
 
-    if DEBUG:
-        debug(f'result                           = {"".join(result)}')
-        debug(f'resultWithDeletions              = '
-              f'{"".join(resultWithDeletions)}')
-        debug(f'resultWithDeletionsAndInsertions = '
-              f'{"".join(resultWithDeletionsAndInsertions)}')
-        debug(f'prefix                           = {"".join(prefix)}')
-        debug(f'suffix                           = {"".join(suffix)}')
+            if adjustedOffset not in offsetBases:
+                # We don't have any information (from the reads) for this
+                # offset.
+                if adjustedOffset in otherBases:
+                    assert offset in deletions
+                else:
+                    otherBases[adjustedOffset] = (
+                        reference.sequence[offset] if noCoverage == 'reference'
+                        else noCoverage)
 
-    return ''.join(prefix + resultWithDeletionsAndInsertions + suffix)
+            bar.update(barCount)
+
+    return basesToConsensus(offsetBases, otherBases, originalOffsets,
+                            reference, referenceLength, threshold, minCoverage,
+                            lowCoverage, noCoverage)
 
 
 def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
