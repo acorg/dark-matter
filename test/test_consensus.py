@@ -778,6 +778,66 @@ class _Mixin:
                                  reference=reference,
                                  ignoreQuality=self.ignoreQuality))
 
+    def testTwoAgreeingInsertionsNothingBefore(self):
+        """
+        Test that two insertions that agree with each other and do not match
+        reference bases before the insertion give the expected result.
+        """
+        template = (
+            '--------TGATCTCC',
+            'AGCCAGAATGATCTCC',
+            '????????????????',
+            '    AGAATGATCTCC',
+            '    ????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'AGCCAGAATGATCTCC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoAgreeingInsertionsOneMatchingSomethingBefore(self):
+        """
+        Test that two insertions that agree with each other, with one also
+        matching reference bases before the insertion give the expected result.
+        """
+        template = (
+            'TT--------TGATCTCC',
+            'TTAGCCAGAATGATCTCC',
+            '??????????????????',
+            '      AGAATGATCTCC',
+            '      ????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TTAGCCAGAATGATCTCC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoInsertions(self):
+        """
+        Test that two insertions that agree with each other, with one also
+        matching reference bases before the insertion give the expected result.
+        """
+        template = (
+            'TT--------TGAT--CTCC',
+            'TTAGCCAGAATGA',
+            '?????????????',
+            '           GATGGCTCC',
+            '           ?????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TTAGCCAGAATGATGGCTCC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
 
 @skipUnless(samtoolsInstalled(), 'samtools is not installed')
 class TestIgnoreQuality(TestCase, _Mixin):

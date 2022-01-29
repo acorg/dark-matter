@@ -208,8 +208,8 @@ class TestMakeCigar(TestCase):
         """
         Test that left soft clipping of one base works.
         """
-        self.assertEqual('2S2M', makeCigar('  ACGT',
-                                           'ATAT'))
+        self.assertEqual('1S2M', makeCigar(' ACGT',
+                                           'TAT'))
 
     def testLeftClippingTwo(self):
         """

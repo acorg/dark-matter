@@ -77,4 +77,5 @@ def makeBAM(template, secondReference=None):
         e.execute(f'samtools index {str(bamFile)!r}')
         yield (reference, bamFile)
     finally:
+        # import sys; print(str(samFile), file=sys.stderr)
         e.execute(f'rm -fr {dirname!r}')

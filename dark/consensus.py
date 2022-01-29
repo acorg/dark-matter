@@ -1,5 +1,4 @@
 import sys
-# from time import time
 from collections import defaultdict
 from contextlib import contextmanager
 import progressbar
@@ -32,9 +31,10 @@ class Insertion:
         result = []
 
         for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
-            result.append(f'{anchorOffset}: {bases}')
+            result.append(f'  {anchorOffset}: {bases}')
 
-        return f'Insertion at {self.insertionOffset}:\n' + '\n'.join(result)
+        return (f'<Insertion at {self.insertionOffset}:\n' +
+                '\n'.join(result) + '>')
 
     __repr__ = __str__
 
@@ -160,6 +160,8 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
 
+    debug(f'basesToConsensus offset limits: {minOffset} - {maxOffset}')
+
     # prefixLen = -minOffset if minOffset < 0 else 0
     # suffixLen = (maxOffset - referenceLength + 1
     #              if maxOffset >= referenceLength else 0)
@@ -181,7 +183,7 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
             lowCoverageBase = noCoverageBase = '?'
 
         # Don't use try/except KeyError here as offsetBases is a defaultdict.
-        if offset in offsetBases:
+        if offset in sorted(offsetBases):
             bases = offsetBases[offset]
 
             if bases is None:
@@ -336,6 +338,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     with maybeProgressBar(progress, nReads, prefix='Reads: ') as bar:
         for readCount, read in enumerate(bam.fetch(contig=referenceId),
                                          start=1):
+            assert not read.is_unmapped
 
             addPairsInfo(
                 read.get_aligned_pairs(), read.query_sequence,
@@ -343,15 +346,21 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                  read.query_qualities),
                 referenceLength, correspondences, deletions, insertions)
 
-            if DEBUG:
+            if 1 or DEBUG:
                 debug(f'read id  : {read.query_name}')
                 debug('query    :', read.query_sequence)
                 debug(f'cigar    : {read.cigarstring}')
                 debug(f'match    : {read.reference_start}')
                 debug(f'Pairs    : {read.get_aligned_pairs()}')
-                # debug(f'  {correspondences=}')
-                debug(f'  {insertions=}')
                 debug(f'  {deletions=}')
+
+                debug('correspondences:')
+                for offset, item in sorted(correspondences.items()):
+                    debug(f'  {offset}: {item}')
+
+                debug('insertions:')
+                for offset in sorted(insertions):
+                    debug(f'  {insertions[offset]}')
 
             bar.update(readCount)
 
@@ -373,12 +382,30 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
 
-    offsetBases = defaultdict(lambda: Bases())
+    debug(f'Offset limits: {minOffset} - {maxOffset}')
+
+    debug(f'Insertion count {len(insertions)}')
+    maxInsertionLength = -1
+    for insertionOffset, insertion in insertions.items():
+        for bases in insertion.bases:
+            if len(bases) > maxInsertionLength:
+                maxInsertionLength = len(bases)
+        if maxInsertionLength > 350:
+            debug(f'LONG (>350) INSERTION {insertion.insertionOffset}: '
+                  f'{maxInsertionLength}')
+
+    consensusBases = defaultdict(lambda: Bases())
     otherBases = {}
     originalOffsets = {}
-    if DEBUG:
-        debug(f'{correspondences=}')
-        debug(f'{insertions=}')
+
+    # debug(f'{correspondences=}')
+    debug('correspondences:')
+    for offset, item in sorted(correspondences.items()):
+        debug(f'  {offset}: {item}')
+
+    debug('insertions:')
+    for offset in sorted(insertions):
+        debug(f'  {insertions[offset]}')
 
     with maybeProgressBar(progress, maxOffset - minOffset + 1,
                           prefix='Sites: ') as bar:
@@ -386,27 +413,29 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
         for barCount, offset in enumerate(range(minOffset, maxOffset + 1),
                                           start=1):
 
-            if DEBUG:
-                debug('OFFSET:', offset)
+            debug('OFFSET:', offset)
 
             if offset in insertions:
                 insertion = insertions[offset]
                 assert offset == insertion.insertionOffset
                 insertionBases = insertion.resolve()
                 insertionLength = len(insertionBases)
-                if DEBUG:
+                if 1 or DEBUG:
                     debug('INSERTION:', insertion)
-                    debug(f'{insertionLength=}')
-                    debug(f'{insertionBases=}')
+                    debug(f'  Resolved {insertionLength=}')
+                    # debug(f'{insertionBases=}')
 
                 for bases in insertionBases:
                     adjustedOffset = offset + insertCount - deletionCount
-                    offsetBases[adjustedOffset] += bases
+                    consensusBases[adjustedOffset] += bases
                     insertCount += 1
                     originalOffsets[adjustedOffset] = offset
 
             adjustedOffset = offset + insertCount - deletionCount
             originalOffsets[adjustedOffset] = offset
+
+            if adjustedOffset > 30500:
+                debug(f'HIGH!!! {adjustedOffset}')
 
             if offset in correspondences:
                 if correspondences[offset] is None:
@@ -421,14 +450,18 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                         deletionCount += 1
                 else:
                     if DEBUG:
-                        debug(f'Adding {correspondences[offset]} from '
-                              f'{offset=} at offset '
+                        debug(f'Offset {offset} Adding correspondences bases '
+                              f'{correspondences[offset]} to '
+                              f'{consensusBases[adjustedOffset]} at offset '
                               f'{adjustedOffset}')
-                    offsetBases[adjustedOffset] += correspondences[offset]
+                    consensusBases[adjustedOffset] += correspondences[offset]
+            else:
+                debug(f'Offset {offset} not in correspondences')
 
-            if adjustedOffset not in offsetBases:
+            if adjustedOffset not in consensusBases:
                 # We don't have any information (from the reads) for this
-                # offset.
+                # offset. If it's present in otherBases, it must be because
+                # it was a deletion.
                 if adjustedOffset in otherBases:
                     assert offset in deletions
                 else:
@@ -438,7 +471,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
             bar.update(barCount)
 
-    return basesToConsensus(offsetBases, otherBases, originalOffsets,
+    return basesToConsensus(consensusBases, otherBases, originalOffsets,
                             reference, referenceLength, threshold, minCoverage,
                             lowCoverage, noCoverage)
 
