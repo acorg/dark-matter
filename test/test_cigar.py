@@ -1,6 +1,8 @@
 from unittest import TestCase
 
-from dark.cigar import CINS, CDEL, CMATCH, CEQUAL, CDIFF, dna2cigar, makeCigar
+from dark.cigar import (
+    CINS, CDEL, CMATCH, CEQUAL, CDIFF, dna2cigar, makeCigar,
+    cigarTuplesToOperations)
 
 
 class TestConstants(TestCase):
@@ -249,3 +251,35 @@ class TestMakeCigar(TestCase):
         """
         self.assertEqual('2M2S', makeCigar('  ACGT  ',
                                            '    ATAA'))
+
+
+class TestCigarTuplesToOperations(TestCase):
+    """
+    Test the cigarTuplesToOperations function.
+    """
+    def testEmpty(self):
+        """
+        If there are no tuples, the empty list must be returned.
+        """
+        self.assertEqual([], list(cigarTuplesToOperations([])))
+
+    def testOneOfOne(self):
+        """
+        Test one tuple with one operation of length one.
+        """
+        self.assertEqual([CINS], list(cigarTuplesToOperations([(CINS, 1)])))
+
+    def testOneOfTwo(self):
+        """
+        Test one tuple with one operation of length two.
+        """
+        self.assertEqual([CINS, CINS],
+                         list(cigarTuplesToOperations([(CINS, 2)])))
+
+    def testTwo(self):
+        """
+        Test two tuples.
+        """
+        self.assertEqual(
+            [CINS, CINS, CMATCH, CMATCH, CMATCH],
+            list(cigarTuplesToOperations([(CINS, 2), (CMATCH, 3)])))

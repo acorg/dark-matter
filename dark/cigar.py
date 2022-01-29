@@ -124,3 +124,19 @@ def makeCigar(reference, query):
     return ((f'{softClipLeft}S' if softClipLeft else '') +
             ''.join(middle) +
             (f'{softClipRight}S' if softClipRight else ''))
+
+
+def cigarTuplesToOperations(tuples):
+    """
+    Produce a sequence of CIGAR operations given a cigar tuples list
+    from a pysam AlignedRead instance.
+
+    See https://pysam.readthedocs.io/en/latest/
+        api.html#pysam.AlignedSegment.cigartuples
+
+    @param tuples: A C{list} of 2-tuples, each containing an operation
+        and an C{int} count.
+    """
+    for operation, count in tuples:
+        for _ in range(count):
+            yield operation

@@ -766,7 +766,7 @@ class _Mixin:
         don't have the first nucleotide of the 9 nucleotide insertion).
         """
         template = (
-            '--------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '        TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
             'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
             '???????????????????????????????????',
         )
@@ -784,7 +784,7 @@ class _Mixin:
         reference bases before the insertion give the expected result.
         """
         template = (
-            '--------TGATCTCC',
+            '        TGATCTCC',
             'AGCCAGAATGATCTCC',
             '????????????????',
             '    AGAATGATCTCC',

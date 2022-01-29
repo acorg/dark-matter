@@ -2,7 +2,9 @@ import sys
 from collections import defaultdict
 from contextlib import contextmanager
 import progressbar
+from pysam import CINS, CDEL, CMATCH, CEQUAL, CDIFF, CSOFT_CLIP
 
+from dark.cigar import cigarTuplesToOperations
 from dark.dna import Bases
 from dark.sam import (
     samfile, samReferences, UnequalReferenceLengthError,
@@ -106,7 +108,7 @@ class Insertion:
 
 
 @contextmanager
-def maybeProgressBar(show, maxValue, prefix=None):
+def maybeProgressBar(show, maxValue, prefix):
     """
     A context manager to maybe show a progress bar.
 
@@ -116,7 +118,18 @@ def maybeProgressBar(show, maxValue, prefix=None):
     @param prefix: A C{str} prefix, to appear at the start of the progress bar.
     """
     if show:
-        with progressbar.ProgressBar(max_value=maxValue, prefix=prefix) as bar:
+        widgets = [
+            progressbar.SimpleProgress(format='%(value_s)s/%(max_value_s)s'),
+            progressbar.Percentage(format=' %(percentage)3d%%'),
+            ' ',
+            progressbar.Bar(marker='\x1b[33m#\x1b[39m'),
+            ' ',
+            progressbar.Timer(format='Elapsed: %(elapsed)s'),
+            ' ',
+            progressbar.ETA(format='ETA: %(eta)8s'),
+        ]
+        with progressbar.ProgressBar(max_value=maxValue, widgets=widgets,
+                                     prefix=prefix) as bar:
             yield bar
     else:
         class Bar:
@@ -126,7 +139,7 @@ def maybeProgressBar(show, maxValue, prefix=None):
 
 def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
                      referenceLength, threshold, minCoverage, lowCoverage,
-                     noCoverage):
+                     noCoverage, progress):
     """
     Convert a C{dict} of C{Bases} into a consensus.
 
@@ -150,6 +163,7 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
         0 < N < minCoverage reads cover a site.
     @param noCoverage: A C{str} indicating what base to use when
         no reads cover the site.
+    @param progress: If C{True}, display a progress bar on standard error.
     @return: a C{str} consensus sequence.
     """
     if DEBUG:
@@ -160,7 +174,7 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
 
-    debug(f'basesToConsensus offset limits: {minOffset} - {maxOffset}')
+    # debug(f'basesToConsensus offset limits: {minOffset} - {maxOffset}')
 
     # prefixLen = -minOffset if minOffset < 0 else 0
     # suffixLen = (maxOffset - referenceLength + 1
@@ -174,32 +188,39 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     lowCoverageStr = (reference.sequence if lowCoverage == 'reference' else
                       lowCoverage * referenceLength)
 
-    for offset in range(minOffset, maxOffset + 1):
-        try:
-            originalOffset = originalOffsets[offset]
-            lowCoverageBase = lowCoverageStr[originalOffset]
-            noCoverageBase = noCoverageStr[originalOffset]
-        except (IndexError, KeyError):
-            lowCoverageBase = noCoverageBase = '?'
+    with maybeProgressBar(progress, maxOffset - minOffset + 1,
+                          prefix='Consensus: ') as bar:
+        for barCount, offset in enumerate(range(minOffset, maxOffset + 1),
+                                          start=1):
+            try:
+                originalOffset = originalOffsets[offset]
+                lowCoverageBase = lowCoverageStr[originalOffset]
+                noCoverageBase = noCoverageStr[originalOffset]
+            except (IndexError, KeyError):
+                lowCoverageBase = noCoverageBase = '?'
 
-        # Don't use try/except KeyError here as offsetBases is a defaultdict.
-        if offset in sorted(offsetBases):
-            bases = offsetBases[offset]
+            # Don't use try/except KeyError here as offsetBases is a
+            # defaultdict.
+            if offset in sorted(offsetBases):
+                bases = offsetBases[offset]
 
-            if bases is None:
-                if DEBUG:
-                    debug(f'Offset {offset} was deleted. Skipping.')
+                if bases is None:
+                    if DEBUG:
+                        debug(f'Offset {offset} was deleted. Skipping.')
+                else:
+                    result.append(bases.consensus(
+                        threshold, minCoverage, lowCoverageBase,
+                        noCoverageBase))
             else:
-                result.append(bases.consensus(threshold, minCoverage,
-                                              lowCoverageBase, noCoverageBase))
-        else:
-            assert offset in otherBases, (
-                f'Offset {offset} not found in offsetBases or otherBases.')
-            if otherBases[offset] is None:
-                if DEBUG:
-                    debug(f'Adjusted {offset=} was deleted.')
-            else:
-                result.append(otherBases[offset])
+                assert offset in otherBases, (
+                    f'Offset {offset} not found in offsetBases or otherBases.')
+                if otherBases[offset] is None:
+                    if DEBUG:
+                        debug(f'Adjusted {offset=} was deleted.')
+                else:
+                    result.append(otherBases[offset])
+
+            bar.update(barCount)
 
     return ''.join(result)
 
@@ -335,24 +356,27 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     insertions = {}
 
     nReads = bam.count(contig=referenceId)
-    with maybeProgressBar(progress, nReads, prefix='Reads: ') as bar:
+    with maybeProgressBar(progress, nReads, prefix='Reads    : ') as bar:
         for readCount, read in enumerate(bam.fetch(contig=referenceId),
                                          start=1):
             assert not read.is_unmapped
 
             addPairsInfo(
-                read.get_aligned_pairs(), read.query_sequence,
+                read.get_aligned_pairs(),
+                list(cigarTuplesToOperations(read.cigartuples)),
+                read.query_sequence,
                 ([1] * len(read.query_sequence) if ignoreQuality else
                  read.query_qualities),
                 referenceLength, correspondences, deletions, insertions)
 
-            if 1 or DEBUG:
-                debug(f'read id  : {read.query_name}')
-                debug('query    :', read.query_sequence)
-                debug(f'cigar    : {read.cigarstring}')
-                debug(f'match    : {read.reference_start}')
-                debug(f'Pairs    : {read.get_aligned_pairs()}')
-                debug(f'  {deletions=}')
+            if DEBUG:
+                debug(f'read id     : {read.query_name}')
+                debug('query       :', read.query_sequence)
+                debug('query len   :', len(read.query_sequence))
+                debug(f'cigar       : {read.cigarstring}')
+                debug(f'match offset: {read.reference_start}')
+                debug(f'Pairs       : {read.get_aligned_pairs()}')
+                debug(f'Deletions   : {deletions}')
 
                 debug('correspondences:')
                 for offset, item in sorted(correspondences.items()):
@@ -382,9 +406,10 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
 
-    debug(f'Offset limits: {minOffset} - {maxOffset}')
+    if DEBUG:
+        debug(f'Offset limits: {minOffset} - {maxOffset}')
+        debug(f'Insertion count {len(insertions)}')
 
-    debug(f'Insertion count {len(insertions)}')
     maxInsertionLength = -1
     for insertionOffset, insertion in insertions.items():
         for bases in insertion.bases:
@@ -398,29 +423,29 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     otherBases = {}
     originalOffsets = {}
 
-    # debug(f'{correspondences=}')
-    debug('correspondences:')
-    for offset, item in sorted(correspondences.items()):
-        debug(f'  {offset}: {item}')
+    if DEBUG:
+        debug('final correspondences:')
+        for offset, item in sorted(correspondences.items()):
+            debug(f'  {offset}: {item}')
 
-    debug('insertions:')
-    for offset in sorted(insertions):
-        debug(f'  {insertions[offset]}')
+        debug('final insertions:')
+        for offset in sorted(insertions):
+            debug(f'  {insertions[offset]}')
 
     with maybeProgressBar(progress, maxOffset - minOffset + 1,
-                          prefix='Sites: ') as bar:
+                          prefix='Collect  : ') as bar:
         insertCount = deletionCount = 0
         for barCount, offset in enumerate(range(minOffset, maxOffset + 1),
                                           start=1):
 
-            debug('OFFSET:', offset)
+            # debug('OFFSET:', offset)
 
             if offset in insertions:
                 insertion = insertions[offset]
                 assert offset == insertion.insertionOffset
                 insertionBases = insertion.resolve()
                 insertionLength = len(insertionBases)
-                if 1 or DEBUG:
+                if DEBUG:
                     debug('INSERTION:', insertion)
                     debug(f'  Resolved {insertionLength=}')
                     # debug(f'{insertionBases=}')
@@ -456,7 +481,8 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                               f'{adjustedOffset}')
                     consensusBases[adjustedOffset] += correspondences[offset]
             else:
-                debug(f'Offset {offset} not in correspondences')
+                if DEBUG:
+                    debug(f'Offset {offset} not in correspondences')
 
             if adjustedOffset not in consensusBases:
                 # We don't have any information (from the reads) for this
@@ -473,17 +499,19 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
     return basesToConsensus(consensusBases, otherBases, originalOffsets,
                             reference, referenceLength, threshold, minCoverage,
-                            lowCoverage, noCoverage)
+                            lowCoverage, noCoverage, progress)
 
 
-def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
-                 deletions, insertions):
+def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
+                 correspondences, deletions, insertions):
     """
     Add information about matched pairs of nucleotides.
 
     @param pairs: A C{list} of 2-C{tuple}s of query offset, reference offset.
         Either (but not both) member of each tuple might be C{None} to indicate
         an indel mismatch.
+    @param cigarOperations: A C{list} of CIGAR operations corresponding to the
+        information in C{pairs}.
     @param query: A C{str} query DNA sequence.
     @param qualities: A C{list} of quality scores.
     @param correspondences: A C{defaultdict(list)}, to hold (base, quality)
@@ -493,8 +521,8 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
     @param insertions: A C{defaultdict(list)}, to hold (base, quality)
         scores for when a query contains an insertion to the reference.
     """
-    if DEBUG:
-        debug(f'Pairs: {pairs}')
+    assert len(pairs) == len(cigarOperations)
+
     # Find the offset of the sequence for the first member of the pair.
     leadingNoneCount = 0
     for _, referenceOffset in pairs:
@@ -520,25 +548,27 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
 
     inInsertion = False
 
-    for queryOffset, referenceOffset in pairs:
+    for (queryOffset, referenceOffset), cigarOperation in zip(pairs,
+                                                              cigarOperations):
         # Sanity check.
-        if referenceOffset is not None:
-            assert referenceOffset == actualReferenceOffset
+        # if referenceOffset is not None:
+        #     assert referenceOffset == actualReferenceOffset, (
+        #         f'{referenceOffset=} != {actualReferenceOffset=}')
 
         if queryOffset is None:
             # The query is missing something that is in the reference. So this
             # is a deletion from the reference.
+            assert cigarOperation == CDEL
             assert referenceOffset is not None
             deletions.add(actualReferenceOffset)
             actualReferenceOffset += 1
             inInsertion = False
 
-        elif (referenceOffset is None and
-              actualReferenceOffset >= 0 and
-              actualReferenceOffset < referenceLength):
+        elif referenceOffset is None and cigarOperation == CINS:
+            # actualReferenceOffset >= 0 and
+            # actualReferenceOffset < referenceLength):
             # The query has something that is not in the reference. So this
             # is an insertion to the reference.
-            assert queryOffset is not None
             base = query[queryOffset]
             quality = qualities[queryOffset]
 
@@ -556,20 +586,12 @@ def addPairsInfo(pairs, query, qualities, referenceLength, correspondences,
                     insertions[actualReferenceOffset].start(
                         actualReferenceOffset)
 
-            if DEBUG:
-                debug(f'INSERT: {queryOffset=} {actualReferenceOffset=} '
-                      f'{actualReferenceOffset=}')
-
             insertions[actualReferenceOffset].append(base, quality)
 
         else:
+            assert cigarOperation in {CMATCH, CEQUAL, CDIFF, CSOFT_CLIP}
             base = query[queryOffset]
             quality = qualities[queryOffset]
             correspondences[actualReferenceOffset].append(base, quality)
             actualReferenceOffset += 1
             inInsertion = False
-
-    if DEBUG:
-        for insertionOffset, theseInsertions in insertions.items():
-            debug(f'Pairs added. Offset {insertionOffset} has '
-                  f'{theseInsertions}.')
