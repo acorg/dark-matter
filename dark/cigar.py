@@ -59,7 +59,7 @@ def dna2cigar(s1, s2, concise=False):
     return ''.join(result)
 
 
-def makeCigar(reference, query):
+def makeCigar(reference, query, noEdgeInsertions=True):
     """
     Make a CIGAR string from an aligned reference and query.
 
@@ -70,6 +70,10 @@ def makeCigar(reference, query):
     @param query: A C{str} reference sequence, possibly padded on
         the left with spaces, and possibly with '-' characters to indicate
         that the query has a deletion (relative to the reference).
+    @param noEdgeInsertions: If {True}, convert a leading and trailing
+        insertions in the result into an equivalent number of soft clips.
+        This is useful when making a CIGAR string that would otherwise have
+        insertions due to the reference containing '-' characters.
     @raise ValueError: If the query or reference is empty.
     @return: A C{str} CIGAR string.
     """
@@ -125,6 +129,17 @@ def makeCigar(reference, query):
 
     if count:
         middle.append(f'{count}{lastOp}')
+
+    if noEdgeInsertions:
+        if middle:
+            if middle[0].endswith(CINS_STR):
+                softClipLeft += int(middle[0][:-1])
+                middle.pop(0)
+
+        if middle:
+            if middle[-1].endswith(CINS_STR):
+                softClipRight += int(middle[-1][:-1])
+                middle.pop()
 
     return ((f'{softClipLeft}S' if softClipLeft else '') +
             ''.join(middle) +

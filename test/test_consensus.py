@@ -1,4 +1,4 @@
-from unittest import TestCase, skipUnless, skip
+from unittest import TestCase, skipUnless
 
 from dark.consensus import consensusFromBAM
 from dark.reads import DNARead
@@ -564,13 +564,54 @@ class _Mixin:
 
         with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
+                'CAxATG',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 deletionSymbol='x',
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOneDeletionFromReferenceUnmarked(self):
+        """
+        A deletion from the reference must be handled correctly.
+        """
+        template = (
+            'CACGTG',
+            ' A-A',
+            ' ?-?',
+            ' A-A',
+            ' ?-?',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
                 'CAATG',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 deletionSymbol='',
                                  ignoreQuality=self.ignoreQuality))
 
     def testTwoDeletionsFromReference(self):
+        """
+        Two deletions from the reference must be handled correctly.
+        """
+        template = (
+            'CACGTG',
+            ' A-A-G',
+            ' ?-?-?',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'CAxAxG',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 deletionSymbol='x',
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoDeletionsFromReferenceUnmarked(self):
         """
         Two deletions from the reference must be handled correctly.
         """
@@ -586,6 +627,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 deletionSymbol='',
                                  ignoreQuality=self.ignoreQuality))
 
     def testOneInsertionInReference(self):
@@ -647,25 +689,26 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 deletionSymbol='',
                                  insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testTwoInsertionsAndOneDeletionInReference(self):
         """
         Two insertions and one deletion in the reference must be handled
-        correctly, with the deletions marked with 'x' as requested.
+        correctly, with the deletion marked with 'x' as requested.
         """
         template = (
             'CA-CGT-G',
-            ' AA--',
-            ' ??--',
+            ' AA-G',
+            ' ??-?',
             '     TAG',
             '     ???',
         )
 
         with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
-                'CAAxTAG',
+                'CAAxGTAG',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
@@ -673,7 +716,6 @@ class _Mixin:
                                  insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
-    @skip('Deletion / insertion ordering needs fixing.')
     def testTwoInsertionsAndTwoDeletionsInReference(self):
         """
         Two insertions and two deletions in the reference must be handled
@@ -805,143 +847,6 @@ class _Mixin:
                                      threshold=threshold,
                                      ignoreQuality=self.ignoreQuality))
 
-    def testOmicronEPE214Insertion(self):
-        """
-        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
-        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
-        acid location 214) works as expected.
-
-        The nucleotide sequence below can be obtained via:
-
-        $ ncbi-fetch-id.py MN908947.3 > MN908947.3.fasta
-        $ describe-genome.py --feature S --printNtSeq < MN908947.3.fasta | \
-              filter-fasta.py --keepSites 630-673 --quiet | tail -n 1
-
-        I then inserted the 9 nucleotide sequence GAGCCAGAA before the TGAT...
-        starting at position 642.
-        """
-        template = (
-            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-            '      AGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
-            '      ??????????????????????????????????????????',
-        )
-
-        with makeBAM(template) as (reference, bamFilename):
-            self.assertEqual(
-                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
-
-    def testOmicronEPE214InsertionRightSideExact(self):
-        """
-        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
-        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
-        acid location 214) works as expected when the insertion is the very
-        last part of the read.
-        """
-        template = (
-            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-            '      AGTGCGGAGCCAGAA',
-            '      ???????????????',
-        )
-
-        with makeBAM(template) as (reference, bamFilename):
-            self.assertEqual(
-                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
-
-    def testOmicronEPE214InsertionLeftSideExact(self):
-        """
-        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
-        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
-        acid location 214) works as expected when the insertion is the very
-        beginning of the read.
-        """
-        template = (
-            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-            '            GAGCCAGAATGATCT',
-            '            ???????????????',
-        )
-
-        with makeBAM(template) as (reference, bamFilename):
-            self.assertEqual(
-                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
-
-    def testOmicronEPE214InsertionInTwoReads(self):
-        """
-        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
-        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
-        acid location 214) works as expected, including when the insertion
-        is inferred from two reads that each partially cover it. The
-        nucleotide sequence below is obtained as in the test above.
-        """
-        template = (
-            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-            '      AGTGCGGAGCCA',
-            '      ????????????',
-            '             AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
-            '             ???????????????????????????????????',
-        )
-
-        with makeBAM(template) as (reference, bamFilename):
-            self.assertEqual(
-                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
-
-    def testOmicronEPE214PartialSoftClipped(self):
-        """
-        Test that a trailing part of the amino acid EPE sequence (here
-        'AGCCAGAA') insertion into the SARS-CoV-2 spike nucleotide sequence
-        that usually is found at location 642 (amino acid location 214) works
-        as expected when found as a partial soft-clipped region.
-        """
-        template = (
-            '        TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-            'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
-            '???????????????????????????????????',
-        )
-
-        with makeBAM(template) as (reference, bamFilename):
-            self.assertEqual(
-                'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
-
-    def testOmicronEPE214PartialNoSoftClipped(self):
-        """
-        Test that a trailing part of the amino acid EPE sequence (here
-        'AGCCAGAA') insertion into the SARS-CoV-2 spike nucleotide sequence
-        that usually is found at location 642 (amino acid location 214) works
-        as expected when it appears as a partial soft-clipped region but
-        soft-clipped bases are not included.
-        """
-        template = (
-            '        TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-            'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
-            '???????????????????????????????????',
-        )
-
-        with makeBAM(template) as (reference, bamFilename):
-            self.assertEqual(
-                'TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 ignoreQuality=self.ignoreQuality))
-
     def testTwoAgreeingSoftClipsNothingBefore(self):
         """
         Test that two soft-clipped regions that agree with each other are
@@ -1023,6 +928,161 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  insertionCountThreshold=1,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214Insertion(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected.
+
+        The nucleotide sequence below can be obtained via:
+
+        $ ncbi-fetch-id.py MN908947.3 > MN908947.3.fasta
+        $ describe-genome.py --feature S --printNtSeq < MN908947.3.fasta | \
+              filter-fasta.py --keepSites 630-673 --quiet | tail -n 1
+
+        I then inserted the 9 nucleotide sequence GAGCCAGAA before the TGAT...
+        starting at position 642.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '      AGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
+            '      ??????????????????????????????????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 insertionCountThreshold=1,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214InsertionRightSideExact(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected when the insertion is the very
+        last part of the read, in which case it will be marked as a
+        soft-clipped region.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '      AGTGCGGAGCCAGAA',
+            '      ???????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TAATTTAGTGCGGAGCCAGAATCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 insertionCountThreshold=1,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214InsertionLeftSideExactSoftClipped(self):
+        """
+        Test that an amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) works as expected when the insertion sequence is
+        the very beginning of the read, in which case it will be marked as a
+        soft-clipped region.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '            GAGCCAGAATGATCT',
+            '            ???????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TAAGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 insertionCountThreshold=1,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214PartialInsertionInTwoReadsSoftClipped(self):
+        """
+        The amino acid EPE sequence (here 'GAGCCAGAA') insertion
+        into the SARS-CoV-2 spike nucleotide sequence at location 642 (amino
+        acid location 214) must work as expected, when the reads only
+        partially cover it and are therefore both soft-clipped in that region.
+        They overlap in a non-agreeing way and ambiguous nucleotide codes
+        result.
+        """
+        template = (
+            'TAATTTAGTGCG---------TGATCTCCCTCA',
+            '      AGTGCGGAGCCA',
+            '      ????????????',
+            '             AGCCAGAATGATCTCCCTCA',
+            '             ????????????????????',
+        )
+
+        # This example is a bit complicated. The reference and reads will
+        # align as follows (with the '-' from the reference removed to make
+        # it easier to see what's going on). The final line of hyphens shows
+        # the ambiguous region.
+        #
+        # TAATTTAGTGCGTGATCTCCCTCA
+        #       AGTGCGGAGCCA
+        #     AGCCAGAATGATCTCCCTCA
+        #       ------------
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TAATAGMSWGMRKRRYCWCCCTCA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 insertionCountThreshold=1,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214PartialInsertionInTwoReads(self):
+        """
+        This is the same as the immediately above test
+        (testOmicronEPE214PartialInsertionInTwoReadsSoftClipped), but the
+        reads are now fully aligned wtih the reference so there is no soft
+        clipping. The alignment of the reads is the same and so is the result.
+        """
+        template = (
+            'TAATTTAGTGCGTGATCTCCCTCA',
+            '      AGTGCGGAGCCA',
+            '      ????????????',
+            '    AGCCAGAATGATCTCCCTCA',
+            '    ????????????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TAATAGMSWGMRKRRYCWCCCTCA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 insertionCountThreshold=1,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testOmicronEPE214PartialNoSoftClipped(self):
+        """
+        Test that a trailing part of the amino acid EPE sequence (here
+        'AGCCAGAA') insertion into the SARS-CoV-2 spike nucleotide sequence
+        that usually is found at location 642 (amino acid location 214) is
+        excluded when it appears as a partial soft-clipped region and
+        soft-clipped bases are not included.
+        """
+        template = (
+            '        TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
+            '???????????????????????????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
                                  ignoreQuality=self.ignoreQuality))
 
 

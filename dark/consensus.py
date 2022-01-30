@@ -180,21 +180,17 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     @return: a C{str} consensus sequence.
     """
     if DEBUG:
-        debug(f'HERE: {offsetBases=}')
-        debug(f'HERE: {otherBases=}')
+        debug('In basesToConsensus: offsetBases:')
+        for offset in offsetBases:
+            debug(f'  {offset}: {offsetBases[offset]}')
+        debug('In basesToConsensus: otherBases:')
+        for offset in otherBases:
+            debug(f'  {offset}: {otherBases[offset]}')
+
     result = []
     allOffsets = set(offsetBases) | set(otherBases) | {0}
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
-
-    # debug(f'basesToConsensus offset limits: {minOffset} - {maxOffset}')
-
-    # prefixLen = -minOffset if minOffset < 0 else 0
-    # suffixLen = (maxOffset - referenceLength + 1
-    #              if maxOffset >= referenceLength else 0)
-    #
-    # if DEBUG:
-    #     debug(f'  prefix len {prefixLen} suffix len {suffixLen}')
 
     noCoverageStr = (reference.sequence if noCoverage == 'reference' else
                      noCoverage * referenceLength)
@@ -212,24 +208,16 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
             except (IndexError, KeyError):
                 lowCoverageBase = noCoverageBase = '?'
 
-            # Don't use try/except KeyError here as offsetBases is a
-            # defaultdict.
-            if offset in sorted(offsetBases):
-                bases = offsetBases[offset]
-
-                if bases is None:
-                    result.append(deletionSymbol)
-                else:
-                    result.append(bases.consensus(
-                        threshold, minCoverage, lowCoverageBase,
-                        noCoverageBase))
+            if offset in otherBases and (
+                    offset not in offsetBases or not offsetBases[offset]):
+                result.append(deletionSymbol if otherBases[offset] is None
+                              else otherBases[offset])
             else:
-                assert offset in otherBases, (
+                assert offset in offsetBases, (
                     f'Offset {offset} not found in offsetBases or otherBases.')
-                if otherBases[offset] is None:
-                    result.append(deletionSymbol)
-                else:
-                    result.append(otherBases[offset])
+                bases = offsetBases[offset]
+                result.append(bases.consensus(
+                    threshold, minCoverage, lowCoverageBase, noCoverageBase))
 
             bar.update(barCount)
 
@@ -241,7 +229,7 @@ def consensusFromBAM(
         minCoverage=1, lowCoverage='reference', noCoverage='reference',
         deletionSymbol='-', deletionThreshold=0.5, ignoreQuality=False,
         insertionCountThreshold=5, strategy='majority',
-        includeSoftClipped=False, progress=False):
+        includeSoftClipped=False, compareWithPileup=False, progress=False):
     """
     Build a consensus sequence from a BAM file.
 
@@ -282,9 +270,12 @@ def consensusFromBAM(
     @param ignoreQuality: If C{True}, ignore quality scores.
     @param strategy: A C{str} consensus-making strategy (cuurently must be
         'majority').
-    @param progress: If C{True}, display a progress bar on standard error.
     @param includeSoftClipped: Include information from read bases that were
         marked as soft-clipped by the algorithm that made the BAM file.
+    @param compareWithPileup: If C{True}, compare the base counts from the
+        pysam fetch method with those of the pileup methods. This pays no
+        attention to insertions.
+    @param progress: If C{True}, display a progress bar on standard error.
     @raise UnspecifiedReference: If no id is provided to indicate which BAM
         file reference to call a consensus for.
     @raise UnknownReference: If a requested reference id is unknown.
@@ -330,7 +321,7 @@ def consensusFromBAM(
                 bam, referenceId, reference, referenceLength, threshold,
                 minCoverage, lowCoverage, noCoverage, deletionSymbol,
                 deletionThreshold, ignoreQuality, insertionCountThreshold,
-                includeSoftClipped, progress)
+                includeSoftClipped, compareWithPileup, progress)
         else:
             raise ValueError(f'Unknown consensus strategy {strategy!r}.')
 
@@ -338,7 +329,7 @@ def consensusFromBAM(
 def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                     minCoverage, lowCoverage, noCoverage, deletionSymbol,
                     deletionThreshold, ignoreQuality, insertionCountThreshold,
-                    includeSoftClipped, progress):
+                    includeSoftClipped, compareWithPileup, progress):
     """Compute a majority consensus using fetch.
 
     @param bam: An open BAM file.
@@ -382,6 +373,10 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
         to.
     @param includeSoftClipped: Include information from read bases that were
         marked as soft-clipped by the algorithm that made the BAM file.
+    @param compareWithPileup: If C{True}, compare the base counts from the
+        pysam fetch method with those of the pileup methods. This pays no
+        attention to insertions.
+    @param progress: If C{True}, display a progress bar on standard error.
     @return: A C{str} consensus sequence.
 
     """
@@ -423,27 +418,34 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
             bar.update(readCount)
 
     conflicts = set(deletions) & set(insertions)
-    if conflicts:
+    if conflicts and DEBUG:
         debug('CONFLICTING OFFSETS:', ', '.join(sorted(map(str, conflicts))))
 
-    _pileupCorrespondences = pileupCorrespondences(
-        bam, referenceId, referenceLength, includeSoftClipped, progress)
+    if compareWithPileup:
+        _pileupCorrespondences = pileupCorrespondences(
+            bam, referenceId, referenceLength, includeSoftClipped, progress)
 
-    compareCorrespondences(correspondences, _pileupCorrespondences,
-                           threshold, minCoverage)
+        compareCorrespondences(correspondences, _pileupCorrespondences,
+                               threshold, minCoverage)
 
     # Do deletions.
     if DEBUG and deletions:
         debug(f'There are {len(deletions)} deletions:')
 
+    actualDeletions = set()
     for offset, deletionCount in sorted(deletions.items()):
         count = correspondences[offset].count
         if count == 0 or deletionCount / count >= deletionThreshold:
-            correspondences[offset] = None
-            debug(f'  Offset {offset:5d}: deleted in {deletionCount:4d} '
-                  f'present in {count:4d}')
+            actualDeletions.add(offset)
+            if DEBUG:
+                debug(f'  Offset {offset:5d}: deleted in {deletionCount:4d} '
+                      f'present in {count:4d}')
 
     if DEBUG:
+        debug(f'Actual deletions: {actualDeletions}')
+
+    if DEBUG:
+        debug(f'Actual deletions: {actualDeletions}')
         debug('correspondences after deletions:')
         for offset, item in sorted(correspondences.items()):
             debug(f'  {offset}: {item}')
@@ -465,7 +467,7 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
     otherBases = {}
     originalOffsets = {}
 
-    if 1 or DEBUG:
+    if DEBUG:
         debug('final insertions:')
         for offset in sorted(insertions):
             wanted = insertions[offset].readCount() >= insertionCountThreshold
@@ -473,11 +475,9 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
 
     with maybeProgressBar(progress, maxOffset - minOffset + 1,
                           'Collect  : ') as bar:
-        insertCount = deletionCount = 0
+        insertCount = 0
         for barCount, offset in enumerate(range(minOffset, maxOffset + 1),
                                           start=1):
-
-            # debug('OFFSET:', offset)
 
             if offset in insertions:
                 insertion = insertions[offset]
@@ -488,45 +488,40 @@ def _fetchConsensus(bam, referenceId, reference, referenceLength, threshold,
                     if DEBUG:
                         debug('INSERTION:', insertion)
                         debug(f'  Resolved {insertionLength=}')
-                        # debug(f'{insertionBases=}')
+                        debug(f'{insertionBases=}')
 
                     for bases in insertionBases:
-                        adjustedOffset = offset + insertCount - deletionCount
+                        adjustedOffset = offset + insertCount
                         consensusBases[adjustedOffset] += bases
                         insertCount += 1
                         originalOffsets[adjustedOffset] = offset
 
-            adjustedOffset = offset + insertCount - deletionCount
+            adjustedOffset = offset + insertCount
             originalOffsets[adjustedOffset] = offset
 
+            if offset in actualDeletions:
+                otherBases[adjustedOffset] = None
+
             if offset in correspondences:
-                if correspondences[offset] is None:
-                    # This was deleted!
-                    if DEBUG:
-                        debug(f'  CONFLICTING OFFSET {offset}. Could not add '
-                              f'{correspondences[offset]}')
-                    if adjustedOffset in otherBases:
-                        assert otherBases[adjustedOffset] is None
-                    else:
-                        otherBases[adjustedOffset] = None
-                        deletionCount += 1
-                else:
-                    if DEBUG:
-                        debug(f'Offset {offset} Adding correspondences bases '
-                              f'{correspondences[offset]} to '
-                              f'{consensusBases[adjustedOffset]} at offset '
-                              f'{adjustedOffset}')
-                    consensusBases[adjustedOffset] += correspondences[offset]
-            else:
                 if DEBUG:
-                    debug(f'Offset {offset} not in correspondences')
+                    debug(f'Offset {offset} Adding correspondences bases '
+                          f'{correspondences[offset]} to '
+                          f'{consensusBases[adjustedOffset]} at offset '
+                          f'{adjustedOffset}')
+                consensusBases[adjustedOffset] += correspondences[offset]
 
             if adjustedOffset not in consensusBases:
                 # We don't have any information (from the reads) for this
                 # offset. If it's present in otherBases, it must be because
                 # it was a deletion.
+                if False and DEBUG:
+                    debug('HERE:')
+                    debug(f'{offset=}')
+                    debug(f'{adjustedOffset=}')
+                    debug(f'{otherBases=}')
                 if adjustedOffset in otherBases:
-                    assert offset in deletions
+                    if otherBases[adjustedOffset] is None:
+                        assert offset in actualDeletions
                 else:
                     otherBases[adjustedOffset] = (
                         reference.sequence[offset] if noCoverage == 'reference'
@@ -565,15 +560,12 @@ def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
 
     # If the first reference offset is None, the first operation must be a
     # soft clip (not an insertion).
-    # if pairs[0][1] is None:
-    #     assert cigarOperations[0] == CSOFT_CLIP, (
-    #         f'First CIGAR operation is {cigarOperations[0]}, '
-    #         f'not a soft clip')
+    if pairs[0][1] is None:
+        assert cigarOperations[0] == CSOFT_CLIP, (
+            f'First CIGAR operation is {cigarOperations[0]}, '
+            f'not a soft clip')
 
     inInsertion = False
-
-    if DEBUG:
-        debug(f'{pairs=}')
 
     for count, ((queryOffset, referenceOffset), cigarOperation) in enumerate(
             zip(pairs, cigarOperations)):

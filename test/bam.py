@@ -73,8 +73,9 @@ def makeBAM(template, secondReference=None):
                     qualityNoGaps,  # QUAL
                 ))), file=fp)
 
-        e.execute(f'samtools view -b -o {str(bamFile)!r} {str(samFile)!r}')
-        e.execute(f'samtools index {str(bamFile)!r}')
+        e.execute(f'samtools sort -O BAM --write-index -o {str(bamFile)!r} '
+                  f'{str(samFile)!r}')
         yield (reference, bamFile)
     finally:
+        # import sys; print(f'{samFile}', file=sys.stderr)
         e.execute(f'rm -fr {dirname!r}')
