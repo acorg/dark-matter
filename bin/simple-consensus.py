@@ -95,6 +95,30 @@ def main():
               'considered equally reliable.'))
 
     parser.add_argument(
+        '--includeSoftClipped', action='store_true',
+        help=('Include information from read bases that were marked as '
+              'soft-clipped by the algorithm that made the BAM file. See '
+              'https://samtools.github.io/hts-specs/SAMv1.pdf if this makes '
+              'no sense to you.'))
+
+    parser.add_argument(
+        '--deletionSymbol', default='-',
+        help=('When a deletion is detected, put this symbol into the '
+              'consensus sequence. Use the empty string to have deletions '
+              'omitted.'))
+
+    parser.add_argument(
+        '--deletionThreshold', default=0.5, type=float,
+        help=('If some reads have a deletion at a site and some do not, call '
+              'the site as a deletion if the fraction of reads with the '
+              'deletion is at least this value.'))
+
+    parser.add_argument(
+        '--insertionCountThreshold', default=5, type=int,
+        help=('The number of reads that must have an insertion at an offset '
+              'in order for the insertion to be called in the consensus.'))
+
+    parser.add_argument(
         '--progress', action='store_true',
         help='Show a progress bar.')
 
@@ -146,7 +170,11 @@ def main():
         args.bamFilename, referenceId=args.referenceId, reference=reference,
         threshold=args.threshold, minCoverage=args.minCoverage,
         lowCoverage=args.lowCoverage, noCoverage=args.noCoverage,
-        ignoreQuality=args.ignoreQuality, progress=args.progress)
+        deletionSymbol=args.deletionSymbol,
+        deletionThreshold=args.deletionThreshold,
+        insertionCountThreshold=args.insertionCountThreshold,
+        ignoreQuality=args.ignoreQuality,
+        includeSoftClipped=args.includeSoftClipped, progress=args.progress)
 
     print(DNARead(consensusId, consensus).toString('fasta'), end='')
 

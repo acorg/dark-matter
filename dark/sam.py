@@ -31,8 +31,8 @@ class InvalidSAM(Exception):
 
 
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
-_CONSUMES_QUERY = {CMATCH, CINS, CSOFT_CLIP, CEQUAL, CDIFF}
-_CONSUMES_REFERENCE = {CMATCH, CDEL, CREF_SKIP, CEQUAL, CDIFF}
+CONSUMES_QUERY = {CMATCH, CINS, CSOFT_CLIP, CEQUAL, CDIFF}
+CONSUMES_REFERENCE = {CMATCH, CDEL, CREF_SKIP, CEQUAL, CDIFF}
 
 
 @contextmanager
@@ -127,7 +127,7 @@ def _hardClip(sequence, quality, cigartuples):
     hardClipCount = cigarLength = 0
     for (operation, length) in cigartuples:
         hardClipCount += operation == CHARD_CLIP
-        cigarLength += length if operation in _CONSUMES_QUERY else 0
+        cigarLength += length if operation in CONSUMES_QUERY else 0
 
     sequenceLength = len(sequence)
     if quality is not None:
@@ -699,10 +699,10 @@ class PaddedSAM(object):
                 else:
                     raise ValueError('Unknown CIGAR operation:', operation)
 
-                if operation in _CONSUMES_QUERY:
+                if operation in CONSUMES_QUERY:
                     queryIndex += length
 
-                if operation in _CONSUMES_REFERENCE:
+                if operation in CONSUMES_REFERENCE:
                     referenceIndex += length
 
             if queryIndex != len(query):

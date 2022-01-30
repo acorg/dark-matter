@@ -1,4 +1,4 @@
-from dark.cigar import CINS, CDEL, CMATCH, CEQUAL, CDIFF
+from dark.cigar import CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR
 
 
 def parseBtop(btopString):
@@ -99,7 +99,7 @@ def btop2cigar(btopString, concise=False, aa=False):
     for item in parseBtop(btopString):
         if isinstance(item, int):
             thisLength = item
-            thisOperation = CEQUAL if concise else CMATCH
+            thisOperation = CEQUAL_STR if concise else CMATCH_STR
         else:
             thisLength = 1
             query, reference = item
@@ -108,16 +108,16 @@ def btop2cigar(btopString, concise=False, aa=False):
                 # query to the reference a deletion is needed in the
                 # reference.
                 assert reference != '-'
-                thisOperation = CDEL
+                thisOperation = CDEL_STR
             elif reference == '-':
                 # The reference has a gap. That means that in matching the
                 # query to the reference an insertion is needed in the
                 # reference.
-                thisOperation = CINS
+                thisOperation = CINS_STR
             else:
                 # A substitution was needed.
                 assert query != reference
-                thisOperation = CDIFF if concise else CMATCH
+                thisOperation = CDIFF_STR if concise else CMATCH_STR
 
         if thisOperation == currentOperation:
             currentLength += thisLength

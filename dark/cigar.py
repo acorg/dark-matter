@@ -1,5 +1,10 @@
+from pysam import CINS, CSOFT_CLIP, CHARD_CLIP
+
+from dark.sam import CONSUMES_REFERENCE
+
+
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
-CINS, CDEL, CMATCH, CEQUAL, CDIFF = 'IDM=X'
+CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR = 'IDM=X'
 
 
 def dna2cigar(s1, s2, concise=False):
@@ -25,28 +30,28 @@ def dna2cigar(s1, s2, concise=False):
         raise ValueError('Two sequences of zero length were passed.')
 
     if concise:
-        return '%d%s' % (len1, CMATCH)
+        return '%d%s' % (len1, CMATCH_STR)
 
     result = []
     length, operation = 0, None
 
     for n1, n2 in zip(s1, s2):
         if n1 == n2:
-            if operation == CEQUAL:
+            if operation == CEQUAL_STR:
                 length += 1
             else:
                 if length:
-                    assert operation == CDIFF
-                    result.append('%d%s' % (length, CDIFF))
-                length, operation = 1, CEQUAL
+                    assert operation == CDIFF_STR
+                    result.append('%d%s' % (length, CDIFF_STR))
+                length, operation = 1, CEQUAL_STR
         else:
-            if operation == CDIFF:
+            if operation == CDIFF_STR:
                 length += 1
             else:
                 if length:
-                    assert operation == CEQUAL
-                    result.append('%d%s' % (length, CEQUAL))
-                length, operation = 1, CDIFF
+                    assert operation == CEQUAL_STR
+                    result.append('%d%s' % (length, CEQUAL_STR))
+                length, operation = 1, CDIFF_STR
 
     # Append the final operation.
     result.append('%d%s' % (length, operation))
@@ -97,13 +102,13 @@ def makeCigar(reference, query):
             elif referenceBase == '-':
                 # Insertion to the reference.
                 assert queryBase != '-'
-                cigar.append(CINS)
+                cigar.append(CINS_STR)
             elif queryBase == '-':
                 # Deletion from the reference.
                 assert referenceBase != '-'
-                cigar.append(CDEL)
+                cigar.append(CDEL_STR)
             else:
-                cigar.append(CMATCH)
+                cigar.append(CMATCH_STR)
 
     # Replace strings of identical operations with a count and the operation.
     lastOp = None
@@ -140,3 +145,106 @@ def cigarTuplesToOperations(tuples):
     for operation, count in tuples:
         for _ in range(count):
             yield operation
+
+
+def softClippedOffset(offset, pairs, cigarOperations):
+    """
+    Get the offset in the reference of a base that has been soft-clipped
+    in a query.
+
+    @param offset: The offset (in C{pairs}) of the soft-clipped base (which
+       has a to-be-determined offset in the reference).
+    @param pairs: A C{list} of C{int} (queryOffset, referenceOffset) pairs
+       for a pysam C{pysam.AlignedSegment}, as returned by
+       C{read.get_aligned_pairs} where the read is returned by the pysam
+       C{fetch} method.
+    @param cigarOperations: A C{list} of pysam CIGAR operations.
+    @return: The C{int} reference offset of the soft-clipped base.
+    """
+    assert cigarOperations[offset] == CSOFT_CLIP
+    assert pairs[offset][1] is None
+
+    # Look back.
+    count = 0
+    for pair, cigarOperation in zip(pairs[offset::-1],
+                                    cigarOperations[offset::-1]):
+        if cigarOperation == CSOFT_CLIP:
+            count += 1
+        else:
+            _, referenceOffset = pair
+            # If we have a reference offset, then we've found our
+            # answer. Otherwise, this has to be a hard-clipped base.
+            if referenceOffset is None:
+                assert cigarOperation == CHARD_CLIP
+                # We could break but won't, as explained above.
+            else:
+                return referenceOffset + count
+
+    # Look ahead.
+    count = 0
+    for pair, cigarOperation in zip(pairs[offset:], cigarOperations[offset:]):
+        if cigarOperation == CSOFT_CLIP:
+            count += 1
+        else:
+            _, referenceOffset = pair
+            # If we have a reference offset, then we've found our
+            # answer. Otherwise, this has to be a hard-clipped base.
+            if referenceOffset is None:
+                assert cigarOperation == CHARD_CLIP
+                # We could break here, but if we keep going we can test
+                # that the whole rest of the CIGAR is hard clips and will
+                # fail if not. That's not needed in a world of perfect code.
+            else:
+                return referenceOffset - count
+
+    # This should be impossible.
+    raise ValueError('Soft-clipped base with no following or preceding '
+                     'non-hard-clipped bases.')
+
+
+def insertionOffset(offset, pairs, cigarOperations):
+    """
+    Get the insertion offset in the reference for a base that is part of an
+    insertion.
+
+    @param offset: The offset (in C{pairs}) of the soft-clipped base (which
+       has a to-be-determined offset in the reference).
+    @param pairs: A C{list} of C{int} (queryOffset, referenceOffset) pairs
+       for a pysam C{pysam.AlignedSegment}, as returned by
+       C{read.get_aligned_pairs} where the read is returned by the pysam
+       C{fetch} method.
+    @param cigarOperations: A C{list} of pysam CIGAR operations.
+    @return: A 2-tuple containing a C{bool} and the C{int} reference offset of
+        the base after the insertion. The C{bool} indicates whether we needed
+        to look back in the sequence to find a reference base.
+    """
+    assert cigarOperations[offset] == CINS
+    assert pairs[offset][1] is None
+
+    # Look back.
+    for pair, cigarOperation in zip(pairs[offset::-1],
+                                    cigarOperations[offset::-1]):
+        if cigarOperation != CINS:
+            _, referenceOffset = pair
+            # If we have a reference offset, then we've found our
+            # answer. Otherwise, check as above.
+            if referenceOffset is None:
+                assert cigarOperation not in CONSUMES_REFERENCE
+            else:
+                return True, referenceOffset + 1
+
+    # Look ahead.
+    for pair, cigarOperation in zip(pairs[offset:], cigarOperations[offset:]):
+        if cigarOperation != CINS:
+            _, referenceOffset = pair
+            # If we have a reference offset, then we've found our
+            # answer. Otherwise, check that this is something that does not
+            # consume reference bases.
+            if referenceOffset is None:
+                assert cigarOperation not in CONSUMES_REFERENCE
+            else:
+                return False, referenceOffset
+
+    # This should be impossible.
+    raise ValueError('Inserted base with no following or preceding '
+                     'reference bases.')

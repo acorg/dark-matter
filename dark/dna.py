@@ -501,6 +501,9 @@ class Bases:
         self.count = 0
         self.counts = dict.fromkeys('ACGT', 0)
 
+    def __eq__(self, other):
+        return self.count == other.count and self.counts == other.counts
+
     def __str__(self):
         return f'<Bases count={self.count}, bases={self.counts}'
 

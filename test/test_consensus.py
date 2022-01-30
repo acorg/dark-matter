@@ -1,4 +1,4 @@
-from unittest import TestCase, skipUnless
+from unittest import TestCase, skipUnless, skip
 
 from dark.consensus import consensusFromBAM
 from dark.reads import DNARead
@@ -401,6 +401,26 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadHasEarlierSitesNoSoftClipped(self):
+        """
+        If a read has sites that come before the reference, they must
+        not appear in the consensus if soft-clipped bases are not included.
+        """
+        template = (
+            ' ACGT',
+            'AA',
+            '??',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'ACGT',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
 
     def testReadHasLaterSites(self):
@@ -420,6 +440,26 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadHasLaterSitesNoSoftClipped(self):
+        """
+        If a read has sites that come after the reference, they must
+        not appear in the consensus if soft-clipped bases are not included.
+        """
+        template = (
+            'ACGT',
+            '   TAA',
+            '   ???',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'ACGT',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
                                  ignoreQuality=self.ignoreQuality))
 
     def testReadHasEarlierAndLaterSites(self):
@@ -436,6 +476,27 @@ class _Mixin:
         with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TCACGTGA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadHasEarlierAndLaterSitesNoSoftClipped(self):
+        """
+        If a read has sites that come before and after the reference, the sites
+        must not appear in the consensus if soft-clipped bases are not
+        included.
+        """
+        template = (
+            '  ACGT',
+            'TCACGTGA',
+            '????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'ACGT',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
@@ -459,6 +520,31 @@ class _Mixin:
         with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'TCACGTGA',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testReadsHaveEarlierAndLaterSitesNoSoftClipped(self):
+        """
+        If two reads have sites that come before and after the reference, the
+        sites must not appear in the consensus if soft-clipped bases are not
+        included. This is the same as the
+        testReadHasEarlierAndLaterSitesNoSoftClipped test above, but using two
+        reads (instead of one) to give the before and after sites.
+        """
+        template = (
+            '  ACGT',
+            'TCA',
+            '???',
+            '     TGA',
+            '     ???',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'ACGT',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
@@ -518,6 +604,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testTwoInsertionsInReference(self):
@@ -538,9 +625,10 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
-    def testTwoInsertionsAndOneDeletionInReference(self):
+    def testTwoInsertionsAndOneUnmarkedDeletionInReference(self):
         """
         Two insertions and one deletion in the reference must be handled
         correctly.
@@ -559,12 +647,61 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
+    def testTwoInsertionsAndOneDeletionInReference(self):
+        """
+        Two insertions and one deletion in the reference must be handled
+        correctly, with the deletions marked with 'x' as requested.
+        """
+        template = (
+            'CA-CGT-G',
+            ' AA--',
+            ' ??--',
+            '     TAG',
+            '     ???',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'CAAxTAG',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 deletionSymbol='x',
+                                 insertionCountThreshold=1,
+                                 ignoreQuality=self.ignoreQuality))
+
+    @skip('Deletion / insertion ordering needs fixing.')
     def testTwoInsertionsAndTwoDeletionsInReference(self):
         """
         Two insertions and two deletions in the reference must be handled
-        correctly.
+        correctly and the deletions must appear in the consensus as requested.
+        """
+        template = (
+            'CA-CGT-G',
+            ' AA--',
+            ' ??--',
+            '     TAG',
+            '     ???',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'CAAxxTAG',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 threshold=0.7,
+                                 deletionSymbol='x',
+                                 insertionCountThreshold=1,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoInsertionsAndTwoUnmarkedDeletionsInReference(self):
+        """
+        Two insertions and two deletions in the reference must be handled
+        correctly and the deletions must not appear in the consensus if the
+        deletion symbol is the empty string.
         """
         template = (
             'CA-CGT-G',
@@ -580,6 +717,8 @@ class _Mixin:
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  threshold=0.7,
+                                 deletionSymbol='',
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testGeneiousExamplesNoTie(self):
@@ -692,6 +831,7 @@ class _Mixin:
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testOmicronEPE214InsertionRightSideExact(self):
@@ -712,6 +852,7 @@ class _Mixin:
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testOmicronEPE214InsertionLeftSideExact(self):
@@ -732,6 +873,7 @@ class _Mixin:
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testOmicronEPE214InsertionInTwoReads(self):
@@ -755,15 +897,15 @@ class _Mixin:
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
-    def testOmicronEPE214PartialInsertion(self):
+    def testOmicronEPE214PartialSoftClipped(self):
         """
         Test that a trailing part of the amino acid EPE sequence (here
         'AGCCAGAA') insertion into the SARS-CoV-2 spike nucleotide sequence
         that usually is found at location 642 (amino acid location 214) works
-        as expected, including when the insertion is only partial (here we
-        don't have the first nucleotide of the 9 nucleotide insertion).
+        as expected when found as a partial soft-clipped region.
         """
         template = (
             '        TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
@@ -776,12 +918,34 @@ class _Mixin:
                 'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 includeSoftClipped=True,
                                  ignoreQuality=self.ignoreQuality))
 
-    def testTwoAgreeingInsertionsNothingBefore(self):
+    def testOmicronEPE214PartialNoSoftClipped(self):
         """
-        Test that two insertions that agree with each other and do not match
-        reference bases before the insertion give the expected result.
+        Test that a trailing part of the amino acid EPE sequence (here
+        'AGCCAGAA') insertion into the SARS-CoV-2 spike nucleotide sequence
+        that usually is found at location 642 (amino acid location 214) works
+        as expected when it appears as a partial soft-clipped region but
+        soft-clipped bases are not included.
+        """
+        template = (
+            '        TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            'AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT',
+            '???????????????????????????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoAgreeingSoftClipsNothingBefore(self):
+        """
+        Test that two soft-clipped regions that agree with each other are
+        in the expected result when soft-clipped bases are included.
         """
         template = (
             '        TGATCTCC',
@@ -794,6 +958,27 @@ class _Mixin:
         with makeBAM(template) as (reference, bamFilename):
             self.assertEqual(
                 'AGCCAGAATGATCTCC',
+                consensusFromBAM(bamFilename,
+                                 reference=reference,
+                                 includeSoftClipped=True,
+                                 ignoreQuality=self.ignoreQuality))
+
+    def testTwoAgreeingSoftClipsNothingBeforeNoSoftClipped(self):
+        """
+        Test that two soft-clipped regions that agree with each other are
+        ignored when soft-clipped bases are not including.
+        """
+        template = (
+            '        TGATCTCC',
+            'AGCCAGAATGATCTCC',
+            '????????????????',
+            '    AGAATGATCTCC',
+            '    ????????????',
+        )
+
+        with makeBAM(template) as (reference, bamFilename):
+            self.assertEqual(
+                'TGATCTCC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
                                  ignoreQuality=self.ignoreQuality))
@@ -816,6 +1001,7 @@ class _Mixin:
                 'TTAGCCAGAATGATCTCC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
     def testTwoInsertions(self):
@@ -836,6 +1022,7 @@ class _Mixin:
                 'TTAGCCAGAATGATGGCTCC',
                 consensusFromBAM(bamFilename,
                                  reference=reference,
+                                 insertionCountThreshold=1,
                                  ignoreQuality=self.ignoreQuality))
 
 
