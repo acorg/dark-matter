@@ -102,15 +102,20 @@ def main():
               'no sense to you.'))
 
     parser.add_argument(
-        '--compareWithPileup', action='store_true',
+        '--compareWithPileupFile',
         help=('Make a consensus using the pysam pileup function and compare '
-              'it to the one made by usign pysam fetch'))
+              'it to the one made by usign pysam fetch. Write the summary to '
+              'this file.'))
 
     parser.add_argument(
         '--deletionSymbol', default='-',
         help=('When a deletion is detected, put this symbol into the '
               'consensus sequence. Use the empty string to have deletions '
               'omitted.'))
+
+    parser.add_argument(
+        '--strategy', default='fetch', choices=('fetch',),
+        help='The consensus-making strategy to use.')
 
     parser.add_argument(
         '--deletionThreshold', default=0.5, type=float,
@@ -179,8 +184,9 @@ def main():
         deletionThreshold=args.deletionThreshold,
         insertionCountThreshold=args.insertionCountThreshold,
         ignoreQuality=args.ignoreQuality,
-        includeSoftClipped=args.includeSoftClipped,
-        compareWithPileup=args.compareWithPileup, progress=args.progress)
+        includeSoftClipped=args.includeSoftClipped, strategy=args.strategy,
+        compareWithPileupFile=args.compareWithPileupFile,
+        progress=args.progress)
 
     print(DNARead(consensusId, consensus).toString('fasta'), end='')
 
