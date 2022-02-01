@@ -255,6 +255,19 @@ class TestMakeCigar(TestCase):
         self.assertEqual('2M2S', makeCigar('  ACGT  ',
                                            '    ATAA'))
 
+    def testLeftInsert(self):
+        """
+        Test that an insert on the left works.
+        """
+        self.assertEqual(
+            '2I2M',
+            makeCigar('--ACGT  ', 'ATAC', noEdgeInsertions=False))
+
+        # When edge insertions are not allowed, the first two bases are
+        # soft-clipped (as in tests above).
+        self.assertEqual('2S2M', makeCigar('--ACGT  ',
+                                           'ATAC'))
+
 
 class TestCigarTuplesToOperations(TestCase):
     """

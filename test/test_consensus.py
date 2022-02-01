@@ -1,12 +1,12 @@
 from unittest import TestCase, skipUnless
 
-from dark.consensus import consensusFromBAM
+from dark.consensus import consensusFromBAM, ConsensusError
 from dark.reads import DNARead
 from dark.sam import (
     samtoolsInstalled, UnequalReferenceLengthError, UnknownReference,
     UnspecifiedReference)
 
-from .bam import makeBAM
+from .bam import makeBAM, REF_ID
 
 
 @skipUnless(samtoolsInstalled(), 'samtools is not installed')
@@ -22,11 +22,12 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             strategy = 'xxx'
             error = rf'^Unknown consensus strategy {strategy!r}\.$'
-            self.assertRaisesRegex(ValueError, error, consensusFromBAM,
-                                   bamFilename, strategy=strategy)
+            self.assertRaisesRegex(ConsensusError, error, consensusFromBAM,
+                                   bamFilename, strategy=strategy,
+                                   quiet=True, referenceFasta=fastaFilename)
 
     def testUnknownReferenceId(self):
         """
@@ -37,14 +38,15 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             badId = 'bad-id'
             error = (
                 rf'^BAM file {str(bamFilename)!r} does not mention a '
                 rf'reference with id {badId!r}\. Known references are: '
                 rf'ref-id\.$')
             self.assertRaisesRegex(UnknownReference, error, consensusFromBAM,
-                                   bamFilename, referenceId=badId)
+                                   bamFilename, bamId=badId,
+                                   referenceFasta=fastaFilename)
 
     def testUnknownReference(self):
         """
@@ -55,14 +57,33 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
-            wrongReference = DNARead('unknown-id', template[0])
+        UNKNOWN = 'unknown-id'
+        with makeBAM(template) as (fastaFilename, bamFilename):
             error = (
                 rf'^BAM file {str(bamFilename)!r} does not mention a '
-                rf'reference with id {wrongReference.id!r}\. Known '
+                rf'reference with id {UNKNOWN!r}\. Known '
                 rf'references are: ref-id\.$')
             self.assertRaisesRegex(UnknownReference, error, consensusFromBAM,
-                                   bamFilename, reference=wrongReference)
+                                   bamFilename, bamId=UNKNOWN,
+                                   referenceFasta=fastaFilename)
+
+    def testUnknownFastaReference(self):
+        """
+        If a reference sequence id is passed and it is not in the FASTA file,
+        UnknownReference must be raised.
+        """
+        template = (
+            'ACGTTCCG',
+        )
+
+        UNKNOWN = 'unknown-id'
+        with makeBAM(template) as (fastaFilename, bamFilename):
+            error = (
+                rf'^No sequence with id {UNKNOWN!r} found in '
+                rf'{str(fastaFilename)!r}\.$')
+            self.assertRaisesRegex(UnknownReference, error, consensusFromBAM,
+                                   bamFilename, fastaId=UNKNOWN,
+                                   referenceFasta=fastaFilename)
 
     def testUnspecifiedReference(self):
         """
@@ -73,15 +94,18 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template, secondReference='zzz') as (reference,
+        bamReferences = [DNARead('ref-1', template[0]),
+                         DNARead('ref-2', 'AA')]
+        fastaReferences = [DNARead('ref-3', 'AAA')]
+        with makeBAM(template, bamReferences=bamReferences,
+                     fastaReferences=fastaReferences) as (fastaFilename,
                                                           bamFilename):
             error = (
-                rf'^BAM file {str(bamFilename)!r} mentions 2 references '
-                rf'\(ref-id, zzz\) but you have not passed a referenceId '
-                rf'argument or a reference sequence to indicate which one to '
-                rf'use\.$')
+                r'^Could not infer a BAM reference. Available references are: '
+                r'ref-1, ref-2\.$')
             self.assertRaisesRegex(UnspecifiedReference, error,
-                                   consensusFromBAM, bamFilename)
+                                   consensusFromBAM, bamFilename,
+                                   referenceFasta=fastaFilename)
 
     def testReferenceOfWrongLength(self):
         """
@@ -92,17 +116,34 @@ class TestReferenceErrors(TestCase):
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
-            wrongReference = DNARead(reference.id, 'AA')
+        fastaReferences = [DNARead(REF_ID, 'AA')]
+        with makeBAM(template, fastaReferences=fastaReferences) as (
+                fastaFilename, bamFilename):
             error = (
-                rf'^Reference with id {reference.id!r} has length 2, which '
-                rf'does not match the length of reference {reference.id!r} '
-                rf'\({len(template[0])}\) in BAM file '
-                rf'{str(bamFilename)!r}\.$')
+                rf'^Reference FASTA sequence {REF_ID!r} has length 2, but the '
+                rf'BAM reference {REF_ID!r} has length {len(template[0])}\.$')
             self.assertRaisesRegex(UnequalReferenceLengthError, error,
                                    consensusFromBAM, bamFilename,
-                                   referenceId=reference.id,
-                                   reference=wrongReference)
+                                   referenceFasta=fastaFilename, quiet=True)
+
+    def testEmptyReferenceFile(self):
+        """
+        If a reference file is passed but is empty, UnknownReference must be
+        raised.
+        """
+        template = (
+            'ACGTTCCG',
+        )
+
+        fastaReferences = []
+        with makeBAM(template, fastaReferences=fastaReferences) as (
+                fastaFilename, bamFilename):
+            error = (
+                rf'^The FASTA reference file {str(fastaFilename)!r} contained '
+                rf'no sequences\.$')
+            self.assertRaisesRegex(UnknownReference, error,
+                                   consensusFromBAM, bamFilename,
+                                   referenceFasta=fastaFilename)
 
 
 class _Mixin:
@@ -120,13 +161,13 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 template[0],
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  noCoverage='reference',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testNoReadsReferenceFromId(self):
         """
@@ -138,12 +179,12 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'N' * len(template[0]),
-                consensusFromBAM(bamFilename, referenceId=reference.id,
+                consensusFromBAM(bamFilename, quiet=True, bamId='ref-id',
                                  noCoverage='N', lowCoverage='N',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReferenceAndReferenceIdNotGiven(self):
         """
@@ -155,12 +196,13 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'N' * len(template[0]),
-                consensusFromBAM(bamFilename,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  noCoverage='N', lowCoverage='N',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testNoReadsN(self):
         """
@@ -171,19 +213,19 @@ class _Mixin:
             'ACGTTCCG',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             for char in 'N?':
                 self.assertEqual(
                     char * len(template[0]),
-                    consensusFromBAM(bamFilename,
-                                     reference=reference,
-                                     noCoverage=char,
-                                     ignoreQuality=self.ignoreQuality))
+                    consensusFromBAM(
+                        bamFilename, quiet=True, referenceFasta=fastaFilename,
+                        noCoverage=char,
+                        ignoreQuality=self.ignoreQuality).sequence)
 
     def testLowReadsReference(self):
         """
         If fewer reads than needed are present and resolution of low-coverage
-        bases is the reference sequence, the reference should be returned.
+        sites is the reference sequence, the reference should be returned.
         """
         template = (
             'ACGTTCCG',
@@ -191,19 +233,19 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 template[0],
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  lowCoverage='reference',
                                  minCoverage=2,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testLowReadsCharNoCoverageConsensus(self):
         """
         If fewer reads than needed are present and resolution of low-coverage
-        bases is 'N' (or '? etc), then Ns (or ?s, etc) should be returned in
+        sites is 'N' (or '? etc), then Ns (or ?s, etc) should be returned in
         the low coverage sites, and the reference in the sites with no
         coverage.
         """
@@ -213,20 +255,21 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             for char in 'N?':
                 self.assertEqual(
                     'AC' + char * 3 + 'CCG',
-                    consensusFromBAM(bamFilename,
-                                     reference=reference,
-                                     lowCoverage=char,
-                                     minCoverage=2,
-                                     ignoreQuality=self.ignoreQuality))
+                    consensusFromBAM(
+                        bamFilename, quiet=True,
+                        referenceFasta=fastaFilename,
+                        lowCoverage=char,
+                        minCoverage=2,
+                        ignoreQuality=self.ignoreQuality).sequence)
 
     def testLowReadsCharNoCoverageX(self):
         """
         If fewer reads than needed are present and resolution of low-coverage
-        bases is 'N' (or '? etc), then Ns (or ?s, etc) should be returned in
+        sites is 'N' (or '? etc), then Ns (or ?s, etc) should be returned in
         the low coverage sites, and (for example) 'X' in the sites with no
         coverage.
         """
@@ -236,16 +279,17 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             for char in 'N?':
                 self.assertEqual(
                     'XX' + char * 3 + 'XXX',
-                    consensusFromBAM(bamFilename,
-                                     reference=reference,
-                                     noCoverage='X',
-                                     lowCoverage=char,
-                                     minCoverage=2,
-                                     ignoreQuality=self.ignoreQuality))
+                    consensusFromBAM(
+                        bamFilename, quiet=True,
+                        referenceFasta=fastaFilename,
+                        noCoverage='X',
+                        lowCoverage=char,
+                        minCoverage=2,
+                        ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneReadMatchingPartOfTheReference(self):
         """
@@ -259,13 +303,13 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 template[0],
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  noCoverage='reference',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneReadDifferingFromPartOfTheReference(self):
         """
@@ -279,13 +323,13 @@ class _Mixin:
             '  ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACAAACCG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  noCoverage='reference',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoReadsDifferingFromPartOfTheReferenceSomeLowCoverage(self):
         """
@@ -303,15 +347,15 @@ class _Mixin:
             '  ????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACAAA+CG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  minCoverage=2,
                                  noCoverage='reference',
                                  lowCoverage='+',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoReadsDifferingFromPartOfTheReferenceLowAndNoCoverage(self):
         """
@@ -328,15 +372,15 @@ class _Mixin:
             '  ????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'NNAAA+NN',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  minCoverage=2,
                                  noCoverage='N',
                                  lowCoverage='+',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testSimpleMajority(self):
         """
@@ -353,13 +397,13 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACAT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.5,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testSimpleMajorityBelowThreshold(self):
         """
@@ -376,13 +420,13 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACMT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierSites(self):
         """
@@ -395,14 +439,14 @@ class _Mixin:
             '??',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'AACGT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierSitesNoSoftClipped(self):
         """
@@ -415,13 +459,13 @@ class _Mixin:
             '??',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACGT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasLaterSites(self):
         """
@@ -434,14 +478,14 @@ class _Mixin:
             '   ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACGTAA',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasLaterSitesNoSoftClipped(self):
         """
@@ -454,13 +498,13 @@ class _Mixin:
             '   ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACGT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierAndLaterSites(self):
         """
@@ -473,14 +517,14 @@ class _Mixin:
             '????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TCACGTGA',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierAndLaterSitesNoSoftClipped(self):
         """
@@ -494,13 +538,13 @@ class _Mixin:
             '????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACGT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadsHaveEarlierAndLaterSites(self):
         """
@@ -517,14 +561,14 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TCACGTGA',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadsHaveEarlierAndLaterSitesNoSoftClipped(self):
         """
@@ -542,13 +586,13 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACGT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneDeletionFromReference(self):
         """
@@ -562,14 +606,39 @@ class _Mixin:
             ' ?-?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAxATG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='x',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
+
+    def testOneLowFrequencyDeletion(self):
+        """
+        A deletion from the reference that does not meet the required deletion
+        frequency should not appear in the consensus.
+        """
+        template = (
+            'CACGTG',
+            ' A-A',
+            ' ?-?',
+            ' AGA',
+            ' ???',
+            ' AGA',
+            ' ???',
+        )
+
+        with makeBAM(template) as (fastaFilename, bamFilename):
+            self.assertEqual(
+                'CAGATG',
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
+                                 threshold=0.7,
+                                 deletionSymbol='x',
+                                 deletionThreshold=0.5,
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneDeletionFromReferenceUnmarked(self):
         """
@@ -583,14 +652,14 @@ class _Mixin:
             ' ?-?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAATG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoDeletionsFromReference(self):
         """
@@ -602,14 +671,14 @@ class _Mixin:
             ' ?-?-?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAxAxG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='x',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoDeletionsFromReferenceUnmarked(self):
         """
@@ -621,14 +690,14 @@ class _Mixin:
             ' ?-?-?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAAG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='',
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneInsertionInReference(self):
         """
@@ -640,14 +709,34 @@ class _Mixin:
             ' ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAACGTG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
+
+    def testOneInsertionInReferenceLowFrequency(self):
+        """
+        An insertion in the reference must not be included if it does not
+        meet the insertionCountThreshold.
+        """
+        template = (
+            'CA-CGTG',
+            ' ATC',
+            ' ???',
+        )
+
+        with makeBAM(template) as (fastaFilename, bamFilename):
+            self.assertEqual(
+                'CACGTG',
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
+                                 threshold=0.7,
+                                 insertionCountThreshold=2,
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsInReference(self):
         """
@@ -661,14 +750,14 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAACGTAG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndOneUnmarkedDeletionInReference(self):
         """
@@ -683,15 +772,15 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAAGTAG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='',
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndOneDeletionInReference(self):
         """
@@ -706,15 +795,15 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAAxGTAG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='x',
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndTwoDeletionsInReference(self):
         """
@@ -729,15 +818,15 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAAxxTAG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='x',
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndTwoUnmarkedDeletionsInReference(self):
         """
@@ -753,15 +842,15 @@ class _Mixin:
             '     ???',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'CAATAG',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='',
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testGeneiousExamplesNoTie(self):
         """
@@ -796,14 +885,15 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             for expected, threshold in ('A', 0.4), ('R', 0.7), ('D', 0.95):
                 self.assertEqual(
                     f'AC{expected}T',
-                    consensusFromBAM(bamFilename,
-                                     reference=reference,
-                                     threshold=threshold,
-                                     ignoreQuality=self.ignoreQuality))
+                    consensusFromBAM(
+                        bamFilename, quiet=True,
+                        referenceFasta=fastaFilename,
+                        threshold=threshold,
+                        ignoreQuality=self.ignoreQuality).sequence)
 
     def testGeneiousExamplesTie(self):
         """
@@ -838,14 +928,15 @@ class _Mixin:
             '  ?',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             for expected, threshold in ('A', 0.4), ('D', 0.7), ('D', 0.95):
                 self.assertEqual(
                     f'AC{expected}T',
-                    consensusFromBAM(bamFilename,
-                                     reference=reference,
-                                     threshold=threshold,
-                                     ignoreQuality=self.ignoreQuality))
+                    consensusFromBAM(
+                        bamFilename, quiet=True,
+                        referenceFasta=fastaFilename,
+                        threshold=threshold,
+                        ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoAgreeingSoftClipsNothingBefore(self):
         """
@@ -860,13 +951,13 @@ class _Mixin:
             '    ????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'AGCCAGAATGATCTCC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoAgreeingSoftClipsNothingBeforeNoSoftClipped(self):
         """
@@ -881,12 +972,12 @@ class _Mixin:
             '    ????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TGATCTCC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 ignoreQuality=self.ignoreQuality))
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoAgreeingInsertionsOneMatchingSomethingBefore(self):
         """
@@ -901,13 +992,13 @@ class _Mixin:
             '      ????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TTAGCCAGAATGATCTCC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertions(self):
         """
@@ -922,13 +1013,13 @@ class _Mixin:
             '           ?????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TTAGCCAGAATGATGGCTCC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214Insertion(self):
         """
@@ -951,13 +1042,13 @@ class _Mixin:
             '      ??????????????????????????????????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214InsertionRightSideExact(self):
         """
@@ -973,14 +1064,14 @@ class _Mixin:
             '      ???????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TAATTTAGTGCGGAGCCAGAATCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214InsertionLeftSideExactSoftClipped(self):
         """
@@ -996,14 +1087,14 @@ class _Mixin:
             '            ???????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TAAGAGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214PartialInsertionInTwoReadsSoftClipped(self):
         """
@@ -1032,14 +1123,14 @@ class _Mixin:
         #     AGCCAGAATGATCTCCCTCA
         #       ------------
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TAATAGMSWGMRKRRYCWCCCTCA',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
                                  includeSoftClipped=True,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214PartialInsertionInTwoReads(self):
         """
@@ -1056,13 +1147,13 @@ class _Mixin:
             '    ????????????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TAATAGMSWGMRKRRYCWCCCTCA',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214PartialNoSoftClipped(self):
         """
@@ -1078,12 +1169,12 @@ class _Mixin:
             '???????????????????????????????????',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
-                                 ignoreQuality=self.ignoreQuality))
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
+                                 ignoreQuality=self.ignoreQuality).sequence)
 
 
 @skipUnless(samtoolsInstalled(), 'samtools is not installed')
@@ -1120,10 +1211,10 @@ class TestWithQuality(TestCase, _Mixin):
             '  ]',
         )
 
-        with makeBAM(template) as (reference, bamFilename):
+        with makeBAM(template) as (fastaFilename, bamFilename):
             self.assertEqual(
                 'ACCT',
-                consensusFromBAM(bamFilename,
-                                 reference=reference,
+                consensusFromBAM(bamFilename, quiet=True,
+                                 referenceFasta=fastaFilename,
                                  threshold=0.5,
-                                 ignoreQuality=self.ignoreQuality))
+                                 ignoreQuality=self.ignoreQuality).sequence)

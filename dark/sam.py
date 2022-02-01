@@ -14,19 +14,27 @@ from dark.process import Executor
 from dark.reads import Read, DNARead
 
 
-class UnequalReferenceLengthError(Exception):
+class SamError(Exception):
+    "A SAM error."
+
+
+class UnequalReferenceLengthError(SamError):
     "The references of interest in a SAM/BAM file are not of the same length."
 
 
-class UnknownReference(Exception):
+class UnknownReference(SamError):
     "Reference sequence not found in SAM/BAM file."
 
 
-class UnspecifiedReference(Exception):
+class UnspecifiedReference(SamError):
     "Reference sequence not specified."
 
 
-class InvalidSAM(Exception):
+class ReferenceNameMismatchError(SamError):
+    "Reference name mismatch."
+
+
+class InvalidSAM(SamError):
     "SAM/BAM file has unexpected/invalid content."
 
 

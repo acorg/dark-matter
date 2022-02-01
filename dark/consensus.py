@@ -5,10 +5,13 @@ from pysam import CINS, CDEL, CSOFT_CLIP
 from dark.cigar import (
     cigarTuplesToOperations, softClippedOffset, insertionOffset)
 from dark.dna import Bases
+from dark.fasta import FastaReads
 from dark.progress import maybeProgressBar
+from dark.reads import DNARead
 from dark.sam import (
     samfile, samReferences, UnequalReferenceLengthError,
-    UnknownReference, UnspecifiedReference, CONSUMES_REFERENCE)
+    UnknownReference, UnspecifiedReference, ReferenceNameMismatchError,
+    CONSUMES_REFERENCE)
 from dark.utils import pct
 
 DEBUG = False
@@ -16,6 +19,10 @@ DEBUG = False
 
 def debug(*msg):
     print(*msg, file=sys.stderr)
+
+
+class ConsensusError(Exception):
+    'A consensus-making error.'
 
 
 class Insertion:
@@ -193,73 +200,177 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     return ''.join(result)
 
 
-def getReferenceInfo(bam, bamFilename, referenceId, reference):
+def getReferenceInfo(
+        bam, bamFilename, bamId, referenceFasta, fastaId, consensusId,
+        idLambda, quiet):
     """
-    Get the length of the BAM file reference seqeunce.
+    Get the id and length of the BAM file reference seqeunce.
 
     @param bam: An open BAM file.
     @param bamFilename: The C{str} file name of the BAM file.
-    @param referenceId: A C{str} reference name indicating which reference to
-        find reads against in the BAM file. If C{None} and there is only one
-        reference in the BAM file, that one will be used, else a ValueError
-        is raised due to not knowing which reference to use.
-    @param reference: A C{Read} instance giving the reference sequence, or
-        C{None}.
+    @param bamId: A C{str} BAM file reference name indicating which aligned
+        reads to make a consensus from. If not given, will be inferred
+        from the BAM file header.
+    @param referenceFasta: A C{str} file name containing the sequence that was
+        aligned to in making the BAM file.
+    @param fastaId: A C{str} reference name indicating which sequence in
+        C{referenceFasta} to use as a reference. Only considered if
+        C{referenceFasta} is given. If not given and C{referenceFasta} is,
+        the reference id will be inferred from reference names in the BAM
+        header, or will be taken as the id of the first sequence in
+        C{referenceFasta}.
+    @param consensusId: The C{str} id to use in the consensus sequence. If not
+        given, the BAM reference id with '-consensus' appended will be used.
+    @param idLambda: A one-argument function taking and returning a sequence
+        id. This can be used to set the id of the consensus sequence based
+        on the id of the reference sequence. The function will be called with
+        the id of the BAM reference sequence.
+    @param quiet: If C{True}, suppress diagnostic output.
+    @raise ConsensusError: On any error.
     @return: A 2-tuple of C{str}, C{int} giving the refrence sequence id and
         length.
     """
     bamReferences = set(samReferences(bam))
-    if referenceId is None:
-        if reference:
-            referenceId = reference.id
-        elif len(bamReferences) == 1:
-            referenceId = tuple(bamReferences)[0]
+    checkName = checkLength = True
+    inferredBamId = bamId is None
+    inferredFastaId = fastaId is None
+    referenceLength = None
 
-    if referenceId is None:
-        raise UnspecifiedReference(
-            f'BAM file {str(bamFilename)!r} mentions '
-            f'{len(bamReferences)} references '
-            f'({", ".join(sorted(bamReferences))}) but you have not '
-            f'passed a referenceId argument or a reference sequence to '
-            f'indicate which one to use.')
+    if bamId is None:
+        inferredBamId = True
+    else:
+        if bamId not in bamReferences:
+            raise UnknownReference(
+                f'BAM file {str(bamFilename)!r} does not mention a reference '
+                f'with id {bamId!r}. Known references are: '
+                f'{", ".join(sorted(bamReferences))}.')
 
-    tid = bam.get_tid(referenceId)
+        inferredBamId = False
+        tid = bam.get_tid(bamId)
+        referenceLength = bam.lengths[tid]
 
-    if tid == -1 or referenceId not in bamReferences:
-        raise UnknownReference(
-            f'BAM file {str(bamFilename)!r} does not mention a '
-            f'reference with id {referenceId!r}. Known references are: '
-            f'{", ".join(sorted(bamReferences))}.')
+        if fastaId is not None:
+            # Both ids have been given explicitly, so don't check that they
+            # are identical, assume the user knows what they are doing (we
+            # will just check the lengths, if necessary).
+            checkName = False
 
-    referenceLength = bam.lengths[tid]
+    if referenceFasta is None:
+        reference = None
+    else:
+        if fastaId is None:
+            # We're given a reference FASTA file, but no id to use. Look at
+            # the sequences in the FASTA and take the first one that has a
+            # name and length matching a BAM reference (we could actually
+            # look to see if there are more than one and, if so, give an
+            # error if their sequences are not identical).
+            firstRead = None
+            for read in FastaReads(referenceFasta):
+                if firstRead is None:
+                    firstRead = read
+                if read.id in bamReferences:
+                    tid = bam.get_tid(read.id)
+                    if len(read) == bam.lengths[tid]:
+                        reference = read
+                        checkLength = checkName = False
+                        break
+            else:
+                # Try the first sequence in the FASTA file.
+                reference = firstRead
 
-    if reference and len(reference) != referenceLength:
-        raise UnequalReferenceLengthError(
-            f'Reference with id {reference.id!r} has length '
-            f'{len(reference)}, which does not match the length of '
-            f'reference {referenceId!r} ({referenceLength}) in BAM file '
-            f'{str(bamFilename)!r}.')
+            if firstRead is None:
+                raise UnknownReference(
+                    f'The FASTA reference file {str(referenceFasta)!r} '
+                    f'contained no sequences.')
+        else:
+            for read in FastaReads(referenceFasta):
+                if read.id == fastaId:
+                    reference = read
+                    break
+            else:
+                raise UnknownReference(f'No sequence with id {fastaId!r} '
+                                       f'found in {str(referenceFasta)!r}.')
 
-    return referenceId, referenceLength
+        # Set reference length if it has not already been set due to a
+        # given bamId.
+        if referenceLength is None:
+            referenceLength = len(reference)
+
+    if bamId is None:
+        if len(bamReferences) == 1:
+            # This is the only possibility.
+            bamId = tuple(bamReferences)[0]
+            tid = bam.get_tid(bamId)
+            referenceLength = bam.lengths[tid]
+        elif reference and reference.id in bamReferences:
+            tid = bam.get_tid(reference.id)
+            if len(reference) == bam.lengths[tid]:
+                bamId = reference.id
+                checkLength = checkName = False
+        else:
+            raise UnspecifiedReference(
+                f'Could not infer a BAM reference. Available references are: '
+                f'{", ".join(sorted(bamReferences))}.')
+
+    if inferredBamId and not quiet:
+        print(f'BAM reference id {bamId!r} inferred from context.',
+              file=sys.stderr)
+
+    if reference:
+        if inferredFastaId and not quiet:
+            print(f'FASTA reference id {reference.id!r} inferred from '
+                  f'context.', file=sys.stderr)
+
+        if checkName and reference.id != bamId:
+            raise ReferenceNameMismatchError(
+                f'Reference FASTA sequence name {reference.id!r} does '
+                f'not match the BAM id {bamId!r}.')
+
+        if checkLength and len(reference) != referenceLength:
+            raise UnequalReferenceLengthError(
+                f'Reference FASTA sequence {reference.id!r} has length '
+                f'{len(reference)}, but the BAM reference {bamId!r} has '
+                f'length {referenceLength}.')
+
+    if consensusId is None:
+        if idLambda is None:
+            consensusId = f'{bamId}-consensus'
+        else:
+            idLambda = eval(idLambda)
+            consensusId = idLambda(bamId)
+
+    return bamId, reference, referenceLength, consensusId
 
 
 def consensusFromBAM(
-        bamFilename, referenceId=None, reference=None, threshold=0.8,
-        minCoverage=1, lowCoverage='reference', noCoverage='reference',
+        bamFilename, bamId=None, referenceFasta=None, fastaId=None,
+        consensusId=None, idLambda=None, threshold=0.8, minCoverage=1,
+        lowCoverage='reference', noCoverage='reference',
         deletionSymbol='-', deletionThreshold=0.5, ignoreQuality=False,
         insertionCountThreshold=5, strategy='fetch',
-        includeSoftClipped=False, compareWithPileupFile=None, progress=False):
+        includeSoftClipped=False, compareWithPileupFile=None, progress=False,
+        quiet=False):
     """
     Build a consensus sequence from a BAM file.
 
     @param bamFilename: the BAM file.
-    @param referenceId: A C{str} reference name indicating which reference to
-        find reads against in the BAM file. If C{None} and there is only one
-        reference in the BAM file, that one will be used, else a ValueError
-        is raised due to not knowing which reference to use.
-    @param reference: A C{Read} instance giving the reference sequence, or
-        C{None} (in which case C{lowCoverage} and C{noCoverage} may not be
-        'reference'.
+    @param bamId: A C{str} BAM file reference name indicating which aligned
+        reads to make a consensus from. If not given, will be inferred
+        from the BAM file header.
+    @param referenceFasta: A C{str} file name containing the sequence that was
+        aligned to in making the BAM file.
+    @param fastaId: A C{str} reference name indicating which sequence in
+        C{referenceFasta} to use as a reference. Only considered if
+        C{referenceFasta} is given. If not given and C{referenceFasta} is,
+        the reference id will be inferred from reference names in the BAM
+        header, or will be taken as the id of the first sequence in
+        C{referenceFasta}.
+    @param consensusId: The C{str} id to use in the consensus sequence. If not
+        given, the BAM reference id with '-consensus' appended will be used.
+    @param idLambda: A one-argument function taking and returning a sequence
+        id. This can be used to set the id of the consensus sequence based
+        on the id of the reference sequence. The function will be called with
+        the id of the BAM reference sequence.
     @param threshold: A C{float} threshold. This fraction, at least, of the
         most-common nucleotides at a site are used to determine the consensus
         nucleotide (or ambiguous symbol if more than one nucleotide is
@@ -295,21 +406,36 @@ def consensusFromBAM(
         attention to insertions. A summary of the result is written to this
         file.
     @param progress: If C{True}, display a progress bar on standard error.
+    @param quiet: If C{True}, suppress diagnostic output. Note that this will
+        silence warnings about differing reference names.
     @raise UnspecifiedReference: If no id is provided to indicate which BAM
         file reference to call a consensus for.
     @raise UnknownReference: If a requested reference id is unknown.
     @raise UnequalReferenceLengthError: If the passed reference does not have a
         length identical to the length mentioned in the BAM file.
-    @return: A C{str} consensus sequence.
+    @raise ReferenceNameMismatchError: If the name of the FASTA reference
+        sequence and the BAM reference do not agree (this is not raised if both
+        ids are given explicitly).
+    @return: A C{Read} instance with the consensus sequence.
     """
+    if referenceFasta is None:
+        if lowCoverage == 'reference':
+            raise UnspecifiedReference('lowCoverage is "reference" but no '
+                                       'reference FASTA file was given.')
+
+        if noCoverage == 'reference':
+            raise UnspecifiedReference('noCoverage is "reference" but no '
+                                       'reference FASTA file was given.')
+
     with samfile(bamFilename) as bam:
 
-        referenceId, referenceLength = getReferenceInfo(
-            bam, bamFilename, referenceId, reference)
+        bamId, reference, referenceLength, consensusId = getReferenceInfo(
+            bam, bamFilename, bamId, referenceFasta, fastaId, consensusId,
+            idLambda, quiet)
 
         if strategy == 'fetch':
             correspondences, deletions, insertions = getPairs(
-                bam, referenceId, referenceLength, ignoreQuality,
+                bam, bamId, referenceLength, ignoreQuality,
                 includeSoftClipped, progress)
 
             conflicts = set(deletions) & set(insertions)
@@ -319,35 +445,37 @@ def consensusFromBAM(
 
             correspondences, consensusBases, otherBases, originalOffsets = (
                 fetchConsensus(bam, correspondences, deletions, insertions,
-                               referenceId, reference, referenceLength,
-                               noCoverage, deletionThreshold, ignoreQuality,
+                               reference, referenceLength, noCoverage,
+                               deletionThreshold, ignoreQuality,
                                insertionCountThreshold, includeSoftClipped,
                                progress))
         else:
-            raise ValueError(f'Unknown consensus strategy {strategy!r}.')
+            raise ConsensusError(f'Unknown consensus strategy {strategy!r}.')
 
         if compareWithPileupFile:
             with open(compareWithPileupFile, 'w') as fp:
                 compareCorrespondences(
                     fp, correspondences,
-                    pileupCorrespondences(bam, referenceId, referenceLength,
+                    pileupCorrespondences(bam, bamId, referenceLength,
                                           includeSoftClipped, progress),
                     threshold, minCoverage)
 
-    return basesToConsensus(
+    consensus = basesToConsensus(
         consensusBases, otherBases, originalOffsets, reference,
         referenceLength, threshold, minCoverage, lowCoverage, noCoverage,
         deletionSymbol, progress)
 
+    return DNARead(consensusId, consensus)
 
-def getPairs(bam, referenceId, referenceLength, ignoreQuality,
+
+def getPairs(bam, bamId, referenceLength, ignoreQuality,
              includeSoftClipped, progress):
     """Compute a majority consensus using pysam's fetch function.
 
     @param bam: An open BAM file.
-    @param referenceId: A C{str} reference name indicating which reference to
+    @param bamId: A C{str} reference name indicating which reference to
         find reads against in the BAM file. If C{None} and there is only one
-        reference in the BAM file, that one will be used, else a ValueError
+        reference in the BAM file, that one will be used, else a ConsensusError
         is raised due to not knowing which reference to use.
     @param reference: A C{Read} instance giving the reference sequence, or
         C{None}.
@@ -365,10 +493,10 @@ def getPairs(bam, referenceId, referenceLength, ignoreQuality,
     correspondences = defaultdict(lambda: Bases())
     deletions = defaultdict(int)
     insertions = {}
-    nReads = bam.count(contig=referenceId)
+    nReads = bam.count(contig=bamId)
 
     with maybeProgressBar(progress, nReads, 'Reads    : ') as bar:
-        for readCount, read in enumerate(bam.fetch(contig=referenceId),
+        for readCount, read in enumerate(bam.fetch(contig=bamId),
                                          start=1):
             assert not read.is_unmapped
 
@@ -483,16 +611,16 @@ def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
             correspondences[referenceOffset].append(base, quality)
 
 
-def fetchConsensus(bam, correspondences, deletions, insertions,
-                   referenceId, reference, referenceLength, noCoverage,
-                   deletionThreshold, ignoreQuality, insertionCountThreshold,
-                   includeSoftClipped, progress):
+def fetchConsensus(bam, correspondences, deletions, insertions, reference,
+                   referenceLength, noCoverage, deletionThreshold,
+                   ignoreQuality, insertionCountThreshold, includeSoftClipped,
+                   progress):
     """Compute a majority consensus using pysam's fetch function.
 
     @param bam: An open BAM file.
-    @param referenceId: A C{str} reference name indicating which reference to
+    @param bamId: A C{str} reference name indicating which reference to
         find reads against in the BAM file. If C{None} and there is only one
-        reference in the BAM file, that one will be used, else a ValueError
+        reference in the BAM file, that one will be used, else a ConsensusError
         is raised due to not knowing which reference to use.
     @param reference: A C{Read} instance giving the reference sequence, or
         C{None}.
@@ -609,14 +737,14 @@ def fetchConsensus(bam, correspondences, deletions, insertions,
     return correspondences, consensusBases, otherBases, originalOffsets
 
 
-def pileupCorrespondences(bam, referenceId, referenceLength,
-                          includeSoftClipped, progress):
+def pileupCorrespondences(bam, bamId, referenceLength, includeSoftClipped,
+                          progress):
     """
     Get bases for offsets that correspond to the reference using pysam's
     pileup funciton.
 
     @param bam: An open BAM file.
-    @param referenceId: A C{str} reference name indicating which reference to
+    @param bamId: A C{str} reference name indicating which reference to
         find reads against in the BAM file.
     @param referenceLength: The C{int} length of the reference.
     @param includeSoftClipped: Include information from read bases that were
@@ -628,8 +756,7 @@ def pileupCorrespondences(bam, referenceId, referenceLength,
     correspondences = defaultdict(lambda: Bases())
 
     with maybeProgressBar(progress, referenceLength, 'Pileup   : ') as bar:
-        for barCount, site in enumerate(bam.pileup(contig=referenceId),
-                                        start=1):
+        for barCount, site in enumerate(bam.pileup(contig=bamId), start=1):
             referenceOffset = site.reference_pos
             for read in site.pileups:
                 if not includeSoftClipped:

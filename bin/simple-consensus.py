@@ -3,9 +3,8 @@
 import sys
 import argparse
 
-from dark.consensus import consensusFromBAM
-from dark.fasta import FastaReads
-from dark.reads import DNARead
+from dark.consensus import consensusFromBAM, ConsensusError
+from dark.sam import SamError
 
 
 def main():
@@ -18,27 +17,22 @@ def main():
         help='The BAM file from which the consensus should be called.')
 
     parser.add_argument(
-        '--referenceId',
-        help=('The id of the reference sequence in the --bam file. '
-              'If not given, the reference id (as given by --referenceId or '
-              'taken from the first FASTA record in the --reference file) '
-              'will be used. Caution should be taken when using this option '
-              'as it (deliberately) allows the names of the FASTA reference '
-              'sequence and the reference referred to in the BAM file to '
-              'differ. This can be convenient if a sequence with an '
-              'identical name (to that of the BAM file) is not present in the '
-              'reference FASTA file. But care must be taken because this '
-              'allows you to accidentally make a consensus using a reference '
-              'sequence that is not the one that was used to make the BAM '
-              'file. The length of the reference sequence (if a reference '
-              'sequence is given) must match the length of the '
-              'reference mentioned in the BAM file. If no reference or BAM '
-              'id is given, a consensus will only be called if the BAM file '
-              'refers to a single reference.'))
+        '--bamId',
+        help=('The BAM file reference name indicating which aligned '
+              'reads to make a consensus from. If not given, will be inferred '
+              'from the BAM file header.'))
 
     parser.add_argument(
         '--referenceFasta',
         help='The reference FASTA file.')
+
+    parser.add_argument(
+        '--fastaId',
+        help=('The id of the sequence in --referenceFasta to use as a '
+              'reference. Only considered if --referenceFasta is used. If not '
+              'given and --referenceFasta is, the reference id will be '
+              'inferred from reference names in the BAM header, or will be '
+              'taken as the id of the first sequence in --referenceFasta.'))
 
     group = parser.add_mutually_exclusive_group()
 
@@ -50,9 +44,9 @@ def main():
     group.add_argument(
         '--idLambda', metavar='LAMBDA-FUNCTION',
         help=('A one-argument function taking and returning a read id. '
-              'This can be used to set the id of the reference sequence based '
-              'on the id of the reference sequence (the function will be '
-              'called with the id of the reference sequence). E.g., '
+              'This can be used to set the id of the consensus sequence based '
+              'on the id of the reference sequence. The function will be '
+              'called with the id of the BAM reference sequence. E.g., '
               '--idLambda "lambda id: id.split(\'_\')[0]" or '
               '--idLambda "lambda id: id[:10] + \'-consensus\'".'))
 
@@ -130,65 +124,35 @@ def main():
 
     parser.add_argument(
         '--progress', action='store_true',
-        help='Show a progress bar.')
+        help=('Show a progress bar (unless standard error has been '
+              'redirected).'))
+
+    parser.add_argument(
+        '--quiet', action='store_true',
+        help=('Suppress diagnostic output. Note that this will silence '
+              'warnings about differing reference names.'))
 
     args = parser.parse_args()
 
-    if args.referenceFasta is None:
-        if args.lowCoverage == 'reference':
-            print('The --lowCoverage option is set to "reference" '
-                  'but no reference sequence has been supplied',
-                  file=sys.stderr)
-            sys.exit(1)
-        if args.noCoverage == 'reference':
-            print('The --noCoverage option is set to "reference" '
-                  'but no reference sequence has been supplied',
-                  file=sys.stderr)
-            sys.exit(1)
-        reference = None
+    try:
+        consensus = consensusFromBAM(
+            args.bamFilename, bamId=args.bamId,
+            referenceFasta=args.referenceFasta, fastaId=args.fastaId,
+            consensusId=args.consensusId, idLambda=args.idLambda,
+            threshold=args.threshold,
+            minCoverage=args.minCoverage, lowCoverage=args.lowCoverage,
+            noCoverage=args.noCoverage, deletionSymbol=args.deletionSymbol,
+            deletionThreshold=args.deletionThreshold,
+            insertionCountThreshold=args.insertionCountThreshold,
+            ignoreQuality=args.ignoreQuality,
+            includeSoftClipped=args.includeSoftClipped, strategy=args.strategy,
+            compareWithPileupFile=args.compareWithPileupFile,
+            progress=args.progress, quiet=args.quiet)
+    except (ConsensusError, SamError) as e:
+        print(f'{e} Exiting.', file=sys.stderr)
+        sys.exit(1)
     else:
-        if args.referenceId is None:
-            # Use the first sequence as the reference.
-            reference = list(FastaReads(args.referenceFasta))[0]
-            args.referenceId = reference.id
-        else:
-            for read in FastaReads(args.referenceFasta):
-                if read.id == args.referenceId:
-                    reference = read
-                    break
-            else:
-                print(f'Could not find a sequence with id '
-                      f'{args.referenceId!r} in {args.referenceFasta!r}',
-                      file=sys.stderr)
-                sys.exit(1)
-
-    if args.consensusId is not None:
-        consensusId = args.consensusId
-    elif args.idLambda is not None:
-        if reference is None:
-            print('You used --idLambda, but no reference was given (so '
-                  'there is no id to apply the lambda function to).',
-                  file=sys.stderr)
-            sys.exit(1)
-        idLambda = eval(args.idLambda)
-        consensusId = idLambda(reference.id)
-    else:
-        consensusId = ((args.referenceId or 'consensus') if reference is None
-                       else reference.id)
-
-    consensus = consensusFromBAM(
-        args.bamFilename, referenceId=args.referenceId, reference=reference,
-        threshold=args.threshold, minCoverage=args.minCoverage,
-        lowCoverage=args.lowCoverage, noCoverage=args.noCoverage,
-        deletionSymbol=args.deletionSymbol,
-        deletionThreshold=args.deletionThreshold,
-        insertionCountThreshold=args.insertionCountThreshold,
-        ignoreQuality=args.ignoreQuality,
-        includeSoftClipped=args.includeSoftClipped, strategy=args.strategy,
-        compareWithPileupFile=args.compareWithPileupFile,
-        progress=args.progress)
-
-    print(DNARead(consensusId, consensus).toString('fasta'), end='')
+        print(consensus.toString('fasta'), end='')
 
 
 if __name__ == '__main__':
