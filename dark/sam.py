@@ -1,3 +1,4 @@
+import sys
 import six
 import numpy as np
 
@@ -11,6 +12,7 @@ from pysam import (
     CEQUAL, CDIFF)
 
 from dark.process import Executor
+from dark.fasta import FastaReads
 from dark.reads import Read, DNARead
 
 
@@ -977,3 +979,139 @@ class DistanceMatrix:
         @param fp: An open file pointer to read from.
         """
         self.scores = load(fp)
+
+
+def getReferenceInfo(bam, bamFilename, bamId=None, referenceFasta=None,
+                     fastaId=None, quiet=False):
+    """
+    Get the id and length of a BAM file reference seqeunce.
+
+    @param bam: An open BAM file.
+    @param bamFilename: The C{str} file name of the BAM file.
+    @param bamId: A C{str} BAM file reference name indicating which aligned
+        reads to make a consensus from. If not given, will be inferred
+        from the BAM file header.
+    @param referenceFasta: A C{str} file name containing the sequence that was
+        aligned to in making the BAM file.
+    @param fastaId: A C{str} reference name indicating which sequence in
+        C{referenceFasta} to use as a reference. Only considered if
+        C{referenceFasta} is given. If not given and C{referenceFasta} is,
+        the reference id will be inferred from reference names in the BAM
+        header, or will be taken as the id of the first sequence in
+        C{referenceFasta}.
+    @param quiet: If C{True}, suppress diagnostic output.
+    @raise UnknownReference: For an unknown reference.
+    @raise UnspecifiedReference: If a reference is not given and cannot be
+        inferred.
+    @raise ReferenceNameMismatchError: If the names of the reference in the BAM
+        file and the FASTA reference file (if given) do not match (unless both
+        are explicitly given, in which case mismatching names are allowed as
+        long as the sequence lengths are the same).
+    @raise UnequalReferenceLengthError: If the lengths of the reference in the
+        BAM file and the FASTA reference file (if given) do not match
+    @return: A 2-tuple of C{str}, C{int} giving the refrence sequence id and
+        length.
+    """
+    bamReferences = set(samReferences(bam))
+    checkName = checkLength = True
+    inferredBamId = bamId is None
+    inferredFastaId = fastaId is None
+    referenceLength = None
+
+    if bamId is None:
+        inferredBamId = True
+    else:
+        if bamId not in bamReferences:
+            raise UnknownReference(
+                f'BAM file {str(bamFilename)!r} does not mention a reference '
+                f'with id {bamId!r}. Known references are: '
+                f'{", ".join(sorted(bamReferences))}.')
+
+        inferredBamId = False
+        tid = bam.get_tid(bamId)
+        referenceLength = bam.lengths[tid]
+
+        if fastaId is not None:
+            # Both ids have been given explicitly, so don't check that they
+            # are identical, assume the user knows what they are doing (we
+            # will just check the lengths, if necessary).
+            checkName = False
+
+    if referenceFasta is None:
+        reference = None
+    else:
+        if fastaId is None:
+            # We're given a reference FASTA file, but no id to use. Look at
+            # the sequences in the FASTA and take the first one that has a
+            # name and length matching a BAM reference (we could actually
+            # look to see if there are more than one and, if so, give an
+            # error if their sequences are not identical).
+            firstRead = None
+            for read in FastaReads(referenceFasta):
+                if firstRead is None:
+                    firstRead = read
+                if read.id in bamReferences:
+                    tid = bam.get_tid(read.id)
+                    if len(read) == bam.lengths[tid]:
+                        reference = read
+                        checkLength = checkName = False
+                        break
+            else:
+                # Try the first sequence in the FASTA file.
+                reference = firstRead
+
+            if firstRead is None:
+                raise UnknownReference(
+                    f'The FASTA reference file {str(referenceFasta)!r} '
+                    f'contained no sequences.')
+        else:
+            for read in FastaReads(referenceFasta):
+                if read.id == fastaId:
+                    reference = read
+                    break
+            else:
+                raise UnknownReference(f'No sequence with id {fastaId!r} '
+                                       f'found in {str(referenceFasta)!r}.')
+
+        # Set reference length if it has not already been set due to a
+        # given bamId.
+        if referenceLength is None:
+            referenceLength = len(reference)
+
+    if bamId is None:
+        if len(bamReferences) == 1:
+            # This is the only possibility.
+            bamId = tuple(bamReferences)[0]
+            tid = bam.get_tid(bamId)
+            referenceLength = bam.lengths[tid]
+        elif reference and reference.id in bamReferences:
+            tid = bam.get_tid(reference.id)
+            if len(reference) == bam.lengths[tid]:
+                bamId = reference.id
+                checkLength = checkName = False
+        else:
+            raise UnspecifiedReference(
+                f'Could not infer a BAM reference. Available references are: '
+                f'{", ".join(sorted(bamReferences))}.')
+
+    if inferredBamId and not quiet:
+        print(f'BAM reference id {bamId!r} inferred from context.',
+              file=sys.stderr)
+
+    if reference:
+        if inferredFastaId and not quiet:
+            print(f'FASTA reference id {reference.id!r} inferred from '
+                  f'context.', file=sys.stderr)
+
+        if checkName and reference.id != bamId:
+            raise ReferenceNameMismatchError(
+                f'Reference FASTA sequence name {reference.id!r} does '
+                f'not match the BAM id {bamId!r}.')
+
+        if checkLength and len(reference) != referenceLength:
+            raise UnequalReferenceLengthError(
+                f'Reference FASTA sequence {reference.id!r} has length '
+                f'{len(reference)}, but the BAM reference {bamId!r} has '
+                f'length {referenceLength}.')
+
+    return bamId, reference, referenceLength
