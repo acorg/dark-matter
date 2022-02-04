@@ -5,6 +5,7 @@ from functools import total_ordering
 from collections import Counter
 from hashlib import md5
 from random import uniform
+from pathlib import Path
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -1387,7 +1388,7 @@ class Reads(object):
         format_ = format_.lower()
         count = 0
 
-        if isinstance(filename, str):
+        if isinstance(filename, (str, Path)):
             try:
                 with open(filename, 'w') as fp:
                     for read in self:

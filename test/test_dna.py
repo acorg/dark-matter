@@ -3,7 +3,8 @@ from unittest import TestCase
 
 from dark.dna import (
     AMBIGUOUS, BASES_TO_AMBIGUOUS, compareDNAReads, matchToString,
-    findKozakConsensus, FloatBaseCounts, sequenceToRegex)
+    findKozakConsensus, FloatBaseCounts, sequenceToRegex, leastAmbiguous,
+    leastAmbiguousFromCounts, Bases)
 from dark.reads import Read, DNARead, DNAKozakRead
 
 # The following are the letters that used to be on
@@ -11,6 +12,11 @@ from dark.reads import Read, DNARead, DNAKozakRead
 # IUPACAmbiguousDNA.letters
 # But Bio.Alphabet is now deprecated and will be removed.
 AMBIGUOUS_DNA_LETTERS = 'GATCRYWSMKHBVDN'
+
+AMBIGUOUS_PAIRS = (('AC', 'M'), ('AG', 'R'), ('AT', 'W'),
+                   ('GC', 'S'), ('GT', 'K'), ('CT', 'Y'))
+
+AMBIGUOUS_TRIPLES = (('ACG', 'V'), ('ACT', 'H'), ('AGT', 'D'), ('CGT', 'B'))
 
 
 class TestAmbiguousLetters(TestCase):
@@ -1233,3 +1239,316 @@ class TestSequenceToRegex(TestCase):
         """
         error = "^'5'$"
         six.assertRaisesRegex(self, KeyError, error, sequenceToRegex, '5')
+
+
+class TestLeastAmbiguous(TestCase):
+    """
+    Test the leastAmbiguous function.
+    """
+    def testEmpty(self):
+        """
+        The empty string should result in a KeyError.
+        """
+        self.assertRaisesRegex(KeyError, "^''$", leastAmbiguous, '')
+
+    def testUnknownNucleotides(self):
+        """
+        Unknown nucleotides should result in a KeyError.
+        """
+        self.assertRaisesRegex(KeyError, "^'123'$", leastAmbiguous, '123')
+
+    def testDuplicationsIgnored(self):
+        """
+        If nucleotides are duplicated, there should be no problem.
+        """
+        self.assertEqual('A', leastAmbiguous('AAA'))
+
+    def testDuplicationsDifferentCaseIgnored(self):
+        """
+        If nucleotides are duplicated in different cases, there should be no
+        problem.
+        """
+        self.assertEqual('A', leastAmbiguous('AaaA'))
+
+    def testSingleNucleotides(self):
+        """
+        Single nucleotides should be returned as themselves.
+        """
+        for base in 'ACGT':
+            self.assertEqual(base, leastAmbiguous(base))
+
+    def testTwoNucleotides(self):
+        """
+        Two nucleotides should be handled correctly.
+        """
+        for bases, ambiguous in AMBIGUOUS_PAIRS:
+            self.assertEqual(ambiguous, leastAmbiguous(bases))
+
+    def testThreeNucleotides(self):
+        """
+        Three nucleotides should be handled correctly.
+        """
+        for bases, ambiguous in AMBIGUOUS_TRIPLES:
+            self.assertEqual(ambiguous, leastAmbiguous(bases))
+
+    def testFourNucleotides(self):
+        """
+        All four nucleotides should be handled correctly.
+        """
+        self.assertEqual('N', leastAmbiguous('AGCT'))
+
+    def testFourNucleotidesOtherOrder(self):
+        """
+        All four nucleotides should be handled correctly when given in a
+        different order.
+        """
+        self.assertEqual('N', leastAmbiguous('CGTA'))
+
+    def testTuple(self):
+        """
+        All four nucleotides passed as a tuple should be handled correctly.
+        """
+        self.assertEqual('N', leastAmbiguous(tuple('AGCT')))
+
+    def testList(self):
+        """
+        All four nucleotides passed as a list should be handled correctly.
+        """
+        self.assertEqual('N', leastAmbiguous(list('AGCT')))
+
+
+class TestLeastAmbiguousFromBases(TestCase):
+    """
+    Test the leastAmbiguousFromCounts function.
+    """
+    def testNegativeCount(self):
+        """
+        A negative count must result in a ValueError.
+        """
+        self.assertRaisesRegex(
+            ValueError, r"^Count for base 'A' is negative \(-1\)\.$",
+            leastAmbiguousFromCounts, {'A': -1}, 0.9)
+
+    def testNegativeThreshold(self):
+        """
+        A negative threshold must result in a ValueError.
+        """
+        self.assertRaisesRegex(
+            ValueError, r"^Threshold cannot be negative \(-0\.9\)\.$",
+            leastAmbiguousFromCounts, {'A': 3}, -0.9)
+
+    def testNoCounts(self):
+        """
+        If an empty dictionary of counts is passed, 'N' must result.
+        """
+        self.assertEqual('N', leastAmbiguousFromCounts({}, 0.9))
+
+    def testAllCountsZero(self):
+        """
+        If the counts are all zero, 'N' must result.
+        """
+        self.assertEqual('N', leastAmbiguousFromCounts({'A': 0, 'G': 0}, 0.9))
+
+    def testOneBase(self):
+        """
+        If there is a single base, it must be returned.
+        """
+        for base in 'ACGT':
+            self.assertEqual(base, leastAmbiguousFromCounts({base: 3}, 0.9))
+
+    def testTwoEqual(self):
+        """
+        If there are two bases with equal counts, the expected ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_PAIRS:
+            counts = dict.fromkeys(bases, 1)
+            self.assertEqual(ambiguous, leastAmbiguousFromCounts(counts, 0.9))
+
+    def testThreeEqual(self):
+        """
+        If there are three bases with equal counts, the expected ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_TRIPLES:
+            counts = dict.fromkeys(bases, 1)
+            self.assertEqual(ambiguous, leastAmbiguousFromCounts(counts, 0.9))
+
+    def testFourNucleotides(self):
+        """
+        If all four nucleotides have equal counts, 'N' must be returned.
+        """
+        counts = dict.fromkeys('AGCT', 1)
+        self.assertEqual('N', leastAmbiguousFromCounts(counts, 0.9))
+
+    def testOneOfTwoOverThreshold(self):
+        """
+        If one base of two is over the threshold, it must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_PAIRS:
+            counts = {bases[0]: 3, bases[1]: 1}
+            self.assertEqual(bases[0], leastAmbiguousFromCounts(counts, 0.5))
+
+    def testOneOfTwoBelowThreshold(self):
+        """
+        If one base is dominant but not over the threshold, the ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_PAIRS:
+            counts = {bases[0]: 3, bases[1]: 1}
+            self.assertEqual(ambiguous, leastAmbiguousFromCounts(counts, 0.9))
+
+    def testOneOfThreeOverThreshold(self):
+        """
+        If one base of three is over the threshold, it must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_TRIPLES:
+            counts = {bases[0]: 3, bases[1]: 1, bases[2]: 1}
+            self.assertEqual(bases[0], leastAmbiguousFromCounts(counts, 0.5))
+
+    def testTwoOfThreeOverThreshold(self):
+        """
+        If two bases of three are over the threshold, the code for those two
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_TRIPLES:
+            counts = {bases[0]: 4, bases[1]: 4, bases[2]: 2}
+            self.assertEqual(
+                leastAmbiguous(bases[:2]),
+                leastAmbiguousFromCounts(counts, 0.8))
+
+    def testGeneiousExamplesNoTie(self):
+        """
+        Test the no-tied counts example from
+        https://assets.geneious.com/manual/2020.1/static/GeneiousManualse43.html
+        """
+        counts = {'A': 6, 'G': 3, 'T': 1}
+        self.assertEqual('A', leastAmbiguousFromCounts(counts, 0.4))
+        self.assertEqual('R', leastAmbiguousFromCounts(counts, 0.7))
+        self.assertEqual('D', leastAmbiguousFromCounts(counts, 0.95))
+
+    def testGeneiousExamplesTie(self):
+        """
+        Test the tied counts example from
+        https://assets.geneious.com/manual/2020.1/static/GeneiousManualse43.html
+        """
+        counts = {'A': 6, 'G': 2, 'T': 2}
+        self.assertEqual('A', leastAmbiguousFromCounts(counts, 0.4))
+        self.assertEqual('D', leastAmbiguousFromCounts(counts, 0.7))
+        self.assertEqual('D', leastAmbiguousFromCounts(counts, 0.95))
+
+
+class TestBases(TestCase):
+    """
+    Test the Bases class.
+    """
+    def testEmptyIsFalse(self):
+        """
+        An empty Bases instance must be considered False.
+        """
+        self.assertFalse(Bases())
+
+    def testEmptyHasLengthZero(self):
+        """
+        An empty Bases instance must have length zero.
+        """
+        self.assertEqual(0, len(Bases()))
+
+    def testLengthOneIsTrue(self):
+        """
+        If we append a (base, quality) pair, the instance must be considered
+        True.
+        """
+        b = Bases().append('G', 30)
+        self.assertTrue(b)
+
+    def testLengthOne(self):
+        """
+        If we append a (base, quality) pair, the length must be one.
+        """
+        b = Bases().append('G', 30)
+        self.assertEqual(1, len(b))
+
+    def testGetitem(self):
+        """
+        __getitem__ must work as expected.
+        """
+        b = Bases().append('G', 30)
+        self.assertEqual(30, b['G'])
+
+    def testAdd(self):
+        """
+        Addition must work as expected.
+        """
+        b1 = Bases().append('G', 30)
+        b2 = Bases().append('G', 20)
+        b3 = b1 + b2
+
+        self.assertEqual(1, len(b1))
+        self.assertEqual(1, len(b2))
+        self.assertEqual(2, len(b3))
+        self.assertEqual(50, b3.counts['G'])
+
+    def testIAdd(self):
+        """
+        In-place addition must work as expected.
+        """
+        b1 = Bases().append('G', 30)
+        b2 = Bases().append('G', 20)
+        b2 += b1
+
+        self.assertEqual(1, len(b1))
+        self.assertEqual(2, len(b2))
+        self.assertEqual(50, b2.counts['G'])
+
+    def testConsensusNoReads(self):
+        """
+        The consensus method must return the no coverage string if there are
+        no reads.
+        """
+        b = Bases()
+        self.assertEqual('Z', b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusLowReads(self):
+        """
+        The consensus method must return the low coverage string if there are
+        no reads.
+        """
+        b = Bases().append('G', 20)
+        self.assertEqual('L', b.consensus(0.8, 2, 'L', 'Z'))
+
+    def testConsensusOneBase(self):
+        """
+        If there is a single base, it must be returned.
+        """
+        for base in 'ACGT':
+            b = Bases().append(base, 20)
+            self.assertEqual(base, b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusTwoEqual(self):
+        """
+        If there are two bases with equal counts, the expected ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_PAIRS:
+            b = Bases().append(bases[0], 20).append(bases[1], 20)
+            self.assertEqual(ambiguous, b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusThreeEqual(self):
+        """
+        If there are three bases with equal counts, the expected ambiguous code
+        must be returned.
+        """
+        for bases, ambiguous in AMBIGUOUS_TRIPLES:
+            b = Bases().append(bases[0], 20).append(bases[1], 20).append(
+                bases[2], 20)
+            self.assertEqual(ambiguous, b.consensus(0.8, 1, 'L', 'Z'))
+
+    def testConsensusFourNucleotides(self):
+        """
+        If all four nucleotides have equal counts, 'N' must be returned.
+        """
+        b = Bases()
+        for base in 'ACGT':
+            b.append(base, 20)
+        self.assertEqual('N', b.consensus(0.8, 1, 'L', 'Z'))

@@ -1,3 +1,9 @@
+## 4.0.15 February 4, 2022
+
+Added a simple consensus caller. Still needs to be stress tested in the
+wild, and will need more tests and code refactoring to make it more
+broadly useful.
+
 ## 4.0.14 January 20, 2022
 
 Added internal optimization to make the SAM filtering fast when no

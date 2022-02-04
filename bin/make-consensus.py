@@ -59,7 +59,7 @@ def main():
               'in the VCF file will be used.'))
 
     parser.add_argument(
-        '--dryRun', default=False, action='store_true',
+        '--dryRun', action='store_true',
         help='Do not run commands, just print what would be done.')
 
     parser.add_argument(
@@ -69,16 +69,16 @@ def main():
               'turned off. Requires --bam.'))
 
     parser.add_argument(
-        '--log', default=False, action='store_true',
+        '--log', action='store_true',
         help=('Show a log of commands that were (or would be, if --dryRun is '
               'used) executed.'))
 
     parser.add_argument(
-        '--noClean', default=True, action='store_false', dest='clean',
+        '--noClean', action='store_false', dest='clean',
         help=('Do not remove intermediate files or the temporary directory.'))
 
     parser.add_argument(
-        '--callHaplotypesGATK', default=False, action='store_true',
+        '--callHaplotypesGATK', action='store_true',
         help=('Use GATK to call haplotypes. See '
               'https://gatk.broadinstitute.org for details on GATK.'))
 
@@ -89,7 +89,7 @@ def main():
               'Picard.'))
 
     parser.add_argument(
-        '--ivar', default=False, action='store_true',
+        '--ivar', action='store_true',
         help='If given, ivar will be used to call the consensus.')
 
     parser.add_argument(

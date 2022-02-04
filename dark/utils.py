@@ -382,3 +382,41 @@ def readLabels(fp):
         oldName, newName = map(str.strip, line.split('\t'))
         result[oldName] = newName
     return result
+
+
+def matchOffset(leftPaddedReference, leftPaddedQuery):
+    """
+    At what reference offset does a query begin to match a reference?
+
+    @param leftPaddedReference: A left-padded reference C{str}.
+    @param leftPaddedQuery: A left-padded query C{str}.
+    @return: An C{int} offset into the (unpadded) reference.
+    """
+    offset = 0
+    for queryChar, referenceChar in zip(leftPaddedQuery, leftPaddedReference):
+        if queryChar not in ' -':
+            break
+        offset += referenceChar not in ' -'
+
+    return offset
+
+
+@contextmanager
+def openOr(filename, mode='r', defaultFp=None, specialCaseHyphen=True):
+    """
+    A context manager to either open a file or use a pre-opened default file.
+
+    @param filename: If not C{None}, this is the argument to pass to C{open}
+        along with C{mode}. If C{None}, C{fp} is used.
+    @param mode: The C{str} file opening mode, used if C{filename} is not
+        C{None}.
+    @param defaultFp: An open file-like object to yield if C{filename} is
+        C{None}.
+    @param specialCaseHyphen: If C{True}, treat '-' as a C{None} filename
+        and yield the C{defaultFp}.
+    """
+    if filename is None or filename == '-' and specialCaseHyphen:
+        yield defaultFp
+    else:
+        with open(filename, mode) as fp:
+            yield fp

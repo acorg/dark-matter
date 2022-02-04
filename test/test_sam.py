@@ -14,10 +14,14 @@ from dark.sam import (
     PaddedSAM, SAMFilter, UnequalReferenceLengthError, UnknownReference,
     InvalidSAM, samReferencesToStr, _hardClip, DistanceMatrix)
 
+# Note: getReferenceInfo in dark/sam.py is tested by the calls to
+# consensusFromBAM in test/test_consensus.py
 
-# These tests actually use the filesystem to read files. That's due to the API
-# to pysam and the fact that it calls a C function to open files, so we can't
-# mock Python's 'open' method. Hence the following context manager.
+
+# Some tests below actually use the filesystem to read files. That's due to
+# the API to pysam and the fact that it calls a C function to open files,
+# so we can't mock Python's 'open' method. Hence the following context
+# manager.
 @contextmanager
 def dataFile(data):
     """

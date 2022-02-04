@@ -1,6 +1,7 @@
 from __future__ import division
 
 from collections import defaultdict
+from operator import itemgetter
 
 from dark.utils import countPrint
 
@@ -430,3 +431,147 @@ def sequenceToRegex(sequence, wildcards='-?'):
         append(('[%s]' % possible) if len(possible) > 1 else possible)
 
     return ''.join(result)
+
+
+def leastAmbiguous(bases):
+    """
+    Get the least ambiguous code for a set of DNA bases.
+
+    @param bases: An iterable of C{str} DNA bases.
+    @raise KeyError: If C[bases} contains an unknown nucleotide.
+    @return: a C{str} DNA code (one of the values of the
+        BASES_TO_AMBIGUOUS dict defined at top).
+    """
+    return BASES_TO_AMBIGUOUS[''.join(sorted(set(map(str.upper, bases))))]
+
+
+def leastAmbiguousFromCounts(bases, threshold):
+    """
+    Get the least ambiguous code given frequency counts for a set of DNA bases
+    and a homogeneity threshold.
+
+    @param bases: A C{dict} (or C{Counter}) mapping C{str} nucleotide
+        letters to C{int} frequency counts.
+    @param threshold: A C{float} homogeneity frequency.
+    @raise ValueError: If any count or the thrshold is less than zero.
+    @return: a C{str} DNA code (one of the values of the
+        BASES_TO_AMBIGUOUS dict defined at top).
+    """
+    total = 0
+    for base, count in bases.items():
+        if count < 0:
+            raise ValueError(f'Count for base {base!r} is negative ({count}).')
+        total += count
+
+    if threshold < 0:
+        raise ValueError(f'Threshold cannot be negative ({threshold}).')
+
+    if total == 0:
+        return leastAmbiguous('ACGT')
+
+    counts = sorted(bases.items(), key=itemgetter(1), reverse=True)
+    cumulative = 0
+    resultBases = set()
+    for index in range(len(counts)):
+        base, count = counts[index]
+        cumulative += count
+        resultBases.add(base)
+        if cumulative / total >= threshold:
+            break
+
+    # Add bases with counts that tie the most-recently added base.
+    lastCount = count
+    for index in range(index + 1, len(counts)):
+        base, count = counts[index]
+        if count == lastCount:
+            resultBases.add(base)
+        else:
+            break
+
+    return leastAmbiguous(resultBases)
+
+
+class Bases:
+    """
+    Manage a collection of (base, quality) pairs for a genome site.
+    """
+    __slots__ = ('count', 'counts')
+
+    def __init__(self):
+        self.count = 0
+        self.counts = dict.fromkeys('ACGT', 0)
+
+    def __eq__(self, other):
+        return self.count == other.count and self.counts == other.counts
+
+    def __str__(self):
+        return f'<Bases count={self.count}, bases={self.counts}'
+
+    __repr__ = __str__
+
+    def __getitem__(self, key):
+        return self.counts[key]
+
+    def __len__(self):
+        return self.count
+
+    def __add__(self, other):
+        new = Bases()
+        new.count = self.count + other.count
+        for counts in self.counts, other.counts:
+            for key, count in counts.items():
+                new.counts[key] += count
+        return new
+
+    def __iadd__(self, other):
+        self.count += other.count
+        for key, count in other.counts.items():
+            self.counts[key] += count
+        return self
+
+    def append(self, base, quality):
+        """
+        Append a (base, quality) pair.
+
+        @param base: A C{str} nucleotide base.
+        @param quality: An C{int} nucleotide quality score.
+        @return: C{self}.
+        """
+        if base != 'N':
+            self.count += 1
+            self.counts[base] += quality
+
+        return self
+
+    def consensus(self, threshold, minCoverage, lowCoverage, noCoverage):
+        """
+        Get the base that can be used as part of a consensus.
+
+        If there are sufficient reads, this is the least-ambiguous nucleotide
+        code for our bases, given a required homogeneity threshold. Otherwise,
+        the low coverage value.
+
+        @param threshold: A C{float} threshold. This fraction, at least, of the
+            most-common nucleotides at a site are used to determine the
+            consensus nucleotide (or ambiguous symbol if more than one
+            nucleotide is required to achieve this threshold). If there is a
+            tie in nucleotide counts at a site that causes the threshold to be
+            met, all nucleotides of equeal frequncy will be included in the
+            ambiguous symbol for that site. This is perhaps better explained
+            with an example. See
+            https://assets.geneious.com/manual/2020.1/static/GeneiousManualse43.html
+            and the corresponding testGeneiousExamplesTie test in
+            test/test_dna.py
+        @param minCoverage: An C{int} minimum number of reads that must cover a
+            site for a consensus base to be called. If fewer reads cover a
+            site, the C{lowCoverage} value is used.
+        @param lowCoverage: A C{str} indicating what base to use when
+            0 < N < minCoverage reads cover a site.
+        @param noCoverage: A C{str} indicating what base to use when
+            no reads cover the site.
+        @return: A C{str} nucleotide code. This will be an ambiguous code if
+            the homogeneity C{threshold} is not met.
+        """
+        return (noCoverage if self.count == 0 else
+                (lowCoverage if self.count < minCoverage else
+                 leastAmbiguousFromCounts(self.counts, threshold)))

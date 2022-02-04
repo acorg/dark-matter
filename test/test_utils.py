@@ -16,7 +16,7 @@ from io import BytesIO
 from dark.utils import (
     numericallySortFilenames, median, asHandle, parseRangeString,
     parseRangeExpression, pct, StringIO, baseCountsToStr, nucleotidesToStr,
-    countPrint, take)
+    countPrint, take, matchOffset)
 
 
 class TestNumericallySortFilenames(TestCase):
@@ -541,3 +541,67 @@ class TestTake(TestCase):
         """
         self.assertEqual([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10]],
                          list(take(range(11), 3)))
+
+
+class TestMatchOffset(TestCase):
+    """
+    Test the matchOffset function.
+    """
+    def testEmpty(self):
+        """
+        An empty query must match an empty reference at position 0.
+        """
+        self.assertEqual(0, matchOffset('', ''))
+
+    def testEqualStrings(self):
+        """
+        An non-empty reference must match an identical non-empty query at
+        position 0.
+        """
+        self.assertEqual(0, matchOffset('AA', 'AA'))
+
+    def testQueryPaddedLeftByOne(self):
+        """
+        A query that is padded on the left by one space must match at
+        position 1.
+        """
+        self.assertEqual(1, matchOffset('AA', ' A'))
+
+    def testQueryPaddedLeftByTwo(self):
+        """
+        A query that is padded on the left by two spaces must match at
+        position 2.
+        """
+        self.assertEqual(2, matchOffset('AAA', '  A'))
+
+    def testQueryPaddedLeftByTwoReferencePaddedLeftByOne(self):
+        """
+        A query that is padded on the left by two spaces must match a reference
+        that is padded on the left by one space at position 1.
+        """
+        self.assertEqual(1, matchOffset(' AA', '  A'))
+
+    def testQueryPaddedLeftByFiveReferencePaddedLeftByOneWithGaps(self):
+        """
+        A query that is padded on the left by five spaces must correctly match
+        a reference containing gaps that is padded on the left by one space.
+        """
+        self.assertEqual(2, matchOffset(' AA--G',
+                                        '     A'))
+
+    def testQueryPaddedLeftByFiveReferenceOneGapLeftWithGaps(self):
+        """
+        A query that is padded on the left by five spaces must correctly match
+        a reference that starts with a gap and that contains gaps.
+        """
+        self.assertEqual(2, matchOffset('-AA--G',
+                                        '     A'))
+
+    def testOmicronPartialInsertionRead(self):
+        """
+        A query that overlaps part of an insertion in the reference must be
+        handled correctly.
+        """
+        self.assertEqual(12, matchOffset(
+            'TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
+            '             AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT'))
