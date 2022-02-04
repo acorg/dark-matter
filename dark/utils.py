@@ -399,3 +399,24 @@ def matchOffset(leftPaddedReference, leftPaddedQuery):
         offset += referenceChar not in ' -'
 
     return offset
+
+
+@contextmanager
+def openOr(filename, mode='r', defaultFp=None, specialCaseHyphen=True):
+    """
+    A context manager to either open a file or use a pre-opened default file.
+
+    @param filename: If not C{None}, this is the argument to pass to C{open}
+        along with C{mode}. If C{None}, C{fp} is used.
+    @param mode: The C{str} file opening mode, used if C{filename} is not
+        C{None}.
+    @param defaultFp: An open file-like object to yield if C{filename} is
+        C{None}.
+    @param specialCaseHyphen: If C{True}, treat '-' as a C{None} filename
+        and yield the C{defaultFp}.
+    """
+    if filename is None or filename == '-' and specialCaseHyphen:
+        yield defaultFp
+    else:
+        with open(filename, mode) as fp:
+            yield fp

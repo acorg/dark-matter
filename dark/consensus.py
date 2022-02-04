@@ -9,13 +9,7 @@ from dark.progress import maybeProgressBar
 from dark.reads import DNARead
 from dark.sam import (
     samfile, getReferenceInfo, UnspecifiedReference, CONSUMES_REFERENCE)
-from dark.utils import pct
-
-DEBUG = False
-
-
-def debug(*msg):
-    print(*msg, file=sys.stderr)
+from dark.utils import pct, openOr
 
 
 class ConsensusError(Exception):
@@ -92,9 +86,6 @@ class Insertion:
             if anchorOffset is not None:
                 extra = (self.insertionOffset + nInsertions - anchorOffset -
                          len(bases) - 1)
-                if DEBUG:
-                    debug(f'{extra} = {self.insertionOffset} + '
-                          f'{nInsertions} - {anchorOffset} - {len(bases)} - 1')
                 if extra > maxExtra:
                     maxExtra = extra
 
@@ -111,11 +102,6 @@ class Insertion:
                 nInsertions - len(bases) if anchorOffset is None else 0)
             for offset, (base, quality) in enumerate(bases):
                 insertion[startOffset + offset].append(base, quality)
-
-        if DEBUG:
-            debug('insertion')
-            for i in insertion:
-                debug('\t', i)
 
         return insertion
 
@@ -151,14 +137,6 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     @param progress: If C{True}, display a progress bar on standard error.
     @return: a C{str} consensus sequence.
     """
-    if DEBUG:
-        debug('In basesToConsensus: offsetBases:')
-        for offset in offsetBases:
-            debug(f'  {offset}: {offsetBases[offset]}')
-        debug('In basesToConsensus: otherBases:')
-        for offset in otherBases:
-            debug(f'  {offset}: {otherBases[offset]}')
-
     result = []
     allOffsets = set(offsetBases) | set(otherBases) | {0}
     minOffset = min(allOffsets)
@@ -195,6 +173,26 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
             bar.update(barCount)
 
     return ''.join(result)
+
+
+def getConsensusId(bamId, idLambda):
+    """
+    Make an id for the consensus sequence.
+
+    @param bamId: A C{str} reference sequence id from the BAM file.
+    @param idLambda: A one-argument function taking and returning a sequence
+        id. This can be used to set the id of the consensus sequence based
+        on the id of the reference sequence. The function will be called with
+        the id of the BAM reference sequence.
+    @return: A C{str} sequence id for the consensus.
+    """
+    if idLambda is None:
+        consensusId = f'{bamId}-consensus'
+    else:
+        idLambda = eval(idLambda)
+        consensusId = idLambda(bamId)
+
+    return consensusId
 
 
 def consensusFromBAM(
@@ -288,22 +286,13 @@ def consensusFromBAM(
             bam, bamFilename, bamId, referenceFasta, fastaId, quiet)
 
         if consensusId is None:
-            if idLambda is None:
-                consensusId = f'{bamId}-consensus'
-            else:
-                idLambda = eval(idLambda)
-                consensusId = idLambda(bamId)
+            consensusId = getConsensusId(bamId, idLambda)
+
+        correspondences, deletions, insertions = getPairs(
+            bam, bamId, referenceLength, ignoreQuality,
+            includeSoftClipped, progress)
 
         if strategy == 'fetch':
-            correspondences, deletions, insertions = getPairs(
-                bam, bamId, referenceLength, ignoreQuality,
-                includeSoftClipped, progress)
-
-            conflicts = set(deletions) & set(insertions)
-            if conflicts and DEBUG:
-                debug('CONFLICTING OFFSETS:',
-                      ', '.join(sorted(map(str, conflicts))))
-
             correspondences, consensusBases, otherBases, originalOffsets = (
                 fetchConsensus(bam, correspondences, deletions, insertions,
                                reference, referenceLength, noCoverage,
@@ -314,7 +303,7 @@ def consensusFromBAM(
             raise ConsensusError(f'Unknown consensus strategy {strategy!r}.')
 
         if compareWithPileupFile:
-            with open(compareWithPileupFile, 'w') as fp:
+            with openOr(compareWithPileupFile, 'w', sys.stderr) as fp:
                 compareCorrespondences(
                     fp, correspondences,
                     pileupCorrespondences(bam, bamId, referenceLength,
@@ -344,12 +333,11 @@ def getPairs(bam, bamId, referenceLength, ignoreQuality,
         may not have the reference sequence but we can still get its length
         from the BAM file header).
     @param ignoreQuality: If C{True}, ignore quality scores.
-        to.
-    @param includeSoftClipped: Include information from read bases that were
+    @param includeSoftClipped: If C{True} include information from read bases
         marked as soft-clipped by the algorithm that made the BAM file.
     @param progress: If C{True}, display a progress bar on standard error.
-    @return: A C{str} consensus sequence.
-
+    @return: A 3-tuple of correspondences, deletions, insertions, with types
+        as in the lines just below.
     """
     correspondences = defaultdict(lambda: Bases())
     deletions = defaultdict(int)
@@ -368,23 +356,6 @@ def getPairs(bam, bamId, referenceLength, ignoreQuality,
                 ([1] * len(read.query_sequence) if ignoreQuality else
                  read.query_qualities), referenceLength, includeSoftClipped,
                 correspondences, deletions, insertions)
-
-            if DEBUG:
-                debug(f'read id     : {read.query_name}')
-                debug('query       :', read.query_sequence)
-                debug('query len   :', len(read.query_sequence))
-                debug(f'cigar       : {read.cigarstring}')
-                debug(f'match offset: {read.reference_start}')
-                debug(f'Pairs       : {read.get_aligned_pairs()}')
-                debug(f'Deletions   : {deletions}')
-
-                debug('correspondences:')
-                for offset, item in sorted(correspondences.items()):
-                    debug(f'  {offset}: {item}')
-
-                debug('insertions:')
-                for offset in sorted(insertions):
-                    debug(f'  {insertions[offset]}')
 
             bar.update(readCount)
 
@@ -506,43 +477,19 @@ def fetchConsensus(bam, correspondences, deletions, insertions, reference,
 
     """
     # Do deletions.
-    if DEBUG and deletions:
-        debug(f'There are {len(deletions)} deletions:')
-
     actualDeletions = set()
     for offset, deletionCount in sorted(deletions.items()):
         count = correspondences[offset].count
         if count == 0 or deletionCount / count >= deletionThreshold:
             actualDeletions.add(offset)
-            if DEBUG:
-                debug(f'  Offset {offset:5d}: deleted in {deletionCount:4d} '
-                      f'present in {count:4d}')
-
-    if DEBUG:
-        debug(f'Actual deletions: {actualDeletions}')
-        debug('correspondences after deletions:')
-        for offset, item in sorted(correspondences.items()):
-            debug(f'  {offset}: {item}')
 
     # Do insertions.
-
-    if DEBUG:
-        debug(f'There are {len(insertions)} insertions.')
-
     allOffsets = set(correspondences) | {0, referenceLength - 1}
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
     consensusBases = defaultdict(lambda: Bases())
     otherBases = {}
     originalOffsets = {}
-
-    if DEBUG:
-        debug(f'Offset limits: {minOffset} - {maxOffset}')
-        debug(f'Insertion count {len(insertions)}')
-        debug('final insertions:')
-        for offset in sorted(insertions):
-            wanted = insertions[offset].readCount() >= insertionCountThreshold
-            debug(f'  {"" if wanted else "un"}wanted {insertions[offset]}')
 
     with maybeProgressBar(
             progress, maxOffset - minOffset + 1, 'Collect  : ') as bar:
@@ -554,14 +501,7 @@ def fetchConsensus(bam, correspondences, deletions, insertions, reference,
                 insertion = insertions[offset]
                 assert offset == insertion.insertionOffset
                 if insertion.readCount() >= insertionCountThreshold:
-                    insertionBases = insertion.resolve()
-                    insertionLength = len(insertionBases)
-                    if DEBUG:
-                        debug('INSERTION:', insertion)
-                        debug(f'  Resolved {insertionLength=}')
-                        debug(f'{insertionBases=}')
-
-                    for bases in insertionBases:
+                    for bases in insertion.resolve():
                         adjustedOffset = offset + insertCount
                         consensusBases[adjustedOffset] += bases
                         insertCount += 1
@@ -574,11 +514,6 @@ def fetchConsensus(bam, correspondences, deletions, insertions, reference,
                 otherBases[adjustedOffset] = None
 
             if offset in correspondences:
-                if DEBUG:
-                    debug(f'Offset {offset} Adding correspondences bases '
-                          f'{correspondences[offset]} to '
-                          f'{consensusBases[adjustedOffset]} at offset '
-                          f'{adjustedOffset}')
                 consensusBases[adjustedOffset] += correspondences[offset]
 
             if adjustedOffset not in consensusBases:

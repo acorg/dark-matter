@@ -17,17 +17,17 @@ def main():
         help='The BAM file from which the consensus should be called.')
 
     parser.add_argument(
-        '--bamId',
+        '--bamId', metavar='ID',
         help=('The BAM file reference name indicating which aligned '
               'reads to make a consensus from. If not given, will be inferred '
               'from the BAM file header.'))
 
     parser.add_argument(
-        '--referenceFasta',
+        '--referenceFasta', metavar='FILE',
         help='The reference FASTA file.')
 
     parser.add_argument(
-        '--fastaId',
+        '--fastaId', metavar='ID',
         help=('The id of the sequence in --referenceFasta to use as a '
               'reference. Only considered if --referenceFasta is used. If not '
               'given and --referenceFasta is, the reference id will be '
@@ -37,12 +37,12 @@ def main():
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
-        '--consensusId',
+        '--consensusId', metavar='ID',
         help=('The id to use in the consensus sequence in the output FASTA. '
               'If not given, the reference sequence id will be used.'))
 
     group.add_argument(
-        '--idLambda', metavar='LAMBDA-FUNCTION',
+        '--idLambda', metavar='"lambda id: ..."',
         help=('A one-argument function taking and returning a read id. '
               'This can be used to set the id of the consensus sequence based '
               'on the id of the reference sequence. The function will be '
@@ -51,7 +51,7 @@ def main():
               '--idLambda "lambda id: id[:10] + \'-consensus\'".'))
 
     parser.add_argument(
-        '--minCoverage', default=0, type=int,
+        '--minCoverage', default=0, type=int, metavar='N',
         help=('The minimum number of reads that must cover a site for a '
               'consensus base to be called. If zero reads cover a site, the '
               '--noCoverage value is used or if the number is greater than '
@@ -59,7 +59,7 @@ def main():
               'used.'))
 
     parser.add_argument(
-        '--lowCoverage', default='reference',
+        '--lowCoverage', default='reference', metavar='N',
         help=('What to do when some reads cover a site, but fewer than '
               'the --minCoverage value. Either set this to "reference" (to '
               'use the base from the reference sequence)or a single character '
@@ -72,7 +72,7 @@ def main():
               'a single character (e.g., "N").'))
 
     parser.add_argument(
-        '--threshold', type=float, default=0.6,
+        '--threshold', type=float, default=0.6, metavar='N',
         help=('The frequency threshold when calling the consensus. If the '
               'frequency of the most-common nucleotide at a site meets this '
               'threshold, that nucleotide will be called. Otherwise, an '
@@ -96,13 +96,13 @@ def main():
               'no sense to you.'))
 
     parser.add_argument(
-        '--compareWithPileupFile',
+        '--compareWithPileupFile', metavar='FILE',
         help=('Make a consensus using the pysam pileup function and compare '
               'it to the one made by usign pysam fetch. Write the summary to '
-              'this file.'))
+              'this file. If the file is "-", write to standard error.'))
 
     parser.add_argument(
-        '--deletionSymbol', default='-',
+        '--deletionSymbol', default='-', metavar='CHAR',
         help=('When a deletion is detected, put this symbol into the '
               'consensus sequence. Use the empty string to have deletions '
               'omitted.'))
@@ -112,13 +112,13 @@ def main():
         help='The consensus-making strategy to use.')
 
     parser.add_argument(
-        '--deletionThreshold', default=0.5, type=float,
+        '--deletionThreshold', default=0.5, type=float, metavar='N',
         help=('If some reads have a deletion at a site and some do not, call '
               'the site as a deletion if the fraction of reads with the '
               'deletion is at least this value.'))
 
     parser.add_argument(
-        '--insertionCountThreshold', default=5, type=int,
+        '--insertionCountThreshold', default=5, type=int, metavar='N',
         help=('The number of reads that must have an insertion at an offset '
               'in order for the insertion to be called in the consensus.'))
 
