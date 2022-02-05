@@ -1,3 +1,8 @@
+## 4.0.16 February 5, 2022
+
+Removed assertion of incorrect assumption that a read CIGAR string cannot
+start with an insertion, based on a SAM file mapped using Geneious.
+
 ## 4.0.15 February 4, 2022
 
 Added a simple consensus caller. Still needs to be stress tested in the

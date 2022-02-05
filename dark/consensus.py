@@ -386,13 +386,6 @@ def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
     assert len(pairs) == len(cigarOperations)
     assert not any(pair == (None, None) for pair in pairs)
 
-    # If the first reference offset is None, the first operation must be a
-    # soft clip (not an insertion).
-    if pairs[0][1] is None:
-        assert cigarOperations[0] == CSOFT_CLIP, (
-            f'First CIGAR operation is {cigarOperations[0]}, '
-            f'not a soft clip')
-
     inInsertion = False
 
     for count, ((queryOffset, referenceOffset), cigarOperation) in enumerate(
