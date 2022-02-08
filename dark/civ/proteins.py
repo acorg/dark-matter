@@ -24,10 +24,8 @@ from dark.filter import TitleFilter
 from dark.genbank import getCDSInfo, getSourceInfo
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink, readCountText
 from dark.reads import Reads
-from dark.taxonomy import (
-    # isDNAVirus, isRNAVirus, formatLineage,
-    lineageTaxonomyLinks, Hierarchy,
-    LineageElement)
+from dark.taxonomy import lineageTaxonomyLinks, Hierarchy, LineageElement
+from dark.utils import asHandle
 
 
 class PathogenSampleFiles(object):
@@ -1438,7 +1436,7 @@ class SqliteIndexWriter(object):
         def lineageFetcher(genome):
             return taxonomyDatabase.lineage(genome.id)
 
-        with open(filename) as fp:
+        with asHandle(filename) as fp:
             with self._connection:
                 genomes = SeqIO.parse(fp, 'gb')
                 return self._addGenomes(
@@ -1505,7 +1503,7 @@ class SqliteIndexWriter(object):
         def lineageFetcher(genome):
             return genome.lineage
 
-        with open(filename) as fp:
+        with asHandle(filename) as fp:
             genome = _Genome(load(fp))
 
         with self._connection:

@@ -44,6 +44,8 @@ scripts = [
     'bin/describe-protein-database.py',
     'bin/dna-to-aa.py',
     'bin/download-genbank.sh',
+    'bin/download-refseq-viral-fasta.sh',
+    'bin/download-refseq-viral-gbff.sh',
     'bin/e-value-to-bit-score.py',
     'bin/extract-ORFs.py',
     'bin/fasta-base-indices.py',

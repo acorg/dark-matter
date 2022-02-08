@@ -1,3 +1,9 @@
+## 4.0.17 February 9, 2022
+
+Made it so the genome/protein database builder can read compressed GenBank
+or JSON files. Added simple scripts to download NCBI refseq viral FASTA or
+GenBank flat file data.
+
 ## 4.0.16 February 5, 2022
 
 Removed assertion of incorrect assumption that a read CIGAR string cannot
