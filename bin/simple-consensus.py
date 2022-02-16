@@ -59,14 +59,14 @@ def main():
               'used.'))
 
     parser.add_argument(
-        '--lowCoverage', default='reference', metavar='N',
+        '--lowCoverage', default='n', metavar='N',
         help=('What to do when some reads cover a site, but fewer than '
               'the --minCoverage value. Either set this to "reference" (to '
               'use the base from the reference sequence)or a single character '
               '(e.g., "N").'))
 
     parser.add_argument(
-        '--noCoverage', default='reference',
+        '--noCoverage', default='N',
         help=('What to do when no reads cover a site, Either set this to '
               '"reference" (to use the base from the reference sequence), or '
               'a single character (e.g., "N").'))

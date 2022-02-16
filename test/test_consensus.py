@@ -183,7 +183,7 @@ class _Mixin:
             self.assertEqual(
                 'N' * len(template[0]),
                 consensusFromBAM(bamFilename, quiet=True, bamId='ref-id',
-                                 noCoverage='N', lowCoverage='N',
+                                 noCoverage='N',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReferenceAndReferenceIdNotGiven(self):
@@ -201,7 +201,7 @@ class _Mixin:
                 'N' * len(template[0]),
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
-                                 noCoverage='N', lowCoverage='N',
+                                 noCoverage='N',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testNoReadsN(self):
@@ -238,8 +238,9 @@ class _Mixin:
                 template[0],
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
-                                 lowCoverage='reference',
                                  minCoverage=2,
+                                 lowCoverage='reference',
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testLowReadsCharNoCoverageConsensus(self):
@@ -262,8 +263,9 @@ class _Mixin:
                     consensusFromBAM(
                         bamFilename, quiet=True,
                         referenceFasta=fastaFilename,
-                        lowCoverage=char,
                         minCoverage=2,
+                        lowCoverage=char,
+                        noCoverage='reference',
                         ignoreQuality=self.ignoreQuality).sequence)
 
     def testLowReadsCharNoCoverageX(self):
@@ -403,6 +405,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.5,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testSimpleMajorityBelowThreshold(self):
@@ -426,6 +429,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierSites(self):
@@ -446,6 +450,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierSitesNoSoftClipped(self):
@@ -465,6 +470,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasLaterSites(self):
@@ -485,6 +491,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasLaterSitesNoSoftClipped(self):
@@ -504,6 +511,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierAndLaterSites(self):
@@ -524,6 +532,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadHasEarlierAndLaterSitesNoSoftClipped(self):
@@ -544,6 +553,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadsHaveEarlierAndLaterSites(self):
@@ -568,6 +578,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testReadsHaveEarlierAndLaterSitesNoSoftClipped(self):
@@ -592,6 +603,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneDeletionFromReference(self):
@@ -613,6 +625,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='x',
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneLowFrequencyDeletion(self):
@@ -638,6 +651,7 @@ class _Mixin:
                                  threshold=0.7,
                                  deletionSymbol='x',
                                  deletionThreshold=0.5,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneDeletionFromReferenceUnmarked(self):
@@ -659,6 +673,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='',
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoDeletionsFromReference(self):
@@ -678,6 +693,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='x',
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoDeletionsFromReferenceUnmarked(self):
@@ -697,6 +713,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  deletionSymbol='',
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneInsertionInReference(self):
@@ -716,6 +733,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOneInsertionInReferenceLowFrequency(self):
@@ -736,6 +754,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  insertionCountThreshold=2,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsInReference(self):
@@ -757,6 +776,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  threshold=0.7,
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndOneUnmarkedDeletionInReference(self):
@@ -780,6 +800,7 @@ class _Mixin:
                                  threshold=0.7,
                                  deletionSymbol='',
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndOneDeletionInReference(self):
@@ -803,6 +824,7 @@ class _Mixin:
                                  threshold=0.7,
                                  deletionSymbol='x',
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndTwoDeletionsInReference(self):
@@ -826,6 +848,7 @@ class _Mixin:
                                  threshold=0.7,
                                  deletionSymbol='x',
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertionsAndTwoUnmarkedDeletionsInReference(self):
@@ -850,6 +873,7 @@ class _Mixin:
                                  threshold=0.7,
                                  deletionSymbol='',
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testGeneiousExamplesNoTie(self):
@@ -893,6 +917,7 @@ class _Mixin:
                         bamFilename, quiet=True,
                         referenceFasta=fastaFilename,
                         threshold=threshold,
+                        noCoverage='reference',
                         ignoreQuality=self.ignoreQuality).sequence)
 
     def testGeneiousExamplesTie(self):
@@ -936,6 +961,7 @@ class _Mixin:
                         bamFilename, quiet=True,
                         referenceFasta=fastaFilename,
                         threshold=threshold,
+                        noCoverage='reference',
                         ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoAgreeingSoftClipsNothingBefore(self):
@@ -957,6 +983,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoAgreeingSoftClipsNothingBeforeNoSoftClipped(self):
@@ -977,6 +1004,7 @@ class _Mixin:
                 'TGATCTCC',
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoAgreeingInsertionsOneMatchingSomethingBefore(self):
@@ -998,6 +1026,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testTwoInsertions(self):
@@ -1019,6 +1048,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214Insertion(self):
@@ -1048,6 +1078,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214InsertionRightSideExact(self):
@@ -1071,6 +1102,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214InsertionLeftSideExactSoftClipped(self):
@@ -1094,6 +1126,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214PartialInsertionInTwoReadsSoftClipped(self):
@@ -1130,6 +1163,7 @@ class _Mixin:
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
                                  includeSoftClipped=True,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214PartialInsertionInTwoReads(self):
@@ -1153,6 +1187,7 @@ class _Mixin:
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  insertionCountThreshold=1,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
     def testOmicronEPE214PartialNoSoftClipped(self):
@@ -1174,6 +1209,7 @@ class _Mixin:
                 'TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC',
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)
 
 
@@ -1217,4 +1253,5 @@ class TestWithQuality(TestCase, _Mixin):
                 consensusFromBAM(bamFilename, quiet=True,
                                  referenceFasta=fastaFilename,
                                  threshold=0.5,
+                                 noCoverage='reference',
                                  ignoreQuality=self.ignoreQuality).sequence)

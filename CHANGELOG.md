@@ -1,3 +1,8 @@
+## 4.0.18 February 9, 2022
+
+Changed simple-consensus.py to use 'N' for no coverage and 'n' for low
+coverage. Fixed issue with hard-clipped bases in CIGAR strings.
+
 ## 4.0.17 February 9, 2022
 
 Made it so the genome/protein database builder can read compressed GenBank

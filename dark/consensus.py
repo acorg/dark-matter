@@ -198,11 +198,10 @@ def getConsensusId(bamId, idLambda):
 def consensusFromBAM(
         bamFilename, bamId=None, referenceFasta=None, fastaId=None,
         consensusId=None, idLambda=None, threshold=0.8, minCoverage=1,
-        lowCoverage='reference', noCoverage='reference',
-        deletionSymbol='-', deletionThreshold=0.5, ignoreQuality=False,
-        insertionCountThreshold=5, strategy='fetch',
-        includeSoftClipped=False, compareWithPileupFile=None, progress=False,
-        quiet=False):
+        lowCoverage='n', noCoverage='N', deletionSymbol='-',
+        deletionThreshold=0.5, ignoreQuality=False, insertionCountThreshold=5,
+        strategy='fetch', includeSoftClipped=False, compareWithPileupFile=None,
+        progress=False, quiet=False):
     """
     Build a consensus sequence from a BAM file.
 
@@ -345,25 +344,26 @@ def getPairs(bam, bamId, referenceLength, ignoreQuality,
     nReads = bam.count(contig=bamId)
 
     with maybeProgressBar(progress, nReads, 'Reads    : ') as bar:
-        for readCount, read in enumerate(bam.fetch(contig=bamId),
-                                         start=1):
-            assert not read.is_unmapped
-
-            addPairsInfo(
-                read.get_aligned_pairs(),
-                list(cigarTuplesToOperations(read.cigartuples)),
-                read.query_sequence,
-                ([1] * len(read.query_sequence) if ignoreQuality else
-                 read.query_qualities), referenceLength, includeSoftClipped,
-                correspondences, deletions, insertions)
+        for readCount, read in enumerate(bam.fetch(contig=bamId), start=1):
+            if not read.is_unmapped:
+                addPairsInfo(
+                    read.get_aligned_pairs(),
+                    list(cigarTuplesToOperations(read.cigartuples,
+                                                 includeHardClip=False)),
+                    read.query_name,
+                    read.query_sequence,
+                    ([1] * len(read.query_sequence) if ignoreQuality else
+                     read.query_qualities), referenceLength,
+                    includeSoftClipped, correspondences, deletions, insertions)
 
             bar.update(readCount)
 
     return correspondences, deletions, insertions
 
 
-def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
-                 includeSoftClipped, correspondences, deletions, insertions):
+def addPairsInfo(pairs, cigarOperations, queryId, query, qualities,
+                 referenceLength, includeSoftClipped, correspondences,
+                 deletions, insertions):
     """
     Add information about matched pairs of nucleotides.
 
@@ -372,6 +372,7 @@ def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
         an indel mismatch.
     @param cigarOperations: A C{list} of CIGAR operations corresponding to the
         information in C{pairs}.
+    @param queryId: A C{str} query id.
     @param query: A C{str} query DNA sequence.
     @param qualities: A C{list} of quality scores.
     @param includeSoftClipped: Include information from read bases that were
@@ -383,7 +384,12 @@ def addPairsInfo(pairs, cigarOperations, query, qualities, referenceLength,
     @param insertions: A C{defaultdict(list)}, to hold (base, quality)
         scores for when a query contains an insertion to the reference.
     """
-    assert len(pairs) == len(cigarOperations)
+    if len(pairs) != len(cigarOperations):
+        raise ValueError(
+            f'Query {queryId!r} (length {len(query)}) with {len(pairs)} pairs '
+            f'but {len(cigarOperations)} CIGAR operaions:'
+            f'\nPairs: {pairs}\nCIGAR: {cigarOperations}')
+
     assert not any(pair == (None, None) for pair in pairs)
 
     inInsertion = False

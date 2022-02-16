@@ -4,7 +4,8 @@ from dark.sam import CONSUMES_REFERENCE
 
 
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
-CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR = 'IDM=X'
+(CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR,
+ CHARD_CLIP_STR) = 'IDM=XH'
 
 
 def dna2cigar(s1, s2, concise=False):
@@ -146,7 +147,7 @@ def makeCigar(reference, query, noEdgeInsertions=True):
             (f'{softClipRight}S' if softClipRight else ''))
 
 
-def cigarTuplesToOperations(tuples):
+def cigarTuplesToOperations(tuples, includeHardClip=True):
     """
     Produce a sequence of CIGAR operations given a cigar tuples list
     from a pysam AlignedRead instance.
@@ -156,10 +157,13 @@ def cigarTuplesToOperations(tuples):
 
     @param tuples: A C{list} of 2-tuples, each containing an operation
         and an C{int} count.
+    @param includeHardClip: If C{True}, yield hard clipping operations,
+        else elide them.
     """
     for operation, count in tuples:
-        for _ in range(count):
-            yield operation
+        if operation != CHARD_CLIP or includeHardClip:
+            for _ in range(count):
+                yield operation
 
 
 def softClippedOffset(offset, pairs, cigarOperations):

@@ -283,23 +283,42 @@ class TestCigarTuplesToOperations(TestCase):
         """
         Test one tuple with one operation of length one.
         """
-        self.assertEqual([CINS_STR],
-                         list(cigarTuplesToOperations([(CINS_STR, 1)])))
+        self.assertEqual([CINS],
+                         list(cigarTuplesToOperations([(CINS, 1)])))
 
     def testOneOfTwo(self):
         """
         Test one tuple with one operation of length two.
         """
-        self.assertEqual([CINS_STR, CINS_STR],
-                         list(cigarTuplesToOperations([(CINS_STR, 2)])))
+        self.assertEqual([CINS, CINS],
+                         list(cigarTuplesToOperations([(CINS, 2)])))
 
     def testTwo(self):
         """
         Test two tuples.
         """
         self.assertEqual(
-            [CINS_STR, CINS_STR, CMATCH_STR, CMATCH_STR, CMATCH_STR],
-            list(cigarTuplesToOperations([(CINS_STR, 2), (CMATCH_STR, 3)])))
+            [CINS, CINS, CMATCH, CMATCH, CMATCH],
+            list(cigarTuplesToOperations([(CINS, 2), (CMATCH, 3)])))
+
+    def testHardClippingIncluded(self):
+        """
+        Hard clipping operations should be included.
+        """
+        self.assertEqual(
+            [CHARD_CLIP, CHARD_CLIP, CINS, CINS, CMATCH, CMATCH, CMATCH],
+            list(cigarTuplesToOperations(
+                [(CHARD_CLIP, 2), (CINS, 2), (CMATCH, 3)])))
+
+    def testSkipHardClipping(self):
+        """
+        It must be possible to have hard clipping operations skipped.
+        """
+        self.assertEqual(
+            [CINS, CINS, CMATCH, CMATCH, CMATCH],
+            list(cigarTuplesToOperations(
+                [(CHARD_CLIP, 2), (CINS, 2), (CMATCH, 3)],
+                includeHardClip=False)))
 
 
 class TestSoftClippedOffset(TestCase):
