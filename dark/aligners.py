@@ -4,6 +4,8 @@ from subprocess import CalledProcessError
 from tempfile import mkdtemp
 from shutil import rmtree
 
+import edlib
+
 from dark.fasta import FastaReads
 from dark.process import Executor
 from dark.reads import Reads
@@ -87,3 +89,29 @@ def needle(reads, verbose=False, options=None):
     rmtree(tempdir)
 
     return result
+
+
+def edlibAlign(reads, gapSymbol='-', strict=True):
+    """
+    Run an edlib alignment and return the sequences.
+
+    @param reads: An iterable of at least two reads.
+    @param gapSymbol: A C{str} 1-character symbol to use for gaps.
+    @param strict: Ensure that C{reads} only has two reads.
+    @raise ValueError: If C{strict} is C{True} and there are more than two
+       reads passed.
+    @return: A C{Reads} instance with the aligned sequences.
+    """
+    r1, r2, *rest = list(reads)
+
+    if strict and len(rest):
+        raise ValueError(f'{len(rest)} unexpected extra arguments')
+
+    alignment = edlib.getNiceAlignment(
+        edlib.align(r1.sequence, r2.sequence, mode='NW', task='path'),
+        r1.sequence, r2.sequence, gapSymbol=gapSymbol)
+
+    return Reads([
+        r1.__class__(r1.id, alignment['query_aligned']),
+        r2.__class__(r2.id, alignment['target_aligned']),
+    ])

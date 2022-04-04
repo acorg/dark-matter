@@ -142,6 +142,7 @@ setup(name='dark-matter',
       install_requires=[
           'biopython>=1.71',
           'bz2file>=0.98',
+          'edlib>=1.3.9',
           'Cython>=0.29.16',
           'ipython>=3.1.0',
           'matplotlib>=1.4.3',

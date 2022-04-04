@@ -1,3 +1,7 @@
+## 4.0.19 April 4, 2022
+
+Added `edlib` alignment method.
+
 ## 4.0.18 February 9, 2022
 
 Changed simple-consensus.py to use 'N' for no coverage and 'n' for low

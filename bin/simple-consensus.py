@@ -3,6 +3,7 @@
 import sys
 import argparse
 
+from dark import __version__
 from dark.consensus import consensusFromBAM, ConsensusError
 from dark.sam import SamError
 
@@ -12,9 +13,15 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Make a consensus sequence.')
 
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
         '--bamFilename', required=True,
         help='The BAM file from which the consensus should be called.')
+
+    group.add_argument(
+        '--version', action='store_true',
+        help='Print the version number and exit')
 
     parser.add_argument(
         '--bamId', metavar='ID',
@@ -133,6 +140,10 @@ def main():
               'warnings about differing reference names.'))
 
     args = parser.parse_args()
+
+    if args.version:
+        print(__version__)
+        sys.exit(0)
 
     try:
         consensus = consensusFromBAM(
