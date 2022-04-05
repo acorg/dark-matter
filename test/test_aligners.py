@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from random import choice, choices, sample
+from random import choice, choices
 
 from dark.aligners import edlibAlign, removeUnnecessaryGaps
 from dark.reads import DNARead, Reads
@@ -247,15 +247,23 @@ class TestEdlibAlign(TestCase):
 
     def test500SubstitutionsIn30000Nucleotides(self):
         """
-        Test that when 500 random substitutions are made to a random 30K
-        sequence, that the alignment is as expected (i.e., that the sequences
-        are pefectly aligned despite the mismatches).
+        Test that when 500 random substitutions (though not next to each
+        other) are made to a random 30K sequence, that the alignment is as
+        expected (i.e., that the sequences are perfectly aligned despite the
+        mismatches).
         """
         n = 30_000
         nSubs = 500
         seq1 = choices('ACGT', k=n)
         seq2 = seq1[:]
-        subOffsets = sample(range(n), nSubs)
+
+        # Pick some substitution sites, but not next to one another
+        # (otherwise there is a chance gaps are introduced).
+        subOffsets = set()
+        while len(subOffsets) < nSubs:
+            offset = choice(range(n))
+            if not (subOffsets & {offset - 1, offset, offset + 1}):
+                subOffsets.add(offset)
 
         # Make some changes in seq2.
         for offset in subOffsets:
