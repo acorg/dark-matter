@@ -4,6 +4,8 @@ from subprocess import CalledProcessError
 from tempfile import mkdtemp
 from shutil import rmtree
 
+import edlib
+
 from dark.fasta import FastaReads
 from dark.process import Executor
 from dark.reads import Reads
@@ -87,3 +89,116 @@ def needle(reads, verbose=False, options=None):
     rmtree(tempdir)
 
     return result
+
+
+def removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
+    """
+    Find and remove the first set of gaps in two sequences that can be removed
+    without increasing the difference between the strings.
+
+    @param seq1: A C{str} sequence string.
+    @param seq2: A C{str} sequence string.
+    @param gapSymbol: A C{str} 1-character symbol to use for gaps.
+    @return: A 2-C{tuple} with either two new C{str} sequences or two C{None}
+        values if no removable gaps were found.
+    """
+    assert len(seq1) == len(seq2)
+    for start in range(len(seq1)):
+        if seq1[start] == gapSymbol:
+            assert seq2[start] != gapSymbol
+            first, second = seq1, seq2
+            break
+        elif seq2[start] == gapSymbol:
+            assert seq1[start] != gapSymbol
+            first, second = seq2, seq1
+            break
+    else:
+        # Did not find any gaps.
+        return None, None
+
+    excessGapCount = 1
+    for end in range(start + 1, len(first)):
+        if first[end] == gapSymbol:
+            excessGapCount += 1
+            assert second[end] != gapSymbol
+        elif second[end] == gapSymbol:
+            excessGapCount -= 1
+            if excessGapCount == 0:
+                break
+    else:
+        # We did not get down to zero gaps. This will never happen if we
+        # were originally called as a result of a call to edlibAlign
+        # (below) and it only calls removeUnnecessaryGaps (also below) when
+        # both original sequences have a different length from their
+        # aligned versions. In that case there must be at least one gap in
+        # both sequences.  But for now this is not considered an error
+        # because we may not have been called by removeUnnecessaryGaps.
+        return None, None
+
+    subseq1 = seq1[start:end + 1]
+    subseq1noGaps = subseq1.replace(gapSymbol, '')
+    subseq2 = seq2[start:end + 1]
+    subseq2noGaps = subseq2.replace(gapSymbol, '')
+
+    diffsWithGaps = sum(a != b for (a, b) in zip(subseq1, subseq2))
+    diffsWithoutGaps = sum(a != b for (a, b) in zip(subseq1noGaps,
+                                                    subseq2noGaps))
+
+    if diffsWithoutGaps <= diffsWithGaps:
+        # The subsequences match at least as well without gaps, so replace
+        # the gapped region in each sequence with its ungapped version.
+        return (seq1[:start] + subseq1noGaps + seq1[end + 1:],
+                seq2[:start] + subseq2noGaps + seq2[end + 1:])
+    else:
+        return None, None
+
+
+def removeUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
+    """
+    Find and remove all local sets of gaps in two sequences that can be removed
+    without increasing the difference between the strings.
+
+    @param seq1: A C{str} sequence string.
+    @param seq2: A C{str} sequence string.
+    @param gapSymbol: A C{str} 1-character symbol to use for gaps.
+    @return: A 2-C{tuple} of C{str} sequences with removable gaps eliminated.
+    """
+    while True:
+        new1, new2 = removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol)
+        if new1 is None:
+            return seq1, seq2
+        seq1, seq2 = new1, new2
+
+
+def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, strict=True):
+    """
+    Run an edlib alignment and return the sequences.
+
+    @param reads: An iterable of at least two reads.
+    @param gapSymbol: A C{str} 1-character symbol to use for gaps.
+    @param minimizeGaps: If C{True}, post-process the edlib output to remove
+        unnecessary gaps.
+    @param strict: Ensure that C{reads} only has two reads.
+    @raise ValueError: If C{strict} is C{True} and there are more than two
+       reads passed.
+    @return: A C{Reads} instance with the aligned sequences.
+    """
+    # Align the first two sequences.
+    r1, r2, *rest = list(reads)
+
+    # And complain if there were more and we're told to be strict.
+    if strict and len(rest):
+        raise ValueError(f'Passed {len(rest)} unexpected extra sequences.')
+
+    alignment = edlib.getNiceAlignment(
+        edlib.align(r1.sequence, r2.sequence, mode='NW', task='path'),
+        r1.sequence, r2.sequence, gapSymbol=gapSymbol)
+
+    seq1, seq2 = alignment['query_aligned'], alignment['target_aligned']
+
+    # Try to remove unneeded gaps if requested. This is only possible if
+    # the length of both sequences has changed.
+    if minimizeGaps and len(seq1) != len(r1) and len(seq2) != len(r2):
+        seq1, seq2 = removeUnnecessaryGaps(seq1, seq2, gapSymbol)
+
+    return Reads([r1.__class__(r1.id, seq1), r2.__class__(r2.id, seq2)])

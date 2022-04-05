@@ -101,10 +101,12 @@ if len(reads) == 1:
         # This is ok, they want to compare a sequence with itself.
         reads = Reads([reads[0], reads[0]])
     else:
-        print('Could not find both requested sequence indices. Exiting.')
+        print('Could not find both requested sequence indices. Exiting.',
+              file=sys.stderr)
         sys.exit(1)
 elif len(reads) != 2:
-    print('Could not find both requested sequence indices. Exiting.')
+    print('Could not find both requested sequence indices. Exiting.',
+          file=sys.stderr)
     sys.exit(1)
 
 if args.alignmentFile:
