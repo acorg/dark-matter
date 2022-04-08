@@ -1,3 +1,7 @@
+## 4.0.20 April 4, 2022
+
+Fixed `simple-consensus.py` argument error that shouldn't have been committed.
+
 ## 4.0.19 April 4, 2022
 
 Added `edlib` alignment method.

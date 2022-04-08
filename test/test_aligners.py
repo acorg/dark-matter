@@ -245,6 +245,18 @@ class TestEdlibAlign(TestCase):
         self.assertEqual(in1, out1)
         self.assertEqual(in2, out2)
 
+    def testNoWildcardMatch(self):
+        """
+        If wildcards are not used...
+        """
+        in1 = DNARead('id1', 'ACTG')
+        in2 = DNARead('id2', 'ATG')
+
+        out1, out2 = list(edlibAlign(Reads([in1, in2])))
+
+        self.assertEqual('ACTG', out1.sequence)
+        self.assertEqual('A-TG', out2.sequence)
+
     def test500SubstitutionsIn30000Nucleotides(self):
         """
         Test that when 500 random substitutions (though not next to each

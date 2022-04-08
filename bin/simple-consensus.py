@@ -13,13 +13,11 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Make a consensus sequence.')
 
-    group = parser.add_mutually_exclusive_group(required=True)
-
-    group.add_argument(
+    parser.add_argument(
         '--bamFilename', required=True,
         help='The BAM file from which the consensus should be called.')
 
-    group.add_argument(
+    parser.add_argument(
         '--version', action='store_true',
         help='Print the version number and exit')
 
