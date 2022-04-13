@@ -6,9 +6,20 @@ from shutil import rmtree
 
 import edlib
 
+from dark.dna import AMBIGUOUS
 from dark.fasta import FastaReads
 from dark.process import Executor
 from dark.reads import Reads
+
+
+EDLIB_AMBIGUOUS = []
+
+for nt, ambiguities in AMBIGUOUS.items():
+    if len(ambiguities) > 1:
+        EDLIB_AMBIGUOUS.extend(
+            tuple(sorted((nt, code))) for code in ambiguities)
+
+EDLIB_AMBIGUOUS = tuple(EDLIB_AMBIGUOUS)
 
 
 def mafft(reads, verbose=False, options=None, threads=None):
@@ -170,7 +181,8 @@ def removeUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
         seq1, seq2 = new1, new2
 
 
-def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, strict=True):
+def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, onlyTwoSequences=True,
+               matchAmbiguous=True):
     """
     Run an edlib alignment and return the sequences.
 
@@ -178,20 +190,25 @@ def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, strict=True):
     @param gapSymbol: A C{str} 1-character symbol to use for gaps.
     @param minimizeGaps: If C{True}, post-process the edlib output to remove
         unnecessary gaps.
-    @param strict: Ensure that C{reads} only has two reads.
-    @raise ValueError: If C{strict} is C{True} and there are more than two
-       reads passed.
+    @param onlyTwoSequences: Ensure that C{reads} only has two reads.
+    @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
+        possibly correct as actually being correct. Otherwise, we are strict
+        and nucleotide codes only match themselves.
+    @raise ValueError: If C{onlyTwoSequences} is C{True} and there are more
+       than two reads passed.
     @return: A C{Reads} instance with the aligned sequences.
     """
     # Align the first two sequences.
     r1, r2, *rest = list(reads)
 
     # And complain if there were more and we're told to be strict.
-    if strict and len(rest):
+    if onlyTwoSequences and len(rest):
         raise ValueError(f'Passed {len(rest)} unexpected extra sequences.')
 
     alignment = edlib.getNiceAlignment(
-        edlib.align(r1.sequence, r2.sequence, mode='NW', task='path'),
+        edlib.align(
+            r1.sequence, r2.sequence, mode='NW', task='path',
+            additionalEqualities=EDLIB_AMBIGUOUS if matchAmbiguous else None),
         r1.sequence, r2.sequence, gapSymbol=gapSymbol)
 
     seq1, seq2 = alignment['query_aligned'], alignment['target_aligned']

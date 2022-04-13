@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from random import choice, choices
 
-from dark.aligners import edlibAlign, removeUnnecessaryGaps
+from dark.aligners import edlibAlign, removeUnnecessaryGaps, EDLIB_AMBIGUOUS
+from dark.dna import AMBIGUOUS
 from dark.reads import DNARead, Reads
 
 
@@ -10,6 +11,28 @@ class TestEdlibAlign(TestCase):
     """
     Test the edlibAlign function.
     """
+    def testAmbiguousCodes(self):
+        """
+        Test that the edlib ambiguous code tuples are correct.
+        """
+        # Check a few random tuples (see ../dark/dna.py for more).
+        self.assertIn(('A', 'M'), EDLIB_AMBIGUOUS)
+        self.assertIn(('G', 'R'), EDLIB_AMBIGUOUS)
+        self.assertNotIn(('R', 'G'), EDLIB_AMBIGUOUS)
+        self.assertIn(('A', 'N'), EDLIB_AMBIGUOUS)
+
+    def testNumberOfAmbiguousCodes(self):
+        """
+        Test the number of edlib ambiguous code tuples. The 28 comes from
+        summing the lengths of all the ambiguous sets of length > 1
+        (see ../dark/dna.py).
+        """
+        expected = sum(len(ambiguities) for ambiguities in AMBIGUOUS.values()
+                       if len(ambiguities) > 1)
+
+        self.assertEqual(expected, 28)
+        self.assertEqual(expected, len(EDLIB_AMBIGUOUS))
+
     def testEmtpyStrings(self):
         """
         Aligning two empty reads results in an Exception.
@@ -22,6 +45,19 @@ class TestEdlibAlign(TestCase):
                  r"the input alignResult\.$")
         self.assertRaisesRegex(Exception, error, edlibAlign, Reads([in1, in2]))
 
+    def testTooManySequences(self):
+        """
+        Passing more than two sequences must result in a ValueError if
+        onlyTwoSequences is True.
+        """
+        in1 = DNARead('id1', '')
+        in2 = DNARead('id2', '')
+        in3 = DNARead('id3', '')
+
+        error = r"^Passed 1 unexpected extra sequences\.$"
+        self.assertRaisesRegex(Exception, error, edlibAlign,
+                               Reads([in1, in2, in3]))
+
     def testIdenticalStringsOfLengthOne(self):
         """
         Aligning identical reads of length one must produce the expected
@@ -31,6 +67,22 @@ class TestEdlibAlign(TestCase):
         in2 = DNARead('id2', 'A')
 
         out1, out2 = list(edlibAlign(Reads([in1, in2])))
+
+        self.assertEqual(in1, out1)
+        self.assertEqual(in2, out2)
+
+    def testThreeIdenticalStringsOfLengthOne(self):
+        """
+        Aligning identical reads of length one must produce the expected
+        result, including if we pass three sequences and onlyTwoSequences
+        is False.
+        """
+        in1 = DNARead('id1', 'A')
+        in2 = DNARead('id2', 'A')
+        in3 = DNARead('id3', 'A')
+
+        out1, out2 = list(edlibAlign(Reads([in1, in2, in3]),
+                                     onlyTwoSequences=False))
 
         self.assertEqual(in1, out1)
         self.assertEqual(in2, out2)

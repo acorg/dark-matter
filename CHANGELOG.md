@@ -1,3 +1,7 @@
+## 4.0.21 April 13, 2022
+
+Added `matchAmbiguous` option to `edlibAlign`.
+
 ## 4.0.20 April 4, 2022
 
 Fixed `simple-consensus.py` argument error that shouldn't have been committed.
