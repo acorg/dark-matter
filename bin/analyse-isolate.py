@@ -9,8 +9,8 @@ from dark.sam import SAMFilter
 from mvlib.minorVariants import MinorVariantInfo
 from mvlib.functions import isMinorVariantPosition
 
+from sars2seq.alignment import SARS2Alignment, offsetInfoMultipleGenomes
 from sars2seq.features import Features
-from sars2seq.genome import SARS2Genome, offsetInfoMultipleGenomes
 
 
 if __name__ == '__main__':
@@ -56,8 +56,8 @@ if __name__ == '__main__':
     clinicalSeq = list(FastaReads(args.clinicalSequence))[0]
     consensusSeq = list(FastaReads(args.consensusSequence))[0]
     features = Features()
-    clinicalGenome = SARS2Genome(clinicalSeq, features)
-    consensusGenome = SARS2Genome(consensusSeq, features)
+    clinicalAlignment = SARS2Alignment(clinicalSeq, features)
+    consensusAlignment = SARS2Alignment(consensusSeq, features)
 
     # Get the minor variant information
     if args.alignmentFile.endswith('.json'):
@@ -98,7 +98,7 @@ if __name__ == '__main__':
         feature = list(feats)[0] if feats else None
 
         offsetInfo = offsetInfoMultipleGenomes(
-            [clinicalGenome, consensusGenome], position,
+            [clinicalAlignment, consensusAlignment], position,
             featureName=feature, relativeToFeature=False,
             includeUntranslated=True)
 
