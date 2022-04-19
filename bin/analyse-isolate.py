@@ -3,8 +3,12 @@
 from Bio.Data.CodonTable import ambiguous_dna_by_id
 
 from dark.fasta import FastaReads
+from dark.reads import Reads
+from dark.sam import SAMFilter
+
 from mvlib.minorVariants import MinorVariantInfo
 from mvlib.functions import isMinorVariantPosition
+
 from sars2seq.features import Features
 from sars2seq.genome import SARS2Genome, offsetInfoMultipleGenomes
 
@@ -18,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--alignmentFile',
         help=('The name of the alignment file. Either a bam file or a json '
-              'file that has bee generaged using MinorVariantInfo.'))
+              'file that has been generated using MinorVariantInfo.'))
 
     parser.add_argument(
         '--clinicalSequence',
@@ -35,11 +39,11 @@ if __name__ == '__main__':
         help='The name of the sample.')
 
     parser.add_argument(
-        '--minorVariantFrequencyCutoff', default=0.05,
+        '--minorVariantFrequencyCutoff', default=0.05, type=float,
         help='The cut-off for minor variant frequency.')
 
     parser.add_argument(
-        '--minorVariantCoverageCutoff', default=5,
+        '--minorVariantCoverageCutoff', default=5, type=int,
         help=('The minimum number of reads required to evaluate a sequence '
               'for minority variants.'))
 
@@ -51,7 +55,7 @@ if __name__ == '__main__':
     # sequence of the isolate sequencing run.
     clinicalSeq = list(FastaReads(args.clinicalSequence))[0]
     consensusSeq = list(FastaReads(args.consensusSequence))[0]
-    features = Features(Features.REF_GB)
+    features = Features()
     clinicalGenome = SARS2Genome(clinicalSeq, features)
     consensusGenome = SARS2Genome(consensusSeq, features)
 
@@ -62,15 +66,20 @@ if __name__ == '__main__':
         mvInfo = MinorVariantInfo(
             bamFile=args.alignmentFile,
             minBaseQuality=35, minMappingQuality=30)
+        referenceLengths = SAMFilter(
+            args.alignmentFile,
+            filterRead=Reads().filter().filterRead).referenceLengths()
+        assert 'hCoV-19/Wuhan-Hu-1/2019|EPI_ISL_402125' in referenceLengths, (
+               'This looks like an incorrect reference')
 
     coverageDepthSum = 0
     coverageDepthMin = 10000
     coverageDepthMax = 0
 
     print('Isolate analysis for sample %s' % args.sampleName)
-    print('Clinical sample name: %s' % clinicalSeq.id)
+    print('Sequence ID of clinical sample: %s' % clinicalSeq.id)
 
-    for position in range(len(consensusSeq)):  # mvInfo.countsPerBase:
+    for position in range(len(consensusSeq)):
         # 'position' here will be relative to the reference sequence (has to
         # be EPI_ISL_402125/NC_045512.2) that the reads from the isolate were
         # aligned against.
@@ -84,12 +93,9 @@ if __name__ == '__main__':
             coverageDepthMax = readCountAtPos
 
         # Get just one feature at this position
-        featuresss = features.featuresAt(position, includeUntranslated=True)
+        feats = features.getFeatureNames(position, includeUntranslated=True)
 
-        if featuresss:
-            feature = list(featuresss)[0]
-        else:
-            feature = None
+        feature = list(feats)[0] if feats else None
 
         offsetInfo = offsetInfoMultipleGenomes(
             [clinicalGenome, consensusGenome], position,
@@ -113,9 +119,9 @@ if __name__ == '__main__':
                     offsetInfo['reference']['aaOffset'] + 1, consInfo['aa'])
                 if (offsetInfo['featureName'] == 'surface glycoprotein' and
                         670 < offsetInfo['reference']['aaOffset'] < 690):
-                    furin = ' FURIN!'
+                    furin = ' FURIN SITE!'
             if clinBase != '-' and 70 < position < 29714:
-                print('\tChange from reference at position %d '
+                print('\tChange from clinical sample sequence at position %d '
                       '(nt change: %s>%s), %s%s' % (
                           position + 1, clinBase, consBase, synInfo, furin))
 
@@ -130,7 +136,7 @@ if __name__ == '__main__':
             print('\t\tMinority variant at position: %d (%s), '
                   'coverage: %d reads' % (
                       position + 1, offsetInfo['featureName'],
-                      sum(list(mvInfo.countsPerBase[position].values()))))
+                      sum(mvInfo.countsPerBase[position].values())))
             for base in mvInfo.countsPerBase[position]:
                 if (mvInfo.countsPerBase[position][base] >
                         args.minorVariantCoverageCutoff):
@@ -152,7 +158,7 @@ if __name__ == '__main__':
                     print('\t\t\tBase: %s, count: %d (%.2f): %s' % (
                         base, mvInfo.countsPerBase[position][base],
                         mvInfo.countsPerBase[position][base] / sum(
-                            list(mvInfo.countsPerBase[position].values())),
+                            mvInfo.countsPerBase[position].values()),
                         baseInfo))
 
     print('Genome coverage: %.2f, mean coverage depth: %.2f (min: %d, '
