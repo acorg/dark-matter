@@ -3,26 +3,28 @@ from os.path import join
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
 from shutil import rmtree
+from typing import List, Optional, Tuple
 
 import edlib
 
 from dark.dna import AMBIGUOUS
 from dark.fasta import FastaReads
 from dark.process import Executor
-from dark.reads import Reads
+from dark.reads import Read, Reads
 
 
-EDLIB_AMBIGUOUS = []
+_EDLIB_AMBIGUOUS: List[Tuple[str, str]] = []
 
 for nt, ambiguities in AMBIGUOUS.items():
     if len(ambiguities) > 1:
-        EDLIB_AMBIGUOUS.extend(
+        _EDLIB_AMBIGUOUS.extend(
             tuple(sorted((nt, code))) for code in ambiguities)
 
-EDLIB_AMBIGUOUS = tuple(EDLIB_AMBIGUOUS)
+EDLIB_AMBIGUOUS = tuple(_EDLIB_AMBIGUOUS)
 
 
-def mafft(reads, verbose=False, options=None, threads=None):
+def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
+          threads: Optional[int] = None) -> Reads:
     """
     Run a MAFFT alignment and return the sequences.
 
@@ -52,7 +54,8 @@ def mafft(reads, verbose=False, options=None, threads=None):
     return result
 
 
-def needle(reads, verbose=False, options=None):
+def needle(reads: List[Read], verbose: bool = False,
+           options: Optional[str] = None) -> Reads:
     """
     Run a Needleman-Wunsch alignment and return the two sequences.
 
@@ -102,7 +105,9 @@ def needle(reads, verbose=False, options=None):
     return result
 
 
-def removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
+def removeFirstUnnecessaryGaps(
+        seq1: str, seq2: str, gapSymbol: str = '-') -> Tuple[
+            Optional[str], Optional[str]]:
     """
     Find and remove the first set of gaps in two sequences that can be removed
     without increasing the difference between the strings.
@@ -164,7 +169,8 @@ def removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
         return None, None
 
 
-def removeUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
+def removeUnnecessaryGaps(
+        seq1: str, seq2: str, gapSymbol: str = '-') -> Tuple[str, str]:
     """
     Find and remove all local sets of gaps in two sequences that can be removed
     without increasing the difference between the strings.
@@ -180,9 +186,13 @@ def removeUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
             return seq1, seq2
         seq1, seq2 = new1, new2
 
+    raise RuntimeError('Fell off the end of removeFirstUnnecessaryGaps. '
+                       'This should be impossible!')
 
-def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, onlyTwoSequences=True,
-               matchAmbiguous=True):
+
+def edlibAlign(
+        reads: Reads, gapSymbol: str = '-', minimizeGaps: bool = True,
+        onlyTwoSequences: bool = True, matchAmbiguous: bool = True) -> Reads:
     """
     Run an edlib alignment and return the sequences.
 

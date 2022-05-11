@@ -10,9 +10,11 @@ from os.path import basename
 from contextlib import contextmanager
 from re import compile
 import numpy as np
+from statistics import median as _median
+from typing import List, Optional, Union
 
 
-def numericallySortFilenames(names):
+def numericallySortFilenames(names: List[str]) -> List[str]:
     """
     Sort (ascending) a list of file names by their numerical prefixes.
     The number sorted on is the numeric prefix of the basename of
@@ -24,7 +26,7 @@ def numericallySortFilenames(names):
     @return: The sorted C{list} of full file names.
     """
 
-    def numericPrefix(name):
+    def numericPrefix(name: str) -> int:
         """
         Find any numeric prefix of C{name} and return it as an C{int}.
 
@@ -43,59 +45,14 @@ def numericallySortFilenames(names):
     return sorted(names, key=lambda name: numericPrefix(basename(name)))
 
 
-# Set up a median function that works on different Python versions and on pypy
-# (even if numpypy is still broken).
-#
-# First try numpy, and check that an ndarray has a partition method (to avoid a
-# shortcoming in pypy numpy, see
-# https://bitbucket.org/pypy/numpy/issues/12/median-calling-ndarraypartition
-# If numpy seems ok, use it. Else try for the Python 3.4 median function, else
-# write our own.
-
-_a = np.array([1])
-
-try:
-    _a.partition
-except AttributeError:
-    # Cannot use numpy. Try for the new (Python 3.4) built-in function.
-    try:
-        from statistics import median as _median
-    except ImportError:
-        def _median(numbers):
-            """
-            Find the median of a set of numbers.
-
-            @param numbers: A C{list} of numeric values.
-            @return: The median value in C{numbers}.
-            """
-            numbers = sorted(numbers)
-            n = len(numbers)
-            if n % 2:
-                return numbers[n // 2]
-            else:
-                n //= 2
-                return (numbers[n - 1] + numbers[n]) / 2
-else:
-    # We have a working numpy. Just make sure we raise on an empty list as
-    # numpy returns numpy.nan
-    _median = np.median
-
-del _a
-
-
 def median(numbers):
     """
     Find the median of a set of numbers.
 
     @param numbers: A C{list} of numeric values.
     @raise ValueError: If C{l} is empty.
-    @return: The median value in C{l}.
+    @return: The median of C{numbers}.
     """
-
-    # Handle the zero length case ahead of time because various median
-    # implementations do different things. numpy returns nan, whereas Python
-    # 3.4 and later raise StatisticsError
-
     if len(numbers) == 0:
         # Match the empty-argument exception message of Python's built-in max
         # and min functions.
@@ -273,7 +230,8 @@ def nucleotidesToStr(nucleotides, prefix=''):
     return '\n'.join(result)
 
 
-def countPrint(mesg, count, len1, len2=None):
+def countPrint(
+        mesg: str, count: int, len1: int, len2: Optional[int] = None) -> str:
     """
     Format a message followed by an integer count and a percentage (or
     two, if the sequence lengths are unequal).
@@ -285,7 +243,7 @@ def countPrint(mesg, count, len1, len2=None):
         default to C{len1}.
     @return: A C{str} for printing.
     """
-    def percentage(a, b):
+    def percentage(a: int, b: int) -> float:
         """
         What percent of a is b?
 
@@ -310,7 +268,7 @@ def countPrint(mesg, count, len1, len2=None):
                         count, len2, percentage(count, len2)))
 
 
-def pct(a, b):
+def pct(a: int, b: int) -> str:
     """
     Format a string showing two integers and what percentage the first
     is of the second.

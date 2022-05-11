@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import six
 import os
@@ -6,6 +8,9 @@ from collections import Counter
 from hashlib import md5
 from random import uniform
 from pathlib import Path
+from typing import (
+    Any, Callable, Generator, Iterable, List, Literal, Optional, Set, TextIO,
+    Tuple, Type, TypeVar, Union)
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -14,12 +19,13 @@ from Bio.Data.IUPACData import (
 from dark.aa import (
     AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE)
 from dark.filter import TitleFilter
+from dark.hsp import HSP
 from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
 
 
 if six.PY3:
-    def _makeComplementTable(complementData):
+    def _makeComplementTable(complementData: dict) -> str:
         """
         Make a sequence complement table.
 
@@ -35,7 +41,7 @@ if six.PY3:
             table[ord(_from[0].upper())] = ord(to[0].upper())
         return ''.join(map(chr, table))
 else:
-    def _makeComplementTable(complementData):
+    def _makeComplementTable(complementData: dict) -> str:
         """
         Make a sequence complement table.
 
@@ -72,9 +78,9 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
-    ALPHABET = None
+    ALPHABET: Optional[set] = None
 
-    def __init__(self, id, sequence, quality=None):
+    def __init__(self, id: str, sequence: str, quality: Optional[str] = None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 'Invalid read: sequence length (%d) != quality length (%d)' %
@@ -84,22 +90,31 @@ class Read(object):
         self.sequence = sequence
         self.quality = quality
 
-    def __eq__(self, other):
-        return (self.id == other.id and
-                self.sequence == other.sequence and
-                self.quality == other.quality)
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Read):
+            return (self.id == other.id and
+                    self.sequence == other.sequence and
+                    self.quality == other.quality)
+        else:
+            return NotImplemented
 
-    def __ne__(self, other):
-        return not self == other
+    def __ne__(self, other: object) -> bool:
+        if isinstance(other, Read):
+            return not self == other
+        else:
+            return NotImplemented
 
-    def __lt__(self, other):
-        return ((self.id, self.sequence, self.quality) <
-                (other.id, other.sequence, other.quality))
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, Read):
+            return ((self.id, self.sequence, self.quality) <
+                    (other.id, other.sequence, other.quality))
+        else:
+            return NotImplemented
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sequence)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         Calculate a hash key for a read.
 
@@ -113,12 +128,12 @@ class Read(object):
                             self.sequence.encode('UTF-8') + b'\0' +
                             self.quality.encode('UTF-8')).digest())
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, slice]) -> Read:
         sequence = self.sequence[item]
         quality = None if self.quality is None else self.quality[item]
         return self.__class__(self.id, sequence, quality)
 
-    def toString(self, format_):
+    def toString(self, format_: str = 'fasta') -> str:
         """
         Convert the read to a string format.
 
@@ -141,7 +156,7 @@ class Read(object):
             raise ValueError("Format must be either 'fasta', 'fastq' or "
                              "'fasta-ss'.")
 
-    def toDict(self):
+    def toDict(self) -> dict:
         """
         Get information about this read in a dictionary.
 
@@ -153,7 +168,7 @@ class Read(object):
             'quality': self.quality,
         }
 
-    def reverse(self):
+    def reverse(self) -> Read:
         """
         Reverse a read (note that this is NOT a reverse complement).
 
@@ -165,7 +180,7 @@ class Read(object):
             None if self.quality is None else self.quality[::-1])
 
     @classmethod
-    def fromDict(cls, d):
+    def fromDict(cls, d: dict) -> Read:
         """
         Create a new instance from attribute values provided in a dictionary.
 
@@ -176,7 +191,7 @@ class Read(object):
         """
         return cls(d['id'], d['sequence'], d.get('quality'))
 
-    def lowComplexityFraction(self):
+    def lowComplexityFraction(self) -> float:
         """
         What fraction of a read's bases are in low-complexity regions?
         By convention, a region of low complexity is indicated by lowercase
@@ -192,11 +207,15 @@ class Read(object):
         else:
             return 0.0
 
-    def walkHSP(self, hsp, includeWhiskers=True):
+    def walkHSP(self,
+                hsp: HSP,
+                includeWhiskers: bool = True) -> Generator[
+                    Tuple[int, str, bool], None, None]:
         """
         Provide information about exactly how a read matches a subject, as
         specified by C{hsp}.
 
+        @param hsp: An C{HSP} instance.
         @param includeWhiskers: If C{True} yield information from the
             (possibly empty) non-matching ends of the read.
         @return: A generator that yields (offset, residue, inMatch) tuples.
@@ -235,7 +254,7 @@ class Read(object):
                 readOffset += 1
                 subjectOffset += 1
 
-    def checkAlphabet(self, count=10):
+    def checkAlphabet(self, count: int = 10) -> set:
         """
         A function which checks whether the sequence in a L{dark.Read} object
         corresponds to its readClass. For AA reads, more testing is done in
@@ -244,8 +263,8 @@ class Read(object):
         @param count: An C{int}, indicating how many bases or amino acids at
             the start of the sequence should be considered. If C{None}, all
             bases are checked.
-        @return: C{True} if the alphabet characters in the first C{count}
-            positions of sequence is a subset of the allowed alphabet for this
+        @return: A C{set} of the read characters in the first C{count}
+            positions of sequence if these are a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
         @raise ValueError: If the sequence alphabet is not a subset of the read
             class alphabet.
@@ -263,7 +282,7 @@ class Read(object):
                              ''.join(sorted(self.ALPHABET)),
                              str(self.__class__.__name__)))
 
-    def newFromSites(self, sites, exclude=False):
+    def newFromSites(self, sites: Set[int], exclude: bool = False) -> Read:
         """
         Create a new read from self, with only certain sites.
 
@@ -272,7 +291,11 @@ class Read(object):
             are kept.
         @param exclude: If C{True} the C{sites} will be excluded, not
             included.
+        @return: A new C{Read} instance.
         """
+        if sites is None:
+            sites = set(range(len(self)))
+
         if exclude:
             sites = set(range(len(self))) - sites
 
@@ -295,11 +318,18 @@ class Read(object):
         return read
 
 
+ReadVar = TypeVar('ReadVar', bound=Read)
+
+
 class _NucleotideRead(Read):
     """
     Holds methods to work with nucleotide (DNA and RNA) sequences.
     """
-    def translations(self):
+    COMPLEMENT_TABLE: Optional[str] = None
+
+    def translations(self: Union[_NucleotideRead,
+                                 DNARead,
+                                 RNARead]) -> Generator[TranslatedRead, None, None]:
         """
         Yield all six translations of a nucleotide sequence.
 
@@ -321,7 +351,7 @@ class _NucleotideRead(Read):
                 yield TranslatedRead(self, translate(suffix), frame,
                                      reverseComplemented)
 
-    def reverseComplement(self):
+    def reverseComplement(self: Union[_NucleotideRead, DNARead, RNARead]) -> Read:
         """
         Reverse complement a nucleotide sequence.
 
@@ -337,18 +367,18 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
-    ALPHABET = set('ATCG')
+    ALPHABET: set = set('ATCG')
 
-    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
+    COMPLEMENT_TABLE: str = _makeComplementTable(ambiguous_dna_complement)
 
 
 class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-    ALPHABET = set('ATCGU')
+    ALPHABET: set = set('ATCGU')
 
-    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
+    COMPLEMENT_TABLE: str = _makeComplementTable(ambiguous_rna_complement)
 
 
 class DNAKozakRead(DNARead):
@@ -365,7 +395,7 @@ class DNAKozakRead(DNARead):
         locations in the Kozak sequence that match the most frequent Kozak
         nucleotides.
     """
-    def __init__(self, originalRead, start, stop, kozakQuality):
+    def __init__(self, originalRead: Read, start: int, stop: int, kozakQuality: float):
         if start < 0:
             raise ValueError('start offset (%d) less than zero' % start)
         if stop > len(originalRead):
@@ -387,14 +417,17 @@ class DNAKozakRead(DNARead):
         self.stop = stop
         self.kozakQuality = kozakQuality
 
-    def __eq__(self, other):
-        return (self.id == other.id and
-                self.sequence == other.sequence and
-                self.originalRead == other.originalRead and
-                self.quality == other.quality and
-                self.start == other.start and
-                self.stop == other.stop and
-                self.kozakQuality == other.kozakQuality)
+    def __eq__(self, other: object):
+        if isinstance(other, DNAKozakRead):
+            return (self.id == other.id and
+                    self.sequence == other.sequence and
+                    self.originalRead == other.originalRead and
+                    self.quality == other.quality and
+                    self.start == other.start and
+                    self.stop == other.stop and
+                    self.kozakQuality == other.kozakQuality)
+        else:
+            return NotImplemented
 
 
 # Keep a single GOR4 instance that can be used by all AA reads. This saves us
@@ -409,7 +442,7 @@ class AARead(Read):
     """
     ALPHABET = set(AA_LETTERS)
 
-    def checkAlphabet(self, count=10):
+    def checkAlphabet(self, count: int = 10) -> set:
         """
         A function which checks if an AA read really contains amino acids. This
         additional testing is needed, because the letters in the DNA alphabet
@@ -418,10 +451,11 @@ class AARead(Read):
         @param count: An C{int}, indicating how many bases or amino acids at
             the start of the sequence should be considered. If C{None}, all
             bases are checked.
-        @return: C{True} if the alphabet characters in the first C{count}
+        @return: A C{set} of the alphabet characters in the first C{count}
             positions of sequence is a subset of the allowed alphabet for this
             read class, or if the read class has a C{None} alphabet.
-        @raise ValueError: If a DNA sequence has been passed to AARead().
+        @raise ValueError: If the sequence of self is more than 10 charactere
+            and it looks like DNA has been passed to AARead().
         """
         if six.PY3:
             readLetters = super().checkAlphabet(count)
@@ -432,7 +466,7 @@ class AARead(Read):
                              'AARead().')
         return readLetters
 
-    def properties(self):
+    def properties(self) -> Generator[int, None, None]:
         """
         Translate an amino acid sequence to properties of the form:
         'F': HYDROPHOBIC | AROMATIC.
@@ -442,16 +476,16 @@ class AARead(Read):
         """
         return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
 
-    def propertyDetails(self):
+    def propertyDetails(self) -> Generator[Union[dict, int], None, None]:
         """
         Translate an amino acid sequence to properties. Each property of the
         amino acid gets a value scaled from -1 to 1.
 
-        @return: A list of property dictionaries.
+        @return: A generator yielding property dictionaries.
         """
         return (PROPERTY_DETAILS.get(aa, NONE) for aa in self.sequence)
 
-    def ORFs(self, openORFs=False):
+    def ORFs(self, openORFs: bool = False) -> Generator[AAReadORF, None, None]:
         """
         Find all ORFs in our sequence.
 
@@ -514,7 +548,7 @@ class AAReadWithX(AARead):
     Hold information and methods to work with AA reads with additional
     characters.
     """
-    ALPHABET = set(AA_LETTERS + ['X'])
+    ALPHABET: set = set(AA_LETTERS + ['X'])
 
 
 class AAReadORF(AARead):
@@ -536,7 +570,8 @@ class AAReadORF(AARead):
         was found). If C{False}, a stop codon was found in the read after this
         ORF.
     """
-    def __init__(self, originalRead, start, stop, openLeft, openRight):
+    def __init__(self, originalRead: AARead, start: int, stop: int,
+                 openLeft: bool, openRight: bool):
         if start < 0:
             raise ValueError('start offset (%d) less than zero' % start)
         if stop > len(originalRead):
@@ -559,7 +594,7 @@ class AAReadORF(AARead):
         self.openLeft = openLeft
         self.openRight = openRight
 
-    def toDict(self):
+    def toDict(self) -> dict:
         """
         Get information about this read in a dictionary.
 
@@ -580,7 +615,7 @@ class AAReadORF(AARead):
         return result
 
     @classmethod
-    def fromDict(cls, d):
+    def fromDict(cls, d: dict) -> AARead:
         """
         Create a new instance from attribute values provided in a dictionary.
 
@@ -616,7 +651,7 @@ class SSAARead(AARead):
     @param structure: A C{str} of structure information.
     @raise ValueError: If the sequence and structure lengths are not the same.
     """
-    def __init__(self, id, sequence, structure):
+    def __init__(self, id, sequence: str, structure: str):
         if six.PY3:
             super().__init__(id, sequence)
         else:
@@ -628,12 +663,15 @@ class SSAARead(AARead):
                 'Invalid read: sequence length (%d) != structure length (%d)' %
                 (len(sequence), len(structure)))
 
-    def __eq__(self, other):
-        return (self.id == other.id and
-                self.sequence == other.sequence and
-                self.structure == other.structure)
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, SSAARead):
+            return (self.id == other.id and
+                    self.sequence == other.sequence and
+                    self.structure == other.structure)
+        else:
+            return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         Calculate a hash key for a read.
 
@@ -643,12 +681,13 @@ class SSAARead(AARead):
                         self.sequence.encode('UTF-8') + b'\0' +
                         self.structure.encode('UTF-8')).digest())
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, slice]) -> SSAARead:
         sequence = self.sequence[item]
         structure = None if self.structure is None else self.structure[item]
         return self.__class__(self.id, sequence, structure)
 
-    def toString(self, format_='fasta-ss', structureSuffix=':structure'):
+    def toString(self, format_: str = 'fasta-ss',
+                 structureSuffix: str = ':structure') -> str:
         """
         Convert the read to a string in PDB format (sequence & structure). This
         consists of two FASTA records, one for the sequence then one for the
@@ -1265,13 +1304,16 @@ class Reads(object):
         subclass) instances.
     """
 
-    def __init__(self, initialReads=None):
+    def __init__(
+            self,
+            initialReads: Optional[Iterable[Type[ReadVar]]] = None) -> None:
         self._initialReads = initialReads
-        self._additionalReads = []
-        self._filters = []
+        self._additionalReads: List[Type[ReadVar]] = []
+        self._filters: List[Callable] = []
         self._iterated = False
 
-    def filterRead(self, read):
+    def filterRead(
+            self, read: Type[ReadVar]) -> Union[Literal[False], Type[ReadVar]]:
         """
         Filter a read, according to our set of filters.
 
@@ -1287,7 +1329,7 @@ class Reads(object):
                 read = filteredRead
         return read
 
-    def add(self, read):
+    def add(self, read: Type[ReadVar]) -> None:
         """
         Add a read to this collection of reads.
 
@@ -1295,7 +1337,7 @@ class Reads(object):
         """
         self._additionalReads.append(read)
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Type[ReadVar], None, None]:
         """
         Iterate through all the reads.
 
@@ -1327,7 +1369,7 @@ class Reads(object):
 
         # The value returned by self.iter() may be a Reads instance and/or
         # may not support len().
-        subclassReads = self.iter()
+        subclassReads: Iterable[Type[ReadVar]] = self.iter()
         subclassReadsLength = 0
         for read in subclassReads:
             subclassReadsLength += 1
@@ -1343,7 +1385,7 @@ class Reads(object):
         self._unfilteredLength = _unfilteredLength
         self._iterated = True
 
-    def unfilteredLength(self):
+    def unfilteredLength(self) -> int:
         """
         Return the underlying number of reads in C{self}, irrespective of any
         filtering that has been applied.
@@ -1361,7 +1403,7 @@ class Reads(object):
                 'The unfiltered length of a Reads instance is unknown until '
                 'it has been iterated.')
 
-    def iter(self):
+    def iter(self) -> Iterable[Type[ReadVar]]:
         """
         Placeholder to allow subclasses to provide reads.
 
@@ -1373,7 +1415,8 @@ class Reads(object):
         """
         return []
 
-    def save(self, filename, format_='fasta'):
+    def save(self,
+             filename: Union[str, TextIO], format_: str = 'fasta') -> int:
         """
         Write the reads to C{filename} in the requested format.
 
@@ -1391,7 +1434,7 @@ class Reads(object):
         if isinstance(filename, (str, Path)):
             try:
                 with open(filename, 'w') as fp:
-                    for read in self:
+                    for read in iter(self):
                         fp.write(read.toString(format_))
                         count += 1
             except ValueError:
@@ -1399,12 +1442,12 @@ class Reads(object):
                 raise
         else:
             # We have a file-like object.
-            for read in self:
+            for read in iter(self):
                 filename.write(read.toString(format_))
                 count += 1
         return count
 
-    def filter(self, **kwargs):
+    def filter(self, **kwargs) -> Reads:
         """
         Add a filter to this C{Reads} instance.
 
@@ -1415,7 +1458,7 @@ class Reads(object):
         self._filters.append(readFilter.filter)
         return self
 
-    def clearFilters(self):
+    def clearFilters(self) -> Reads:
         """
         Clear all filters on this C{Reads} instance.
 
@@ -1424,7 +1467,7 @@ class Reads(object):
         self._filters = []
         return self
 
-    def summarizePosition(self, index):
+    def summarizePosition(self, index: int) -> dict:
         """
         Compute residue counts at a specific sequence index.
 
@@ -1432,10 +1475,10 @@ class Reads(object):
         @return: A C{dict} with the count of too-short (excluded) sequences,
             and a Counter instance giving the residue counts.
         """
-        countAtPosition = Counter()
+        countAtPosition: Counter = Counter()
         excludedCount = 0
 
-        for read in self:
+        for read in iter(self):
             try:
                 countAtPosition[read.sequence[index]] += 1
             except IndexError:
@@ -1446,7 +1489,7 @@ class Reads(object):
             'countAtPosition': countAtPosition
         }
 
-    def sitesMatching(self, targets, matchCase, any_):
+    def sitesMatching(self, targets: set, matchCase: bool, any_: bool) -> set:
         """
         Find sites (i.e., sequence indices) that match a given set of target
         sequence bases.
@@ -1464,8 +1507,13 @@ class Reads(object):
         if not matchCase:
             targets = set(map(str.lower, targets))
 
-        result = set() if any_ else None
-        for read in self:
+        # result = set() if any_ else None
+        if any_:
+            result = set()
+        else:
+            result = None
+
+        for read in iter(self):
             sequence = read.sequence if matchCase else read.sequence.lower()
             matches = set(index for (index, base) in enumerate(sequence)
                           if base in targets)
@@ -1481,10 +1529,11 @@ class Reads(object):
                     break
 
         # Make sure we don't return None.
-        return result or set()
+        # return result or set()
+        return set() if result is None else result
 
-    def variableSites(self, confirm=False, homogeneityLevel=1.0,
-                      unknownAreAmbiguous=False):
+    def variableSites(self, confirm: bool = False, homogeneityLevel: float = 1.0,
+                      unknownAreAmbiguous: bool = False) -> dict:
         """
         Find the variable sites in a set of reads.
 
@@ -1519,9 +1568,11 @@ class Reads(object):
 
         return varSites
 
-    def combineReads(self):
+    def combineReads(self) -> str:
         """
         Combine all reads into a single read. Reads must be of equal length.
+        This is "combine" in the sense of making a single consensus sequence
+        but without considering the frequency of the bases at each site.
 
         @return: a C{str} sequence made from combining all reads.
         """
@@ -1582,13 +1633,13 @@ class ReadsInRAM(Reads):
     def __len__(self):
         return self._additionalReads.__len__()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, slice]) -> Reads:
         return self._additionalReads.__getitem__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: Union[int, slice], value: Type[ReadVar]) -> Reads:
         return self._additionalReads.__setitem__(item, value)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Read]:
         return self._additionalReads.__iter__()
 
 

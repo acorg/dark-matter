@@ -1,12 +1,5 @@
 from dark.utils import countPrint
-try:
-    from itertools import zip_longest
-except ImportError:
-    # zip_longest does not exist in Python 2.7 itertools. We should be able
-    # to get it via from six.moves import zip_longest according to
-    # https://pythonhosted.org/six/index.html?highlight=zip_longest but
-    # that doesn't work for me.
-    from itertools import izip_longest as zip_longest
+from itertools import zip_longest
 
 # From https://en.wikipedia.org/wiki/Amino_acid
 #
