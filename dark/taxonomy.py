@@ -586,8 +586,6 @@ class Hierarchy(object):
         """
         names = [element.name for element in lineage]
 
-        assert names[-1] == 'Viruses'
-
         n = len(names) - 2
         node = self._root
 

@@ -1,3 +1,9 @@
+## 4.0.22 May 12, 2022
+
+Removed unneeded viral check from `dark/taxonomy.py`. Added 'generic' as a
+pathogen type for protein reporting (in `dark/civ/proteins.py`) and that
+can be given to `bin/proteins-to-pathogens-civ.py`.
+
 ## 4.0.21 April 13, 2022
 
 Added `matchAmbiguous` option to `edlibAlign`.

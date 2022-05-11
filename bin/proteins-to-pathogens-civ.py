@@ -164,7 +164,7 @@ if __name__ == '__main__':
               'in that case).'))
 
     parser.add_argument(
-        '--html', default=False, action='store_true',
+        '--html', action='store_true',
         help='If specified, output HTML instead of plain text.')
 
     parser.add_argument(
@@ -185,12 +185,13 @@ if __name__ == '__main__':
               'be displayed for that sample.'))
 
     parser.add_argument(
-        '--pathogenType', default='viral', choices=('bacterial', 'viral'),
+        '--pathogenType', default='viral',
+        choices=('bacterial', 'viral', 'generic'),
         help=('Specify the pathogen type. This option only affects the '
               'language used in HTML output.'))
 
     parser.add_argument(
-        '--showReadLengths', default=False, action='store_true',
+        '--showReadLengths', action='store_true',
         help=('If specified, the HTML output (use --html to get this) will '
               'contain the lengths of all reads that match proteins for a '
               'pathogen.'))
@@ -224,7 +225,7 @@ if __name__ == '__main__':
         help='a regex that pathogen names must not match.')
 
     parser.add_argument(
-        '--omitVirusLinks', default=False, action='store_true',
+        '--omitVirusLinks', action='store_true',
         help=('If specified, the HTML output (use --html to get this) for '
               'viruses will not contain links to ICTV and ViralZone. '
               'This should be used when working with viruses that do not yet '

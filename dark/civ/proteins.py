@@ -198,19 +198,22 @@ class ProteinGrouper(object):
         """
         Create a title summarizing the pathogens and samples.
 
-        @param pathogenType: A C{str}, either 'viral' or 'bacterial'.
+        @param pathogenType: A C{str}, either 'viral', 'bacterial' or
+            'generic'.
         @return: A C{str} title.
         """
 
-        assert pathogenType in ('viral', 'bacterial')
+        assert pathogenType in ('bacterial', 'viral', 'generic')
 
         nPathogens = len(self.genomeAccessions)
         nSamples = len(self.sampleNames)
 
         if pathogenType == 'bacterial':
             what = 'bacterium' if nPathogens == 1 else 'bacteria'
-        else:
+        elif pathogenType == 'viral':
             what = 'virus%s' % ('' if nPathogens == 1 else 'es')
+        else:
+            what = 'pathogen%s' % ('' if nPathogens == 1 else 'es')
 
         return (
             'Proteins from %d %s were found in %d sample%s.' %
@@ -364,7 +367,8 @@ class ProteinGrouper(object):
         @param title: The C{str} title for the output.
         @param preamble: The C{str} descriptive preamble, or C{None} if no
             preamble is needed.
-        @param pathogenType: A C{str}, either 'viral' or 'bacterial'.
+        @param pathogenType: A C{str}, either 'viral', 'bacterial' or
+            'generic'.
 
         @return: A C{str} suitable for printing.
         """
@@ -374,10 +378,11 @@ class ProteinGrouper(object):
         # when we are making combined FASTA files of reads matching a
         # pathogen.
 
-        assert pathogenType in ('viral', 'bacterial')
+        assert pathogenType in ('viral', 'bacterial', 'generic')
 
         title = title or 'Summary of %s.' % (
-            'bacteria' if pathogenType == 'bacterial' else 'viruses')
+            'bacteria' if pathogenType == 'bacterial' else (
+                'viruses' if pathogenType == 'viral' else 'pathogens'))
 
         readCountGetter = itemgetter('readCount')
         result = []
@@ -468,7 +473,7 @@ class ProteinGrouper(object):
             in a pathogen that must be matched by a sample in order for that
             pathogen to be displayed for that sample.
         @param pathogenType: A C{str} giving the type of the pathogen involved,
-            either 'bacterial' or 'viral'.
+            either 'bacterial', 'viral', or 'generic'.
         @param title: The C{str} title for the HTML page or C{None} to get a
             default generic title depending on whether a viral or bacterial
             database was matched against.
@@ -488,10 +493,12 @@ class ProteinGrouper(object):
             singular, plural = 'bacterium', 'bacteria'
         elif pathogenType == 'viral':
             singular, plural = 'virus', 'viruses'
+        elif pathogenType == 'generic':
+            singular, plural = 'pathogen', 'pathogens'
         else:
             raise ValueError(
                 "Unrecognized pathogenType argument: %r. Value must be either "
-                "'bacterial' or 'viral'." % pathogenType)
+                "'bacterial', 'viral', or 'generic'." % pathogenType)
 
         if not exists(self._pathogenDataDir):
             os.mkdir(self._pathogenDataDir)
