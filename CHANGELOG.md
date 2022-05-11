@@ -1,3 +1,7 @@
+## 4.0.23 May 12, 2022
+
+Removed a second unneeded viral check from `dark/taxonomy.py`.
+
 ## 4.0.22 May 12, 2022
 
 Removed unneeded viral check from `dark/taxonomy.py`. Added 'generic' as a

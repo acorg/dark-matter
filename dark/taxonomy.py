@@ -520,7 +520,6 @@ def lineageTaxonomyLinks(lineage):
     @return: A C{list} of HTML C{str} links.
     """
     names = [element.name for element in lineage]
-    assert names[-1] == 'Viruses'
     names[0] = 'taxon'
 
     taxids = [element.taxid for element in lineage]
