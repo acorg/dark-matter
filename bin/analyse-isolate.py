@@ -143,14 +143,14 @@ if __name__ == '__main__':
                     mvCod = (
                         consInfo['codon'][:consInfo['frame']] +
                         base + consInfo['codon'][consInfo['frame'] + 1:])
-                    if consCod == mvCod:
-                        baseInfo = 'reference base'
+                    if clinBase == base:
+                        baseInfo = 'consensus base'
                     else:
-                        if codonTable.get(consCod) == codonTable.get(mvCod):
+                        if codonTable.get(clinCod) == codonTable.get(mvCod):
                             baseInfo = 'synonymous'
                         else:
                             baseInfo = '%s%d%s, %s' % (
-                                codonTable.get(consCod),
+                                codonTable.get(clinCod),
                                 offsetInfo['reference']['aaOffset'] + 1,
                                 codonTable.get(mvCod),
                                 offsetInfo['featureName'])
