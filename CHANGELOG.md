@@ -1,3 +1,8 @@
+## 4.0.24 May 21, 2022
+
+Added `--format` option to `ncbi-fetch-id.py` to allow fetching of GenBank
+format flat files (use `--format gb`).
+
 ## 4.0.23 May 12, 2022
 
 Removed a second unneeded viral check from `dark/taxonomy.py`.
