@@ -1,3 +1,7 @@
+## 4.0.28 May 27, 2022
+
+Added `-i` and `-v` options to `bin/genbank-grep.py`.
+
 ## 4.0.27 May 27, 2022
 
 Renamed `bin/genbank-to-fasta.py` to `bin/genbank-grep.py` and made it able

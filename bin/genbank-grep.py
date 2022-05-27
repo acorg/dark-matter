@@ -29,6 +29,14 @@ parser.add_argument(
     help='Match on the record description as well as the id.')
 
 parser.add_argument(
+    '--invert', '-v', action='store_true',
+    help='Invert the match. Only print records that do not match.')
+
+parser.add_argument(
+    '--ignoreCase', '-i', action='store_true',
+    help='Use case-insensitive matching.')
+
+parser.add_argument(
     '--format', choices=('fasta', 'gb'), default='gb',
     help='The output format.')
 
@@ -44,9 +52,12 @@ parser.add_argument(
 args = parser.parse_args()
 
 recordCount = matchCount = 0
-match = getattr(re.compile(args.idRegex), args.match)
+match = getattr(
+    re.compile(args.idRegex, flags=(re.I if args.ignoreCase else 0)),
+    args.match)
 
 matchDescription = args.matchDescription
+invert = args.invert
 
 
 def filterFunc(records):
@@ -56,6 +67,11 @@ def filterFunc(records):
         id_ = record.id + (
             f" {record.description}" if record.description else "")
         if match(id_ if matchDescription else record.id):
+            emit = not invert
+        else:
+            emit = invert
+
+        if emit:
             matchCount += 1
             yield record
 
