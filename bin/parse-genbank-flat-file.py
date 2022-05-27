@@ -21,7 +21,7 @@ parser.add_argument(
     help='The files to parse.')
 
 parser.add_argument(
-    '--quiet', default=False, action='store_true',
+    '--quiet', action='store_true',
     help='If given, write no output.')
 
 args = parser.parse_args()
@@ -37,16 +37,17 @@ for i in args.files:
             count += 1
     except ValueError:
         if not args.quiet:
-            print('Could not parse %s' % i)
+            print('Could not parse %s' % i, file=sys.stderr)
         sys.exit(1)
     else:
         if not args.quiet:
-            print('Read %d records from %s' % (count, i))
+            print('Read %d records from %s' % (count, i), file=sys.stderr)
         if expectedCount is not None and count != expectedCount:
             if not args.quiet:
-                print('Expected %d records. Exiting.' % expectedCount)
+                print('Expected %d records. Exiting.' % expectedCount,
+                      file=sys.stderr)
             sys.exit(1)
         totalCount += count
 
 if not args.quiet:
-    print('Total records read: %d' % totalCount)
+    print('Total records read: %d' % totalCount, file=sys.stderr)

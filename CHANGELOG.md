@@ -1,3 +1,7 @@
+## 4.0.26 May 27, 2022
+
+Added `bin/genbank-to-fasta.py` to extract FASTA from GenBank flat files.
+
 ## 4.0.25 May 27, 2022
 
 Added `findORF` method to `DNARead` and `edlib` as an aligner option to

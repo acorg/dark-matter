@@ -120,7 +120,7 @@ class Read(object):
         quality = None if self.quality is None else self.quality[item]
         return self.__class__(self.id, sequence, quality)
 
-    def toString(self, format_):
+    def toString(self, format_='fasta'):
         """
         Convert the read to a string format.
 
