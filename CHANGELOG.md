@@ -1,3 +1,8 @@
+## 4.0.27 May 27, 2022
+
+Renamed `bin/genbank-to-fasta.py` to `bin/genbank-grep.py` and made it able
+to print in GenBank format as well as FASTA.
+
 ## 4.0.26 May 27, 2022
 
 Added `bin/genbank-to-fasta.py` to extract FASTA from GenBank flat files.

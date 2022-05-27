@@ -72,7 +72,7 @@ scripts = [
     'bin/filter-sam.py',
     'bin/find-hits.py',
     'bin/format-fasta.py',
-    'bin/genbank-to-fasta.py',
+    'bin/genbank-grep.py',
     'bin/genome-protein-summary.py',
     'bin/get-features.py',
     'bin/get-hosts.py',
