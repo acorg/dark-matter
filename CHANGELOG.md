@@ -1,3 +1,8 @@
+## 4.0.25 May 27, 2022
+
+Added `findORF` method to `DNARead` and `edlib` as an aligner option to
+`compare-sequences.py`.
+
 ## 4.0.24 May 21, 2022
 
 Added `--format` option to `ncbi-fetch-id.py` to allow fetching of GenBank

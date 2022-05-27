@@ -6,13 +6,15 @@ from collections import Counter
 from hashlib import md5
 from random import uniform
 from pathlib import Path
+import itertools
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
 from dark.aa import (
-    AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE)
+    AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE,
+    START_CODON, STOP_CODONS)
 from dark.filter import TitleFilter
 from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
@@ -340,6 +342,56 @@ class DNARead(_NucleotideRead):
     ALPHABET = set('ATCG')
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
+
+    def findORF(self, offset: int, forward: bool = True,
+                requireStartCodon: bool = True):
+        """
+        Find an ORF that supposedly starts at a specified offset in a read.
+
+        @param offset: The C{int} offset of the start codon.
+        @param forward: If not C{True}, the reverse complement of the sequence
+            should be examined.
+        @param requireStartCodon: If C{True}, the first codon must be a start
+            codon. If it is not, the search is abandoned immediately and the
+            returned dictionary will have zero and C{False} values.
+        @return: A C{dict} with C{str} keys:
+            length (int): the length of the ORF
+            foundStartCodon (bool): if a start codon was found.
+            foundStopCodon (bool): if a stop codon was found.
+        """
+        sequence = (
+            self.sequence if forward else self.reverseComplement().sequence)
+
+        first = True
+        length = 0
+        foundStartCodon = foundStopCodon = False
+        codons = []
+
+        for index in itertools.count(offset, 3):
+            codon = sequence[index:index + 3]
+            if len(codon) != 3:
+                break
+
+            if first:
+                first = False
+                if codon == START_CODON:
+                    foundStartCodon = True
+                elif requireStartCodon:
+                    break
+
+            length += 1
+            codons.append(codon)
+
+            if codon in STOP_CODONS:
+                foundStopCodon = True
+                break
+
+        return {
+            'length': length,
+            'foundStartCodon': foundStartCodon,
+            'foundStopCodon': foundStopCodon,
+            'translation': translate(''.join(codons)),
+        }
 
 
 class RNARead(_NucleotideRead):

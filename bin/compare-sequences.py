@@ -7,7 +7,7 @@ import argparse
 from math import log10
 import multiprocessing
 
-from dark.aligners import mafft, needle
+from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads, matchToString, AMBIGUOUS
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
@@ -37,7 +37,7 @@ parser.add_argument(
           'algorithm selected by --aligner) to align the two sequences.'))
 
 parser.add_argument(
-    '--aligner', default='mafft', choices=('mafft', 'needle'),
+    '--aligner', default='mafft', choices=('edlib', 'mafft', 'needle'),
     help='The alignment algorithm to use.')
 
 parser.add_argument(
@@ -120,6 +120,10 @@ if args.align:
         print('Pre-alignment, sequence lengths: %d, %d (difference %d)' % (
             len1, len2, abs(len1 - len2)))
 
+    print('  Gaps:')
+    print('    Id: %s %d' % (reads[0].id, reads[0].sequence.count('-')))
+    print('    Id: %s %d' % (reads[1].id, reads[1].sequence.count('-')))
+
     if args.aligner == 'mafft':
         # Be careful in examining args.alignerOptions because we want the
         # user to be able to pass an empty string (so check against None
@@ -128,14 +132,16 @@ if args.align:
                    else args.alignerOptions)
         reads = mafft(reads, args.verbose, options=options,
                       threads=args.threads)
-    else:
-        assert args.aligner == 'needle'
+    elif args.aligner == 'needle':
         # Be careful in examining args.alignerOptions because we want the
         # user to be able to pass an empty string (so check against None
         # before deciding to use the default.)
         options = (NEEDLE_DEFAULT_ARGS if args.alignerOptions is None
                    else args.alignerOptions)
         reads = needle(reads, args.verbose, options=options)
+    else:
+        assert args.aligner == 'edlib'
+        reads = edlibAlign(reads)
 
     if args.alignmentFile:
         assert reads.save(args.alignmentFile) == 2
