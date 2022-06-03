@@ -7,11 +7,45 @@ import argparse
 from collections import OrderedDict, defaultdict
 from operator import itemgetter
 
+from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads
 from dark.filter import (
     addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions,
     addFASTAEditingCommandLineOptions, parseFASTAEditingCommandLineOptions)
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
+
+MAFFT_DEFAULT_ARGS = '--globalpair --maxiterate 1000 --preservecase'
+MAFFT_ALGORITHMS_URL = (
+    'https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html')
+NEEDLE_DEFAULT_ARGS = 'auto'
+
+
+def align(reads, args):
+    """
+    Align a pair of reads.
+
+    @param reads: An iterable of two C{DNARead} instances.
+    @param args: An argparse C{Namespace} instance with command-line options.
+    @return: A C{list} of two aligned C{DNARead} instances.
+    """
+    if args.aligner == 'mafft':
+        # Be careful in examining args.alignerOptions because we want the
+        # user to be able to pass an empty string (so check against None
+        # before deciding to use the default.)
+        options = (MAFFT_DEFAULT_ARGS if args.alignerOptions is None
+                   else args.alignerOptions)
+        return mafft(reads, args.verbose, options=options,
+                     threads=args.threads)
+    elif args.aligner == 'needle':
+        # Be careful in examining args.alignerOptions because we want the
+        # user to be able to pass an empty string (so check against None
+        # before deciding to use the default.)
+        options = (NEEDLE_DEFAULT_ARGS if args.alignerOptions is None
+                   else args.alignerOptions)
+        return needle(reads, args.verbose, options=options)
+    else:
+        assert args.aligner == 'edlib'
+        return edlibAlign(reads)
 
 
 def thresholdToCssName(threshold):
@@ -179,7 +213,7 @@ Key to abbreviations:
     return '\n'.join(result)
 
 
-def collectData(reads1, reads2, square, matchAmbiguous):
+def collectData(reads1, reads2, square, matchAmbiguous, args):
     """
     Get pairwise matching statistics for two sets of reads.
 
@@ -194,13 +228,21 @@ def collectData(reads1, reads2, square, matchAmbiguous):
         possibly correct as actually being correct. Otherwise, we are strict
         and insist that only non-ambiguous nucleotides can contribute to the
         matching nucleotide count.
+    @param args: An argparse C{Namespace} instance with command-line options.
     """
     result = defaultdict(dict)
     for id1, read1 in reads1.items():
         for id2, read2 in reads2.items():
             if id1 != id2 or not square:
+                if args.align:
+                    if args.verbose:
+                        print(f"Aligning {id1!r} and {id2!r}.",
+                              file=sys.stderr)
+                    r1, r2 = align([read1, read2], args)
+                else:
+                    r1, r2 = read1, read2
                 match = compareDNAReads(
-                    read1, read2, matchAmbiguous=matchAmbiguous)['match']
+                    r1, r2, matchAmbiguous=matchAmbiguous)['match']
                 if not matchAmbiguous:
                     assert match['ambiguousMatchCount'] == 0
                 result[id1][id2] = result[id2][id1] = match
@@ -248,7 +290,7 @@ def simpleTable(tableData, reads1, reads2, square, matchAmbiguous, gapChars):
 
 def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
               concise=False, showLengths=False, showGaps=False, showNs=False,
-              footer=False, div=False, gapChars='-'):
+              footer=False, div=False, gapChars='-', numberedColumns=False):
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -289,15 +331,17 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
         # The header row of the table.
         append('    <tr>')
         append('    <td>&nbsp;</td>')
-        for read2 in reads2.values():
+        for count, read2 in enumerate(reads2.values(), start=1):
             append('    <td class="title"><span class="name">%s</span>' %
-                   read2.id)
-            if showLengths and not square:
-                append('    <br>L:%d' % readLengths2[read2.id])
-            if showGaps and not square:
-                append('    <br>G:%d' % (len(read2) - readLengths2[read2.id]))
-            if showNs and not square:
-                append('    <br>N:%d' % read2.sequence.count('N'))
+                   (count if numberedColumns else read2.id))
+            if not square:
+                if showLengths:
+                    append('    <br>L:%d' % readLengths2[read2.id])
+                if showGaps:
+                    append('    <br>G:%d' % (
+                        len(read2) - readLengths2[read2.id]))
+                if showNs:
+                    append('    <br>N:%d' % read2.sequence.count('N'))
             append('    </td>')
         append('    </tr>')
 
@@ -369,10 +413,11 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
     writeHeader()
 
     # The main body of the table.
-    for id1, read1 in reads1.items():
+    for rowCount, (id1, read1) in enumerate(reads1.items(), start=1):
         read1Len = readLengths1[id1]
         append('    <tr>')
-        append('      <td class="title"><span class="name">%s</span>' % id1)
+        append('      <td class="title"><span class="name">%s%s</span>' % (
+            f"{rowCount}: " if numberedColumns else "", id1))
         if showLengths:
             append('<br/>L:%d' % read1Len)
         if showGaps:
@@ -440,38 +485,43 @@ if __name__ == '__main__':
         description='Print a FASTA sequence identity table.')
 
     parser.add_argument(
-        '--text', default=False, action='store_true',
-        help='If specified, just print a simple text table')
+        '--text', action='store_true',
+        help='If specified, just print a simple text table.')
 
     parser.add_argument(
-        '--strict', default=False, action='store_true',
-        help='If given, do not allow ambiguous nucleotide symbols to match')
+        '--strict', action='store_true',
+        help='If given, do not allow ambiguous nucleotide symbols to match.')
 
     parser.add_argument(
-        '--concise', default=False, action='store_true',
-        help='If given, do not show match details')
+        '--numberedColumns', action='store_true',
+        help=('Use a sequence (row) number as the header of each column '
+              'instead of the sequence id.'))
 
     parser.add_argument(
-        '--showLengths', default=False, action='store_true',
-        help='If given, show the lengths of sequences')
+        '--concise', action='store_true',
+        help='If given, do not show match details.')
 
     parser.add_argument(
-        '--showGaps', default=False, action='store_true',
-        help='If given, show the number of gaps in sequences')
+        '--showLengths', action='store_true',
+        help='If given, show the lengths of sequences.')
 
     parser.add_argument(
-        '--showNs', default=False, action='store_true',
+        '--showGaps', action='store_true',
+        help='If given, show the number of gaps in sequences.')
+
+    parser.add_argument(
+        '--showNs', action='store_true',
         help=('If given, show the number of fully ambiguous N characters in '
-              'sequences'))
+              'sequences.'))
 
     parser.add_argument(
-        '--footer', default=False, action='store_true',
-        help='If given, also show sequence ids at the bottom of the table')
+        '--footer', action='store_true',
+        help='If given, also show sequence ids at the bottom of the table.')
 
     parser.add_argument(
-        '--div', default=False, action='store_true',
+        '--div', action='store_true',
         help=('If given, print an HTML <div> fragment only, not a full HTML '
-              'document (ignored if --text is used)'))
+              'document (ignored if --text is used).'))
 
     parser.add_argument(
         '--fastaFile2', type=open, metavar='FILENAME',
@@ -483,7 +533,7 @@ if __name__ == '__main__':
         '--gapChars', default='-', metavar='CHARS',
         help=('The sequence characters that should be considered to be gaps. '
               'These characters will be ignored in computing sequence lengths '
-              'and identity fractions'))
+              'and identity fractions.'))
 
     parser.add_argument(
         '--defaultColor', default='white',
@@ -503,9 +553,31 @@ if __name__ == '__main__':
               'default is to color all cells with the --defaultColor color. '
               'This option is ignored if --text is given.'))
 
+    parser.add_argument(
+        '--align', action='store_true',
+        help='Do pairwise alignment of all sequences.')
+
+    parser.add_argument(
+        '--aligner', default='edlib', choices=('edlib', 'mafft', 'needle'),
+        help='The alignment algorithm to use.')
+
+    parser.add_argument(
+        '--alignerOptions',
+        help=('Optional arguments to pass to the alignment algorithm. If the '
+              'aligner is mafft, the default options are %r. If needle, "%s". '
+              'Do not try to set the number of threads here - use the '
+              '--threads argument instead. If you are using mafft, see %s '
+              'for some possible option combinations.' %
+              (MAFFT_DEFAULT_ARGS, NEEDLE_DEFAULT_ARGS, MAFFT_ALGORITHMS_URL)))
+
+    parser.add_argument(
+        '--verbose', action='store_true',
+        help='Print progress to standard error.')
+
     addFASTACommandLineOptions(parser)
     addFASTAFilteringCommandLineOptions(parser)
     addFASTAEditingCommandLineOptions(parser)
+
     args = parser.parse_args()
 
     colors = parseColors(args.color, args.defaultColor)
@@ -535,7 +607,7 @@ if __name__ == '__main__':
         reads2 = reads1
 
     matchAmbiguous = not args.strict
-    tableData = collectData(reads1, reads2, square, matchAmbiguous)
+    tableData = collectData(reads1, reads2, square, matchAmbiguous, args)
 
     if args.text:
         simpleTable(tableData, reads1, reads2, square, matchAmbiguous,
@@ -547,4 +619,4 @@ if __name__ == '__main__':
                 colors=colors, concise=args.concise,
                 showLengths=args.showLengths, showGaps=args.showGaps,
                 showNs=args.showNs, footer=args.footer, div=args.div,
-                gapChars=args.gapChars))
+                gapChars=args.gapChars, numberedColumns=args.numberedColumns))

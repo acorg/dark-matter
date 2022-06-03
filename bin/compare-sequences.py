@@ -32,7 +32,7 @@ parser.add_argument(
     help='The (1-based) index in the input of the second sequence.')
 
 parser.add_argument(
-    '--align', default=False, action='store_true',
+    '--align', action='store_true',
     help=('If given, use mafft (the default) or needle (according to the '
           'algorithm selected by --aligner) to align the two sequences.'))
 

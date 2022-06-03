@@ -1,3 +1,9 @@
+## 4.0.29 June 3, 2022
+
+Added `--align`, `--aligner`, and `--numberedColumns` options to
+`bin/fasta-identity-table.py`. Added checking of pre-existing gap symbols
+to the edlib aligner.
+
 ## 4.0.28 May 27, 2022
 
 Added `-i` and `-v` options to `bin/genbank-grep.py`.

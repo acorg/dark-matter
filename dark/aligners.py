@@ -116,7 +116,9 @@ def removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
     assert len(seq1) == len(seq2)
     for start in range(len(seq1)):
         if seq1[start] == gapSymbol:
-            assert seq2[start] != gapSymbol
+            if seq2[start] == gapSymbol:
+                raise ValueError(f'Sequences {seq1!r} and {seq2!r} both have '
+                                 f'a gap ({gapSymbol!r}) at offset {start}!')
             first, second = seq1, seq2
             break
         elif seq2[start] == gapSymbol:
@@ -130,8 +132,8 @@ def removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
     excessGapCount = 1
     for end in range(start + 1, len(first)):
         if first[end] == gapSymbol:
-            excessGapCount += 1
             assert second[end] != gapSymbol
+            excessGapCount += 1
         elif second[end] == gapSymbol:
             excessGapCount -= 1
             if excessGapCount == 0:
@@ -186,7 +188,8 @@ def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, onlyTwoSequences=True,
     """
     Run an edlib alignment and return the sequences.
 
-    @param reads: An iterable of at least two reads.
+    @param reads: An iterable of at least two reads. The reads must not contain
+        C{gapSymbol}.
     @param gapSymbol: A C{str} 1-character symbol to use for gaps.
     @param minimizeGaps: If C{True}, post-process the edlib output to remove
         unnecessary gaps.
@@ -195,15 +198,22 @@ def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, onlyTwoSequences=True,
         possibly correct as actually being correct. Otherwise, we are strict
         and nucleotide codes only match themselves.
     @raise ValueError: If C{onlyTwoSequences} is C{True} and there are more
-       than two reads passed.
+       than two reads passed or if the gap symbol is already present in either
+       of the reads.
     @return: A C{Reads} instance with the aligned sequences.
     """
     # Align the first two sequences.
     r1, r2, *rest = list(reads)
 
-    # And complain if there were more and we're told to be strict.
+    # Complain if there were more than two sequences and we were told to be
+    # strict.
     if onlyTwoSequences and len(rest):
         raise ValueError(f'Passed {len(rest)} unexpected extra sequences.')
+
+    for read in r1, r2:
+        if gapSymbol in read.sequence:
+            raise ValueError(f'Sequence {read.id!r} contains one or more gap '
+                             f'characters {gapSymbol!r}.')
 
     alignment = edlib.getNiceAlignment(
         edlib.align(
