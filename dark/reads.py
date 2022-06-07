@@ -7,6 +7,7 @@ from hashlib import md5
 from random import uniform
 from pathlib import Path
 import itertools
+from collections import defaultdict
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -355,7 +356,7 @@ class DNARead(_NucleotideRead):
             codon. If it is not, the search is abandoned immediately and the
             returned dictionary will have zero and C{False} values.
         @return: A C{dict} with C{str} keys:
-            length (int): the length of the ORF
+            length (int): the length of the ORF (in amino acids).
             foundStartCodon (bool): if a start codon was found.
             foundStopCodon (bool): if a stop codon was found.
         """
@@ -1600,6 +1601,97 @@ class Reads(object):
                                      nucleotides - set('ACGTN-'))
 
         return sequence
+
+    def temporalBaseCounts(self, firstPostId: str, minFrequency: float = None,
+                           maxFrequency: float = None, minCount: int = 0):
+        """
+        Iterate through time-sorted reads, accumulating counts of bases at each
+        offset pre- and post- a specific sequence.
+
+        @param firstPostId: The C{str} id of the first member of the 'post'
+            sequences.
+        @param minFrequency: The C{float} minimum frequency at which a new base
+            is considered interesting and should be highlighted.
+        @param maxFrequency: The C{float} maximum frequency at which a new base
+            is considered interesting and should be highlighted.
+        @param minCount: The C{int} minimal number of times a base must be seen
+            to be considered interesting.
+        @return: A C{dict}, as below.
+        """
+        first = True
+        preBases = {}
+        postBases = {}
+        preCount = postCount = 0
+        reference = None
+        postIdFound = False
+
+        for genome in self:
+            if first:
+                first = False
+                length = len(genome)
+                reference = genome
+                for offset in range(length):
+                    preBases[offset] = defaultdict(int)
+                    postBases[offset] = defaultdict(int)
+            else:
+                if len(genome) != length:
+                    raise ValueError(
+                        f'Genome {genome.id!r} has length {len(genome)} which '
+                        f'does not match the length of the first input '
+                        f'sequence ({length}).')
+
+            if genome.id == firstPostId:
+                if postIdFound:
+                    raise ValueError(f'Delimiting sequence id {firstPostId!r} '
+                                     f'found more than once!')
+                postIdFound = True
+
+            if postIdFound:
+                bases = postBases
+                postCount += 1
+            else:
+                bases = preBases
+                preCount += 1
+
+            for offset, base in enumerate(genome.sequence):
+                # TODO: Deal with ambiguous codes instead of ignoring them.
+                if base in _DNA:
+                    bases[offset][base] += 1
+
+        if reference is None:
+            raise ValueError('No genomes found.')
+
+        if not postIdFound:
+            raise ValueError(f'The delimiting sequence id {firstPostId!r} '
+                             f'was not found.')
+
+        # Look for bases that are new (i.e., previously unseen) in the
+        # post- sequences, calculate their frequencies, and record
+        # frequencies that are in the wanted range.
+        newFrequencies = defaultdict(dict)
+        for offset in range(length):
+            newInPost = set(postBases[offset]) - set(preBases[offset])
+            if newInPost:
+                postCount = sum(count for count in postBases[offset].values())
+                if postCount >= minCount:
+                    for newBase in newInPost:
+                        fr = postBases[offset][newBase] / postCount
+                        if ((minFrequency is None or fr >= minFrequency) and
+                                (maxFrequency is None or fr <= maxFrequency)):
+                            newFrequencies[offset][newBase] = fr
+
+        return {
+            'reference': reference,
+            'pre': {
+                'bases': preBases,
+                'count': preCount,
+            },
+            'post': {
+                'bases': postBases,
+                'count': postCount,
+                'new': newFrequencies,
+            }
+        }
 
 
 class ReadsInRAM(Reads):

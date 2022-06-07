@@ -183,8 +183,9 @@ def removeUnnecessaryGaps(seq1, seq2, gapSymbol='-'):
         seq1, seq2 = new1, new2
 
 
-def edlibAlign(reads, gapSymbol='-', minimizeGaps=True, onlyTwoSequences=True,
-               matchAmbiguous=True):
+def edlibAlign(reads: Reads, gapSymbol: str = '-', minimizeGaps: bool = True,
+               onlyTwoSequences: bool = True,
+               matchAmbiguous: bool = True) -> Reads:
     """
     Run an edlib alignment and return the sequences.
 

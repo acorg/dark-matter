@@ -1,3 +1,7 @@
+## 4.0.30 Jun 7, 2022
+
+Added `temporalBaseCounts` method to `dark.Reads`.
+
 ## 4.0.29 June 3, 2022
 
 Added `--align`, `--aligner`, and `--numberedColumns` options to
