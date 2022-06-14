@@ -354,7 +354,8 @@ def computeIdentity(read1, read2, stats, matchAmbiguous, read1Len, digits):
 
 
 def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
-              gapChars, numberedColumns, upperOnly=False, digits=3):
+              gapChars, numberedColumns, upperOnly=False, digits=3,
+              addZeroes=False):
     """
     Make a text table showing inter-sequence distances.
 
@@ -377,14 +378,28 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
     @param numberedColumns: If C{True}, use (row) numbers for column names.
     @param upperOnly: If C{True}, only show values for the upper diagonal.
     @param digits: The C{int} number of digits to round identities to.b
+    @param addZeroes: If C{True}, add trailing zeroes to identities so they
+        all have the same width.
     """
     readLengths1 = getReadLengths(reads1.values(), gapChars)
+    titles = ['ID']
     if numberedColumns:
-        print('ID\t' + '\t'.join(str(i + 1) for i in range(len(reads2))))
+        titles.extend(str(i + 1) for i in range(len(reads2)))
+
+        if upperOnly and numberedColumns:
+            titles.pop(1)
+            titles[-1] = list(reads2)[-1]
     else:
-        print('ID\t' + '\t'.join(reads2))
+        titles.extend(reads2)
+
+    print('\t'.join(titles))
 
     for rowCount, (id1, read1) in enumerate(reads1.items(), start=1):
+        if upperOnly and numberedColumns and rowCount == len(reads1):
+            # We don't print the last row when only showing the upper
+            # diagonal, because it will be empty. It's name will appear at
+            # the top of the final column.
+            continue
         prefix = f'{rowCount}: ' if numberedColumns else ''
         print(f'{prefix}{id1}', end='')
         for id2, read2 in reads2.items():
@@ -392,7 +407,11 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
                 identity = computeIdentity(
                     read1, read2, tableData[id1][id2], matchAmbiguous,
                     readLengths1[id1], digits)
-                print('\t%.4f' % identity, end='')
+
+                if addZeroes:
+                    print(f'\t{identity:.{digits}f}', end='')
+                else:
+                    print(f'\t{identity}', end='')
             else:
                 print('\t', end='')
         print()
@@ -401,7 +420,8 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
 def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
               colors, concise=False, showLengths=False, showGaps=False,
               showNs=False, footer=False, div=False, gapChars='-',
-              numberedColumns=False, upperOnly=False, digits=3):
+              numberedColumns=False, upperOnly=False, digits=3,
+              addZeroes=False, highlightBest=False):
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -436,6 +456,10 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
     @param numberedColumns: If C{True}, use (row) numbers for column names.
     @param upperOnly: If C{True}, only show values for the upper diagonal.
     @param digits: The C{int} number of digits to round identities to.b
+    @param addZeroes: If C{True}, add trailing zeroes to identities so they
+        all have the same width.
+    @param highlightBest: If C{True}, highlight the best identity value
+        in each row.
     @return: An HTML C{str} showing inter-sequence distances.
     """
     readLengths1 = getReadLengths(reads1.values(), gapChars)
@@ -452,7 +476,9 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
                 # The first column will be empty, so skip it.
                 continue
             append('    <td class="title"><span class="name">%s</span>' %
-                   (count if numberedColumns else read2.id))
+                   (count if (
+                       upperOnly and numberedColumns and count != len(reads2))
+                    else read2.id))
             if not square:
                 if showLengths:
                     append('    <br>L:%d' % readLengths2[read2.id])
@@ -495,6 +521,9 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
         span.best {
             font-weight: bold;
         }
+        td.nt-identity {
+            text-align: right;
+        }
     """)
 
     # Add color style information for the identity thresholds.
@@ -533,6 +562,12 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
 
     # The main body of the table.
     for rowCount, (id1, read1) in enumerate(reads1.items(), start=1):
+        if upperOnly and numberedColumns and rowCount == len(reads1):
+            # We don't print the last row when only showing the upper
+            # diagonal, because it will be empty. It's name will appear at
+            # the top of the final column.
+            continue
+
         read1Len = readLengths1[id1]
         append('    <tr>')
         append('      <td class="title"><span class="name">%s%s</span>' % (
@@ -556,16 +591,19 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
 
             identity = identities[id1][id2]
 
-            append('      <td class="%s">' % thresholdToCssName(
+            append('      <td class="nt-identity %s">' % thresholdToCssName(
                 thresholdForIdentity(identity, colors)))
 
             # The maximum percent identity.
-            if identity == bestIdentityForId[id1]:
+            if highlightBest and identity == bestIdentityForId[id1]:
                 scoreStyle = ' class="best"'
             else:
                 scoreStyle = ''
 
-            append(f'<span{scoreStyle}>{identity}</span>')
+            if addZeroes:
+                append(f'<span{scoreStyle}>{identity:.{digits}f}</span>')
+            else:
+                append(f'<span{scoreStyle}>{identity}</span>')
 
             if not concise:
                 match = tableData[id1][id2]['match']
@@ -625,6 +663,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--digits', default=3, type=int,
         help='The number of digits to round identities to.')
+
+    parser.add_argument(
+        '--addZeroes', action='store_true',
+        help=('If given, make sure all identities have the same number of '
+              'digits shown by adding zeroes when needed.'))
 
     parser.add_argument(
         '--showLengths', action='store_true',
@@ -705,6 +748,10 @@ if __name__ == '__main__':
         '--verbose', action='store_true',
         help='Print progress to standard error.')
 
+    parser.add_argument(
+        '--highlightBest', action='store_true',
+        help='Highlight the best identity in each row.')
+
     addFASTACommandLineOptions(parser)
     addFASTAFilteringCommandLineOptions(parser)
     addFASTAEditingCommandLineOptions(parser)
@@ -750,7 +797,8 @@ if __name__ == '__main__':
     if args.text:
         textTable(tableData, reads1, reads2, readNumbers, square,
                   matchAmbiguous, args.gapChars, args.numberedColumns,
-                  upperOnly=args.upperOnly, digits=args.digits)
+                  upperOnly=args.upperOnly, digits=args.digits,
+                  addZeroes=args.addZeroes)
     else:
         print(
             htmlTable(
@@ -759,4 +807,5 @@ if __name__ == '__main__':
                 showLengths=args.showLengths, showGaps=args.showGaps,
                 showNs=args.showNs, footer=args.footer, div=args.div,
                 gapChars=args.gapChars, numberedColumns=args.numberedColumns,
-                upperOnly=args.upperOnly, digits=args.digits))
+                upperOnly=args.upperOnly, digits=args.digits,
+                addZeroes=args.addZeroes, highlightBest=args.highlightBest))

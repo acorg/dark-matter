@@ -1,3 +1,8 @@
+## 4.0.32 Jun 14, 2022
+
+Added `--addZeroes` and `--highlightBest` options to
+`bin/fasta-identity-table.py`.
+
 ## 4.0.31 Jun 14, 2022
 
 Added `bin/fasta-coverage.py` command. Added `--upperOnly` option to
