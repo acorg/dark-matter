@@ -1,3 +1,8 @@
+## 4.0.31 Jun 14, 2022
+
+Added `bin/fasta-coverage.py` command. Added `--upperOnly` option to
+`bin/fasta-identity-table.py` (and fixed bug).
+
 ## 4.0.30 Jun 7, 2022
 
 Added `temporalBaseCounts` method to `dark.Reads`.

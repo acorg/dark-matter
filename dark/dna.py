@@ -144,6 +144,10 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
     empty = set()
 
     def _identicalMatch(a, b):
+        """
+        Two nucleotides are considered identical if they are the same character
+        and they are not ambiguous.
+        """
         return a == b and len(AMBIGUOUS[a]) == 1
 
     def _ambiguousMatch(a, b, matchAmbiguous):
