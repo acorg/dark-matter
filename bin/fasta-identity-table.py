@@ -403,6 +403,10 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
         prefix = f'{rowCount}: ' if numberedColumns else ''
         print(f'{prefix}{id1}', end='')
         for id2, read2 in reads2.items():
+            if readNumbers[id2] == 0 and square:
+                # The whole first column will be empty if we're making a
+                # square array.
+                continue
             if dataCell(id1, id2, square, readNumbers, upperOnly):
                 identity = computeIdentity(
                     read1, read2, tableData[id1][id2], matchAmbiguous,
