@@ -1,3 +1,7 @@
+## 4.0.34 Jun 15, 2022
+
+Added simple `fasta-translate.py` script.
+
 ## 4.0.33 Jun 14, 2022
 
 Small fix to text table output in `bin/fasta-identity-table.py`.

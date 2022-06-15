@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--gc', action='store_true',
-        help='Include the GC% in the output.')
+        help='Include the GC percentage in the output.')
 
     parser.add_argument(
         '--sep', default='\t',

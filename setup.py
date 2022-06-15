@@ -64,6 +64,7 @@ scripts = [
     'bin/fasta-subset.py',
     'bin/fasta-subtraction.py',
     'bin/fasta-to-phylip.py',
+    'bin/fasta-translate.py',
     'bin/fasta-variable-sites.py',
     'bin/filter-fasta-by-complexity.py',
     'bin/filter-fasta-by-taxonomy.py',
