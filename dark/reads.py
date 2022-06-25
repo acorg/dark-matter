@@ -8,6 +8,7 @@ from random import uniform
 from pathlib import Path
 import itertools
 from collections import defaultdict
+from typing import Dict, Optional
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -344,8 +345,13 @@ class DNARead(_NucleotideRead):
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
-    def findORF(self, offset: int, forward: bool = True,
-                requireStartCodon: bool = True):
+    def findORF(self,
+                offset: int,
+                forward: bool = True,
+                requireStartCodon: bool = True,
+                allowGaps: bool = True,
+                untranslatable: Optional[Dict[str, str]] = None
+                ):
         """
         Find an ORF that supposedly starts at a specified offset in a read.
 
@@ -355,18 +361,38 @@ class DNARead(_NucleotideRead):
         @param requireStartCodon: If C{True}, the first codon must be a start
             codon. If it is not, the search is abandoned immediately and the
             returned dictionary will have zero and C{False} values.
+        @param allowGaps: If C{True}, gaps ('-') will be removed, else a
+            ValueError is raised if there are any gaps in the region of
+            C{self.sequence} that is to be translated.
+        @param untranslatable: A C{dict} with C{str} keys and values. If any of
+            the keys appears in a codon, the corresponding value is added to
+            the translation. This can be used e.g., to make occurrences of '?'
+            translate into '-' or 'X'.
         @return: A C{dict} with C{str} keys:
             length (int): the length of the ORF (in amino acids).
             foundStartCodon (bool): if a start codon was found.
             foundStopCodon (bool): if a stop codon was found.
+            sequence (str): the ORF nucelotide sequence.
+            translation (str): the amino acid sequence for the ORF.
         """
         sequence = (
             self.sequence if forward else self.reverseComplement().sequence)
+
+        gapCount = sequence[offset:].count('-')
+        if gapCount:
+            if allowGaps:
+                sequence = (
+                    sequence[:offset] + sequence[offset:].replace('-', ''))
+            else:
+                raise ValueError(
+                    "At least one gap ('-') character found in read "
+                    "{self.id!r} from offset {offset} or later.")
 
         first = True
         length = 0
         foundStartCodon = foundStopCodon = False
         codons = []
+        translation = []
 
         for index in itertools.count(offset, 3):
             codon = sequence[index:index + 3]
@@ -380,6 +406,16 @@ class DNARead(_NucleotideRead):
                 elif requireStartCodon:
                     break
 
+            if untranslatable:
+                for char, replacement in untranslatable.items():
+                    if char in codon:
+                        translation.append(replacement)
+                        break
+                else:
+                    translation.append(translate(codon))
+            else:
+                translation.append(translate(codon))
+
             length += 1
             codons.append(codon)
 
@@ -391,7 +427,8 @@ class DNARead(_NucleotideRead):
             'length': length,
             'foundStartCodon': foundStartCodon,
             'foundStopCodon': foundStopCodon,
-            'translation': translate(''.join(codons)),
+            'sequence': ''.join(codons),
+            'translation': ''.join(translation),
         }
 
 

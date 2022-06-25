@@ -1,3 +1,10 @@
+## 4.0.35 Jun 15, 2022
+
+Added `--digits`, `--reverse`, `--sortBy`, `--header` and `--sortChars`
+options to `bin/fasta-coverage.py`. Added `--regex` and `reverse` options
+to `bin/fasta-sort.py`. Added `allowGaps` and `untranslatable` options to
+`findORF` in `dark/reads.py`
+
 ## 4.0.34 Jun 15, 2022
 
 Added simple `fasta-translate.py` script.

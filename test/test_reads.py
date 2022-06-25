@@ -4043,6 +4043,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(0))
@@ -4058,6 +4059,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(0))
@@ -4073,6 +4075,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(0))
@@ -4088,6 +4091,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(10, forward=True))
@@ -4103,6 +4107,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(10, forward=False))
@@ -4118,6 +4123,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(0, requireStartCodon=True, forward=True))
@@ -4133,6 +4139,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': False,
                 'foundStopCodon': False,
                 'length': 0,
+                'sequence': '',
                 'translation': '',
             },
             read.findORF(0, requireStartCodon=True, forward=False))
@@ -4148,6 +4155,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': True,
                 'foundStopCodon': False,
                 'length': 1,
+                'sequence': 'ATG',
                 'translation': 'M',
             },
             read.findORF(0, forward=True))
@@ -4163,6 +4171,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': True,
                 'foundStopCodon': False,
                 'length': 1,
+                'sequence': 'ATG',
                 'translation': 'M',
             },
             read.findORF(0, forward=False))
@@ -4178,6 +4187,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': True,
                 'foundStopCodon': True,
                 'length': 2,
+                'sequence': 'ATGTAG',
                 'translation': 'M*',
             },
             read.findORF(0, forward=True))
@@ -4193,6 +4203,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': True,
                 'foundStopCodon': True,
                 'length': 2,
+                'sequence': 'ATGTAG',
                 'translation': 'M*',
             },
             read.findORF(0, forward=False))
@@ -4208,6 +4219,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': True,
                 'foundStopCodon': False,
                 'length': 2,
+                'sequence': 'ATGTCC',
                 'translation': 'MS',
             },
             read.findORF(0, forward=True))
@@ -4223,6 +4235,7 @@ class TestFindORF(TestCase):
                 'foundStartCodon': True,
                 'foundStopCodon': False,
                 'length': 2,
+                'sequence': 'ATGGAG',
                 'translation': 'ME',
             },
             read.findORF(0, forward=False))

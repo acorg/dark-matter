@@ -1,15 +1,16 @@
 import six
 from unittest import TestCase
 from itertools import product
+from collections import defaultdict
 
 from dark.aa import (
     PROPERTIES, ALL_PROPERTIES, PROPERTY_NAMES, ACIDIC,
     ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
-    NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
-    find, AminoAcid, clustersForSequence, propertiesForSequence,
-    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, START_CODON, STOP_CODONS,
-    compareAaReads, matchToString)
+    NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, AA_LETTERS, find,
+    AminoAcid, clustersForSequence, propertiesForSequence,
+    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, CODONS, REVERSE_CODONS,
+    START_CODON, STOP_CODONS, compareAaReads, matchToString)
 from dark.reads import AARead
 
 
@@ -260,6 +261,17 @@ class TestCodons(TestCase):
 
         # Just the stop codons should be left.
         self.assertEqual(set(STOP_CODONS), combinations)
+
+    def testReverseCodons(self):
+        """
+        The REVERSE_CODONS dictionary must be correct.
+        """
+        roundtrip = defaultdict(set)
+        for codon, aa in REVERSE_CODONS.items():
+            roundtrip[aa].add(codon)
+
+        for aa, codons in CODONS.items():
+            self.assertEqual(roundtrip[aa], set(codons), aa)
 
 
 class TestAminoAcid(TestCase):

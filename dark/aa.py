@@ -172,9 +172,11 @@ CODONS = {
     'Y': ('TAC', 'TAT',),
 }
 
+REVERSE_CODONS = dict(
+    (codon, aa) for aa, codons in CODONS.items() for codon in codons)
+
 START_CODON = 'ATG'
 STOP_CODONS = ('TAA', 'TAG', 'TGA',)
-
 
 """
 The dictionary below contains for each amino acid the value for
