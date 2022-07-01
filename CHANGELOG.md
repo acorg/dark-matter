@@ -1,3 +1,9 @@
+## 4.0.36 Jul 2, 2022
+
+Make `compareDNAReads` more forgiving of unexpected characters in a DNA
+sequence (specifically to deal with '?' that is used by Geneious to
+indicate lack of coverage).
+
 ## 4.0.35 Jun 15, 2022
 
 Added `--digits`, `--reverse`, `--sortBy`, `--header` and `--sortChars`
