@@ -82,10 +82,26 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
                       len1, len2))
     append(countPrint('%sAmbiguous matches' % indent, ambiguousMatchCount,
                       len1, len2))
+
+    if noCoverageCount:
+        append(countPrint(
+            '%sExact matches (ignoring no coverage sites)' % indent,
+            identicalMatchCount,
+            len1 - noCoverageCount, len2 - noCoverageCount))
+        append(countPrint(
+            '%sAmbiguous matches (ignoring no coverage sites)' % indent,
+            ambiguousMatchCount,
+            len1 - noCoverageCount, len2 - noCoverageCount))
+
     if ambiguousMatchCount and identicalMatchCount:
         anyMatchCount = identicalMatchCount + ambiguousMatchCount
         append(countPrint('%sExact or ambiguous matches' % indent,
                           anyMatchCount, len1, len2))
+        if noCoverageCount:
+            append(countPrint(
+                '%sExact or ambiguous matches (ignoring no coverage sites)' %
+                indent,
+                anyMatchCount, len1 - noCoverageCount, len2 - noCoverageCount))
 
     mismatchCount = (gapMismatchCount + gapGapMismatchCount +
                      nonGapMismatchCount)
@@ -225,8 +241,13 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
             if a in gapChars:
                 read1GapOffsets.append(offset)
                 if b in gapChars:
-                    # Both are gaps. This can happen (though hopefully not
-                    # if the sequences were pairwise aligned).
+                    # Both are gaps. This could happen if the sequences are
+                    # taken from a multiple sequence alignment and some
+                    # other sequence has resulted in a gap being inserted
+                    # in both our seqeunces. This should never happen if
+                    # our sequences were pairwise aligned (no sensible
+                    # alignment program would have a reason to put a gap at
+                    # the same place when aligning just two sequences).
                     gapGapMismatchCount += 1
                     read2GapOffsets.append(offset)
                 else:

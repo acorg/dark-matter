@@ -126,23 +126,42 @@ def parseColors(colors, defaultColor):
     return result
 
 
-def getReadLengths(reads, gapChars):
+def getGapCounts(reads, gapChars):
     """
-    Get all read lengths, excluding gap characters.
+    Get the number of gap characters in all reads.
 
     @param reads: A C{Reads} instance.
     @param gapChars: A C{str} of sequence characters considered to be gaps.
-    @return: A C{dict} keyed by read id, with C{int} length values.
+    @return: A C{dict} keyed by read id, with C{int} gap counts.
     """
     gapChars = set(gapChars)
     result = {}
     for read in reads:
-        result[read.id] = len(read) - sum(
+        result[read.id] = sum(
             character in gapChars for character in read.sequence)
     return result
 
 
-def explanation(matchAmbiguous, concise, showLengths, showGaps, showNs):
+def getNoCoverageCounts(reads, noCoverageChars):
+    """
+    Get the no coverage counts for all reads.
+
+    @param reads: A C{Reads} instance.
+    @param noCoverageChars: A C{str} of sequence characters that indicate
+        no coverage.
+    @return: A C{dict} keyed by read id, with C{int} number of no coverage
+        counts.
+    """
+    noCoverageChars = set(noCoverageChars)
+    result = {}
+    for read in reads:
+        result[read.id] = sum(
+            character in noCoverageChars for character in read.sequence)
+    return result
+
+
+def explanation(matchAmbiguous, concise, showLengths, showGaps, showNoCoverage,
+                showNs):
     """
     Make an explanation of the output HTML table.
 
@@ -153,6 +172,8 @@ def explanation(matchAmbiguous, concise, showLengths, showGaps, showNs):
     @param concise: If C{True}, do not show match detail abbreviations.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
+    @param showNoCoverage: If C{True}, include the number of no coverage
+        characters in sequences.
     @param showNs: If C{True}, include the number of N characters in sequences.
     @return: A C{str} of HTML.
     """
@@ -188,23 +209,41 @@ Key to abbreviations:
     """)
 
         if showLengths:
-            result.append('<li>L: sequence Length.</li>')
+            result.append('<li>L: sequence <strong>L</strong>ength.</li>')
 
         if showGaps:
-            result.append('<li>G: number of Gaps in sequence.</li>')
+            result.append('<li>G: number of <strong>G</strong>aps in '
+                          'sequence.</li>')
+
+        if showNoCoverage:
+            result.append('<li>C: number of no <strong>C</strong>overage '
+                          'characters in sequence.</li>')
 
         if showNs:
-            result.append('<li>N: number of N characters in sequence.</li>')
+            result.append('<li>N: number of fully-ambiguous '
+                          '<strong>N</strong> characters in sequence.</li>')
 
         if not concise:
-            result.append('<li>IM: Identical nucleotide Matches.</li>')
+            result.append('<li>IM: <strong>I</strong>dentical nucleotide '
+                          '<strong>M</strong>atches.</li>')
 
         if matchAmbiguous:
-            result.append('<li>AM: Ambiguous nucleotide Matches.</li>')
+            result.append('<li>AM: <strong>A</strong>mbiguous nucleotide '
+                          '<strong>M</strong>atches.</li>')
 
-        result.append("""
+        if showGaps:
+            result.append("""
     <li>GG: Gap/Gap matches (both sequences have gaps).</li>
     <li>G?: Gap/Non-gap mismatches (one sequence has a gap).</li>
+""")
+
+        if showNoCoverage:
+            result.append("""
+    <li>CC: No coverage/No coverage (both sequences have no coverage).</li>
+    <li>C?: No coverage (one sequence has no coverage).</li>
+""")
+
+    result.append("""
     <li>NE: Non-equal nucleotide mismatches.</li>
   </ul>
 </p>
@@ -238,7 +277,8 @@ def dataCell(id1: str, id2: str, square: bool, readNumbers: Dict[str, int],
 
 
 def collectData(reads1, reads2, square, matchAmbiguous, pairwiseAlign,
-                verbose, upperOnly=False):
+                verbose, upperOnly=False, gapChars='-',
+                noCoverageChars=None):
     """
     Get pairwise matching statistics for two sets of reads.
 
@@ -256,6 +296,9 @@ def collectData(reads1, reads2, square, matchAmbiguous, pairwiseAlign,
     @param pairwiseAlign: If C{True}, pairwise-align the sequences.
     @param verbose: If C{True}, print progress output.
     @param upperOnly: If C{True}, only compute values for the upper diagonal.
+    @param gapChars: A C{str} of sequence characters considered to be gaps.
+    @param noCoverageChars: A C{str} of sequence characters that indicate no
+        coverage.
     """
     readNumbers = {}
     comparisons = 0
@@ -281,16 +324,21 @@ def collectData(reads1, reads2, square, matchAmbiguous, pairwiseAlign,
                 if verbose:
                     print(f"Comparing {count}/{comparisons} {id1!r} "
                           f"and {id2!r}.", file=sys.stderr)
-                match = compareDNAReads(r1, r2, matchAmbiguous=matchAmbiguous)
-                # print(match, file=sys.stderr)
+                match = compareDNAReads(
+                    r1, r2, matchAmbiguous=matchAmbiguous,
+                    gapChars=gapChars, noCoverageChars=noCoverageChars)
                 if not matchAmbiguous:
                     assert match['match']['ambiguousMatchCount'] == 0
+                # Record the lengths, since these may have changed due to
+                # making the alignment.
+                match['read1']['length'] = len(r1)
+                match['read2']['length'] = len(r2)
                 result[id1][id2] = result[id2][id1] = match
 
     return result, readNumbers
 
 
-def computeIdentity(read1, read2, stats, matchAmbiguous, read1Len, digits):
+def computeIdentity(read1, read2, stats, matchAmbiguous, digits):
     """
     Compute nucleotide identity for two reads (as a fraction of the number
     of relevant nucleotides in the first read).
@@ -302,16 +350,8 @@ def computeIdentity(read1, read2, stats, matchAmbiguous, read1Len, digits):
         possibly correct as actually being correct. Otherwise, we are strict
         and insist that only non-ambiguous nucleotides can contribute to the
         matching nucleotide count.
-    @param read1Len: The C{int} length of read1 (excluding gap characters).
     @param digits: The C{int} number of digits to round values to.
     """
-    match = stats['match']
-    if matchAmbiguous:
-        numerator = match['identicalMatchCount'] + match['ambiguousMatchCount']
-        denominator = read1Len
-    else:
-        numerator = match['identicalMatchCount']
-        denominator = read1Len - len(stats['read1']['ambiguousOffsets'])
 
     # Note that the strict identity may be higher or lower than the
     # ambiguous identity even though an ambiguous match sounds like it
@@ -328,29 +368,21 @@ def computeIdentity(read1, read2, stats, matchAmbiguous, read1Len, digits):
     # Similarly, read1 may have many ambiguous characters, all of which are
     # matched by read2 and this can pull the overall identity higher than
     # the strict identity.
-    #
-    # If you want to play with this, change the following to True and
-    # details of the case in which strictIdentity > ambiguousIdentity will
-    # be printed to standard error.
-    if False:
-        # Apologies for the code duplication here. Above I only want to
-        # compute one of the fractions, not both.
-        numerator = match['identicalMatchCount'] + match['ambiguousMatchCount']
-        denominator = read1Len
-        ambiguousIdentity = numerator / denominator
 
-        numerator = match['identicalMatchCount']
-        denominator = read1Len - len(stats['read1']['ambiguousOffsets'])
-        strictIdentity = numerator / denominator
+    gapCount = len(stats['read1']['gapOffsets'])
+    noCoverageCount = (stats['match']['noCoverageCount'] +
+                       stats['match']['noCoverageNoCoverageCount'])
+    length = stats['read1']['length']
+    numerator = stats['match']['identicalMatchCount']
+    denominator = length - gapCount - noCoverageCount
 
-        if strictIdentity > ambiguousIdentity:
-            read1AmbiguityCount = len(stats['read1']['ambiguousOffsets'])
-            print(f'Strict identity {strictIdentity} > ambiguous identity '
-                  f'{ambiguousIdentity}. Read1 length {read1Len}. Read1 '
-                  f'ambiguity count {read1AmbiguityCount}. Stats:\n{stats}',
-                  file=sys.stderr)
+    if matchAmbiguous:
+        numerator += stats['match']['ambiguousMatchCount']
 
-    return round(numerator / denominator, digits)
+    result = numerator / denominator
+    assert result <= 1.0, f'{numerator} / {denominator} = {result}.\n{stats}'
+
+    return round(result, digits)
 
 
 def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
@@ -381,7 +413,6 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
     @param addZeroes: If C{True}, add trailing zeroes to identities so they
         all have the same width.
     """
-    readLengths1 = getReadLengths(reads1.values(), gapChars)
     titles = ['ID']
     if numberedColumns:
         titles.extend(str(i + 1) for i in range(len(reads2)))
@@ -409,8 +440,7 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
                 continue
             if dataCell(id1, id2, square, readNumbers, upperOnly):
                 identity = computeIdentity(
-                    read1, read2, tableData[id1][id2], matchAmbiguous,
-                    readLengths1[id1], digits)
+                    read1, read2, tableData[id1][id2], matchAmbiguous, digits)
 
                 if addZeroes:
                     print(f'\t{identity:.{digits}f}', end='')
@@ -423,9 +453,9 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
 
 def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
               colors, concise=False, showLengths=False, showGaps=False,
-              showNs=False, footer=False, div=False, gapChars='-',
-              numberedColumns=False, upperOnly=False, digits=3,
-              addZeroes=False, highlightBest=False):
+              showNoCoverage=False, showNs=False, footer=False, div=False,
+              gapChars='-', noCoverageChars=None, numberedColumns=False,
+              upperOnly=False, digits=3, addZeroes=False, highlightBest=False):
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -450,13 +480,17 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
     @param concise: If C{True}, do not show match details.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
-    @param showGaps: If C{True}, include the number of N characters in
+    @param showNoCoverage: If C{True}, include the number of no coverage
+        characters in sequences.
+    @param showNs: If C{True}, include the number of N characters in
         sequences.
     @param footer: If C{True}, incude a footer row giving the same information
         as found in the table header.
     @param div: If C{True}, return an HTML <div> fragment only, not a full HTML
         document.
     @param gapChars: A C{str} of sequence characters considered to be gaps.
+    @param noCoverageChars: A C{str} of sequence characters that indicate no
+        coverage.
     @param numberedColumns: If C{True}, use (row) numbers for column names.
     @param upperOnly: If C{True}, only show values for the upper diagonal.
     @param digits: The C{int} number of digits to round identities to.b
@@ -466,8 +500,10 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
         in each row.
     @return: An HTML C{str} showing inter-sequence distances.
     """
-    readLengths1 = getReadLengths(reads1.values(), gapChars)
-    readLengths2 = getReadLengths(reads2.values(), gapChars)
+    gaps1 = getGapCounts(reads1.values(), gapChars)
+    gaps2 = getGapCounts(reads2.values(), gapChars)
+    noCoverage1 = getNoCoverageCounts(reads1.values(), noCoverageChars)
+    noCoverage2 = getNoCoverageCounts(reads2.values(), noCoverageChars)
     result = []
     append = result.append
 
@@ -485,10 +521,11 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
                     else read2.id))
             if not square:
                 if showLengths:
-                    append('    <br>L:%d' % readLengths2[read2.id])
+                    append('    <br>L:%d' % len(read2))
                 if showGaps:
-                    append('    <br>G:%d' % (
-                        len(read2) - readLengths2[read2.id]))
+                    append('    <br>G:%d' % gaps2[read2.id])
+                if showNoCoverage:
+                    append('    <br>C:%d' % noCoverage2[read2.id])
                 if showNs:
                     append('    <br>N:%d' % read2.sequence.count('N'))
             append('    </td>')
@@ -538,8 +575,8 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
     append('</style>')
 
     if not div:
-        append(explanation(
-            matchAmbiguous, concise, showLengths, showGaps, showNs))
+        append(explanation(matchAmbiguous, concise, showLengths, showGaps,
+                           showNoCoverage, showNs))
     append('<div style="overflow-x:auto;">')
     append('<table>')
     append('  <tbody>')
@@ -554,8 +591,7 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
         for id2, read2 in reads2.items():
             if dataCell(id1, id2, square, readNumbers, upperOnly):
                 identity = computeIdentity(
-                    read1, read2, tableData[id1][id2], matchAmbiguous,
-                    readLengths1[id1], digits)
+                    read1, read2, tableData[id1][id2], matchAmbiguous, digits)
                 identities[id1][id2] = identity
                 if identity > bestIdentity:
                     bestIdentity = identity
@@ -572,14 +608,15 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
             # the top of the final column.
             continue
 
-        read1Len = readLengths1[id1]
         append('    <tr>')
         append('      <td class="title"><span class="name">%s%s</span>' % (
             f"{rowCount}: " if numberedColumns else "", id1))
         if showLengths:
-            append('<br/>L:%d' % read1Len)
+            append('<br/>L:%d' % len(read1))
         if showGaps:
-            append('<br/>G:%d' % (len(read1) - read1Len))
+            append('<br/>G:%d' % gaps1[read1.id])
+        if showNoCoverage:
+            append('<br/>C:%d' % noCoverage1[read1.id])
         if showNs:
             append('<br/>N:%d' % read1.sequence.count('N'))
         append('</td>')
@@ -616,13 +653,17 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
                 if matchAmbiguous:
                     append('<br/>AM:%d' % match['ambiguousMatchCount'])
 
-                append(
-                    '<br/>GG:%d'
-                    '<br/>G?:%d'
-                    '<br/>NE:%d' %
-                    (match['gapGapMismatchCount'],
-                     match['gapMismatchCount'],
-                     match['nonGapMismatchCount']))
+                if showGaps:
+                    append('<br/>GG:%d<br/>G?:%d' %
+                           (match['gapGapMismatchCount'],
+                            match['gapMismatchCount']))
+
+                if showNoCoverage:
+                    append('<br/>CC:%d<br/>C?:%d' %
+                           (match['noCoverageCount'],
+                            match['noCoverageNoCoverageCount']))
+
+                append('<br/>NE:%d' % match['nonGapMismatchCount'])
             append('      </td>')
         append('    </tr>')
 
@@ -682,6 +723,11 @@ if __name__ == '__main__':
         help='If given, show the number of gaps in sequences.')
 
     parser.add_argument(
+        '--showNoCoverage', action='store_true',
+        help=('If given, show the number of no-coverage characters in '
+              'sequences.'))
+
+    parser.add_argument(
         '--showNs', action='store_true',
         help=('If given, show the number of fully ambiguous N characters in '
               'sequences.'))
@@ -706,6 +752,11 @@ if __name__ == '__main__':
         help=('The sequence characters that should be considered to be gaps. '
               'These characters will be ignored in computing sequence lengths '
               'and identity fractions.'))
+
+    parser.add_argument(
+        '--noCoverageChars', metavar='CHARS',
+        help=('The sequence characters that indicate lack of coverage. '
+              'These characters will be ignored in identity fractions.'))
 
     parser.add_argument(
         '--defaultColor', default='white',
@@ -796,7 +847,7 @@ if __name__ == '__main__':
     matchAmbiguous = not args.strict
     tableData, readNumbers = collectData(
         reads1, reads2, square, matchAmbiguous, args.align, args.verbose,
-        args.upperOnly)
+        args.upperOnly, args.gapChars, args.noCoverageChars)
 
     if args.text:
         textTable(tableData, reads1, reads2, readNumbers, square,
@@ -810,6 +861,7 @@ if __name__ == '__main__':
                 colors=colors, concise=args.concise,
                 showLengths=args.showLengths, showGaps=args.showGaps,
                 showNs=args.showNs, footer=args.footer, div=args.div,
-                gapChars=args.gapChars, numberedColumns=args.numberedColumns,
-                upperOnly=args.upperOnly, digits=args.digits,
-                addZeroes=args.addZeroes, highlightBest=args.highlightBest))
+                gapChars=args.gapChars, noCoverageChars=args.noCoverageChars,
+                numberedColumns=args.numberedColumns, upperOnly=args.upperOnly,
+                digits=args.digits, addZeroes=args.addZeroes,
+                highlightBest=args.highlightBest))

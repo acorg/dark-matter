@@ -60,18 +60,22 @@ parser.add_argument(
     help='The file to save the alignment to (implies --align).')
 
 parser.add_argument(
-    '--strict', default=False, action='store_true',
+    '--strict', action='store_true',
     help='If given, do not allow ambiguous nucleotide symbols to match.')
 
 parser.add_argument(
-    '--quiet', dest='verbose', default=True, action='store_false',
+    '--quiet', dest='verbose', action='store_false',
     help=('Do not print information about aligning, or falling back to '
           'stretcher.'))
 
 parser.add_argument(
     '--noGapLocations', dest='includeGapLocations', action='store_false',
-    default=True,
     help='Do not indicate the (1-based) locations of sequence gaps.')
+
+parser.add_argument(
+    '--noNoCoverageLocations', dest='includeCoverageLocations',
+    action='store_false',
+    help='Do not indicate the (1-based) locations of no coverage.')
 
 parser.add_argument(
     '--sites',
@@ -80,13 +84,24 @@ parser.add_argument(
           '24,100-200,260.'))
 
 parser.add_argument(
-    '--showDiffs', default=False, action='store_true',
+    '--showDiffs', action='store_true',
     help='Print (1-based) sites where the sequence nucleotides differ.')
 
 parser.add_argument(
-    '--showAmbiguous', default=False, action='store_true',
+    '--showAmbiguous', action='store_true',
     help=('Print (1-based) sites where either sequence has an ambiguous '
           'nucleotide code.'))
+
+parser.add_argument(
+    '--gapChars', default='-', metavar='CHARS',
+    help=('The sequence characters that should be considered to be gaps. '
+          'These characters will be ignored in computing sequence lengths '
+          'and identity fractions.'))
+
+parser.add_argument(
+    '--noCoverageChars', metavar='CHARS',
+    help=('The sequence characters that indicate lack of coverage. '
+          'These characters will be ignored in identity fractions.'))
 
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
@@ -158,7 +173,8 @@ if args.align:
     assert identicalLengths
 
 match = compareDNAReads(read1, read2, matchAmbiguous=(not args.strict),
-                        offsets=offsets)
+                        offsets=offsets, gapChars=args.gapChars,
+                        noCoverageChars=args.noCoverageChars)
 
 x = 'Post-alignment, sequence' if args.align else 'Sequence'
 if identicalLengths:
@@ -169,7 +185,8 @@ else:
 
 print(matchToString(match, read1, read2, matchAmbiguous=(not args.strict),
                     offsets=offsets,
-                    includeGapLocations=args.includeGapLocations))
+                    includeGapLocations=args.includeGapLocations,
+                    includeNoCoverageLocations=args.includeCoverageLocations))
 
 if args.showDiffs:
     # Print all sites where the sequences differ.

@@ -1,3 +1,10 @@
+## 4.0.38 Jul 2, 2022
+
+Added `--noNoCoverageLocations`, `--noCoverageChars`, and `--gapChars`
+option to `bin/compare-sequences.py`. Fixed identity calculation bug in
+`bin/fasta-identity-table.py` due to not including gaps resulting from the
+pairwise alignment into the calculation.
+
 ## 4.0.37 Jul 2, 2022
 
 Added `noCoverageChars` option to `compareDNAReads` and

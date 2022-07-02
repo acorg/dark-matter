@@ -1063,6 +1063,8 @@ Mismatches: 6/16 (37.50%)
             '''\
 Exact matches: 10/16 (62.50%)
 Ambiguous matches: 0
+Exact matches (ignoring no coverage sites): 10/10 (100.00%)
+Ambiguous matches (ignoring no coverage sites): 0
 Mismatches: 0
   Not involving gaps (i.e., conflicts): 0
   Involving a gap in one sequence: 0
@@ -1126,6 +1128,8 @@ Mismatches: 6/16 (37.50%)
             '''\
 Exact matches: 10/16 (62.50%)
 Ambiguous matches: 0
+Exact matches (ignoring no coverage sites): 10/10 (100.00%)
+Ambiguous matches (ignoring no coverage sites): 0
 Mismatches: 0
   Not involving gaps (i.e., conflicts): 0
   Involving a gap in one sequence: 0
