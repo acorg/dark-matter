@@ -1,3 +1,8 @@
+## 4.0.37 Jul 2, 2022
+
+Added `noCoverageChars` option to `compareDNAReads` and
+`includeNoCoverageLocations` option to `matchToString`.
+
 ## 4.0.36 Jul 2, 2022
 
 Make `compareDNAReads` more forgiving of unexpected characters in a DNA
