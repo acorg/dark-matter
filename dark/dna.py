@@ -40,7 +40,8 @@ BASES_TO_AMBIGUOUS = dict(
 
 
 def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
-                  offsets=None, includeGapLocations=True):
+                  offsets=None, includeGapLocations=True,
+                  includeNoCoverageLocations=True):
     """
     Format a DNA match as a string.
 
@@ -56,6 +57,8 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
         only considered when making C{match}.
     @param includeGapLocations: If C{True} indicate the (1-based) locations of
         gaps.
+    @param includeNoCoverageLocations: If C{True} indicate the (1-based)
+        locations of no coverage.
     @return: A C{str} describing the match.
     """
     match = dnaMatch['match']
@@ -64,11 +67,13 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
     gapMismatchCount = match['gapMismatchCount']
     gapGapMismatchCount = match['gapGapMismatchCount']
     nonGapMismatchCount = match['nonGapMismatchCount']
+    noCoverageCount = match['noCoverageCount']
+    noCoverageNoCoverageCount = match['noCoverageNoCoverageCount']
 
     if offsets:
         len1 = len2 = len(offsets)
     else:
-        len1, len2 = map(len, (read1, read2))
+        len1, len2 = len(read1), len(read2)
 
     result = []
     append = result.append
@@ -92,6 +97,10 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
                       gapMismatchCount, len1, len2))
     append(countPrint('%s  Involving a gap in both sequences' % indent,
                       gapGapMismatchCount, len1, len2))
+    append(countPrint('%s  Involving no coverage in one sequence' % indent,
+                      noCoverageCount, len1, len2))
+    append(countPrint('%s  Involving no coverage in both sequences' % indent,
+                      noCoverageNoCoverageCount, len1, len2))
 
     for read, key in zip((read1, read2), ('read1', 'read2')):
         append('%s  Id: %s' % (indent, read.id))
@@ -105,6 +114,14 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
                 (indent,
                  ', '.join(map(lambda offset: str(offset + 1),
                                sorted(dnaMatch[key]['gapOffsets'])))))
+        ncCount = len(dnaMatch[key]['noCoverageOffsets'])
+        append(countPrint('%s    No coverage' % indent, ncCount, length))
+        if includeNoCoverageLocations and ncCount:
+            append(
+                '%s    No coverage locations (1-based): %s' %
+                (indent,
+                 ', '.join(map(lambda offset: str(offset + 1),
+                               sorted(dnaMatch[key]['noCoverageOffsets'])))))
         ambiguousCount = len(dnaMatch[key]['ambiguousOffsets'])
         append(countPrint('%s    Ambiguous' % indent, ambiguousCount, length))
         extraCount = dnaMatch[key]['extraCount']
@@ -116,7 +133,7 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
 
 
 def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
-                    offsets=None):
+                    noCoverageChars=None, offsets=None):
     """
     Compare two DNA sequences.
 
@@ -129,6 +146,10 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
         count.
     @param gapChars: An object supporting __contains__ with characters that
         should be considered to be gaps.
+    @param noCoverageChars: An object supporting __contains__ with characters
+        that indicate sequence positions that did not have coverage (for
+        comparing sequences that may be consensuses from sequencing reads
+        mapped to a reference.
     @param offsets: If not C{None}, a C{set} of offsets of interest. Offsets
         not in the set will not be considered.
     @return: A C{dict} with information about the match and the individual
@@ -136,12 +157,16 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
     """
     identicalMatchCount = ambiguousMatchCount = 0
     gapMismatchCount = nonGapMismatchCount = gapGapMismatchCount = 0
+    noCoverageCount = noCoverageNoCoverageCount = 0
     read1ExtraCount = read2ExtraCount = 0
     read1GapOffsets = []
     read2GapOffsets = []
     read1AmbiguousOffsets = []
     read2AmbiguousOffsets = []
+    read1NoCoverageOffsets = []
+    read2NoCoverageOffsets = []
     empty = set()
+    noCoverageChars = noCoverageChars or empty
 
     def _identicalMatch(a, b):
         """
@@ -170,6 +195,8 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
             read1AmbiguousOffsets.append(offset)
         if len(AMBIGUOUS.get(b, '')) > 1:
             read2AmbiguousOffsets.append(offset)
+        aNoCoverage = a in noCoverageChars
+        bNoCoverage = b in noCoverageChars
         if a is None:
             # b has an extra character at its end (it cannot be None).
             assert b is not None
@@ -181,6 +208,17 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
             read1ExtraCount += 1
             if a in gapChars:
                 read1GapOffsets.append(offset)
+        elif aNoCoverage or bNoCoverage:
+            if aNoCoverage and bNoCoverage:
+                noCoverageNoCoverageCount += 1
+                read1NoCoverageOffsets.append(offset)
+                read2NoCoverageOffsets.append(offset)
+            elif aNoCoverage:
+                noCoverageCount += 1
+                read1NoCoverageOffsets.append(offset)
+            else:
+                noCoverageCount += 1
+                read2NoCoverageOffsets.append(offset)
         else:
             # We have a character from both sequences (they could still be
             # gap characters).
@@ -215,16 +253,20 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
             'gapMismatchCount': gapMismatchCount,
             'gapGapMismatchCount': gapGapMismatchCount,
             'nonGapMismatchCount': nonGapMismatchCount,
+            'noCoverageCount': noCoverageCount,
+            'noCoverageNoCoverageCount': noCoverageNoCoverageCount,
         },
         'read1': {
             'ambiguousOffsets': read1AmbiguousOffsets,
             'extraCount': read1ExtraCount,
             'gapOffsets': read1GapOffsets,
+            'noCoverageOffsets': read1NoCoverageOffsets,
         },
         'read2': {
             'ambiguousOffsets': read2AmbiguousOffsets,
             'extraCount': read2ExtraCount,
             'gapOffsets': read2GapOffsets,
+            'noCoverageOffsets': read2NoCoverageOffsets,
         },
     }
 
