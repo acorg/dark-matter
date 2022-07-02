@@ -861,7 +861,8 @@ if __name__ == '__main__':
                 colors=colors, concise=args.concise,
                 showLengths=args.showLengths, showGaps=args.showGaps,
                 showNs=args.showNs, footer=args.footer, div=args.div,
-                gapChars=args.gapChars, noCoverageChars=args.noCoverageChars,
+                gapChars=args.gapChars, showNoCoverage=args.showNoCoverage,
+                noCoverageChars=args.noCoverageChars,
                 numberedColumns=args.numberedColumns, upperOnly=args.upperOnly,
                 digits=args.digits, addZeroes=args.addZeroes,
                 highlightBest=args.highlightBest))

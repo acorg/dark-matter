@@ -1,3 +1,8 @@
+## 4.0.39 Jul 2, 2022
+
+Pass the `showNoCoverage` option value to the making of the HTML table in
+`bin/fasta-identity-table.py`.
+
 ## 4.0.38 Jul 2, 2022
 
 Added `--noNoCoverageLocations`, `--noCoverageChars`, and `--gapChars`
