@@ -340,8 +340,8 @@ def collectData(reads1, reads2, square, matchAmbiguous, pairwiseAlign,
 
 def computeIdentity(read1, read2, stats, matchAmbiguous, digits):
     """
-    Compute nucleotide identity for two reads (as a fraction of the number
-    of relevant nucleotides in the first read).
+    Compute nucleotide identity for two reads (as a fraction of the lowest
+    number of relevant nucleotides in either read).
 
     @param read1: A C{Read} instance.
     @param read2: A C{Read} instance.
@@ -369,13 +369,11 @@ def computeIdentity(read1, read2, stats, matchAmbiguous, digits):
     # matched by read2 and this can pull the overall identity higher than
     # the strict identity.
 
-    gapCount = len(stats['read1']['gapOffsets'])
-    noCoverageCount = (stats['match']['noCoverageCount'] +
-                       stats['match']['noCoverageNoCoverageCount'])
-    length = stats['read1']['length']
+    match = stats['match']
+    denominator = min(stats['read1']['length'], stats['read2']['length']) - (
+        match['gapGapMismatchCount'] +
+        match['noCoverageCount'] + match['noCoverageNoCoverageCount'])
     numerator = stats['match']['identicalMatchCount']
-    denominator = length - gapCount - noCoverageCount
-
     if matchAmbiguous:
         numerator += stats['match']['ambiguousMatchCount']
 

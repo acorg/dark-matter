@@ -1,3 +1,8 @@
+## 4.0.40 Jul 5, 2022
+
+Fixed small bug in `Reads.temporalBaseCounts`. Improved identity
+calculation in `fasta-identity-table.py`.
+
 ## 4.0.39 Jul 2, 2022
 
 Pass the `showNoCoverage` option value to the making of the HTML table in

@@ -8,7 +8,7 @@ from random import uniform
 from pathlib import Path
 import itertools
 from collections import defaultdict
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
@@ -1640,7 +1640,8 @@ class Reads(object):
         return sequence
 
     def temporalBaseCounts(self, firstPostId: str, minFrequency: float = None,
-                           maxFrequency: float = None, minCount: int = 0):
+                           maxFrequency: float = None, minCount: int = 0,
+                           preIds: Optional[Set[str]] = None):
         """
         Iterate through time-sorted reads, accumulating counts of bases at each
         offset pre- and post- a specific sequence.
@@ -1648,11 +1649,15 @@ class Reads(object):
         @param firstPostId: The C{str} id of the first member of the 'post'
             sequences.
         @param minFrequency: The C{float} minimum frequency at which a new base
-            is considered interesting and should be highlighted.
+            is considered interesting and should have its frequency returned.
         @param maxFrequency: The C{float} maximum frequency at which a new base
-            is considered interesting and should be highlighted.
-        @param minCount: The C{int} minimal number of times a base must be seen
-            to be considered interesting.
+            is considered interesting and should have its frequency returned.
+        @param minCount: The C{int} minimal number of times a new base must be
+            seen to be considered interesting (and to therefore have its
+            frequency returned).
+        @param preIds: If not C{None}, a C{set} of C{str} ids to include in the
+            the early counting (i.e., before seeing firstPostId). If C{None},
+            the sequences of all early ids will be included.
         @return: A C{dict}, as below.
         """
         first = True
@@ -1661,6 +1666,7 @@ class Reads(object):
         preCount = postCount = 0
         reference = None
         postIdFound = False
+        preIdsFound = set()
 
         for genome in self:
             if first:
@@ -1687,6 +1693,15 @@ class Reads(object):
                 bases = postBases
                 postCount += 1
             else:
+                if preIds:
+                    if genome.id not in preIds:
+                        continue
+                    else:
+                        if genome.id in preIdsFound:
+                            raise ValueError(f'Pre-id sequence {genome.id!r} '
+                                             f'found more than once!')
+                        preIdsFound.add(genome.id)
+
                 bases = preBases
                 preCount += 1
 
@@ -1702,20 +1717,28 @@ class Reads(object):
             raise ValueError(f'The delimiting sequence id {firstPostId!r} '
                              f'was not found.')
 
-        # Look for bases that are new (i.e., previously unseen) in the
-        # post- sequences, calculate their frequencies, and record
-        # frequencies that are in the wanted range.
+        if preIds and preIds != preIdsFound:
+            missing = sorted(preIds - preIdsFound)
+            if len(missing) == 1:
+                raise ValueError(f'Pre-id {missing[0]!r} not found.')
+            else:
+                raise ValueError(f'{len(missing)} pre-ids '
+                                 f'({", ".join(missing)}) was not found.')
+
+        # Look for bases (that occurred in the post-sequences) that are new
+        # (i.e., previously unseen). Calculate their frequencies, and
+        # record frequencies that are in the wanted range.
         newFrequencies = defaultdict(dict)
         for offset in range(length):
-            newInPost = set(postBases[offset]) - set(preBases[offset])
-            if newInPost:
-                postCount = sum(count for count in postBases[offset].values())
-                if postCount >= minCount:
-                    for newBase in newInPost:
-                        fr = postBases[offset][newBase] / postCount
-                        if ((minFrequency is None or fr >= minFrequency) and
-                                (maxFrequency is None or fr <= maxFrequency)):
-                            newFrequencies[offset][newBase] = fr
+            newBasesInPost = set(postBases[offset]) - set(preBases[offset])
+            if newBasesInPost:
+                for newBase in newBasesInPost:
+                    baseCount = postBases[offset][newBase]
+                    if baseCount > minCount:
+                        frq = baseCount / postCount
+                        if ((minFrequency is None or frq >= minFrequency) and
+                                (maxFrequency is None or frq <= maxFrequency)):
+                            newFrequencies[offset][newBase] = frq
 
         return {
             'reference': reference,
