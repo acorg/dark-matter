@@ -1,3 +1,7 @@
+## 4.0.41 Jul 9, 2022
+
+Added `--sort` option to `bin/fasta-identity-table.py`.
+
 ## 4.0.40 Jul 5, 2022
 
 Fixed small bug in `Reads.temporalBaseCounts`. Improved identity

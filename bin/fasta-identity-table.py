@@ -4,7 +4,7 @@ from typing import Dict
 
 import sys
 import argparse
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from operator import itemgetter
 
 from dark.aligners import edlibAlign, mafft, needle
@@ -282,9 +282,9 @@ def collectData(reads1, reads2, square, matchAmbiguous, pairwiseAlign,
     """
     Get pairwise matching statistics for two sets of reads.
 
-    @param reads1: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads1: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the rows of the table.
-    @param reads2: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads2: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
     @param square: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
@@ -391,9 +391,9 @@ def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
 
     @param tableData: A C{defaultdict(dict)} keyed by read ids, whose values
         are the dictionaries returned by compareDNAReads.
-    @param reads1: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads1: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the rows of the table.
-    @param reads2: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads2: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
     @param readNumbers: A C{dict} mapping read ids to row numbers (only
         used if square is C{True} (in which case reads1 is the same as reads2).
@@ -459,9 +459,9 @@ def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
 
     @param tableData: A C{defaultdict(dict)} keyed by read ids, whose values
         are the dictionaries returned by compareDNAReads.
-    @param reads1: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads1: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the rows of the table.
-    @param reads2: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads2: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
     @param readNumbers: A C{dict} mapping read ids to row numbers (only
         used if square is C{True} (in which case reads1 is the same as reads2).
@@ -785,6 +785,10 @@ if __name__ == '__main__':
               'identity table).'))
 
     parser.add_argument(
+        '--sort', action='store_true',
+        help='Sort the input sequences by id.')
+
+    parser.add_argument(
         '--aligner', default='edlib', choices=('edlib', 'mafft', 'needle'),
         help='The alignment algorithm to use.')
 
@@ -819,9 +823,10 @@ if __name__ == '__main__':
         args, parseFASTAFilteringCommandLineOptions(
             args, parseFASTACommandLineOptions(args)))
 
-    # Collect the reads into a dict, keeping the insertion order.
-    reads1 = OrderedDict()
-    for read in reads:
+    # Collect the reads into a dict, keeping the insertion order, unless we
+    # are told to sort.
+    reads1 = {}
+    for read in (sorted(reads) if args.sort else reads):
         reads1[read.id] = read
 
     if args.fastaFile2:
@@ -831,7 +836,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         square = False
-        reads2 = OrderedDict()
+        reads2 = {}
         # The next line is a total hack, to trick parseFASTACommandLineOptions
         # into reading a second FASTA file.
         args.fastaFile = args.fastaFile2
