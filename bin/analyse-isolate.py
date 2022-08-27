@@ -146,14 +146,17 @@ if __name__ == '__main__':
                     if clinBase == base:
                         baseInfo = 'consensus base'
                     else:
-                        if codonTable.get(clinCod) == codonTable.get(mvCod):
+                        clinCodT = (codonTable.get(clinCod) if
+                                    clinCod != 'NNN' else 'X')
+                        mvCodT = (codonTable.get(mvCod) if
+                                  mvCod != 'NNN' else 'X')
+                        if clinCodT == mvCodT:
                             baseInfo = 'synonymous'
                         else:
                             baseInfo = '%s%d%s, %s' % (
-                                codonTable.get(clinCod),
+                                clinCodT,
                                 offsetInfo['reference']['aaOffset'] + 1,
-                                codonTable.get(mvCod),
-                                offsetInfo['featureName'])
+                                mvCodT, offsetInfo['featureName'])
 
                     print('\t\t\tBase: %s, count: %d (%.2f): %s' % (
                         base, mvInfo.countsPerBase[position][base],
