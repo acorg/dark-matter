@@ -1,3 +1,7 @@
+## 4.0.42 Sept 21, 2022
+
+Bump mysql connector version due to security issue with 8.0.13
+
 ## 4.0.41 Jul 9, 2022
 
 Added `--sort` option to `bin/fasta-identity-table.py`.
