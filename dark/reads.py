@@ -76,7 +76,7 @@ class Read(object):
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
-    ALPHABET = None
+    ALPHABET: Optional[set] = None
 
     def __init__(self, id, sequence, quality=None):
         if quality is not None and len(quality) != len(sequence):
@@ -385,8 +385,8 @@ class DNARead(_NucleotideRead):
                     sequence[:offset] + sequence[offset:].replace('-', ''))
             else:
                 raise ValueError(
-                    "At least one gap ('-') character found in read "
-                    "{self.id!r} from offset {offset} or later.")
+                    f"At least one gap ('-') character found in read "
+                    f"{self.id!r} from offset {offset} or later.")
 
         first = True
         length = 0

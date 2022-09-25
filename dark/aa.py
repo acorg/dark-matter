@@ -1142,11 +1142,16 @@ def matchToString(aaMatch, read1, read2, indent='', offsets=None):
     result = []
     append = result.append
 
-    append(countPrint('%sMatches' % indent, matchCount, len1, len2))
+    append('%sMatches:' % indent)
+    append(countPrint('%s  Overall' % indent, matchCount, len1, len2))
+    append(countPrint('%s  Not involving gaps (i.e., identities)' % indent,
+                      matchCount, matchCount + nonGapMismatchCount))
+
+    append('%sMismatches:' % indent)
     mismatchCount = (gapMismatchCount + gapGapMismatchCount +
                      nonGapMismatchCount)
-    append(countPrint('%sMismatches' % indent, mismatchCount, len1, len2))
-    append(countPrint('%s  Not involving gaps (i.e., conflicts)' % (indent),
+    append(countPrint('%s  Overall' % indent, mismatchCount, len1, len2))
+    append(countPrint('%s  Not involving gaps (i.e., conflicts)' % indent,
                       nonGapMismatchCount, len1, len2))
     append(countPrint('%s  Involving a gap in one sequence' % indent,
                       gapMismatchCount, len1, len2))
@@ -1154,20 +1159,20 @@ def matchToString(aaMatch, read1, read2, indent='', offsets=None):
                       gapGapMismatchCount, len1, len2))
 
     for read, key in zip((read1, read2), ('read1', 'read2')):
-        append('%s  Id: %s' % (indent, read.id))
+        append('%sId: %s' % (indent, read.id))
         length = len(read)
-        append('%s    Length: %d' % (indent, length))
+        append('%s  Length: %d' % (indent, length))
         gapCount = len(aaMatch[key]['gapOffsets'])
-        append(countPrint('%s    Gaps' % indent, gapCount, length))
+        append(countPrint('%s  Gaps' % indent, gapCount, length))
         if gapCount:
             append(
-                '%s    Gap locations (1-based): %s' %
+                '%s  Gap locations (1-based): %s' %
                 (indent,
                  ', '.join(map(lambda offset: str(offset + 1),
                                sorted(aaMatch[key]['gapOffsets'])))))
         extraCount = aaMatch[key]['extraCount']
         if extraCount:
-            append(countPrint('%s    Extra nucleotides at end' % indent,
+            append(countPrint('%s  Extra amino acids at end' % indent,
                               extraCount, length))
 
     return '\n'.join(result)
