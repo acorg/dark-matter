@@ -1,3 +1,8 @@
+## 4.0.43 Sept 25, 2022
+
+Improve output of `compare-aa-sequences.py` to show the percentage of
+matches in regions that do not involve a gap in either sequence.
+
 ## 4.0.42 Sept 21, 2022
 
 Bump mysql connector version due to security issue with 8.0.13
