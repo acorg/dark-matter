@@ -22,13 +22,18 @@ for nt, ambiguities in AMBIGUOUS.items():
 EDLIB_AMBIGUOUS = tuple(EDLIB_AMBIGUOUS)
 
 
-def mafft(reads, verbose=False, options=None, threads=None):
+def mafft(reads, verbose=False, options=None, threads=None, executor=None,
+          dryRun=False):
     """
     Run a MAFFT alignment and return the sequences.
 
     @param reads: An iterable of multiple reads.
     @param verbose: If C{True} print progress info to sys.stderr.
     @param options: A C{str} of options to pass to mafft.
+    @param executor: An C{Executor} instance. If C{None}, a new executor
+        will be created and used.
+    @param dryRun: If C{True}, do not execute commands, just let the executor
+        log them.
     @return: A C{Reads} instance with the aligned sequences.
     """
     tempdir = mkdtemp()
@@ -41,9 +46,11 @@ def mafft(reads, verbose=False, options=None, threads=None):
     if verbose:
         print('Running mafft.', file=sys.stderr)
 
-    Executor().execute("mafft %s %s '%s' > '%s'" % (
+    executor = executor or Executor(dryRun=dryRun)
+
+    executor.execute("mafft %s %s '%s' > '%s'" % (
         ('' if threads is None else '--thread %d' % threads),
-        options or '', infile, out))
+        options or '', infile, out), dryRun=dryRun)
 
     # Use 'list' in the following to force reading the FASTA from disk.
     result = Reads(list(FastaReads(out)))
@@ -52,13 +59,17 @@ def mafft(reads, verbose=False, options=None, threads=None):
     return result
 
 
-def needle(reads, verbose=False, options=None):
+def needle(reads, verbose=False, options=None, executor=None, dryRun=False):
     """
     Run a Needleman-Wunsch alignment and return the two sequences.
 
     @param reads: An iterable of two reads.
     @param verbose: If C{True} print progress info to sys.stderr.
     @param options: Additional options to pass to needle.
+    @param executor: An C{Executor} instance. If C{None}, a new executor
+        will be created and used.
+    @param dryRun: If C{True}, do not execute commands, just let the executor
+        log them.
     @return: A C{Reads} instance with the two aligned sequences.
     """
     tempdir = mkdtemp()
@@ -76,13 +87,15 @@ def needle(reads, verbose=False, options=None):
     def useStderr(e):
         return "Sequences too big. Try 'stretcher'" not in e.stderr
 
+    executor = executor or Executor(dryRun=dryRun)
+
     if verbose:
         print('Running needle.', file=sys.stderr)
     try:
-        Executor().execute(
-            "needle -asequence '%s' -bsequence '%s' %s "
-            "-outfile '%s' -aformat fasta" % (
-                file1, file2, options or '', out), useStderr=useStderr)
+        executor.execute("needle -asequence '%s' -bsequence '%s' %s "
+                         "-outfile '%s' -aformat fasta" % (
+                             file1, file2, options or '', out),
+                         dryRun=dryRun, useStderr=useStderr)
     except CalledProcessError as e:
         if useStderr(e):
             raise
@@ -90,10 +103,10 @@ def needle(reads, verbose=False, options=None):
             if verbose:
                 print('Sequences too long for needle. Falling back to '
                       'stretcher. Be patient!', file=sys.stderr)
-            Executor().execute("stretcher -asequence '%s' -bsequence '%s' "
-                               "-auto "
-                               "-outfile '%s' -aformat fasta" % (
-                                   file1, file2, out))
+            executor.execute("stretcher -asequence '%s' -bsequence '%s' "
+                             "-auto "
+                             "-outfile '%s' -aformat fasta" % (
+                                 file1, file2, out), dryRun=dryRun)
 
     # Use 'list' in the following to force reading the FASTA from disk.
     result = Reads(list(FastaReads(out)))

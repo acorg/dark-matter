@@ -250,7 +250,7 @@ def main():
             "'%s' '%s' > '%s'" %
             (sample, maskArg, args.reference, vcfFile, consensusFile))
 
-        if result.stderr:
+        if not args.dryRun and result.stderr:
             print(result.stderr, end='', file=sys.stderr)
 
     if not args.dryRun:
