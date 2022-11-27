@@ -53,7 +53,7 @@ def mafft(reads, verbose=False, options=None, threads=None, executor=None,
         options or '', infile, out), dryRun=dryRun)
 
     # Use 'list' in the following to force reading the FASTA from disk.
-    result = Reads(list(FastaReads(out)))
+    result = Reads([] if dryRun else list(FastaReads(out)))
     rmtree(tempdir)
 
     return result
@@ -109,7 +109,7 @@ def needle(reads, verbose=False, options=None, executor=None, dryRun=False):
                                  file1, file2, out), dryRun=dryRun)
 
     # Use 'list' in the following to force reading the FASTA from disk.
-    result = Reads(list(FastaReads(out)))
+    result = Reads([] if dryRun else list(FastaReads(out)))
     rmtree(tempdir)
 
     return result

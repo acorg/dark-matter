@@ -1,3 +1,7 @@
+## 4.0.45 November 27, 2022
+
+Return an empty list of reads from mafft and needle when dryRun is True.
+
 ## 4.0.44 November 27, 2022
 
 Added optional `executor` and `dryRun` arguments to MAFFT and needle
