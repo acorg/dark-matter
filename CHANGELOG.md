@@ -1,3 +1,10 @@
+## 4.0.44 November 27, 2022
+
+Added optional `executor` and `dryRun` arguments to MAFFT and needle
+aligners to allow the caller to pass in a pre-existing process
+executor. Added `--format` option to `newick-to-ascii.py` tree printing to
+allow loading a wider range of Newick files.
+
 ## 4.0.43 Sept 25, 2022
 
 Improve output of `compare-aa-sequences.py` to show the percentage of
