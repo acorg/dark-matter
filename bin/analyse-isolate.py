@@ -95,7 +95,7 @@ if __name__ == '__main__':
         # Get just one feature at this position
         feats = features.getFeatureNames(position, includeUntranslated=True)
 
-        feature = list(feats)[0] if feats else None
+        feature = sorted(list(feats))[0] if feats else None
 
         offsetInfo = offsetInfoMultipleGenomes(
             [clinicalAlignment, consensusAlignment], position,
