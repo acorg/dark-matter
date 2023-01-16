@@ -1,3 +1,7 @@
+## 4.0.46 January 16, 2023
+
+Added `--reference` option to `sam-coverage-depth.py`.
+
 ## 4.0.45 November 27, 2022
 
 Return an empty list of reads from mafft and needle when dryRun is True.
