@@ -146,10 +146,16 @@ if __name__ == '__main__':
                     if clinBase == base:
                         baseInfo = 'consensus base'
                     else:
-                        clinCodT = (codonTable.get(clinCod) if
-                                    clinCod != 'NNN' else 'X')
-                        mvCodT = (codonTable.get(mvCod) if
-                                  mvCod != 'NNN' else 'X')
+                        # Get the amino acid
+                        if 'N' in clinCod:
+                            clinCodT = 'X'
+                        else:
+                            clinCodT = codonTable.get(clinCod)
+                        if 'N' in mvCod:
+                            mvCodT = 'X'
+                        else:
+                            mvCodT = codonTable.get(mvCod)
+                        # Compare the amino acids
                         if clinCodT == mvCodT:
                             baseInfo = 'synonymous'
                         else:
