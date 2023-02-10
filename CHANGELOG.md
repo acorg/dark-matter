@@ -1,3 +1,17 @@
+## 4.0.47 February 10, 2023
+
+Added printing of transversion and transition counts to
+`bin/codon-distance.py`. Output is sorted first by distance, then by number
+of transitions (highest to lowest) then by codon DNA. The idea being to
+present the possible codon changes to get from one amino acid to another in
+the order that requires the least change to the most.
+
+The lists in the values in the dict returned by `codonInformation` now
+contain 2-tuples instead of lists of length 2. If you pass
+`countTransitions=True` to that function it will also put the count of the
+number of transitions (as opposed to transversions) into the tuple. See the
+tests in `test/test_codonDistance.py`.
+
 ## 4.0.46 January 16, 2023
 
 Added `--reference` option to `sam-coverage-depth.py`.
