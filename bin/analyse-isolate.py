@@ -9,8 +9,8 @@ from dark.sam import SAMFilter
 from mvlib.minorVariants import MinorVariantInfo
 from mvlib.functions import isMinorVariantPosition
 
-from sars2seq.alignment import SARS2Alignment, offsetInfoMultipleGenomes
-from sars2seq.features import Features
+from gb2seq.alignment import Gb2Alignment, offsetInfoMultipleGenomes
+from gb2seq.features import Features
 
 
 if __name__ == '__main__':
@@ -21,17 +21,17 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--alignmentFile',
-        help=('The name of the alignment file. Either a bam file or a json '
+        help=('The name of the alignment file. Either a BAM file or a JSON '
               'file that has been generated using MinorVariantInfo.'))
 
     parser.add_argument(
         '--clinicalSequence',
-        help=('The fasta file of the sequence of the clinical isolate that '
+        help=('The FASTA file of the sequence of the clinical isolate that '
               'the isolate was made from.'))
 
     parser.add_argument(
         '--consensusSequence',
-        help=('The fasta file of the consensus sequence from the isolate '
+        help=('The FASTA file of the consensus sequence from the isolate '
               'sequencing run.'))
 
     parser.add_argument(
@@ -55,9 +55,9 @@ if __name__ == '__main__':
     # sequence of the isolate sequencing run.
     clinicalSeq = list(FastaReads(args.clinicalSequence))[0]
     consensusSeq = list(FastaReads(args.consensusSequence))[0]
-    features = Features()
-    clinicalAlignment = SARS2Alignment(clinicalSeq, features)
-    consensusAlignment = SARS2Alignment(consensusSeq, features)
+    features = Features(sars2=True)
+    clinicalAlignment = Gb2Alignment(clinicalSeq, features)
+    consensusAlignment = Gb2Alignment(consensusSeq, features)
 
     # Get the minor variant information
     if args.alignmentFile.endswith('.json'):
