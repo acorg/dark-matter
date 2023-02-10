@@ -7,7 +7,7 @@ import argparse
 from math import log10
 import multiprocessing
 
-from dark.aligners import mafft, needle
+from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads, matchToString, AMBIGUOUS
 from dark.reads import (Reads, addFASTACommandLineOptions,
                         parseFASTACommandLineOptions)
@@ -32,12 +32,12 @@ parser.add_argument(
     help='The (1-based) index in the input of the second sequence.')
 
 parser.add_argument(
-    '--align', default=False, action='store_true',
+    '--align', action='store_true',
     help=('If given, use mafft (the default) or needle (according to the '
           'algorithm selected by --aligner) to align the two sequences.'))
 
 parser.add_argument(
-    '--aligner', default='mafft', choices=('mafft', 'needle'),
+    '--aligner', default='mafft', choices=('edlib', 'mafft', 'needle'),
     help='The alignment algorithm to use.')
 
 parser.add_argument(
@@ -60,18 +60,22 @@ parser.add_argument(
     help='The file to save the alignment to (implies --align).')
 
 parser.add_argument(
-    '--strict', default=False, action='store_true',
+    '--strict', action='store_true',
     help='If given, do not allow ambiguous nucleotide symbols to match.')
 
 parser.add_argument(
-    '--quiet', dest='verbose', default=True, action='store_false',
+    '--quiet', dest='verbose', action='store_false',
     help=('Do not print information about aligning, or falling back to '
           'stretcher.'))
 
 parser.add_argument(
     '--noGapLocations', dest='includeGapLocations', action='store_false',
-    default=True,
     help='Do not indicate the (1-based) locations of sequence gaps.')
+
+parser.add_argument(
+    '--noNoCoverageLocations', dest='includeCoverageLocations',
+    action='store_false',
+    help='Do not indicate the (1-based) locations of no coverage.')
 
 parser.add_argument(
     '--sites',
@@ -80,13 +84,24 @@ parser.add_argument(
           '24,100-200,260.'))
 
 parser.add_argument(
-    '--showDiffs', default=False, action='store_true',
+    '--showDiffs', action='store_true',
     help='Print (1-based) sites where the sequence nucleotides differ.')
 
 parser.add_argument(
-    '--showAmbiguous', default=False, action='store_true',
+    '--showAmbiguous', action='store_true',
     help=('Print (1-based) sites where either sequence has an ambiguous '
           'nucleotide code.'))
+
+parser.add_argument(
+    '--gapChars', default='-', metavar='CHARS',
+    help=('The sequence characters that should be considered to be gaps. '
+          'These characters will be ignored in computing sequence lengths '
+          'and identity fractions.'))
+
+parser.add_argument(
+    '--noCoverageChars', metavar='CHARS',
+    help=('The sequence characters that indicate lack of coverage. '
+          'These characters will be ignored in identity fractions.'))
 
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
@@ -120,6 +135,10 @@ if args.align:
         print('Pre-alignment, sequence lengths: %d, %d (difference %d)' % (
             len1, len2, abs(len1 - len2)))
 
+    print('  Gaps:')
+    print('    Id: %s %d' % (reads[0].id, reads[0].sequence.count('-')))
+    print('    Id: %s %d' % (reads[1].id, reads[1].sequence.count('-')))
+
     if args.aligner == 'mafft':
         # Be careful in examining args.alignerOptions because we want the
         # user to be able to pass an empty string (so check against None
@@ -128,14 +147,16 @@ if args.align:
                    else args.alignerOptions)
         reads = mafft(reads, args.verbose, options=options,
                       threads=args.threads)
-    else:
-        assert args.aligner == 'needle'
+    elif args.aligner == 'needle':
         # Be careful in examining args.alignerOptions because we want the
         # user to be able to pass an empty string (so check against None
         # before deciding to use the default.)
         options = (NEEDLE_DEFAULT_ARGS if args.alignerOptions is None
                    else args.alignerOptions)
         reads = needle(reads, args.verbose, options=options)
+    else:
+        assert args.aligner == 'edlib'
+        reads = edlibAlign(reads)
 
     if args.alignmentFile:
         assert reads.save(args.alignmentFile) == 2
@@ -152,7 +173,8 @@ if args.align:
     assert identicalLengths
 
 match = compareDNAReads(read1, read2, matchAmbiguous=(not args.strict),
-                        offsets=offsets)
+                        offsets=offsets, gapChars=args.gapChars,
+                        noCoverageChars=args.noCoverageChars)
 
 x = 'Post-alignment, sequence' if args.align else 'Sequence'
 if identicalLengths:
@@ -163,7 +185,8 @@ else:
 
 print(matchToString(match, read1, read2, matchAmbiguous=(not args.strict),
                     offsets=offsets,
-                    includeGapLocations=args.includeGapLocations))
+                    includeGapLocations=args.includeGapLocations,
+                    includeNoCoverageLocations=args.includeCoverageLocations))
 
 if args.showDiffs:
     # Print all sites where the sequences differ.

@@ -151,7 +151,7 @@ parser.add_argument(
           'possible to update (i.e., replace) but that is not supported yet.'))
 
 parser.add_argument(
-    '--progress', default=False, action='store_true',
+    '--progress', action='store_true',
     help='Print indexing progress.')
 
 parser.add_argument(
@@ -159,18 +159,18 @@ parser.add_argument(
     help='Write indexing details to a log file.')
 
 parser.add_argument(
-    '--noWarnings', default=False, action='store_true',
+    '--noWarnings', action='store_true',
     help='Do not print warnings about unparseable GenBank or JSON records.')
 
 # A mutually exclusive group for DNA/RNA only.
 group = parser.add_mutually_exclusive_group()
 
 group.add_argument(
-    '--dnaOnly', default=False, action='store_true',
+    '--dnaOnly', action='store_true',
     help='If given, only include DNA viruses.')
 
 group.add_argument(
-    '--rnaOnly', default=False, action='store_true',
+    '--rnaOnly', action='store_true',
     help='If given, only include RNA viruses.')
 
 parser.add_argument(
@@ -182,12 +182,12 @@ parser.add_argument(
     help='Genomes shorter than this will not be considered.')
 
 parser.add_argument(
-    '--excludeFungusOnlyViruses', default=False, action='store_true',
+    '--excludeFungusOnlyViruses', action='store_true',
     help=('If given, exclude fungus-only viruses (i.e., viruses that only '
           'infect fungi host species).'))
 
 parser.add_argument(
-    '--excludePlantOnlyViruses', default=False, action='store_true',
+    '--excludePlantOnlyViruses', action='store_true',
     help=('If given, exclude plant-only viruses (i.e., viruses that only '
           'infect plant host species).'))
 
@@ -204,13 +204,13 @@ parser.add_argument(
           'are not in GenBank should be added.'))
 
 parser.add_argument(
-    '--proteinSource', default='GENBANK',
+    '--proteinSource', default='GenBank',
     help=('The source of the accession numbers for the proteins found in the '
           'input files. This becomes part of the sequence id printed in the '
           'protein FASTA output.'))
 
 parser.add_argument(
-    '--genomeSource', default='GENBANK',
+    '--genomeSource', default='GenBank',
     help=('The source of the accession numbers for the genomes in the input '
           'files. This becomes part of the sequence id printed in the '
           'protein FASTA output.'))

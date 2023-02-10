@@ -20,13 +20,17 @@ parser.add_argument(
           'any matching taxa will be used as an outgroup.'))
 
 parser.add_argument(
+    '--format', metavar='N', type=int,
+    help='The format of the Newick to be passed to ete3')
+
+parser.add_argument(
     '--verbose', action='store_true',
     help=('Print information about the outgroup (if any) taxa to standard '
           'error'))
 
 args = parser.parse_args()
 
-tree = Tree(args.treeFile.read())
+tree = Tree(args.treeFile.read(), format=args.format)
 
 if args.outgroupRegex:
     from re import compile

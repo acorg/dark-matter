@@ -1,15 +1,16 @@
 import six
 from unittest import TestCase
 from itertools import product
+from collections import defaultdict
 
 from dark.aa import (
     PROPERTIES, ALL_PROPERTIES, PROPERTY_NAMES, ACIDIC,
     ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
     HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
-    NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, CODONS, AA_LETTERS,
-    find, AminoAcid, clustersForSequence, propertiesForSequence,
-    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, START_CODON, STOP_CODONS,
-    compareAaReads, matchToString)
+    NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, AA_LETTERS, find,
+    AminoAcid, clustersForSequence, propertiesForSequence,
+    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, CODONS, REVERSE_CODONS,
+    START_CODON, STOP_CODONS, compareAaReads, matchToString)
 from dark.reads import AARead
 
 
@@ -260,6 +261,17 @@ class TestCodons(TestCase):
 
         # Just the stop codons should be left.
         self.assertEqual(set(STOP_CODONS), combinations)
+
+    def testReverseCodons(self):
+        """
+        The REVERSE_CODONS dictionary must be correct.
+        """
+        roundtrip = defaultdict(set)
+        for codon, aa in REVERSE_CODONS.items():
+            roundtrip[aa].add(codon)
+
+        for aa, codons in CODONS.items():
+            self.assertEqual(roundtrip[aa], set(codons), aa)
 
 
 class TestAminoAcid(TestCase):
@@ -1137,23 +1149,26 @@ class TestMatchToString(TestCase):
 
         self.assertEqual(
             '''\
-Matches: 5/6 (83.33%)
-Mismatches: 1/6 (16.67%)
+Matches:
+  Overall: 5/6 (83.33%)
+  Not involving gaps (i.e., identities): 5/6 (83.33%)
+Mismatches:
+  Overall: 1/6 (16.67%)
   Not involving gaps (i.e., conflicts): 1/6 (16.67%)
   Involving a gap in one sequence: 0
   Involving a gap in both sequences: 0
-  Id: id1
-    Length: 6
-    Gaps: 0
-  Id: id2
-    Length: 6
-    Gaps: 0''',
+Id: id1
+  Length: 6
+  Gaps: 0
+Id: id2
+  Length: 6
+  Gaps: 0''',
             matchToString(match, read1, read2)
         )
 
     def testGapAndMatch(self):
         """
-        Two sequences containing matches and gaps must compare as
+        Two sequences containing gaps and matches must compare as
         expected.
         """
         read1 = AARead('id1', 'GALHN-')
@@ -1162,17 +1177,84 @@ Mismatches: 1/6 (16.67%)
 
         self.assertEqual(
             '''\
-Matches: 5/6 (83.33%)
-Mismatches: 1/6 (16.67%)
+Matches:
+  Overall: 5/6 (83.33%)
+  Not involving gaps (i.e., identities): 5/5 (100.00%)
+Mismatches:
+  Overall: 1/6 (16.67%)
   Not involving gaps (i.e., conflicts): 0
   Involving a gap in one sequence: 1/6 (16.67%)
   Involving a gap in both sequences: 0
-  Id: id1
-    Length: 6
-    Gaps: 1/6 (16.67%)
-    Gap locations (1-based): 6
-  Id: id2
-    Length: 6
-    Gaps: 0''',
+Id: id1
+  Length: 6
+  Gaps: 1/6 (16.67%)
+  Gap locations (1-based): 6
+Id: id2
+  Length: 6
+  Gaps: 0''',
+            matchToString(match, read1, read2)
+        )
+
+    def testGapAndMatchAndMismatch(self):
+        """
+        Two sequences containing gaps and matches and mismatches must compare
+        as expected.
+        """
+        read1 = AARead('id1', '--GBLHN-')
+        read2 = AARead('id2', '--GALHNA')
+        match = compareAaReads(read1, read2)
+
+        self.assertEqual(
+            '''\
+Matches:
+  Overall: 4/8 (50.00%)
+  Not involving gaps (i.e., identities): 4/5 (80.00%)
+Mismatches:
+  Overall: 4/8 (50.00%)
+  Not involving gaps (i.e., conflicts): 1/8 (12.50%)
+  Involving a gap in one sequence: 1/8 (12.50%)
+  Involving a gap in both sequences: 2/8 (25.00%)
+Id: id1
+  Length: 8
+  Gaps: 3/8 (37.50%)
+  Gap locations (1-based): 1, 2, 8
+Id: id2
+  Length: 8
+  Gaps: 2/8 (25.00%)
+  Gap locations (1-based): 1, 2''',
+            matchToString(match, read1, read2)
+        )
+
+    def testUnequalLengthGapAndMatchAndMismatch(self):
+        """
+        Two sequences of unequal length containing gaps and matches and
+        mismatches must compare as expected.
+        """
+        read1 = AARead('id1', '--GBLHN-CC')
+        read2 = AARead('id2', '--GALHNA')
+        match = compareAaReads(read1, read2)
+
+        self.assertEqual(
+            '''\
+Matches:
+  Overall: 4/10 (40.00%) of sequence 1, 4/8 (50.00%) of sequence 2
+  Not involving gaps (i.e., identities): 4/5 (80.00%)
+Mismatches:
+  Overall: 4/10 (40.00%) of sequence 1, 4/8 (50.00%) of sequence 2
+  Not involving gaps (i.e., conflicts): 1/10 (10.00%) of sequence 1, \
+1/8 (12.50%) of sequence 2
+  Involving a gap in one sequence: 1/10 (10.00%) of sequence 1, \
+1/8 (12.50%) of sequence 2
+  Involving a gap in both sequences: 2/10 (20.00%) of sequence 1, \
+2/8 (25.00%) of sequence 2
+Id: id1
+  Length: 10
+  Gaps: 3/10 (30.00%)
+  Gap locations (1-based): 1, 2, 8
+  Extra amino acids at end: 2/10 (20.00%)
+Id: id2
+  Length: 8
+  Gaps: 2/8 (25.00%)
+  Gap locations (1-based): 1, 2''',
             matchToString(match, read1, read2)
         )

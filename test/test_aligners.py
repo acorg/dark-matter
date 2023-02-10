@@ -58,6 +58,26 @@ class TestEdlibAlign(TestCase):
         self.assertRaisesRegex(Exception, error, edlibAlign,
                                Reads([in1, in2, in3]))
 
+    def testFirstReadAlreadyHasAGap(self):
+        """
+        If the first read has a gap character we should get a ValueError.
+        """
+        in1 = DNARead('id1', '-A')
+        in2 = DNARead('id2', 'AA')
+
+        error = (r"^Sequence 'id1' contains one or more gap characters '-'\.$")
+        self.assertRaisesRegex(Exception, error, edlibAlign, Reads([in1, in2]))
+
+    def testSecondReadAlreadyHasAGap(self):
+        """
+        If the second read has a gap character we should get a ValueError.
+        """
+        in1 = DNARead('id1', 'AACCT')
+        in2 = DNARead('id2', 'AA--T')
+
+        error = (r"^Sequence 'id2' contains one or more gap characters '-'\.$")
+        self.assertRaisesRegex(Exception, error, edlibAlign, Reads([in1, in2]))
+
     def testIdenticalStringsOfLengthOne(self):
         """
         Aligning identical reads of length one must produce the expected
@@ -132,7 +152,7 @@ class TestEdlibAlign(TestCase):
         placed at the start of the shorter string.
         """
         in1 = DNARead('id1', 'ATGCCGTTCA')
-        in2 = DNARead('id2', '--GCCGTTCA')
+        in2 = DNARead('id2', 'GCCGTTCA')
 
         out1, out2 = list(edlibAlign(Reads([in1, in2])))
 

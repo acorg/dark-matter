@@ -4026,3 +4026,216 @@ class TestSitesMatching(TestCase):
         reads.add(Read('id1', '-aa-a'))
         result = reads.sitesMatching({'-'}, matchCase=False, any_=True)
         self.assertEqual({0, 3, 7}, result)
+
+
+class TestFindORF(TestCase):
+    """
+    Tests for the DNARead.findORF method.
+    """
+    def testEmpty(self):
+        """
+        If an empty read is passed we must get back a dictionary indicating
+        failure to find anything.
+        """
+        read = DNARead('id', '')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(0))
+
+    def testLengthOne(self):
+        """
+        If a read of length one is passed we must get back a dictionary
+        indicating failure to find anything.
+        """
+        read = DNARead('id', 'A')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(0))
+
+    def testLengthTwo(self):
+        """
+        If a read of length two is passed we must get back a dictionary
+        indicating failure to find anything.
+        """
+        read = DNARead('id', 'AT')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(0))
+
+    def testOffsetOutOfRangeForward(self):
+        """
+        If an out-of-range offset and forward is True, is passed we must get
+        back a dictionary indicating failure to find anything.
+        """
+        read = DNARead('id', '')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(10, forward=True))
+
+    def testOffsetOutOfRangeReverse(self):
+        """
+        If an out-of-range offset and forward is False, is passed we must get
+        back a dictionary indicating failure to find anything.
+        """
+        read = DNARead('id', '')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(10, forward=False))
+
+    def testRequireStartCodonForward(self):
+        """
+        If a start codon is required but is not present when forward is True,
+        we must get back a dictionary indicating failure to find anything.
+        """
+        read = DNARead('id', 'CCAGG')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(0, requireStartCodon=True, forward=True))
+
+    def testRequireStartCodonReverse(self):
+        """
+        If a start codon is required but is not present when forward is False,
+        we must get back a dictionary indicating failure to find anything.
+        """
+        read = DNARead('id', 'CCAGG')
+        self.assertEqual(
+            {
+                'foundStartCodon': False,
+                'foundStopCodon': False,
+                'length': 0,
+                'sequence': '',
+                'translation': '',
+            },
+            read.findORF(0, requireStartCodon=True, forward=False))
+
+    def testOnlyStartCodonForward(self):
+        """
+        If a read consists just of a start codon and forward is True we must
+        get the expected result.
+        """
+        read = DNARead('id', 'ATG')
+        self.assertEqual(
+            {
+                'foundStartCodon': True,
+                'foundStopCodon': False,
+                'length': 1,
+                'sequence': 'ATG',
+                'translation': 'M',
+            },
+            read.findORF(0, forward=True))
+
+    def testOnlyStartCodonReverse(self):
+        """
+        If a read consists just of a start codon and forward is False we must
+        get the expected result.
+        """
+        read = DNARead('id', 'CAT')
+        self.assertEqual(
+            {
+                'foundStartCodon': True,
+                'foundStopCodon': False,
+                'length': 1,
+                'sequence': 'ATG',
+                'translation': 'M',
+            },
+            read.findORF(0, forward=False))
+
+    def testOnlyStartStopCodonForward(self):
+        """
+        If a read consists just of a start codon and then a stop codon
+        and forward is True we must get the expected result.
+        """
+        read = DNARead('id', 'ATGTAG')
+        self.assertEqual(
+            {
+                'foundStartCodon': True,
+                'foundStopCodon': True,
+                'length': 2,
+                'sequence': 'ATGTAG',
+                'translation': 'M*',
+            },
+            read.findORF(0, forward=True))
+
+    def testOnlyStartStopCodonReverse(self):
+        """
+        If a read consists just of a start codon and then a stop codon
+        and forward is False we must get the expected result.
+        """
+        read = DNARead('id', 'CTACAT')
+        self.assertEqual(
+            {
+                'foundStartCodon': True,
+                'foundStopCodon': True,
+                'length': 2,
+                'sequence': 'ATGTAG',
+                'translation': 'M*',
+            },
+            read.findORF(0, forward=False))
+
+    def testStartAndNoStopCodonForward(self):
+        """
+        If a read consists just of a start codon and then a non-stop codon
+        and forward is True we must get the expected result.
+        """
+        read = DNARead('id', 'ATGTCC')
+        self.assertEqual(
+            {
+                'foundStartCodon': True,
+                'foundStopCodon': False,
+                'length': 2,
+                'sequence': 'ATGTCC',
+                'translation': 'MS',
+            },
+            read.findORF(0, forward=True))
+
+    def testStartAndNoStopCodonReverse(self):
+        """
+        If a read consists just of a start codon and then a stop codon
+        and forward is False we must get the expected result.
+        """
+        read = DNARead('id', 'CTCCAT')
+        self.assertEqual(
+            {
+                'foundStartCodon': True,
+                'foundStopCodon': False,
+                'length': 2,
+                'sequence': 'ATGGAG',
+                'translation': 'ME',
+            },
+            read.findORF(0, forward=False))

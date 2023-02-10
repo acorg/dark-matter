@@ -1,17 +1,51 @@
 #!/usr/bin/env python
 
-from __future__ import print_function, division
+from typing import Dict
 
 import sys
 import argparse
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from operator import itemgetter
 
+from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads
 from dark.filter import (
     addFASTAFilteringCommandLineOptions, parseFASTAFilteringCommandLineOptions,
     addFASTAEditingCommandLineOptions, parseFASTAEditingCommandLineOptions)
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
+
+MAFFT_DEFAULT_ARGS = '--globalpair --maxiterate 1000 --preservecase'
+MAFFT_ALGORITHMS_URL = (
+    'https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html')
+NEEDLE_DEFAULT_ARGS = 'auto'
+
+
+def align(reads, args):
+    """
+    Align a pair of reads.
+
+    @param reads: An iterable of two C{DNARead} instances.
+    @param args: An argparse C{Namespace} instance with command-line options.
+    @return: A C{list} of two aligned C{DNARead} instances.
+    """
+    if args.aligner == 'mafft':
+        # Be careful in examining args.alignerOptions because we want the
+        # user to be able to pass an empty string (so check against None
+        # before deciding to use the default.)
+        options = (MAFFT_DEFAULT_ARGS if args.alignerOptions is None
+                   else args.alignerOptions)
+        return mafft(reads, args.verbose, options=options,
+                     threads=args.threads)
+    elif args.aligner == 'needle':
+        # Be careful in examining args.alignerOptions because we want the
+        # user to be able to pass an empty string (so check against None
+        # before deciding to use the default.)
+        options = (NEEDLE_DEFAULT_ARGS if args.alignerOptions is None
+                   else args.alignerOptions)
+        return needle(reads, args.verbose, options=options)
+    else:
+        assert args.aligner == 'edlib'
+        return edlibAlign(reads)
 
 
 def thresholdToCssName(threshold):
@@ -92,23 +126,42 @@ def parseColors(colors, defaultColor):
     return result
 
 
-def getReadLengths(reads, gapChars):
+def getGapCounts(reads, gapChars):
     """
-    Get all read lengths, excluding gap characters.
+    Get the number of gap characters in all reads.
 
     @param reads: A C{Reads} instance.
     @param gapChars: A C{str} of sequence characters considered to be gaps.
-    @return: A C{dict} keyed by read id, with C{int} length values.
+    @return: A C{dict} keyed by read id, with C{int} gap counts.
     """
     gapChars = set(gapChars)
     result = {}
     for read in reads:
-        result[read.id] = len(read) - sum(
+        result[read.id] = sum(
             character in gapChars for character in read.sequence)
     return result
 
 
-def explanation(matchAmbiguous, concise, showLengths, showGaps, showNs):
+def getNoCoverageCounts(reads, noCoverageChars):
+    """
+    Get the no coverage counts for all reads.
+
+    @param reads: A C{Reads} instance.
+    @param noCoverageChars: A C{str} of sequence characters that indicate
+        no coverage.
+    @return: A C{dict} keyed by read id, with C{int} number of no coverage
+        counts.
+    """
+    noCoverageChars = set(noCoverageChars)
+    result = {}
+    for read in reads:
+        result[read.id] = sum(
+            character in noCoverageChars for character in read.sequence)
+    return result
+
+
+def explanation(matchAmbiguous, concise, showLengths, showGaps, showNoCoverage,
+                showNs):
     """
     Make an explanation of the output HTML table.
 
@@ -119,6 +172,8 @@ def explanation(matchAmbiguous, concise, showLengths, showGaps, showNs):
     @param concise: If C{True}, do not show match detail abbreviations.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
+    @param showNoCoverage: If C{True}, include the number of no coverage
+        characters in sequences.
     @param showNs: If C{True}, include the number of N characters in sequences.
     @return: A C{str} of HTML.
     """
@@ -154,23 +209,41 @@ Key to abbreviations:
     """)
 
         if showLengths:
-            result.append('<li>L: sequence Length.</li>')
+            result.append('<li>L: sequence <strong>L</strong>ength.</li>')
 
         if showGaps:
-            result.append('<li>G: number of Gaps in sequence.</li>')
+            result.append('<li>G: number of <strong>G</strong>aps in '
+                          'sequence.</li>')
+
+        if showNoCoverage:
+            result.append('<li>C: number of no <strong>C</strong>overage '
+                          'characters in sequence.</li>')
 
         if showNs:
-            result.append('<li>N: number of N characters in sequence.</li>')
+            result.append('<li>N: number of fully-ambiguous '
+                          '<strong>N</strong> characters in sequence.</li>')
 
         if not concise:
-            result.append('<li>IM: Identical nucleotide Matches.</li>')
+            result.append('<li>IM: <strong>I</strong>dentical nucleotide '
+                          '<strong>M</strong>atches.</li>')
 
         if matchAmbiguous:
-            result.append('<li>AM: Ambiguous nucleotide Matches.</li>')
+            result.append('<li>AM: <strong>A</strong>mbiguous nucleotide '
+                          '<strong>M</strong>atches.</li>')
 
-        result.append("""
+        if showGaps:
+            result.append("""
     <li>GG: Gap/Gap matches (both sequences have gaps).</li>
     <li>G?: Gap/Non-gap mismatches (one sequence has a gap).</li>
+""")
+
+        if showNoCoverage:
+            result.append("""
+    <li>CC: No coverage/No coverage (both sequences have no coverage).</li>
+    <li>C?: No coverage (one sequence has no coverage).</li>
+""")
+
+    result.append("""
     <li>NE: Non-equal nucleotide mismatches.</li>
   </ul>
 </p>
@@ -179,13 +252,39 @@ Key to abbreviations:
     return '\n'.join(result)
 
 
-def collectData(reads1, reads2, square, matchAmbiguous):
+def dataCell(id1: str, id2: str, square: bool, readNumbers: Dict[str, int],
+             upperOnly: bool) -> bool:
+    """
+    Should a cell have a value computed for it, or is it empty?
+
+    @param id1: The row read id.
+    @param id2: The column read id.
+    @param square: If C{True} we are making a square table of a set of
+        sequences against themselves (in which case we show nothing on the
+        diagonal).
+    @param readNumbers: A C{dict} mapping read ids to row numbers (only
+        used if square is C{True} (in which case reads1 is the same as reads2).
+    @param upperOnly: If C{True}, only compute values for the upper diagonal.
+    @return: C{True} if the cell should be filled in, else C{False}.
+    """
+    if id1 == id2 and square:
+        return False
+
+    if not upperOnly:
+        return True
+
+    return readNumbers[id1] < readNumbers[id2]
+
+
+def collectData(reads1, reads2, square, matchAmbiguous, pairwiseAlign,
+                verbose, upperOnly=False, gapChars='-',
+                noCoverageChars=None):
     """
     Get pairwise matching statistics for two sets of reads.
 
-    @param reads1: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads1: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the rows of the table.
-    @param reads2: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads2: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
     @param square: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
@@ -194,30 +293,110 @@ def collectData(reads1, reads2, square, matchAmbiguous):
         possibly correct as actually being correct. Otherwise, we are strict
         and insist that only non-ambiguous nucleotides can contribute to the
         matching nucleotide count.
+    @param pairwiseAlign: If C{True}, pairwise-align the sequences.
+    @param verbose: If C{True}, print progress output.
+    @param upperOnly: If C{True}, only compute values for the upper diagonal.
+    @param gapChars: A C{str} of sequence characters considered to be gaps.
+    @param noCoverageChars: A C{str} of sequence characters that indicate no
+        coverage.
     """
+    readNumbers = {}
+    comparisons = 0
+    for readNumber, id1 in enumerate(reads1):
+        readNumbers[id1] = readNumber
+
+    for id1 in reads1:
+        for id2 in reads2:
+            if dataCell(id1, id2, square, readNumbers, upperOnly):
+                comparisons += 1
+
     result = defaultdict(dict)
+    count = 0
+
     for id1, read1 in reads1.items():
         for id2, read2 in reads2.items():
-            if id1 != id2 or not square:
+            if dataCell(id1, id2, square, readNumbers, upperOnly):
+                count += 1
+                if pairwiseAlign:
+                    r1, r2 = align([read1, read2], args)
+                else:
+                    r1, r2 = read1, read2
+                if verbose:
+                    print(f"Comparing {count}/{comparisons} {id1!r} "
+                          f"and {id2!r}.", file=sys.stderr)
                 match = compareDNAReads(
-                    read1, read2, matchAmbiguous=matchAmbiguous)['match']
+                    r1, r2, matchAmbiguous=matchAmbiguous,
+                    gapChars=gapChars, noCoverageChars=noCoverageChars)
                 if not matchAmbiguous:
-                    assert match['ambiguousMatchCount'] == 0
+                    assert match['match']['ambiguousMatchCount'] == 0
+                # Record the lengths, since these may have changed due to
+                # making the alignment.
+                match['read1']['length'] = len(r1)
+                match['read2']['length'] = len(r2)
                 result[id1][id2] = result[id2][id1] = match
 
-    return result
+    return result, readNumbers
 
 
-def simpleTable(tableData, reads1, reads2, square, matchAmbiguous, gapChars):
+def computeIdentity(read1, read2, stats, matchAmbiguous, digits):
+    """
+    Compute nucleotide identity for two reads (as a fraction of the lowest
+    number of relevant nucleotides in either read).
+
+    @param read1: A C{Read} instance.
+    @param read2: A C{Read} instance.
+    @param stats: A C{dict} as returned by C{compareDNAReads}.
+    @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
+        possibly correct as actually being correct. Otherwise, we are strict
+        and insist that only non-ambiguous nucleotides can contribute to the
+        matching nucleotide count.
+    @param digits: The C{int} number of digits to round values to.
+    """
+
+    # Note that the strict identity may be higher or lower than the
+    # ambiguous identity even though an ambiguous match sounds like it
+    # should always be more lenient and therefore result in a better
+    # match. While it is true that the raw number of matched characters
+    # will always increase when strict=False, the fraction of matched
+    # characters may go down.
+    #
+    # The strict value can be higher because read1 might have many
+    # ambiguous characters but very few of them may match read2. In that
+    # case the overall fraction of matching characters will be pulled down
+    # from the strict fraction when the ambiguous are included.
+    #
+    # Similarly, read1 may have many ambiguous characters, all of which are
+    # matched by read2 and this can pull the overall identity higher than
+    # the strict identity.
+
+    match = stats['match']
+    denominator = min(stats['read1']['length'], stats['read2']['length']) - (
+        match['gapGapMismatchCount'] +
+        match['noCoverageCount'] + match['noCoverageNoCoverageCount'])
+    numerator = stats['match']['identicalMatchCount']
+    if matchAmbiguous:
+        numerator += stats['match']['ambiguousMatchCount']
+
+    result = numerator / denominator
+    assert result <= 1.0, f'{numerator} / {denominator} = {result}.\n{stats}'
+
+    return round(result, digits)
+
+
+def textTable(tableData, reads1, reads2, readNumbers, square, matchAmbiguous,
+              gapChars, numberedColumns, upperOnly=False, digits=3,
+              addZeroes=False):
     """
     Make a text table showing inter-sequence distances.
 
     @param tableData: A C{defaultdict(dict)} keyed by read ids, whose values
         are the dictionaries returned by compareDNAReads.
-    @param reads1: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads1: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the rows of the table.
-    @param reads2: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads2: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
+    @param readNumbers: A C{dict} mapping read ids to row numbers (only
+        used if square is C{True} (in which case reads1 is the same as reads2).
     @param square: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
         diagonal).
@@ -226,38 +405,66 @@ def simpleTable(tableData, reads1, reads2, square, matchAmbiguous, gapChars):
         and insist that only non-ambiguous nucleotides can contribute to the
         matching nucleotide count.
     @param gapChars: A C{str} of sequence characters considered to be gaps.
+    @param numberedColumns: If C{True}, use (row) numbers for column names.
+    @param upperOnly: If C{True}, only show values for the upper diagonal.
+    @param digits: The C{int} number of digits to round identities to.b
+    @param addZeroes: If C{True}, add trailing zeroes to identities so they
+        all have the same width.
     """
-    readLengths1 = getReadLengths(reads1.values(), gapChars)
-    print('ID\t' + '\t'.join(reads2))
+    titles = ['ID']
+    if numberedColumns:
+        titles.extend(str(i + 1) for i in range(len(reads2)))
 
-    for id1, read1 in reads1.items():
-        read1Len = readLengths1[id1]
-        print(id1, end='')
+        if upperOnly and numberedColumns:
+            titles.pop(1)
+            titles[-1] = list(reads2)[-1]
+    else:
+        titles.extend(reads2)
+
+    print('\t'.join(titles))
+
+    for rowCount, (id1, read1) in enumerate(reads1.items(), start=1):
+        if upperOnly and numberedColumns and rowCount == len(reads1):
+            # We don't print the last row when only showing the upper
+            # diagonal, because it will be empty. It's name will appear at
+            # the top of the final column.
+            continue
+        prefix = f'{rowCount}: ' if numberedColumns else ''
+        print(f'{prefix}{id1}', end='')
         for id2, read2 in reads2.items():
-            if id1 == id2 and square:
-                print('\t', end='')
+            if readNumbers[id2] == 0 and square:
+                # The whole first column will be empty if we're making a
+                # square array.
+                continue
+            if dataCell(id1, id2, square, readNumbers, upperOnly):
+                identity = computeIdentity(
+                    read1, read2, tableData[id1][id2], matchAmbiguous, digits)
+
+                if addZeroes:
+                    print(f'\t{identity:.{digits}f}', end='')
+                else:
+                    print(f'\t{identity}', end='')
             else:
-                stats = tableData[id1][id2]
-                identity = (
-                    stats['identicalMatchCount'] +
-                    (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
-                ) / read1Len
-                print('\t%.4f' % identity, end='')
+                print('\t', end='')
         print()
 
 
-def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
-              concise=False, showLengths=False, showGaps=False, showNs=False,
-              footer=False, div=False, gapChars='-'):
+def htmlTable(tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
+              colors, concise=False, showLengths=False, showGaps=False,
+              showNoCoverage=False, showNs=False, footer=False, div=False,
+              gapChars='-', noCoverageChars=None, numberedColumns=False,
+              upperOnly=False, digits=3, addZeroes=False, highlightBest=False):
     """
     Make an HTML table showing inter-sequence distances.
 
     @param tableData: A C{defaultdict(dict)} keyed by read ids, whose values
         are the dictionaries returned by compareDNAReads.
-    @param reads1: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads1: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the rows of the table.
-    @param reads2: An C{OrderedDict} of C{str} read ids whose values are
+    @param reads2: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
+    @param readNumbers: A C{dict} mapping read ids to row numbers (only
+        used if square is C{True} (in which case reads1 is the same as reads2).
     @param square: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
         diagonal).
@@ -271,17 +478,30 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
     @param concise: If C{True}, do not show match details.
     @param showLengths: If C{True}, include the lengths of sequences.
     @param showGaps: If C{True}, include the number of gaps in sequences.
-    @param showGaps: If C{True}, include the number of N characters in
+    @param showNoCoverage: If C{True}, include the number of no coverage
+        characters in sequences.
+    @param showNs: If C{True}, include the number of N characters in
         sequences.
     @param footer: If C{True}, incude a footer row giving the same information
         as found in the table header.
     @param div: If C{True}, return an HTML <div> fragment only, not a full HTML
         document.
     @param gapChars: A C{str} of sequence characters considered to be gaps.
+    @param noCoverageChars: A C{str} of sequence characters that indicate no
+        coverage.
+    @param numberedColumns: If C{True}, use (row) numbers for column names.
+    @param upperOnly: If C{True}, only show values for the upper diagonal.
+    @param digits: The C{int} number of digits to round identities to.b
+    @param addZeroes: If C{True}, add trailing zeroes to identities so they
+        all have the same width.
+    @param highlightBest: If C{True}, highlight the best identity value
+        in each row.
     @return: An HTML C{str} showing inter-sequence distances.
     """
-    readLengths1 = getReadLengths(reads1.values(), gapChars)
-    readLengths2 = getReadLengths(reads2.values(), gapChars)
+    gaps1 = getGapCounts(reads1.values(), gapChars)
+    gaps2 = getGapCounts(reads2.values(), gapChars)
+    noCoverage1 = getNoCoverageCounts(reads1.values(), noCoverageChars)
+    noCoverage2 = getNoCoverageCounts(reads2.values(), noCoverageChars)
     result = []
     append = result.append
 
@@ -289,15 +509,23 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
         # The header row of the table.
         append('    <tr>')
         append('    <td>&nbsp;</td>')
-        for read2 in reads2.values():
+        for count, read2 in enumerate(reads2.values(), start=1):
+            if count == 1 and square:
+                # The first column will be empty, so skip it.
+                continue
             append('    <td class="title"><span class="name">%s</span>' %
-                   read2.id)
-            if showLengths and not square:
-                append('    <br>L:%d' % readLengths2[read2.id])
-            if showGaps and not square:
-                append('    <br>G:%d' % (len(read2) - readLengths2[read2.id]))
-            if showNs and not square:
-                append('    <br>N:%d' % read2.sequence.count('N'))
+                   (count if (
+                       upperOnly and numberedColumns and count != len(reads2))
+                    else read2.id))
+            if not square:
+                if showLengths:
+                    append('    <br>L:%d' % len(read2))
+                if showGaps:
+                    append('    <br>G:%d' % gaps2[read2.id])
+                if showNoCoverage:
+                    append('    <br>C:%d' % noCoverage2[read2.id])
+                if showNs:
+                    append('    <br>N:%d' % read2.sequence.count('N'))
             append('    </td>')
         append('    </tr>')
 
@@ -332,6 +560,9 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
         span.best {
             font-weight: bold;
         }
+        td.nt-identity {
+            text-align: right;
+        }
     """)
 
     # Add color style information for the identity thresholds.
@@ -342,79 +573,95 @@ def htmlTable(tableData, reads1, reads2, square, matchAmbiguous, colors,
     append('</style>')
 
     if not div:
-        append(explanation(
-            matchAmbiguous, concise, showLengths, showGaps, showNs))
+        append(explanation(matchAmbiguous, concise, showLengths, showGaps,
+                           showNoCoverage, showNs))
     append('<div style="overflow-x:auto;">')
     append('<table>')
     append('  <tbody>')
 
     # Pre-process to find the best identities in each sample row.
     bestIdentityForId = {}
+    identities = defaultdict(dict)
 
     for id1, read1 in reads1.items():
         # Look for best identity for the sample.
-        read1Len = readLengths1[id1]
         bestIdentity = -1.0
         for id2, read2 in reads2.items():
-            if id1 != id2 or not square:
-                stats = tableData[id1][id2]
-                identity = (
-                    stats['identicalMatchCount'] +
-                    (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
-                ) / read1Len
+            if dataCell(id1, id2, square, readNumbers, upperOnly):
+                identity = computeIdentity(
+                    read1, read2, tableData[id1][id2], matchAmbiguous, digits)
+                identities[id1][id2] = identity
                 if identity > bestIdentity:
                     bestIdentity = identity
+
         bestIdentityForId[id1] = bestIdentity
 
     writeHeader()
 
     # The main body of the table.
-    for id1, read1 in reads1.items():
-        read1Len = readLengths1[id1]
+    for rowCount, (id1, read1) in enumerate(reads1.items(), start=1):
+        if upperOnly and numberedColumns and rowCount == len(reads1):
+            # We don't print the last row when only showing the upper
+            # diagonal, because it will be empty. It's name will appear at
+            # the top of the final column.
+            continue
+
         append('    <tr>')
-        append('      <td class="title"><span class="name">%s</span>' % id1)
+        append('      <td class="title"><span class="name">%s%s</span>' % (
+            f"{rowCount}: " if numberedColumns else "", id1))
         if showLengths:
-            append('<br/>L:%d' % read1Len)
+            append('<br/>L:%d' % len(read1))
         if showGaps:
-            append('<br/>G:%d' % (len(read1) - read1Len))
+            append('<br/>G:%d' % gaps1[read1.id])
+        if showNoCoverage:
+            append('<br/>C:%d' % noCoverage1[read1.id])
         if showNs:
             append('<br/>N:%d' % read1.sequence.count('N'))
         append('</td>')
         for id2, read2 in reads2.items():
-            if id1 == id2 and square:
+            if readNumbers[id2] == 0 and square:
+                # The whole first column will be empty if we're making a
+                # square array.
+                continue
+
+            if not dataCell(id1, id2, square, readNumbers, upperOnly):
                 append('<td>&nbsp;</td>')
                 continue
 
-            stats = tableData[id1][id2]
-            identity = (
-                stats['identicalMatchCount'] +
-                (stats['ambiguousMatchCount'] if matchAmbiguous else 0)
-            ) / read1Len
+            identity = identities[id1][id2]
 
-            append('      <td class="%s">' % thresholdToCssName(
+            append('      <td class="nt-identity %s">' % thresholdToCssName(
                 thresholdForIdentity(identity, colors)))
 
             # The maximum percent identity.
-            if identity == bestIdentityForId[id1]:
+            if highlightBest and identity == bestIdentityForId[id1]:
                 scoreStyle = ' class="best"'
             else:
                 scoreStyle = ''
 
-            append('<span%s>%.4f</span>' % (scoreStyle, identity))
+            if addZeroes:
+                append(f'<span{scoreStyle}>{identity:.{digits}f}</span>')
+            else:
+                append(f'<span{scoreStyle}>{identity}</span>')
 
             if not concise:
-                append('<br/>IM:%d' % stats['identicalMatchCount'])
+                match = tableData[id1][id2]['match']
+                append('<br/>IM:%d' % match['identicalMatchCount'])
 
                 if matchAmbiguous:
-                    append('<br/>AM:%d' % stats['ambiguousMatchCount'])
+                    append('<br/>AM:%d' % match['ambiguousMatchCount'])
 
-                append(
-                    '<br/>GG:%d'
-                    '<br/>G?:%d'
-                    '<br/>NE:%d' %
-                    (stats['gapGapMismatchCount'],
-                     stats['gapMismatchCount'],
-                     stats['nonGapMismatchCount']))
+                if showGaps:
+                    append('<br/>GG:%d<br/>G?:%d' %
+                           (match['gapGapMismatchCount'],
+                            match['gapMismatchCount']))
+
+                if showNoCoverage:
+                    append('<br/>CC:%d<br/>C?:%d' %
+                           (match['noCoverageCount'],
+                            match['noCoverageNoCoverageCount']))
+
+                append('<br/>NE:%d' % match['nonGapMismatchCount'])
             append('      </td>')
         append('    </tr>')
 
@@ -440,38 +687,57 @@ if __name__ == '__main__':
         description='Print a FASTA sequence identity table.')
 
     parser.add_argument(
-        '--text', default=False, action='store_true',
-        help='If specified, just print a simple text table')
+        '--text', action='store_true',
+        help='If specified, just print a simple text table.')
 
     parser.add_argument(
-        '--strict', default=False, action='store_true',
-        help='If given, do not allow ambiguous nucleotide symbols to match')
+        '--strict', action='store_true',
+        help='If given, do not allow ambiguous nucleotide symbols to match.')
 
     parser.add_argument(
-        '--concise', default=False, action='store_true',
-        help='If given, do not show match details')
+        '--numberedColumns', action='store_true',
+        help=('Use a sequence (row) number as the header of each column '
+              'instead of the sequence id.'))
 
     parser.add_argument(
-        '--showLengths', default=False, action='store_true',
-        help='If given, show the lengths of sequences')
+        '--concise', action='store_true',
+        help='If given, do not show match details.')
 
     parser.add_argument(
-        '--showGaps', default=False, action='store_true',
-        help='If given, show the number of gaps in sequences')
+        '--digits', default=3, type=int,
+        help='The number of digits to round identities to.')
 
     parser.add_argument(
-        '--showNs', default=False, action='store_true',
+        '--addZeroes', action='store_true',
+        help=('If given, make sure all identities have the same number of '
+              'digits shown by adding zeroes when needed.'))
+
+    parser.add_argument(
+        '--showLengths', action='store_true',
+        help='If given, show the lengths of sequences.')
+
+    parser.add_argument(
+        '--showGaps', action='store_true',
+        help='If given, show the number of gaps in sequences.')
+
+    parser.add_argument(
+        '--showNoCoverage', action='store_true',
+        help=('If given, show the number of no-coverage characters in '
+              'sequences.'))
+
+    parser.add_argument(
+        '--showNs', action='store_true',
         help=('If given, show the number of fully ambiguous N characters in '
-              'sequences'))
+              'sequences.'))
 
     parser.add_argument(
-        '--footer', default=False, action='store_true',
-        help='If given, also show sequence ids at the bottom of the table')
+        '--footer', action='store_true',
+        help='If given, also show sequence ids at the bottom of the table.')
 
     parser.add_argument(
-        '--div', default=False, action='store_true',
+        '--div', action='store_true',
         help=('If given, print an HTML <div> fragment only, not a full HTML '
-              'document (ignored if --text is used)'))
+              'document (ignored if --text is used).'))
 
     parser.add_argument(
         '--fastaFile2', type=open, metavar='FILENAME',
@@ -483,7 +749,12 @@ if __name__ == '__main__':
         '--gapChars', default='-', metavar='CHARS',
         help=('The sequence characters that should be considered to be gaps. '
               'These characters will be ignored in computing sequence lengths '
-              'and identity fractions'))
+              'and identity fractions.'))
+
+    parser.add_argument(
+        '--noCoverageChars', metavar='CHARS',
+        help=('The sequence characters that indicate lack of coverage. '
+              'These characters will be ignored in identity fractions.'))
 
     parser.add_argument(
         '--defaultColor', default='white',
@@ -503,9 +774,45 @@ if __name__ == '__main__':
               'default is to color all cells with the --defaultColor color. '
               'This option is ignored if --text is given.'))
 
+    parser.add_argument(
+        '--align', action='store_true',
+        help='Do pairwise alignment of all sequences.')
+
+    parser.add_argument(
+        '--upperOnly', action='store_true',
+        help=('Only show the upper diagonal (only valid when a single FASTA '
+              'input file is given, resulting in a square all-against-all '
+              'identity table).'))
+
+    parser.add_argument(
+        '--sort', action='store_true',
+        help='Sort the input sequences by id.')
+
+    parser.add_argument(
+        '--aligner', default='edlib', choices=('edlib', 'mafft', 'needle'),
+        help='The alignment algorithm to use.')
+
+    parser.add_argument(
+        '--alignerOptions',
+        help=('Optional arguments to pass to the alignment algorithm. If the '
+              'aligner is mafft, the default options are %r. If needle, "%s". '
+              'Do not try to set the number of threads here - use the '
+              '--threads argument instead. If you are using mafft, see %s '
+              'for some possible option combinations.' %
+              (MAFFT_DEFAULT_ARGS, NEEDLE_DEFAULT_ARGS, MAFFT_ALGORITHMS_URL)))
+
+    parser.add_argument(
+        '--verbose', action='store_true',
+        help='Print progress to standard error.')
+
+    parser.add_argument(
+        '--highlightBest', action='store_true',
+        help='Highlight the best identity in each row.')
+
     addFASTACommandLineOptions(parser)
     addFASTAFilteringCommandLineOptions(parser)
     addFASTAEditingCommandLineOptions(parser)
+
     args = parser.parse_args()
 
     colors = parseColors(args.color, args.defaultColor)
@@ -516,14 +823,20 @@ if __name__ == '__main__':
         args, parseFASTAFilteringCommandLineOptions(
             args, parseFASTACommandLineOptions(args)))
 
-    # Collect the reads into a dict, keeping the insertion order.
-    reads1 = OrderedDict()
-    for read in reads:
+    # Collect the reads into a dict, keeping the insertion order, unless we
+    # are told to sort.
+    reads1 = {}
+    for read in (sorted(reads) if args.sort else reads):
         reads1[read.id] = read
 
     if args.fastaFile2:
+        if args.upperOnly:
+            print('The --upperOnly option is not supported if give two FASTA '
+                  'input files.', file=sys.stderr)
+            sys.exit(1)
+
         square = False
-        reads2 = OrderedDict()
+        reads2 = {}
         # The next line is a total hack, to trick parseFASTACommandLineOptions
         # into reading a second FASTA file.
         args.fastaFile = args.fastaFile2
@@ -535,16 +848,24 @@ if __name__ == '__main__':
         reads2 = reads1
 
     matchAmbiguous = not args.strict
-    tableData = collectData(reads1, reads2, square, matchAmbiguous)
+    tableData, readNumbers = collectData(
+        reads1, reads2, square, matchAmbiguous, args.align, args.verbose,
+        args.upperOnly, args.gapChars, args.noCoverageChars)
 
     if args.text:
-        simpleTable(tableData, reads1, reads2, square, matchAmbiguous,
-                    args.gapChars)
+        textTable(tableData, reads1, reads2, readNumbers, square,
+                  matchAmbiguous, args.gapChars, args.numberedColumns,
+                  upperOnly=args.upperOnly, digits=args.digits,
+                  addZeroes=args.addZeroes)
     else:
         print(
             htmlTable(
-                tableData, reads1, reads2, square, matchAmbiguous,
+                tableData, reads1, reads2, square, readNumbers, matchAmbiguous,
                 colors=colors, concise=args.concise,
                 showLengths=args.showLengths, showGaps=args.showGaps,
                 showNs=args.showNs, footer=args.footer, div=args.div,
-                gapChars=args.gapChars))
+                gapChars=args.gapChars, showNoCoverage=args.showNoCoverage,
+                noCoverageChars=args.noCoverageChars,
+                numberedColumns=args.numberedColumns, upperOnly=args.upperOnly,
+                digits=args.digits, addZeroes=args.addZeroes,
+                highlightBest=args.highlightBest))

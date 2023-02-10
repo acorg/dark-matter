@@ -9,12 +9,23 @@ class TestCodonInformation(TestCase):
     """
     def testReturnRightCodon(self):
         """
-        Must return the right codon.
+        The function must return the right codon distances.
         """
         result = codonInformation(['GAT', 'GAC'], ['GCC', 'GCA'])
-        self.assertEqual([['GAC', 'GCC']], result[1])
-        self.assertEqual([['GAT', 'GCC'], ['GAT', 'GCA'], ['GAC', 'GCA']],
+        self.assertEqual([('GAC', 'GCC')], result[1])
+        self.assertEqual([('GAT', 'GCC'), ('GAT', 'GCA'), ('GAC', 'GCA')],
                          result[2])
+
+    def testReturnRightCodonWithTransitionCount(self):
+        """
+        The function must return the right codon distances and the correct
+        number of transitions.
+        """
+        result = codonInformation(['GAT', 'GAC'], ['GCC', 'AGT'],
+                                  countTransitions=True)
+        self.assertEqual([('GAC', 'GCC', 0)], result[1])
+        self.assertEqual([('GAT', 'GCC', 1), ('GAT', 'AGT', 2)], result[2])
+        self.assertEqual([('GAC', 'AGT', 3)], result[3])
 
 
 class TestFindDistance(TestCase):

@@ -24,13 +24,18 @@ EDLIB_AMBIGUOUS = tuple(_EDLIB_AMBIGUOUS)
 
 
 def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
-          threads: Optional[int] = None) -> Reads:
+          threads: Optional[int] = None, executor: Optional[Executor] = None,
+          dryRun: bool = False) -> Reads:
     """
     Run a MAFFT alignment and return the sequences.
 
     @param reads: An iterable of multiple reads.
     @param verbose: If C{True} print progress info to sys.stderr.
     @param options: A C{str} of options to pass to mafft.
+    @param executor: An C{Executor} instance. If C{None}, a new executor
+        will be created and used.
+    @param dryRun: If C{True}, do not execute commands, just let the executor
+        log them.
     @return: A C{Reads} instance with the aligned sequences.
     """
     tempdir = mkdtemp()
@@ -43,25 +48,32 @@ def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
     if verbose:
         print('Running mafft.', file=sys.stderr)
 
-    Executor().execute("mafft %s %s '%s' > '%s'" % (
+    executor = executor or Executor(dryRun=dryRun)
+
+    executor.execute("mafft %s %s '%s' > '%s'" % (
         ('' if threads is None else '--thread %d' % threads),
-        options or '', infile, out))
+        options or '', infile, out), dryRun=dryRun)
 
     # Use 'list' in the following to force reading the FASTA from disk.
-    result = Reads(list(FastaReads(out)))
+    result = Reads([] if dryRun else list(FastaReads(out)))
     rmtree(tempdir)
 
     return result
 
 
 def needle(reads: List[Read], verbose: bool = False,
-           options: Optional[str] = None) -> Reads:
+           options: Optional[str] = None, executor: Optional[Executor] = None,
+           dryRun: bool = False) -> Reads:
     """
     Run a Needleman-Wunsch alignment and return the two sequences.
 
     @param reads: An iterable of two reads.
     @param verbose: If C{True} print progress info to sys.stderr.
     @param options: Additional options to pass to needle.
+    @param executor: An C{Executor} instance. If C{None}, a new executor
+        will be created and used.
+    @param dryRun: If C{True}, do not execute commands, just let the executor
+        log them.
     @return: A C{Reads} instance with the two aligned sequences.
     """
     tempdir = mkdtemp()
@@ -79,13 +91,15 @@ def needle(reads: List[Read], verbose: bool = False,
     def useStderr(e):
         return "Sequences too big. Try 'stretcher'" not in e.stderr
 
+    executor = executor or Executor(dryRun=dryRun)
+
     if verbose:
         print('Running needle.', file=sys.stderr)
     try:
-        Executor().execute(
-            "needle -asequence '%s' -bsequence '%s' %s "
-            "-outfile '%s' -aformat fasta" % (
-                file1, file2, options or '', out), useStderr=useStderr)
+        executor.execute("needle -asequence '%s' -bsequence '%s' %s "
+                         "-outfile '%s' -aformat fasta" % (
+                             file1, file2, options or '', out),
+                         dryRun=dryRun, useStderr=useStderr)
     except CalledProcessError as e:
         if useStderr(e):
             raise
@@ -93,13 +107,13 @@ def needle(reads: List[Read], verbose: bool = False,
             if verbose:
                 print('Sequences too long for needle. Falling back to '
                       'stretcher. Be patient!', file=sys.stderr)
-            Executor().execute("stretcher -asequence '%s' -bsequence '%s' "
-                               "-auto "
-                               "-outfile '%s' -aformat fasta" % (
-                                   file1, file2, out))
+            executor.execute("stretcher -asequence '%s' -bsequence '%s' "
+                             "-auto "
+                             "-outfile '%s' -aformat fasta" % (
+                                 file1, file2, out), dryRun=dryRun)
 
     # Use 'list' in the following to force reading the FASTA from disk.
-    result = Reads(list(FastaReads(out)))
+    result = Reads([] if dryRun else list(FastaReads(out)))
     rmtree(tempdir)
 
     return result
@@ -121,7 +135,9 @@ def removeFirstUnnecessaryGaps(
     assert len(seq1) == len(seq2)
     for start in range(len(seq1)):
         if seq1[start] == gapSymbol:
-            assert seq2[start] != gapSymbol
+            if seq2[start] == gapSymbol:
+                raise ValueError(f'Sequences {seq1!r} and {seq2!r} both have '
+                                 f'a gap ({gapSymbol!r}) at offset {start}!')
             first, second = seq1, seq2
             break
         elif seq2[start] == gapSymbol:
@@ -135,8 +151,8 @@ def removeFirstUnnecessaryGaps(
     excessGapCount = 1
     for end in range(start + 1, len(first)):
         if first[end] == gapSymbol:
-            excessGapCount += 1
             assert second[end] != gapSymbol
+            excessGapCount += 1
         elif second[end] == gapSymbol:
             excessGapCount -= 1
             if excessGapCount == 0:
@@ -196,7 +212,8 @@ def edlibAlign(
     """
     Run an edlib alignment and return the sequences.
 
-    @param reads: An iterable of at least two reads.
+    @param reads: An iterable of at least two reads. The reads must not contain
+        C{gapSymbol}.
     @param gapSymbol: A C{str} 1-character symbol to use for gaps.
     @param minimizeGaps: If C{True}, post-process the edlib output to remove
         unnecessary gaps.
@@ -205,15 +222,22 @@ def edlibAlign(
         possibly correct as actually being correct. Otherwise, we are strict
         and nucleotide codes only match themselves.
     @raise ValueError: If C{onlyTwoSequences} is C{True} and there are more
-       than two reads passed.
+       than two reads passed or if the gap symbol is already present in either
+       of the reads.
     @return: A C{Reads} instance with the aligned sequences.
     """
     # Align the first two sequences.
     r1, r2, *rest = list(reads)
 
-    # And complain if there were more and we're told to be strict.
+    # Complain if there were more than two sequences and we were told to be
+    # strict.
     if onlyTwoSequences and len(rest):
         raise ValueError(f'Passed {len(rest)} unexpected extra sequences.')
+
+    for read in r1, r2:
+        if gapSymbol in read.sequence:
+            raise ValueError(f'Sequence {read.id!r} contains one or more gap '
+                             f'characters {gapSymbol!r}.')
 
     alignment = edlib.getNiceAlignment(
         edlib.align(

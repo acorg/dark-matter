@@ -1,3 +1,141 @@
+## 4.0.47 February 10, 2023
+
+Added printing of transversion and transition counts to
+`bin/codon-distance.py`. Output is sorted first by distance, then by number
+of transitions (highest to lowest) then by codon DNA. The idea being to
+present the possible codon changes to get from one amino acid to another in
+the order that requires the least change to the most.
+
+The lists in the values in the dict returned by `codonInformation` now
+contain 2-tuples instead of lists of length 2. If you pass
+`countTransitions=True` to that function it will also put the count of the
+number of transitions (as opposed to transversions) into the tuple. See the
+tests in `test/test_codonDistance.py`.
+
+## 4.0.46 January 16, 2023
+
+Added `--reference` option to `sam-coverage-depth.py`.
+
+## 4.0.45 November 27, 2022
+
+Return an empty list of reads from mafft and needle when dryRun is True.
+
+## 4.0.44 November 27, 2022
+
+Added optional `executor` and `dryRun` arguments to MAFFT and needle
+aligners to allow the caller to pass in a pre-existing process
+executor. Added `--format` option to `newick-to-ascii.py` tree printing to
+allow loading a wider range of Newick files.
+
+## 4.0.43 Sept 25, 2022
+
+Improve output of `compare-aa-sequences.py` to show the percentage of
+matches in regions that do not involve a gap in either sequence.
+
+## 4.0.42 Sept 21, 2022
+
+Bump mysql connector version due to security issue with 8.0.13
+
+## 4.0.41 Jul 9, 2022
+
+Added `--sort` option to `bin/fasta-identity-table.py`.
+
+## 4.0.40 Jul 5, 2022
+
+Fixed small bug in `Reads.temporalBaseCounts`. Improved identity
+calculation in `fasta-identity-table.py`.
+
+## 4.0.39 Jul 2, 2022
+
+Pass the `showNoCoverage` option value to the making of the HTML table in
+`bin/fasta-identity-table.py`.
+
+## 4.0.38 Jul 2, 2022
+
+Added `--noNoCoverageLocations`, `--noCoverageChars`, and `--gapChars`
+option to `bin/compare-sequences.py`. Fixed identity calculation bug in
+`bin/fasta-identity-table.py` due to not including gaps resulting from the
+pairwise alignment into the calculation.
+
+## 4.0.37 Jul 2, 2022
+
+Added `noCoverageChars` option to `compareDNAReads` and
+`includeNoCoverageLocations` option to `matchToString`.
+
+## 4.0.36 Jul 2, 2022
+
+Make `compareDNAReads` more forgiving of unexpected characters in a DNA
+sequence (specifically to deal with '?' that is used by Geneious to
+indicate lack of coverage).
+
+## 4.0.35 Jun 15, 2022
+
+Added `--digits`, `--reverse`, `--sortBy`, `--header` and `--sortChars`
+options to `bin/fasta-coverage.py`. Added `--regex` and `reverse` options
+to `bin/fasta-sort.py`. Added `allowGaps` and `untranslatable` options to
+`findORF` in `dark/reads.py`
+
+## 4.0.34 Jun 15, 2022
+
+Added simple `fasta-translate.py` script.
+
+## 4.0.33 Jun 14, 2022
+
+Small fix to text table output in `bin/fasta-identity-table.py`.
+
+## 4.0.32 Jun 14, 2022
+
+Added `--addZeroes` and `--highlightBest` options to
+`bin/fasta-identity-table.py`.
+
+## 4.0.31 Jun 14, 2022
+
+Added `bin/fasta-coverage.py` command. Added `--upperOnly` option to
+`bin/fasta-identity-table.py` (and fixed bug).
+
+## 4.0.30 Jun 7, 2022
+
+Added `temporalBaseCounts` method to `dark.Reads`.
+
+## 4.0.29 June 3, 2022
+
+Added `--align`, `--aligner`, and `--numberedColumns` options to
+`bin/fasta-identity-table.py`. Added checking of pre-existing gap symbols
+to the edlib aligner.
+
+## 4.0.28 May 27, 2022
+
+Added `-i` and `-v` options to `bin/genbank-grep.py`.
+
+## 4.0.27 May 27, 2022
+
+Renamed `bin/genbank-to-fasta.py` to `bin/genbank-grep.py` and made it able
+to print in GenBank format as well as FASTA.
+
+## 4.0.26 May 27, 2022
+
+Added `bin/genbank-to-fasta.py` to extract FASTA from GenBank flat files.
+
+## 4.0.25 May 27, 2022
+
+Added `findORF` method to `DNARead` and `edlib` as an aligner option to
+`compare-sequences.py`.
+
+## 4.0.24 May 21, 2022
+
+Added `--format` option to `ncbi-fetch-id.py` to allow fetching of GenBank
+format flat files (use `--format gb`).
+
+## 4.0.23 May 12, 2022
+
+Removed a second unneeded viral check from `dark/taxonomy.py`.
+
+## 4.0.22 May 12, 2022
+
+Removed unneeded viral check from `dark/taxonomy.py`. Added 'generic' as a
+pathogen type for protein reporting (in `dark/civ/proteins.py`) and that
+can be given to `bin/proteins-to-pathogens-civ.py`.
+
 ## 4.0.21 April 13, 2022
 
 Added `matchAmbiguous` option to `edlibAlign`.

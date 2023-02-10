@@ -8,16 +8,19 @@ from collections import Counter
 from hashlib import md5
 from random import uniform
 from pathlib import Path
+import itertools
+from collections import defaultdict
 from typing import (
     Any, Callable, Generator, Iterable, List, Literal, Optional, Set, TextIO,
-    Tuple, Type, TypeVar, Union)
+    Tuple, Type, TypeVar, Union, Dict)
 
 from Bio.Seq import translate
 from Bio.Data.IUPACData import (
     ambiguous_dna_complement, ambiguous_rna_complement)
 
 from dark.aa import (
-    AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE)
+    AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE,
+    START_CODON, STOP_CODONS)
 from dark.filter import TitleFilter
 from dark.hsp import HSP
 from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
@@ -370,6 +373,92 @@ class DNARead(_NucleotideRead):
     ALPHABET: set = set('ATCG')
 
     COMPLEMENT_TABLE: str = _makeComplementTable(ambiguous_dna_complement)
+
+    def findORF(self,
+                offset: int,
+                forward: bool = True,
+                requireStartCodon: bool = True,
+                allowGaps: bool = True,
+                untranslatable: Optional[Dict[str, str]] = None
+                ):
+        """
+        Find an ORF that supposedly starts at a specified offset in a read.
+
+        @param offset: The C{int} offset of the start codon.
+        @param forward: If not C{True}, the reverse complement of the sequence
+            should be examined.
+        @param requireStartCodon: If C{True}, the first codon must be a start
+            codon. If it is not, the search is abandoned immediately and the
+            returned dictionary will have zero and C{False} values.
+        @param allowGaps: If C{True}, gaps ('-') will be removed, else a
+            ValueError is raised if there are any gaps in the region of
+            C{self.sequence} that is to be translated.
+        @param untranslatable: A C{dict} with C{str} keys and values. If any of
+            the keys appears in a codon, the corresponding value is added to
+            the translation. This can be used e.g., to make occurrences of '?'
+            translate into '-' or 'X'.
+        @return: A C{dict} with C{str} keys:
+            length (int): the length of the ORF (in amino acids).
+            foundStartCodon (bool): if a start codon was found.
+            foundStopCodon (bool): if a stop codon was found.
+            sequence (str): the ORF nucelotide sequence.
+            translation (str): the amino acid sequence for the ORF.
+        """
+        sequence = (
+            self.sequence if forward else self.reverseComplement().sequence)
+
+        gapCount = sequence[offset:].count('-')
+        if gapCount:
+            if allowGaps:
+                sequence = (
+                    sequence[:offset] + sequence[offset:].replace('-', ''))
+            else:
+                raise ValueError(
+                    f"At least one gap ('-') character found in read "
+                    f"{self.id!r} from offset {offset} or later.")
+
+        first = True
+        length = 0
+        foundStartCodon = foundStopCodon = False
+        codons = []
+        translation = []
+
+        for index in itertools.count(offset, 3):
+            codon = sequence[index:index + 3]
+            if len(codon) != 3:
+                break
+
+            if first:
+                first = False
+                if codon == START_CODON:
+                    foundStartCodon = True
+                elif requireStartCodon:
+                    break
+
+            if untranslatable:
+                for char, replacement in untranslatable.items():
+                    if char in codon:
+                        translation.append(replacement)
+                        break
+                else:
+                    translation.append(translate(codon))
+            else:
+                translation.append(translate(codon))
+
+            length += 1
+            codons.append(codon)
+
+            if codon in STOP_CODONS:
+                foundStopCodon = True
+                break
+
+        return {
+            'length': length,
+            'foundStartCodon': foundStartCodon,
+            'foundStopCodon': foundStopCodon,
+            'sequence': ''.join(codons),
+            'translation': ''.join(translation),
+        }
 
 
 class RNARead(_NucleotideRead):
@@ -1599,6 +1688,120 @@ class Reads(object):
                                      nucleotides - set('ACGTN-'))
 
         return sequence
+
+    def temporalBaseCounts(self, firstPostId: str, minFrequency: float = None,
+                           maxFrequency: float = None, minCount: int = 0,
+                           preIds: Optional[Set[str]] = None):
+        """
+        Iterate through time-sorted reads, accumulating counts of bases at each
+        offset pre- and post- a specific sequence.
+
+        @param firstPostId: The C{str} id of the first member of the 'post'
+            sequences.
+        @param minFrequency: The C{float} minimum frequency at which a new base
+            is considered interesting and should have its frequency returned.
+        @param maxFrequency: The C{float} maximum frequency at which a new base
+            is considered interesting and should have its frequency returned.
+        @param minCount: The C{int} minimal number of times a new base must be
+            seen to be considered interesting (and to therefore have its
+            frequency returned).
+        @param preIds: If not C{None}, a C{set} of C{str} ids to include in the
+            the early counting (i.e., before seeing firstPostId). If C{None},
+            the sequences of all early ids will be included.
+        @return: A C{dict}, as below.
+        """
+        first = True
+        preBases = {}
+        postBases = {}
+        preCount = postCount = 0
+        reference = None
+        postIdFound = False
+        preIdsFound = set()
+
+        for genome in self:
+            if first:
+                first = False
+                length = len(genome)
+                reference = genome
+                for offset in range(length):
+                    preBases[offset] = defaultdict(int)
+                    postBases[offset] = defaultdict(int)
+            else:
+                if len(genome) != length:
+                    raise ValueError(
+                        f'Genome {genome.id!r} has length {len(genome)} which '
+                        f'does not match the length of the first input '
+                        f'sequence ({length}).')
+
+            if genome.id == firstPostId:
+                if postIdFound:
+                    raise ValueError(f'Delimiting sequence id {firstPostId!r} '
+                                     f'found more than once!')
+                postIdFound = True
+
+            if postIdFound:
+                bases = postBases
+                postCount += 1
+            else:
+                if preIds:
+                    if genome.id not in preIds:
+                        continue
+                    else:
+                        if genome.id in preIdsFound:
+                            raise ValueError(f'Pre-id sequence {genome.id!r} '
+                                             f'found more than once!')
+                        preIdsFound.add(genome.id)
+
+                bases = preBases
+                preCount += 1
+
+            for offset, base in enumerate(genome.sequence):
+                # TODO: Deal with ambiguous codes instead of ignoring them.
+                if base in _DNA:
+                    bases[offset][base] += 1
+
+        if reference is None:
+            raise ValueError('No genomes found.')
+
+        if not postIdFound:
+            raise ValueError(f'The delimiting sequence id {firstPostId!r} '
+                             f'was not found.')
+
+        if preIds and preIds != preIdsFound:
+            missing = sorted(preIds - preIdsFound)
+            if len(missing) == 1:
+                raise ValueError(f'Pre-id {missing[0]!r} not found.')
+            else:
+                raise ValueError(f'{len(missing)} pre-ids '
+                                 f'({", ".join(missing)}) was not found.')
+
+        # Look for bases (that occurred in the post-sequences) that are new
+        # (i.e., previously unseen). Calculate their frequencies, and
+        # record frequencies that are in the wanted range.
+        newFrequencies = defaultdict(dict)
+        for offset in range(length):
+            newBasesInPost = set(postBases[offset]) - set(preBases[offset])
+            if newBasesInPost:
+                for newBase in newBasesInPost:
+                    baseCount = postBases[offset][newBase]
+                    if baseCount > minCount:
+                        frq = baseCount / postCount
+                        if ((minFrequency is None or frq >= minFrequency) and
+                                (maxFrequency is None or frq <= maxFrequency)):
+                            newFrequencies[offset][newBase] = frq
+
+        return {
+            'reference': reference,
+            'pre': {
+                'bases': preBases,
+                'count': preCount,
+            },
+            'post': {
+                'bases': postBases,
+                'count': postCount,
+                'new': newFrequencies,
+            }
+        }
 
 
 class ReadsInRAM(Reads):

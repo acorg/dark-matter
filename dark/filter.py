@@ -395,11 +395,11 @@ def addFASTAEditingCommandLineOptions(parser):
         '--readLambda', metavar='LAMBDA-FUNCTION',
         help=('A one-argument function taking and returning a read. '
               'E.g., --readLambda "lambda r: Read(r.id.split(\'_\')[0], '
-              'r.sequence.strip(\'-\')". Make sure to also modify the quality '
-              'string if you change the length of a FASTQ sequence. If the '
-              'function returns None, the read will be filtered out. The '
-              'function will be passed to eval with the dark.reads classes '
-              'Read, DNARead, AARead, etc. all in scope.'))
+              'r.sequence.strip(\'-\'))". Make sure to also modify the '
+              'quality string if you change the length of a FASTQ sequence. '
+              'If the function returns None, the read will be filtered out. '
+              'The function will be passed to eval with the dark.reads '
+              'classes Read, DNARead, AARead, etc. all in scope.'))
 
     parser.add_argument(
         '--reverse', action='store_true', default=False,
