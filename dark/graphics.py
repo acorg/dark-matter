@@ -6,33 +6,14 @@ from collections import defaultdict
 from time import ctime, time
 from textwrap import fill
 
-try:
-    import matplotlib
-    if not os.environ.get('DISPLAY'):
-        # Use non-interactive Agg backend
-        matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-except ImportError:
-    import platform
-    if platform.python_implementation() == 'PyPy':
-        # PyPy doesn't have a version of matplotlib. Make fake classes and
-        # a Line2D function that raises if used. This allows us to use
-        # other 'dark' code that happens to import dark.graphics but which
-        # does not use the functions that rely on matplotlib.
-        class plt(object):
-            def __getattr__(self, _):
-                raise NotImplementedError(
-                    'matplotlib is not supported under pypy')
+import matplotlib
+if not os.environ.get('DISPLAY'):
+    # Use non-interactive Agg backend
+    matplotlib.use('Agg')
 
-        gridspec = patches = plt
-
-        def Line2D(*args, **kwargs):
-            raise NotImplementedError('matplotlib is not supported under pypy')
-    else:
-        raise
-else:
-    from matplotlib.lines import Line2D
-    from matplotlib import gridspec, patches
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib import gridspec, patches
 
 import numpy as np
 
@@ -64,7 +45,7 @@ DEFAULT_BASE_COLOR = (0.5, 0.5, 0.5)  # Grey
 # visualizations-in-python-with-matplotlib/
 #
 # These are the "Tableau 20" colors as RGB.
-TABLEAU20 = [
+TABLEAU20: list[tuple[float, float, float]] = [
     (31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
     (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),
     (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),

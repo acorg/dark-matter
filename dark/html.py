@@ -1,6 +1,4 @@
-from __future__ import print_function
-
-from IPython.display import HTML
+from IPython.display import HTML  # type: ignore
 from six.moves.urllib.parse import quote
 
 from dark.fastq import FastqReads

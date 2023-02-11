@@ -2,25 +2,11 @@ import os
 from collections import defaultdict
 import numpy as np
 
-try:
-    import matplotlib
-    if not os.environ.get('DISPLAY'):
-        # Use non-interactive Agg backend
-        matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-except ImportError:
-    import platform
-    if platform.python_implementation() == 'PyPy':
-        # PyPy doesn't have a version of matplotlib. Make a fake
-        # class that raises if it is used. This allows us to use other
-        # 'dark' code that happens to import dark.mutations but not use the
-        # functions that rely on matplotlib.
-        class plt(object):
-            def __getattr__(self, _):
-                raise NotImplementedError(
-                    'matplotlib is not supported under pypy')
-    else:
-        raise
+import matplotlib
+if not os.environ.get('DISPLAY'):
+    # Use non-interactive Agg backend
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 from random import choice, uniform
 

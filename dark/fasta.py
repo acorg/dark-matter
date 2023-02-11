@@ -1,9 +1,8 @@
-from six import PY3
 from hashlib import md5
 import sqlite3
 import os
 
-from Bio import SeqIO, bgzf
+from Bio import SeqIO, bgzf  # type: ignore
 
 from dark.reads import Reads, DNARead
 from dark.utils import asHandle
@@ -102,10 +101,7 @@ class FastaReads(Reads):
         # read the file we'd return Reads.iter(self) to re-iterate over the
         # sequences already added from the file.
         self._upperCase = upperCase
-        if PY3:
-            super().__init__()
-        else:
-            Reads.__init__(self)
+        super().__init__()
 
     def iter(self):
         """

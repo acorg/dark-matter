@@ -1,6 +1,6 @@
 from six import PY3
 
-from Bio.SeqIO.QualityIO import FastqGeneralIterator
+from Bio.SeqIO.QualityIO import FastqGeneralIterator  # type: ignore
 
 from dark.reads import Reads, DNARead
 from dark.utils import asHandle

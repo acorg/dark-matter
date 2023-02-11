@@ -1,25 +1,13 @@
 import numpy as np
 import os
 
-try:
-    import matplotlib
-    if not os.environ.get('DISPLAY'):
-        # Use non-interactive Agg backend
-        matplotlib.use('Agg')
-    from matplotlib import pyplot as plt
-except ImportError:
-    import platform
-    if platform.python_implementation() == 'PyPy':
-        # PyPy doesn't have a version of matplotlib. Make fake classes and
-        # a Line2D function and that raise if used. This allows us to use
-        # other 'dark' code that happens to import dark.mutations but not
-        # use the functions that rely on matplotlib.
-        class plt(object):
-            def __getattr__(self, _):
-                raise NotImplementedError(
-                    'matplotlib is not supported under pypy')
-    else:
-        raise
+from typing import Optional, Tuple
+
+import matplotlib
+if not os.environ.get('DISPLAY'):
+    # Use non-interactive Agg backend
+    matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 
 from dark.entrez import getSequence
 
@@ -127,8 +115,8 @@ class _FeatureAdder(object):
     TITLE_FONTSIZE = 16
     FONTSIZE = 20
     MAX_FEATURES_TO_DISPLAY = 50
-    DATABASE = None  # Set in subclasses.
-    WANTED_TYPES = None  # Set in subclasses.
+    DATABASE = Optional[str]  # Set in subclasses.
+    WANTED_TYPES = Optional[Tuple[str, ...]]  # Set in subclasses.
 
     def __init__(self):
         self.tooManyFeaturesToPlot = False

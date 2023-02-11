@@ -1,5 +1,3 @@
-from __future__ import division
-
 import os
 import re
 import string
@@ -9,9 +7,8 @@ import gzip
 from os.path import basename
 from contextlib import contextmanager
 from re import compile
-import numpy as np
 from statistics import median as _median
-from typing import List, Optional, Union
+from typing import List, Optional
 
 
 def numericallySortFilenames(names: List[str]) -> List[str]:

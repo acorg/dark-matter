@@ -1,5 +1,4 @@
-from six import PY3
-from Bio import SeqIO
+from Bio import SeqIO  # type: ignore
 
 from dark.reads import Reads, SSAARead
 from dark.utils import asHandle
@@ -35,10 +34,7 @@ class SSFastaReads(Reads):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
         self._upperCase = upperCase
-        if PY3:
-            super().__init__()
-        else:
-            Reads.__init__(self)
+        super().__init__()
 
     def iter(self):
         """

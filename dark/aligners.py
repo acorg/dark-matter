@@ -13,14 +13,10 @@ from dark.process import Executor
 from dark.reads import Read, Reads
 
 
-_EDLIB_AMBIGUOUS: List[Tuple[str, str]] = []
-
-for nt, ambiguities in AMBIGUOUS.items():
-    if len(ambiguities) > 1:
-        _EDLIB_AMBIGUOUS.extend(
-            tuple(sorted((nt, code))) for code in ambiguities)
-
-EDLIB_AMBIGUOUS = tuple(_EDLIB_AMBIGUOUS)
+EDLIB_AMBIGUOUS: Tuple[Tuple[str, ...], ...] = tuple([
+    tuple(sorted((nt, code)))
+    for nt, ambiguities in AMBIGUOUS.items()
+    for code in ambiguities if len(ambiguities) > 1])
 
 
 def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
@@ -120,8 +116,7 @@ def needle(reads: List[Read], verbose: bool = False,
 
 
 def removeFirstUnnecessaryGaps(
-        seq1: str, seq2: str, gapSymbol: str = '-') -> Tuple[
-            Optional[str], Optional[str]]:
+        seq1: str, seq2: str, gapSymbol: str = '-') -> Tuple[bool, str, str]:
     """
     Find and remove the first set of gaps in two sequences that can be removed
     without increasing the difference between the strings.
@@ -129,8 +124,11 @@ def removeFirstUnnecessaryGaps(
     @param seq1: A C{str} sequence string.
     @param seq2: A C{str} sequence string.
     @param gapSymbol: A C{str} 1-character symbol to use for gaps.
-    @return: A 2-C{tuple} with either two new C{str} sequences or two C{None}
-        values if no removable gaps were found.
+    @return: A 3-C{tuple} with either C{True} and two new C{str} sequences or
+        C{False} and two empty strings if no removable gaps were found. The
+        C{True} and C{False} first elements are just there to keep mypy happy,
+        seeing as I couldn't figure out how to return (None, None) without
+        getting warnings.
     """
     assert len(seq1) == len(seq2)
     for start in range(len(seq1)):
@@ -146,7 +144,7 @@ def removeFirstUnnecessaryGaps(
             break
     else:
         # Did not find any gaps.
-        return None, None
+        return False, '', ''
 
     excessGapCount = 1
     for end in range(start + 1, len(first)):
@@ -165,7 +163,7 @@ def removeFirstUnnecessaryGaps(
         # aligned versions. In that case there must be at least one gap in
         # both sequences.  But for now this is not considered an error
         # because we may not have been called by removeUnnecessaryGaps.
-        return None, None
+        return False, '', ''
 
     subseq1 = seq1[start:end + 1]
     subseq1noGaps = subseq1.replace(gapSymbol, '')
@@ -179,10 +177,11 @@ def removeFirstUnnecessaryGaps(
     if diffsWithoutGaps <= diffsWithGaps:
         # The subsequences match at least as well without gaps, so replace
         # the gapped region in each sequence with its ungapped version.
-        return (seq1[:start] + subseq1noGaps + seq1[end + 1:],
+        return (True,
+                seq1[:start] + subseq1noGaps + seq1[end + 1:],
                 seq2[:start] + subseq2noGaps + seq2[end + 1:])
     else:
-        return None, None
+        return False, '', ''
 
 
 def removeUnnecessaryGaps(
@@ -197,10 +196,11 @@ def removeUnnecessaryGaps(
     @return: A 2-C{tuple} of C{str} sequences with removable gaps eliminated.
     """
     while True:
-        new1, new2 = removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol)
-        if new1 is None:
+        foundGaps, new1, new2 = removeFirstUnnecessaryGaps(seq1, seq2, gapSymbol)
+        if foundGaps:
+            seq1, seq2 = new1, new2
+        else:
             return seq1, seq2
-        seq1, seq2 = new1, new2
 
     raise RuntimeError('Fell off the end of removeFirstUnnecessaryGaps. '
                        'This should be impossible!')

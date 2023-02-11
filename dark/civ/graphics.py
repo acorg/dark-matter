@@ -6,33 +6,13 @@ from time import ctime, time
 from textwrap import fill
 from os.path import join
 
-try:
-    import matplotlib
-    if not os.environ.get('DISPLAY'):
-        # Use non-interactive Agg backend
-        matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-except ImportError:
-    import platform
-    if platform.python_implementation() == 'PyPy':
-        # PyPy doesn't have a version of matplotlib. Make fake classes and
-        # a Line2D function that raises if used. This allows us to use
-        # other 'dark' code that happens to import dark.civ.graphics but
-        # which does not use the functions that rely on matplotlib.
-        class plt(object):
-            def __getattr__(self, _):
-                raise NotImplementedError(
-                    'matplotlib is not supported under pypy')
-
-        gridspec = patches = plt
-
-        def Line2D(*args, **kwargs):
-            raise NotImplementedError('matplotlib is not supported under pypy')
-    else:
-        raise
-else:
-    from matplotlib.lines import Line2D
-    from matplotlib import gridspec
+import matplotlib
+if not os.environ.get('DISPLAY'):
+    # Use non-interactive Agg backend
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib import gridspec
 
 from dark.dimension import dimensionalIterator
 from dark.html import NCBISequenceLinkURL

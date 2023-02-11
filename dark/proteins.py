@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 import os
 from collections import defaultdict, Counter
 import numpy as np

@@ -812,7 +812,7 @@ class DistanceMatrix:
                             f'{scoreTag!r} with negative value ({score}).')
                     return score
         else:
-            def getScore(*args):
+            def getScore(alignment, filename, count):
                 """
                 Return a binary score of 1.0 seeing as we know the query was
                 mapped and no score tag is in use.

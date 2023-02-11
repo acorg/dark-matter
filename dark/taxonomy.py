@@ -26,8 +26,7 @@ FUNGUS_ONLY_VIRUS_REGEX = re.compile(
     r'\b(?:mycovirus)\b',
     re.I)
 
-FUNGUS_ONLY_GENERA = {
-}
+FUNGUS_ONLY_GENERA: set[str] = set()
 
 FUNGUS_ONLY_FAMILIES = {
     'Chrysoviridae',  # Infects penicillum. E.g., NC_040738.1

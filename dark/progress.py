@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-import progressbar
+import progressbar  # type: ignore
 
 
 @contextmanager

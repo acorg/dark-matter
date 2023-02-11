@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import six
 import os
 from functools import total_ordering
 from collections import Counter
@@ -11,12 +10,12 @@ from pathlib import Path
 import itertools
 from collections import defaultdict
 from typing import (
-    Any, Callable, Generator, Iterable, List, Literal, Optional, Set, TextIO,
-    Tuple, Type, TypeVar, Union, Dict)
+    Callable, Generator, Iterable, List, Literal, Optional, Set, TextIO,
+    Tuple, TypeVar, Union, Dict, Sequence, SupportsIndex)
 
-from Bio.Seq import translate
-from Bio.Data.IUPACData import (
-    ambiguous_dna_complement, ambiguous_rna_complement)
+from Bio.Seq import translate  # type: ignore
+from Bio.Data.IUPACData import ambiguous_dna_complement  # type: ignore
+from Bio.Data.IUPACData import ambiguous_rna_complement  # type: ignore
 
 from dark.aa import (
     AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE,
@@ -27,49 +26,25 @@ from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
 
 
-if six.PY3:
-    def _makeComplementTable(complementData: dict) -> str:
-        """
-        Make a sequence complement table.
+def _makeComplementTable(complementData: dict) -> Sequence[str]:
+    """
+    Make a sequence complement table.
 
-        @param complementData: A C{dict} whose keys and values are strings of
-            length one. A key, value pair indicates a substitution that should
-            be performed during complementation.
-        @return: A 256 character string that can be used as a translation table
-            by the C{translate} method of a Python string.
-        """
-        table = list(range(256))
-        for _from, to in complementData.items():
-            table[ord(_from[0].lower())] = ord(to[0].lower())
-            table[ord(_from[0].upper())] = ord(to[0].upper())
-        return ''.join(map(chr, table))
-else:
-    def _makeComplementTable(complementData: dict) -> str:
-        """
-        Make a sequence complement table.
-
-        @param complementData: A C{dict} whose keys and values are strings of
-            length one. A key, value pair indicates a substitution that should
-            be performed during complementation.
-        @return: A translation table that can be used by the C{translate}
-            method of a Python2 string.
-        """
-        import string
-
-        fromList = []
-        toList = []
-
-        for _from, to in complementData.items():
-            fromList.append(_from[0].lower())
-            fromList.append(_from[0].upper())
-            toList.append(to[0].lower())
-            toList.append(to[0].upper())
-
-        return string.maketrans(''.join(fromList), ''.join(toList))
+    @param complementData: A C{dict} whose keys and values are strings of
+        length one. A key, value pair indicates a substitution that should
+        be performed during complementation.
+    @return: A 256 character string that can be used as a translation table
+        by the C{translate} method of a Python string.
+    """
+    table = list(range(256))
+    for _from, to in complementData.items():
+        table[ord(_from[0].lower())] = ord(to[0].lower())
+        table[ord(_from[0].upper())] = ord(to[0].upper())
+    return tuple(map(chr, table))
 
 
 @total_ordering
-class Read(object):
+class Read:
     """
     Hold information about a single read.
 
@@ -328,7 +303,7 @@ class _NucleotideRead(Read):
     """
     Holds methods to work with nucleotide (DNA and RNA) sequences.
     """
-    COMPLEMENT_TABLE: Optional[str] = None
+    COMPLEMENT_TABLE: Sequence[Union[str, None]] = [None]
 
     def translations(self: Union[_NucleotideRead,
                                  DNARead,
@@ -372,7 +347,7 @@ class DNARead(_NucleotideRead):
     """
     ALPHABET: set = set('ATCG')
 
-    COMPLEMENT_TABLE: str = _makeComplementTable(ambiguous_dna_complement)
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
     def findORF(self,
                 offset: int,
@@ -467,7 +442,7 @@ class RNARead(_NucleotideRead):
     """
     ALPHABET: set = set('ATCGU')
 
-    COMPLEMENT_TABLE: str = _makeComplementTable(ambiguous_rna_complement)
+    COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
 
 class DNAKozakRead(DNARead):
@@ -546,10 +521,7 @@ class AARead(Read):
         @raise ValueError: If the sequence of self is more than 10 charactere
             and it looks like DNA has been passed to AARead().
         """
-        if six.PY3:
-            readLetters = super().checkAlphabet(count)
-        else:
-            readLetters = Read.checkAlphabet(self, count)
+        readLetters = super().checkAlphabet(count)
         if len(self) > 10 and readLetters.issubset(set('ACGT')):
             raise ValueError('It looks like a DNA sequence has been passed to '
                              'AARead().')
@@ -689,10 +661,7 @@ class AAReadORF(AARead):
 
         @return: A C{dict} with keys/values for the attributes of self.
         """
-        if six.PY3:
-            result = super().toDict()
-        else:
-            result = AARead.toDict(self)
+        result = super().toDict()
 
         result.update({
             'start': self.start,
@@ -741,10 +710,7 @@ class SSAARead(AARead):
     @raise ValueError: If the sequence and structure lengths are not the same.
     """
     def __init__(self, id, sequence: str, structure: str):
-        if six.PY3:
-            super().__init__(id, sequence)
-        else:
-            AARead.__init__(self, id, sequence)
+        super().__init__(id, sequence)
         self.structure = structure
 
         if len(sequence) != len(structure):
@@ -796,10 +762,7 @@ class SSAARead(AARead):
                 self.id, self.sequence, self.id, structureSuffix,
                 self.structure)
         else:
-            if six.PY3:
-                return super().toString(format_=format_)
-            else:
-                return AARead.toString(self, format_=format_)
+            return super().toString(format_=format_)
 
     def toDict(self):
         """
@@ -894,10 +857,7 @@ class TranslatedRead(AARead):
 
         @return: A C{dict} with keys/values for the attributes of self.
         """
-        if six.PY3:
-            result = super().toDict()
-        else:
-            result = AARead.toDict(self)
+        result = super().toDict()
 
         result.update({
             'frame': self.frame,
@@ -936,7 +896,7 @@ class TranslatedRead(AARead):
         return max(len(orf) for orf in self.ORFs(openORFs))
 
 
-class ReadFilter(object):
+class ReadFilter:
     """
     Create a function that can be used to filter a set of reads to produce a
     desired subset.
@@ -1385,7 +1345,7 @@ unambiguousBases = {
 }
 
 
-class Reads(object):
+class Reads:
     """
     Maintain a collection of sequence reads.
 
@@ -1395,14 +1355,14 @@ class Reads(object):
 
     def __init__(
             self,
-            initialReads: Optional[Iterable[Type[ReadVar]]] = None) -> None:
+            initialReads: Optional[Iterable[ReadVar]] = None) -> None:
         self._initialReads = initialReads
-        self._additionalReads: List[Type[ReadVar]] = []
+        self._additionalReads: List[ReadVar] = []
         self._filters: List[Callable] = []
         self._iterated = False
 
     def filterRead(
-            self, read: Type[ReadVar]) -> Union[Literal[False], Type[ReadVar]]:
+            self, read: ReadVar) -> Union[Literal[False], ReadVar]:
         """
         Filter a read, according to our set of filters.
 
@@ -1418,7 +1378,7 @@ class Reads(object):
                 read = filteredRead
         return read
 
-    def add(self, read: Type[ReadVar]) -> None:
+    def add(self, read: ReadVar) -> None:
         """
         Add a read to this collection of reads.
 
@@ -1426,7 +1386,7 @@ class Reads(object):
         """
         self._additionalReads.append(read)
 
-    def __iter__(self) -> Generator[Type[ReadVar], None, None]:
+    def __iter__(self) -> Generator[ReadVar, None, None]:
         """
         Iterate through all the reads.
 
@@ -1458,7 +1418,7 @@ class Reads(object):
 
         # The value returned by self.iter() may be a Reads instance and/or
         # may not support len().
-        subclassReads: Iterable[Type[ReadVar]] = self.iter()
+        subclassReads: Iterable[ReadVar] = self.iter()
         subclassReadsLength = 0
         for read in subclassReads:
             subclassReadsLength += 1
@@ -1492,7 +1452,7 @@ class Reads(object):
                 'The unfiltered length of a Reads instance is unknown until '
                 'it has been iterated.')
 
-    def iter(self) -> Iterable[Type[ReadVar]]:
+    def iter(self) -> Iterable[ReadVar]:
         """
         Placeholder to allow subclasses to provide reads.
 
@@ -1578,7 +1538,7 @@ class Reads(object):
             'countAtPosition': countAtPosition
         }
 
-    def sitesMatching(self, targets: set, matchCase: bool, any_: bool) -> set:
+    def sitesMatching(self, targets: set, matchCase: bool, any_: bool) -> set[int]:
         """
         Find sites (i.e., sequence indices) that match a given set of target
         sequence bases.
@@ -1587,7 +1547,7 @@ class Reads(object):
         @param matchCase: If C{True}, case will be considered in matching.
         @param any_: If C{True}, return sites that match in any read. Else
             return sites that match in all reads.
-        @return: A C{set} of 0-based sites that indicate where the target
+        @return: A C{set} of 0-based C{int} sites that indicate where the target
             bases occur in our reads. An index will be in this set if any of
             our reads has any of the target bases in that location.
         """
@@ -1598,9 +1558,12 @@ class Reads(object):
 
         # result = set() if any_ else None
         if any_:
-            result = set()
-        else:
-            result = None
+            result: set[int] = set()
+
+        # I am using a 'first' variable here instead of just setting
+        # 'result' to be None and testing that below, because if I let it
+        # be None then mypy complains it is None when I try to add to it.
+        first = True
 
         for read in iter(self):
             sequence = read.sequence if matchCase else read.sequence.lower()
@@ -1609,7 +1572,8 @@ class Reads(object):
             if any_:
                 result |= matches
             else:
-                if result is None:
+                if first:
+                    first = False
                     result = matches
                 else:
                     result &= matches
@@ -1685,12 +1649,12 @@ class Reads(object):
                         sorted(nucleotides))]
                 except KeyError:
                     raise ValueError('Unknown DNA base(s): %r' %
-                                     nucleotides - set('ACGTN-'))
+                                     (nucleotides - set('ACGTN-')))
 
         return sequence
 
-    def temporalBaseCounts(self, firstPostId: str, minFrequency: float = None,
-                           maxFrequency: float = None, minCount: int = 0,
+    def temporalBaseCounts(self, firstPostId: str, minFrequency: Optional[float] = None,
+                           maxFrequency: Optional[float] = None, minCount: int = 0,
                            preIds: Optional[Set[str]] = None):
         """
         Iterate through time-sorted reads, accumulating counts of bases at each
@@ -1711,14 +1675,14 @@ class Reads(object):
         @return: A C{dict}, as below.
         """
         first = True
-        preBases = {}
-        postBases = {}
+        preBases: dict[int, dict[str, int]] = {}
+        postBases: dict[int, dict[str, int]] = {}
         preCount = postCount = 0
         reference = None
         postIdFound = False
         preIdsFound = set()
 
-        for genome in self:
+        for genome in iter(self):
             if first:
                 first = False
                 length = len(genome)
@@ -1778,7 +1742,7 @@ class Reads(object):
         # Look for bases (that occurred in the post-sequences) that are new
         # (i.e., previously unseen). Calculate their frequencies, and
         # record frequencies that are in the wanted range.
-        newFrequencies = defaultdict(dict)
+        newFrequencies: dict[int, dict[str, float]] = defaultdict(dict)
         for offset in range(length):
             newBasesInPost = set(postBases[offset]) - set(preBases[offset])
             if newBasesInPost:
@@ -1819,10 +1783,7 @@ class ReadsInRAM(Reads):
     # C{Reads} or C{ReadsInRAM} instance.
 
     def __init__(self, initialReads=None):
-        if six.PY3:
-            super().__init__(initialReads)
-        else:
-            Reads.__init__(self, initialReads)
+        super().__init__(initialReads)
 
         # Read all initial reads into memory.
         if initialReads:
@@ -1836,14 +1797,15 @@ class ReadsInRAM(Reads):
     def __len__(self):
         return self._additionalReads.__len__()
 
-    def __getitem__(self, item: Union[int, slice]) -> Reads:
+    def __getitem__(self, item: SupportsIndex) -> Union[ReadVar, Reads]:
         return self._additionalReads.__getitem__(item)
 
-    def __setitem__(self, item: Union[int, slice], value: Type[ReadVar]) -> Reads:
+    def __setitem__(self, item: SupportsIndex, value: ReadVar) -> None:
         return self._additionalReads.__setitem__(item, value)
 
-    def __iter__(self) -> Iterable[Read]:
-        return self._additionalReads.__iter__()
+    def __iter__(self) -> Generator[ReadVar, None, None]:
+        for read in self._additionalReads.__iter__():
+            yield read
 
 
 def addFASTACommandLineOptions(parser):
