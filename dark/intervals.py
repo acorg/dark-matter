@@ -2,7 +2,7 @@ from math import log
 from collections import Counter
 
 
-class ReadIntervals(object):
+class ReadIntervals:
     """
     Hold information about the set of reads that match a subject.
 
@@ -85,7 +85,7 @@ class ReadIntervals(object):
             if intervalType == self.FULL:
                 # Adjust start and end to ignore areas where the read falls
                 # outside the target.
-                coverage += (min(end, self._targetLength) - max(0, start))
+                coverage += min(end, self._targetLength) - max(0, start)
         return float(coverage) / self._targetLength
 
     def coverageCounts(self):
@@ -99,12 +99,11 @@ class ReadIntervals(object):
         """
         coverageCounts = Counter()
         for start, end in self._intervals:
-            coverageCounts.update(range(max(0, start),
-                                        min(self._targetLength, end)))
+            coverageCounts.update(range(max(0, start), min(self._targetLength, end)))
         return coverageCounts
 
 
-class OffsetAdjuster(object):
+class OffsetAdjuster:
     """
     A class that knows how to adjust the offsets in a normalized HSP according
     to the overall set of reads being plotted.
@@ -165,7 +164,8 @@ class OffsetAdjuster(object):
         @param hsp: a L{dark.hsp.HSP} or L{dark.hsp.LSP} instance.
         """
         reduction = self._reductionForOffset(
-            min(hsp.readStartInSubject, hsp.subjectStart))
+            min(hsp.readStartInSubject, hsp.subjectStart)
+        )
 
         hsp.readEndInSubject = hsp.readEndInSubject - reduction
         hsp.readStartInSubject = hsp.readStartInSubject - reduction

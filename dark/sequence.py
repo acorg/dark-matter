@@ -21,7 +21,7 @@ def findPrimer(primer, seq):
 
     while offset > -1:
         offsets.append(discarded + offset)
-        seq = seq[offset + primerLen:]
+        seq = seq[offset + primerLen :]
         discarded += offset + primerLen
         offset = seq.find(primer)
 

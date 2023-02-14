@@ -1,24 +1,33 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
         description=(
-            'Given FASTA on stdin, write the ids, sequences, and '
-            'quality strings on a single TAB-separated line to stdout.'))
+            "Given FASTA on stdin, write the ids, sequences, and "
+            "quality strings on a single TAB-separated line to stdout."
+        )
+    )
 
-    parser.add_argument('--separator', default='\t',
-                        help=('The character string to separate ids from '
-                              'sequences and quality strings (if any)'))
+    parser.add_argument(
+        "--separator",
+        default="\t",
+        help=(
+            "The character string to separate ids from "
+            "sequences and quality strings (if any)"
+        ),
+    )
 
-    parser.add_argument('--removeIds', default=False, action='store_true',
-                        help='Do not print sequence ids')
+    parser.add_argument(
+        "--removeIds",
+        default=False,
+        action="store_true",
+        help="Do not print sequence ids",
+    )
 
     addFASTACommandLineOptions(parser)
     args = parser.parse_args()

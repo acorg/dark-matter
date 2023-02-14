@@ -7,9 +7,10 @@ from textwrap import fill
 from os.path import join
 
 import matplotlib
-if not os.environ.get('DISPLAY'):
+
+if not os.environ.get("DISPLAY"):
     # Use non-interactive Agg backend
-    matplotlib.use('Agg')
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib import gridspec
@@ -40,15 +41,26 @@ DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
 
 def report(msg):
-    print('%s: %s' % (ctime(time()), msg))
+    print("%s: %s" % (ctime(time()), msg))
 
 
-def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
-                   showFeatures=True, logLinearXAxis=False,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE, rankScores=False,
-                   createFigure=True, showFigure=True,
-                   readsAx=None, imageFile=None, quiet=False, idList=False,
-                   xRange='subject'):
+def alignmentGraph(
+    titlesAlignments,
+    title,
+    accession,
+    addQueryLines=True,
+    showFeatures=True,
+    logLinearXAxis=False,
+    logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+    rankScores=False,
+    createFigure=True,
+    showFigure=True,
+    readsAx=None,
+    imageFile=None,
+    quiet=False,
+    idList=False,
+    xRange="subject",
+):
     """
     Align a set of matching reads against a BLAST or DIAMOND hit.
 
@@ -83,8 +95,7 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
 
     startTime = time()
 
-    assert xRange in ('subject', 'reads'), (
-        'xRange must be either "subject" or "reads".')
+    assert xRange in ("subject", "reads"), 'xRange must be either "subject" or "reads".'
 
     if createFigure:
         width = 20
@@ -118,8 +129,9 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
 
     if rankScores:
         reverse = titlesAlignments.scoreClass is not HigherIsBetterScore
-        for rank, hsp in enumerate(sorted(titleAlignments.hsps(),
-                                   reverse=reverse), start=1):
+        for rank, hsp in enumerate(
+            sorted(titleAlignments.hsps(), reverse=reverse), start=1
+        ):
             hsp.score.score = rank
 
     if logLinearXAxis:
@@ -134,6 +146,7 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
         # A function for adjusting other offsets, below.
         adjustOffset = offsetAdjuster.adjustOffset
     else:
+
         def adjustOffset(offset):
             return offset
 
@@ -144,7 +157,7 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
     maxX = max(hsp.readEndInSubject for hsp in titleAlignments.hsps())
     minX = min(hsp.readStartInSubject for hsp in titleAlignments.hsps())
 
-    if xRange == 'subject':
+    if xRange == "subject":
         # We'll display a graph for the full subject range. Adjust X axis
         # min/max to make sure we cover at least zero to the sequence length.
         maxX = max(titleAlignments.subjectLength, maxX)
@@ -187,8 +200,7 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
                 adjustedStop = adjustOffset(interval[1])
                 width = adjustedStop - adjustedStart
                 if width >= SMALLEST_LOGGED_GAP_TO_DISPLAY:
-                    readsAx.axvspan(adjustedStart, adjustedStop,
-                                    color='#f4f4f4')
+                    readsAx.axvspan(adjustedStart, adjustedStop, color="#f4f4f4")
     else:
         # Add horizontal lines for all the query sequences. These will be the
         # grey 'whiskers' in the plots once we (below) draw the matched part
@@ -196,8 +208,11 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
         if addQueryLines:
             for hsp in titleAlignments.hsps():
                 y = hsp.score.score
-                line = Line2D([hsp.readStartInSubject, hsp.readEndInSubject],
-                              [y, y], color='#aaaaaa')
+                line = Line2D(
+                    [hsp.readStartInSubject, hsp.readEndInSubject],
+                    [y, y],
+                    color="#aaaaaa",
+                )
                 readsAx.add_line(line)
 
         # Add the horizontal BLAST alignment lines.
@@ -208,8 +223,9 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
             for color, reads in idList.items():
                 for read in reads:
                     if read in readColor:
-                        raise ValueError('Read %s is specified multiple '
-                                         'times in idList' % read)
+                        raise ValueError(
+                            "Read %s is specified multiple " "times in idList" % read
+                        )
                     else:
                         readColor[read] = color
 
@@ -218,8 +234,11 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
             readId = titleAlignment.read.id
             for hsp in titleAlignment.hsps:
                 y = hsp.score.score
-                line = Line2D([hsp.subjectStart, hsp.subjectEnd], [y, y],
-                              color=readColor.get(readId, 'blue'))
+                line = Line2D(
+                    [hsp.subjectStart, hsp.subjectEnd],
+                    [y, y],
+                    color=readColor.get(readId, "blue"),
+                )
                 readsAx.add_line(line)
 
     if showFeatures:
@@ -228,8 +247,7 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
         else:
             featureAdder = ProteinFeatureAdder()
 
-        features = featureAdder.add(featureAx, title, minX, maxX,
-                                    adjustOffset)
+        features = featureAdder.add(featureAx, title, minX, maxX, adjustOffset)
 
         # If there are features and there weren't too many of them, add
         # vertical feature lines to the reads and ORF axes.
@@ -239,18 +257,18 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
                 end = feature.end
                 color = feature.color
                 readsAx.axvline(x=start, color=color)
-                readsAx.axvline(x=end, color='#cccccc')
+                readsAx.axvline(x=end, color="#cccccc")
     else:
         features = None
 
     # We'll return some information we've gathered.
     result = {
-        'adjustOffset': adjustOffset,
-        'features': features,
-        'minX': minX,
-        'maxX': maxX,
-        'minY': minY,
-        'maxY': maxY,
+        "adjustOffset": adjustOffset,
+        "features": features,
+        "minX": minX,
+        "maxX": maxX,
+        "minY": minY,
+        "maxY": maxY,
     }
 
     # Allow the class of titlesAlignments to add to the plot, if it has a
@@ -267,22 +285,26 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
         readCount = titleAlignments.readCount()
         hspCount = titleAlignments.hspCount()
         figure.suptitle(
-            '%s (%s)\nLength %d %s, %d read%s, %d HSP%s.' %
-            (
-                fill(titleAlignments.subjectTitle, 80), accession,
+            "%s (%s)\nLength %d %s, %d read%s, %d HSP%s."
+            % (
+                fill(titleAlignments.subjectTitle, 80),
+                accession,
                 titleAlignments.subjectLength,
-                'nt' if subjectIsNucleotides else 'aa',
-                readCount, '' if readCount == 1 else 's',
-                hspCount, '' if hspCount == 1 else 's'
+                "nt" if subjectIsNucleotides else "aa",
+                readCount,
+                "" if readCount == 1 else "s",
+                hspCount,
+                "" if hspCount == 1 else "s",
             ),
-            fontsize=20)
+            fontsize=20,
+        )
 
     # Add a title and y-axis label, but only if we made the reads axes.
     if createdReadsAx:
-        readsAx.set_title('Read alignments', fontsize=20)
+        readsAx.set_title("Read alignments", fontsize=20)
         ylabel = readsAlignments.params.scoreTitle
         if rankScores:
-            ylabel += ' rank'
+            ylabel += " rank"
         plt.ylabel(ylabel, fontsize=17)
 
     # Set the x-axis limits.
@@ -297,15 +319,22 @@ def alignmentGraph(titlesAlignments, title, accession, addQueryLines=True,
             figure.savefig(imageFile)
     stop = time()
     if not quiet:
-        report('Graph generated in %.3f mins.' % ((stop - startTime) / 60.0))
+        report("Graph generated in %.3f mins." % ((stop - startTime) / 60.0))
 
     return result
 
 
-def alignmentPanel(titlesAlignments, sortOn='maxScore', idList=False,
-                   equalizeXAxes=False, xRange='subject', logLinearXAxis=False,
-                   rankScores=False, showFeatures=True,
-                   logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE):
+def alignmentPanel(
+    titlesAlignments,
+    sortOn="maxScore",
+    idList=False,
+    equalizeXAxes=False,
+    xRange="subject",
+    logLinearXAxis=False,
+    rankScores=False,
+    showFeatures=True,
+    logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
@@ -331,7 +360,7 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', idList=False,
         C{xRange} is not "subject" or "reads".
     """
 
-    if xRange not in ('subject', 'reads'):
+    if xRange not in ("subject", "reads"):
         raise ValueError('xRange must be either "subject" or "reads".')
 
     start = time()
@@ -342,21 +371,32 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', idList=False,
     allGraphInfo = {}
     coords = dimensionalIterator((rows, cols))
 
-    report('Plotting %d titles in %dx%d grid, sorted on %s' %
-           (len(titles), rows, cols, sortOn))
+    report(
+        "Plotting %d titles in %dx%d grid, sorted on %s"
+        % (len(titles), rows, cols, sortOn)
+    )
 
     for i, title in enumerate(titles):
         titleAlignments = titlesAlignments[title]
         row, col = next(coords)
-        report('%d: %s %s' % (i, title, NCBISequenceLinkURL(title, '')))
+        report("%d: %s %s" % (i, title, NCBISequenceLinkURL(title, "")))
 
         # Add a small plot to the alignment panel.
         graphInfo = alignmentGraph(
-            titlesAlignments, title, addQueryLines=True,
-            showFeatures=showFeatures, rankScores=rankScores,
-            logLinearXAxis=logLinearXAxis, logBase=logBase,
-            createFigure=False, showFigure=False,
-            readsAx=ax[row][col], quiet=True, idList=idList, xRange=xRange)
+            titlesAlignments,
+            title,
+            addQueryLines=True,
+            showFeatures=showFeatures,
+            rankScores=rankScores,
+            logLinearXAxis=logLinearXAxis,
+            logBase=logBase,
+            createFigure=False,
+            showFigure=False,
+            readsAx=ax[row][col],
+            quiet=True,
+            idList=idList,
+            xRange=xRange,
+        )
 
         allGraphInfo[title] = graphInfo
         readCount = titleAlignments.readCount()
@@ -364,30 +404,36 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', idList=False,
 
         # Make a short title for the small panel blue plot, ignoring any
         # leading NCBI gi / accession numbers.
-        if title.startswith('gi|') and title.find(' ') > -1:
-            shortTitle = title.split(' ', 1)[1][:40]
+        if title.startswith("gi|") and title.find(" ") > -1:
+            shortTitle = title.split(" ", 1)[1][:40]
         else:
             shortTitle = title[:40]
 
-        plotTitle = ('%d: %s\nLength %d, %d read%s, %d HSP%s.' % (
-            i, shortTitle, titleAlignments.subjectLength,
-            readCount, '' if readCount == 1 else 's',
-            hspCount, '' if hspCount == 1 else 's'))
+        plotTitle = "%d: %s\nLength %d, %d read%s, %d HSP%s." % (
+            i,
+            shortTitle,
+            titleAlignments.subjectLength,
+            readCount,
+            "" if readCount == 1 else "s",
+            hspCount,
+            "" if hspCount == 1 else "s",
+        )
 
         if hspCount:
             if rankScores:
-                plotTitle += '\nY axis is ranked score'
+                plotTitle += "\nY axis is ranked score"
             else:
-                plotTitle += '\nmax %.2f, median %.2f' % (
+                plotTitle += "\nmax %.2f, median %.2f" % (
                     titleAlignments.bestHsp().score.score,
-                    titleAlignments.medianScore())
+                    titleAlignments.medianScore(),
+                )
 
         ax[row][col].set_title(plotTitle, fontsize=10)
 
-    maxX = max(graphInfo['maxX'] for graphInfo in allGraphInfo.values())
-    minX = min(graphInfo['minX'] for graphInfo in allGraphInfo.values())
-    maxY = max(graphInfo['maxY'] for graphInfo in allGraphInfo.values())
-    minY = min(graphInfo['minY'] for graphInfo in allGraphInfo.values())
+    maxX = max(graphInfo["maxX"] for graphInfo in allGraphInfo.values())
+    minX = min(graphInfo["minX"] for graphInfo in allGraphInfo.values())
+    maxY = max(graphInfo["maxY"] for graphInfo in allGraphInfo.values())
+    minY = min(graphInfo["minY"] for graphInfo in allGraphInfo.values())
 
     # Post-process graphs to adjust axes, etc.
 
@@ -402,45 +448,60 @@ def alignmentPanel(titlesAlignments, sortOn='maxScore', idList=False,
         a.set_yticks([])
         a.set_xticks([])
 
-        if xRange == 'subject' and minX < 0:
+        if xRange == "subject" and minX < 0:
             # Add a vertical line at x=0 so we can see the 'whiskers' of
             # reads that extend to the left of the sequence we're aligning
             # against.
-            a.axvline(x=0, color='#cccccc')
+            a.axvline(x=0, color="#cccccc")
 
         # Add a line on the right of each sub-plot so we can see where the
         # sequence ends (as all panel graphs have the same width and we
         # otherwise couldn't tell).
         sequenceLen = titleAlignments.subjectLength
         if logLinearXAxis:
-            sequenceLen = allGraphInfo[title]['adjustOffset'](sequenceLen)
-        a.axvline(x=sequenceLen, color='#cccccc')
+            sequenceLen = allGraphInfo[title]["adjustOffset"](sequenceLen)
+        a.axvline(x=sequenceLen, color="#cccccc")
 
     # Hide the final panel graphs (if any) that have no content. We do this
     # because the panel is a rectangular grid and some of the plots at the
     # end of the last row may be unused.
     for row, col in coords:
-        ax[row][col].axis('off')
+        ax[row][col].axis("off")
 
     # plt.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.93,
     # wspace=0.1, hspace=None)
     plt.subplots_adjust(hspace=0.4)
-    figure.suptitle('X: %d to %d, Y (%s): %d to %d' %
-                    (minX, maxX,
-                     titlesAlignments.readsAlignments.params.scoreTitle,
-                     int(minY), int(maxY)), fontsize=20)
+    figure.suptitle(
+        "X: %d to %d, Y (%s): %d to %d"
+        % (
+            minX,
+            maxX,
+            titlesAlignments.readsAlignments.params.scoreTitle,
+            int(minY),
+            int(maxY),
+        ),
+        fontsize=20,
+    )
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     figure.show()
     stop = time()
-    report('Alignment panel generated in %.3f mins.' % ((stop - start) / 60.0))
+    report("Alignment panel generated in %.3f mins." % ((stop - start) / 60.0))
 
 
-def alignmentPanelHTML(titlesAlignments, proteinGenomeDB, sortOn='maxScore',
-                       outputDir=None, idList=False, equalizeXAxes=False,
-                       xRange='subject', logLinearXAxis=False,
-                       logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
-                       rankScores=False, showFeatures=True,
-                       subjectType='protein'):
+def alignmentPanelHTML(
+    titlesAlignments,
+    proteinGenomeDB,
+    sortOn="maxScore",
+    outputDir=None,
+    idList=False,
+    equalizeXAxes=False,
+    xRange="subject",
+    logLinearXAxis=False,
+    logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+    rankScores=False,
+    showFeatures=True,
+    subjectType="protein",
+):
     """
     Produces an HTML index file in C{outputDir} and a collection of alignment
     graphs and FASTA files to summarize the information in C{titlesAlignments}.
@@ -472,43 +533,54 @@ def alignmentPanelHTML(titlesAlignments, proteinGenomeDB, sortOn='maxScore',
     @raise ValueError: If C{outputDir} is None or exists but is not a
         directory or if C{xRange} is not "subject" or "reads".
     """
-    if subjectType not in ('protein', 'genome'):
+    if subjectType not in ("protein", "genome"):
         raise ValueError('subjectType must be either "protein" or "genome".')
 
-    if xRange not in ('subject', 'reads'):
+    if xRange not in ("subject", "reads"):
         raise ValueError('xRange must be either "subject" or "reads".')
 
     if equalizeXAxes:
-        raise NotImplementedError('This feature is not yet implemented.')
+        raise NotImplementedError("This feature is not yet implemented.")
 
     titles = titlesAlignments.sortTitles(sortOn)
 
     if os.access(outputDir, os.F_OK):
         # outputDir exists. Check it's a directory.
         if not S_ISDIR(os.stat(outputDir).st_mode):
-            raise ValueError('%r is not a directory.' % outputDir)
+            raise ValueError("%r is not a directory." % outputDir)
     else:
         if outputDir is None:
-            raise ValueError('The outputDir needs to be specified.')
+            raise ValueError("The outputDir needs to be specified.")
         else:
             os.mkdir(outputDir)
 
     htmlWriter = AlignmentPanelHTMLWriter(outputDir, titlesAlignments)
 
-    getAccession = (proteinGenomeDB.proteinAccession
-                    if subjectType == 'protein'
-                    else proteinGenomeDB.genomeAccession)
+    getAccession = (
+        proteinGenomeDB.proteinAccession
+        if subjectType == "protein"
+        else proteinGenomeDB.genomeAccession
+    )
 
     for title in titles:
         accession = getAccession(title)
-        imageBasename = accession + '.png'
+        imageBasename = accession + ".png"
         imageFile = join(outputDir, imageBasename)
         graphInfo = alignmentGraph(
-            titlesAlignments, title, accession, addQueryLines=True,
-            showFeatures=showFeatures, rankScores=rankScores,
-            logLinearXAxis=logLinearXAxis, logBase=logBase,
-            showFigure=False, imageFile=imageFile,
-            quiet=True, idList=idList, xRange=xRange)
+            titlesAlignments,
+            title,
+            accession,
+            addQueryLines=True,
+            showFeatures=showFeatures,
+            rankScores=rankScores,
+            logLinearXAxis=logLinearXAxis,
+            logBase=logBase,
+            showFigure=False,
+            imageFile=imageFile,
+            quiet=True,
+            idList=idList,
+            xRange=xRange,
+        )
 
         # Close the image plot to make sure memory is flushed.
         plt.close()

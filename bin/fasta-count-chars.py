@@ -6,28 +6,34 @@ import csv
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description=('Given FASTA on stdin, write information about the '
-                     'number of various characters to stdout.'))
+        description=(
+            "Given FASTA on stdin, write information about the "
+            "number of various characters to stdout."
+        )
+    )
 
     parser.add_argument(
-        '--ignoreCase', '-i', action='store_true',
-        help='Map all characters to uppercase.')
+        "--ignoreCase",
+        "-i",
+        action="store_true",
+        help="Map all characters to uppercase.",
+    )
 
     parser.add_argument(
-        '--sep', default='\t',
-        help='The output field separator character.')
+        "--sep", default="\t", help="The output field separator character."
+    )
 
     parser.add_argument(
-        '--omitIds', action='store_true',
-        help='Do not print sequence ids as the first field')
+        "--omitIds",
+        action="store_true",
+        help="Do not print sequence ids as the first field",
+    )
 
-    parser.add_argument(
-        '--chars', '-c', required=True,
-        help='The characters to count.')
+    parser.add_argument("--chars", "-c", required=True, help="The characters to count.")
 
     addFASTACommandLineOptions(parser)
     args = parser.parse_args()
@@ -42,4 +48,4 @@ if __name__ == '__main__':
         for char in chars:
             count = sequence.count(char)
             out = [] if args.omitIds else [read.id]
-            writerow(out + [char, count, length, f'{count / length:.4f}'])
+            writerow(out + [char, count, length, f"{count / length:.4f}"])

@@ -8,8 +8,17 @@ from collections import Counter, defaultdict
 from subprocess import CalledProcessError
 
 from pysam import (
-    AlignmentFile, CMATCH, CINS, CDEL, CREF_SKIP, CSOFT_CLIP, CHARD_CLIP, CPAD,
-    CEQUAL, CDIFF)
+    AlignmentFile,
+    CMATCH,
+    CINS,
+    CDEL,
+    CREF_SKIP,
+    CSOFT_CLIP,
+    CHARD_CLIP,
+    CPAD,
+    CEQUAL,
+    CDIFF,
+)
 
 from dark.process import Executor
 from dark.fasta import FastaReads
@@ -64,7 +73,7 @@ def samtoolsInstalled():
     @return: A C{bool}, which is C{True} if DIAMOND seems to be installed.
     """
     try:
-        Executor().execute('samtools help')
+        Executor().execute("samtools help")
     except CalledProcessError:
         return False
     else:
@@ -79,6 +88,7 @@ def samReferences(filenameOrSamfile):
         instance of C{pysam.AlignmentFile}.
     @return: A C{list} of C{str} reference names from the SAM file.
     """
+
     def _references(sam):
         return [sam.get_reference_name(i) for i in range(sam.nreferences)]
 
@@ -98,14 +108,15 @@ def samReferencesToStr(filenameOrSamfile, indent=0):
     @param indent: An C{int} number of spaces to indent each line.
     @return: A C{str} describing known reference names and their lengths.
     """
-    indent = ' ' * indent
+    indent = " " * indent
 
     def _references(sam):
         result = []
         for i in range(sam.nreferences):
-            result.append('%s%s (length %d)' % (
-                indent, sam.get_reference_name(i), sam.lengths[i]))
-        return '\n'.join(result)
+            result.append(
+                "%s%s (length %d)" % (indent, sam.get_reference_name(i), sam.lengths[i])
+            )
+        return "\n".join(result)
 
     if isinstance(filenameOrSamfile, six.string_types):
         with samfile(filenameOrSamfile) as sam:
@@ -170,9 +181,10 @@ def _hardClip(sequence, quality, cigartuples):
                     clippedQuality = quality[:-clipRight]
         else:
             raise ValueError(
-                'Invalid CIGAR tuples (%s) contains hard-clipping operation '
-                'that is neither at the start nor the end of the sequence.' %
-                (cigartuples,))
+                "Invalid CIGAR tuples (%s) contains hard-clipping operation "
+                "that is neither at the start nor the end of the sequence."
+                % (cigartuples,)
+            )
     elif hardClipCount == 2:
         # Hard clip at both the start and end.
         assert cigartuples[0][0] == cigartuples[-1][0] == CHARD_CLIP
@@ -183,8 +195,9 @@ def _hardClip(sequence, quality, cigartuples):
                 clippedQuality = quality[clipLeft:-clipRight]
     else:
         raise ValueError(
-            'Invalid CIGAR tuples (%s) specifies hard-clipping %d times (2 '
-            'is the maximum).' % (cigartuples, hardClipCount))
+            "Invalid CIGAR tuples (%s) specifies hard-clipping %d times (2 "
+            "is the maximum)." % (cigartuples, hardClipCount)
+        )
 
     weClipped = bool(clipLeft or clipRight)
 
@@ -192,14 +205,22 @@ def _hardClip(sequence, quality, cigartuples):
         assert not alreadyClipped
         if len(clippedSequence) + clipLeft + clipRight != sequenceLength:
             raise ValueError(
-                'Sequence %r (length %d) clipped to %r (length %d), but the '
-                'difference between these two lengths (%d) is not equal to '
-                'the sum (%d) of the left and right clip lengths (%d and %d '
-                'respectively). CIGAR tuples: %s' %
-                (sequence, len(sequence),
-                 clippedSequence, len(clippedSequence),
-                 abs(len(sequence) - len(clippedSequence)),
-                 clipLeft + clipRight, clipLeft, clipRight, cigartuples))
+                "Sequence %r (length %d) clipped to %r (length %d), but the "
+                "difference between these two lengths (%d) is not equal to "
+                "the sum (%d) of the left and right clip lengths (%d and %d "
+                "respectively). CIGAR tuples: %s"
+                % (
+                    sequence,
+                    len(sequence),
+                    clippedSequence,
+                    len(clippedSequence),
+                    abs(len(sequence) - len(clippedSequence)),
+                    clipLeft + clipRight,
+                    clipLeft,
+                    clipRight,
+                    cigartuples,
+                )
+            )
     else:
         assert len(clippedSequence) == sequenceLength
         if quality is not None:
@@ -208,7 +229,7 @@ def _hardClip(sequence, quality, cigartuples):
     return clippedSequence, clippedQuality, weClipped
 
 
-class SAMFilter(object):
+class SAMFilter:
     """
     Filter a SAM/BAM file.
 
@@ -238,11 +259,22 @@ class SAMFilter(object):
     @param scoreTag: The alignment tag to extract for minScore and maxScore
         comparisons.
     """
-    def __init__(self, filename, filterRead=None, referenceIds=None,
-                 storeQueryIds=False, dropUnmapped=False,
-                 dropSecondary=False, dropSupplementary=False,
-                 dropDuplicates=False, keepQCFailures=False, minScore=None,
-                 maxScore=None, scoreTag='AS'):
+
+    def __init__(
+        self,
+        filename,
+        filterRead=None,
+        referenceIds=None,
+        storeQueryIds=False,
+        dropUnmapped=False,
+        dropSecondary=False,
+        dropSupplementary=False,
+        dropDuplicates=False,
+        keepQCFailures=False,
+        minScore=None,
+        maxScore=None,
+        scoreTag="AS",
+    ):
         self.filename = filename
         self.filterRead = filterRead
         self.referenceIds = referenceIds
@@ -258,16 +290,34 @@ class SAMFilter(object):
 
         # Detect when there are no filtering criteria, in which case
         # self.filterAlignment can return immediately.
-        self.noFiltering = all((
-            filterRead is None, referenceIds is None,
-            not any((storeQueryIds, dropUnmapped, dropSecondary,
-                     dropSupplementary, dropDuplicates, keepQCFailures)),
-            minScore is None, maxScore is None))
+        self.noFiltering = all(
+            (
+                filterRead is None,
+                referenceIds is None,
+                not any(
+                    (
+                        storeQueryIds,
+                        dropUnmapped,
+                        dropSecondary,
+                        dropSupplementary,
+                        dropDuplicates,
+                        keepQCFailures,
+                    )
+                ),
+                minScore is None,
+                maxScore is None,
+            )
+        )
 
     @staticmethod
-    def addFilteringOptions(parser, samfileIsPositional=False,
-                            samfileAction='store', samfileRequired=True,
-                            samfileNargs=None, referenceIdRequired=False):
+    def addFilteringOptions(
+        parser,
+        samfileIsPositional=False,
+        samfileAction="store",
+        samfileRequired=True,
+        samfileNargs=None,
+        referenceIdRequired=False,
+    ):
         """
         Add options to an argument parser for filtering SAM/BAM.
 
@@ -292,72 +342,122 @@ class SAMFilter(object):
         """
         if samfileIsPositional:
             # Positional arguments are always required.
-            assert samfileRequired, ('samfileIsPositional is True, so '
-                                     'samfileRequired must also be True.')
+            assert samfileRequired, (
+                "samfileIsPositional is True, so " "samfileRequired must also be True."
+            )
             if samfileNargs is None:
                 parser.add_argument(
-                    'samfile', action=samfileAction,
-                    help='The SAM/BAM file to filter.')
+                    "samfile", action=samfileAction, help="The SAM/BAM file to filter."
+                )
             else:
                 parser.add_argument(
-                    'samfile', action=samfileAction, nargs=samfileNargs,
-                    help='The SAM/BAM file to filter.')
+                    "samfile",
+                    action=samfileAction,
+                    nargs=samfileNargs,
+                    help="The SAM/BAM file to filter.",
+                )
         else:
             if samfileNargs is None:
                 parser.add_argument(
-                    '--samfile', required=samfileRequired,
-                    action=samfileAction, help='The SAM/BAM file to filter.')
+                    "--samfile",
+                    required=samfileRequired,
+                    action=samfileAction,
+                    help="The SAM/BAM file to filter.",
+                )
             else:
                 parser.add_argument(
-                    '--samfile', required=samfileRequired, nargs=samfileNargs,
-                    action=samfileAction, help='The SAM/BAM file to filter.')
+                    "--samfile",
+                    required=samfileRequired,
+                    nargs=samfileNargs,
+                    action=samfileAction,
+                    help="The SAM/BAM file to filter.",
+                )
 
         parser.add_argument(
-            '--referenceId', metavar='ID', action='append',
+            "--referenceId",
+            metavar="ID",
+            action="append",
             required=referenceIdRequired,
-            help=('A reference sequence id whose alignments should be kept '
-                  '(alignments against other references will be dropped). '
-                  'If omitted, alignments against all references will be '
-                  'kept. May be repeated.'))
+            help=(
+                "A reference sequence id whose alignments should be kept "
+                "(alignments against other references will be dropped). "
+                "If omitted, alignments against all references will be "
+                "kept. May be repeated."
+            ),
+        )
 
         parser.add_argument(
-            '--dropUnmapped', default=False, action='store_true',
-            help='If given, unmapped matches will not be output.')
+            "--dropUnmapped",
+            default=False,
+            action="store_true",
+            help="If given, unmapped matches will not be output.",
+        )
 
         parser.add_argument(
-            '--dropSecondary', default=False, action='store_true',
-            help='If given, secondary matches will not be output.')
+            "--dropSecondary",
+            default=False,
+            action="store_true",
+            help="If given, secondary matches will not be output.",
+        )
 
         parser.add_argument(
-            '--dropSupplementary', default=False, action='store_true',
-            help='If given, supplementary matches will not be output.')
+            "--dropSupplementary",
+            default=False,
+            action="store_true",
+            help="If given, supplementary matches will not be output.",
+        )
 
         parser.add_argument(
-            '--dropDuplicates', default=False, action='store_true',
-            help=('If given, matches flagged as optical or PCR duplicates '
-                  'will not be output.'))
+            "--dropDuplicates",
+            default=False,
+            action="store_true",
+            help=(
+                "If given, matches flagged as optical or PCR duplicates "
+                "will not be output."
+            ),
+        )
 
         parser.add_argument(
-            '--keepQCFailures', default=False, action='store_true',
-            help=('If given, reads that are considered quality control '
-                  'failures will be included in the output.'))
+            "--keepQCFailures",
+            default=False,
+            action="store_true",
+            help=(
+                "If given, reads that are considered quality control "
+                "failures will be included in the output."
+            ),
+        )
 
         parser.add_argument(
-            '--minScore', type=float, metavar='FLOAT',
-            help=('If given, alignments with --scoreTag (default AS) values '
-                  'less than this value will not be output. If given, '
-                  'alignments that do not have a score will not be output.'))
+            "--minScore",
+            type=float,
+            metavar="FLOAT",
+            help=(
+                "If given, alignments with --scoreTag (default AS) values "
+                "less than this value will not be output. If given, "
+                "alignments that do not have a score will not be output."
+            ),
+        )
 
         parser.add_argument(
-            '--maxScore', type=float, metavar='FLOAT',
-            help=('If given, alignments with --scoreTag (default AS) values '
-                  'greater than this value will not be output. If given, '
-                  'alignments that do not have a score will not be output.'))
+            "--maxScore",
+            type=float,
+            metavar="FLOAT",
+            help=(
+                "If given, alignments with --scoreTag (default AS) values "
+                "greater than this value will not be output. If given, "
+                "alignments that do not have a score will not be output."
+            ),
+        )
 
         parser.add_argument(
-            '--scoreTag', default='AS', metavar='TAG',
-            help=('The alignment tag to extract for --minScore and --maxScore '
-                  'comparisons.'))
+            "--scoreTag",
+            default="AS",
+            metavar="TAG",
+            help=(
+                "The alignment tag to extract for --minScore and --maxScore "
+                "comparisons."
+            ),
+        )
 
     @classmethod
     def parseFilteringOptions(cls, args, filterRead=None, storeQueryIds=False):
@@ -384,7 +484,8 @@ class SAMFilter(object):
             dropDuplicates=args.dropDuplicates,
             keepQCFailures=args.keepQCFailures,
             minScore=args.minScore,
-            maxScore=args.maxScore)
+            maxScore=args.maxScore,
+        )
 
     def filterAlignment(self, alignment):
         """
@@ -403,22 +504,24 @@ class SAMFilter(object):
             except KeyError:
                 return False
             else:
-                if ((self.minScore is not None and score < self.minScore) or
-                        (self.maxScore is not None and score > self.maxScore)):
+                if (self.minScore is not None and score < self.minScore) or (
+                    self.maxScore is not None and score > self.maxScore
+                ):
                     return False
 
-        return ((self.filterRead is None or
-                 self.filterRead(Read(alignment.query_name,
-                                      alignment.query_sequence,
-                                      alignment.qual))) and
-                not (
-                    (self.referenceIds and
-                     alignment.reference_name not in self.referenceIds) or
-                    (alignment.is_unmapped and self.dropUnmapped) or
-                    (alignment.is_secondary and self.dropSecondary) or
-                    (alignment.is_supplementary and self.dropSupplementary) or
-                    (alignment.is_duplicate and self.dropDuplicates) or
-                    (alignment.is_qcfail and not self.keepQCFailures)))
+        return (
+            self.filterRead is None
+            or self.filterRead(
+                Read(alignment.query_name, alignment.query_sequence, alignment.qual)
+            )
+        ) and not (
+            (self.referenceIds and alignment.reference_name not in self.referenceIds)
+            or (alignment.is_unmapped and self.dropUnmapped)
+            or (alignment.is_secondary and self.dropSecondary)
+            or (alignment.is_supplementary and self.dropSupplementary)
+            or (alignment.is_duplicate and self.dropDuplicates)
+            or (alignment.is_qcfail and not self.keepQCFailures)
+        )
 
     def alignments(self):
         """
@@ -449,9 +552,10 @@ class SAMFilter(object):
                 if alignment.query_sequence is None:
                     if lastAlignment is None:
                         raise InvalidSAM(
-                            'pysam produced an alignment (number %d) with no '
-                            'query sequence without previously giving an '
-                            'alignment with a sequence.' % count)
+                            "pysam produced an alignment (number %d) with no "
+                            "query sequence without previously giving an "
+                            "alignment with a sequence." % count
+                        )
                     # Use the previous query sequence and quality. I'm not
                     # making the call to _hardClip dependent on
                     # alignment.cigartuples (as in the else clause below)
@@ -462,19 +566,27 @@ class SAMFilter(object):
                     # with no CIGAR string). The assertion will tell us if
                     # this is ever not the case.
                     assert alignment.cigartuples
-                    (alignment.query_sequence,
-                     alignment.query_qualities, _) = _hardClip(
-                         lastAlignment.query_sequence,
-                         lastAlignment.query_qualities,
-                         alignment.cigartuples)
+                    (
+                        alignment.query_sequence,
+                        alignment.query_qualities,
+                        _,
+                    ) = _hardClip(
+                        lastAlignment.query_sequence,
+                        lastAlignment.query_qualities,
+                        alignment.cigartuples,
+                    )
                 else:
                     lastAlignment = alignment
                     if alignment.cigartuples:
-                        (alignment.query_sequence,
-                         alignment.query_qualities, _) = _hardClip(
-                             alignment.query_sequence,
-                             alignment.query_qualities,
-                             alignment.cigartuples)
+                        (
+                            alignment.query_sequence,
+                            alignment.query_qualities,
+                            _,
+                        ) = _hardClip(
+                            alignment.query_sequence,
+                            alignment.query_qualities,
+                            alignment.cigartuples,
+                        )
 
                 if self.filterAlignment(alignment):
                     yield alignment
@@ -498,8 +610,9 @@ class SAMFilter(object):
                     tid = sam.get_tid(referenceId)
                     if tid == -1:
                         raise UnknownReference(
-                            'Reference %r is not present in the SAM/BAM file.'
-                            % referenceId)
+                            "Reference %r is not present in the SAM/BAM file."
+                            % referenceId
+                        )
                     else:
                         result[referenceId] = sam.lengths[tid]
             else:
@@ -508,7 +621,7 @@ class SAMFilter(object):
         return result
 
 
-class PaddedSAM(object):
+class PaddedSAM:
     """
     Obtain aligned (padded) queries from a SAM/BAM file.
 
@@ -518,17 +631,22 @@ class PaddedSAM(object):
         identical.
     @raises UnknownReference: If C{referenceName} does not exist.
     """
+
     def __init__(self, samFilter):
         referenceLengths = samFilter.referenceLengths()
 
         if len(set(referenceLengths.values())) != 1:
             raise UnequalReferenceLengthError(
-                'Your %d SAM/BAM file reference sequence '
-                'lengths (%s) are not all identical.' % (
+                "Your %d SAM/BAM file reference sequence "
+                "lengths (%s) are not all identical."
+                % (
                     len(referenceLengths),
-                    ', '.join(
-                        '%s=%d' % (id_, referenceLengths[id_])
-                        for id_ in sorted(referenceLengths))))
+                    ", ".join(
+                        "%s=%d" % (id_, referenceLengths[id_])
+                        for id_ in sorted(referenceLengths)
+                    ),
+                )
+            )
 
         # Get the length of any of the sequences (they are all identical).
         self.referenceLength = referenceLengths.popitem()[1]
@@ -540,9 +658,16 @@ class PaddedSAM(object):
         # inserted starting at that offset.
         self.referenceInsertions = defaultdict(list)
 
-    def queries(self, rcSuffix='', rcNeeded=False, padChar='-',
-                queryInsertionChar='N', unknownQualityChar='!',
-                allowDuplicateIds=False, addAlignment=False):
+    def queries(
+        self,
+        rcSuffix="",
+        rcNeeded=False,
+        padChar="-",
+        queryInsertionChar="N",
+        unknownQualityChar="!",
+        allowDuplicateIds=False,
+        addAlignment=False,
+    ):
         """
         Produce padded (with gaps) queries according to the CIGAR string and
         reference sequence length for each matching query sequence.
@@ -590,15 +715,14 @@ class PaddedSAM(object):
 
         MATCH_OPERATIONS = {CMATCH, CEQUAL, CDIFF}
 
-        for lineNumber, alignment in enumerate(
-                self.samFilter.alignments(), start=1):
+        for lineNumber, alignment in enumerate(self.samFilter.alignments(), start=1):
 
             query = alignment.query_sequence
-            quality = ''.join(chr(q + 33) for q in alignment.query_qualities)
+            quality = "".join(chr(q + 33) for q in alignment.query_qualities)
 
             if alignment.is_reverse:
                 if rcNeeded:
-                    query = DNARead('id', query).reverseComplement().sequence
+                    query = DNARead("id", query).reverseComplement().sequence
                     quality = quality[::-1]
                 if rcSuffix:
                     alignment.query_name += rcSuffix
@@ -610,15 +734,14 @@ class PaddedSAM(object):
             else:
                 count = idCount[alignment.query_name]
                 idCount[alignment.query_name] += 1
-                queryId = alignment.query_name + (
-                    '' if count == 0 else '/%d' % count)
+                queryId = alignment.query_name + ("" if count == 0 else "/%d" % count)
 
             referenceStart = alignment.reference_start
             atStart = True
             queryIndex = 0
             referenceIndex = referenceStart
-            alignedSequence = ''
-            alignedQuality = ''
+            alignedSequence = ""
+            alignedQuality = ""
 
             for operation, length in alignment.cigartuples:
 
@@ -628,8 +751,8 @@ class PaddedSAM(object):
                 # occurrence.
                 if operation in MATCH_OPERATIONS:
                     atStart = False
-                    alignedSequence += query[queryIndex:queryIndex + length]
-                    alignedQuality += quality[queryIndex:queryIndex + length]
+                    alignedSequence += query[queryIndex : queryIndex + length]
+                    alignedQuality += quality[queryIndex : queryIndex + length]
                 elif operation == CINS:
                     # Insertion to the reference. This consumes query bases but
                     # we don't output them because the reference cannot be
@@ -639,8 +762,8 @@ class PaddedSAM(object):
                     # reference.
                     atStart = False
                     self.referenceInsertions[queryId].append(
-                        (referenceIndex,
-                         query[queryIndex:queryIndex + length]))
+                        (referenceIndex, query[queryIndex : queryIndex + length])
+                    )
                 elif operation == CDEL:
                     # Delete from the reference. Some bases from the reference
                     # would need to be deleted to continue the match. So we put
@@ -670,32 +793,32 @@ class PaddedSAM(object):
                         if unwantedLeft > 0:
                             # The query protrudes left. Copy its right part.
                             alignedSequence += query[
-                                queryIndex + unwantedLeft:queryIndex + length]
+                                queryIndex + unwantedLeft : queryIndex + length
+                            ]
                             alignedQuality += quality[
-                                queryIndex + unwantedLeft:queryIndex + length]
+                                queryIndex + unwantedLeft : queryIndex + length
+                            ]
                             referenceStart = 0
                         else:
                             referenceStart -= length
-                            alignedSequence += query[
-                                queryIndex:queryIndex + length]
-                            alignedQuality += quality[
-                                queryIndex:queryIndex + length]
+                            alignedSequence += query[queryIndex : queryIndex + length]
+                            alignedQuality += quality[queryIndex : queryIndex + length]
                     else:
                         unwantedRight = (
-                            (referenceStart + len(alignedSequence) + length) -
-                            referenceLength)
+                            referenceStart + len(alignedSequence) + length
+                        ) - referenceLength
 
                         if unwantedRight > 0:
                             # The query protrudes right. Copy its left part.
                             alignedSequence += query[
-                                queryIndex:queryIndex + length - unwantedRight]
+                                queryIndex : queryIndex + length - unwantedRight
+                            ]
                             alignedQuality += quality[
-                                queryIndex:queryIndex + length - unwantedRight]
+                                queryIndex : queryIndex + length - unwantedRight
+                            ]
                         else:
-                            alignedSequence += query[
-                                queryIndex:queryIndex + length]
-                            alignedQuality += quality[
-                                queryIndex:queryIndex + length]
+                            alignedSequence += query[queryIndex : queryIndex + length]
+                            alignedQuality += quality[queryIndex : queryIndex + length]
                 elif operation == CHARD_CLIP:
                     # Some bases have been completely removed from the query.
                     # This (H) can only be present as the first and/or last
@@ -707,7 +830,7 @@ class PaddedSAM(object):
                     # which consumes neither query nor reference.
                     atStart = False
                 else:
-                    raise ValueError('Unknown CIGAR operation:', operation)
+                    raise ValueError("Unknown CIGAR operation:", operation)
 
                 if operation in CONSUMES_QUERY:
                     queryIndex += length
@@ -718,10 +841,16 @@ class PaddedSAM(object):
             if queryIndex != len(query):
                 # Oops, we did not consume the entire query.
                 raise ValueError(
-                    'Query %r not fully consumed when parsing CIGAR string. '
-                    'Query %r (len %d), final query index %d, CIGAR: %r' %
-                    (alignment.query_name, query, len(query), queryIndex,
-                     alignment.cigartuples))
+                    "Query %r not fully consumed when parsing CIGAR string. "
+                    "Query %r (len %d), final query index %d, CIGAR: %r"
+                    % (
+                        alignment.query_name,
+                        query,
+                        len(query),
+                        queryIndex,
+                        alignment.cigartuples,
+                    )
+                )
 
             # We cannot test we consumed the entire reference.  The CIGAR
             # string applies to (and exhausts) the query but is silent
@@ -730,14 +859,15 @@ class PaddedSAM(object):
 
             # Put gap characters before and after the aligned sequence so that
             # it is offset properly and matches the length of the reference.
-            padRightLength = (referenceLength -
-                              (referenceStart + len(alignedSequence)))
-            paddedSequence = (padChar * referenceStart +
-                              alignedSequence +
-                              padChar * padRightLength)
-            paddedQuality = (unknownQualityChar * referenceStart +
-                             alignedQuality +
-                             unknownQualityChar * padRightLength)
+            padRightLength = referenceLength - (referenceStart + len(alignedSequence))
+            paddedSequence = (
+                padChar * referenceStart + alignedSequence + padChar * padRightLength
+            )
+            paddedQuality = (
+                unknownQualityChar * referenceStart
+                + alignedQuality
+                + unknownQualityChar * padRightLength
+            )
 
             read = Read(queryId, paddedSequence, paddedQuality)
 
@@ -753,6 +883,7 @@ class DistanceMatrix:
     as read from a SAM file (or files) and provide methods for calculating
     distance between references.
     """
+
     def __init__(self):
         # self.scores is a similarity matrix between references and
         # queries from a SAM file. The values are 1.0 or 0.0 when queries
@@ -791,6 +922,7 @@ class DistanceMatrix:
             The score tag must be present in the optional SAM fields.
         """
         if scoreTag:
+
             def getScore(alignment, filename, count):
                 """
                 Get the alignment score from a SAM alignment.
@@ -803,15 +935,19 @@ class DistanceMatrix:
                     score = alignment.get_tag(scoreTag)
                 except KeyError:
                     raise ValueError(
-                        f'Alignment {count} in {filename!r} has no '
-                        f'{scoreTag!r} score tag.')
+                        f"Alignment {count} in {filename!r} has no "
+                        f"{scoreTag!r} score tag."
+                    )
                 else:
                     if score < 0.0:
                         raise ValueError(
-                            f'Alignment {count} in {filename!r} has tag '
-                            f'{scoreTag!r} with negative value ({score}).')
+                            f"Alignment {count} in {filename!r} has tag "
+                            f"{scoreTag!r} with negative value ({score})."
+                        )
                     return score
+
         else:
+
             def getScore(alignment, filename, count):
                 """
                 Return a binary score of 1.0 seeing as we know the query was
@@ -910,7 +1046,8 @@ class DistanceMatrix:
         score = self.score
         scores = [
             (score(referenceId1, queryId), score(referenceId2, queryId))
-            for queryId in (queryIds1 | queryIds2)]
+            for queryId in (queryIds1 | queryIds2)
+        ]
 
         denominator = sum(max(a, b) for a, b in scores)
 
@@ -923,8 +1060,9 @@ class DistanceMatrix:
             # Neither reference had a positive match against any query.
             return 1.0
 
-    def matrix(self, referenceIds=None, metric='soergel', similarity=False,
-               returnDict=False):
+    def matrix(
+        self, referenceIds=None, metric="soergel", similarity=False, returnDict=False
+    ):
         """
         Compute a distance matrix.
 
@@ -941,18 +1079,20 @@ class DistanceMatrix:
             otherwise.  If C{returnDict} is C{True}, return a C{dict} of
             C{dict}s, indexed by the two reference ids, with values as above.
         """
-        assert metric in {'jaccard', 'soergel'}
+        assert metric in {"jaccard", "soergel"}
         referenceIds = tuple(referenceIds or self.scores)
         nIds = len(referenceIds)
         matrix = defaultdict(dict) if returnDict else np.empty((nIds, nIds))
         identityValue = 1.0 if similarity else 0.0
-        func = (self.jaccardDistance if metric == 'jaccard' else
-                self.soergelDistance)
+        func = self.jaccardDistance if metric == "jaccard" else self.soergelDistance
 
         if similarity:
+
             def metricFunc(ref1, ref2):
                 return 1.0 - func(ref1, ref2)
+
         else:
+
             def metricFunc(ref1, ref2):
                 return func(ref1, ref2)
 
@@ -981,8 +1121,9 @@ class DistanceMatrix:
         self.scores = load(fp)
 
 
-def getReferenceInfo(bam, bamFilename, bamId=None, referenceFasta=None,
-                     fastaId=None, quiet=False):
+def getReferenceInfo(
+    bam, bamFilename, bamId=None, referenceFasta=None, fastaId=None, quiet=False
+):
     """
     Get the id and length of a BAM file reference seqeunce.
 
@@ -1023,9 +1164,10 @@ def getReferenceInfo(bam, bamFilename, bamId=None, referenceFasta=None,
     else:
         if bamId not in bamReferences:
             raise UnknownReference(
-                f'BAM file {str(bamFilename)!r} does not mention a reference '
-                f'with id {bamId!r}. Known references are: '
-                f'{", ".join(sorted(bamReferences))}.')
+                f"BAM file {str(bamFilename)!r} does not mention a reference "
+                f"with id {bamId!r}. Known references are: "
+                f'{", ".join(sorted(bamReferences))}.'
+            )
 
         inferredBamId = False
         tid = bam.get_tid(bamId)
@@ -1062,16 +1204,19 @@ def getReferenceInfo(bam, bamFilename, bamId=None, referenceFasta=None,
 
             if firstRead is None:
                 raise UnknownReference(
-                    f'The FASTA reference file {str(referenceFasta)!r} '
-                    f'contained no sequences.')
+                    f"The FASTA reference file {str(referenceFasta)!r} "
+                    f"contained no sequences."
+                )
         else:
             for read in FastaReads(referenceFasta):
                 if read.id == fastaId:
                     reference = read
                     break
             else:
-                raise UnknownReference(f'No sequence with id {fastaId!r} '
-                                       f'found in {str(referenceFasta)!r}.')
+                raise UnknownReference(
+                    f"No sequence with id {fastaId!r} "
+                    f"found in {str(referenceFasta)!r}."
+                )
 
         # Set reference length if it has not already been set due to a
         # given bamId.
@@ -1091,27 +1236,31 @@ def getReferenceInfo(bam, bamFilename, bamId=None, referenceFasta=None,
                 checkLength = checkName = False
         else:
             raise UnspecifiedReference(
-                f'Could not infer a BAM reference. Available references are: '
-                f'{", ".join(sorted(bamReferences))}.')
+                f"Could not infer a BAM reference. Available references are: "
+                f'{", ".join(sorted(bamReferences))}.'
+            )
 
     if inferredBamId and not quiet:
-        print(f'BAM reference id {bamId!r} inferred from context.',
-              file=sys.stderr)
+        print(f"BAM reference id {bamId!r} inferred from context.", file=sys.stderr)
 
     if reference:
         if inferredFastaId and not quiet:
-            print(f'FASTA reference id {reference.id!r} inferred from '
-                  f'context.', file=sys.stderr)
+            print(
+                f"FASTA reference id {reference.id!r} inferred from " f"context.",
+                file=sys.stderr,
+            )
 
         if checkName and reference.id != bamId:
             raise ReferenceNameMismatchError(
-                f'Reference FASTA sequence name {reference.id!r} does '
-                f'not match the BAM id {bamId!r}.')
+                f"Reference FASTA sequence name {reference.id!r} does "
+                f"not match the BAM id {bamId!r}."
+            )
 
         if checkLength and len(reference) != referenceLength:
             raise UnequalReferenceLengthError(
-                f'Reference FASTA sequence {reference.id!r} has length '
-                f'{len(reference)}, but the BAM reference {bamId!r} has '
-                f'length {referenceLength}.')
+                f"Reference FASTA sequence {reference.id!r} has length "
+                f"{len(reference)}, but the BAM reference {bamId!r} has "
+                f"length {referenceLength}."
+            )
 
     return bamId, reference, referenceLength

@@ -1,7 +1,7 @@
 import numpy as np
 
-START_CODONS = set(['ATG'])
-STOP_CODONS = set(['TAA', 'TAG', 'TGA'])
+START_CODONS = set(["ATG"])
+STOP_CODONS = set(["TAA", "TAG", "TGA"])
 
 
 def findCodons(seq, codons):
@@ -16,7 +16,7 @@ def findCodons(seq, codons):
     seqLen = len(seq)
     start = 0
     while start < seqLen:
-        triplet = str(seq[start:start + 3])
+        triplet = str(seq[start : start + 3])
         if triplet in codons:
             yield start
         start = start + 3
@@ -35,19 +35,28 @@ def addORFs(fig, seq, minX, maxX, offsetAdjuster):
     for frame in range(3):
         target = seq[frame:]
         for (codons, codonType, color) in (
-                (START_CODONS, 'start', 'green'),
-                (STOP_CODONS, 'stop', 'red')):
+            (START_CODONS, "start", "green"),
+            (STOP_CODONS, "stop", "red"),
+        ):
             offsets = list(map(offsetAdjuster, findCodons(target, codons)))
             if offsets:
-                fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
-                         markersize=4, color=color, linestyle='None')
+                fig.plot(
+                    offsets,
+                    np.tile(frame, len(offsets)),
+                    marker=".",
+                    markersize=4,
+                    color=color,
+                    linestyle="None",
+                )
 
     fig.axis([minX, maxX, -1, 3])
     fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Subject start (%s) and stop (%s) codons' % (
-        ', '.join(sorted(START_CODONS)), ', '.join(sorted(STOP_CODONS))),
-        fontsize=20)
+    fig.set_ylabel("Frame", fontsize=17)
+    fig.set_title(
+        "Subject start (%s) and stop (%s) codons"
+        % (", ".join(sorted(START_CODONS)), ", ".join(sorted(STOP_CODONS))),
+        fontsize=20,
+    )
 
 
 def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
@@ -62,17 +71,27 @@ def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
     for frame in range(3):
         target = seq[frame:]
         for (codons, codonType, color) in (
-                (START_CODONS, 'start', 'green'),
-                (STOP_CODONS, 'stop', 'red')):
-            offsets = [maxX - offsetAdjuster(offset)
-                       for offset in findCodons(target, codons)]
+            (START_CODONS, "start", "green"),
+            (STOP_CODONS, "stop", "red"),
+        ):
+            offsets = [
+                maxX - offsetAdjuster(offset) for offset in findCodons(target, codons)
+            ]
             if offsets:
-                fig.plot(offsets, np.tile(frame, len(offsets)), marker='.',
-                         markersize=4, color=color, linestyle='None')
+                fig.plot(
+                    offsets,
+                    np.tile(frame, len(offsets)),
+                    marker=".",
+                    markersize=4,
+                    color=color,
+                    linestyle="None",
+                )
 
     fig.axis([minX, maxX, -1, 3])
     fig.set_yticks(np.arange(3))
-    fig.set_ylabel('Frame', fontsize=17)
-    fig.set_title('Reversed subject start (%s) and stop (%s) codons' %
-                  (', '.join(sorted(START_CODONS)),
-                   ', '.join(sorted(STOP_CODONS))), fontsize=20)
+    fig.set_ylabel("Frame", fontsize=17)
+    fig.set_title(
+        "Reversed subject start (%s) and stop (%s) codons"
+        % (", ".join(sorted(START_CODONS)), ", ".join(sorted(STOP_CODONS))),
+        fontsize=20,
+    )

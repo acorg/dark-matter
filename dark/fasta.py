@@ -1,34 +1,39 @@
 from hashlib import md5
 import sqlite3
 import os
+from typing import Generator, Iterable, TextIO, Union, Type, Optional, TextIO
 
 from Bio import SeqIO, bgzf  # type: ignore
+from Bio.Seq import Seq
 
-from dark.reads import Reads, DNARead
+from dark.reads import Reads, DNARead, Read
 from dark.utils import asHandle
 
 
-def fastaToList(fastaFilename):
-    return list(SeqIO.parse(fastaFilename, 'fasta'))
+def fastaToList(fastaFilename) -> list:
+    return list(SeqIO.parse(fastaFilename, "fasta"))
 
 
-def dedupFasta(reads):
+def dedupFasta(reads: Reads) -> Generator[Read, None, None]:
     """
     Remove sequence duplicates (based on sequence) from FASTA.
 
     @param reads: a C{dark.reads.Reads} instance.
     @return: a generator of C{dark.reads.Read} instances with no duplicates.
     """
-    seen = set()
+    seen: set[bytes] = set()
     add = seen.add
-    for read in reads:
-        hash_ = md5(read.sequence.encode('UTF-8')).digest()
+
+    for read in iter(reads):
+        hash_ = md5(read.sequence.encode("UTF-8")).digest()
         if hash_ not in seen:
             add(hash_)
             yield read
 
 
-def dePrefixAndSuffixFasta(sequences):
+def dePrefixAndSuffixFasta(
+    sequences: Iterable[Seq],
+) -> Generator[Seq, None, None]:
     """
     sequences: an iterator producing Bio.Seq sequences.
 
@@ -39,20 +44,20 @@ def dePrefixAndSuffixFasta(sequences):
     seen = set()
     for s in sequences:
         thisSeq = str(s.seq)
-        thisHash = md5(thisSeq.encode('UTF-8')).digest()
+        thisHash = md5(thisSeq.encode("UTF-8")).digest()
         if thisHash not in seen:
             # Add prefixes.
             newHash = md5()
             for nucl in thisSeq:
-                newHash.update(nucl.encode('UTF-8'))
+                newHash.update(nucl.encode("UTF-8"))
                 seen.add(newHash.digest())
             # Add suffixes.
             for start in range(len(thisSeq) - 1):
-                seen.add(md5(thisSeq[start + 1:].encode('UTF-8')).digest())
+                seen.add(md5(thisSeq[start + 1 :].encode("UTF-8")).digest())
             yield s
 
 
-def fastaSubtract(fastaFiles):
+def fastaSubtract(fastaFiles: Union[list[TextIO], map[TextIO]]) -> Iterable[Seq]:
     """
     Given a list of open file descriptors, each with FASTA content,
     remove the reads found in the 2nd, 3rd, etc files from the first file
@@ -60,17 +65,18 @@ def fastaSubtract(fastaFiles):
 
     @param fastaFiles: a C{list} of FASTA filenames.
     @raises IndexError: if passed an empty list.
-    @return: An iterator producing C{Bio.SeqRecord} instances suitable for
+    @return: An iterator producing C{Bio.Seq} instances suitable for
         writing to a file using C{Bio.SeqIO.write}.
 
     """
     reads = {}
+    fastaFiles = list(fastaFiles)
     firstFile = fastaFiles.pop(0)
-    for seq in SeqIO.parse(firstFile, 'fasta'):
+    for seq in SeqIO.parse(firstFile, "fasta"):
         reads[seq.id] = seq
 
     for fastaFile in fastaFiles:
-        for seq in SeqIO.parse(fastaFile, 'fasta'):
+        for seq in SeqIO.parse(fastaFile, "fasta"):
             # Make sure that reads with the same id have the same sequence.
             if seq.id in reads:
                 assert str(seq.seq) == str(reads[seq.id].seq)
@@ -90,7 +96,13 @@ class FastaReads(Reads):
     @param upperCase: If C{True}, read sequences will be converted to upper
         case.
     """
-    def __init__(self, _files, readClass=DNARead, upperCase=False):
+
+    def __init__(
+        self,
+        _files: Union[str, TextIO, Union[list, tuple]],
+        readClass: Type[Read] = DNARead,
+        upperCase: bool = False,
+    ):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
         # TODO: It would be better if upperCase were an argument that could
@@ -103,7 +115,7 @@ class FastaReads(Reads):
         self._upperCase = upperCase
         super().__init__()
 
-    def iter(self):
+    def iter(self) -> Generator[Read, None, None]:
         """
         Iterate over the sequences in the files in self.files_, yielding each
         as an instance of the desired read class.
@@ -114,20 +126,24 @@ class FastaReads(Reads):
                 # Duplicate some code here so as not to test
                 # self._upperCase in the loop.
                 if self._upperCase:
-                    for seq in SeqIO.parse(fp, 'fasta'):
-                        read = self._readClass(seq.description,
-                                               str(seq.seq.upper()))
+                    for seq in SeqIO.parse(fp, "fasta"):
+                        read = self._readClass(seq.description, str(seq.seq.upper()))
                         yield read
                         count += 1
                 else:
-                    for seq in SeqIO.parse(fp, 'fasta'):
+                    for seq in SeqIO.parse(fp, "fasta"):
                         read = self._readClass(seq.description, str(seq.seq))
                         yield read
                         count += 1
 
 
-def combineReads(filename, sequences, readClass=DNARead,
-                 upperCase=False, idPrefix='command-line-read-'):
+def combineReads(
+    filename: str,
+    sequences: list[str],
+    readClass: Type[Read] = DNARead,
+    upperCase: bool = False,
+    idPrefix: str = "command-line-read-",
+) -> Union[FastaReads, Reads]:
     """
     Combine FASTA reads from a file and/or sequence strings.
 
@@ -147,6 +163,8 @@ def combineReads(filename, sequences, readClass=DNARead,
     @return: A C{FastaReads} instance.
     """
     # Read sequences from a FASTA file, if given.
+    reads: Union[FastaReads, Reads]
+
     if filename:
         reads = FastaReads(filename, readClass=readClass, upperCase=upperCase)
     else:
@@ -158,11 +176,11 @@ def combineReads(filename, sequences, readClass=DNARead,
             # Try splitting the sequence on its last space and using the
             # first part of the split as the read id. If there's no space,
             # assign a generic id.
-            parts = sequence.rsplit(' ', 1)
+            parts = sequence.rsplit(" ", 1)
             if len(parts) == 2:
                 readId, sequence = parts
             else:
-                readId = '%s%d' % (idPrefix, count)
+                readId = "%s%d" % (idPrefix, count)
             if upperCase:
                 sequence = sequence.upper()
             read = readClass(readId, sequence)
@@ -171,7 +189,7 @@ def combineReads(filename, sequences, readClass=DNARead,
     return reads
 
 
-class SqliteIndex(object):
+class SqliteIndex:
     """
     Create an Sqlite3 database holding FASTA sequence ids, file names, and
     offsets for fast random dictionary-like access.
@@ -185,15 +203,22 @@ class SqliteIndex(object):
         which will combine it with the basename of the files given to
         C{addFile} to locate the FASTA.
     """
-    def __init__(self, dbFilename, readClass=DNARead, fastaDirectory=None):
+
+    def __init__(
+        self,
+        dbFilename: str,
+        readClass: Type[Read] = DNARead,
+        fastaDirectory: Optional[str] = None,
+    ):
         self._readClass = readClass
         self._fastaDirectory = fastaDirectory
-        creating = dbFilename == ':memory:' or not os.path.exists(dbFilename)
-        self._connection = sqlite3.connect(dbFilename)
+        creating = dbFilename == ":memory:" or not os.path.exists(dbFilename)
+        self._connection: sqlite3.Connection = sqlite3.connect(dbFilename)
         if creating:
             # Create a new database.
             cur = self._connection.cursor()
-            cur.executescript('''
+            cur.executescript(
+                """
                 CREATE TABLE files (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name VARCHAR UNIQUE
@@ -204,10 +229,11 @@ class SqliteIndex(object):
                     fileNumber INTEGER,
                     offset INTEGER
                 );
-            ''')
+            """
+            )
             self._connection.commit()
 
-    def _getFilename(self, fileNumber):
+    def _getFilename(self, fileNumber: int) -> Optional[str]:
         """
         Given a file number, get its name (if any).
 
@@ -216,14 +242,14 @@ class SqliteIndex(object):
             has not been added.
         """
         cur = self._connection.cursor()
-        cur.execute('SELECT name FROM files WHERE id = ?', (fileNumber,))
+        cur.execute("SELECT name FROM files WHERE id = ?", (fileNumber,))
         row = cur.fetchone()
         if row is None:
             return None
         else:
             return row[0]
 
-    def _getFileNumber(self, filename):
+    def _getFileNumber(self, filename: str) -> Optional[int]:
         """
         Given a file name, get its file number (if any).
 
@@ -232,14 +258,14 @@ class SqliteIndex(object):
             has been added.
         """
         cur = self._connection.cursor()
-        cur.execute('SELECT id FROM files WHERE name = ?', (filename,))
+        cur.execute("SELECT id FROM files WHERE name = ?", (filename,))
         row = cur.fetchone()
         if row is None:
             return None
         else:
             return row[0]
 
-    def _addFilename(self, filename):
+    def _addFilename(self, filename: str) -> Optional[int]:
         """
         Add a new file name.
 
@@ -249,10 +275,10 @@ class SqliteIndex(object):
         """
         cur = self._connection.cursor()
         try:
-            cur.execute('INSERT INTO files(name) VALUES (?)', (filename,))
+            cur.execute("INSERT INTO files(name) VALUES (?)", (filename,))
         except sqlite3.IntegrityError as e:
-            if str(e).find('UNIQUE constraint failed') > -1:
-                raise ValueError('Duplicate file name: %r' % filename)
+            if str(e).find("UNIQUE constraint failed") > -1:
+                raise ValueError("Duplicate file name: %r" % filename)
             else:
                 raise
         else:
@@ -260,7 +286,7 @@ class SqliteIndex(object):
             self._connection.commit()
             return fileNumber
 
-    def addFile(self, filename):
+    def addFile(self, filename: str) -> int:
         """
         Add a new FASTA file of sequences.
 
@@ -278,12 +304,13 @@ class SqliteIndex(object):
         @return: The C{int} number of sequences added from the file.
         """
         endswith = filename.lower().endswith
-        if endswith('.bgz') or endswith('.gz'):
+        if endswith(".bgz") or endswith(".gz"):
             useBgzf = True
-        elif endswith('.bz2'):
+        elif endswith(".bz2"):
             raise ValueError(
-                'Compressed FASTA is only supported in BGZF format. Use '
-                'bgzip to compresss your FASTA.')
+                "Compressed FASTA is only supported in BGZF format. Use "
+                "bgzip to compresss your FASTA."
+            )
         else:
             useBgzf = False
 
@@ -294,25 +321,27 @@ class SqliteIndex(object):
             with connection:
                 if useBgzf:
                     try:
-                        fp = bgzf.open(filename, 'rb')
+                        fp = bgzf.open(filename, "rb")
                     except ValueError as e:
-                        if str(e).find('BGZF') > -1:
+                        if str(e).find("BGZF") > -1:
                             raise ValueError(
-                                'Compressed FASTA is only supported in BGZF '
-                                'format. Use the samtools bgzip utility '
-                                '(instead of gzip) to compresss your FASTA.')
+                                "Compressed FASTA is only supported in BGZF "
+                                "format. Use the samtools bgzip utility "
+                                "(instead of gzip) to compresss your FASTA."
+                            )
                         else:
                             raise
                     else:
                         try:
                             for line in fp:
-                                if line[0] == '>':
+                                if line[0] == ">":
                                     count += 1
-                                    id_ = line[1:].rstrip(' \t\n\r')
+                                    id_ = line[1:].rstrip(" \t\n\r")
                                     connection.execute(
-                                        'INSERT INTO sequences(id, '
-                                        'fileNumber, offset) VALUES (?, ?, ?)',
-                                        (id_, fileNumber, fp.tell()))
+                                        "INSERT INTO sequences(id, "
+                                        "fileNumber, offset) VALUES (?, ?, ?)",
+                                        (id_, fileNumber, fp.tell()),
+                                    )
                         finally:
                             fp.close()
                 else:
@@ -320,35 +349,38 @@ class SqliteIndex(object):
                         offset = 0
                         for line in fp:
                             offset += len(line)
-                            if line[0] == '>':
+                            if line[0] == ">":
                                 count += 1
-                                id_ = line[1:].rstrip(' \t\n\r')
+                                id_ = line[1:].rstrip(" \t\n\r")
                                 connection.execute(
-                                    'INSERT INTO sequences(id, fileNumber, '
-                                    'offset) VALUES (?, ?, ?)',
-                                    (id_, fileNumber, offset))
+                                    "INSERT INTO sequences(id, fileNumber, "
+                                    "offset) VALUES (?, ?, ?)",
+                                    (id_, fileNumber, offset),
+                                )
         except sqlite3.IntegrityError as e:
-            if str(e).find('UNIQUE constraint failed') > -1:
+            if str(e).find("UNIQUE constraint failed") > -1:
                 original = self._find(id_)
                 if original is None:
                     # The id must have appeared twice in the current file,
                     # because we could not look it up in the database
                     # (i.e., it was INSERTed but not committed).
                     raise ValueError(
-                        "FASTA sequence id '%s' found twice in file '%s'." %
-                        (id_, filename))
+                        "FASTA sequence id '%s' found twice in file '%s'."
+                        % (id_, filename)
+                    )
                 else:
                     origFilename, _ = original
                     raise ValueError(
                         "FASTA sequence id '%s', found in file '%s', was "
-                        "previously added from file '%s'." %
-                        (id_, filename, origFilename))
+                        "previously added from file '%s'."
+                        % (id_, filename, origFilename)
+                    )
             else:
                 raise
         else:
             return count
 
-    def _find(self, id_):
+    def _find(self, id_: str) -> Optional[tuple[Optional[str], int]]:
         """
         Find the filename and offset of a sequence, given its id.
 
@@ -357,15 +389,14 @@ class SqliteIndex(object):
             within that file of the sequence.
         """
         cur = self._connection.cursor()
-        cur.execute(
-            'SELECT fileNumber, offset FROM sequences WHERE id = ?', (id_,))
+        cur.execute("SELECT fileNumber, offset FROM sequences WHERE id = ?", (id_,))
         row = cur.fetchone()
         if row is None:
             return None
         else:
             return self._getFilename(row[0]), row[1]
 
-    def __getitem__(self, id_):
+    def __getitem__(self, id_: str) -> Read:
         """
         Return a read, given its id.
 
@@ -375,22 +406,24 @@ class SqliteIndex(object):
         """
         location = self._find(id_)
         if location is None:
-            raise KeyError('Unknown sequence: %r' % id_)
+            raise KeyError("Unknown sequence: %r" % id_)
         else:
             filename, offset = location
             # If a FASTA directory was provided, look for the FASTA files
             # there, otherwise use the filename that was given to addFile.
+            assert filename
             if self._fastaDirectory:
-                filename = os.path.join(self._fastaDirectory,
-                                        os.path.basename(filename))
+                filename = os.path.join(
+                    self._fastaDirectory, os.path.basename(filename)
+                )
 
             endswith = filename.lower().endswith
-            if endswith('.bgz') or endswith('.gz'):
+            if endswith(".bgz") or endswith(".gz"):
                 opener = bgzf.open
             else:
                 opener = open
 
-            sequence = ''
+            sequence = ""
             with opener(filename) as fp:
                 fp.seek(offset)
                 while True:
@@ -398,14 +431,13 @@ class SqliteIndex(object):
                     if not line:
                         # EOF
                         break
-                    elif line[0] == '>':
+                    elif line[0] == ">":
                         # We found the next sequence identifier.
                         break
                     else:
-                        sequence += line.rstrip('\n\r')
+                        sequence += line.rstrip("\n\r")
 
             return self._readClass(id_, sequence)
 
-    def close(self):
+    def close(self) -> None:
         self._connection.close()
-        self._connection = None

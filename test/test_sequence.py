@@ -12,40 +12,40 @@ class TestFindPrimer(TestCase):
         """
         If a primer is not found, the empty list must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual([], findPrimer('BLAH', seq))
+        seq = Seq("ACGT")
+        self.assertEqual([], findPrimer("BLAH", seq))
 
     def testFoundAtStart(self):
         """
         If a primer is found at the start of a sequence, a list containing 0
         must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual([0], findPrimer('AC', seq))
+        seq = Seq("ACGT")
+        self.assertEqual([0], findPrimer("AC", seq))
 
     def testFoundAtEnd(self):
         """
         If a primer is found at the end of a sequence, the correct value
         must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual([2], findPrimer('GT', seq))
+        seq = Seq("ACGT")
+        self.assertEqual([2], findPrimer("GT", seq))
 
     def testFoundMultiple(self):
         """
         If a primer is found multiple times, the correct value
         must be returned.
         """
-        seq = Seq('ACGTACGT')
-        self.assertEqual([0, 4], findPrimer('ACG', seq))
+        seq = Seq("ACGTACGT")
+        self.assertEqual([0, 4], findPrimer("ACG", seq))
 
     def testOverlapping(self):
         """
         If a primer is present twice but is overlapping, only the first
         instance should be returned.
         """
-        seq = Seq('GAAA')
-        self.assertEqual([1], findPrimer('AA', seq))
+        seq = Seq("GAAA")
+        self.assertEqual([1], findPrimer("AA", seq))
 
 
 class TestFindPrimerBidi(TestCase):
@@ -57,8 +57,8 @@ class TestFindPrimerBidi(TestCase):
         """
         If a primer is not found, empty lists must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual(([], []), findPrimerBidi('BLAH', seq))
+        seq = Seq("ACGT")
+        self.assertEqual(([], []), findPrimerBidi("BLAH", seq))
 
     def testFoundStartEnd(self):
         """
@@ -66,8 +66,8 @@ class TestFindPrimerBidi(TestCase):
         the forward sequence, end of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual(([0], [2]), findPrimerBidi('AC', seq))
+        seq = Seq("ACGT")
+        self.assertEqual(([0], [2]), findPrimerBidi("AC", seq))
 
     def testFoundEndStart(self):
         """
@@ -75,32 +75,32 @@ class TestFindPrimerBidi(TestCase):
         the forward sequence, start of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual(([2], [0]), findPrimerBidi('GT', seq))
+        seq = Seq("ACGT")
+        self.assertEqual(([2], [0]), findPrimerBidi("GT", seq))
 
     def testFoundMultiple(self):
         """
         If a primer is found multiple times, the correct value
         must be returned.
         """
-        seq = Seq('ACGTACGT')
-        self.assertEqual(([0, 4], [1, 5]), findPrimerBidi('ACG', seq))
+        seq = Seq("ACGTACGT")
+        self.assertEqual(([0, 4], [1, 5]), findPrimerBidi("ACG", seq))
 
     def testOverlappingForwards(self):
         """
         If a primer is present twice forwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GAAA')
-        self.assertEqual(([1], []), findPrimerBidi('AA', seq))
+        seq = Seq("GAAA")
+        self.assertEqual(([1], []), findPrimerBidi("AA", seq))
 
     def testOverlappingBackwards(self):
         """
         If a primer is present twice backwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GTTT')
-        self.assertEqual(([], [1]), findPrimerBidi('AA', seq))
+        seq = Seq("GTTT")
+        self.assertEqual(([], [1]), findPrimerBidi("AA", seq))
 
 
 class TestFindPrimerBidiLimits(TestCase):
@@ -113,8 +113,8 @@ class TestFindPrimerBidiLimits(TestCase):
         If a primer is not found, the returned offsets must include
         the whole sequence.
         """
-        seq = Seq('ACGT')
-        self.assertEqual((0, 4), findPrimerBidiLimits('BLAH', seq))
+        seq = Seq("ACGT")
+        self.assertEqual((0, 4), findPrimerBidiLimits("BLAH", seq))
 
     def testFoundStartEnd(self):
         """
@@ -122,8 +122,8 @@ class TestFindPrimerBidiLimits(TestCase):
         the forward sequence, end of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual((2, 2), findPrimerBidiLimits('AC', seq))
+        seq = Seq("ACGT")
+        self.assertEqual((2, 2), findPrimerBidiLimits("AC", seq))
 
     def testFoundEndStart(self):
         """
@@ -131,39 +131,36 @@ class TestFindPrimerBidiLimits(TestCase):
         the forward sequence, start of the reverse complement), the
         correct value must be returned.
         """
-        seq = Seq('ACGT')
-        self.assertEqual((4, 4), findPrimerBidiLimits('GT', seq))
+        seq = Seq("ACGT")
+        self.assertEqual((4, 4), findPrimerBidiLimits("GT", seq))
 
     def testFoundMultiple(self):
         """
         If a primer is found multiple times, the correct value
         must be returned.
         """
-        seq = Seq('ACGTACGT')
-        self.assertEqual((7, 8), findPrimerBidiLimits('ACG', seq))
+        seq = Seq("ACGTACGT")
+        self.assertEqual((7, 8), findPrimerBidiLimits("ACG", seq))
 
     def testOverlappingForwards(self):
         """
         If a primer is present twice forwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GAAA')
-        self.assertEqual((3, 4), findPrimerBidiLimits('AA', seq))
+        seq = Seq("GAAA")
+        self.assertEqual((3, 4), findPrimerBidiLimits("AA", seq))
 
     def testOverlappingBackwards(self):
         """
         If a primer is present twice backwards but is overlapping, only
         the first instance should be returned.
         """
-        seq = Seq('GTTT')
-        self.assertEqual((0, 1), findPrimerBidiLimits('AA', seq))
+        seq = Seq("GTTT")
+        self.assertEqual((0, 1), findPrimerBidiLimits("AA", seq))
 
     def testLonger(self):
         """
         Test a longer sequence.
         """
-        seq = Seq('AAAAAAAAAA'
-                  'GGGGGGGGGG'
-                  'AAAAAAAAAA'
-                  'AAAAAAAAAA')
-        self.assertEqual((20, 40), findPrimerBidiLimits('GGGGGGGGGG', seq))
+        seq = Seq("AAAAAAAAAA" "GGGGGGGGGG" "AAAAAAAAAA" "AAAAAAAAAA")
+        self.assertEqual((20, 40), findPrimerBidiLimits("GGGGGGGGGG", seq))

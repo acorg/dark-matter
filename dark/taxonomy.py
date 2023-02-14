@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sqlite3
 from six import string_types
 from operator import attrgetter
@@ -6,94 +8,96 @@ from json import dumps
 import re
 from collections import namedtuple
 from os import environ
+from typing import Optional, Iterable
+import argparse
 
 from dark.database import getDatabaseConnection
 
-TAXONOMY_DATABASE_ENV_VAR = 'DARK_MATTER_TAXONOMY_DATABASE'
-TAXONOMY_DATABASE_COMMAND_LINE_OPTION = 'taxonomyDatabase'
+TAXONOMY_DATABASE_ENV_VAR = "DARK_MATTER_TAXONOMY_DATABASE"
+TAXONOMY_DATABASE_COMMAND_LINE_OPTION = "taxonomyDatabase"
 
-LineageElement = namedtuple('LineageElement', ('taxid', 'name', 'rank'))
+LineageElement = namedtuple("LineageElement", ("taxid", "name", "rank"))
 
 # These are rank/name tuples that indicate that a lineage is from an RNA
 # virus.
-RNA_VIRUS_LINEAGE_ELEMENTS = set((
-    ('family', 'Retroviridae'),
-    ('family', 'Pseudoviridae'),
-    ('realm', 'Riboviria'),
-))
+RNA_VIRUS_LINEAGE_ELEMENTS = set(
+    (
+        ("family", "Retroviridae"),
+        ("family", "Pseudoviridae"),
+        ("realm", "Riboviria"),
+    )
+)
 
-FUNGUS_ONLY_VIRUS_REGEX = re.compile(
-    r'\b(?:mycovirus)\b',
-    re.I)
+FUNGUS_ONLY_VIRUS_REGEX = re.compile(r"\b(?:mycovirus)\b", re.I)
 
 FUNGUS_ONLY_GENERA: set[str] = set()
 
 FUNGUS_ONLY_FAMILIES = {
-    'Chrysoviridae',  # Infects penicillum. E.g., NC_040738.1
-    'Totiviridae',  # Actually infects fungi and protozoa.
+    "Chrysoviridae",  # Infects penicillum. E.g., NC_040738.1
+    "Totiviridae",  # Actually infects fungi and protozoa.
 }
 
 PLANT_ONLY_VIRUS_REGEX = re.compile(
-    r'\b(?:grapevine|mosaic|mottle|blotch virus|viroid|tobacco|'
-    r'tombus|cherry virus|bean endornavirus|coffee ringspot virus|'
-    r'Odontoglossum ringspot virus|hibiscus|Obuda pepper virus|'
-    r'tobamovirus|'
-    r'wheat stripe virus|Lettuce necrotic yellows virus|citrus yellow|'
-    r'Maize fine streak virus|dwarf (fiji)?virus|maize stripe virus|'
-    r'tomato brown rugose fruit virus|turnip vein-clearing virus|'
-    r'chlorotic spot virus)\b',
-    re.I)
+    r"\b(?:grapevine|mosaic|mottle|blotch virus|viroid|tobacco|"
+    r"tombus|cherry virus|bean endornavirus|coffee ringspot virus|"
+    r"Odontoglossum ringspot virus|hibiscus|Obuda pepper virus|"
+    r"tobamovirus|"
+    r"wheat stripe virus|Lettuce necrotic yellows virus|citrus yellow|"
+    r"Maize fine streak virus|dwarf (fiji)?virus|maize stripe virus|"
+    r"tomato brown rugose fruit virus|turnip vein-clearing virus|"
+    r"chlorotic spot virus)\b",
+    re.I,
+)
 
 PLANT_ONLY_GENERA = {
-    'Emaravirus',  # In Bunyavirales.
-    'Idaeovirus',  # Unassigned.
-    'Ourmiavirus',  # In Botourmiaviridae.
-    'Polemovirus',  # Unassigned.
-    'Sobemovirus',  # Unassigned.
-    'Tospovirus',  # (Misclassified?) in Peribunyaviridae (e.g., NC_040742.1)
-    'Umbravirus',  # In Tombusviridae.
-    'Varicosavirus',  # In Rhabdoviridae.
+    "Emaravirus",  # In Bunyavirales.
+    "Idaeovirus",  # Unassigned.
+    "Ourmiavirus",  # In Botourmiaviridae.
+    "Polemovirus",  # Unassigned.
+    "Sobemovirus",  # Unassigned.
+    "Tospovirus",  # (Misclassified?) in Peribunyaviridae (e.g., NC_040742.1)
+    "Umbravirus",  # In Tombusviridae.
+    "Varicosavirus",  # In Rhabdoviridae.
 }
 
 PLANT_ONLY_FAMILIES = {
-    'Aspiviridae',  # (Formerly Ophioviridae) in Serpentovirales.
-    'Avsunviroidae',  # Viroids.
-    'Betaflexiviridae',  # In Tymovirales.
-    'Bromoviridae',  # Unassigned.
-    'Caulimoviridae',  # In Ortervirales.
-    'Closteroviridae',  # Unassigned.
-    'Geminiviridae',  # Unassigned.
-    'Luteoviridae',  # Unassigned.
-    'Nanoviridae',  # Unassigned.
-    'Partitiviridae',  # Unassigned.
-    'Pospiviroidae',  # Unassigned (viroids).
-    'Secoviridae',  # In Picornavirales.
-    'Tombusviridae',  # Unassigned.
-    'Tospoviridae',  # In Bunyavirales.
-    'Virgaviridae',  # Unassigned.
+    "Aspiviridae",  # (Formerly Ophioviridae) in Serpentovirales.
+    "Avsunviroidae",  # Viroids.
+    "Betaflexiviridae",  # In Tymovirales.
+    "Bromoviridae",  # Unassigned.
+    "Caulimoviridae",  # In Ortervirales.
+    "Closteroviridae",  # Unassigned.
+    "Geminiviridae",  # Unassigned.
+    "Luteoviridae",  # Unassigned.
+    "Nanoviridae",  # Unassigned.
+    "Partitiviridae",  # Unassigned.
+    "Pospiviroidae",  # Unassigned (viroids).
+    "Secoviridae",  # In Picornavirales.
+    "Tombusviridae",  # Unassigned.
+    "Tospoviridae",  # In Bunyavirales.
+    "Virgaviridae",  # Unassigned.
 }
 
 
-PLANT_ONLY_ORDERS = {
-    'Tymovirales'
-}
+PLANT_ONLY_ORDERS = {"Tymovirales"}
 
 
 class _UnknownNameError(Exception):
     "An unknown name was used."
 
 
-class LineageFetcher(object):
+class LineageFetcher:
     """
     Provide access to the NCBI taxonomy database so we can retrieve the lineage
     of title sequences hit by BLAST.
     """
+
     def __init__(self, db=None, cursor=None):
         self._db = db or getDatabaseConnection()
         self._cursor = cursor or self._db.cursor()
         self._cache = {}
 
-    def lineage(self, title):
+    def lineage(self, title: str) -> list[tuple[int, str]]:
         """
         Get lineage information from the taxonomy database for a given title.
 
@@ -112,8 +116,8 @@ class LineageFetcher(object):
             return self._cache[title]
 
         lineage = []
-        gi = int(title.split('|')[1])
-        query = 'SELECT taxID FROM gi_taxid WHERE gi = %d' % gi
+        gi = int(title.split("|")[1])
+        query = "SELECT taxID FROM gi_taxid WHERE gi = %d" % gi
 
         try:
             while True:
@@ -121,20 +125,19 @@ class LineageFetcher(object):
                 taxID = self._cursor.fetchone()[0]
                 if taxID == 1:
                     break
-                query = 'SELECT name FROM names WHERE taxId = %s' % taxID
+                query = "SELECT name FROM names WHERE taxId = %s" % taxID
                 self._cursor.execute(query)
                 scientificName = self._cursor.fetchone()[0]
                 lineage.append((taxID, scientificName))
                 # Move up to the parent.
-                query = ('SELECT parent_taxID FROM nodes WHERE taxID = %s' %
-                         taxID)
+                query = "SELECT parent_taxID FROM nodes WHERE taxID = %s" % taxID
         except TypeError:
             lineage = []
 
         self._cache[title] = lineage
         return lineage
 
-    def close(self):
+    def close(self) -> None:
         """
         Close the database connection and render self invalid. Any subsequent
         re-use of self will raise an error.
@@ -144,7 +147,7 @@ class LineageFetcher(object):
         self._cursor = self._db = self._cache = None
 
 
-class Taxonomy(object):
+class Taxonomy:
     """
     Provide access to the NCBI taxonomy database so we can retrieve the
     taxonomy lineage corresponding to an accession number.
@@ -154,7 +157,8 @@ class Taxonomy(object):
         with tables and columns named as in the building scripts used in
         https://github.com/acorg/ncbi-taxonomy-database
     """
-    CACHE_SIZE = 10E6
+
+    CACHE_SIZE = 10e6
 
     def __init__(self, dbFilenameOrConnection):
         if isinstance(dbFilenameOrConnection, string_types):
@@ -200,20 +204,19 @@ class Taxonomy(object):
         lineage = []
 
         while taxid != 1:
-            execute('SELECT name FROM names WHERE taxid = ?', (taxid,))
+            execute("SELECT name FROM names WHERE taxid = ?", (taxid,))
             result = fetchone()
             if result is None:
                 raise ValueError(
-                    'Could not find taxonomy id %r in names table' %
-                    (taxid,))
+                    "Could not find taxonomy id %r in names table" % (taxid,)
+                )
             name = result[0]
-            execute('SELECT parent_taxid, rank FROM nodes WHERE taxid = ?',
-                    (taxid,))
+            execute("SELECT parent_taxid, rank FROM nodes WHERE taxid = ?", (taxid,))
             result = fetchone()
             if result is None:
                 raise ValueError(
-                    'Could not find taxonomy id %r in nodes table' %
-                    (taxid,))
+                    "Could not find taxonomy id %r in nodes table" % (taxid,)
+                )
 
             parentTaxid, rank = result
             element = LineageElement(taxid, name, rank)
@@ -228,7 +231,7 @@ class Taxonomy(object):
 
         return tuple(lineage)
 
-    @cachedmethod(attrgetter('_lineageCache'))
+    @cachedmethod(attrgetter("_lineageCache"))
     def lineage(self, id_, skipFunc=None, stopFunc=None):
         """
         Get lineage information from the taxonomy database for an
@@ -259,28 +262,27 @@ class Taxonomy(object):
             in the returned tuple.
         """
         if isinstance(id_, int):
-            return self.lineageFromTaxid(
-                id_, skipFunc=skipFunc, stopFunc=stopFunc)
+            return self.lineageFromTaxid(id_, skipFunc=skipFunc, stopFunc=stopFunc)
 
         cursor = self._db.cursor()
 
-        cursor.execute(
-            'SELECT taxid FROM accession_taxid WHERE accession = ?', (id_,))
+        cursor.execute("SELECT taxid FROM accession_taxid WHERE accession = ?", (id_,))
         row = cursor.fetchone()
         if row:
             return self.lineageFromTaxid(
-                int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc)
+                int(row[0]), skipFunc=skipFunc, stopFunc=stopFunc
+            )
 
         try:
             taxid = self.taxIdFromName(id_)
         except _UnknownNameError:
             raise ValueError(
-                'Could not find %r in accession_taxid or names tables' % id_)
+                "Could not find %r in accession_taxid or names tables" % id_
+            )
         else:
-            return self.lineageFromTaxid(
-                taxid, skipFunc=skipFunc, stopFunc=stopFunc)
+            return self.lineageFromTaxid(taxid, skipFunc=skipFunc, stopFunc=stopFunc)
 
-    @cachedmethod(attrgetter('_hostsCache'))
+    @cachedmethod(attrgetter("_hostsCache"))
     def hostsFromTaxid(self, taxid):
         """
         Get host information from the taxonomy database for a taxonomy id.
@@ -291,10 +293,10 @@ class Taxonomy(object):
             for C{taxid}, return C{None}.
         """
         cursor = self._db.cursor()
-        cursor.execute('SELECT hosts FROM hosts WHERE taxid = ?', (taxid,))
+        cursor.execute("SELECT hosts FROM hosts WHERE taxid = ?", (taxid,))
         row = cursor.fetchone()
         if row:
-            return set(row[0].split(','))
+            return set(row[0].split(","))
 
     def taxIdFromName(self, name):
         """
@@ -306,12 +308,12 @@ class Taxonomy(object):
         @return: An C{int} taxonomy id.
         """
         cursor = self._db.cursor()
-        cursor.execute('SELECT taxid FROM names WHERE name = ?', (name,))
+        cursor.execute("SELECT taxid FROM names WHERE name = ?", (name,))
         row = cursor.fetchone()
         if row:
             return int(row[0])
 
-        raise _UnknownNameError('Name %r not found in names tables' % name)
+        raise _UnknownNameError("Name %r not found in names tables" % name)
 
     def hosts(self, id_):
         """
@@ -332,20 +334,18 @@ class Taxonomy(object):
 
         cursor = self._db.cursor()
 
-        cursor.execute(
-            'SELECT taxid FROM accession_taxid WHERE accession = ?',
-            (id_,))
+        cursor.execute("SELECT taxid FROM accession_taxid WHERE accession = ?", (id_,))
         row = cursor.fetchone()
         if row:
             return self.hostsFromTaxid(int(row[0]))
 
-        cursor.execute('SELECT taxid FROM names WHERE name = ?', (id_,))
+        cursor.execute("SELECT taxid FROM names WHERE name = ?", (id_,))
         row = cursor.fetchone()
         if row:
             return self.hostsFromTaxid(int(row[0]))
 
-    @cachedmethod(attrgetter('_fungusVirusCache'))
-    def isFungusOnlyVirus(self, lineage, title=None):
+    @cachedmethod(attrgetter("_fungusVirusCache"))
+    def isFungusOnlyVirus(self, lineage, title=None) -> bool:
         """
         Determine whether a lineage corresponds to a fungus-only virus (i.e.,
         a virus that only infects fungi hosts).
@@ -357,8 +357,12 @@ class Taxonomy(object):
             C{False} otherwise.
         """
         for taxid, name, rank in lineage:
-            if (rank == 'family' and name in FUNGUS_ONLY_FAMILIES or
-                    rank == 'genus' and name in FUNGUS_ONLY_GENERA):
+            if (
+                rank == "family"
+                and name in FUNGUS_ONLY_FAMILIES
+                or rank == "genus"
+                and name in FUNGUS_ONLY_GENERA
+            ):
                 return True
 
         if title and FUNGUS_ONLY_VIRUS_REGEX.search(title):
@@ -369,13 +373,13 @@ class Taxonomy(object):
         # but it (likely, as with plant viruses) results in more
         # fungus-only viruses being identified.
         for taxid, _, _ in lineage:
-            if self.hosts(taxid) == {'fungi'}:
+            if self.hosts(taxid) == {"fungi"}:
                 return True
 
         return False
 
-    @cachedmethod(attrgetter('_plantVirusCache'))
-    def isPlantOnlyVirus(self, lineage, title=None):
+    @cachedmethod(attrgetter("_plantVirusCache"))
+    def isPlantOnlyVirus(self, lineage, title=None) -> bool:
         """
         Determine whether a lineage corresponds to a plant-only virus (i.e.,
         a virus that only infects plant hosts).
@@ -387,9 +391,14 @@ class Taxonomy(object):
             C{False} otherwise.
         """
         for taxid, name, rank in lineage:
-            if (rank == 'order' and name in PLANT_ONLY_ORDERS or
-                    rank == 'family' and name in PLANT_ONLY_FAMILIES or
-                    rank == 'genus' and name in PLANT_ONLY_GENERA):
+            if (
+                rank == "order"
+                and name in PLANT_ONLY_ORDERS
+                or rank == "family"
+                and name in PLANT_ONLY_FAMILIES
+                or rank == "genus"
+                and name in PLANT_ONLY_GENERA
+            ):
                 return True
 
         if title and PLANT_ONLY_VIRUS_REGEX.search(title):
@@ -400,7 +409,7 @@ class Taxonomy(object):
         # in more plant-only viruses being identified, e.g., with rank
         # 'unclassified' and name 'Partitiviridae'.
         for taxid, _, _ in lineage:
-            if self.hosts(taxid) == {'plants'}:
+            if self.hosts(taxid) == {"plants"}:
                 return True
 
         return False
@@ -422,7 +431,7 @@ class Taxonomy(object):
         """
         return filter(lambda l: func(l.rank), lineage)
 
-    def close(self):
+    def close(self) -> None:
         """
         Close the database connection (if we opened it).
         """
@@ -432,14 +441,14 @@ class Taxonomy(object):
         # exception if it is called again.
         self._db = None
 
-    def __enter__(self):
+    def __enter__(self) -> Taxonomy:
         return self
 
-    def __exit__(self, excType, excValue, traceback):
+    def __exit__(self, excType, excValue, traceback) -> None:
         self.close()
 
 
-def isRetrovirus(lineage):
+def isRetrovirus(lineage: Iterable[LineageElement]) -> bool:
     """
     Determine whether a lineage corresponds to a retrovirus.
 
@@ -448,7 +457,7 @@ def isRetrovirus(lineage):
         otherwise.
     """
     for element in lineage:
-        if element.rank == 'family' and element.name == 'Retroviridae':
+        if element.rank == "family" and element.name == "Retroviridae":
             return True
 
     return False
@@ -469,7 +478,7 @@ def isRNAVirus(lineage):
     return False
 
 
-def isDNAVirus(lineage):
+def isDNAVirus(lineage: Iterable[LineageElement]) -> bool:
     """
     Determine whether a lineage corresponds to an DNA virus.
 
@@ -480,7 +489,9 @@ def isDNAVirus(lineage):
     return not isRNAVirus(lineage)
 
 
-def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
+def formatLineage(
+    lineage, namesOnly: bool = False, separator: str = ", ", prefix: str = ""
+) -> str:
     """
     Format a lineage for printing.
 
@@ -496,22 +507,24 @@ def formatLineage(lineage, namesOnly=False, separator=None, prefix=''):
         return prefix + separator.join(element.name for element in lineage)
 
     if separator is not None:
-        return '\n'.join(
-            '%s%s%s%s%s%s' % (prefix, rank, separator, name, separator, taxid)
-            for (taxid, name, rank) in lineage)
+        return "\n".join(
+            "%s%s%s%s%s%s" % (prefix, rank, separator, name, separator, taxid)
+            for (taxid, name, rank) in lineage
+        )
 
     # This is a bit slow, walking through the lineage list 3 times.
     taxidWidth = max(len(str(element.taxid)) for element in lineage)
     nameWidth = max(len(element.name) for element in lineage)
     rankWidth = max(len(element.rank) for element in lineage)
 
-    return '\n'.join(
-        '%s%-*s %-*s %*d' % (
-            prefix, rankWidth, rank, nameWidth, name, taxidWidth, taxid)
-        for (taxid, name, rank) in lineage)
+    return "\n".join(
+        "%s%-*s %-*s %*d"
+        % (prefix, rankWidth, rank, nameWidth, name, taxidWidth, taxid)
+        for (taxid, name, rank) in lineage
+    )
 
 
-def lineageTaxonomyLinks(lineage):
+def lineageTaxonomyLinks(lineage: Iterable[LineageElement]) -> list[str]:
     """
     Get HTML links for a lineage.
 
@@ -519,25 +532,25 @@ def lineageTaxonomyLinks(lineage):
     @return: A C{list} of HTML C{str} links.
     """
     names = [element.name for element in lineage]
-    names[0] = 'taxon'
+    names[0] = "taxon"
 
     taxids = [element.taxid for element in lineage]
 
     return [
-        '<a href="%s%s">%s</a>' % (
-            'https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=',
-            taxid, name) for taxid, name in list(zip(taxids, names))[:-1]
+        '<a href="%s%s">%s</a>'
+        % ("https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=", taxid, name)
+        for taxid, name in list(zip(taxids, names))[:-1]
     ]
 
 
-class _HierarchyNode(object):
-    def __init__(self, name):
+class _HierarchyNode:
+    def __init__(self, name: str):
         self.name = name
         self.count = 0
-        self.nodes = {}
-        self.tips = []
+        self.nodes: dict[str, _HierarchyNode] = {}
+        self.tips: list[tuple[str, str]] = []
 
-    def addChild(self, name):
+    def addChild(self, name) -> _HierarchyNode:
         self.count += 1
         try:
             node = self.nodes[name]
@@ -546,36 +559,42 @@ class _HierarchyNode(object):
 
         return node
 
-    def addTip(self, name, genomeAccession):
+    def addTip(self, name: str, genomeAccession: str) -> None:
         self.count += 1
         self.tips.append((name, genomeAccession))
 
-    def toDict(self):
+    def toDict(self) -> dict:
         nodes = [node.toDict() for node in self.nodes.values()]
 
         if self.tips:
-            nodes.extend([{
-                'text': name,
-                'href': '#pathogen-' + accession,
-            } for (name, accession) in sorted(self.tips)])
+            nodes.extend(
+                [
+                    {
+                        "text": name,
+                        "href": "#pathogen-" + accession,
+                    }
+                    for (name, accession) in sorted(self.tips)
+                ]
+            )
 
         return {
             # 'count': self.count,
-            'nodes': nodes,
+            "nodes": nodes,
             # 'name': self.name,
             # 'tips': self.tips,
-            'text': '%s (%d)' % (self.name, self.count),
+            "text": "%s (%d)" % (self.name, self.count),
         }
 
 
-class Hierarchy(object):
+class Hierarchy:
     """
     Collect information about a lineages in a taxonomy hierarchy.
     """
-    def __init__(self, rootName='Viruses'):
+
+    def __init__(self, rootName: str = "Viruses"):
         self._root = _HierarchyNode(rootName)
 
-    def add(self, lineage, genomeAccession):
+    def add(self, lineage: Iterable[LineageElement], genomeAccession: str) -> None:
         """
         Add a new lineage.
 
@@ -597,21 +616,25 @@ class Hierarchy(object):
         return dumps([self._root.toDict()])
 
 
-def addTaxonomyDatabaseCommandLineOptions(parser):
+def addTaxonomyDatabaseCommandLineOptions(parser: argparse.ArgumentParser) -> None:
     """
     Add standard taxonomy database command-line options to an argparse parser.
 
     @param parser: An C{argparse.ArgumentParser} instance.
     """
     parser.add_argument(
-        '--' + TAXONOMY_DATABASE_COMMAND_LINE_OPTION, metavar='DATABASE-FILE',
-        help=('The file holding an sqlite3 taxonomy database. See '
-              'https://github.com/acorg/ncbi-taxonomy-database for how to '
-              'build one. If not specified, the value in the %r environment '
-              'variable (if any) will be used.' % TAXONOMY_DATABASE_ENV_VAR), )
+        "--" + TAXONOMY_DATABASE_COMMAND_LINE_OPTION,
+        metavar="DATABASE-FILE",
+        help=(
+            "The file holding an sqlite3 taxonomy database. See "
+            "https://github.com/acorg/ncbi-taxonomy-database for how to "
+            "build one. If not specified, the value in the %r environment "
+            "variable (if any) will be used." % TAXONOMY_DATABASE_ENV_VAR
+        ),
+    )
 
 
-def parseTaxonomyDatabaseCommandLineOptions(args, parser):
+def parseTaxonomyDatabaseCommandLineOptions(args, parser) -> Optional[Taxonomy]:
     """
     Examine parsed command-line options and return a Taxonomy instance. Exits
     if no taxonomy database is given or named in the TAXONOMY_DATABASE_ENV_VAR
@@ -624,13 +647,15 @@ def parseTaxonomyDatabaseCommandLineOptions(args, parser):
         given or set via the environment variable named in
         TAXONOMY_DATABASE_ENV_VAR.
     """
-    filename = args.taxonomyDatabase or environ.get(
-        TAXONOMY_DATABASE_ENV_VAR)
+    filename = args.taxonomyDatabase or environ.get(TAXONOMY_DATABASE_ENV_VAR)
 
     if filename:
         return Taxonomy(filename)
     else:
         parser.error(
-            'A taxonomy database file must be given, either via --%s on '
-            'the command line or via the %r environment variable.' %
-            (TAXONOMY_DATABASE_COMMAND_LINE_OPTION, TAXONOMY_DATABASE_ENV_VAR))
+            "A taxonomy database file must be given, either via --%s on "
+            "the command line or via the %r environment variable."
+            % (TAXONOMY_DATABASE_COMMAND_LINE_OPTION, TAXONOMY_DATABASE_ENV_VAR)
+        )
+
+        return None

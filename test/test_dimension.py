@@ -10,43 +10,36 @@ class TestDimensionalIterator(TestCase):
     """
 
     def testNoDimensions(self):
-        self.assertEqual(
-            (),
-            tuple(dimensionalIterator(())))
+        self.assertEqual((), tuple(dimensionalIterator(())))
 
     def testZeroDimension(self):
         """
         Passing a zero dimension must result in a ValueError with the expected
         error string.
         """
-        error = r'^Dimensions not all positive! \(2, 0, 3\)$'
-        assertRaisesRegex(self, ValueError, error, next,
-                          dimensionalIterator((2, 0, 3)))
+        error = r"^Dimensions not all positive! \(2, 0, 3\)$"
+        assertRaisesRegex(self, ValueError, error, next, dimensionalIterator((2, 0, 3)))
 
     def testNegativeDimension(self):
         """
         Passing a negative dimension must result in a ValueError with the
         expected error string.
         """
-        error = r'^Dimensions not all positive! \(2, -1, 3\)$'
-        assertRaisesRegex(self, ValueError, error, next,
-                          dimensionalIterator((2, -1, 3)))
+        error = r"^Dimensions not all positive! \(2, -1, 3\)$"
+        assertRaisesRegex(
+            self, ValueError, error, next, dimensionalIterator((2, -1, 3))
+        )
 
     def testLimitedTo0Items(self):
-        self.assertEqual(
-            (),
-            tuple(dimensionalIterator((2, 2), maxItems=0)))
+        self.assertEqual((), tuple(dimensionalIterator((2, 2), maxItems=0)))
 
     def test1X2(self):
-        self.assertEqual(
-            ((0, 0), (0, 1)),
-            tuple(dimensionalIterator((1, 2))))
+        self.assertEqual(((0, 0), (0, 1)), tuple(dimensionalIterator((1, 2))))
 
     def test2X2(self):
         self.assertEqual(
-            ((0, 0), (0, 1),
-             (1, 0), (1, 1)),
-            tuple(dimensionalIterator((2, 2))))
+            ((0, 0), (0, 1), (1, 0), (1, 1)), tuple(dimensionalIterator((2, 2)))
+        )
 
     def test2X2LimitedTo4Items(self):
         """
@@ -55,32 +48,48 @@ class TestDimensionalIterator(TestCase):
         items.
         """
         self.assertEqual(
-            ((0, 0), (0, 1),
-             (1, 0), (1, 1)),
-            tuple(dimensionalIterator((2, 2), maxItems=4)))
+            ((0, 0), (0, 1), (1, 0), (1, 1)),
+            tuple(dimensionalIterator((2, 2), maxItems=4)),
+        )
 
     def test2X2LimitedTo3Items(self):
         self.assertEqual(
-            ((0, 0), (0, 1),
-             (1, 0)),
-            tuple(dimensionalIterator((2, 2), maxItems=3)))
+            ((0, 0), (0, 1), (1, 0)), tuple(dimensionalIterator((2, 2), maxItems=3))
+        )
 
     def testStarX2LimitedTo10Items(self):
         self.assertEqual(
-            ((0, 0), (0, 1),
-             (1, 0), (1, 1),
-             (2, 0), (2, 1),
-             (3, 0), (3, 1),
-             (4, 0), (4, 1)),
-            tuple(dimensionalIterator(('*', 2), maxItems=10)))
+            (
+                (0, 0),
+                (0, 1),
+                (1, 0),
+                (1, 1),
+                (2, 0),
+                (2, 1),
+                (3, 0),
+                (3, 1),
+                (4, 0),
+                (4, 1),
+            ),
+            tuple(dimensionalIterator(("*", 2), maxItems=10)),
+        )
 
     def testStarX3LimitedTo10Items(self):
         self.assertEqual(
-            ((0, 0), (0, 1), (0, 2),
-             (1, 0), (1, 1), (1, 2),
-             (2, 0), (2, 1), (2, 2),
-             (3, 0)),
-            tuple(dimensionalIterator(('*', 3), maxItems=10)))
+            (
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (1, 0),
+                (1, 1),
+                (1, 2),
+                (2, 0),
+                (2, 1),
+                (2, 2),
+                (3, 0),
+            ),
+            tuple(dimensionalIterator(("*", 3), maxItems=10)),
+        )
 
     def test3X2XStarX4(self):
         """
@@ -89,24 +98,61 @@ class TestDimensionalIterator(TestCase):
         return zero as the '*' dimension is never exhauted.
         """
         self.assertEqual(
-            ((0, 0, 0, 0), (0, 0, 0, 1), (0, 0, 0, 2), (0, 0, 0, 3),
-             (0, 0, 1, 0), (0, 0, 1, 1), (0, 0, 1, 2), (0, 0, 1, 3),
-             (0, 0, 2, 0), (0, 0, 2, 1), (0, 0, 2, 2), (0, 0, 2, 3),
-             (0, 0, 3, 0), (0, 0, 3, 1), (0, 0, 3, 2), (0, 0, 3, 3),
-             (0, 0, 4, 0), (0, 0, 4, 1), (0, 0, 4, 2), (0, 0, 4, 3)),
-            tuple(dimensionalIterator((3, 2, '*', 4), maxItems=20)))
+            (
+                (0, 0, 0, 0),
+                (0, 0, 0, 1),
+                (0, 0, 0, 2),
+                (0, 0, 0, 3),
+                (0, 0, 1, 0),
+                (0, 0, 1, 1),
+                (0, 0, 1, 2),
+                (0, 0, 1, 3),
+                (0, 0, 2, 0),
+                (0, 0, 2, 1),
+                (0, 0, 2, 2),
+                (0, 0, 2, 3),
+                (0, 0, 3, 0),
+                (0, 0, 3, 1),
+                (0, 0, 3, 2),
+                (0, 0, 3, 3),
+                (0, 0, 4, 0),
+                (0, 0, 4, 1),
+                (0, 0, 4, 2),
+                (0, 0, 4, 3),
+            ),
+            tuple(dimensionalIterator((3, 2, "*", 4), maxItems=20)),
+        )
 
     def test2X3X4(self):
         self.assertEqual(
-            ((0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 0, 3),
-             (0, 1, 0), (0, 1, 1), (0, 1, 2), (0, 1, 3),
-             (0, 2, 0), (0, 2, 1), (0, 2, 2), (0, 2, 3),
-             (1, 0, 0), (1, 0, 1), (1, 0, 2), (1, 0, 3),
-             (1, 1, 0), (1, 1, 1), (1, 1, 2), (1, 1, 3),
-             (1, 2, 0), (1, 2, 1), (1, 2, 2), (1, 2, 3)),
-            tuple(dimensionalIterator((2, 3, 4))))
+            (
+                (0, 0, 0),
+                (0, 0, 1),
+                (0, 0, 2),
+                (0, 0, 3),
+                (0, 1, 0),
+                (0, 1, 1),
+                (0, 1, 2),
+                (0, 1, 3),
+                (0, 2, 0),
+                (0, 2, 1),
+                (0, 2, 2),
+                (0, 2, 3),
+                (1, 0, 0),
+                (1, 0, 1),
+                (1, 0, 2),
+                (1, 0, 3),
+                (1, 1, 0),
+                (1, 1, 1),
+                (1, 1, 2),
+                (1, 1, 3),
+                (1, 2, 0),
+                (1, 2, 1),
+                (1, 2, 2),
+                (1, 2, 3),
+            ),
+            tuple(dimensionalIterator((2, 3, 4))),
+        )
 
     def test1X1X1(self):
-        self.assertEqual(
-            ((0, 0, 0),),
-            tuple(dimensionalIterator((1, 1, 1))))
+        self.assertEqual(((0, 0, 0),), tuple(dimensionalIterator((1, 1, 1))))

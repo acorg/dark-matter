@@ -4,8 +4,9 @@ from dark.sam import CONSUMES_REFERENCE
 
 
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
-(CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR,
- CHARD_CLIP_STR) = tuple('IDM=XH')
+(CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR, CHARD_CLIP_STR) = tuple(
+    "IDM=XH"
+)
 
 
 def dna2cigar(s1, s2, concise=False):
@@ -24,14 +25,16 @@ def dna2cigar(s1, s2, concise=False):
     """
     len1 = len(s1)
     if len1 != len(s2):
-        raise ValueError('Sequences %r and %r of unequal length (%d != %d).' %
-                         (s1, s2, len1, len(s2)))
+        raise ValueError(
+            "Sequences %r and %r of unequal length (%d != %d)."
+            % (s1, s2, len1, len(s2))
+        )
 
     if len1 == 0:
-        raise ValueError('Two sequences of zero length were passed.')
+        raise ValueError("Two sequences of zero length were passed.")
 
     if concise:
-        return '%d%s' % (len1, CMATCH_STR)
+        return "%d%s" % (len1, CMATCH_STR)
 
     result = []
     length, operation = 0, None
@@ -43,7 +46,7 @@ def dna2cigar(s1, s2, concise=False):
             else:
                 if length:
                     assert operation == CDIFF_STR
-                    result.append('%d%s' % (length, CDIFF_STR))
+                    result.append("%d%s" % (length, CDIFF_STR))
                 length, operation = 1, CEQUAL_STR
         else:
             if operation == CDIFF_STR:
@@ -51,13 +54,13 @@ def dna2cigar(s1, s2, concise=False):
             else:
                 if length:
                     assert operation == CEQUAL_STR
-                    result.append('%d%s' % (length, CEQUAL_STR))
+                    result.append("%d%s" % (length, CEQUAL_STR))
                 length, operation = 1, CDIFF_STR
 
     # Append the final operation.
-    result.append('%d%s' % (length, operation))
+    result.append("%d%s" % (length, operation))
 
-    return ''.join(result)
+    return "".join(result)
 
 
 def makeCigar(reference, query, noEdgeInsertions=True):
@@ -79,21 +82,21 @@ def makeCigar(reference, query, noEdgeInsertions=True):
     @return: A C{str} CIGAR string.
     """
     if not reference:
-        raise ValueError('Empty reference')
+        raise ValueError("Empty reference")
     if not query:
-        raise ValueError('Empty query')
+        raise ValueError("Empty query")
 
     # Pad the reference on the right, if necessary.
     if len(reference) < len(query):
-        reference += ' ' * (len(query) - len(reference))
+        reference += " " * (len(query) - len(reference))
 
     cigar = []
     softClipLeft = softClipRight = 0
     start = True
 
     for referenceBase, queryBase in zip(reference, query):
-        if referenceBase == ' ':
-            if queryBase == ' ':
+        if referenceBase == " ":
+            if queryBase == " ":
                 continue
             else:
                 if start:
@@ -102,15 +105,15 @@ def makeCigar(reference, query, noEdgeInsertions=True):
                     softClipRight += 1
         else:
             start = False
-            if queryBase == ' ':
+            if queryBase == " ":
                 continue
-            elif referenceBase == '-':
+            elif referenceBase == "-":
                 # Insertion to the reference.
-                assert queryBase != '-'
+                assert queryBase != "-"
                 cigar.append(CINS_STR)
-            elif queryBase == '-':
+            elif queryBase == "-":
                 # Deletion from the reference.
-                assert referenceBase != '-'
+                assert referenceBase != "-"
                 cigar.append(CDEL_STR)
             else:
                 cigar.append(CMATCH_STR)
@@ -122,14 +125,14 @@ def makeCigar(reference, query, noEdgeInsertions=True):
     for op in cigar:
         if op != lastOp:
             if count:
-                middle.append(f'{count}{lastOp}')
+                middle.append(f"{count}{lastOp}")
             count = 1
             lastOp = op
         else:
             count += 1
 
     if count:
-        middle.append(f'{count}{lastOp}')
+        middle.append(f"{count}{lastOp}")
 
     if noEdgeInsertions:
         if middle:
@@ -142,9 +145,11 @@ def makeCigar(reference, query, noEdgeInsertions=True):
                 softClipRight += int(middle[-1][:-1])
                 middle.pop()
 
-    return ((f'{softClipLeft}S' if softClipLeft else '') +
-            ''.join(middle) +
-            (f'{softClipRight}S' if softClipRight else ''))
+    return (
+        (f"{softClipLeft}S" if softClipLeft else "")
+        + "".join(middle)
+        + (f"{softClipRight}S" if softClipRight else "")
+    )
 
 
 def cigarTuplesToOperations(tuples, includeHardClip=True):
@@ -185,8 +190,7 @@ def softClippedOffset(offset, pairs, cigarOperations):
 
     # Look back.
     count = 0
-    for pair, cigarOperation in zip(pairs[offset::-1],
-                                    cigarOperations[offset::-1]):
+    for pair, cigarOperation in zip(pairs[offset::-1], cigarOperations[offset::-1]):
         if cigarOperation == CSOFT_CLIP:
             count += 1
         else:
@@ -217,8 +221,9 @@ def softClippedOffset(offset, pairs, cigarOperations):
                 return referenceOffset - count
 
     # This should be impossible.
-    raise ValueError('Soft-clipped base with no following or preceding '
-                     'non-hard-clipped bases.')
+    raise ValueError(
+        "Soft-clipped base with no following or preceding " "non-hard-clipped bases."
+    )
 
 
 def insertionOffset(offset, pairs, cigarOperations):
@@ -241,8 +246,7 @@ def insertionOffset(offset, pairs, cigarOperations):
     assert pairs[offset][1] is None
 
     # Look back.
-    for pair, cigarOperation in zip(pairs[offset::-1],
-                                    cigarOperations[offset::-1]):
+    for pair, cigarOperation in zip(pairs[offset::-1], cigarOperations[offset::-1]):
         if cigarOperation != CINS:
             _, referenceOffset = pair
             # If we have a reference offset, then we've found our
@@ -265,5 +269,4 @@ def insertionOffset(offset, pairs, cigarOperations):
                 return False, referenceOffset
 
     # This should be impossible.
-    raise ValueError('Inserted base with no following or preceding '
-                     'reference bases.')
+    raise ValueError("Inserted base with no following or preceding " "reference bases.")

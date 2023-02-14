@@ -8,18 +8,37 @@ from hashlib import md5
 from random import uniform
 from pathlib import Path
 import itertools
+import argparse
 from collections import defaultdict
 from typing import (
-    Callable, Generator, Iterable, List, Literal, Optional, Set, TextIO,
-    Tuple, TypeVar, Union, Dict, Sequence, SupportsIndex)
+    Callable,
+    Generator,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Set,
+    TextIO,
+    Tuple,
+    TypeVar,
+    Union,
+    Dict,
+    Sequence,
+    SupportsIndex,
+)
 
 from Bio.Seq import translate  # type: ignore
 from Bio.Data.IUPACData import ambiguous_dna_complement  # type: ignore
 from Bio.Data.IUPACData import ambiguous_rna_complement  # type: ignore
 
-from dark.aa import (
-    AA_LETTERS, NAMES as AA_NAMES, PROPERTIES, PROPERTY_DETAILS, NONE,
-    START_CODON, STOP_CODONS)
+from dark.aaVars import (
+    START_CODON,
+    STOP_CODONS,
+    AA_LETTERS,
+    PROPERTIES,
+    PROPERTY_DETAILS,
+    NONE,
+)
 from dark.filter import TitleFilter
 from dark.hsp import HSP
 from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
@@ -56,13 +75,15 @@ class Read:
     @raise ValueError: if the length of the quality string (if any) does not
         match the length of the sequence.
     """
+
     ALPHABET: Optional[set] = None
 
     def __init__(self, id: str, sequence: str, quality: Optional[str] = None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
-                'Invalid read: sequence length (%d) != quality length (%d)' %
-                (len(sequence), len(quality)))
+                "Invalid read: sequence length (%d) != quality length (%d)"
+                % (len(sequence), len(quality))
+            )
 
         self.id = id
         self.sequence = sequence
@@ -70,9 +91,11 @@ class Read:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Read):
-            return (self.id == other.id and
-                    self.sequence == other.sequence and
-                    self.quality == other.quality)
+            return (
+                self.id == other.id
+                and self.sequence == other.sequence
+                and self.quality == other.quality
+            )
         else:
             return NotImplemented
 
@@ -84,8 +107,11 @@ class Read:
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, Read):
-            return ((self.id, self.sequence, self.quality) <
-                    (other.id, other.sequence, other.quality))
+            return (self.id, self.sequence, self.quality) < (
+                other.id,
+                other.sequence,
+                other.quality,
+            )
         else:
             return NotImplemented
 
@@ -99,19 +125,28 @@ class Read:
         @return: The C{int} hash key for the read.
         """
         if self.quality is None:
-            return hash(md5(self.id.encode('UTF-8') + b'\0' +
-                            self.sequence.encode('UTF-8')).digest())
+            return hash(
+                md5(
+                    self.id.encode("UTF-8") + b"\0" + self.sequence.encode("UTF-8")
+                ).digest()
+            )
         else:
-            return hash(md5(self.id.encode('UTF-8') + b'\0' +
-                            self.sequence.encode('UTF-8') + b'\0' +
-                            self.quality.encode('UTF-8')).digest())
+            return hash(
+                md5(
+                    self.id.encode("UTF-8")
+                    + b"\0"
+                    + self.sequence.encode("UTF-8")
+                    + b"\0"
+                    + self.quality.encode("UTF-8")
+                ).digest()
+            )
 
     def __getitem__(self, item: Union[int, slice]) -> Read:
         sequence = self.sequence[item]
         quality = None if self.quality is None else self.quality[item]
         return self.__class__(self.id, sequence, quality)
 
-    def toString(self, format_: str = 'fasta') -> str:
+    def toString(self, format_: str = "fasta") -> str:
         """
         Convert the read to a string format.
 
@@ -121,18 +156,20 @@ class Read:
             structure information, or if an unknown format is requested.
         @return: A C{str} representing the read in the requested format.
         """
-        if format_ == 'fasta':
-            return '>%s\n%s\n' % (self.id, self.sequence)
-        elif format_ == 'fastq':
+        if format_ == "fasta":
+            return ">%s\n%s\n" % (self.id, self.sequence)
+        elif format_ == "fastq":
             if self.quality is None:
-                raise ValueError('Read %r has no quality information' %
-                                 self.id)
+                raise ValueError("Read %r has no quality information" % self.id)
             else:
-                return '@%s\n%s\n+%s\n%s\n' % (
-                    self.id, self.sequence, self.id, self.quality)
+                return "@%s\n%s\n+%s\n%s\n" % (
+                    self.id,
+                    self.sequence,
+                    self.id,
+                    self.quality,
+                )
         else:
-            raise ValueError("Format must be either 'fasta', 'fastq' or "
-                             "'fasta-ss'.")
+            raise ValueError("Format must be either 'fasta', 'fastq' or " "'fasta-ss'.")
 
     def toDict(self) -> dict:
         """
@@ -141,9 +178,9 @@ class Read:
         @return: A C{dict} with keys/values for the attributes of self.
         """
         return {
-            'id': self.id,
-            'sequence': self.sequence,
-            'quality': self.quality,
+            "id": self.id,
+            "sequence": self.sequence,
+            "quality": self.quality,
         }
 
     def reverse(self) -> Read:
@@ -155,7 +192,8 @@ class Read:
         return self.__class__(
             self.id,
             self.sequence[::-1],
-            None if self.quality is None else self.quality[::-1])
+            None if self.quality is None else self.quality[::-1],
+        )
 
     @classmethod
     def fromDict(cls, d: dict) -> Read:
@@ -167,7 +205,7 @@ class Read:
             must be provided. A 'quality' C{str} key is optional.
         @return: A new instance of this class, with values taken from C{d}.
         """
-        return cls(d['id'], d['sequence'], d.get('quality'))
+        return cls(d["id"], d["sequence"], d.get("quality"))
 
     def lowComplexityFraction(self) -> float:
         """
@@ -185,10 +223,9 @@ class Read:
         else:
             return 0.0
 
-    def walkHSP(self,
-                hsp: HSP,
-                includeWhiskers: bool = True) -> Generator[
-                    Tuple[int, str, bool], None, None]:
+    def walkHSP(
+        self, hsp: HSP, includeWhiskers: bool = True
+    ) -> Generator[Tuple[int, str, bool], None, None]:
         """
         Provide information about exactly how a read matches a subject, as
         specified by C{hsp}.
@@ -219,8 +256,9 @@ class Read:
                 subjectOffset += 1
 
         # Match.
-        for subjectOffset, residue in enumerate(hsp.readMatchedSequence,
-                                                start=hsp.subjectStart):
+        for subjectOffset, residue in enumerate(
+            hsp.readMatchedSequence, start=hsp.subjectStart
+        ):
             yield (subjectOffset, residue, True)
 
         # Right whisker.
@@ -254,11 +292,15 @@ class Read:
         # Check if readLetters is a subset of self.ALPHABET.
         if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
             return readLetters
-        raise ValueError("Read alphabet (%r) is not a subset of expected "
-                         "alphabet (%r) for read class %s." % (
-                             ''.join(sorted(readLetters)),
-                             ''.join(sorted(self.ALPHABET)),
-                             str(self.__class__.__name__)))
+        raise ValueError(
+            "Read alphabet (%r) is not a subset of expected "
+            "alphabet (%r) for read class %s."
+            % (
+                "".join(sorted(readLetters)),
+                "".join(sorted(self.ALPHABET)),
+                str(self.__class__.__name__),
+            )
+        )
 
     def newFromSites(self, sites: Set[int], exclude: bool = False) -> Read:
         """
@@ -280,34 +322,33 @@ class Read:
         newSequence = []
         if self.quality:
             newQuality = []
-            for index, (base, quality) in enumerate(zip(self.sequence,
-                                                        self.quality)):
+            for index, (base, quality) in enumerate(zip(self.sequence, self.quality)):
                 if index in sites:
                     newSequence.append(base)
                     newQuality.append(quality)
-            read = self.__class__(self.id, ''.join(newSequence),
-                                  ''.join(newQuality))
+            read = self.__class__(self.id, "".join(newSequence), "".join(newQuality))
         else:
             for index, base in enumerate(self.sequence):
                 if index in sites:
                     newSequence.append(base)
-            read = self.__class__(self.id, ''.join(newSequence))
+            read = self.__class__(self.id, "".join(newSequence))
 
         return read
 
 
-ReadVar = TypeVar('ReadVar', bound=Read)
+ReadVar = TypeVar("ReadVar", bound=Read)
 
 
 class _NucleotideRead(Read):
     """
     Holds methods to work with nucleotide (DNA and RNA) sequences.
     """
+
     COMPLEMENT_TABLE: Sequence[Union[str, None]] = [None]
 
-    def translations(self: Union[_NucleotideRead,
-                                 DNARead,
-                                 RNARead]) -> Generator[TranslatedRead, None, None]:
+    def translations(
+        self: Union[_NucleotideRead, DNARead, RNARead]
+    ) -> Generator[TranslatedRead, None, None]:
         """
         Yield all six translations of a nucleotide sequence.
 
@@ -325,9 +366,10 @@ class _NucleotideRead(Read):
                 suffix = seq[frame:]
                 lengthMod3 = len(suffix) % 3
                 if lengthMod3:
-                    suffix += ('NN' if lengthMod3 == 1 else 'N')
-                yield TranslatedRead(self, translate(suffix), frame,
-                                     reverseComplemented)
+                    suffix += "NN" if lengthMod3 == 1 else "N"
+                yield TranslatedRead(
+                    self, translate(suffix), frame, reverseComplemented
+                )
 
     def reverseComplement(self: Union[_NucleotideRead, DNARead, RNARead]) -> Read:
         """
@@ -345,17 +387,19 @@ class DNARead(_NucleotideRead):
     """
     Hold information and methods to work with DNA reads.
     """
-    ALPHABET: set = set('ATCG')
+
+    ALPHABET: set = set("ATCG")
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
-    def findORF(self,
-                offset: int,
-                forward: bool = True,
-                requireStartCodon: bool = True,
-                allowGaps: bool = True,
-                untranslatable: Optional[Dict[str, str]] = None
-                ):
+    def findORF(
+        self,
+        offset: int,
+        forward: bool = True,
+        requireStartCodon: bool = True,
+        allowGaps: bool = True,
+        untranslatable: Optional[Dict[str, str]] = None,
+    ):
         """
         Find an ORF that supposedly starts at a specified offset in a read.
 
@@ -379,18 +423,17 @@ class DNARead(_NucleotideRead):
             sequence (str): the ORF nucelotide sequence.
             translation (str): the amino acid sequence for the ORF.
         """
-        sequence = (
-            self.sequence if forward else self.reverseComplement().sequence)
+        sequence = self.sequence if forward else self.reverseComplement().sequence
 
-        gapCount = sequence[offset:].count('-')
+        gapCount = sequence[offset:].count("-")
         if gapCount:
             if allowGaps:
-                sequence = (
-                    sequence[:offset] + sequence[offset:].replace('-', ''))
+                sequence = sequence[:offset] + sequence[offset:].replace("-", "")
             else:
                 raise ValueError(
                     f"At least one gap ('-') character found in read "
-                    f"{self.id!r} from offset {offset} or later.")
+                    f"{self.id!r} from offset {offset} or later."
+                )
 
         first = True
         length = 0
@@ -399,7 +442,7 @@ class DNARead(_NucleotideRead):
         translation = []
 
         for index in itertools.count(offset, 3):
-            codon = sequence[index:index + 3]
+            codon = sequence[index : index + 3]
             if len(codon) != 3:
                 break
 
@@ -428,11 +471,11 @@ class DNARead(_NucleotideRead):
                 break
 
         return {
-            'length': length,
-            'foundStartCodon': foundStartCodon,
-            'foundStopCodon': foundStopCodon,
-            'sequence': ''.join(codons),
-            'translation': ''.join(translation),
+            "length": length,
+            "foundStartCodon": foundStartCodon,
+            "foundStopCodon": foundStopCodon,
+            "sequence": "".join(codons),
+            "translation": "".join(translation),
         }
 
 
@@ -440,7 +483,8 @@ class RNARead(_NucleotideRead):
     """
     Hold information and methods to work with RNA reads.
     """
-    ALPHABET: set = set('ATCGU')
+
+    ALPHABET: set = set("ATCGU")
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_rna_complement)
 
@@ -459,21 +503,29 @@ class DNAKozakRead(DNARead):
         locations in the Kozak sequence that match the most frequent Kozak
         nucleotides.
     """
+
     def __init__(self, originalRead: Read, start: int, stop: int, kozakQuality: float):
         if start < 0:
-            raise ValueError('start offset (%d) less than zero' % start)
+            raise ValueError("start offset (%d) less than zero" % start)
         if stop > len(originalRead):
-            raise ValueError('stop offset (%d) > original read length (%d)' %
-                             (stop, len(originalRead)))
+            raise ValueError(
+                "stop offset (%d) > original read length (%d)"
+                % (stop, len(originalRead))
+            )
         if start > stop:
-            raise ValueError('start offset (%d) greater than stop offset (%d)'
-                             % (start, stop))
+            raise ValueError(
+                "start offset (%d) greater than stop offset (%d)" % (start, stop)
+            )
 
-        newId = '%s-(%d:%d)' % (originalRead.id, start, stop)
+        newId = "%s-(%d:%d)" % (originalRead.id, start, stop)
 
         if originalRead.quality:
-            DNARead.__init__(self, newId, originalRead.sequence[start:stop],
-                             originalRead.quality[start:stop])
+            DNARead.__init__(
+                self,
+                newId,
+                originalRead.sequence[start:stop],
+                originalRead.quality[start:stop],
+            )
         else:
             DNARead.__init__(self, newId, originalRead.sequence[start:stop])
         self.originalRead = originalRead
@@ -483,13 +535,15 @@ class DNAKozakRead(DNARead):
 
     def __eq__(self, other: object):
         if isinstance(other, DNAKozakRead):
-            return (self.id == other.id and
-                    self.sequence == other.sequence and
-                    self.originalRead == other.originalRead and
-                    self.quality == other.quality and
-                    self.start == other.start and
-                    self.stop == other.stop and
-                    self.kozakQuality == other.kozakQuality)
+            return (
+                self.id == other.id
+                and self.sequence == other.sequence
+                and self.originalRead == other.originalRead
+                and self.quality == other.quality
+                and self.start == other.start
+                and self.stop == other.stop
+                and self.kozakQuality == other.kozakQuality
+            )
         else:
             return NotImplemented
 
@@ -504,6 +558,7 @@ class AARead(Read):
     """
     Hold information and methods to work with AA reads.
     """
+
     ALPHABET = set(AA_LETTERS)
 
     def checkAlphabet(self, count: int = 10) -> set:
@@ -522,9 +577,10 @@ class AARead(Read):
             and it looks like DNA has been passed to AARead().
         """
         readLetters = super().checkAlphabet(count)
-        if len(self) > 10 and readLetters.issubset(set('ACGT')):
-            raise ValueError('It looks like a DNA sequence has been passed to '
-                             'AARead().')
+        if len(self) > 10 and readLetters.issubset(set("ACGT")):
+            raise ValueError(
+                "It looks like a DNA sequence has been passed to " "AARead()."
+            )
         return readLetters
 
     def properties(self) -> Generator[int, None, None]:
@@ -564,17 +620,16 @@ class AARead(Read):
             inORF = False
 
             for index, residue in enumerate(self.sequence):
-                if residue == '*':
+                if residue == "*":
                     if inOpenORF:
                         if index:
                             yield AAReadORF(self, ORFStart, index, True, False)
                         inOpenORF = False
                     elif inORF:
                         if ORFStart != index:
-                            yield AAReadORF(self, ORFStart, index,
-                                            False, False)
+                            yield AAReadORF(self, ORFStart, index, False, False)
                         inORF = False
-                elif residue == 'M':
+                elif residue == "M":
                     if not inOpenORF and not inORF:
                         ORFStart = index + 1
                         inORF = True
@@ -592,15 +647,14 @@ class AARead(Read):
             inORF = False
 
             for index, residue in enumerate(self.sequence):
-                if residue == 'M':
+                if residue == "M":
                     if not inORF:
                         inORF = True
                         ORFStart = index + 1
-                elif residue == '*':
+                elif residue == "*":
                     if inORF:
                         if not ORFStart == index:
-                            yield AAReadORF(self, ORFStart,
-                                            index, False, False)
+                            yield AAReadORF(self, ORFStart, index, False, False)
                         inORF = False
 
 
@@ -609,7 +663,8 @@ class AAReadWithX(AARead):
     Hold information and methods to work with AA reads with additional
     characters.
     """
-    ALPHABET: set = set(AA_LETTERS + ['X'])
+
+    ALPHABET: set[str] = set(AA_LETTERS + ["X"])
 
 
 class AAReadORF(AARead):
@@ -631,23 +686,40 @@ class AAReadORF(AARead):
         was found). If C{False}, a stop codon was found in the read after this
         ORF.
     """
-    def __init__(self, originalRead: AARead, start: int, stop: int,
-                 openLeft: bool, openRight: bool):
+
+    def __init__(
+        self,
+        originalRead: AARead,
+        start: int,
+        stop: int,
+        openLeft: bool,
+        openRight: bool,
+    ):
         if start < 0:
-            raise ValueError('start offset (%d) less than zero' % start)
+            raise ValueError("start offset (%d) less than zero" % start)
         if stop > len(originalRead):
-            raise ValueError('stop offset (%d) > original read length (%d)' %
-                             (stop, len(originalRead)))
+            raise ValueError(
+                "stop offset (%d) > original read length (%d)"
+                % (stop, len(originalRead))
+            )
         if start > stop:
-            raise ValueError('start offset (%d) greater than stop offset (%d)'
-                             % (start, stop))
-        newId = '%s-%s%d:%d%s' % (originalRead.id,
-                                  '(' if openLeft else '[',
-                                  start, stop,
-                                  ')' if openRight else ']')
+            raise ValueError(
+                "start offset (%d) greater than stop offset (%d)" % (start, stop)
+            )
+        newId = "%s-%s%d:%d%s" % (
+            originalRead.id,
+            "(" if openLeft else "[",
+            start,
+            stop,
+            ")" if openRight else "]",
+        )
         if originalRead.quality:
-            AARead.__init__(self, newId, originalRead.sequence[start:stop],
-                            originalRead.quality[start:stop])
+            AARead.__init__(
+                self,
+                newId,
+                originalRead.sequence[start:stop],
+                originalRead.quality[start:stop],
+            )
         else:
             AARead.__init__(self, newId, originalRead.sequence[start:stop])
         self.start = start
@@ -663,12 +735,14 @@ class AAReadORF(AARead):
         """
         result = super().toDict()
 
-        result.update({
-            'start': self.start,
-            'stop': self.stop,
-            'openLeft': self.openLeft,
-            'openRight': self.openRight,
-        })
+        result.update(
+            {
+                "start": self.start,
+                "stop": self.stop,
+                "openLeft": self.openLeft,
+                "openRight": self.openRight,
+            }
+        )
 
         return result
 
@@ -686,14 +760,14 @@ class AAReadORF(AARead):
         @return: A new instance of this class, with values taken from C{d}.
         """
         # Make a dummy instance whose attributes we can set explicitly.
-        new = cls(AARead('', ''), 0, 0, True, True)
-        new.id = d['id']
-        new.sequence = d['sequence']
-        new.quality = d.get('quality')
-        new.start = d['start']
-        new.stop = d['stop']
-        new.openLeft = d['openLeft']
-        new.openRight = d['openRight']
+        new = cls(AARead("", ""), 0, 0, True, True)
+        new.id = d["id"]
+        new.sequence = d["sequence"]
+        new.quality = d.get("quality")
+        new.start = d["start"]
+        new.stop = d["stop"]
+        new.openLeft = d["openLeft"]
+        new.openRight = d["openRight"]
         return new
 
 
@@ -709,20 +783,24 @@ class SSAARead(AARead):
     @param structure: A C{str} of structure information.
     @raise ValueError: If the sequence and structure lengths are not the same.
     """
+
     def __init__(self, id, sequence: str, structure: str):
         super().__init__(id, sequence)
         self.structure = structure
 
         if len(sequence) != len(structure):
             raise ValueError(
-                'Invalid read: sequence length (%d) != structure length (%d)' %
-                (len(sequence), len(structure)))
+                "Invalid read: sequence length (%d) != structure length (%d)"
+                % (len(sequence), len(structure))
+            )
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, SSAARead):
-            return (self.id == other.id and
-                    self.sequence == other.sequence and
-                    self.structure == other.structure)
+            return (
+                self.id == other.id
+                and self.sequence == other.sequence
+                and self.structure == other.structure
+            )
         else:
             return NotImplemented
 
@@ -732,17 +810,24 @@ class SSAARead(AARead):
 
         @return: The C{int} hash key for the read.
         """
-        return hash(md5(self.id.encode('UTF-8') + b'\0' +
-                        self.sequence.encode('UTF-8') + b'\0' +
-                        self.structure.encode('UTF-8')).digest())
+        return hash(
+            md5(
+                self.id.encode("UTF-8")
+                + b"\0"
+                + self.sequence.encode("UTF-8")
+                + b"\0"
+                + self.structure.encode("UTF-8")
+            ).digest()
+        )
 
     def __getitem__(self, item: Union[int, slice]) -> SSAARead:
         sequence = self.sequence[item]
         structure = None if self.structure is None else self.structure[item]
         return self.__class__(self.id, sequence, structure)
 
-    def toString(self, format_: str = 'fasta-ss',
-                 structureSuffix: str = ':structure') -> str:
+    def toString(
+        self, format_: str = "fasta-ss", structureSuffix: str = ":structure"
+    ) -> str:
         """
         Convert the read to a string in PDB format (sequence & structure). This
         consists of two FASTA records, one for the sequence then one for the
@@ -757,10 +842,14 @@ class SSAARead(AARead):
         @return: A C{str} representing the read sequence and structure in PDB
             FASTA format.
         """
-        if format_ == 'fasta-ss':
-            return '>%s\n%s\n>%s%s\n%s\n' % (
-                self.id, self.sequence, self.id, structureSuffix,
-                self.structure)
+        if format_ == "fasta-ss":
+            return ">%s\n%s\n>%s%s\n%s\n" % (
+                self.id,
+                self.sequence,
+                self.id,
+                structureSuffix,
+                self.structure,
+            )
         else:
             return super().toString(format_=format_)
 
@@ -771,9 +860,9 @@ class SSAARead(AARead):
         @return: A C{dict} with keys/values for the attributes of self.
         """
         return {
-            'id': self.id,
-            'sequence': self.sequence,
-            'structure': self.structure,
+            "id": self.id,
+            "sequence": self.sequence,
+            "structure": self.structure,
         }
 
     @classmethod
@@ -786,7 +875,7 @@ class SSAARead(AARead):
             with C{str} values must be provided.
         @return: A new instance of this class, with values taken from C{d}.
         """
-        return cls(d['id'], d['sequence'], d['structure'])
+        return cls(d["id"], d["sequence"], d["structure"])
 
     def newFromSites(self, sites, exclude=False):
         """
@@ -803,13 +892,11 @@ class SSAARead(AARead):
 
         newSequence = []
         newStructure = []
-        for index, (base, structure) in enumerate(zip(self.sequence,
-                                                      self.structure)):
+        for index, (base, structure) in enumerate(zip(self.sequence, self.structure)):
             if index in sites:
                 newSequence.append(base)
                 newStructure.append(structure)
-        read = self.__class__(self.id, ''.join(newSequence),
-                              ''.join(newStructure))
+        read = self.__class__(self.id, "".join(newSequence), "".join(newStructure))
 
         return read
 
@@ -819,7 +906,8 @@ class SSAAReadWithX(SSAARead):
     Hold information and methods to work with C{SSAARead}s allowing 'X'
     characters to appear in sequences.
     """
-    ALPHABET = set(AA_LETTERS + ['X'])
+
+    ALPHABET = set(AA_LETTERS + ["X"])
 
 
 class TranslatedRead(AARead):
@@ -833,20 +921,25 @@ class TranslatedRead(AARead):
     @param reverseComplemented: A C{bool}, C{True} if the original sequence
         must be reverse complemented to obtain this AA sequence.
     """
-    def __init__(self, originalRead, sequence, frame,
-                 reverseComplemented=False):
+
+    def __init__(self, originalRead, sequence, frame, reverseComplemented=False):
         if frame not in (0, 1, 2):
-            raise ValueError('Frame must be 0, 1, or 2')
-        newId = '%s-frame%d%s' % (originalRead.id, frame,
-                                  'rc' if reverseComplemented else '')
+            raise ValueError("Frame must be 0, 1, or 2")
+        newId = "%s-frame%d%s" % (
+            originalRead.id,
+            frame,
+            "rc" if reverseComplemented else "",
+        )
         AARead.__init__(self, newId, sequence)
         self.frame = frame
         self.reverseComplemented = reverseComplemented
 
     def __eq__(self, other):
-        return (AARead.__eq__(self, other) and
-                self.frame == other.frame and
-                self.reverseComplemented == other.reverseComplemented)
+        return (
+            AARead.__eq__(self, other)
+            and self.frame == other.frame
+            and self.reverseComplemented == other.reverseComplemented
+        )
 
     def __ne__(self, other):
         return not self == other
@@ -859,10 +952,12 @@ class TranslatedRead(AARead):
         """
         result = super().toDict()
 
-        result.update({
-            'frame': self.frame,
-            'reverseComplemented': self.reverseComplemented,
-        })
+        result.update(
+            {
+                "frame": self.frame,
+                "reverseComplemented": self.reverseComplemented,
+            }
+        )
 
         return result
 
@@ -879,12 +974,12 @@ class TranslatedRead(AARead):
         @return: A new instance of this class, with values taken from C{d}.
         """
         # Make a dummy instance whose attributes we can set explicitly.
-        new = cls(AARead('', ''), 0, True)
-        new.id = d['id']
-        new.sequence = d['sequence']
-        new.quality = d.get('quality')
-        new.frame = d['frame']
-        new.reverseComplemented = d['reverseComplemented']
+        new = cls(AARead("", ""), 0, True)
+        new.id = d["id"]
+        new.sequence = d["sequence"]
+        new.quality = d.get("quality")
+        new.frame = d["frame"]
+        new.reverseComplemented = d["reverseComplemented"]
         return new
 
     def maximumORFLength(self, openORFs=True):
@@ -1026,28 +1121,51 @@ class ReadFilter:
     # save and restore the state of the RNG and/or to optionally add
     # 'seed=XXX' to the end of the id of the first read, etc.
 
-    def __init__(self, minLength=None, maxLength=None, maxNFraction=None,
-                 removeGaps=False, whitelist=None, blacklist=None,
-                 whitelistFile=None, blacklistFile=None,
-                 titleRegex=None, negativeTitleRegex=None,
-                 truncateTitlesAfter=None, keepSequences=None,
-                 removeSequences=None, head=None,
-                 removeDuplicates=False, removeDuplicatesById=False,
-                 removeDuplicatesUseMD5=False, removeDescriptions=False,
-                 modifier=None, randomSubset=None, trueLength=None,
-                 sampleFraction=None, sequenceNumbersFile=None, idLambda=None,
-                 readLambda=None, keepSites=None, removeSites=None,
-                 reverse=False, reverseComplement=False):
+    def __init__(
+        self,
+        minLength=None,
+        maxLength=None,
+        maxNFraction=None,
+        removeGaps=False,
+        whitelist=None,
+        blacklist=None,
+        whitelistFile=None,
+        blacklistFile=None,
+        titleRegex=None,
+        negativeTitleRegex=None,
+        truncateTitlesAfter=None,
+        keepSequences=None,
+        removeSequences=None,
+        head=None,
+        removeDuplicates=False,
+        removeDuplicatesById=False,
+        removeDuplicatesUseMD5=False,
+        removeDescriptions=False,
+        modifier=None,
+        randomSubset=None,
+        trueLength=None,
+        sampleFraction=None,
+        sequenceNumbersFile=None,
+        idLambda=None,
+        readLambda=None,
+        keepSites=None,
+        removeSites=None,
+        reverse=False,
+        reverseComplement=False,
+    ):
 
         if randomSubset is not None:
             if sampleFraction is not None:
-                raise ValueError('randomSubset and sampleFraction cannot be '
-                                 'used simultaneously in a filter. Make two '
-                                 'read filters instead.')
+                raise ValueError(
+                    "randomSubset and sampleFraction cannot be "
+                    "used simultaneously in a filter. Make two "
+                    "read filters instead."
+                )
 
             if trueLength is None:
-                raise ValueError('trueLength must be supplied if randomSubset '
-                                 'is specified.')
+                raise ValueError(
+                    "trueLength must be supplied if randomSubset " "is specified."
+                )
 
         self.minLength = minLength
         self.maxLength = maxLength
@@ -1059,26 +1177,28 @@ class ReadFilter:
         self.randomSubset = randomSubset
         self.trueLength = trueLength
 
-        if removeDuplicatesUseMD5 and not (
-                removeDuplicates or removeDuplicatesById):
+        if removeDuplicatesUseMD5 and not (removeDuplicates or removeDuplicatesById):
             raise ValueError(
-                'If you specify removeDuplicatesUseMD5, you need to also use '
-                'one of removeDuplicates or removeDuplicatesById.')
+                "If you specify removeDuplicatesUseMD5, you need to also use "
+                "one of removeDuplicates or removeDuplicatesById."
+            )
         self.removeDuplicates = removeDuplicates
         self.removeDuplicatesById = removeDuplicatesById
         self.removeDuplicatesUseMD5 = removeDuplicatesUseMD5
 
         if keepSequences and removeSequences:
             raise ValueError(
-                'Cannot simultaneously filter using keepSequences and '
-                'removeSequences. Call filter twice in succession instead.')
+                "Cannot simultaneously filter using keepSequences and "
+                "removeSequences. Call filter twice in succession instead."
+            )
         self.keepSequences = keepSequences
         self.removeSequences = removeSequences
 
         if keepSites and removeSites:
             raise ValueError(
-                'Cannot simultaneously filter using keepSites and '
-                'removeSites. Call filter twice in succession instead.')
+                "Cannot simultaneously filter using keepSites and "
+                "removeSites. Call filter twice in succession instead."
+            )
         self.keepSites = keepSites
         self.removeSites = removeSites
 
@@ -1107,8 +1227,9 @@ class ReadFilter:
                     if lastNumber is None:
                         if n < 1:
                             raise ValueError(
-                                'First line of sequence number file %r must '
-                                'be at least 1.' % filename)
+                                "First line of sequence number file %r must "
+                                "be at least 1." % filename
+                            )
                         lastNumber = n
                         yield n
                     else:
@@ -1117,31 +1238,40 @@ class ReadFilter:
                             yield n
                         else:
                             raise ValueError(
-                                'Line number file %r contains non-ascending '
-                                'numbers %d and %d.' %
-                                (filename, lastNumber, n))
+                                "Line number file %r contains non-ascending "
+                                "numbers %d and %d." % (filename, lastNumber, n)
+                            )
 
         self.wantedSequenceNumberGeneratorExhausted = False
         self.nextWantedSequenceNumber = None
 
         if sequenceNumbersFile is not None:
-            self.wantedSequenceNumberGenerator = _wantedSequences(
-                sequenceNumbersFile)
+            self.wantedSequenceNumberGenerator = _wantedSequences(sequenceNumbersFile)
             try:
-                self.nextWantedSequenceNumber = next(
-                    self.wantedSequenceNumberGenerator)
+                self.nextWantedSequenceNumber = next(self.wantedSequenceNumberGenerator)
             except StopIteration:
                 # There was a sequence number file, but it was empty. So no
                 # reads will ever be accepted.
                 self.alwaysFalse = True
 
-        if (whitelist or blacklist or whitelistFile or blacklistFile or
-                titleRegex or negativeTitleRegex or truncateTitlesAfter):
+        if (
+            whitelist
+            or blacklist
+            or whitelistFile
+            or blacklistFile
+            or titleRegex
+            or negativeTitleRegex
+            or truncateTitlesAfter
+        ):
             self.titleFilter = TitleFilter(
-                whitelist=whitelist, blacklist=blacklist,
-                whitelistFile=whitelistFile, blacklistFile=blacklistFile,
-                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
-                truncateAfter=truncateTitlesAfter)
+                whitelist=whitelist,
+                blacklist=blacklist,
+                whitelistFile=whitelistFile,
+                blacklistFile=blacklistFile,
+                positiveRegex=titleRegex,
+                negativeRegex=negativeTitleRegex,
+                truncateAfter=truncateTitlesAfter,
+            )
         else:
             self.titleFilter = None
 
@@ -1184,7 +1314,8 @@ class ReadFilter:
                 # We want this sequence.
                 try:
                     self.nextWantedSequenceNumber = next(
-                        self.wantedSequenceNumberGenerator)
+                        self.wantedSequenceNumberGenerator
+                    )
                 except StopIteration:
                     # The sequence number iterator ran out of sequence
                     # numbers.  We must let the rest of the filtering
@@ -1197,8 +1328,7 @@ class ReadFilter:
                 # This sequence isn't one of the ones that's wanted.
                 return False
 
-        if (self.sampleFraction is not None and
-                uniform(0.0, 1.0) > self.sampleFraction):
+        if self.sampleFraction is not None and uniform(0.0, 1.0) > self.sampleFraction:
             # Note that we don't have to worry about the 0.0 or 1.0
             # cases in the above 'if', as they have been dealt with
             # in self.__init__.
@@ -1210,8 +1340,10 @@ class ReadFilter:
                 # There's no point in going any further through the input.
                 self.alwaysFalse = True
                 return False
-            elif uniform(0.0, 1.0) > ((self.randomSubset - self.yieldCount) /
-                                      (self.trueLength - self.readIndex)):
+            elif uniform(0.0, 1.0) > (
+                (self.randomSubset - self.yieldCount)
+                / (self.trueLength - self.readIndex)
+            ):
                 return False
 
         if self.head is not None and self.readIndex == self.head:
@@ -1220,43 +1352,42 @@ class ReadFilter:
             return False
 
         readLen = len(read)
-        if ((self.minLength is not None and readLen < self.minLength) or
-                (self.maxLength is not None and readLen > self.maxLength)):
+        if (self.minLength is not None and readLen < self.minLength) or (
+            self.maxLength is not None and readLen > self.maxLength
+        ):
             return False
 
         if self.maxNFraction is not None:
-            nFraction = read.sequence.count('N') / readLen
+            nFraction = read.sequence.count("N") / readLen
             if self.maxNFraction < nFraction:
                 return False
 
         if self.removeGaps:
             if read.quality is None:
-                read = read.__class__(read.id, read.sequence.replace('-', ''))
+                read = read.__class__(read.id, read.sequence.replace("-", ""))
             else:
                 newSequence = []
                 newQuality = []
                 for base, quality in zip(read.sequence, read.quality):
-                    if base != '-':
+                    if base != "-":
                         newSequence.append(base)
                         newQuality.append(quality)
                 read = read.__class__(
-                    read.id, ''.join(newSequence), ''.join(newQuality))
+                    read.id, "".join(newSequence), "".join(newQuality)
+                )
 
-        if (self.titleFilter and
-                self.titleFilter.accept(read.id) == TitleFilter.REJECT):
+        if self.titleFilter and self.titleFilter.accept(read.id) == TitleFilter.REJECT:
             return False
 
-        if (self.keepSequences is not None and
-                self.readIndex not in self.keepSequences):
+        if self.keepSequences is not None and self.readIndex not in self.keepSequences:
             return False
 
-        if (self.removeSequences is not None and
-                self.readIndex in self.removeSequences):
+        if self.removeSequences is not None and self.readIndex in self.removeSequences:
             return False
 
         if self.removeDuplicates:
             if self.removeDuplicatesUseMD5:
-                sequence = md5(read.sequence.encode('UTF-8')).digest()
+                sequence = md5(read.sequence.encode("UTF-8")).digest()
             else:
                 sequence = read.sequence
             if sequence in self.sequencesSeen:
@@ -1265,7 +1396,7 @@ class ReadFilter:
 
         if self.removeDuplicatesById:
             if self.removeDuplicatesUseMD5:
-                id_ = md5(read.id.encode('UTF-8')).digest()
+                id_ = md5(read.id.encode("UTF-8")).digest()
             else:
                 id_ = read.id
             if id_ in self.idsSeen:
@@ -1315,34 +1446,36 @@ class ReadFilter:
 # Provide a mapping from all read class names to read classes. This can be
 # useful in deserialization.
 readClassNameToClass = {
-    'AARead': AARead,
-    'AAReadORF': AAReadORF,
-    'AAReadWithX': AAReadWithX,
-    'DNARead': DNARead,
-    'RNARead': RNARead,
-    'Read': Read,
-    'SSAARead': SSAARead,
-    'SSAAReadWithX': SSAAReadWithX,
-    'TranslatedRead': TranslatedRead,
+    "AARead": AARead,
+    "AAReadORF": AAReadORF,
+    "AAReadWithX": AAReadWithX,
+    "DNARead": DNARead,
+    "RNARead": RNARead,
+    "Read": Read,
+    "SSAARead": SSAARead,
+    "SSAAReadWithX": SSAAReadWithX,
+    "TranslatedRead": TranslatedRead,
 }
 
-_DNA = set('ACGT')
-_RNA = set('ACGU')
-_AA = set(AA_NAMES)
 
-# Map read class names to the set of unambiguous sequence bases (loosely
-# speaking).
-unambiguousBases = {
-    'AARead': _AA,
-    'AAReadORF': _AA,
-    'AAReadWithX': _AA,
-    'DNARead': _DNA,
-    'RNARead': _RNA,
-    'Read': _DNA,
-    'SSAARead': _AA,
-    'SSAAReadWithX': _AA,
-    'TranslatedRead': _AA,
-}
+def getUnambiguousBases() -> dict[str, set[str]]:
+    _DNA = set("ACGT")
+    _RNA = set("ACGU")
+    _AA = set(AA_LETTERS)
+
+    # Map read class names to the set of unambiguous sequence bases (loosely
+    # speaking).
+    return {
+        "AARead": _AA,
+        "AAReadORF": _AA,
+        "AAReadWithX": _AA,
+        "DNARead": _DNA,
+        "RNARead": _RNA,
+        "Read": _DNA,
+        "SSAARead": _AA,
+        "SSAAReadWithX": _AA,
+        "TranslatedRead": _AA,
+    }
 
 
 class Reads:
@@ -1353,16 +1486,13 @@ class Reads:
         subclass) instances.
     """
 
-    def __init__(
-            self,
-            initialReads: Optional[Iterable[ReadVar]] = None) -> None:
+    def __init__(self, initialReads: Optional[Iterable[ReadVar]] = None) -> None:
         self._initialReads = initialReads
         self._additionalReads: List[ReadVar] = []
         self._filters: List[Callable] = []
         self._iterated = False
 
-    def filterRead(
-            self, read: ReadVar) -> Union[Literal[False], ReadVar]:
+    def filterRead(self, read: ReadVar) -> Union[Literal[False], Read]:
         """
         Filter a read, according to our set of filters.
 
@@ -1386,7 +1516,7 @@ class Reads:
         """
         self._additionalReads.append(read)
 
-    def __iter__(self) -> Generator[ReadVar, None, None]:
+    def __iter__(self) -> Generator[Read, None, None]:
         """
         Iterate through all the reads.
 
@@ -1418,11 +1548,11 @@ class Reads:
 
         # The value returned by self.iter() may be a Reads instance and/or
         # may not support len().
-        subclassReads: Iterable[ReadVar] = self.iter()
+        subclassReads: Iterable[Read] = self.iter()
         subclassReadsLength = 0
-        for read in subclassReads:
+        for xread in subclassReads:
             subclassReadsLength += 1
-            filteredRead = self.filterRead(read)
+            filteredRead = self.filterRead(xread)
             if filteredRead is not False:
                 yield filteredRead
 
@@ -1449,10 +1579,11 @@ class Reads:
             return self._unfilteredLength
         else:
             raise RuntimeError(
-                'The unfiltered length of a Reads instance is unknown until '
-                'it has been iterated.')
+                "The unfiltered length of a Reads instance is unknown until "
+                "it has been iterated."
+            )
 
-    def iter(self) -> Iterable[ReadVar]:
+    def iter(self) -> Union[Generator[Read, None, None], list]:
         """
         Placeholder to allow subclasses to provide reads.
 
@@ -1464,8 +1595,7 @@ class Reads:
         """
         return []
 
-    def save(self,
-             filename: Union[str, TextIO], format_: str = 'fasta') -> int:
+    def save(self, filename: Union[str, TextIO], format_: str = "fasta") -> int:
         """
         Write the reads to C{filename} in the requested format.
 
@@ -1482,7 +1612,7 @@ class Reads:
 
         if isinstance(filename, (str, Path)):
             try:
-                with open(filename, 'w') as fp:
+                with open(filename, "w") as fp:
                     for read in iter(self):
                         fp.write(read.toString(format_))
                         count += 1
@@ -1521,21 +1651,23 @@ class Reads:
         Compute residue counts at a specific sequence index.
 
         @param index: an C{int} index into the sequence.
-        @return: A C{dict} with the count of too-short (excluded) sequences,
-            and a Counter instance giving the residue counts.
+        @return: A C{dict} with the count of the reads, the too-short (excluded)
+            sequences, and a Counter instance giving the base/residue counts.
         """
         countAtPosition: Counter = Counter()
-        excludedCount = 0
+        excludedCount = readCount = 0
 
         for read in iter(self):
+            readCount += 1
             try:
                 countAtPosition[read.sequence[index]] += 1
             except IndexError:
                 excludedCount += 1
 
         return {
-            'excludedCount': excludedCount,
-            'countAtPosition': countAtPosition
+            "excludedCount": excludedCount,
+            "countAtPosition": countAtPosition,
+            "readCount": readCount,
         }
 
     def sitesMatching(self, targets: set, matchCase: bool, any_: bool) -> set[int]:
@@ -1567,8 +1699,9 @@ class Reads:
 
         for read in iter(self):
             sequence = read.sequence if matchCase else read.sequence.lower()
-            matches = set(index for (index, base) in enumerate(sequence)
-                          if base in targets)
+            matches = set(
+                index for (index, base) in enumerate(sequence) if base in targets
+            )
             if any_:
                 result |= matches
             else:
@@ -1585,8 +1718,12 @@ class Reads:
         # return result or set()
         return set() if result is None else result
 
-    def variableSites(self, confirm: bool = False, homogeneityLevel: float = 1.0,
-                      unknownAreAmbiguous: bool = False) -> dict:
+    def variableSites(
+        self,
+        confirm: bool = False,
+        homogeneityLevel: float = 1.0,
+        unknownAreAmbiguous: bool = False,
+    ) -> dict:
         """
         Find the variable sites in a set of reads.
 
@@ -1614,9 +1751,11 @@ class Reads:
             for site in range(length):
                 counts = FloatBaseCounts(
                     [r.sequence[site] for r in reads],
-                    unknownAreAmbiguous=unknownAreAmbiguous)
-                if (counts.variable(confirm) and
-                        not counts.homogeneous(homogeneityLevel)):
+                    unknownAreAmbiguous=unknownAreAmbiguous,
+                )
+                if counts.variable(confirm) and not counts.homogeneous(
+                    homogeneityLevel
+                ):
                     varSites[site] = counts
 
         return varSites
@@ -1632,30 +1771,38 @@ class Reads:
         reads = list(self)
         assert len({len(read) for read in reads}) == 1
 
-        sequence = ''
+        sequence = ""
         for site in range(len(reads[0])):
             bases = set([r.sequence[site] for r in reads])
             if len(bases) == 1:
                 sequence += bases.pop()
-            elif (len(bases) == 2 and 'N' in bases and
-                  bases.intersection({'A', 'T', 'G', 'C'})):
-                sequence += list(bases.intersection({'A', 'T', 'G', 'C'}))[0]
+            elif (
+                len(bases) == 2
+                and "N" in bases
+                and bases.intersection({"A", "T", "G", "C"})
+            ):
+                sequence += list(bases.intersection({"A", "T", "G", "C"}))[0]
             else:
                 nucleotides = set()
                 for base in bases:
                     nucleotides.update(AMBIGUOUS.get(base, set()))
                 try:
-                    sequence += BASES_TO_AMBIGUOUS[''.join(
-                        sorted(nucleotides))]
+                    sequence += BASES_TO_AMBIGUOUS["".join(sorted(nucleotides))]
                 except KeyError:
-                    raise ValueError('Unknown DNA base(s): %r' %
-                                     (nucleotides - set('ACGTN-')))
+                    raise ValueError(
+                        "Unknown DNA base(s): %r" % (nucleotides - set("ACGTN-"))
+                    )
 
         return sequence
 
-    def temporalBaseCounts(self, firstPostId: str, minFrequency: Optional[float] = None,
-                           maxFrequency: Optional[float] = None, minCount: int = 0,
-                           preIds: Optional[Set[str]] = None):
+    def temporalBaseCounts(
+        self,
+        firstPostId: str,
+        minFrequency: Optional[float] = None,
+        maxFrequency: Optional[float] = None,
+        minCount: int = 0,
+        preIds: Optional[Set[str]] = None,
+    ):
         """
         Iterate through time-sorted reads, accumulating counts of bases at each
         offset pre- and post- a specific sequence.
@@ -1681,6 +1828,7 @@ class Reads:
         reference = None
         postIdFound = False
         preIdsFound = set()
+        _DNA = set("ACGT")
 
         for genome in iter(self):
             if first:
@@ -1693,14 +1841,17 @@ class Reads:
             else:
                 if len(genome) != length:
                     raise ValueError(
-                        f'Genome {genome.id!r} has length {len(genome)} which '
-                        f'does not match the length of the first input '
-                        f'sequence ({length}).')
+                        f"Genome {genome.id!r} has length {len(genome)} which "
+                        f"does not match the length of the first input "
+                        f"sequence ({length})."
+                    )
 
             if genome.id == firstPostId:
                 if postIdFound:
-                    raise ValueError(f'Delimiting sequence id {firstPostId!r} '
-                                     f'found more than once!')
+                    raise ValueError(
+                        f"Delimiting sequence id {firstPostId!r} "
+                        f"found more than once!"
+                    )
                 postIdFound = True
 
             if postIdFound:
@@ -1712,8 +1863,10 @@ class Reads:
                         continue
                     else:
                         if genome.id in preIdsFound:
-                            raise ValueError(f'Pre-id sequence {genome.id!r} '
-                                             f'found more than once!')
+                            raise ValueError(
+                                f"Pre-id sequence {genome.id!r} "
+                                f"found more than once!"
+                            )
                         preIdsFound.add(genome.id)
 
                 bases = preBases
@@ -1725,19 +1878,21 @@ class Reads:
                     bases[offset][base] += 1
 
         if reference is None:
-            raise ValueError('No genomes found.')
+            raise ValueError("No genomes found.")
 
         if not postIdFound:
-            raise ValueError(f'The delimiting sequence id {firstPostId!r} '
-                             f'was not found.')
+            raise ValueError(
+                f"The delimiting sequence id {firstPostId!r} " f"was not found."
+            )
 
         if preIds and preIds != preIdsFound:
             missing = sorted(preIds - preIdsFound)
             if len(missing) == 1:
-                raise ValueError(f'Pre-id {missing[0]!r} not found.')
+                raise ValueError(f"Pre-id {missing[0]!r} not found.")
             else:
-                raise ValueError(f'{len(missing)} pre-ids '
-                                 f'({", ".join(missing)}) was not found.')
+                raise ValueError(
+                    f"{len(missing)} pre-ids " f'({", ".join(missing)}) was not found.'
+                )
 
         # Look for bases (that occurred in the post-sequences) that are new
         # (i.e., previously unseen). Calculate their frequencies, and
@@ -1750,21 +1905,22 @@ class Reads:
                     baseCount = postBases[offset][newBase]
                     if baseCount > minCount:
                         frq = baseCount / postCount
-                        if ((minFrequency is None or frq >= minFrequency) and
-                                (maxFrequency is None or frq <= maxFrequency)):
+                        if (minFrequency is None or frq >= minFrequency) and (
+                            maxFrequency is None or frq <= maxFrequency
+                        ):
                             newFrequencies[offset][newBase] = frq
 
         return {
-            'reference': reference,
-            'pre': {
-                'bases': preBases,
-                'count': preCount,
+            "reference": reference,
+            "pre": {
+                "bases": preBases,
+                "count": preCount,
             },
-            'post': {
-                'bases': postBases,
-                'count': postCount,
-                'new': newFrequencies,
-            }
+            "post": {
+                "bases": postBases,
+                "count": postCount,
+                "new": newFrequencies,
+            },
         }
 
 
@@ -1782,7 +1938,7 @@ class ReadsInRAM(Reads):
     # inheritance. If you want a real list, you can just call C{list} on a
     # C{Reads} or C{ReadsInRAM} instance.
 
-    def __init__(self, initialReads=None):
+    def __init__(self, initialReads: Optional[Iterable[Read]] = None):
         super().__init__(initialReads)
 
         # Read all initial reads into memory.
@@ -1794,7 +1950,7 @@ class ReadsInRAM(Reads):
         # (see Reads).
         self._iterated = True
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._additionalReads.__len__()
 
     def __getitem__(self, item: SupportsIndex) -> Union[ReadVar, Reads]:
@@ -1808,7 +1964,7 @@ class ReadsInRAM(Reads):
             yield read
 
 
-def addFASTACommandLineOptions(parser):
+def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
     """
     Add standard command-line options to an argparse parser.
 
@@ -1816,36 +1972,63 @@ def addFASTACommandLineOptions(parser):
     """
 
     parser.add_argument(
-        '--fastaFile', type=open, default=sys.stdin, metavar='FILENAME',
-        help=('The name of the FASTA input file. Standard input will be read '
-              'if no file name is given.'))
+        "--fastaFile",
+        type=open,
+        default=sys.stdin,
+        metavar="FILENAME",
+        help=(
+            "The name of the FASTA input file. Standard input will be read "
+            "if no file name is given."
+        ),
+    )
 
     parser.add_argument(
-        '--readClass', default='DNARead', choices=readClassNameToClass,
-        metavar='CLASSNAME',
-        help=('If specified, give the type of the reads in the input. '
-              'Possible choices: %s.' % ', '.join(readClassNameToClass)))
+        "--readClass",
+        default="DNARead",
+        choices=readClassNameToClass,
+        metavar="CLASSNAME",
+        help=(
+            "If specified, give the type of the reads in the input. "
+            "Possible choices: %s." % ", ".join(readClassNameToClass)
+        ),
+    )
 
     # A mutually exclusive group for either --fasta, --fastq, or --fasta-ss
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
-        '--fasta', default=False, action='store_true',
-        help=('If specified, input will be treated as FASTA. This is the '
-              'default.'))
+        "--fasta",
+        default=False,
+        action="store_true",
+        help=("If specified, input will be treated as FASTA. This is the " "default."),
+    )
 
     group.add_argument(
-        '--fastq', default=False, action='store_true',
-        help='If specified, input will be treated as FASTQ.')
+        "--fastq",
+        default=False,
+        action="store_true",
+        help="If specified, input will be treated as FASTQ.",
+    )
 
     group.add_argument(
-        '--fasta-ss', dest='fasta_ss', default=False, action='store_true',
-        help=('If specified, input will be treated as PDB FASTA '
-              '(i.e., regular FASTA with each sequence followed by its '
-              'structure).'))
+        "--fasta-ss",
+        dest="fasta_ss",
+        default=False,
+        action="store_true",
+        help=(
+            "If specified, input will be treated as PDB FASTA "
+            "(i.e., regular FASTA with each sequence followed by its "
+            "structure)."
+        ),
+    )
 
 
-def parseFASTACommandLineOptions(args):
+from dark.fasta import FastaReads
+from dark.fastq import FastqReads
+from dark.fasta_ss import SSFastaReads
+
+
+def parseFASTACommandLineOptions(args: argparse.Namespace) -> Union[FastaReads, FastqReads, SSFastaReads]:
     """
     Examine parsed command-line options and return a Reads instance.
 
@@ -1862,10 +2045,13 @@ def parseFASTACommandLineOptions(args):
 
     if args.fasta:
         from dark.fasta import FastaReads
+
         return FastaReads(args.fastaFile, readClass=readClass)
     elif args.fastq:
         from dark.fastq import FastqReads
+
         return FastqReads(args.fastaFile, readClass=readClass)
     else:
         from dark.fasta_ss import SSFastaReads
+
         return SSFastaReads(args.fastaFile, readClass=readClass)

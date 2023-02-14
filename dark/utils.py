@@ -53,13 +53,13 @@ def median(numbers):
     if len(numbers) == 0:
         # Match the empty-argument exception message of Python's built-in max
         # and min functions.
-        raise ValueError('arg is an empty sequence')
+        raise ValueError("arg is an empty sequence")
     else:
         return _median(numbers)
 
 
 @contextmanager
-def asHandle(fileNameOrHandle, mode='rt', encoding='UTF-8'):
+def asHandle(fileNameOrHandle, mode="rt", encoding="UTF-8"):
     """
     Decorator for file opening that makes it easy to open compressed files
     and which can be passed an already-open file handle or a file name.
@@ -72,12 +72,12 @@ def asHandle(fileNameOrHandle, mode='rt', encoding='UTF-8'):
         L{contextlib.contextmanager}.
     """
     if isinstance(fileNameOrHandle, six.string_types):
-        if fileNameOrHandle.endswith('.gz'):
+        if fileNameOrHandle.endswith(".gz"):
             if six.PY3:
                 yield gzip.open(fileNameOrHandle, mode=mode, encoding=encoding)
             else:
                 yield gzip.GzipFile(fileNameOrHandle, mode=mode)
-        elif fileNameOrHandle.endswith('.bz2'):
+        elif fileNameOrHandle.endswith(".bz2"):
             if six.PY3:
                 yield bz2.open(fileNameOrHandle, mode=mode, encoding=encoding)
             else:
@@ -91,7 +91,7 @@ def asHandle(fileNameOrHandle, mode='rt', encoding='UTF-8'):
         yield fileNameOrHandle
 
 
-_rangeRegex = compile(r'^\s*(\d+)(?:\s*-\s*(\d+))?\s*$')
+_rangeRegex = compile(r"^\s*(\d+)(?:\s*-\s*(\d+))?\s*$")
 
 
 # Note: the parseRangeExpression, which uses the following function as a
@@ -110,7 +110,7 @@ def parseRangeString(s, convertToZeroBased=False):
     """
 
     result = set()
-    for _range in s.split(','):
+    for _range in s.split(","):
         match = _rangeRegex.match(_range)
         if match:
             start, end = match.groups()
@@ -127,8 +127,9 @@ def parseRangeString(s, convertToZeroBased=False):
                 result.update(range(start, end + 1))
         else:
             raise ValueError(
-                'Illegal range %r. Ranges must single numbers or '
-                'number-number.' % _range)
+                "Illegal range %r. Ranges must single numbers or "
+                "number-number." % _range
+            )
 
     return result
 
@@ -141,8 +142,7 @@ def parseRangeString(s, convertToZeroBased=False):
 #   3-4,6,9-10,99
 #
 # including any embedded whitespace.
-_rangeExpressionRegex = re.compile(
-    r'\d+(:?\s*-\s*\d+)?(:?\s*,\s*\d+(:?\s*-\s*\d+)?)*')
+_rangeExpressionRegex = re.compile(r"\d+(:?\s*-\s*\d+)?(:?\s*,\s*\d+(:?\s*-\s*\d+)?)*")
 
 
 def parseRangeExpression(s, convertToZeroBased=False):
@@ -161,13 +161,14 @@ def parseRangeExpression(s, convertToZeroBased=False):
         return set()
 
     pos = 0
-    expr = ''
+    expr = ""
     for match in _rangeExpressionRegex.finditer(s):
         start, end = match.span()
         if start > pos:
             expr += s[pos:start]
-        expr += '{%s}' % ','.join(
-            map(str, parseRangeString(match.group(0), convertToZeroBased)))
+        expr += "{%s}" % ",".join(
+            map(str, parseRangeString(match.group(0), convertToZeroBased))
+        )
         pos = end
 
     if pos < len(s):
@@ -190,6 +191,7 @@ else:
         six.StringIO class does not provide __enter__ and __exit__ methods
         under Python 2.
         """
+
         def __enter__(self):
             return self
 
@@ -205,11 +207,10 @@ def baseCountsToStr(counts):
     @param counts: A C{Counter} instance.
     @return: A C{str} representation of nucleotide counts at an offset.
     """
-    return ' '.join([
-        ('%s:%d' % (base, counts[base])) for base in sorted(counts)])
+    return " ".join([("%s:%d" % (base, counts[base])) for base in sorted(counts)])
 
 
-def nucleotidesToStr(nucleotides, prefix=''):
+def nucleotidesToStr(nucleotides, prefix=""):
     """
     Convert offsets and base counts to a string.
 
@@ -222,13 +223,12 @@ def nucleotidesToStr(nucleotides, prefix=''):
     result = []
     for offset in sorted(nucleotides):
         result.append(
-            '%s%d: %s' % (prefix, offset,
-                          baseCountsToStr(nucleotides[offset])))
-    return '\n'.join(result)
+            "%s%d: %s" % (prefix, offset, baseCountsToStr(nucleotides[offset]))
+        )
+    return "\n".join(result)
 
 
-def countPrint(
-        mesg: str, count: int, len1: int, len2: Optional[int] = None) -> str:
+def countPrint(mesg: str, count: int, len1: int, len2: Optional[int] = None) -> str:
     """
     Format a message followed by an integer count and a percentage (or
     two, if the sequence lengths are unequal).
@@ -240,6 +240,7 @@ def countPrint(
         default to C{len1}.
     @return: A C{str} for printing.
     """
+
     def percentage(a: int, b: int) -> float:
         """
         What percent of a is b?
@@ -251,18 +252,25 @@ def countPrint(
         return 100.0 * a / b if b else 0.0
 
     if count == 0:
-        return '%s: %d' % (mesg, count)
+        return "%s: %d" % (mesg, count)
     else:
         len2 = len2 or len1
         if len1 == len2:
-            return '%s: %d/%d (%.2f%%)' % (
-                mesg, count, len1, percentage(count, len1))
+            return "%s: %d/%d (%.2f%%)" % (mesg, count, len1, percentage(count, len1))
         else:
-            return ('%s: %d/%d (%.2f%%) of sequence 1, '
-                    '%d/%d (%.2f%%) of sequence 2' % (
-                        mesg,
-                        count, len1, percentage(count, len1),
-                        count, len2, percentage(count, len2)))
+            return (
+                "%s: %d/%d (%.2f%%) of sequence 1, "
+                "%d/%d (%.2f%%) of sequence 2"
+                % (
+                    mesg,
+                    count,
+                    len1,
+                    percentage(count, len1),
+                    count,
+                    len2,
+                    percentage(count, len2),
+                )
+            )
 
 
 def pct(a: int, b: int) -> str:
@@ -275,10 +283,9 @@ def pct(a: int, b: int) -> str:
     """
     assert 0 <= a <= b
     if b:
-        return ('%d/%d (%.3f%%)' %
-                (a, b, (a / b if b else 0.0) * 100.0))
+        return "%d/%d (%.3f%%)" % (a, b, (a / b if b else 0.0) * 100.0)
     else:
-        return '0/0 (0.000%)'
+        return "0/0 (0.000%)"
 
 
 @contextmanager
@@ -334,7 +341,7 @@ def readLabels(fp):
     """
     result = {}
     for line in fp:
-        oldName, newName = map(str.strip, line.split('\t'))
+        oldName, newName = map(str.strip, line.split("\t"))
         result[oldName] = newName
     return result
 
@@ -349,15 +356,15 @@ def matchOffset(leftPaddedReference, leftPaddedQuery):
     """
     offset = 0
     for queryChar, referenceChar in zip(leftPaddedQuery, leftPaddedReference):
-        if queryChar not in ' -':
+        if queryChar not in " -":
             break
-        offset += referenceChar not in ' -'
+        offset += referenceChar not in " -"
 
     return offset
 
 
 @contextmanager
-def openOr(filename, mode='r', defaultFp=None, specialCaseHyphen=True):
+def openOr(filename, mode="r", defaultFp=None, specialCaseHyphen=True):
     """
     A context manager to either open a file or use a pre-opened default file.
 
@@ -370,7 +377,7 @@ def openOr(filename, mode='r', defaultFp=None, specialCaseHyphen=True):
     @param specialCaseHyphen: If C{True}, treat '-' as a C{None} filename
         and yield the C{defaultFp}.
     """
-    if filename is None or filename == '-' and specialCaseHyphen:
+    if filename is None or filename == "-" and specialCaseHyphen:
         yield defaultFp
     else:
         with open(filename, mode) as fp:

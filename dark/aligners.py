@@ -13,15 +13,24 @@ from dark.process import Executor
 from dark.reads import Read, Reads
 
 
-EDLIB_AMBIGUOUS: Tuple[Tuple[str, ...], ...] = tuple([
-    tuple(sorted((nt, code)))
-    for nt, ambiguities in AMBIGUOUS.items()
-    for code in ambiguities if len(ambiguities) > 1])
+EDLIB_AMBIGUOUS: Tuple[Tuple[str, ...], ...] = tuple(
+    [
+        tuple(sorted((nt, code)))
+        for nt, ambiguities in AMBIGUOUS.items()
+        for code in ambiguities
+        if len(ambiguities) > 1
+    ]
+)
 
 
-def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
-          threads: Optional[int] = None, executor: Optional[Executor] = None,
-          dryRun: bool = False) -> Reads:
+def mafft(
+    reads: Reads,
+    verbose: bool = False,
+    options: Optional[str] = None,
+    threads: Optional[int] = None,
+    executor: Optional[Executor] = None,
+    dryRun: bool = False,
+) -> Reads:
     """
     Run a MAFFT alignment and return the sequences.
 
@@ -36,19 +45,26 @@ def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
     """
     tempdir = mkdtemp()
 
-    infile = join(tempdir, 'input.fasta')
-    out = join(tempdir, 'result.fasta')
+    infile = join(tempdir, "input.fasta")
+    out = join(tempdir, "result.fasta")
 
     Reads(reads).save(infile)
 
     if verbose:
-        print('Running mafft.', file=sys.stderr)
+        print("Running mafft.", file=sys.stderr)
 
     executor = executor or Executor(dryRun=dryRun)
 
-    executor.execute("mafft %s %s '%s' > '%s'" % (
-        ('' if threads is None else '--thread %d' % threads),
-        options or '', infile, out), dryRun=dryRun)
+    executor.execute(
+        "mafft %s %s '%s' > '%s'"
+        % (
+            ("" if threads is None else "--thread %d" % threads),
+            options or "",
+            infile,
+            out,
+        ),
+        dryRun=dryRun,
+    )
 
     # Use 'list' in the following to force reading the FASTA from disk.
     result = Reads([] if dryRun else list(FastaReads(out)))
@@ -57,9 +73,13 @@ def mafft(reads: Reads, verbose: bool = False, options: Optional[str] = None,
     return result
 
 
-def needle(reads: List[Read], verbose: bool = False,
-           options: Optional[str] = None, executor: Optional[Executor] = None,
-           dryRun: bool = False) -> Reads:
+def needle(
+    reads: List[Read],
+    verbose: bool = False,
+    options: Optional[str] = None,
+    executor: Optional[Executor] = None,
+    dryRun: bool = False,
+) -> Reads:
     """
     Run a Needleman-Wunsch alignment and return the two sequences.
 
@@ -74,15 +94,15 @@ def needle(reads: List[Read], verbose: bool = False,
     """
     tempdir = mkdtemp()
 
-    file1 = join(tempdir, 'file1.fasta')
-    with open(file1, 'w') as fp:
-        print(reads[0].toString('fasta'), end='', file=fp)
+    file1 = join(tempdir, "file1.fasta")
+    with open(file1, "w") as fp:
+        print(reads[0].toString("fasta"), end="", file=fp)
 
-    file2 = join(tempdir, 'file2.fasta')
-    with open(file2, 'w') as fp:
-        print(reads[1].toString('fasta'), end='', file=fp)
+    file2 = join(tempdir, "file2.fasta")
+    with open(file2, "w") as fp:
+        print(reads[1].toString("fasta"), end="", file=fp)
 
-    out = join(tempdir, 'result.fasta')
+    out = join(tempdir, "result.fasta")
 
     def useStderr(e):
         return "Sequences too big. Try 'stretcher'" not in e.stderr
@@ -90,23 +110,30 @@ def needle(reads: List[Read], verbose: bool = False,
     executor = executor or Executor(dryRun=dryRun)
 
     if verbose:
-        print('Running needle.', file=sys.stderr)
+        print("Running needle.", file=sys.stderr)
     try:
-        executor.execute("needle -asequence '%s' -bsequence '%s' %s "
-                         "-outfile '%s' -aformat fasta" % (
-                             file1, file2, options or '', out),
-                         dryRun=dryRun, useStderr=useStderr)
+        executor.execute(
+            "needle -asequence '%s' -bsequence '%s' %s "
+            "-outfile '%s' -aformat fasta" % (file1, file2, options or "", out),
+            dryRun=dryRun,
+            useStderr=useStderr,
+        )
     except CalledProcessError as e:
         if useStderr(e):
             raise
         else:
             if verbose:
-                print('Sequences too long for needle. Falling back to '
-                      'stretcher. Be patient!', file=sys.stderr)
-            executor.execute("stretcher -asequence '%s' -bsequence '%s' "
-                             "-auto "
-                             "-outfile '%s' -aformat fasta" % (
-                                 file1, file2, out), dryRun=dryRun)
+                print(
+                    "Sequences too long for needle. Falling back to "
+                    "stretcher. Be patient!",
+                    file=sys.stderr,
+                )
+            executor.execute(
+                "stretcher -asequence '%s' -bsequence '%s' "
+                "-auto "
+                "-outfile '%s' -aformat fasta" % (file1, file2, out),
+                dryRun=dryRun,
+            )
 
     # Use 'list' in the following to force reading the FASTA from disk.
     result = Reads([] if dryRun else list(FastaReads(out)))
@@ -116,7 +143,8 @@ def needle(reads: List[Read], verbose: bool = False,
 
 
 def removeFirstUnnecessaryGaps(
-        seq1: str, seq2: str, gapSymbol: str = '-') -> Tuple[bool, str, str]:
+    seq1: str, seq2: str, gapSymbol: str = "-"
+) -> Tuple[bool, str, str]:
     """
     Find and remove the first set of gaps in two sequences that can be removed
     without increasing the difference between the strings.
@@ -134,8 +162,10 @@ def removeFirstUnnecessaryGaps(
     for start in range(len(seq1)):
         if seq1[start] == gapSymbol:
             if seq2[start] == gapSymbol:
-                raise ValueError(f'Sequences {seq1!r} and {seq2!r} both have '
-                                 f'a gap ({gapSymbol!r}) at offset {start}!')
+                raise ValueError(
+                    f"Sequences {seq1!r} and {seq2!r} both have "
+                    f"a gap ({gapSymbol!r}) at offset {start}!"
+                )
             first, second = seq1, seq2
             break
         elif seq2[start] == gapSymbol:
@@ -144,7 +174,7 @@ def removeFirstUnnecessaryGaps(
             break
     else:
         # Did not find any gaps.
-        return False, '', ''
+        return False, "", ""
 
     excessGapCount = 1
     for end in range(start + 1, len(first)):
@@ -163,29 +193,31 @@ def removeFirstUnnecessaryGaps(
         # aligned versions. In that case there must be at least one gap in
         # both sequences.  But for now this is not considered an error
         # because we may not have been called by removeUnnecessaryGaps.
-        return False, '', ''
+        return False, "", ""
 
-    subseq1 = seq1[start:end + 1]
-    subseq1noGaps = subseq1.replace(gapSymbol, '')
-    subseq2 = seq2[start:end + 1]
-    subseq2noGaps = subseq2.replace(gapSymbol, '')
+    subseq1 = seq1[start : end + 1]
+    subseq1noGaps = subseq1.replace(gapSymbol, "")
+    subseq2 = seq2[start : end + 1]
+    subseq2noGaps = subseq2.replace(gapSymbol, "")
 
     diffsWithGaps = sum(a != b for (a, b) in zip(subseq1, subseq2))
-    diffsWithoutGaps = sum(a != b for (a, b) in zip(subseq1noGaps,
-                                                    subseq2noGaps))
+    diffsWithoutGaps = sum(a != b for (a, b) in zip(subseq1noGaps, subseq2noGaps))
 
     if diffsWithoutGaps <= diffsWithGaps:
         # The subsequences match at least as well without gaps, so replace
         # the gapped region in each sequence with its ungapped version.
-        return (True,
-                seq1[:start] + subseq1noGaps + seq1[end + 1:],
-                seq2[:start] + subseq2noGaps + seq2[end + 1:])
+        return (
+            True,
+            seq1[:start] + subseq1noGaps + seq1[end + 1 :],
+            seq2[:start] + subseq2noGaps + seq2[end + 1 :],
+        )
     else:
-        return False, '', ''
+        return False, "", ""
 
 
 def removeUnnecessaryGaps(
-        seq1: str, seq2: str, gapSymbol: str = '-') -> Tuple[str, str]:
+    seq1: str, seq2: str, gapSymbol: str = "-"
+) -> Tuple[str, str]:
     """
     Find and remove all local sets of gaps in two sequences that can be removed
     without increasing the difference between the strings.
@@ -202,13 +234,18 @@ def removeUnnecessaryGaps(
         else:
             return seq1, seq2
 
-    raise RuntimeError('Fell off the end of removeFirstUnnecessaryGaps. '
-                       'This should be impossible!')
+    raise RuntimeError(
+        "Fell off the end of removeFirstUnnecessaryGaps. " "This should be impossible!"
+    )
 
 
 def edlibAlign(
-        reads: Reads, gapSymbol: str = '-', minimizeGaps: bool = True,
-        onlyTwoSequences: bool = True, matchAmbiguous: bool = True) -> Reads:
+    reads: Reads,
+    gapSymbol: str = "-",
+    minimizeGaps: bool = True,
+    onlyTwoSequences: bool = True,
+    matchAmbiguous: bool = True,
+) -> Reads:
     """
     Run an edlib alignment and return the sequences.
 
@@ -232,20 +269,29 @@ def edlibAlign(
     # Complain if there were more than two sequences and we were told to be
     # strict.
     if onlyTwoSequences and len(rest):
-        raise ValueError(f'Passed {len(rest)} unexpected extra sequences.')
+        raise ValueError(f"Passed {len(rest)} unexpected extra sequences.")
 
     for read in r1, r2:
         if gapSymbol in read.sequence:
-            raise ValueError(f'Sequence {read.id!r} contains one or more gap '
-                             f'characters {gapSymbol!r}.')
+            raise ValueError(
+                f"Sequence {read.id!r} contains one or more gap "
+                f"characters {gapSymbol!r}."
+            )
 
     alignment = edlib.getNiceAlignment(
         edlib.align(
-            r1.sequence, r2.sequence, mode='NW', task='path',
-            additionalEqualities=EDLIB_AMBIGUOUS if matchAmbiguous else None),
-        r1.sequence, r2.sequence, gapSymbol=gapSymbol)
+            r1.sequence,
+            r2.sequence,
+            mode="NW",
+            task="path",
+            additionalEqualities=EDLIB_AMBIGUOUS if matchAmbiguous else None,
+        ),
+        r1.sequence,
+        r2.sequence,
+        gapSymbol=gapSymbol,
+    )
 
-    seq1, seq2 = alignment['query_aligned'], alignment['target_aligned']
+    seq1, seq2 = alignment["query_aligned"], alignment["target_aligned"]
 
     # Try to remove unneeded gaps if requested. This is only possible if
     # the length of both sequences has changed.

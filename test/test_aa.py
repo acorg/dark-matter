@@ -4,13 +4,40 @@ from itertools import product
 from collections import defaultdict
 
 from dark.aa import (
-    PROPERTIES, ALL_PROPERTIES, PROPERTY_NAMES, ACIDIC,
-    ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC, HYDROPHOBIC,
-    HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR, TINY, NAMES,
-    NAMES_TO_ABBREV1, ABBREV3, ABBREV3_TO_ABBREV1, AA_LETTERS, find,
-    AminoAcid, clustersForSequence, propertiesForSequence,
-    PROPERTY_CLUSTERS, PROPERTY_DETAILS_RAW, CODONS, REVERSE_CODONS,
-    START_CODON, STOP_CODONS, compareAaReads, matchToString)
+    PROPERTIES,
+    ALL_PROPERTIES,
+    PROPERTY_NAMES,
+    ACIDIC,
+    ALIPHATIC,
+    AROMATIC,
+    BASIC_POSITIVE,
+    HYDROPHILIC,
+    HYDROPHOBIC,
+    HYDROXYLIC,
+    NEGATIVE,
+    NONE,
+    POLAR,
+    SMALL,
+    SULPHUR,
+    TINY,
+    NAMES,
+    NAMES_TO_ABBREV1,
+    ABBREV3,
+    ABBREV3_TO_ABBREV1,
+    AA_LETTERS,
+    find,
+    AminoAcid,
+    clustersForSequence,
+    propertiesForSequence,
+    PROPERTY_CLUSTERS,
+    PROPERTY_DETAILS_RAW,
+    CODONS,
+    REVERSE_CODONS,
+    START_CODON,
+    STOP_CODONS,
+    compareAaReads,
+    matchToString,
+)
 from dark.reads import AARead
 
 
@@ -24,7 +51,7 @@ class TestAALetters(TestCase):
         The AA_LETTERS value must be as expected.
         """
         # From https://en.wikipedia.org/wiki/Amino_acid
-        expected = sorted('ARNDCEQGHILKMFPSTWYV')
+        expected = sorted("ARNDCEQGHILKMFPSTWYV")
         self.assertEqual(expected, AA_LETTERS)
 
 
@@ -43,10 +70,23 @@ class TestProperties(TestCase):
         """
         The ALL_PROPERTIES tuple must contain all known properties.
         """
-        expected = set([
-            ACIDIC, ALIPHATIC, AROMATIC, BASIC_POSITIVE, HYDROPHILIC,
-            HYDROPHOBIC, HYDROXYLIC, NEGATIVE, NONE, POLAR, SMALL, SULPHUR,
-            TINY])
+        expected = set(
+            [
+                ACIDIC,
+                ALIPHATIC,
+                AROMATIC,
+                BASIC_POSITIVE,
+                HYDROPHILIC,
+                HYDROPHOBIC,
+                HYDROXYLIC,
+                NEGATIVE,
+                NONE,
+                POLAR,
+                SMALL,
+                SULPHUR,
+                TINY,
+            ]
+        )
         self.assertEqual(set(ALL_PROPERTIES), expected)
 
     def testPropertyValuesDiffer(self):
@@ -60,26 +100,26 @@ class TestProperties(TestCase):
         Each amino acid must have the properties expected of it, and no others.
         """
         expected = {
-            'A': set([HYDROPHOBIC, SMALL, TINY]),
-            'C': set([HYDROPHOBIC, SMALL, TINY, SULPHUR]),
-            'D': set([HYDROPHILIC, SMALL, POLAR, NEGATIVE]),
-            'E': set([HYDROPHILIC, NEGATIVE, ACIDIC]),
-            'F': set([HYDROPHOBIC, AROMATIC]),
-            'G': set([HYDROPHILIC, SMALL, TINY]),
-            'H': set([HYDROPHOBIC, AROMATIC, POLAR, BASIC_POSITIVE]),
-            'I': set([ALIPHATIC, HYDROPHOBIC]),
-            'K': set([HYDROPHOBIC, BASIC_POSITIVE, POLAR]),
-            'L': set([ALIPHATIC, HYDROPHOBIC]),
-            'M': set([HYDROPHOBIC, SULPHUR]),
-            'N': set([HYDROPHILIC, SMALL, POLAR, ACIDIC]),
-            'P': set([HYDROPHILIC, SMALL]),
-            'Q': set([HYDROPHILIC, POLAR, ACIDIC]),
-            'R': set([HYDROPHILIC, POLAR, BASIC_POSITIVE]),
-            'S': set([HYDROPHILIC, SMALL, POLAR, HYDROXYLIC]),
-            'T': set([HYDROPHOBIC, SMALL, HYDROXYLIC]),
-            'V': set([ALIPHATIC, HYDROPHOBIC, SMALL]),
-            'W': set([HYDROPHOBIC, AROMATIC, POLAR]),
-            'Y': set([HYDROPHOBIC, AROMATIC, POLAR]),
+            "A": set([HYDROPHOBIC, SMALL, TINY]),
+            "C": set([HYDROPHOBIC, SMALL, TINY, SULPHUR]),
+            "D": set([HYDROPHILIC, SMALL, POLAR, NEGATIVE]),
+            "E": set([HYDROPHILIC, NEGATIVE, ACIDIC]),
+            "F": set([HYDROPHOBIC, AROMATIC]),
+            "G": set([HYDROPHILIC, SMALL, TINY]),
+            "H": set([HYDROPHOBIC, AROMATIC, POLAR, BASIC_POSITIVE]),
+            "I": set([ALIPHATIC, HYDROPHOBIC]),
+            "K": set([HYDROPHOBIC, BASIC_POSITIVE, POLAR]),
+            "L": set([ALIPHATIC, HYDROPHOBIC]),
+            "M": set([HYDROPHOBIC, SULPHUR]),
+            "N": set([HYDROPHILIC, SMALL, POLAR, ACIDIC]),
+            "P": set([HYDROPHILIC, SMALL]),
+            "Q": set([HYDROPHILIC, POLAR, ACIDIC]),
+            "R": set([HYDROPHILIC, POLAR, BASIC_POSITIVE]),
+            "S": set([HYDROPHILIC, SMALL, POLAR, HYDROXYLIC]),
+            "T": set([HYDROPHOBIC, SMALL, HYDROXYLIC]),
+            "V": set([ALIPHATIC, HYDROPHOBIC, SMALL]),
+            "W": set([HYDROPHOBIC, AROMATIC, POLAR]),
+            "Y": set([HYDROPHOBIC, AROMATIC, POLAR]),
         }
 
         # Make sure our 'expected' dict (above) has properties for everything.
@@ -102,8 +142,7 @@ class TestProperties(TestCase):
         """
         The PROPERTY_NAMES dict must have different values for each key.
         """
-        self.assertEqual(len(PROPERTY_NAMES),
-                         len(set(PROPERTY_NAMES.values())))
+        self.assertEqual(len(PROPERTY_NAMES), len(set(PROPERTY_NAMES.values())))
 
 
 class TestNames(TestCase):
@@ -134,8 +173,7 @@ class TestNamesToAbbrev1(TestCase):
         """
         The NAMES_TO_ABBREV1 dict must have the correct AA values.
         """
-        self.assertEqual(AA_LETTERS,
-                         sorted(NAMES_TO_ABBREV1.values()))
+        self.assertEqual(AA_LETTERS, sorted(NAMES_TO_ABBREV1.values()))
 
 
 class TestAbbrev3(TestCase):
@@ -166,8 +204,7 @@ class TestAbbrev3ToAbbrev1(TestCase):
         """
         The ABBREV3_TO_ABBREV1 dict must have the correct AA values.
         """
-        self.assertEqual(AA_LETTERS,
-                         sorted(ABBREV3_TO_ABBREV1.values()))
+        self.assertEqual(AA_LETTERS, sorted(ABBREV3_TO_ABBREV1.values()))
 
 
 class TestCodons(TestCase):
@@ -201,7 +238,7 @@ class TestCodons(TestCase):
         """
         for codons in CODONS.values():
             for codon in codons:
-                self.assertTrue(all(letter in 'ACGT' for letter in codon))
+                self.assertTrue(all(letter in "ACGT" for letter in codon))
 
     def testCodonsAreNotAbbrev3s(self):
         """
@@ -210,7 +247,8 @@ class TestCodons(TestCase):
         """
         for codons in CODONS.values():
             self.assertFalse(
-                any(codon.title() in ABBREV3_TO_ABBREV1 for codon in codons))
+                any(codon.title() in ABBREV3_TO_ABBREV1 for codon in codons)
+            )
 
     def testDistinct(self):
         """
@@ -226,19 +264,19 @@ class TestCodons(TestCase):
         """
         The start codon must have the expected value.
         """
-        self.assertEqual('ATG', START_CODON)
+        self.assertEqual("ATG", START_CODON)
 
     def testStartCodonIsMethionine(self):
         """
         The start codon is the same as Methionine.
         """
-        self.assertEqual((START_CODON,), CODONS['M'])
+        self.assertEqual((START_CODON,), CODONS["M"])
 
     def testStopCodons(self):
         """
         The stop codons must have the expected value.
         """
-        self.assertEqual(('TAA', 'TAG', 'TGA'), STOP_CODONS)
+        self.assertEqual(("TAA", "TAG", "TGA"), STOP_CODONS)
 
     def testStopCodonsNotInCodonTable(self):
         """
@@ -253,8 +291,7 @@ class TestCodons(TestCase):
         All possible codons must be present, as either coding for an AA
         or as a stop codon.
         """
-        combinations = set(
-            ''.join(x) for x in product('ACGT', 'ACGT', 'ACGT'))
+        combinations = set("".join(x) for x in product("ACGT", "ACGT", "ACGT"))
         for codons in CODONS.values():
             for codon in codons:
                 combinations.remove(codon)
@@ -287,11 +324,12 @@ class TestAminoAcid(TestCase):
         propertyDetails = {}
         codons = []
         propertyClusters = {}
-        aa = AminoAcid('Alanine', 'Ala', 'A', codons, properties,
-                       propertyDetails, propertyClusters)
-        self.assertEqual('Alanine', aa.name)
-        self.assertEqual('Ala', aa.abbrev3)
-        self.assertEqual('A', aa.abbrev1)
+        aa = AminoAcid(
+            "Alanine", "Ala", "A", codons, properties, propertyDetails, propertyClusters
+        )
+        self.assertEqual("Alanine", aa.name)
+        self.assertEqual("Ala", aa.abbrev3)
+        self.assertEqual("A", aa.abbrev1)
         self.assertIs(codons, aa.codons)
         self.assertIs(properties, aa.properties)
         self.assertIs(propertyDetails, aa.propertyDetails)
@@ -308,271 +346,284 @@ class TestFind(TestCase):
         find must return an empty generator when called with an unrecognized
         value.
         """
-        self.assertEqual([], list(find('silly')))
+        self.assertEqual([], list(find("silly")))
 
     def testFindByAbbrev1(self):
         """
         It must be possible to find an amino acid by its 1-letter abbreviation.
         """
-        aa = list(find('A'))[0]
-        self.assertEqual('Alanine', aa.name)
-        self.assertEqual('Ala', aa.abbrev3)
-        self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
+        aa = list(find("A"))[0]
+        self.assertEqual("Alanine", aa.name)
+        self.assertEqual("Ala", aa.abbrev3)
+        self.assertEqual("A", aa.abbrev1)
+        self.assertEqual(("GCA", "GCC", "GCG", "GCT"), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
-                'aliphaticity': 0.305785123967,
-                'aromaticity': -0.550128534704,
-                'composition': -1.0,
-                'hydrogenation': 0.8973042362,
-                'hydropathy': 0.4,
-                'hydroxythiolation': -0.265160523187,
-                'iep': -0.191489361702,
-                'polar requirement': -0.463414634146,
-                'polarity': -0.20987654321,
-                'volume': -0.664670658683,
+                "aliphaticity": 0.305785123967,
+                "aromaticity": -0.550128534704,
+                "composition": -1.0,
+                "hydrogenation": 0.8973042362,
+                "hydropathy": 0.4,
+                "hydroxythiolation": -0.265160523187,
+                "iep": -0.191489361702,
+                "polar requirement": -0.463414634146,
+                "polarity": -0.20987654321,
+                "volume": -0.664670658683,
             },
-            aa.propertyDetails)
+            aa.propertyDetails,
+        )
         self.assertEqual(
             {
-                'aliphaticity': 1,
-                'aromaticity': 1,
-                'composition': 1,
-                'hydrogenation': 1,
-                'hydropathy': 3,
-                'hydroxythiolation': 2,
-                'iep': 2,
-                'polar requirement': 2,
-                'polarity': 2,
-                'volume': 2,
+                "aliphaticity": 1,
+                "aromaticity": 1,
+                "composition": 1,
+                "hydrogenation": 1,
+                "hydropathy": 3,
+                "hydroxythiolation": 2,
+                "iep": 2,
+                "polar requirement": 2,
+                "polarity": 2,
+                "volume": 2,
             },
-            aa.propertyClusters)
+            aa.propertyClusters,
+        )
 
     def testFindByAbbrev3(self):
         """
         It must be possible to find an amino acid by its 3-letter abbreviation.
         """
-        aa = list(find('Ala'))[0]
-        self.assertEqual('Alanine', aa.name)
-        self.assertEqual('Ala', aa.abbrev3)
-        self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
+        aa = list(find("Ala"))[0]
+        self.assertEqual("Alanine", aa.name)
+        self.assertEqual("Ala", aa.abbrev3)
+        self.assertEqual("A", aa.abbrev1)
+        self.assertEqual(("GCA", "GCC", "GCG", "GCT"), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
-                'aliphaticity': 0.305785123967,
-                'aromaticity': -0.550128534704,
-                'composition': -1.0,
-                'hydrogenation': 0.8973042362,
-                'hydropathy': 0.4,
-                'hydroxythiolation': -0.265160523187,
-                'iep': -0.191489361702,
-                'polar requirement': -0.463414634146,
-                'polarity': -0.20987654321,
-                'volume': -0.664670658683,
+                "aliphaticity": 0.305785123967,
+                "aromaticity": -0.550128534704,
+                "composition": -1.0,
+                "hydrogenation": 0.8973042362,
+                "hydropathy": 0.4,
+                "hydroxythiolation": -0.265160523187,
+                "iep": -0.191489361702,
+                "polar requirement": -0.463414634146,
+                "polarity": -0.20987654321,
+                "volume": -0.664670658683,
             },
-            aa.propertyDetails)
+            aa.propertyDetails,
+        )
         self.assertEqual(
             {
-                'aliphaticity': 1,
-                'aromaticity': 1,
-                'composition': 1,
-                'hydrogenation': 1,
-                'hydropathy': 3,
-                'hydroxythiolation': 2,
-                'iep': 2,
-                'polar requirement': 2,
-                'polarity': 2,
-                'volume': 2,
+                "aliphaticity": 1,
+                "aromaticity": 1,
+                "composition": 1,
+                "hydrogenation": 1,
+                "hydropathy": 3,
+                "hydroxythiolation": 2,
+                "iep": 2,
+                "polar requirement": 2,
+                "polarity": 2,
+                "volume": 2,
             },
-            aa.propertyClusters)
+            aa.propertyClusters,
+        )
 
     def testFindByCodon(self):
         """
         It must be possible to find an amino acid by a 3-letter codon.
         """
-        aa = list(find('GCC'))[0]
-        self.assertEqual('Alanine', aa.name)
-        self.assertEqual('Ala', aa.abbrev3)
-        self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
+        aa = list(find("GCC"))[0]
+        self.assertEqual("Alanine", aa.name)
+        self.assertEqual("Ala", aa.abbrev3)
+        self.assertEqual("A", aa.abbrev1)
+        self.assertEqual(("GCA", "GCC", "GCG", "GCT"), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
-                'aliphaticity': 0.305785123967,
-                'aromaticity': -0.550128534704,
-                'composition': -1.0,
-                'hydrogenation': 0.8973042362,
-                'hydropathy': 0.4,
-                'hydroxythiolation': -0.265160523187,
-                'iep': -0.191489361702,
-                'polar requirement': -0.463414634146,
-                'polarity': -0.20987654321,
-                'volume': -0.664670658683,
+                "aliphaticity": 0.305785123967,
+                "aromaticity": -0.550128534704,
+                "composition": -1.0,
+                "hydrogenation": 0.8973042362,
+                "hydropathy": 0.4,
+                "hydroxythiolation": -0.265160523187,
+                "iep": -0.191489361702,
+                "polar requirement": -0.463414634146,
+                "polarity": -0.20987654321,
+                "volume": -0.664670658683,
             },
-            aa.propertyDetails)
+            aa.propertyDetails,
+        )
         self.assertEqual(
             {
-                'aliphaticity': 1,
-                'aromaticity': 1,
-                'composition': 1,
-                'hydrogenation': 1,
-                'hydropathy': 3,
-                'hydroxythiolation': 2,
-                'iep': 2,
-                'polar requirement': 2,
-                'polarity': 2,
-                'volume': 2,
+                "aliphaticity": 1,
+                "aromaticity": 1,
+                "composition": 1,
+                "hydrogenation": 1,
+                "hydropathy": 3,
+                "hydroxythiolation": 2,
+                "iep": 2,
+                "polar requirement": 2,
+                "polarity": 2,
+                "volume": 2,
             },
-            aa.propertyClusters)
+            aa.propertyClusters,
+        )
 
     def testFindByName(self):
         """
         It must be possible to find an amino acid by its name.
         """
-        aa = list(find('Alanine'))[0]
-        self.assertEqual('Alanine', aa.name)
-        self.assertEqual('Ala', aa.abbrev3)
-        self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
+        aa = list(find("Alanine"))[0]
+        self.assertEqual("Alanine", aa.name)
+        self.assertEqual("Ala", aa.abbrev3)
+        self.assertEqual("A", aa.abbrev1)
+        self.assertEqual(("GCA", "GCC", "GCG", "GCT"), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
-                'aliphaticity': 0.305785123967,
-                'aromaticity': -0.550128534704,
-                'composition': -1.0,
-                'hydrogenation': 0.8973042362,
-                'hydropathy': 0.4,
-                'hydroxythiolation': -0.265160523187,
-                'iep': -0.191489361702,
-                'polar requirement': -0.463414634146,
-                'polarity': -0.20987654321,
-                'volume': -0.664670658683,
+                "aliphaticity": 0.305785123967,
+                "aromaticity": -0.550128534704,
+                "composition": -1.0,
+                "hydrogenation": 0.8973042362,
+                "hydropathy": 0.4,
+                "hydroxythiolation": -0.265160523187,
+                "iep": -0.191489361702,
+                "polar requirement": -0.463414634146,
+                "polarity": -0.20987654321,
+                "volume": -0.664670658683,
             },
-            aa.propertyDetails)
+            aa.propertyDetails,
+        )
         self.assertEqual(
             {
-                'aliphaticity': 1,
-                'aromaticity': 1,
-                'composition': 1,
-                'hydrogenation': 1,
-                'hydropathy': 3,
-                'hydroxythiolation': 2,
-                'iep': 2,
-                'polar requirement': 2,
-                'polarity': 2,
-                'volume': 2,
+                "aliphaticity": 1,
+                "aromaticity": 1,
+                "composition": 1,
+                "hydrogenation": 1,
+                "hydropathy": 3,
+                "hydroxythiolation": 2,
+                "iep": 2,
+                "polar requirement": 2,
+                "polarity": 2,
+                "volume": 2,
             },
-            aa.propertyClusters)
+            aa.propertyClusters,
+        )
 
     def testFindByNameCaseIgnored(self):
         """
         It must be possible to find an amino acid by its name when the name is
         given in mixed case.
         """
-        aa = list(find('alaNIne'))[0]
-        self.assertEqual('Alanine', aa.name)
-        self.assertEqual('Ala', aa.abbrev3)
-        self.assertEqual('A', aa.abbrev1)
-        self.assertEqual(('GCA', 'GCC', 'GCG', 'GCT'), aa.codons)
+        aa = list(find("alaNIne"))[0]
+        self.assertEqual("Alanine", aa.name)
+        self.assertEqual("Ala", aa.abbrev3)
+        self.assertEqual("A", aa.abbrev1)
+        self.assertEqual(("GCA", "GCC", "GCG", "GCT"), aa.codons)
         self.assertEqual(HYDROPHOBIC | SMALL | TINY, aa.properties)
         self.assertEqual(
             {
-                'aliphaticity': 0.305785123967,
-                'aromaticity': -0.550128534704,
-                'composition': -1.0,
-                'hydrogenation': 0.8973042362,
-                'hydropathy': 0.4,
-                'hydroxythiolation': -0.265160523187,
-                'iep': -0.191489361702,
-                'polar requirement': -0.463414634146,
-                'polarity': -0.20987654321,
-                'volume': -0.664670658683,
+                "aliphaticity": 0.305785123967,
+                "aromaticity": -0.550128534704,
+                "composition": -1.0,
+                "hydrogenation": 0.8973042362,
+                "hydropathy": 0.4,
+                "hydroxythiolation": -0.265160523187,
+                "iep": -0.191489361702,
+                "polar requirement": -0.463414634146,
+                "polarity": -0.20987654321,
+                "volume": -0.664670658683,
             },
-            aa.propertyDetails)
+            aa.propertyDetails,
+        )
         self.assertEqual(
             {
-                'aliphaticity': 1,
-                'aromaticity': 1,
-                'composition': 1,
-                'hydrogenation': 1,
-                'hydropathy': 3,
-                'hydroxythiolation': 2,
-                'iep': 2,
-                'polar requirement': 2,
-                'polarity': 2,
-                'volume': 2,
+                "aliphaticity": 1,
+                "aromaticity": 1,
+                "composition": 1,
+                "hydrogenation": 1,
+                "hydropathy": 3,
+                "hydroxythiolation": 2,
+                "iep": 2,
+                "polar requirement": 2,
+                "polarity": 2,
+                "volume": 2,
             },
-            aa.propertyClusters)
+            aa.propertyClusters,
+        )
 
     def testFindByNameCaseIgnoredNameWithSpace(self):
         """
         It must be possible to find an amino acid by its name when the name is
         given in mixed case, including if the name has a space in it.
         """
-        aa = list(find('asparTIC aCId'))[0]
-        self.assertEqual('Aspartic acid', aa.name)
-        self.assertEqual('Asp', aa.abbrev3)
-        self.assertEqual('D', aa.abbrev1)
-        self.assertEqual(('GAC', 'GAT'), aa.codons)
+        aa = list(find("asparTIC aCId"))[0]
+        self.assertEqual("Aspartic acid", aa.name)
+        self.assertEqual("Asp", aa.abbrev3)
+        self.assertEqual("D", aa.abbrev1)
+        self.assertEqual(("GAC", "GAT"), aa.codons)
         self.assertEqual(HYDROPHILIC | SMALL | POLAR | NEGATIVE, aa.properties)
         self.assertEqual(
             {
-                'aliphaticity': -0.818181818182,
-                'aromaticity': -1.0,
-                'composition': 0.00363636363636,
-                'hydrogenation': -0.90243902439,
-                'hydropathy': -0.777777777778,
-                'hydroxythiolation': -0.348394768133,
-                'iep': -1.0,
-                'polar requirement': 1.0,
-                'polarity': 1.0,
-                'volume': -0.389221556886,
+                "aliphaticity": -0.818181818182,
+                "aromaticity": -1.0,
+                "composition": 0.00363636363636,
+                "hydrogenation": -0.90243902439,
+                "hydropathy": -0.777777777778,
+                "hydroxythiolation": -0.348394768133,
+                "iep": -1.0,
+                "polar requirement": 1.0,
+                "polarity": 1.0,
+                "volume": -0.389221556886,
             },
-            aa.propertyDetails)
+            aa.propertyDetails,
+        )
         self.assertEqual(
             {
-                'aliphaticity': 1,
-                'aromaticity': 1,
-                'composition': 2,
-                'hydrogenation': 1,
-                'hydropathy': 1,
-                'hydroxythiolation': 2,
-                'iep': 1,
-                'polar requirement': 4,
-                'polarity': 4,
-                'volume': 3,
+                "aliphaticity": 1,
+                "aromaticity": 1,
+                "composition": 2,
+                "hydrogenation": 1,
+                "hydropathy": 1,
+                "hydroxythiolation": 2,
+                "iep": 1,
+                "polar requirement": 4,
+                "polarity": 4,
+                "volume": 3,
             },
-            aa.propertyClusters)
+            aa.propertyClusters,
+        )
 
     def testFindByPartialName(self):
         """
         It must be possible to find an amino acid by a partial name.
         """
-        aa = list(find('nine'))[0]
-        self.assertEqual('Alanine', aa.name)
+        aa = list(find("nine"))[0]
+        self.assertEqual("Alanine", aa.name)
 
     def testFindByPartialNameMixedCase(self):
         """
         It must be possible to find an amino acid by a mixed-case partial name.
         """
-        aa = list(find('NiNe'))[0]
-        self.assertEqual('Alanine', aa.name)
+        aa = list(find("NiNe"))[0]
+        self.assertEqual("Alanine", aa.name)
 
     def testFindMultipleMatches(self):
         """
         It must be possible to find more than one matching amino acid.
         """
-        aa1, aa2 = list(find('acid'))
-        self.assertEqual('Aspartic acid', aa1.name)
-        self.assertEqual('Glutamic acid', aa2.name)
+        aa1, aa2 = list(find("acid"))
+        self.assertEqual("Aspartic acid", aa1.name)
+        self.assertEqual("Glutamic acid", aa2.name)
 
 
 class TestPropertyClusters(TestCase):
     """
     Tests for the PROPERTY_CLUSTERS dict.
     """
+
     def testPropertyClusterKeys(self):
         """
         The PROPERTY_CLUSTERS dict must contain the right keys.
@@ -585,18 +636,28 @@ class TestPropertyClusters(TestCase):
         as the value.
         """
         for propertyNames in PROPERTY_CLUSTERS.values():
-            self.assertEqual([
-                'aliphaticity', 'aromaticity', 'composition',
-                'hydrogenation', 'hydropathy', 'hydroxythiolation',
-                'iep', 'polar requirement', 'polarity', 'volume'],
-                sorted(propertyNames))
+            self.assertEqual(
+                [
+                    "aliphaticity",
+                    "aromaticity",
+                    "composition",
+                    "hydrogenation",
+                    "hydropathy",
+                    "hydroxythiolation",
+                    "iep",
+                    "polar requirement",
+                    "polarity",
+                    "volume",
+                ],
+                sorted(propertyNames),
+            )
 
     def testAliphaticity(self):
         """
         Aliphaticity must always be in cluster 1.
         """
         for propertiesDict in PROPERTY_CLUSTERS.values():
-            self.assertEqual(1, propertiesDict['aliphaticity'])
+            self.assertEqual(1, propertiesDict["aliphaticity"])
 
     def testPermittedClustersOnly(self):
         """
@@ -611,6 +672,7 @@ class TestPropertyDetailsRaw(TestCase):
     """
     Tests for the PROPERTY_DETAILS_RAW dict.
     """
+
     def testPropertyDetailsRawKeys(self):
         """
         The PROPERTY_DETAILS_RAW dict must contain the right keys.
@@ -623,17 +685,27 @@ class TestPropertyDetailsRaw(TestCase):
         it as the value.
         """
         for propertyNames in PROPERTY_DETAILS_RAW.values():
-            self.assertEqual([
-                'aliphaticity', 'aromaticity', 'composition',
-                'hydrogenation', 'hydropathy', 'hydroxythiolation',
-                'iep', 'polar requirement', 'polarity', 'volume'],
-                sorted(propertyNames))
+            self.assertEqual(
+                [
+                    "aliphaticity",
+                    "aromaticity",
+                    "composition",
+                    "hydrogenation",
+                    "hydropathy",
+                    "hydroxythiolation",
+                    "iep",
+                    "polar requirement",
+                    "polarity",
+                    "volume",
+                ],
+                sorted(propertyNames),
+            )
 
     def testAliphaticity(self):
         """
         Aliphaticity of Alanin must have the right value.
         """
-        self.assertEqual(0.239, PROPERTY_DETAILS_RAW['A']['aliphaticity'])
+        self.assertEqual(0.239, PROPERTY_DETAILS_RAW["A"]["aliphaticity"])
 
     def testValuesMustBeFloats(self):
         """
@@ -648,20 +720,22 @@ class TestPropertiesForSequence(TestCase):
     """
     Tests for the propertiesForSequence function in aa.py
     """
+
     def testUnknownProperty(self):
         """
         A C{ValueError} must be raised if an unknown property name is passed.
         """
-        error = 'Unknown property: xxx'
-        read = AARead('id', 'RRR')
-        six.assertRaisesRegex(self, ValueError, error,
-                              propertiesForSequence, read, ['xxx'])
+        error = "Unknown property: xxx"
+        read = AARead("id", "RRR")
+        six.assertRaisesRegex(
+            self, ValueError, error, propertiesForSequence, read, ["xxx"]
+        )
 
     def testNoProperties(self):
         """
         If no properties are wanted, an empty dict must be returned.
         """
-        read = AARead('id', 'RRR')
+        read = AARead("id", "RRR")
         self.assertEqual({}, propertiesForSequence(read, []))
 
     def testOnePropertyEmptySequence(self):
@@ -669,45 +743,47 @@ class TestPropertiesForSequence(TestCase):
         If one property is wanted but the sequence is empty, a dict with the
         property must be returned, and have an empty list value.
         """
-        read = AARead('id', '')
+        read = AARead("id", "")
         self.assertEqual(
             {
-                'hydropathy': [],
+                "hydropathy": [],
             },
-            propertiesForSequence(read, ['hydropathy']))
+            propertiesForSequence(read, ["hydropathy"]),
+        )
 
     def testPropertyNameIsLowercased(self):
         """
         The property name must be lower-cased in the result.
         """
-        read = AARead('id', '')
-        self.assertTrue('hydropathy' in
-                        propertiesForSequence(read, ['HYDROPATHY']))
+        read = AARead("id", "")
+        self.assertTrue("hydropathy" in propertiesForSequence(read, ["HYDROPATHY"]))
 
     def testOneProperty(self):
         """
         If one property is wanted, a dict with the property must be returned,
         and have the expected property values.
         """
-        read = AARead('id', 'AI')
+        read = AARead("id", "AI")
         self.assertEqual(
             {
-                'hydropathy': [0.4, 1.0],
+                "hydropathy": [0.4, 1.0],
             },
-            propertiesForSequence(read, ['hydropathy']))
+            propertiesForSequence(read, ["hydropathy"]),
+        )
 
     def testTwoProperties(self):
         """
         If two properties are wanted, a dict with the properties must be
         returned, and have the expected property values.
         """
-        read = AARead('id', 'AI')
+        read = AARead("id", "AI")
         self.assertEqual(
             {
-                'composition': [-1.0, -1.0],
-                'hydropathy': [0.4, 1.0],
+                "composition": [-1.0, -1.0],
+                "hydropathy": [0.4, 1.0],
             },
-            propertiesForSequence(read, ['composition', 'hydropathy']))
+            propertiesForSequence(read, ["composition", "hydropathy"]),
+        )
 
     def testDuplicatedPropertyName(self):
         """
@@ -715,61 +791,66 @@ class TestPropertiesForSequence(TestCase):
         wanted properties must be returned, and have the expected property
         values.
         """
-        read = AARead('id', 'AI')
+        read = AARead("id", "AI")
         self.assertEqual(
             {
-                'composition': [-1.0, -1.0],
-                'hydropathy': [0.4, 1.0],
+                "composition": [-1.0, -1.0],
+                "hydropathy": [0.4, 1.0],
             },
-            propertiesForSequence(read, ['composition',
-                                         'hydropathy', 'hydropathy']))
+            propertiesForSequence(read, ["composition", "hydropathy", "hydropathy"]),
+        )
 
     def testMissingAminoAcid(self):
         """
         If an unknown amino acid appears in the sequence, its property value
         must be the default (-1.1).
         """
-        read = AARead('id', 'XX')
+        read = AARead("id", "XX")
         self.assertEqual(
             {
-                'composition': [-1.1, -1.1],
-                'hydropathy': [-1.1, -1.1],
+                "composition": [-1.1, -1.1],
+                "hydropathy": [-1.1, -1.1],
             },
-            propertiesForSequence(read, ['composition', 'hydropathy']))
+            propertiesForSequence(read, ["composition", "hydropathy"]),
+        )
 
     def testMissingAminoAcidWithNonDefaultMissingValue(self):
         """
         If an unknown amino acid appears in the sequence, its property value
         must be the missing AA value that was passed.
         """
-        read = AARead('id', 'XX')
+        read = AARead("id", "XX")
         self.assertEqual(
             {
-                'composition': [-1.5, -1.5],
-                'hydropathy': [-1.5, -1.5],
+                "composition": [-1.5, -1.5],
+                "hydropathy": [-1.5, -1.5],
             },
-            propertiesForSequence(read, ['composition', 'hydropathy'],
-                                  missingAAValue=-1.5))
+            propertiesForSequence(
+                read, ["composition", "hydropathy"], missingAAValue=-1.5
+            ),
+        )
 
 
 class TestClustersForSequence(TestCase):
     """
     Tests for the clustersForSequence function in aa.py
     """
+
     def testUnknownProperty(self):
         """
         A C{ValueError} must be raised if an unknown property name is passed.
         """
-        error = 'Unknown property: xxx'
-        read = AARead('id', 'RRR')
-        six.assertRaisesRegex(self, ValueError, error,
-                              clustersForSequence, read, ['xxx'])
+        error = "Unknown property: xxx"
+        read = AARead("id", "RRR")
+        six.assertRaisesRegex(
+            self, ValueError, error, clustersForSequence, read, ["xxx"]
+        )
 
     def testNoProperties(self):
         """
         If no properties are wanted, an empty dict must be returned.
         """
-        read = AARead('id', 'RRR')
+        read = AARead("id", "RRR")
         self.assertEqual({}, clustersForSequence(read, []))
 
     def testOnePropertyEmptySequence(self):
@@ -777,45 +858,47 @@ class TestClustersForSequence(TestCase):
         If one property is wanted but the sequence is empty, a dict with the
         property must be returned, and have an empty list value.
         """
-        read = AARead('id', '')
+        read = AARead("id", "")
         self.assertEqual(
             {
-                'hydropathy': [],
+                "hydropathy": [],
             },
-            clustersForSequence(read, ['hydropathy']))
+            clustersForSequence(read, ["hydropathy"]),
+        )
 
     def testPropertyNameIsLowercased(self):
         """
         The property name must be lower-cased in the result.
         """
-        read = AARead('id', '')
-        self.assertTrue('hydropathy' in
-                        clustersForSequence(read, ['HYDROPATHY']))
+        read = AARead("id", "")
+        self.assertTrue("hydropathy" in clustersForSequence(read, ["HYDROPATHY"]))
 
     def testOneProperty(self):
         """
         If one property is wanted, a dict with the property must be returned,
         and have the expected property cluster number.
         """
-        read = AARead('id', 'AI')
+        read = AARead("id", "AI")
         self.assertEqual(
             {
-                'hydropathy': [3, 4],
+                "hydropathy": [3, 4],
             },
-            clustersForSequence(read, ['hydropathy']))
+            clustersForSequence(read, ["hydropathy"]),
+        )
 
     def testTwoProperties(self):
         """
         If two properties are wanted, a dict with the properties must be
         returned, and have the expected property cluster numbers.
         """
-        read = AARead('id', 'AI')
+        read = AARead("id", "AI")
         self.assertEqual(
             {
-                'composition': [1, 1],
-                'hydropathy': [3, 4],
+                "composition": [1, 1],
+                "hydropathy": [3, 4],
             },
-            clustersForSequence(read, ['composition', 'hydropathy']))
+            clustersForSequence(read, ["composition", "hydropathy"]),
+        )
 
     def testDuplicatedPropertyName(self):
         """
@@ -823,70 +906,72 @@ class TestClustersForSequence(TestCase):
         wanted properties must be returned, and have the expected property
         cluster numbers.
         """
-        read = AARead('id', 'AI')
+        read = AARead("id", "AI")
         self.assertEqual(
             {
-                'composition': [1, 1],
-                'hydropathy': [3, 4],
+                "composition": [1, 1],
+                "hydropathy": [3, 4],
             },
-            clustersForSequence(read, ['composition',
-                                       'hydropathy', 'hydropathy']))
+            clustersForSequence(read, ["composition", "hydropathy", "hydropathy"]),
+        )
 
     def testMissingAminoAcid(self):
         """
         If an unknown amino acid appears in the sequence, its property cluster
         must be the default (0).
         """
-        read = AARead('id', 'XX')
+        read = AARead("id", "XX")
         self.assertEqual(
             {
-                'composition': [0, 0],
-                'hydropathy': [0, 0],
+                "composition": [0, 0],
+                "hydropathy": [0, 0],
             },
-            clustersForSequence(read, ['composition', 'hydropathy']))
+            clustersForSequence(read, ["composition", "hydropathy"]),
+        )
 
     def testMissingAminoAcidWithNonDefaultMissingValue(self):
         """
         If an unknown amino acid appears in the sequence, its property cluster
         must be the missing AA value that was passed.
         """
-        read = AARead('id', 'XX')
+        read = AARead("id", "XX")
         self.assertEqual(
             {
-                'composition': [10, 10],
-                'hydropathy': [10, 10],
+                "composition": [10, 10],
+                "hydropathy": [10, 10],
             },
-            clustersForSequence(read, ['composition', 'hydropathy'],
-                                missingAAValue=10))
+            clustersForSequence(read, ["composition", "hydropathy"], missingAAValue=10),
+        )
 
 
 class TestCompareAaReads(TestCase):
     """
     Test the compareAaReads function.
     """
+
     def testEmptySequences(self):
         """
         Two empty sequences must compare as expected.
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 0,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 0,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', ''),
-                           AARead('id2', '')))
+            compareAaReads(AARead("id1", ""), AARead("id2", "")),
+        )
 
     def testExactMatch(self):
         """
@@ -894,23 +979,23 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 5,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 5,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GALHN'),
-                           AARead('id2', 'GALHN')))
+            compareAaReads(AARead("id1", "GALHN"), AARead("id2", "GALHN")),
+        )
 
     def testMismatch(self):
         """
@@ -919,23 +1004,23 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 3,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 2,
+                "match": {
+                    "matchCount": 3,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 2,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GALYY'),
-                           AARead('id2', 'GALHN')))
+            compareAaReads(AARead("id1", "GALYY"), AARead("id2", "GALHN")),
+        )
 
     def testNoOffsets(self):
         """
@@ -943,23 +1028,25 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 0,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 0,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GAL-N'),
-                           AARead('id2', 'G-LHN'), offsets=set()))
+            compareAaReads(
+                AARead("id1", "GAL-N"), AARead("id2", "G-LHN"), offsets=set()
+            ),
+        )
 
     def testOffsets(self):
         """
@@ -968,23 +1055,25 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 1,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 1,
+                "match": {
+                    "matchCount": 1,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 1,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GAL-L'),
-                           AARead('id2', 'G-LHN'), offsets=set([0, 4])))
+            compareAaReads(
+                AARead("id1", "GAL-L"), AARead("id2", "G-LHN"), offsets=set([0, 4])
+            ),
+        )
 
     def testGapInFirst(self):
         """
@@ -992,23 +1081,23 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 4,
-                    'gapMismatchCount': 1,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 4,
+                    "gapMismatchCount": 1,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [3],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [3],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GAL-N'),
-                           AARead('id2', 'GALHN')))
+            compareAaReads(AARead("id1", "GAL-N"), AARead("id2", "GALHN")),
+        )
 
     def testGapInSecond(self):
         """
@@ -1016,48 +1105,52 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 3,
-                    'gapMismatchCount': 2,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 3,
+                    "gapMismatchCount": 2,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [1, 2],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [1, 2],
                 },
             },
-            compareAaReads(AARead('id1', 'GALHN'),
-                           AARead('id2', 'G--HN')))
+            compareAaReads(AARead("id1", "GALHN"), AARead("id2", "G--HN")),
+        )
 
     def testNonDefaultGapChars(self):
         """
         We must be able to specify the gap characters.
         """
-        for gap in '+$':
+        for gap in "+$":
             self.assertEqual(
                 {
-                    'match': {
-                        'matchCount': 3,
-                        'gapMismatchCount': 2,
-                        'gapGapMismatchCount': 0,
-                        'nonGapMismatchCount': 0,
+                    "match": {
+                        "matchCount": 3,
+                        "gapMismatchCount": 2,
+                        "gapGapMismatchCount": 0,
+                        "nonGapMismatchCount": 0,
                     },
-                    'read1': {
-                        'extraCount': 0,
-                        'gapOffsets': [2],
+                    "read1": {
+                        "extraCount": 0,
+                        "gapOffsets": [2],
                     },
-                    'read2': {
-                        'extraCount': 0,
-                        'gapOffsets': [0],
+                    "read2": {
+                        "extraCount": 0,
+                        "gapOffsets": [0],
                     },
                 },
-                compareAaReads(AARead('id1', 'GA%sHN' % gap),
-                               AARead('id2', '%sALHN' % gap), gapChars='+$'))
+                compareAaReads(
+                    AARead("id1", "GA%sHN" % gap),
+                    AARead("id2", "%sALHN" % gap),
+                    gapChars="+$",
+                ),
+            )
 
     def testGapGap(self):
         """
@@ -1065,23 +1158,23 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 2,
-                    'gapMismatchCount': 2,
-                    'gapGapMismatchCount': 1,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 2,
+                    "gapMismatchCount": 2,
+                    "gapGapMismatchCount": 1,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [2, 3],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [2, 3],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [1, 2],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [1, 2],
                 },
             },
-            compareAaReads(AARead('id1', 'GA--N'),
-                           AARead('id2', 'G--HN')))
+            compareAaReads(AARead("id1", "GA--N"), AARead("id2", "G--HN")),
+        )
 
     def testExtraInFirst(self):
         """
@@ -1090,23 +1183,23 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 5,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 5,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 2,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 2,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GALHNHN'),
-                           AARead('id2', 'GALHN')))
+            compareAaReads(AARead("id1", "GALHNHN"), AARead("id2", "GALHN")),
+        )
 
     def testExtraInSecond(self):
         """
@@ -1115,40 +1208,41 @@ class TestCompareAaReads(TestCase):
         """
         self.assertEqual(
             {
-                'match': {
-                    'matchCount': 5,
-                    'gapMismatchCount': 0,
-                    'gapGapMismatchCount': 0,
-                    'nonGapMismatchCount': 0,
+                "match": {
+                    "matchCount": 5,
+                    "gapMismatchCount": 0,
+                    "gapGapMismatchCount": 0,
+                    "nonGapMismatchCount": 0,
                 },
-                'read1': {
-                    'extraCount': 0,
-                    'gapOffsets': [],
+                "read1": {
+                    "extraCount": 0,
+                    "gapOffsets": [],
                 },
-                'read2': {
-                    'extraCount': 2,
-                    'gapOffsets': [],
+                "read2": {
+                    "extraCount": 2,
+                    "gapOffsets": [],
                 },
             },
-            compareAaReads(AARead('id1', 'GALHN'),
-                           AARead('id2', 'GALHNHN')))
+            compareAaReads(AARead("id1", "GALHN"), AARead("id2", "GALHNHN")),
+        )
 
 
 class TestMatchToString(TestCase):
     """
     Test the matchToString function.
     """
+
     def testMismatchAndMatch(self):
         """
         Two sequences containing matches and mismatches must compare as
         expected.
         """
-        read1 = AARead('id1', 'GALHNG')
-        read2 = AARead('id2', 'GALHNA')
+        read1 = AARead("id1", "GALHNG")
+        read2 = AARead("id2", "GALHNA")
         match = compareAaReads(read1, read2)
 
         self.assertEqual(
-            '''\
+            """\
 Matches:
   Overall: 5/6 (83.33%)
   Not involving gaps (i.e., identities): 5/6 (83.33%)
@@ -1162,8 +1256,8 @@ Id: id1
   Gaps: 0
 Id: id2
   Length: 6
-  Gaps: 0''',
-            matchToString(match, read1, read2)
+  Gaps: 0""",
+            matchToString(match, read1, read2),
         )
 
     def testGapAndMatch(self):
@@ -1171,12 +1265,12 @@ Id: id2
         Two sequences containing gaps and matches must compare as
         expected.
         """
-        read1 = AARead('id1', 'GALHN-')
-        read2 = AARead('id2', 'GALHNA')
+        read1 = AARead("id1", "GALHN-")
+        read2 = AARead("id2", "GALHNA")
         match = compareAaReads(read1, read2)
 
         self.assertEqual(
-            '''\
+            """\
 Matches:
   Overall: 5/6 (83.33%)
   Not involving gaps (i.e., identities): 5/5 (100.00%)
@@ -1191,8 +1285,8 @@ Id: id1
   Gap locations (1-based): 6
 Id: id2
   Length: 6
-  Gaps: 0''',
-            matchToString(match, read1, read2)
+  Gaps: 0""",
+            matchToString(match, read1, read2),
         )
 
     def testGapAndMatchAndMismatch(self):
@@ -1200,12 +1294,12 @@ Id: id2
         Two sequences containing gaps and matches and mismatches must compare
         as expected.
         """
-        read1 = AARead('id1', '--GBLHN-')
-        read2 = AARead('id2', '--GALHNA')
+        read1 = AARead("id1", "--GBLHN-")
+        read2 = AARead("id2", "--GALHNA")
         match = compareAaReads(read1, read2)
 
         self.assertEqual(
-            '''\
+            """\
 Matches:
   Overall: 4/8 (50.00%)
   Not involving gaps (i.e., identities): 4/5 (80.00%)
@@ -1221,8 +1315,8 @@ Id: id1
 Id: id2
   Length: 8
   Gaps: 2/8 (25.00%)
-  Gap locations (1-based): 1, 2''',
-            matchToString(match, read1, read2)
+  Gap locations (1-based): 1, 2""",
+            matchToString(match, read1, read2),
         )
 
     def testUnequalLengthGapAndMatchAndMismatch(self):
@@ -1230,12 +1324,12 @@ Id: id2
         Two sequences of unequal length containing gaps and matches and
         mismatches must compare as expected.
         """
-        read1 = AARead('id1', '--GBLHN-CC')
-        read2 = AARead('id2', '--GALHNA')
+        read1 = AARead("id1", "--GBLHN-CC")
+        read2 = AARead("id2", "--GALHNA")
         match = compareAaReads(read1, read2)
 
         self.assertEqual(
-            '''\
+            """\
 Matches:
   Overall: 4/10 (40.00%) of sequence 1, 4/8 (50.00%) of sequence 2
   Not involving gaps (i.e., identities): 4/5 (80.00%)
@@ -1255,6 +1349,6 @@ Id: id1
 Id: id2
   Length: 8
   Gaps: 2/8 (25.00%)
-  Gap locations (1-based): 1, 2''',
-            matchToString(match, read1, read2)
+  Gap locations (1-based): 1, 2""",
+            matchToString(match, read1, read2),
         )

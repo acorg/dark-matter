@@ -6,7 +6,7 @@ from dark.reads import DNARead
 from dark.sam import samfile
 
 
-class GenomeProteinInfo(object):
+class GenomeProteinInfo:
     """
     Hold information about the proteins in a genome and how they are matched
     by reads in SAM files.
@@ -17,8 +17,8 @@ class GenomeProteinInfo(object):
         that area supposed to have come from the genome can be obtained by
         translating the corresponding region of the genome.
     """
-    def __init__(self, genomeAccession, proteinGenomeDB,
-                 checkTranslations=True):
+
+    def __init__(self, genomeAccession, proteinGenomeDB, checkTranslations=True):
         self.genomeAccession = genomeAccession
         self.proteinGenomeDB = proteinGenomeDB
         # self.proteins is keyed by protein accession number.
@@ -39,14 +39,16 @@ class GenomeProteinInfo(object):
 
         self.genome = proteinGenomeDB.findGenome(genomeAccession)
         if self.genome is None:
-            raise NoSuchGenomeError('Reference %r not found in protein/genome '
-                                    'database.' % genomeAccession)
+            raise NoSuchGenomeError(
+                "Reference %r not found in protein/genome "
+                "database." % genomeAccession
+            )
 
         for protein in proteinGenomeDB.findProteinsForGenome(genomeAccession):
-            proteinAccession = protein['accession']
+            proteinAccession = protein["accession"]
             self.proteins[proteinAccession] = protein
 
-            ranges = GenomeRanges(protein['offsets']).ranges
+            ranges = GenomeRanges(protein["offsets"]).ranges
             # print('Protein accession', proteinAccession)
             # print(ranges)
 
@@ -54,11 +56,10 @@ class GenomeProteinInfo(object):
                 for offset in range(start, stop):
                     if offset not in self.offsets:
                         self.offsets[offset] = {
-                            'proteinAccessions': set(),
-                            'readIds': set(),
+                            "proteinAccessions": set(),
+                            "readIds": set(),
                         }
-                    self.offsets[offset]['proteinAccessions'].add(
-                        proteinAccession)
+                    self.offsets[offset]["proteinAccessions"].add(proteinAccession)
 
             if checkTranslations:
                 self._checkTranslation(self.genome, ranges, protein)
@@ -77,19 +78,19 @@ class GenomeProteinInfo(object):
             protein/genome database, as returned by
             C{dark.civ.proteins.SqliteIndex.findProtein.
         """
-        proteinSequence = protein['sequence'] + '*'
+        proteinSequence = protein["sequence"] + "*"
 
         # print('protein name', protein['product'], 'ranges', ranges)
-        sequence = ''.join([genome['sequence'][start:stop]
-                            for (start, stop, _) in ranges])
+        sequence = "".join(
+            [genome["sequence"][start:stop] for (start, stop, _) in ranges]
+        )
 
-        genomeRead = DNARead('id', sequence)
+        genomeRead = DNARead("id", sequence)
         translations = list(genomeRead.translations())
-        index = 0 if protein['forward'] else 3
+        index = 0 if protein["forward"] else 3
         if translations[index].sequence != proteinSequence:
             # TODO: improve this error to show what actually went wrong.
-            raise ValueError(
-                'Could not translate genome range to get protein sequence')
+            raise ValueError("Could not translate genome range to get protein sequence")
 
     def addSAM(self, filename, filterAlignment=None):
         """
@@ -106,9 +107,9 @@ class GenomeProteinInfo(object):
             for column in sam.pileup():
                 for read in column.pileups:
                     alignment = read.alignment
-                    if (alignment.reference_name == referenceId and
-                            (filterAlignment is None or
-                             filterAlignment(alignment))):
+                    if alignment.reference_name == referenceId and (
+                        filterAlignment is None or filterAlignment(alignment)
+                    ):
                         readId = alignment.query_name
                         self.readIdsMatchingGenome.add(readId)
                         offset = column.reference_pos
@@ -120,9 +121,8 @@ class GenomeProteinInfo(object):
                             pass
                         else:
                             # This offset corresponds to one or more proteins.
-                            self.coveredProteins.update(
-                                offsetInfo['proteinAccessions'])
-                            offsetInfo['readIds'].add(readId)
+                            self.coveredProteins.update(offsetInfo["proteinAccessions"])
+                            offsetInfo["readIds"].add(readId)
 
     def proteinCoverageInfo(self, proteinAccession, minReadOffsetCount=None):
         """
@@ -157,7 +157,7 @@ class GenomeProteinInfo(object):
         if minReadOffsetCount:
             readOffsetCounts = Counter()
 
-        proteinRanges = GenomeRanges(protein['offsets']).ranges
+        proteinRanges = GenomeRanges(protein["offsets"]).ranges
 
         # Do an initial pass across all the offsets of the protein to see
         # which reads intersect and where. We will then do a second pass in
@@ -167,7 +167,7 @@ class GenomeProteinInfo(object):
             for offset in range(start, stop):
                 assert offset not in offsetsSeen
                 offsetsSeen.add(offset)
-                readIds = self.offsets[offset]['readIds']
+                readIds = self.offsets[offset]["readIds"]
                 if readIds and minReadOffsetCount:
                     readOffsetCounts.update(readIds)
 
@@ -177,18 +177,22 @@ class GenomeProteinInfo(object):
         # The +3 in the following is because the database holds the AA
         # length, not including the stop codon. But the database range
         # covers the stop codon.
-        dbProteinLength = self.proteins[proteinAccession]['length'] * 3 + 3
+        dbProteinLength = self.proteins[proteinAccession]["length"] * 3 + 3
         if proteinLength != dbProteinLength:
             raise ValueError(
-                'Sum of protein database ranges (%d) does not agree with '
-                'database protein length (%d) for protein %s!' %
-                (proteinLength, dbProteinLength, proteinAccession))
+                "Sum of protein database ranges (%d) does not agree with "
+                "database protein length (%d) for protein %s!"
+                % (proteinLength, dbProteinLength, proteinAccession)
+            )
 
         # If we are not reporting reads whose overlapping offset count is
         # too low, make a set of such reads.
         if minReadOffsetCount:
-            unwanted = set(readId for readId in readOffsetCounts
-                           if readOffsetCounts[readId] < minReadOffsetCount)
+            unwanted = set(
+                readId
+                for readId in readOffsetCounts
+                if readOffsetCounts[readId] < minReadOffsetCount
+            )
         else:
             unwanted = set()
 
@@ -196,17 +200,17 @@ class GenomeProteinInfo(object):
         # overlapping) reads.
         for (start, stop, forward) in proteinRanges:
             for offset in range(start, stop):
-                readIds = set(self.offsets[offset]['readIds']) - unwanted
+                readIds = set(self.offsets[offset]["readIds"]) - unwanted
                 if readIds:
                     allReadIds.update(readIds)
                     coveredOffsets += 1
                     totalBases += len(readIds)
 
         return {
-            'coveredOffsets': coveredOffsets,
-            'totalBases': totalBases,
-            'ntLength': proteinLength,
-            'readIds': allReadIds,
+            "coveredOffsets": coveredOffsets,
+            "totalBases": totalBases,
+            "ntLength": proteinLength,
+            "readIds": allReadIds,
         }
 
     def readIdsForAllProteins(self):
@@ -217,5 +221,5 @@ class GenomeProteinInfo(object):
         """
         result = set()
         for offsetInfo in self.offsets.values():
-            result.update(offsetInfo['readIds'])
+            result.update(offsetInfo["readIds"])
         return result

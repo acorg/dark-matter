@@ -19,9 +19,10 @@ def parseBtop(btopString):
         if isdigit(char):
             if queryLetter is not None:
                 raise ValueError(
-                    'BTOP string %r has a query letter %r at offset %d with '
-                    'no corresponding subject letter' %
-                    (btopString, queryLetter, offset - 1))
+                    "BTOP string %r has a query letter %r at offset %d with "
+                    "no corresponding subject letter"
+                    % (btopString, queryLetter, offset - 1)
+                )
             value = int(char) if value is None else value * 10 + int(char)
         else:
             if value is not None:
@@ -32,15 +33,16 @@ def parseBtop(btopString):
                 if queryLetter is None:
                     queryLetter = char
                 else:
-                    if queryLetter == '-' and char == '-':
+                    if queryLetter == "-" and char == "-":
                         raise ValueError(
-                            'BTOP string %r has two consecutive gaps at '
-                            'offset %d' % (btopString, offset - 1))
+                            "BTOP string %r has two consecutive gaps at "
+                            "offset %d" % (btopString, offset - 1)
+                        )
                     elif queryLetter == char:
                         raise ValueError(
-                            'BTOP string %r has two consecutive identical %r '
-                            'letters at offset %d' %
-                            (btopString, char, offset - 1))
+                            "BTOP string %r has two consecutive identical %r "
+                            "letters at offset %d" % (btopString, char, offset - 1)
+                        )
                     yield (queryLetter, char)
                     queryLetter = None
 
@@ -48,8 +50,9 @@ def parseBtop(btopString):
         yield value
     elif queryLetter is not None:
         raise ValueError(
-            'BTOP string %r has a trailing query letter %r with '
-            'no corresponding subject letter' % (btopString, queryLetter))
+            "BTOP string %r has a trailing query letter %r with "
+            "no corresponding subject letter" % (btopString, queryLetter)
+        )
 
 
 def countGaps(btopString):
@@ -66,8 +69,8 @@ def countGaps(btopString):
     for countOrMismatch in parseBtop(btopString):
         if isinstance(countOrMismatch, tuple):
             queryChar, subjectChar = countOrMismatch
-            queryGaps += int(queryChar == '-')
-            subjectGaps += int(subjectChar == '-')
+            queryGaps += int(queryChar == "-")
+            subjectGaps += int(subjectChar == "-")
 
     return (queryGaps, subjectGaps)
 
@@ -92,7 +95,7 @@ def btop2cigar(btopString, concise=False, aa=False):
         ''.join(btopString(...)) to get a complete CIGAR string.
     """
     if aa and concise:
-        raise ValueError('aa and concise cannot both be True')
+        raise ValueError("aa and concise cannot both be True")
 
     thisLength = thisOperation = currentLength = currentOperation = None
 
@@ -103,13 +106,13 @@ def btop2cigar(btopString, concise=False, aa=False):
         else:
             thisLength = 1
             query, reference = item
-            if query == '-':
+            if query == "-":
                 # The query has a gap. That means that in matching the
                 # query to the reference a deletion is needed in the
                 # reference.
-                assert reference != '-'
+                assert reference != "-"
                 thisOperation = CDEL_STR
-            elif reference == '-':
+            elif reference == "-":
                 # The reference has a gap. That means that in matching the
                 # query to the reference an insertion is needed in the
                 # reference.
@@ -123,14 +126,15 @@ def btop2cigar(btopString, concise=False, aa=False):
             currentLength += thisLength
         else:
             if currentOperation:
-                yield '%d%s' % ((3 * currentLength) if aa else currentLength,
-                                currentOperation)
+                yield "%d%s" % (
+                    (3 * currentLength) if aa else currentLength,
+                    currentOperation,
+                )
             currentLength, currentOperation = thisLength, thisOperation
 
     # We reached the end of the BTOP string. If there was an operation
     # underway, emit it.  The 'if' here should only be needed to catch the
     # case where btopString was empty.
-    assert currentOperation or btopString == ''
+    assert currentOperation or btopString == ""
     if currentOperation:
-        yield '%d%s' % ((3 * currentLength) if aa else currentLength,
-                        currentOperation)
+        yield "%d%s" % ((3 * currentLength) if aa else currentLength, currentOperation)

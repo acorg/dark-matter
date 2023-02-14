@@ -32,14 +32,15 @@ def summarizeReads(file_handle, file_type):
         "max_length": max(length_list) if length_list else 0,
         "min_length": min(length_list) if length_list else 0,
         "median_length": median(length_list) if length_list else 0,
-        "base_counts": base_counts
+        "base_counts": base_counts,
     }
 
     return result
 
 
-def sequenceCategoryLengths(read, categories, defaultCategory=None,
-                            suppressedCategory='...', minLength=1):
+def sequenceCategoryLengths(
+    read, categories, defaultCategory=None, suppressedCategory="...", minLength=1
+):
     """
     Summarize the nucleotides or AAs found in a read by assigning each to a
     category and reporting the lengths of the contiguous category classes
@@ -68,7 +69,7 @@ def sequenceCategoryLengths(read, categories, defaultCategory=None,
     suppressedCount = 0
 
     if minLength < 1:
-        raise ValueError('minLength must be at least 1')
+        raise ValueError("minLength must be at least 1")
 
     for base in read.sequence:
         thisCategory = get(base, defaultCategory)

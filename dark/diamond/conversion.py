@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import six
 import bz2
 from json import dumps, loads
@@ -17,8 +15,10 @@ from dark.diamond.hsp import normalizeHSP
 # command line via --outfmt 6) that must be given to DIAMOND blastx to
 # allow its output to be parsed by convert-diamond-to-sam.py (which uses
 # diamondTabularFormatToDicts (below)).
-FIELDS = ('bitscore btop qframe qend full_qqual qlen full_qseq qseqid '
-          'qstart slen sstart stitle')
+FIELDS = (
+    "bitscore btop qframe qend full_qqual qlen full_qseq qseqid "
+    "qstart slen sstart stitle"
+)
 
 # The keys in the following are DIAMOND format 6 field names. The values
 # are one-argument functions that take a string and return an appropriately
@@ -27,32 +27,32 @@ FIELDS = ('bitscore btop qframe qend full_qqual qlen full_qseq qseqid '
 # The following fields are taken from the DIAMOND manual v0.9.22 2018-05-11.
 # Fields whose name doesn't appear here will be left as strings.
 DIAMOND_FIELD_CONVERTER = {
-    'bitscore': float,
-    'evalue': float,
-    'frame': int,
-    'gapopen': int,
-    'gaps': int,
-    'identicalCount': lambda nident: None if nident is None else int(nident),
-    'length': int,
-    'mismatch': int,
-    'nident': int,
-    'pident': float,
-    'positive': int,
-    'positiveCount': lambda pos: None if pos is None else int(pos),
-    'ppos': float,
-    'qcovhsp': float,
-    'qend': int,
-    'qframe': int,
-    'qlen': int,
-    'qstart': int,
-    'score': float,
-    'send': int,
-    'slen': int,
-    'sstart': int,
+    "bitscore": float,
+    "evalue": float,
+    "frame": int,
+    "gapopen": int,
+    "gaps": int,
+    "identicalCount": lambda nident: None if nident is None else int(nident),
+    "length": int,
+    "mismatch": int,
+    "nident": int,
+    "pident": float,
+    "positive": int,
+    "positiveCount": lambda pos: None if pos is None else int(pos),
+    "ppos": float,
+    "qcovhsp": float,
+    "qend": int,
+    "qframe": int,
+    "qlen": int,
+    "qstart": int,
+    "score": float,
+    "send": int,
+    "slen": int,
+    "sstart": int,
 }
 
 
-class DiamondTabularFormat(object):
+class DiamondTabularFormat:
     """
     Read/convert DIAMOND TAB-separated format (format #6).
 
@@ -60,23 +60,26 @@ class DiamondTabularFormat(object):
         Run 'diamond -help' to see the full list. If C{None}, a default set of
         fields will be used, as compatible with convert-diamond-to-sam.py
     """
+
     def __init__(self, fieldNames=None):
         self._fieldNames = fieldNames or FIELDS.split()
         self._nFields = len(self._fieldNames)
         if not self._nFields:
-            raise ValueError('fieldNames cannot be empty.')
+            raise ValueError("fieldNames cannot be empty.")
 
         c = Counter(self._fieldNames)
         if c.most_common(1)[0][1] > 1:
             raise ValueError(
-                'field names contains duplicated names: %s.' %
-                (', '.join(sorted(x[0] for x in c.most_common() if x[1] > 1))))
+                "field names contains duplicated names: %s."
+                % (", ".join(sorted(x[0] for x in c.most_common() if x[1] > 1)))
+            )
 
         def identity(x):
             return x
 
-        self._convertors = tuple(DIAMOND_FIELD_CONVERTER.get(field, identity)
-                                 for field in self._fieldNames)
+        self._convertors = tuple(
+            DIAMOND_FIELD_CONVERTER.get(field, identity) for field in self._fieldNames
+        )
 
     def diamondFieldsToDict(self, line):
         """
@@ -89,18 +92,20 @@ class DiamondTabularFormat(object):
         @return: A C{dict} with keys that are the DIAMOND field names, with
             values as converted by the functions set up in __init__.
         """
-        values = line.rstrip().split('\t')
+        values = line.rstrip().split("\t")
 
         if len(values) != self._nFields:
             raise ValueError(
-                'DIAMOND output line had %d field values (expected %d). '
-                'The offending input line was %r.' %
-                (len(values), self._nFields, line))
+                "DIAMOND output line had %d field values (expected %d). "
+                "The offending input line was %r." % (len(values), self._nFields, line)
+            )
 
         return dict(
             (fieldName, func(value))
             for fieldName, func, value in zip(
-                self._fieldNames, self._convertors, values))
+                self._fieldNames, self._convertors, values
+            )
+        )
 
     def diamondTabularFormatToDicts(self, filename):
         """
@@ -118,7 +123,7 @@ class DiamondTabularFormat(object):
                 yield self.diamondFieldsToDict(line)
 
 
-class DiamondTabularFormatReader(object):
+class DiamondTabularFormatReader:
     """
     Provide a method that yields parsed tabular records from a file. Store and
     make accessible the global DIAMOND parameters.
@@ -146,14 +151,16 @@ class DiamondTabularFormatReader(object):
 
     def __init__(self, filename):
         self._filename = filename
-        self.application = 'DIAMOND'
+        self.application = "DIAMOND"
         self.params = {
-            'application': self.application,
-            'reference': ('Buchfink et al., Fast and Sensitive Protein '
-                          'Alignment using DIAMOND, Nature Methods, 12, 59-60 '
-                          '(2015)'),
-            'task': 'blastx',  # TODO: Add support for blastp, if needed.
-            'version': 'v0.8.23',
+            "application": self.application,
+            "reference": (
+                "Buchfink et al., Fast and Sensitive Protein "
+                "Alignment using DIAMOND, Nature Methods, 12, 59-60 "
+                "(2015)"
+            ),
+            "task": "blastx",  # TODO: Add support for blastp, if needed.
+            "version": "v0.8.23",
         }
 
     def records(self):
@@ -172,46 +179,87 @@ class DiamondTabularFormatReader(object):
             record = {}
             for line in fp:
                 line = line[:-1]
-                fields = line.split('\t')
+                fields = line.split("\t")
                 nFields = len(fields)
 
                 if nFields == 13:
-                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
-                     qend, sseq, sstart, send, slen, btop) = fields
+                    (
+                        qtitle,
+                        stitle,
+                        bitscore,
+                        evalue,
+                        qframe,
+                        qseq,
+                        qstart,
+                        qend,
+                        sseq,
+                        sstart,
+                        send,
+                        slen,
+                        btop,
+                    ) = fields
                     nident = pident = positive = ppos = None
                 elif nFields == 15:
-                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
-                     qend, sseq, sstart, send, slen, btop, nident,
-                     positive) = fields
+                    (
+                        qtitle,
+                        stitle,
+                        bitscore,
+                        evalue,
+                        qframe,
+                        qseq,
+                        qstart,
+                        qend,
+                        sseq,
+                        sstart,
+                        send,
+                        slen,
+                        btop,
+                        nident,
+                        positive,
+                    ) = fields
                     pident = ppos = None
                 elif nFields == 17:
-                    (qtitle, stitle, bitscore, evalue, qframe, qseq, qstart,
-                     qend, sseq, sstart, send, slen, btop, nident, pident,
-                     positive, ppos) = fields
+                    (
+                        qtitle,
+                        stitle,
+                        bitscore,
+                        evalue,
+                        qframe,
+                        qseq,
+                        qstart,
+                        qend,
+                        sseq,
+                        sstart,
+                        send,
+                        slen,
+                        btop,
+                        nident,
+                        pident,
+                        positive,
+                        ppos,
+                    ) = fields
                 else:
                     raise ValueError(
-                        'Could not make sense of DIAMOND output. You must use '
-                        '--outfmt 6 with 13, 15, or 17 arguments. See %s for '
-                        'the expected names and order.' % __file__)
+                        "Could not make sense of DIAMOND output. You must use "
+                        "--outfmt 6 with 13, 15, or 17 arguments. See %s for "
+                        "the expected names and order." % __file__
+                    )
 
                 hsp = {
-                    'bits': float(bitscore),
-                    'btop': btop,
-                    'expect': float(evalue),
-                    'frame': int(qframe),
-                    'identicalCount': None if nident is None else int(nident),
-                    'percentIdentical': (
-                        None if pident is None else float(pident)),
-                    'positiveCount': (
-                        None if positive is None else int(positive)),
-                    'percentPositive': (
-                        None if ppos is None else float(ppos)),
-                    'query': qseq,
-                    'query_start': int(qstart),
-                    'query_end': int(qend),
-                    'sbjct': sseq,
-                    'sbjct_start': int(sstart),
-                    'sbjct_end': int(send),
+                    "bits": float(bitscore),
+                    "btop": btop,
+                    "expect": float(evalue),
+                    "frame": int(qframe),
+                    "identicalCount": None if nident is None else int(nident),
+                    "percentIdentical": (None if pident is None else float(pident)),
+                    "positiveCount": (None if positive is None else int(positive)),
+                    "percentPositive": (None if ppos is None else float(ppos)),
+                    "query": qseq,
+                    "query_start": int(qstart),
+                    "query_end": int(qend),
+                    "sbjct": sseq,
+                    "sbjct_start": int(sstart),
+                    "sbjct_end": int(send),
                 }
 
                 if previousQtitle == qtitle:
@@ -222,17 +270,17 @@ class DiamondTabularFormatReader(object):
                         # new alignment.
                         subjectsSeen.add(stitle)
                         alignment = {
-                            'hsps': [hsp],
-                            'length': int(slen),
-                            'title': stitle,
+                            "hsps": [hsp],
+                            "length": int(slen),
+                            "title": stitle,
                         }
-                        record['alignments'].append(alignment)
+                        record["alignments"].append(alignment)
                     else:
                         # We have already seen this subject, so this is another
                         # HSP in an already existing alignment.
-                        for alignment in record['alignments']:
-                            if alignment['title'] == stitle:
-                                alignment['hsps'].append(hsp)
+                        for alignment in record["alignments"]:
+                            if alignment["title"] == stitle:
+                                alignment["hsps"].append(hsp)
                                 break
                 else:
                     # All alignments for the previous query id (if any)
@@ -244,12 +292,12 @@ class DiamondTabularFormatReader(object):
                     record = {}
                     subjectsSeen = {stitle}
                     alignment = {
-                        'hsps': [hsp],
-                        'length': int(slen),
-                        'title': stitle,
+                        "hsps": [hsp],
+                        "length": int(slen),
+                        "title": stitle,
                     }
-                    record['alignments'] = [alignment]
-                    record['query'] = qtitle
+                    record["alignments"] = [alignment]
+                    record["query"] = qtitle
 
                     previousQtitle = qtitle
 
@@ -267,20 +315,20 @@ class DiamondTabularFormatReader(object):
             (not strings). This is required when we are writing to a BZ2 file.
         """
         if writeBytes:
-            fp.write(dumps(self.params, sort_keys=True).encode('UTF-8'))
-            fp.write(b'\n')
+            fp.write(dumps(self.params, sort_keys=True).encode("UTF-8"))
+            fp.write(b"\n")
             for record in self.records():
-                fp.write(dumps(record, sort_keys=True).encode('UTF-8'))
-                fp.write(b'\n')
+                fp.write(dumps(record, sort_keys=True).encode("UTF-8"))
+                fp.write(b"\n")
         else:
             fp.write(six.u(dumps(self.params, sort_keys=True)))
-            fp.write(six.u('\n'))
+            fp.write(six.u("\n"))
             for record in self.records():
                 fp.write(six.u(dumps(record, sort_keys=True)))
-                fp.write(six.u('\n'))
+                fp.write(six.u("\n"))
 
 
-class JSONRecordsReader(object):
+class JSONRecordsReader:
     """
     Provide a method that yields JSON records from a file. Store, check, and
     make accessible the DIAMOND parameters.
@@ -290,6 +338,7 @@ class JSONRecordsReader(object):
         Default is C{HigherIsBetterScore}, for comparing bit scores. If you
         are using e-values, pass LowerIsBetterScore instead.
     """
+
     def __init__(self, filename, scoreClass=HigherIsBetterScore):
         self._filename = filename
         self._scoreClass = scoreClass
@@ -299,7 +348,7 @@ class JSONRecordsReader(object):
             self._hspClass = LSP
 
         self._open(filename)
-        self.diamondTask = self.params['task']
+        self.diamondTask = self.params["task"]
 
     def _open(self, filename):
         """
@@ -311,9 +360,9 @@ class JSONRecordsReader(object):
             if the input file is empty, or if the JSON does not contain an
             'application' key.
         """
-        if filename.endswith('.bz2'):
+        if filename.endswith(".bz2"):
             if six.PY3:
-                self._fp = bz2.open(filename, mode='rt', encoding='UTF-8')
+                self._fp = bz2.open(filename, mode="rt", encoding="UTF-8")
             else:
                 self._fp = bz2.BZ2File(filename)
         else:
@@ -321,14 +370,15 @@ class JSONRecordsReader(object):
 
         line = self._fp.readline()
         if not line:
-            raise ValueError('JSON file %r was empty.' % self._filename)
+            raise ValueError("JSON file %r was empty." % self._filename)
 
         try:
             self.params = loads(line[:-1])
         except ValueError as e:
             raise ValueError(
-                'Could not convert first line of %r to JSON (%s). '
-                'Line is %r.' % (self._filename, e, line[:-1]))
+                "Could not convert first line of %r to JSON (%s). "
+                "Line is %r." % (self._filename, e, line[:-1])
+            )
 
     def _dictToAlignments(self, diamondDict, read):
         """
@@ -341,27 +391,25 @@ class JSONRecordsReader(object):
         @return: A C{list} of L{dark.alignment.Alignment} instances.
         """
         alignments = []
-        getScore = itemgetter('bits' if self._hspClass is HSP else 'expect')
+        getScore = itemgetter("bits" if self._hspClass is HSP else "expect")
 
-        for diamondAlignment in diamondDict['alignments']:
-            alignment = Alignment(diamondAlignment['length'],
-                                  diamondAlignment['title'])
+        for diamondAlignment in diamondDict["alignments"]:
+            alignment = Alignment(diamondAlignment["length"], diamondAlignment["title"])
             alignments.append(alignment)
-            for diamondHsp in diamondAlignment['hsps']:
+            for diamondHsp in diamondAlignment["hsps"]:
                 score = getScore(diamondHsp)
-                normalized = normalizeHSP(diamondHsp, len(read),
-                                          self.diamondTask)
+                normalized = normalizeHSP(diamondHsp, len(read), self.diamondTask)
                 hsp = self._hspClass(
                     score,
-                    readStart=normalized['readStart'],
-                    readEnd=normalized['readEnd'],
-                    readStartInSubject=normalized['readStartInSubject'],
-                    readEndInSubject=normalized['readEndInSubject'],
-                    readFrame=diamondHsp['frame'],
-                    subjectStart=normalized['subjectStart'],
-                    subjectEnd=normalized['subjectEnd'],
-                    readMatchedSequence=diamondHsp['query'],
-                    subjectMatchedSequence=diamondHsp['sbjct'],
+                    readStart=normalized["readStart"],
+                    readEnd=normalized["readEnd"],
+                    readStartInSubject=normalized["readStartInSubject"],
+                    readEndInSubject=normalized["readEndInSubject"],
+                    readFrame=diamondHsp["frame"],
+                    subjectStart=normalized["subjectStart"],
+                    subjectEnd=normalized["subjectEnd"],
+                    readMatchedSequence=diamondHsp["query"],
+                    subjectMatchedSequence=diamondHsp["sbjct"],
                     # Use diamondHsp.get on identicalCount, positiveCount,
                     # percentPositive, and percentIdentical because they
                     # were either added in version 2.0.3 or we didn't start
@@ -370,10 +418,11 @@ class JSONRecordsReader(object):
                     # that. Those values will be None when reading those
                     # JSON files, but that's much better than no longer
                     # being able to read all that earlier data.
-                    identicalCount=diamondHsp.get('identicalCount'),
-                    positiveCount=diamondHsp.get('positiveCount'),
-                    percentIdentical=diamondHsp.get('percentIdentical'),
-                    percentPositive=diamondHsp.get('percentPositive'))
+                    identicalCount=diamondHsp.get("identicalCount"),
+                    positiveCount=diamondHsp.get("positiveCount"),
+                    percentIdentical=diamondHsp.get("percentIdentical"),
+                    percentPositive=diamondHsp.get("percentPositive"),
+                )
 
                 alignment.addHsp(hsp)
 
@@ -402,11 +451,11 @@ class JSONRecordsReader(object):
                     record = loads(line[:-1])
                 except ValueError as e:
                     raise ValueError(
-                        'Could not convert line %d of %r to JSON (%s). '
-                        'Line is %r.' %
-                        (lineNumber, self._filename, e, line[:-1]))
+                        "Could not convert line %d of %r to JSON (%s). "
+                        "Line is %r." % (lineNumber, self._filename, e, line[:-1])
+                    )
                 else:
-                    recordTitle = record['query']
+                    recordTitle = record["query"]
                     while True:
                         # Iterate through the input reads until we find the
                         # one that matches this DIAMOND record.
@@ -414,10 +463,11 @@ class JSONRecordsReader(object):
                             read = next(reads)
                         except StopIteration:
                             raise ValueError(
-                                'Read generator failed to yield a read '
-                                'with id \'%s\' as found in record number %d '
-                                'during parsing of DIAMOND output file %r.' %
-                                (recordTitle, lineNumber - 1, self._filename))
+                                "Read generator failed to yield a read "
+                                "with id '%s' as found in record number %d "
+                                "during parsing of DIAMOND output file %r."
+                                % (recordTitle, lineNumber - 1, self._filename)
+                            )
                         else:
                             # Look for an exact read id / subject title match.
                             # If that doesn't work, allow for the case where
@@ -425,10 +475,11 @@ class JSONRecordsReader(object):
                             # read) id. This covers the situation where a tool
                             # we use (e.g., bwa mem) unconditionally does this
                             # truncation in the output it writes.
-                            if (read.id == recordTitle or
-                                    read.id.split()[0] == recordTitle):
-                                alignments = self._dictToAlignments(record,
-                                                                    read)
+                            if (
+                                read.id == recordTitle
+                                or read.id.split()[0] == recordTitle
+                            ):
+                                alignments = self._dictToAlignments(record, read)
                                 yield ReadAlignments(read, alignments)
                                 break
                             else:

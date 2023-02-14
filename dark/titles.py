@@ -23,7 +23,7 @@ def titleCounts(readsAlignments):
     return titles
 
 
-class TitleAlignment(object):
+class TitleAlignment:
     """
     Hold information about a read's HSPs for a title alignment.
 
@@ -42,8 +42,8 @@ class TitleAlignment(object):
         @return: A C{dict} representation of the title aligment.
         """
         return {
-            'hsps': [hsp.toDict() for hsp in self.hsps],
-            'read': self.read.toDict(),
+            "hsps": [hsp.toDict() for hsp in self.hsps],
+            "read": self.read.toDict(),
         }
 
 
@@ -194,12 +194,13 @@ class TitleAlignments(list):
             for hsp in titleAlignment.hsps:
                 score = hsp.score.score
                 for (subjectOffset, base, _) in titleAlignment.read.walkHSP(
-                        hsp, includeWhiskers=False):
+                    hsp, includeWhiskers=False
+                ):
                     result[subjectOffset].append((score, base))
 
         return result
 
-    def residueCounts(self, convertCaseTo='upper'):
+    def residueCounts(self, convertCaseTo="upper"):
         """
         Count residue frequencies at all sequence locations matched by reads.
 
@@ -211,16 +212,17 @@ class TitleAlignments(list):
             sequence and whose values are C{Counters} with the residue as keys
             and the count of that residue at that location as values.
         """
-        if convertCaseTo == 'none':
+        if convertCaseTo == "none":
+
             def convert(x):
                 return x
-        elif convertCaseTo == 'lower':
+
+        elif convertCaseTo == "lower":
             convert = str.lower
-        elif convertCaseTo == 'upper':
+        elif convertCaseTo == "upper":
             convert = str.upper
         else:
-            raise ValueError(
-                "convertCaseTo must be one of 'none', 'lower', or 'upper'")
+            raise ValueError("convertCaseTo must be one of 'none', 'lower', or 'upper'")
 
         counts = defaultdict(Counter)
 
@@ -247,13 +249,13 @@ class TitleAlignments(list):
             subjectTitle: The C{str} title of the subject.
         """
         return {
-            'bestScore': self.bestHsp().score.score,
-            'coverage': self.coverage(),
-            'hspCount': self.hspCount(),
-            'medianScore': self.medianScore(),
-            'readCount': self.readCount(),
-            'subjectLength': self.subjectLength,
-            'subjectTitle': self.subjectTitle,
+            "bestScore": self.bestHsp().score.score,
+            "coverage": self.coverage(),
+            "hspCount": self.hspCount(),
+            "medianScore": self.medianScore(),
+            "readCount": self.readCount(),
+            "subjectLength": self.subjectLength,
+            "subjectTitle": self.subjectTitle,
         }
 
     def toDict(self):
@@ -263,10 +265,9 @@ class TitleAlignments(list):
         @return: A C{dict} representation of the title's aligments.
         """
         return {
-            'titleAlignments': [titleAlignment.toDict()
-                                for titleAlignment in self],
-            'subjectTitle': self.subjectTitle,
-            'subjectLength': self.subjectLength,
+            "titleAlignments": [titleAlignment.toDict() for titleAlignment in self],
+            "subjectTitle": self.subjectTitle,
+            "subjectLength": self.subjectLength,
         }
 
 
@@ -294,9 +295,11 @@ class TitlesAlignments(dict):
                     titleAlignments = self[title]
                 except KeyError:
                     titleAlignments = self[title] = TitleAlignments(
-                        title, alignment.subjectLength)
+                        title, alignment.subjectLength
+                    )
                 titleAlignments.addAlignment(
-                    TitleAlignment(readAlignments.read, alignment.hsps))
+                    TitleAlignment(readAlignments.read, alignment.hsps)
+                )
 
     def addTitle(self, title, titleAlignments):
         """
@@ -307,15 +310,25 @@ class TitlesAlignments(dict):
         @raises KeyError: If the title is already present.
         """
         if title in self:
-            raise KeyError('Title %r already present in TitlesAlignments '
-                           'instance.' % title)
+            raise KeyError(
+                "Title %r already present in TitlesAlignments " "instance." % title
+            )
         else:
             self[title] = titleAlignments
 
-    def filter(self, minMatchingReads=None, maxMatchingReads=None,
-               minMedianScore=None, withScoreBetterThan=None, minNewReads=None,
-               minCoverage=None, maxTitles=None, sortOn='maxScore',
-               titleRegex=None, negativeTitleRegex=None):
+    def filter(
+        self,
+        minMatchingReads=None,
+        maxMatchingReads=None,
+        minMedianScore=None,
+        withScoreBetterThan=None,
+        minNewReads=None,
+        minCoverage=None,
+        maxTitles=None,
+        sortOn="maxScore",
+        titleRegex=None,
+        negativeTitleRegex=None,
+    ):
         """
         Filter the titles in self.
 
@@ -356,8 +369,7 @@ class TitlesAlignments(dict):
 
         if maxTitles is not None and len(self) > maxTitles:
             if maxTitles < 0:
-                raise ValueError('maxTitles (%r) cannot be negative.' %
-                                 maxTitles)
+                raise ValueError("maxTitles (%r) cannot be negative." % maxTitles)
             else:
                 # There are too many titles. Make a sorted list of them so
                 # we loop through them (below) in the desired order and can
@@ -370,9 +382,10 @@ class TitlesAlignments(dict):
         else:
             titles = list(self)
 
-        if (titleRegex or negativeTitleRegex):
+        if titleRegex or negativeTitleRegex:
             titleFilter = TitleFilter(
-                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex)
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex
+            )
         else:
             titleFilter = None
 
@@ -384,17 +397,20 @@ class TitlesAlignments(dict):
                 break
 
             # Test positive and negative regexps.
-            if (titleFilter and
-                    titleFilter.accept(title) == TitleFilter.REJECT):
+            if titleFilter and titleFilter.accept(title) == TitleFilter.REJECT:
                 continue
 
             titleAlignments = self[title]
-            if (minMatchingReads is not None and
-                    titleAlignments.readCount() < minMatchingReads):
+            if (
+                minMatchingReads is not None
+                and titleAlignments.readCount() < minMatchingReads
+            ):
                 continue
 
-            if (maxMatchingReads is not None and
-                    titleAlignments.readCount() > maxMatchingReads):
+            if (
+                maxMatchingReads is not None
+                and titleAlignments.readCount() > maxMatchingReads
+            ):
                 continue
 
             # To compare the median score with another score, we must
@@ -402,21 +418,21 @@ class TitlesAlignments(dict):
             # this data set so they can be compared without us needing to
             # know if numerically greater scores are considered better or
             # not.
-            if (minMedianScore is not None and
-                    self.scoreClass(titleAlignments.medianScore()) <
-                    self.scoreClass(minMedianScore)):
+            if minMedianScore is not None and self.scoreClass(
+                titleAlignments.medianScore()
+            ) < self.scoreClass(minMedianScore):
                 continue
 
-            if (withScoreBetterThan is not None and not
-                    titleAlignments.hasScoreBetterThan(withScoreBetterThan)):
+            if (
+                withScoreBetterThan is not None
+                and not titleAlignments.hasScoreBetterThan(withScoreBetterThan)
+            ):
                 continue
 
-            if (minCoverage is not None and
-                    titleAlignments.coverage() < minCoverage):
+            if minCoverage is not None and titleAlignments.coverage() < minCoverage:
                 continue
 
-            if (readSetFilter and not
-                    readSetFilter.accept(title, titleAlignments)):
+            if readSetFilter and not readSetFilter.accept(title, titleAlignments):
                 continue
 
             titlesToKeep.add(title)
@@ -434,8 +450,12 @@ class TitlesAlignments(dict):
 
         @return: A generator yielding L{dark.hsp.HSP} instances.
         """
-        return (hsp for titleAlignments in self.values()
-                for alignment in titleAlignments for hsp in alignment.hsps)
+        return (
+            hsp
+            for titleAlignments in self.values()
+            for alignment in titleAlignments
+            for hsp in alignment.hsps
+        )
 
     def sortTitles(self, by):
         """
@@ -450,26 +470,29 @@ class TitlesAlignments(dict):
         titles = sorted(iter(self))
 
         # Then sort on the primary key (if any).
-        if by == 'length':
+        if by == "length":
             return sorted(
-                titles, reverse=True,
-                key=lambda title: self[title].subjectLength)
-        if by == 'maxScore':
+                titles, reverse=True, key=lambda title: self[title].subjectLength
+            )
+        if by == "maxScore":
+            return sorted(titles, reverse=True, key=lambda title: self[title].bestHsp())
+        if by == "medianScore":
             return sorted(
-                titles, reverse=True, key=lambda title: self[title].bestHsp())
-        if by == 'medianScore':
+                titles,
+                reverse=True,
+                key=lambda title: self.scoreClass(self[title].medianScore()),
+            )
+        if by == "readCount":
             return sorted(
-                titles, reverse=True,
-                key=lambda title: self.scoreClass(self[title].medianScore()))
-        if by == 'readCount':
-            return sorted(
-                titles, reverse=True,
-                key=lambda title: self[title].readCount())
-        if by == 'title':
+                titles, reverse=True, key=lambda title: self[title].readCount()
+            )
+        if by == "title":
             return titles
 
-        raise ValueError('Sort attribute must be one of "length", "maxScore", '
-                         '"medianScore", "readCount", "title".')
+        raise ValueError(
+            'Sort attribute must be one of "length", "maxScore", '
+            '"medianScore", "readCount", "title".'
+        )
 
     def summary(self, sortOn=None):
         """
@@ -512,16 +535,21 @@ class TitlesAlignments(dict):
 
         result = []
         for titleSummary in self.summary(sortOn):
-            result.append('\t'.join([
-                '%(coverage)f',
-                '%(medianScore)f',
-                '%(bestScore)f',
-                '%(readCount)d',
-                '%(hspCount)d',
-                '%(subjectLength)d',
-                '%(subjectTitle)s',
-            ]) % titleSummary)
-        return '\n'.join(result)
+            result.append(
+                "\t".join(
+                    [
+                        "%(coverage)f",
+                        "%(medianScore)f",
+                        "%(bestScore)f",
+                        "%(readCount)d",
+                        "%(hspCount)d",
+                        "%(subjectLength)d",
+                        "%(subjectTitle)s",
+                    ]
+                )
+                % titleSummary
+            )
+        return "\n".join(result)
 
     def toDict(self):
         """
@@ -530,7 +558,9 @@ class TitlesAlignments(dict):
         @return: A C{dict} representation of the titles aligments.
         """
         return {
-            'scoreClass': self.scoreClass.__name__,
-            'titles': dict((title, titleAlignments.toDict())
-                           for title, titleAlignments in self.items()),
+            "scoreClass": self.scoreClass.__name__,
+            "titles": dict(
+                (title, titleAlignments.toDict())
+                for title, titleAlignments in self.items()
+            ),
         }

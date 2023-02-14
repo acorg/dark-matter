@@ -4,15 +4,16 @@ import os
 from typing import Optional, Tuple
 
 import matplotlib
-if not os.environ.get('DISPLAY'):
+
+if not os.environ.get("DISPLAY"):
     # Use non-interactive Agg backend
-    matplotlib.use('Agg')
+    matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
 from dark.entrez import getSequence
 
 
-class Feature(object):
+class Feature:
     """
     An offset-adjusted feature, with start and stop attributes and methods to
     return a textual description and a legend label.
@@ -44,28 +45,37 @@ class Feature(object):
 
         @return: A C{str} description of the feature.
         """
-        excludedQualifiers = set((
-            'codon_start', 'db_xref', 'protein_id', 'region_name',
-            'ribosomal_slippage', 'rpt_type', 'translation', 'transl_except',
-            'transl_table')
+        excludedQualifiers = set(
+            (
+                "codon_start",
+                "db_xref",
+                "protein_id",
+                "region_name",
+                "ribosomal_slippage",
+                "rpt_type",
+                "translation",
+                "transl_except",
+                "transl_table",
+            )
         )
         maxValueLength = 30
         result = []
         if self.feature.qualifiers:
             for qualifier in sorted(self.feature.qualifiers):
                 if qualifier not in excludedQualifiers:
-                    value = ', '.join(self.feature.qualifiers[qualifier])
-                    if qualifier == 'site_type' and value == 'other':
+                    value = ", ".join(self.feature.qualifiers[qualifier])
+                    if qualifier == "site_type" and value == "other":
                         continue
                     if len(value) > maxValueLength:
-                        value = value[:maxValueLength - 3] + '...'
-                    result.append('%s: %s' % (qualifier, value))
-        return '%d-%d %s%s.%s' % (
+                        value = value[: maxValueLength - 3] + "..."
+                    result.append("%s: %s" % (qualifier, value))
+        return "%d-%d %s%s.%s" % (
             int(self.feature.location.start),
             int(self.feature.location.end),
             self.feature.type,
-            ' (subfeature)' if self.subfeature else '',
-            ' ' + ', '.join(result) if result else '')
+            " (subfeature)" if self.subfeature else "",
+            " " + ", ".join(result) if result else "",
+        )
 
 
 class FeatureList(list):
@@ -106,7 +116,7 @@ class FeatureList(list):
                 feature.setColor(color)
 
 
-class _FeatureAdder(object):
+class _FeatureAdder:
     """
     Look up features for a title, and provide a method to add them to a figure
     as well as returning them.
@@ -121,8 +131,7 @@ class _FeatureAdder(object):
     def __init__(self):
         self.tooManyFeaturesToPlot = False
 
-    def add(self, fig, title, minX, maxX, offsetAdjuster=None,
-            sequenceFetcher=None):
+    def add(self, fig, title, minX, maxX, offsetAdjuster=None, sequenceFetcher=None):
         """
         Find the features for a sequence title. If there aren't too many, add
         the features to C{fig}. Return information about the features, as
@@ -144,16 +153,20 @@ class _FeatureAdder(object):
 
         offsetAdjuster = offsetAdjuster or (lambda x: x)
 
-        fig.set_title('Target sequence features', fontsize=self.TITLE_FONTSIZE)
+        fig.set_title("Target sequence features", fontsize=self.TITLE_FONTSIZE)
         fig.set_yticks([])
 
-        features = FeatureList(title, self.DATABASE, self.WANTED_TYPES,
-                               sequenceFetcher=sequenceFetcher)
+        features = FeatureList(
+            title, self.DATABASE, self.WANTED_TYPES, sequenceFetcher=sequenceFetcher
+        )
 
         if features.offline:
-            fig.text(minX + (maxX - minX) / 3.0, 0,
-                     'You (or Genbank) appear to be offline.',
-                     fontsize=self.FONTSIZE)
+            fig.text(
+                minX + (maxX - minX) / 3.0,
+                0,
+                "You (or Genbank) appear to be offline.",
+                fontsize=self.FONTSIZE,
+            )
             fig.axis([minX, maxX, -1, 1])
             return None
 
@@ -164,9 +177,15 @@ class _FeatureAdder(object):
         if nFeatures == 0:
             # fig.text(minX + (maxX - minX) / 3.0, 0, 'No features found',
             #          fontsize=self.FONTSIZE)
-            fig.text(0.5, 0.5, 'No features found',
-                     horizontalalignment='center', verticalalignment='center',
-                     transform=fig.transAxes, fontsize=self.FONTSIZE)
+            fig.text(
+                0.5,
+                0.5,
+                "No features found",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=fig.transAxes,
+                fontsize=self.FONTSIZE,
+            )
             fig.axis([minX, maxX, -1, 1])
         elif nFeatures <= self.MAX_FEATURES_TO_DISPLAY:
             # Call the method in our subclass to do the figure display.
@@ -175,9 +194,15 @@ class _FeatureAdder(object):
             self.tooManyFeaturesToPlot = True
             # fig.text(minX + (maxX - minX) / 3.0, 0,
             # 'Too many features to plot.', fontsize=self.FONTSIZE)
-            fig.text(0.5, 0.5, 'Too many features to plot',
-                     horizontalalignment='center', verticalalignment='center',
-                     fontsize=self.FONTSIZE, transform=fig.transAxes)
+            fig.text(
+                0.5,
+                0.5,
+                "Too many features to plot",
+                horizontalalignment="center",
+                verticalalignment="center",
+                fontsize=self.FONTSIZE,
+                transform=fig.transAxes,
+            )
             fig.axis([minX, maxX, -1, 1])
 
         return features
@@ -193,8 +218,9 @@ class _FeatureAdder(object):
         @param offsetAdjuster: a function for adjusting feature X axis offsets
             for plotting.
         """
-        raise NotImplementedError('_displayFeatures must be implemented in '
-                                  'a subclass.')
+        raise NotImplementedError(
+            "_displayFeatures must be implemented in " "a subclass."
+        )
 
 
 class ProteinFeatureAdder(_FeatureAdder):
@@ -202,8 +228,9 @@ class ProteinFeatureAdder(_FeatureAdder):
     Subclass L{_FeatureAdder} with a method to add protein features to a
     figure.
     """
-    DATABASE = 'protein'
-    WANTED_TYPES = ('CDS', 'mat_peptide', 'rRNA', 'Site', 'Region')
+
+    DATABASE = "protein"
+    WANTED_TYPES = ("CDS", "mat_peptide", "rRNA", "Site", "Region")
 
     def _displayFeatures(self, fig, features, minX, maxX, offsetAdjuster):
         """
@@ -218,10 +245,12 @@ class ProteinFeatureAdder(_FeatureAdder):
         """
         labels = []
         for index, feature in enumerate(features):
-            fig.plot([offsetAdjuster(feature.start),
-                      offsetAdjuster(feature.end)],
-                     [index * -0.2, index * -0.2], color=feature.color,
-                     linewidth=2)
+            fig.plot(
+                [offsetAdjuster(feature.start), offsetAdjuster(feature.end)],
+                [index * -0.2, index * -0.2],
+                color=feature.color,
+                linewidth=2,
+            )
             labels.append(feature.legendLabel())
 
         # Note that minX and maxX do not need to be adjusted by the offset
@@ -232,10 +261,15 @@ class ProteinFeatureAdder(_FeatureAdder):
         if labels:
             # Put a legend above the figure.
             box = fig.get_position()
-            fig.set_position([box.x0, box.y0,
-                              box.width, box.height * 0.2])
-            fig.legend(labels, loc='lower center', bbox_to_anchor=(0.5, 1.4),
-                       fancybox=True, shadow=True, ncol=2)
+            fig.set_position([box.x0, box.y0, box.width, box.height * 0.2])
+            fig.legend(
+                labels,
+                loc="lower center",
+                bbox_to_anchor=(0.5, 1.4),
+                fancybox=True,
+                shadow=True,
+                ncol=2,
+            )
 
 
 class NucleotideFeatureAdder(_FeatureAdder):
@@ -244,9 +278,16 @@ class NucleotideFeatureAdder(_FeatureAdder):
     figure.
     """
 
-    DATABASE = 'nucleotide'
-    WANTED_TYPES = ('CDS', 'LTR', 'mat_peptide', 'misc_feature',
-                    'misc_structure', 'repeat_region', 'rRNA')
+    DATABASE = "nucleotide"
+    WANTED_TYPES = (
+        "CDS",
+        "LTR",
+        "mat_peptide",
+        "misc_feature",
+        "misc_structure",
+        "repeat_region",
+        "rRNA",
+    )
 
     def _displayFeatures(self, fig, features, minX, maxX, offsetAdjuster):
         """
@@ -276,8 +317,8 @@ class NucleotideFeatureAdder(_FeatureAdder):
                 frame = start % 3
                 # If we have a polyprotein, shift it up slightly so we can see
                 # its components below it.
-                product = feature.feature.qualifiers.get('product', [''])[0]
-                if product.lower().find('polyprotein') > -1:
+                product = feature.feature.qualifiers.get("product", [""])[0]
+                if product.lower().find("polyprotein") > -1:
                     y = frame + 0.2
                 else:
                     y = frame
@@ -289,12 +330,17 @@ class NucleotideFeatureAdder(_FeatureAdder):
         # computed in computePlotInfo in blast.py
         fig.axis([minX, maxX, -0.5, 2.5])
         fig.set_yticks(np.arange(3))
-        fig.set_ylabel('Frame')
+        fig.set_ylabel("Frame")
 
         if labels:
             # Put a legend above the figure.
             box = fig.get_position()
-            fig.set_position([box.x0, box.y0,
-                              box.width, box.height * 0.3])
-            fig.legend(labels, loc='lower center', bbox_to_anchor=(0.5, 2.5),
-                       fancybox=True, shadow=True, ncol=2)
+            fig.set_position([box.x0, box.y0, box.width, box.height * 0.3])
+            fig.legend(
+                labels,
+                loc="lower center",
+                bbox_to_anchor=(0.5, 2.5),
+                fancybox=True,
+                shadow=True,
+                ncol=2,
+            )

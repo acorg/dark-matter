@@ -17,16 +17,20 @@ def dimensionalIterator(dimensions, maxItems=-1):
     nDimensions = len(dimensions)
     if nDimensions == 0 or maxItems == 0:
         return
-    if any(map(lambda x: x != '*' and x <= 0, dimensions)):
-        raise ValueError('Dimensions not all positive! %r' % (dimensions,))
-    odometer = [0, ] * nDimensions
+    if any(map(lambda x: x != "*" and x <= 0, dimensions)):
+        raise ValueError("Dimensions not all positive! %r" % (dimensions,))
+    odometer = [
+        0,
+    ] * nDimensions
     while maxItems != 0:
         yield tuple(odometer)
         maxItems -= 1
         wheel = nDimensions - 1
-        while (dimensions[wheel] != '*' and
-               odometer[wheel] == dimensions[wheel] - 1 and
-               wheel >= 0):
+        while (
+            dimensions[wheel] != "*"
+            and odometer[wheel] == dimensions[wheel] - 1
+            and wheel >= 0
+        ):
             odometer[wheel] = 0
             wheel -= 1
         if wheel < 0:

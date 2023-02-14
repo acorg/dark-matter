@@ -12,19 +12,16 @@ class TestLevenshtein(TestCase):
         """
         Two identical strings must have distance zero.
         """
-        self.assertEqual(0, levenshtein('BLAH',
-                                        'BLAH'))
+        self.assertEqual(0, levenshtein("BLAH", "BLAH"))
 
     def testMutation(self):
         """
         Test a single character results in a distance of 1.
         """
-        self.assertEqual(1, levenshtein('ACGTACACACG',
-                                        'ACGTACACACT'))
+        self.assertEqual(1, levenshtein("ACGTACACACG", "ACGTACACACT"))
 
     def testInsert(self):
         """
         Test a string insertion that results in a distance of 2.
         """
-        self.assertEqual(2, levenshtein('AGTACACACTG',
-                                        'ACGTACACACT'))
+        self.assertEqual(2, levenshtein("AGTACACACTG", "ACGTACACACT"))

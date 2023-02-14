@@ -21,8 +21,7 @@ from math import log
 _LOG2 = log(2.0)
 
 
-def bitScoreToEValue(bitScore, dbSize, dbSequenceCount, queryLength,
-                     lengthAdjustment):
+def bitScoreToEValue(bitScore, dbSize, dbSequenceCount, queryLength, lengthAdjustment):
     """
     Convert a bit score to an e-value.
 
@@ -35,15 +34,13 @@ def bitScoreToEValue(bitScore, dbSize, dbSequenceCount, queryLength,
         calls this the Statistics_hsp-len).
     @return: A C{float} e-value.
     """
-    effectiveDbSize = (
-        (dbSize - dbSequenceCount * lengthAdjustment) *
-        (queryLength - lengthAdjustment)
+    effectiveDbSize = (dbSize - dbSequenceCount * lengthAdjustment) * (
+        queryLength - lengthAdjustment
     )
     return effectiveDbSize * (2.0 ** (-1.0 * bitScore))
 
 
-def eValueToBitScore(eValue, dbSize, dbSequenceCount, queryLength,
-                     lengthAdjustment):
+def eValueToBitScore(eValue, dbSize, dbSequenceCount, queryLength, lengthAdjustment):
     """
     Convert an e-value to a bit score.
 
@@ -56,8 +53,7 @@ def eValueToBitScore(eValue, dbSize, dbSequenceCount, queryLength,
         calls this the Statistics_hsp-len).
     @return: A C{float} bit score.
     """
-    effectiveDbSize = (
-        (dbSize - dbSequenceCount * lengthAdjustment) *
-        (queryLength - lengthAdjustment)
+    effectiveDbSize = (dbSize - dbSequenceCount * lengthAdjustment) * (
+        queryLength - lengthAdjustment
     )
     return -1.0 * (log(eValue / effectiveDbSize) / _LOG2)

@@ -30,6 +30,7 @@ class SSFastaReads(Reads):
     @param upperCase: If C{True}, both read and structure sequences will be
         converted to upper case.
     """
+
     def __init__(self, _files, readClass=SSAARead, upperCase=False):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self._readClass = readClass
@@ -48,7 +49,7 @@ class SSFastaReads(Reads):
         upperCase = self._upperCase
         for _file in self._files:
             with asHandle(_file) as fp:
-                records = SeqIO.parse(fp, 'fasta')
+                records = SeqIO.parse(fp, "fasta")
                 while True:
                     try:
                         record = next(records)
@@ -57,25 +58,34 @@ class SSFastaReads(Reads):
                     try:
                         structureRecord = next(records)
                     except StopIteration:
-                        raise ValueError('Structure file %r has an odd number '
-                                         'of records.' % _file)
+                        raise ValueError(
+                            "Structure file %r has an odd number " "of records." % _file
+                        )
 
                     if len(structureRecord) != len(record):
                         raise ValueError(
-                            'Sequence %r length (%d) is not equal to '
-                            'structure %r length (%d) in input file %r.' % (
-                                record.description, len(record),
+                            "Sequence %r length (%d) is not equal to "
+                            "structure %r length (%d) in input file %r."
+                            % (
+                                record.description,
+                                len(record),
                                 structureRecord.description,
-                                len(structureRecord), _file))
+                                len(structureRecord),
+                                _file,
+                            )
+                        )
 
                     if upperCase:
                         read = self._readClass(
                             record.description,
                             str(record.seq.upper()),
-                            str(structureRecord.seq.upper()))
+                            str(structureRecord.seq.upper()),
+                        )
                     else:
-                        read = self._readClass(record.description,
-                                               str(record.seq),
-                                               str(structureRecord.seq))
+                        read = self._readClass(
+                            record.description,
+                            str(record.seq),
+                            str(structureRecord.seq),
+                        )
 
                     yield read

@@ -2,8 +2,7 @@ from random import uniform
 from math import log10
 import copy
 
-from dark.alignments import (
-    ReadsAlignments, ReadAlignments, ReadsAlignmentsParams)
+from dark.alignments import ReadsAlignments, ReadAlignments, ReadsAlignmentsParams
 from dark.diamond.conversion import JSONRecordsReader
 from dark.fasta import FastaReads, SqliteIndex
 from dark.reads import AAReadWithX
@@ -49,10 +48,17 @@ class DiamondReadsAlignments(ReadsAlignments):
         sqliteDatabaseFilename are given.
     """
 
-    def __init__(self, reads, filenames, databaseFilename=None,
-                 databaseDirectory=None, sqliteDatabaseFilename=None,
-                 scoreClass=HigherIsBetterScore, sortFilenames=False,
-                 randomizeZeroEValues=True):
+    def __init__(
+        self,
+        reads,
+        filenames,
+        databaseFilename=None,
+        databaseDirectory=None,
+        sqliteDatabaseFilename=None,
+        scoreClass=HigherIsBetterScore,
+        sortFilenames=False,
+        randomizeZeroEValues=True,
+    ):
         if type(filenames) == str:
             filenames = [filenames]
         if sortFilenames:
@@ -70,16 +76,18 @@ class DiamondReadsAlignments(ReadsAlignments):
         self._reader = self._getReader(self.filenames[0], scoreClass)
         diamondTask = self._reader.diamondTask
         diamondParams = copy.deepcopy(self._reader.params)
-        scoreTitle = ('Bit score' if scoreClass is HigherIsBetterScore
-                      else '$- log_{10}(e)$')
+        scoreTitle = (
+            "Bit score" if scoreClass is HigherIsBetterScore else "$- log_{10}(e)$"
+        )
 
         diamondTaskParams = ReadsAlignmentsParams(
-            diamondTask, diamondParams,
+            diamondTask,
+            diamondParams,
             subjectIsNucleotides=False,  # DIAMOND dbs are always protein.
-            scoreTitle=scoreTitle)
+            scoreTitle=scoreTitle,
+        )
 
-        ReadsAlignments.__init__(self, reads, diamondTaskParams,
-                                 scoreClass=scoreClass)
+        ReadsAlignments.__init__(self, reads, diamondTaskParams, scoreClass=scoreClass)
 
     def _getReader(self, filename, scoreClass):
         """
@@ -88,11 +96,12 @@ class DiamondReadsAlignments(ReadsAlignments):
         @param filename: The C{str} file name holding the JSON.
         @param scoreClass: A class to hold and compare scores (see scores.py).
         """
-        if filename.endswith('.json') or filename.endswith('.json.bz2'):
+        if filename.endswith(".json") or filename.endswith(".json.bz2"):
             return JSONRecordsReader(filename, scoreClass)
         else:
             raise ValueError(
-                'Unknown DIAMOND record file suffix for file %r.' % filename)
+                "Unknown DIAMOND record file suffix for file %r." % filename
+            )
 
     def iter(self):
         """
@@ -138,12 +147,12 @@ class DiamondReadsAlignments(ReadsAlignments):
                 self._subjectTitleToSubject = SqliteIndex(
                     self._sqliteDatabaseFilename,
                     fastaDirectory=self._databaseDirectory,
-                    readClass=AAReadWithX)
+                    readClass=AAReadWithX,
+                )
             else:
                 # Build a dict to look up subjects.
                 titles = {}
-                for read in FastaReads(self._databaseFilename,
-                                       readClass=AAReadWithX):
+                for read in FastaReads(self._databaseFilename, readClass=AAReadWithX):
                     titles[read.id] = read
                 self._subjectTitleToSubject = titles
 
@@ -173,8 +182,7 @@ class DiamondReadsAlignments(ReadsAlignments):
             else:
                 convertedEValue = -1.0 * log10(hsp.score.score)
                 hsp.score.score = convertedEValue
-                if (maxConvertedEValue is None or
-                        convertedEValue > maxConvertedEValue):
+                if maxConvertedEValue is None or convertedEValue > maxConvertedEValue:
                     maxConvertedEValue = convertedEValue
 
         if zeroHsps:
@@ -185,8 +193,11 @@ class DiamondReadsAlignments(ReadsAlignments):
             # Adjust all zero e-value HSPs to have numerically high values.
             if self.randomizeZeroEValues:
                 for hsp in zeroHsps:
-                    hsp.score.score = (maxConvertedEValue + 2 + uniform(
-                        0, ZERO_EVALUE_UPPER_RANDOM_INCREMENT))
+                    hsp.score.score = (
+                        maxConvertedEValue
+                        + 2
+                        + uniform(0, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
+                    )
             else:
                 for count, hsp in enumerate(zeroHsps, start=1):
                     hsp.score.score = maxConvertedEValue + count
@@ -206,5 +217,6 @@ class DiamondReadsAlignments(ReadsAlignments):
             return
 
         if self._zeroEValueFound:
-            readsAx.axhline(y=self._maxConvertedEValue + 0.5, color='#cccccc',
-                            linewidth=0.5)
+            readsAx.axhline(
+                y=self._maxConvertedEValue + 0.5, color="#cccccc", linewidth=0.5
+            )

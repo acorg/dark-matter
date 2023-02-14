@@ -57,10 +57,12 @@ def makeParser():
     addAlignerOption(parser)
     addFeatureOptions(
         parser,
-        referenceHelpInfo=(" If you use this option, output will be printed as one "
-                           "JSON object per line, giving information not just about "
-                           "base coverage at each site but also about features in "
-                           "the reference and genome."),
+        referenceHelpInfo=(
+            " If you use this option, output will be printed as one "
+            "JSON object per line, giving information not just about "
+            "base coverage at each site but also about features in "
+            "the reference and genome."
+        ),
     )
 
     return parser

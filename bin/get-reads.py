@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 import sys
 from re import compile
 import argparse
@@ -27,56 +25,75 @@ def main(recordFilenames, fastaFilename, title, xRange, bitRange):
     """
     reads = FastaReads(fastaFilename)
     blastReadsAlignments = BlastReadsAlignments(reads, recordFilenames)
-    filtered = blastReadsAlignments.filter(whitelist=set([title]),
-                                           negativeTitleRegex='.')
+    filtered = blastReadsAlignments.filter(
+        whitelist=set([title]), negativeTitleRegex="."
+    )
     titlesAlignments = TitlesAlignments(filtered)
 
     if title not in titlesAlignments:
-        print('%s: Title %r not found in BLAST output' % (sys.argv[0], title))
+        print("%s: Title %r not found in BLAST output" % (sys.argv[0], title))
         sys.exit(3)
 
     for titleAlignment in titlesAlignments[title]:
         for hsp in titleAlignment.hsps:
-            if ((xRange is None or (xRange[0] <= hsp.subjectEnd and
-                                    xRange[1] >= hsp.subjectStart)) and
-                (bitRange is None or (bitRange[0] <= hsp.score.score <=
-                                      bitRange[1]))):
-                print(('query: %s, start: %d, end: %d, score: %d' % (
-                       titleAlignment.read.id, hsp.subjectStart,
-                       hsp.subjectEnd, hsp.score.score)))
+            if (
+                xRange is None
+                or (xRange[0] <= hsp.subjectEnd and xRange[1] >= hsp.subjectStart)
+            ) and (bitRange is None or (bitRange[0] <= hsp.score.score <= bitRange[1])):
+                print(
+                    (
+                        "query: %s, start: %d, end: %d, score: %d"
+                        % (
+                            titleAlignment.read.id,
+                            hsp.subjectStart,
+                            hsp.subjectEnd,
+                            hsp.score.score,
+                        )
+                    )
+                )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print((
-            'Usage: %s recordFilename, fastaFilename, '
-            'title, xCoords, bitCoords' % sys.argv[0]), file=sys.stderr)
+        print(
+            (
+                "Usage: %s recordFilename, fastaFilename, "
+                "title, xCoords, bitCoords" % sys.argv[0]
+            ),
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
-        description=('Print the reads that are '
-                     'at specified positions in an alignmentGraph'),
-        epilog=('Given a JSON BLAST output file, a title and an x and / or '
-                'bitRange, print the reads that are within the given Ranges.'))
+        description=(
+            "Print the reads that are " "at specified positions in an alignmentGraph"
+        ),
+        epilog=(
+            "Given a JSON BLAST output file, a title and an x and / or "
+            "bitRange, print the reads that are within the given Ranges."
+        ),
+    )
 
     parser.add_argument(
-        'json', metavar='BLAST-JSON-file', nargs='+',
-        help='the JSON file of BLAST output.')
+        "json",
+        metavar="BLAST-JSON-file",
+        nargs="+",
+        help="the JSON file of BLAST output.",
+    )
 
     parser.add_argument(
-        'fasta', metavar='fastaFile', help='the FASTA file of BLAST input.')
+        "fasta", metavar="fastaFile", help="the FASTA file of BLAST input."
+    )
 
     parser.add_argument(
-        'title', metavar='SEQUENCE-TITLE',
-        help='The title of the subject sequence.')
+        "title", metavar="SEQUENCE-TITLE", help="The title of the subject sequence."
+    )
+
+    parser.add_argument("--xRange", default=None, help="a range on the x-axis.")
 
     parser.add_argument(
-        '--xRange', default=None,
-        help='a range on the x-axis.')
-
-    parser.add_argument(
-        '--bitRange', default=None,
-        help='a bit score range on the y-axis.')
+        "--bitRange", default=None, help="a bit score range on the y-axis."
+    )
 
     args = parser.parse_args()
 
@@ -90,7 +107,7 @@ if __name__ == '__main__':
             else a (start, end) list of C{int}s.
         """
         if inputRange:
-            rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
+            rangeRegex = compile(r"^(\d+)(?:-(\d+))?$")
             match = rangeRegex.match(inputRange)
             if match:
                 start, end = match.groups()
@@ -103,10 +120,19 @@ if __name__ == '__main__':
                     start, end = end, start
                 return start, end
             else:
-                print((
-                    'Illegal argument %r. Ranges must single numbers or '
-                    'number-number.' % inputRange), file=sys.stderr)
+                print(
+                    (
+                        "Illegal argument %r. Ranges must single numbers or "
+                        "number-number." % inputRange
+                    ),
+                    file=sys.stderr,
+                )
                 sys.exit(2)
 
-    main(args.json, args.fasta, args.title,
-         _getRange(args.xRange), _getRange(args.bitRange))
+    main(
+        args.json,
+        args.fasta,
+        args.title,
+        _getRange(args.xRange),
+        _getRange(args.bitRange),
+    )

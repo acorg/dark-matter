@@ -1,9 +1,10 @@
 from random import uniform
 from math import log10
 import copy
+from typing import Generator
 
 from dark.score import HigherIsBetterScore
-from dark.alignments import ReadsAlignments, ReadsAlignmentsParams
+from dark.alignments import ReadsAlignments, ReadsAlignmentsParams, ReadAlignments
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
 from dark.fasta import FastaReads, SqliteIndex
@@ -49,10 +50,17 @@ class BlastReadsAlignments(ReadsAlignments):
         files, or if BLAST parameters in all files do not match.
     """
 
-    def __init__(self, reads, blastFilenames, databaseFilename=None,
-                 databaseDirectory=None, sqliteDatabaseFilename=None,
-                 scoreClass=HigherIsBetterScore,
-                 sortBlastFilenames=True, randomizeZeroEValues=True):
+    def __init__(
+        self,
+        reads,
+        blastFilenames,
+        databaseFilename=None,
+        databaseDirectory=None,
+        sqliteDatabaseFilename=None,
+        scoreClass=HigherIsBetterScore,
+        sortBlastFilenames=True,
+        randomizeZeroEValues=True,
+    ):
         if type(blastFilenames) == str:
             blastFilenames = [blastFilenames]
         if sortBlastFilenames:
@@ -69,16 +77,19 @@ class BlastReadsAlignments(ReadsAlignments):
         self._reader = self._getReader(self.blastFilenames[0], scoreClass)
         application = self._reader.application
         blastParams = copy.deepcopy(self._reader.params)
-        subjectIsNucleotides = application != 'blastx'
-        scoreTitle = ('Bit score' if scoreClass is HigherIsBetterScore
-                      else '$- log_{10}(e)$')
+        subjectIsNucleotides = application != "blastx"
+        scoreTitle = (
+            "Bit score" if scoreClass is HigherIsBetterScore else "$- log_{10}(e)$"
+        )
 
         applicationParams = ReadsAlignmentsParams(
-            application, blastParams,
-            subjectIsNucleotides=subjectIsNucleotides, scoreTitle=scoreTitle)
+            application,
+            blastParams,
+            subjectIsNucleotides=subjectIsNucleotides,
+            scoreTitle=scoreTitle,
+        )
 
-        ReadsAlignments.__init__(self, reads, applicationParams,
-                                 scoreClass=scoreClass)
+        ReadsAlignments.__init__(self, reads, applicationParams, scoreClass=scoreClass)
 
     def _getReader(self, filename, scoreClass):
         """
@@ -87,13 +98,12 @@ class BlastReadsAlignments(ReadsAlignments):
         @param filename: The C{str} file name holding the JSON.
         @param scoreClass: A class to hold and compare scores (see scores.py).
         """
-        if filename.endswith('.json') or filename.endswith('.json.bz2'):
+        if filename.endswith(".json") or filename.endswith(".json.bz2"):
             return JSONRecordsReader(filename, scoreClass)
         else:
-            raise ValueError(
-                'Unknown BLAST record file suffix for file %r.' % filename)
+            raise ValueError("Unknown BLAST record file suffix for file %r." % filename)
 
-    def iter(self):
+    def iter(self) -> Generator[ReadAlignments, None, None]:
         """
         Extract BLAST records and yield C{ReadAlignments} instances.
 
@@ -120,12 +130,14 @@ class BlastReadsAlignments(ReadsAlignments):
             else:
                 reader = self._getReader(blastFilename, self.scoreClass)
                 differences = checkCompatibleParams(
-                    self.params.applicationParams, reader.params)
+                    self.params.applicationParams, reader.params
+                )
                 if differences:
                     raise ValueError(
-                        'Incompatible BLAST parameters found. The parameters '
-                        'in %s differ from those originally found in %s. %s' %
-                        (blastFilename, self.blastFilenames[0], differences))
+                        "Incompatible BLAST parameters found. The parameters "
+                        "in %s differ from those originally found in %s. %s"
+                        % (blastFilename, self.blastFilenames[0], differences)
+                    )
 
             for readAlignments in reader.readAlignments(reads):
                 count += 1
@@ -138,9 +150,9 @@ class BlastReadsAlignments(ReadsAlignments):
             pass
         else:
             raise ValueError(
-                'Reads iterator contained more reads than the number of BLAST '
-                'records found (%d). First unknown read id is %r.' %
-                (count, read.id))
+                "Reads iterator contained more reads than the number of BLAST "
+                "records found (%d). First unknown read id is %r." % (count, read.id)
+            )
 
     def getSubjectSequence(self, title):
         """
@@ -160,7 +172,7 @@ class BlastReadsAlignments(ReadsAlignments):
             BLAST database in use.
 
         """
-        if self.params.application in {'blastp', 'blastx'}:
+        if self.params.application in {"blastp", "blastx"}:
             readClass = AARead
         else:
             readClass = DNARead
@@ -172,21 +184,23 @@ class BlastReadsAlignments(ReadsAlignments):
                     # as below so ncbidb.getSequence can be patched by our
                     # test suite.
                     from dark import ncbidb
+
                     seq = ncbidb.getSequence(
-                        title, self.params.applicationParams['database'])
+                        title, self.params.applicationParams["database"]
+                    )
                     return readClass(seq.description, str(seq.seq))
                 else:
                     # An Sqlite3 database is used to look up subjects.
                     self._subjectTitleToSubject = SqliteIndex(
                         self._sqliteDatabaseFilename,
                         fastaDirectory=self._databaseDirectory,
-                        readClass=readClass)
+                        readClass=readClass,
+                    )
             else:
                 # Build an in-memory dict to look up subjects. This only
                 # works for small databases, obviously.
                 titles = {}
-                for read in FastaReads(self._databaseFilename,
-                                       readClass=readClass):
+                for read in FastaReads(self._databaseFilename, readClass=readClass):
                     titles[read.id] = read
                 self._subjectTitleToSubject = titles
 
@@ -216,8 +230,7 @@ class BlastReadsAlignments(ReadsAlignments):
             else:
                 convertedEValue = -1.0 * log10(hsp.score.score)
                 hsp.score.score = convertedEValue
-                if (maxConvertedEValue is None or
-                        convertedEValue > maxConvertedEValue):
+                if maxConvertedEValue is None or convertedEValue > maxConvertedEValue:
                     maxConvertedEValue = convertedEValue
 
         if zeroHsps:
@@ -228,8 +241,11 @@ class BlastReadsAlignments(ReadsAlignments):
             # Adjust all zero e-value HSPs to have numerically high values.
             if self.randomizeZeroEValues:
                 for hsp in zeroHsps:
-                    hsp.score.score = (maxConvertedEValue + 2 + uniform(
-                        0, ZERO_EVALUE_UPPER_RANDOM_INCREMENT))
+                    hsp.score.score = (
+                        maxConvertedEValue
+                        + 2
+                        + uniform(0, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
+                    )
             else:
                 for count, hsp in enumerate(zeroHsps, start=1):
                     hsp.score.score = maxConvertedEValue + count
@@ -249,5 +265,6 @@ class BlastReadsAlignments(ReadsAlignments):
             return
 
         if self._zeroEValueFound:
-            readsAx.axhline(y=self._maxConvertedEValue + 0.5, color='#cccccc',
-                            linewidth=0.5)
+            readsAx.axhline(
+                y=self._maxConvertedEValue + 0.5, color="#cccccc", linewidth=0.5
+            )

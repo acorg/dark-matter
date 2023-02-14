@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-TRANSITIONS = {('A', 'G'), ('G', 'A'), ('C', 'T'), ('T', 'C')}
+TRANSITIONS = {("A", "G"), ("G", "A"), ("C", "T"), ("T", "C")}
 
 
 def findDistance(co1, co2):

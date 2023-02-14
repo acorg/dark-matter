@@ -30,7 +30,7 @@ def simplifyTitle(title, target):
         if len(word) >= targetLen:
             offset = word.lower().find(target.lower())
             if offset > -1:
-                result.append(word[:offset + targetLen])
+                result.append(word[: offset + targetLen])
                 break
         result.append(word)
-    return ' '.join(result)
+    return " ".join(result)

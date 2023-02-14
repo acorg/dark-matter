@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class BaseImage(object):
+class BaseImage:
     """
     Hold a representation of colored sequence bases in a 2D grid suitable
     for placing onto an alignment graph (see utils.py).
@@ -9,8 +9,9 @@ class BaseImage(object):
 
     def __init__(self, xRange, yRange, xScale=1, yScale=1):
         # np.ones is passed a (y range, x range) dimension.
-        self.data = np.ones((yRange * yScale + 1, xRange * xScale + 1),
-                            dtype=(float, 3))
+        self.data = np.ones(
+            (yRange * yScale + 1, xRange * xScale + 1), dtype=(float, 3)
+        )
         self.xScale = xScale
         self.yScale = yScale
 

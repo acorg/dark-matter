@@ -2,18 +2,16 @@ import sys
 from collections import defaultdict
 from pysam import CINS, CDEL, CSOFT_CLIP
 
-from dark.cigar import (
-    cigarTuplesToOperations, softClippedOffset, insertionOffset)
+from dark.cigar import cigarTuplesToOperations, softClippedOffset, insertionOffset
 from dark.dna import Bases
 from dark.progress import maybeProgressBar
 from dark.reads import DNARead
-from dark.sam import (
-    samfile, getReferenceInfo, UnspecifiedReference, CONSUMES_REFERENCE)
+from dark.sam import samfile, getReferenceInfo, UnspecifiedReference, CONSUMES_REFERENCE
 from dark.utils import pct, openOr
 
 
 class ConsensusError(Exception):
-    'A consensus-making error.'
+    "A consensus-making error."
 
 
 class Insertion:
@@ -23,6 +21,7 @@ class Insertion:
 
     @param insertionOffset: The C{int} offset of the insertion.
     """
+
     def __init__(self, insertionOffset):
         self.insertionOffset = insertionOffset
         self.anchorOffsets = []
@@ -32,10 +31,9 @@ class Insertion:
         result = []
 
         for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
-            result.append(f'  {anchorOffset}: {bases}')
+            result.append(f"  {anchorOffset}: {bases}")
 
-        return (f'<Insertion at {self.insertionOffset}:\n' +
-                '\n'.join(result) + '>')
+        return f"<Insertion at {self.insertionOffset}:\n" + "\n".join(result) + ">"
 
     __repr__ = __str__
 
@@ -84,8 +82,9 @@ class Insertion:
         maxExtra = 0
         for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
             if anchorOffset is not None:
-                extra = (self.insertionOffset + nInsertions - anchorOffset -
-                         len(bases) - 1)
+                extra = (
+                    self.insertionOffset + nInsertions - anchorOffset - len(bases) - 1
+                )
                 if extra > maxExtra:
                     maxExtra = extra
 
@@ -98,17 +97,26 @@ class Insertion:
             insertion.append(Bases())
 
         for anchorOffset, bases in zip(self.anchorOffsets, self.bases):
-            startOffset = (
-                nInsertions - len(bases) if anchorOffset is None else 0)
+            startOffset = nInsertions - len(bases) if anchorOffset is None else 0
             for offset, (base, quality) in enumerate(bases):
                 insertion[startOffset + offset].append(base, quality)
 
         return insertion
 
 
-def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
-                     referenceLength, threshold, minCoverage, lowCoverage,
-                     noCoverage, deletionSymbol, progress):
+def basesToConsensus(
+    offsetBases,
+    otherBases,
+    originalOffsets,
+    reference,
+    referenceLength,
+    threshold,
+    minCoverage,
+    lowCoverage,
+    noCoverage,
+    deletionSymbol,
+    progress,
+):
     """
     Convert a C{dict} of C{Bases} into a consensus.
 
@@ -142,37 +150,47 @@ def basesToConsensus(offsetBases, otherBases, originalOffsets, reference,
     minOffset = min(allOffsets)
     maxOffset = max(allOffsets)
 
-    noCoverageStr = (reference.sequence if noCoverage == 'reference' else
-                     noCoverage * referenceLength)
-    lowCoverageStr = (reference.sequence if lowCoverage == 'reference' else
-                      lowCoverage * referenceLength)
+    noCoverageStr = (
+        reference.sequence
+        if noCoverage == "reference"
+        else noCoverage * referenceLength
+    )
+    lowCoverageStr = (
+        reference.sequence
+        if lowCoverage == "reference"
+        else lowCoverage * referenceLength
+    )
 
-    with maybeProgressBar(
-            progress, maxOffset - minOffset + 1, 'Consensus: ') as bar:
-        for barCount, offset in enumerate(
-                range(minOffset, maxOffset + 1), start=1):
+    with maybeProgressBar(progress, maxOffset - minOffset + 1, "Consensus: ") as bar:
+        for barCount, offset in enumerate(range(minOffset, maxOffset + 1), start=1):
             try:
                 originalOffset = originalOffsets[offset]
                 lowCoverageBase = lowCoverageStr[originalOffset]
                 noCoverageBase = noCoverageStr[originalOffset]
             except (IndexError, KeyError):
                 # TODO: Check this out. Add a variable to set this or... ?
-                lowCoverageBase = noCoverageBase = '?'
+                lowCoverageBase = noCoverageBase = "?"
 
             if offset in otherBases and (
-                    offset not in offsetBases or not offsetBases[offset]):
-                result.append(deletionSymbol if otherBases[offset] is None
-                              else otherBases[offset])
+                offset not in offsetBases or not offsetBases[offset]
+            ):
+                result.append(
+                    deletionSymbol if otherBases[offset] is None else otherBases[offset]
+                )
             else:
-                assert offset in offsetBases, (
-                    f'Offset {offset} not found in offsetBases or otherBases.')
+                assert (
+                    offset in offsetBases
+                ), f"Offset {offset} not found in offsetBases or otherBases."
                 bases = offsetBases[offset]
-                result.append(bases.consensus(
-                    threshold, minCoverage, lowCoverageBase, noCoverageBase))
+                result.append(
+                    bases.consensus(
+                        threshold, minCoverage, lowCoverageBase, noCoverageBase
+                    )
+                )
 
             bar.update(barCount)
 
-    return ''.join(result)
+    return "".join(result)
 
 
 def getConsensusId(bamId, idLambda):
@@ -187,7 +205,7 @@ def getConsensusId(bamId, idLambda):
     @return: A C{str} sequence id for the consensus.
     """
     if idLambda is None:
-        consensusId = f'{bamId}-consensus'
+        consensusId = f"{bamId}-consensus"
     else:
         idLambda = eval(idLambda)
         consensusId = idLambda(bamId)
@@ -196,12 +214,26 @@ def getConsensusId(bamId, idLambda):
 
 
 def consensusFromBAM(
-        bamFilename, bamId=None, referenceFasta=None, fastaId=None,
-        consensusId=None, idLambda=None, threshold=0.8, minCoverage=1,
-        lowCoverage='n', noCoverage='N', deletionSymbol='-',
-        deletionThreshold=0.5, ignoreQuality=False, insertionCountThreshold=5,
-        strategy='fetch', includeSoftClipped=False, compareWithPileupFile=None,
-        progress=False, quiet=False):
+    bamFilename,
+    bamId=None,
+    referenceFasta=None,
+    fastaId=None,
+    consensusId=None,
+    idLambda=None,
+    threshold=0.8,
+    minCoverage=1,
+    lowCoverage="n",
+    noCoverage="N",
+    deletionSymbol="-",
+    deletionThreshold=0.5,
+    ignoreQuality=False,
+    insertionCountThreshold=5,
+    strategy="fetch",
+    includeSoftClipped=False,
+    compareWithPileupFile=None,
+    progress=False,
+    quiet=False,
+):
     """
     Build a consensus sequence from a BAM file.
 
@@ -271,54 +303,82 @@ def consensusFromBAM(
     @return: A C{Read} instance with the consensus sequence.
     """
     if referenceFasta is None:
-        if lowCoverage == 'reference':
-            raise UnspecifiedReference('lowCoverage is "reference" but no '
-                                       'reference FASTA file was given.')
+        if lowCoverage == "reference":
+            raise UnspecifiedReference(
+                'lowCoverage is "reference" but no ' "reference FASTA file was given."
+            )
 
-        if noCoverage == 'reference':
-            raise UnspecifiedReference('noCoverage is "reference" but no '
-                                       'reference FASTA file was given.')
+        if noCoverage == "reference":
+            raise UnspecifiedReference(
+                'noCoverage is "reference" but no ' "reference FASTA file was given."
+            )
 
     with samfile(bamFilename) as bam:
 
         bamId, reference, referenceLength = getReferenceInfo(
-            bam, bamFilename, bamId, referenceFasta, fastaId, quiet)
+            bam, bamFilename, bamId, referenceFasta, fastaId, quiet
+        )
 
         if consensusId is None:
             consensusId = getConsensusId(bamId, idLambda)
 
         correspondences, deletions, insertions = getPairs(
-            bam, bamId, referenceLength, ignoreQuality,
-            includeSoftClipped, progress)
+            bam, bamId, referenceLength, ignoreQuality, includeSoftClipped, progress
+        )
 
-        if strategy == 'fetch':
-            correspondences, consensusBases, otherBases, originalOffsets = (
-                fetchConsensus(bam, correspondences, deletions, insertions,
-                               reference, referenceLength, noCoverage,
-                               deletionThreshold, ignoreQuality,
-                               insertionCountThreshold, includeSoftClipped,
-                               progress))
+        if strategy == "fetch":
+            (
+                correspondences,
+                consensusBases,
+                otherBases,
+                originalOffsets,
+            ) = fetchConsensus(
+                bam,
+                correspondences,
+                deletions,
+                insertions,
+                reference,
+                referenceLength,
+                noCoverage,
+                deletionThreshold,
+                ignoreQuality,
+                insertionCountThreshold,
+                includeSoftClipped,
+                progress,
+            )
         else:
-            raise ConsensusError(f'Unknown consensus strategy {strategy!r}.')
+            raise ConsensusError(f"Unknown consensus strategy {strategy!r}.")
 
         if compareWithPileupFile:
-            with openOr(compareWithPileupFile, 'w', sys.stderr) as fp:
+            with openOr(compareWithPileupFile, "w", sys.stderr) as fp:
                 compareCorrespondences(
-                    fp, correspondences,
-                    pileupCorrespondences(bam, bamId, referenceLength,
-                                          includeSoftClipped, progress),
-                    threshold, minCoverage)
+                    fp,
+                    correspondences,
+                    pileupCorrespondences(
+                        bam, bamId, referenceLength, includeSoftClipped, progress
+                    ),
+                    threshold,
+                    minCoverage,
+                )
 
     consensus = basesToConsensus(
-        consensusBases, otherBases, originalOffsets, reference,
-        referenceLength, threshold, minCoverage, lowCoverage, noCoverage,
-        deletionSymbol, progress)
+        consensusBases,
+        otherBases,
+        originalOffsets,
+        reference,
+        referenceLength,
+        threshold,
+        minCoverage,
+        lowCoverage,
+        noCoverage,
+        deletionSymbol,
+        progress,
+    )
 
     return DNARead(consensusId, consensus)
 
 
-def getPairs(bam, bamId, referenceLength, ignoreQuality,
-             includeSoftClipped, progress):
+def getPairs(bam, bamId, referenceLength, ignoreQuality, includeSoftClipped, progress):
     """Compute a majority consensus using pysam's fetch function.
 
     @param bam: An open BAM file.
@@ -343,27 +403,45 @@ def getPairs(bam, bamId, referenceLength, ignoreQuality,
     insertions = {}
     nReads = bam.count(contig=bamId)
 
-    with maybeProgressBar(progress, nReads, 'Reads    : ') as bar:
+    with maybeProgressBar(progress, nReads, "Reads    : ") as bar:
         for readCount, read in enumerate(bam.fetch(contig=bamId), start=1):
             if not read.is_unmapped:
                 addPairsInfo(
                     read.get_aligned_pairs(),
-                    list(cigarTuplesToOperations(read.cigartuples,
-                                                 includeHardClip=False)),
+                    list(
+                        cigarTuplesToOperations(read.cigartuples, includeHardClip=False)
+                    ),
                     read.query_name,
                     read.query_sequence,
-                    ([1] * len(read.query_sequence) if ignoreQuality else
-                     read.query_qualities), referenceLength,
-                    includeSoftClipped, correspondences, deletions, insertions)
+                    (
+                        [1] * len(read.query_sequence)
+                        if ignoreQuality
+                        else read.query_qualities
+                    ),
+                    referenceLength,
+                    includeSoftClipped,
+                    correspondences,
+                    deletions,
+                    insertions,
+                )
 
             bar.update(readCount)
 
     return correspondences, deletions, insertions
 
 
-def addPairsInfo(pairs, cigarOperations, queryId, query, qualities,
-                 referenceLength, includeSoftClipped, correspondences,
-                 deletions, insertions):
+def addPairsInfo(
+    pairs,
+    cigarOperations,
+    queryId,
+    query,
+    qualities,
+    referenceLength,
+    includeSoftClipped,
+    correspondences,
+    deletions,
+    insertions,
+):
     """
     Add information about matched pairs of nucleotides.
 
@@ -386,16 +464,18 @@ def addPairsInfo(pairs, cigarOperations, queryId, query, qualities,
     """
     if len(pairs) != len(cigarOperations):
         raise ValueError(
-            f'Query {queryId!r} (length {len(query)}) with {len(pairs)} pairs '
-            f'but {len(cigarOperations)} CIGAR operaions:'
-            f'\nPairs: {pairs}\nCIGAR: {cigarOperations}')
+            f"Query {queryId!r} (length {len(query)}) with {len(pairs)} pairs "
+            f"but {len(cigarOperations)} CIGAR operaions:"
+            f"\nPairs: {pairs}\nCIGAR: {cigarOperations}"
+        )
 
     assert not any(pair == (None, None) for pair in pairs)
 
     inInsertion = False
 
     for count, ((queryOffset, referenceOffset), cigarOperation) in enumerate(
-            zip(pairs, cigarOperations)):
+        zip(pairs, cigarOperations)
+    ):
 
         if queryOffset is None:
             # The query is missing something that is in the reference. So this
@@ -417,8 +497,7 @@ def addPairsInfo(pairs, cigarOperations, queryId, query, qualities,
                 # (soft-clipped) bases.
                 # assert lastReferenceOffset is not None
 
-                lookedBack, iOffset = insertionOffset(count, pairs,
-                                                      cigarOperations)
+                lookedBack, iOffset = insertionOffset(count, pairs, cigarOperations)
                 if not inInsertion:
                     inInsertion = True
                     if iOffset not in insertions:
@@ -442,10 +521,20 @@ def addPairsInfo(pairs, cigarOperations, queryId, query, qualities,
             correspondences[referenceOffset].append(base, quality)
 
 
-def fetchConsensus(bam, correspondences, deletions, insertions, reference,
-                   referenceLength, noCoverage, deletionThreshold,
-                   ignoreQuality, insertionCountThreshold, includeSoftClipped,
-                   progress):
+def fetchConsensus(
+    bam,
+    correspondences,
+    deletions,
+    insertions,
+    reference,
+    referenceLength,
+    noCoverage,
+    deletionThreshold,
+    ignoreQuality,
+    insertionCountThreshold,
+    includeSoftClipped,
+    progress,
+):
     """Compute a majority consensus using pysam's fetch function.
 
     @param bam: An open BAM file.
@@ -490,11 +579,9 @@ def fetchConsensus(bam, correspondences, deletions, insertions, reference,
     otherBases = {}
     originalOffsets = {}
 
-    with maybeProgressBar(
-            progress, maxOffset - minOffset + 1, 'Collect  : ') as bar:
+    with maybeProgressBar(progress, maxOffset - minOffset + 1, "Collect  : ") as bar:
         insertCount = 0
-        for barCount, offset in enumerate(range(minOffset, maxOffset + 1),
-                                          start=1):
+        for barCount, offset in enumerate(range(minOffset, maxOffset + 1), start=1):
 
             if offset in insertions:
                 insertion = insertions[offset]
@@ -524,16 +611,17 @@ def fetchConsensus(bam, correspondences, deletions, insertions, reference,
                         assert offset in actualDeletions
                 else:
                     otherBases[adjustedOffset] = (
-                        reference.sequence[offset] if noCoverage == 'reference'
-                        else noCoverage)
+                        reference.sequence[offset]
+                        if noCoverage == "reference"
+                        else noCoverage
+                    )
 
             bar.update(barCount)
 
     return correspondences, consensusBases, otherBases, originalOffsets
 
 
-def pileupCorrespondences(bam, bamId, referenceLength, includeSoftClipped,
-                          progress):
+def pileupCorrespondences(bam, bamId, referenceLength, includeSoftClipped, progress):
     """
     Get bases for offsets that correspond to the reference using pysam's
     pileup funciton.
@@ -550,17 +638,19 @@ def pileupCorrespondences(bam, bamId, referenceLength, includeSoftClipped,
     """
     correspondences = defaultdict(lambda: Bases())
 
-    with maybeProgressBar(progress, referenceLength, 'Pileup   : ') as bar:
+    with maybeProgressBar(progress, referenceLength, "Pileup   : ") as bar:
         for barCount, site in enumerate(bam.pileup(contig=bamId), start=1):
             referenceOffset = site.reference_pos
             for read in site.pileups:
                 if not includeSoftClipped:
-                    cigarOperations = list(cigarTuplesToOperations(
-                        read.alignment.cigartuples))
+                    cigarOperations = list(
+                        cigarTuplesToOperations(read.alignment.cigartuples)
+                    )
                 queryOffset = read.query_position
                 if queryOffset is None or (
-                        not includeSoftClipped and
-                        cigarOperations[queryOffset] == CSOFT_CLIP):
+                    not includeSoftClipped
+                    and cigarOperations[queryOffset] == CSOFT_CLIP
+                ):
                     continue
                     # Make sure an empty Bases instance is placed in our
                     # results so there's a sign that the reference offset
@@ -570,7 +660,8 @@ def pileupCorrespondences(bam, bamId, referenceLength, includeSoftClipped,
                     alignment = read.alignment
                     correspondences[referenceOffset].append(
                         alignment.query_sequence[queryOffset],
-                        alignment.query_qualities[queryOffset])
+                        alignment.query_qualities[queryOffset],
+                    )
 
             bar.update(barCount)
 
@@ -594,42 +685,55 @@ def compareCorrespondences(fp, fetch, pileup, threshold, minCoverage):
 
     unmatched = pileupOffsets - fetchOffsets
     if unmatched:
-        print(f'There are {len(unmatched)} sites obtained from pileup not '
-              f'present in fetch:', file=fp)
+        print(
+            f"There are {len(unmatched)} sites obtained from pileup not "
+            f"present in fetch:",
+            file=fp,
+        )
 
         for offset in sorted(unmatched):
-            print(f'  {offset + 1}: {pileup[offset]}', file=fp)
+            print(f"  {offset + 1}: {pileup[offset]}", file=fp)
 
     unmatched = fetchOffsets - pileupOffsets
     if unmatched:
-        print(f'There are {len(unmatched)} sites obtained from fetch not '
-              f'present in pileup:', file=fp)
+        print(
+            f"There are {len(unmatched)} sites obtained from fetch not "
+            f"present in pileup:",
+            file=fp,
+        )
 
         for offset in sorted(unmatched):
-            print(f'  {offset + 1}: {fetch[offset]}', file=fp)
+            print(f"  {offset + 1}: {fetch[offset]}", file=fp)
 
     common = fetchOffsets & pileupOffsets
     if common:
-        print(f'There are {len(common)} sites obtained from both fetch and '
-              f'pileup.', file=fp)
+        print(
+            f"There are {len(common)} sites obtained from both fetch and " f"pileup.",
+            file=fp,
+        )
         differenceCount = 0
         for offset in sorted(common):
             fetchBase = fetch[offset].consensus(
-                threshold, minCoverage, 'LOW-COVERAGE', 'NO-COVERAGE')
+                threshold, minCoverage, "LOW-COVERAGE", "NO-COVERAGE"
+            )
             pileupBase = pileup[offset].consensus(
-                threshold, minCoverage, 'LOW-COVERAGE', 'NO-COVERAGE')
+                threshold, minCoverage, "LOW-COVERAGE", "NO-COVERAGE"
+            )
             if fetchBase != pileupBase:
                 differenceCount += 1
-                print(f'  {offset + 1}: {fetchBase} != {pileupBase}', file=fp)
+                print(f"  {offset + 1}: {fetchBase} != {pileupBase}", file=fp)
                 if fetch[offset]:
-                    print(f'    Fetch : {fetch[offset]}', file=fp)
+                    print(f"    Fetch : {fetch[offset]}", file=fp)
                 if pileup[offset]:
-                    print(f'    Pileup: {pileup[offset]}', file=fp)
+                    print(f"    Pileup: {pileup[offset]}", file=fp)
 
         if differenceCount:
-            print(f'There were differences called at '
-                  f'{pct(differenceCount, len(common))} sites and '
-                  f'{pct(len(common) - differenceCount, len(common))} were '
-                  f'called identically.', file=fp)
+            print(
+                f"There were differences called at "
+                f"{pct(differenceCount, len(common))} sites and "
+                f"{pct(len(common) - differenceCount, len(common))} were "
+                f"called identically.",
+                file=fp,
+            )
         else:
-            print(f'All {len(common)} sites were called identically.', file=fp)
+            print(f"All {len(common)} sites were called identically.", file=fp)

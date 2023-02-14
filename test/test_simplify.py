@@ -13,13 +13,13 @@ class SimplifyTitle(TestCase):
         Simplifying an empty title with a non-empty target should return
         an empty title.
         """
-        self.assertEqual('', simplifyTitle('', 'xxx'))
+        self.assertEqual("", simplifyTitle("", "xxx"))
 
     def testEmtpyTitleWithEmptyTarget(self):
         """
         Simplifying an empty title should return an empty title.
         """
-        self.assertEqual('', simplifyTitle('', ''))
+        self.assertEqual("", simplifyTitle("", ""))
 
     def testPrefix(self):
         """
@@ -27,8 +27,9 @@ class SimplifyTitle(TestCase):
         whole word that has the prefix) should be returned.
         """
         self.assertEqual(
-            'Funny sea lion polyoma',
-            simplifyTitle('Funny sea lion polyomavirus 1 CSL6994', 'polyoma'))
+            "Funny sea lion polyoma",
+            simplifyTitle("Funny sea lion polyomavirus 1 CSL6994", "polyoma"),
+        )
 
     def testSuffix(self):
         """
@@ -36,8 +37,9 @@ class SimplifyTitle(TestCase):
         whole word that has the suffix) should be returned.
         """
         self.assertEqual(
-            'Funny sea lion polyomavirus',
-            simplifyTitle('Funny sea lion polyomavirus 1 CSL6994', 'virus'))
+            "Funny sea lion polyomavirus",
+            simplifyTitle("Funny sea lion polyomavirus 1 CSL6994", "virus"),
+        )
 
     def testContained(self):
         """
@@ -45,8 +47,9 @@ class SimplifyTitle(TestCase):
         prefix of the word that has the target) should be returned.
         """
         self.assertEqual(
-            'Funny sea lion polyoma',
-            simplifyTitle('Funny sea lion polyomavirus 1 CSL6994', 'yoma'))
+            "Funny sea lion polyoma",
+            simplifyTitle("Funny sea lion polyomavirus 1 CSL6994", "yoma"),
+        )
 
     def testExact(self):
         """
@@ -54,5 +57,6 @@ class SimplifyTitle(TestCase):
         and including the target should be returned.
         """
         self.assertEqual(
-            'Funny sea lion',
-            simplifyTitle('Funny sea lion polyomavirus 1 CSL6994', 'lion'))
+            "Funny sea lion",
+            simplifyTitle("Funny sea lion polyomavirus 1 CSL6994", "lion"),
+        )

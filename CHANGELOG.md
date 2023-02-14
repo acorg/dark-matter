@@ -1,3 +1,7 @@
+## 4.0.48 February 11, 2023
+
+Removed `bin/find-hits.py`.
+
 ## 4.0.47 February 10, 2023
 
 Added printing of transversion and transition counts to

@@ -1,10 +1,9 @@
-from __future__ import division, print_function
 import sys
 
 from dark.btop import countGaps
 
 
-def _debugPrint(hsp, queryLen, localDict, msg=''):
+def _debugPrint(hsp, queryLen, localDict, msg=""):
     """
     Print debugging information showing the local variables used during
     a call to normalizeHSP and the hsp and then raise an C{AssertionError}.
@@ -15,25 +14,45 @@ def _debugPrint(hsp, queryLen, localDict, msg=''):
     @param msg: A C{str} message to raise C{AssertionError} with.
     @raise AssertionError: unconditionally.
     """
-    print('normalizeHSP error:', file=sys.stderr)
-    print('  queryLen: %d' % queryLen, file=sys.stderr)
+    print("normalizeHSP error:", file=sys.stderr)
+    print("  queryLen: %d" % queryLen, file=sys.stderr)
 
-    print('  Original HSP:', file=sys.stderr)
-    for attr in ['bits', 'btop', 'expect', 'frame', 'query_end', 'query_start',
-                 'sbjct', 'query', 'sbjct_end', 'sbjct_start']:
-        print('    %s: %r' % (attr, hsp[attr]), file=sys.stderr)
+    print("  Original HSP:", file=sys.stderr)
+    for attr in [
+        "bits",
+        "btop",
+        "expect",
+        "frame",
+        "query_end",
+        "query_start",
+        "sbjct",
+        "query",
+        "sbjct_end",
+        "sbjct_start",
+    ]:
+        print("    %s: %r" % (attr, hsp[attr]), file=sys.stderr)
 
-    print('  Local variables:', file=sys.stderr)
+    print("  Local variables:", file=sys.stderr)
     for var in sorted(localDict):
-        if var != 'hsp':
-            print('    %s: %s' % (var, localDict[var]), file=sys.stderr)
+        if var != "hsp":
+            print("    %s: %s" % (var, localDict[var]), file=sys.stderr)
 
     raise AssertionError(msg)
 
 
-def _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
-                 queryStartInSubject, queryEndInSubject, hsp, queryLen,
-                 subjectGaps, queryGaps, localDict):
+def _sanityCheck(
+    subjectStart,
+    subjectEnd,
+    queryStart,
+    queryEnd,
+    queryStartInSubject,
+    queryEndInSubject,
+    hsp,
+    queryLen,
+    subjectGaps,
+    queryGaps,
+    localDict,
+):
     """
     Perform some sanity checks on an HSP. Call _debugPrint on any error.
 
@@ -57,7 +76,7 @@ def _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
     """
     # Subject indices must always be ascending.
     if subjectStart >= subjectEnd:
-        _debugPrint(hsp, queryLen, localDict, 'subjectStart >= subjectEnd')
+        _debugPrint(hsp, queryLen, localDict, "subjectStart >= subjectEnd")
 
     subjectMatchLength = subjectEnd - subjectStart
     queryMatchLength = queryEnd - queryStart
@@ -67,19 +86,30 @@ def _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
     subjectMatchLengthWithGaps = subjectMatchLength + subjectGaps
     queryMatchLengthWithGaps = queryMatchLength + queryGaps
     if subjectMatchLengthWithGaps != queryMatchLengthWithGaps:
-        _debugPrint(hsp, queryLen, localDict,
-                    'Including gaps, subject match length (%d) != Query match '
-                    'length (%d)' % (subjectMatchLengthWithGaps,
-                                     queryMatchLengthWithGaps))
+        _debugPrint(
+            hsp,
+            queryLen,
+            localDict,
+            "Including gaps, subject match length (%d) != Query match "
+            "length (%d)" % (subjectMatchLengthWithGaps, queryMatchLengthWithGaps),
+        )
 
     if queryStartInSubject > subjectStart:
-        _debugPrint(hsp, queryLen, localDict,
-                    'queryStartInSubject (%d) > subjectStart (%d)' %
-                    (queryStartInSubject, subjectStart))
+        _debugPrint(
+            hsp,
+            queryLen,
+            localDict,
+            "queryStartInSubject (%d) > subjectStart (%d)"
+            % (queryStartInSubject, subjectStart),
+        )
     if queryEndInSubject < subjectEnd:
-        _debugPrint(hsp, queryLen, localDict,
-                    'queryEndInSubject (%d) < subjectEnd (%d)' %
-                    (queryEndInSubject, subjectEnd))
+        _debugPrint(
+            hsp,
+            queryLen,
+            localDict,
+            "queryEndInSubject (%d) < subjectEnd (%d)"
+            % (queryEndInSubject, subjectEnd),
+        )
 
 
 def normalizeHSP(hsp, queryLen, diamondTask):
@@ -121,22 +151,22 @@ def normalizeHSP(hsp, queryLen, diamondTask):
         The returned offset values are all zero-based.
     """
 
-    queryGaps, subjectGaps = countGaps(hsp['btop'])
+    queryGaps, subjectGaps = countGaps(hsp["btop"])
 
     # Make some variables using Python's standard string indexing (start
     # offset included, end offset not). No calculations in this function
     # are done with the original 1-based HSP variables.
-    queryStart = hsp['query_start'] - 1
-    queryEnd = hsp['query_end']
-    subjectStart = hsp['sbjct_start'] - 1
-    subjectEnd = hsp['sbjct_end']
+    queryStart = hsp["query_start"] - 1
+    queryEnd = hsp["query_end"]
+    subjectStart = hsp["sbjct_start"] - 1
+    subjectEnd = hsp["sbjct_end"]
 
-    queryReversed = hsp['frame'] < 0
+    queryReversed = hsp["frame"] < 0
 
     # Query offsets must be ascending, unless we're looking at blastx output
     # and the query was reversed for the match.
     if queryStart >= queryEnd:
-        if diamondTask == 'blastx' and queryReversed:
+        if diamondTask == "blastx" and queryReversed:
             # Compute new query start and end indices, based on their
             # distance from the end of the string.
             #
@@ -147,9 +177,9 @@ def normalizeHSP(hsp, queryLen, diamondTask):
             queryStart = queryLen - (queryStart + 1)
             queryEnd = queryLen - (queryEnd - 1)
         else:
-            _debugPrint(hsp, queryLen, locals(), 'queryStart >= queryEnd')
+            _debugPrint(hsp, queryLen, locals(), "queryStart >= queryEnd")
 
-    if diamondTask == 'blastx':
+    if diamondTask == "blastx":
         # In DIAMOND blastx output, subject offsets are based on protein
         # sequence length but queries (and the reported offsets) are
         # nucleotide.  Convert the query offsets to protein because we will
@@ -170,7 +200,7 @@ def normalizeHSP(hsp, queryLen, diamondTask):
         #
         # In the following, the subtraction accounts for the first form of
         # loss and the integer division for the second.
-        initiallyIgnored = abs(hsp['frame']) - 1
+        initiallyIgnored = abs(hsp["frame"]) - 1
         queryLen = (queryLen - initiallyIgnored) // 3
         queryStart = (queryStart - initiallyIgnored) // 3
         queryEnd = (queryEnd - initiallyIgnored) // 3
@@ -183,15 +213,25 @@ def normalizeHSP(hsp, queryLen, diamondTask):
     queryStartInSubject = subjectStart - unmatchedQueryLeft
     queryEndInSubject = queryStartInSubject + queryLen + queryGaps
 
-    _sanityCheck(subjectStart, subjectEnd, queryStart, queryEnd,
-                 queryStartInSubject, queryEndInSubject, hsp, queryLen,
-                 subjectGaps, queryGaps, locals())
+    _sanityCheck(
+        subjectStart,
+        subjectEnd,
+        queryStart,
+        queryEnd,
+        queryStartInSubject,
+        queryEndInSubject,
+        hsp,
+        queryLen,
+        subjectGaps,
+        queryGaps,
+        locals(),
+    )
 
     return {
-        'readStart': queryStart,
-        'readEnd': queryEnd,
-        'readStartInSubject': queryStartInSubject,
-        'readEndInSubject': queryEndInSubject,
-        'subjectStart': subjectStart,
-        'subjectEnd': subjectEnd,
+        "readStart": queryStart,
+        "readEnd": queryEnd,
+        "readStartInSubject": queryStartInSubject,
+        "readEndInSubject": queryEndInSubject,
+        "subjectStart": subjectStart,
+        "subjectEnd": subjectEnd,
     }

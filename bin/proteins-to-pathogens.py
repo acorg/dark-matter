@@ -45,7 +45,6 @@ Fields must be whitespace separated. The seven fields are:
     Title (in the format "protein name [pathogen name]")
 """
 
-from __future__ import print_function
 import argparse
 import sys
 from itertools import chain
@@ -53,7 +52,8 @@ from itertools import chain
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
 import matplotlib
-matplotlib.use('PDF')
+
+matplotlib.use("PDF")
 
 # These imports are here because dark.proteins imports matplotlib.pyplot
 # and we need to set the matplotlib backend before the import. So please
@@ -62,165 +62,254 @@ matplotlib.use('PDF')
 from dark.proteins import ProteinGrouper
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Group proteins by the pathogen they're from.")
+        description="Group proteins by the pathogen they're from.",
+    )
 
     parser.add_argument(
-        'filenames', nargs='*', help='Sample file names to read input from.')
+        "filenames", nargs="*", help="Sample file names to read input from."
+    )
 
     parser.add_argument(
-        '--sampleName',
-        help=('An (optional) sample name. This is only used in producing '
-              'HTML output. Should be used when all input files are for a '
-              'single sample. Cannot be used with --sampleNameRegex.'))
+        "--sampleName",
+        help=(
+            "An (optional) sample name. This is only used in producing "
+            "HTML output. Should be used when all input files are for a "
+            "single sample. Cannot be used with --sampleNameRegex."
+        ),
+    )
 
     parser.add_argument(
-        '--sampleNameRegex',
-        help=('An (optional) regular expression that can be used to extract a '
-              'short sample name from full sample file name.  The regular '
-              'expression must have a matching group (delimited by '
-              'parentheses) that captures the part of the file name that '
-              'should be used as the sample name.'))
+        "--sampleNameRegex",
+        help=(
+            "An (optional) regular expression that can be used to extract a "
+            "short sample name from full sample file name.  The regular "
+            "expression must have a matching group (delimited by "
+            "parentheses) that captures the part of the file name that "
+            "should be used as the sample name."
+        ),
+    )
 
     parser.add_argument(
-        '--pathogenPanelFilename',
-        help=('An (optional) filename to write a pathogen-sample panel PNG '
-              'image to.'))
+        "--pathogenPanelFilename",
+        help=(
+            "An (optional) filename to write a pathogen-sample panel PNG " "image to."
+        ),
+    )
 
     parser.add_argument(
-        '--sampleIndexFilename',
-        help=('An (optional) filename to write a sample index file to. '
-              'Lines in the file will have an integer index, a space, and '
-              'then the sample name. Only produced if --html is used '
-              '(because the pathogen-NNN-sample-MMM.fastq are only written '
-              'in that case).'))
+        "--sampleIndexFilename",
+        help=(
+            "An (optional) filename to write a sample index file to. "
+            "Lines in the file will have an integer index, a space, and "
+            "then the sample name. Only produced if --html is used "
+            "(because the pathogen-NNN-sample-MMM.fastq are only written "
+            "in that case)."
+        ),
+    )
 
     parser.add_argument(
-        '--pathogenIndexFilename',
-        help=('An (optional) filename to write a pathogen index file to. '
-              'Lines in the file will have an integer index, a space, and '
-              'then the pathogen name. Only produced if --html is used '
-              '(because the pathogen-NNN-sample-MMM.fastq are only written '
-              'in that case).'))
+        "--pathogenIndexFilename",
+        help=(
+            "An (optional) filename to write a pathogen index file to. "
+            "Lines in the file will have an integer index, a space, and "
+            "then the pathogen name. Only produced if --html is used "
+            "(because the pathogen-NNN-sample-MMM.fastq are only written "
+            "in that case)."
+        ),
+    )
 
     parser.add_argument(
-        '--html', default=False, action='store_true',
-        help='If specified, output HTML instead of plain text.')
+        "--html",
+        default=False,
+        action="store_true",
+        help="If specified, output HTML instead of plain text.",
+    )
 
     parser.add_argument(
-        '--format', default='fasta', choices=('fasta', 'fastq'),
-        help=('Give the format of the sequence files written by '
-              'noninteractive-alignment-panel.py when it created the '
-              'summary-proteins files given on output.'))
+        "--format",
+        default="fasta",
+        choices=("fasta", "fastq"),
+        help=(
+            "Give the format of the sequence files written by "
+            "noninteractive-alignment-panel.py when it created the "
+            "summary-proteins files given on output."
+        ),
+    )
 
     parser.add_argument(
-        '--proteinFastaFilename', '--pff', nargs='+', action='append',
-        help=('Optional filename(s) giving the name of the FASTA file(s) '
-              'with the protein AA sequences with their associated pathogens '
-              'in square brackets. This is the format used by NCBI for '
-              'bacterial and viral reference sequence protein files. If '
-              'given, the contents of this file will be used to determine how '
-              'many proteins each matched pathogen has. This makes it much '
-              'easier to spot significant matches (as opposed to those where, '
-              'say, just one protein from a pathogen is matched).'))
+        "--proteinFastaFilename",
+        "--pff",
+        nargs="+",
+        action="append",
+        help=(
+            "Optional filename(s) giving the name of the FASTA file(s) "
+            "with the protein AA sequences with their associated pathogens "
+            "in square brackets. This is the format used by NCBI for "
+            "bacterial and viral reference sequence protein files. If "
+            "given, the contents of this file will be used to determine how "
+            "many proteins each matched pathogen has. This makes it much "
+            "easier to spot significant matches (as opposed to those where, "
+            "say, just one protein from a pathogen is matched)."
+        ),
+    )
 
     parser.add_argument(
-        '--minProteinFraction', type=float, default=0.0,
-        help=('The minimum fraction of proteins in a pathogen that must be '
-              'matched by a particular sample in order for that pathogen to '
-              'be displayed for that sample.'))
+        "--minProteinFraction",
+        type=float,
+        default=0.0,
+        help=(
+            "The minimum fraction of proteins in a pathogen that must be "
+            "matched by a particular sample in order for that pathogen to "
+            "be displayed for that sample."
+        ),
+    )
 
     parser.add_argument(
-        '--minProteinCount', type=int, default=0,
-        help=('The minimum number of proteins in a pathogen that must be '
-              'matched by a particular sample in order for that pathogen to '
-              'be displayed for that sample.'))
+        "--minProteinCount",
+        type=int,
+        default=0,
+        help=(
+            "The minimum number of proteins in a pathogen that must be "
+            "matched by a particular sample in order for that pathogen to "
+            "be displayed for that sample."
+        ),
+    )
 
     parser.add_argument(
-        '--pathogenType', default='viral', choices=('bacterial', 'viral'),
-        help=('Specify the pathogen type. This option only affects the '
-              'language used in HTML output.'))
+        "--pathogenType",
+        default="viral",
+        choices=("bacterial", "viral"),
+        help=(
+            "Specify the pathogen type. This option only affects the "
+            "language used in HTML output."
+        ),
+    )
 
     parser.add_argument(
-        '--showReadLengths', default=False, action='store_true',
-        help=('If specified, the HTML output (use --html to get this) will '
-              'contain the lengths of all reads that match proteins for a '
-              'pathogen.'))
+        "--showReadLengths",
+        default=False,
+        action="store_true",
+        help=(
+            "If specified, the HTML output (use --html to get this) will "
+            "contain the lengths of all reads that match proteins for a "
+            "pathogen."
+        ),
+    )
 
     parser.add_argument(
-        '--assetDir', default='out',
-        help=('The output directory where noninteractive-alignment-panel.py '
-              'puts its HTML, plots and FASTA or FASTQ files, needed for '
-              'using --html.'))
+        "--assetDir",
+        default="out",
+        help=(
+            "The output directory where noninteractive-alignment-panel.py "
+            "puts its HTML, plots and FASTA or FASTQ files, needed for "
+            "using --html."
+        ),
+    )
 
     parser.add_argument(
-        '--pathogenDataDir', default='pathogen-data',
-        help=('The directory where per-pathogen information (e.g., collected '
-              'reads across all samples) should be written.'))
+        "--pathogenDataDir",
+        default="pathogen-data",
+        help=(
+            "The directory where per-pathogen information (e.g., collected "
+            "reads across all samples) should be written."
+        ),
+    )
 
     parser.add_argument(
-        '--title', default='Summary of pathogens',
-        help='The title to show at the top of the output.')
+        "--title",
+        default="Summary of pathogens",
+        help="The title to show at the top of the output.",
+    )
 
     parser.add_argument(
-        '--preamble',
-        help='Optional preamble text to show after the title.')
+        "--preamble", help="Optional preamble text to show after the title."
+    )
 
     parser.add_argument(
-        '--titleRegex', default=None,
-        help='A regex that pathogen names must match.')
+        "--titleRegex", default=None, help="A regex that pathogen names must match."
+    )
 
     parser.add_argument(
-        '--negativeTitleRegex', default=None,
-        help='a regex that pathogen names must not match.')
+        "--negativeTitleRegex",
+        default=None,
+        help="a regex that pathogen names must not match.",
+    )
 
     parser.add_argument(
-        '--omitVirusLinks', default=False, action='store_true',
-        help=('If specified, the HTML output (use --html to get this) for '
-              'viruses will not contain links to ICTV and ViralZone. '
-              'This should be used when working with viruses that do not yet '
-              'have names that can be looked up.'))
+        "--omitVirusLinks",
+        default=False,
+        action="store_true",
+        help=(
+            "If specified, the HTML output (use --html to get this) for "
+            "viruses will not contain links to ICTV and ViralZone. "
+            "This should be used when working with viruses that do not yet "
+            "have names that can be looked up."
+        ),
+    )
 
     parser.add_argument(
-        '--omitSampleProteinCount', default=False, action='store_true',
-        help=('If specified, the HTML output (use --html to get this) for '
-              'viruses will not contain counts of the number of proteins '
-              'matched by each sample for a given pathogen. This should be '
-              'used when working with RVDB where there are many sequences '
-              'for some proteins and a sample matches many of them, leading '
-              'to incorrect reporting of the number of proteins of a pathogen '
-              'that are matched by samples.'))
+        "--omitSampleProteinCount",
+        default=False,
+        action="store_true",
+        help=(
+            "If specified, the HTML output (use --html to get this) for "
+            "viruses will not contain counts of the number of proteins "
+            "matched by each sample for a given pathogen. This should be "
+            "used when working with RVDB where there are many sequences "
+            "for some proteins and a sample matches many of them, leading "
+            "to incorrect reporting of the number of proteins of a pathogen "
+            "that are matched by samples."
+        ),
+    )
 
     args = parser.parse_args()
 
     if args.sampleName and args.sampleNameRegex:
-        print('It does not make sense to use --sampleName '
-              'as well as --sampleNameRegex', file=sys.stderr)
+        print(
+            "It does not make sense to use --sampleName "
+            "as well as --sampleNameRegex",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if not args.html:
         if args.sampleIndexFilename:
-            print('It does not make sense to use --sampleIndexFilename '
-                  'without also using --html', file=sys.stderr)
+            print(
+                "It does not make sense to use --sampleIndexFilename "
+                "without also using --html",
+                file=sys.stderr,
+            )
             sys.exit(1)
         if args.pathogenIndexFilename:
-            print('It does not make sense to use --pathogenIndexFilename '
-                  'without also using --html', file=sys.stderr)
+            print(
+                "It does not make sense to use --pathogenIndexFilename "
+                "without also using --html",
+                file=sys.stderr,
+            )
             sys.exit(1)
         if args.omitVirusLinks:
-            print('It does not make sense to use --omitVirusLinks '
-                  'without also using --html', file=sys.stderr)
+            print(
+                "It does not make sense to use --omitVirusLinks "
+                "without also using --html",
+                file=sys.stderr,
+            )
             sys.exit(1)
         if args.omitSampleProteinCount:
-            print('It does not make sense to use --omitSampleProteinCount '
-                  'without also using --html', file=sys.stderr)
+            print(
+                "It does not make sense to use --omitSampleProteinCount "
+                "without also using --html",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
-    if args.omitVirusLinks and args.pathogenType != 'viral':
-        print('The --omitVirusLinks option only makes sense with '
-              '--pathogenType viral', file=sys.stderr)
+    if args.omitVirusLinks and args.pathogenType != "viral":
+        print(
+            "The --omitVirusLinks option only makes sense with " "--pathogenType viral",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if args.proteinFastaFilename:
@@ -231,20 +320,21 @@ if __name__ == '__main__':
         # way it's not necessary to remember which way you're supposed to
         # use it and you also can't be hit by the subtle problem
         # encountered in https://github.com/acorg/dark-matter/issues/453
-        proteinFastaFilenames = list(chain.from_iterable(
-            args.proteinFastaFilename))
+        proteinFastaFilenames = list(chain.from_iterable(args.proteinFastaFilename))
     else:
         proteinFastaFilenames = None
 
-    grouper = ProteinGrouper(assetDir=args.assetDir,
-                             sampleName=args.sampleName,
-                             sampleNameRegex=args.sampleNameRegex,
-                             format_=args.format,
-                             proteinFastaFilenames=proteinFastaFilenames,
-                             saveReadLengths=args.showReadLengths,
-                             titleRegex=args.titleRegex,
-                             negativeTitleRegex=args.negativeTitleRegex,
-                             pathogenDataDir=args.pathogenDataDir)
+    grouper = ProteinGrouper(
+        assetDir=args.assetDir,
+        sampleName=args.sampleName,
+        sampleNameRegex=args.sampleNameRegex,
+        format_=args.format,
+        proteinFastaFilenames=proteinFastaFilenames,
+        saveReadLengths=args.showReadLengths,
+        titleRegex=args.titleRegex,
+        negativeTitleRegex=args.negativeTitleRegex,
+        pathogenDataDir=args.pathogenDataDir,
+    )
 
     if args.filenames:
         filenames = args.filenames
@@ -256,15 +346,19 @@ if __name__ == '__main__':
             grouper.addFile(filename, fp)
 
     if args.html:
-        print(grouper.toHTML(
-            args.pathogenPanelFilename,
-            minProteinFraction=args.minProteinFraction,
-            minProteinCount=args.minProteinCount,
-            pathogenType=args.pathogenType,
-            title=args.title, preamble=args.preamble,
-            sampleIndexFilename=args.sampleIndexFilename,
-            pathogenIndexFilename=args.pathogenIndexFilename,
-            omitVirusLinks=args.omitVirusLinks,
-            omitSampleProteinCount=args.omitSampleProteinCount))
+        print(
+            grouper.toHTML(
+                args.pathogenPanelFilename,
+                minProteinFraction=args.minProteinFraction,
+                minProteinCount=args.minProteinCount,
+                pathogenType=args.pathogenType,
+                title=args.title,
+                preamble=args.preamble,
+                sampleIndexFilename=args.sampleIndexFilename,
+                pathogenIndexFilename=args.pathogenIndexFilename,
+                omitVirusLinks=args.omitVirusLinks,
+                omitSampleProteinCount=args.omitSampleProteinCount,
+            )
+        )
     else:
         print(grouper.toStr())

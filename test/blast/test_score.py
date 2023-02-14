@@ -7,16 +7,22 @@ class TestBitScoreToEValue(TestCase):
     """
     Tests for the bitScoreToEValue function.
     """
+
     def testTrivial(self):
         """
         For a bit score of 1.0 on a database of size 1 with a query length
         1, and no length adjustment, we should get an e-value of 0.5
         """
-        self.assertEqual(0.5, bitScoreToEValue(bitScore=1.0,
-                                               dbSize=1,
-                                               dbSequenceCount=1,
-                                               queryLength=1,
-                                               lengthAdjustment=0))
+        self.assertEqual(
+            0.5,
+            bitScoreToEValue(
+                bitScore=1.0,
+                dbSize=1,
+                dbSequenceCount=1,
+                queryLength=1,
+                lengthAdjustment=0,
+            ),
+        )
 
     def testErwiniaPhage(self):
         """
@@ -71,13 +77,17 @@ class TestBitScoreToEValue(TestCase):
           </Iteration_stat>
         </Iteration>
         """
-        self.assertAlmostEqual(0.0813089,
-                               bitScoreToEValue(bitScore=37.3537,
-                                                dbSize=168142520,
-                                                dbSequenceCount=5660,
-                                                queryLength=111,
-                                                lengthAdjustment=26),
-                               places=4)
+        self.assertAlmostEqual(
+            0.0813089,
+            bitScoreToEValue(
+                bitScore=37.3537,
+                dbSize=168142520,
+                dbSequenceCount=5660,
+                queryLength=111,
+                lengthAdjustment=26,
+            ),
+            places=4,
+        )
 
     def testParameciumBursaria(self):
         """
@@ -138,29 +148,39 @@ class TestBitScoreToEValue(TestCase):
           </Iteration_stat>
         </Iteration>
         """
-        self.assertAlmostEqual(0.0359052,
-                               bitScoreToEValue(bitScore=42.7638,
-                                                dbSize=1931895878,
-                                                dbSequenceCount=1456080,
-                                                queryLength=172,
-                                                lengthAdjustment=30),
-                               places=4)
+        self.assertAlmostEqual(
+            0.0359052,
+            bitScoreToEValue(
+                bitScore=42.7638,
+                dbSize=1931895878,
+                dbSequenceCount=1456080,
+                queryLength=172,
+                lengthAdjustment=30,
+            ),
+            places=4,
+        )
 
 
 class TestEValueToBitScore(TestCase):
     """
     Tests for the eValueToBitScore function.
     """
+
     def testTrivial(self):
         """
         For an e-value of 1.0 on a database of size 1 with total query length
         1, we should get a bit score of 0.0
         """
-        self.assertEqual(0.0, eValueToBitScore(eValue=1.0,
-                                               dbSize=1,
-                                               dbSequenceCount=1,
-                                               queryLength=1,
-                                               lengthAdjustment=0))
+        self.assertEqual(
+            0.0,
+            eValueToBitScore(
+                eValue=1.0,
+                dbSize=1,
+                dbSequenceCount=1,
+                queryLength=1,
+                lengthAdjustment=0,
+            ),
+        )
 
     def testErwiniaPhage(self):
         """
@@ -215,13 +235,17 @@ class TestEValueToBitScore(TestCase):
           </Iteration_stat>
         </Iteration>
         """
-        self.assertAlmostEqual(37.3537,
-                               eValueToBitScore(eValue=0.0813089,
-                                                dbSize=168142520,
-                                                dbSequenceCount=5660,
-                                                queryLength=111,
-                                                lengthAdjustment=26),
-                               places=4)
+        self.assertAlmostEqual(
+            37.3537,
+            eValueToBitScore(
+                eValue=0.0813089,
+                dbSize=168142520,
+                dbSequenceCount=5660,
+                queryLength=111,
+                lengthAdjustment=26,
+            ),
+            places=4,
+        )
 
     def testParameciumBursaria(self):
         """
@@ -282,10 +306,14 @@ class TestEValueToBitScore(TestCase):
           </Iteration_stat>
         </Iteration>
         """
-        self.assertAlmostEqual(42.7638,
-                               eValueToBitScore(eValue=0.0359052,
-                                                dbSize=1931895878,
-                                                dbSequenceCount=1456080,
-                                                queryLength=172,
-                                                lengthAdjustment=30),
-                               places=4)
+        self.assertAlmostEqual(
+            42.7638,
+            eValueToBitScore(
+                eValue=0.0359052,
+                dbSize=1931895878,
+                dbSequenceCount=1456080,
+                queryLength=172,
+                lengthAdjustment=30,
+            ),
+            places=4,
+        )

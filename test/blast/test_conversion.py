@@ -1,10 +1,6 @@
 from six.moves import builtins
 from unittest import TestCase
-
-try:
-    from unittest.mock import patch, mock_open
-except ImportError:
-    from mock import patch
+from unittest.mock import patch, mock_open
 
 from json import dumps
 
@@ -145,11 +141,11 @@ class TestXMLRecordsReader(TestCase):
         in the reader instance. We only test a subset of the parameters.
         """
         data = RECORD
-        with patch.object(builtins, 'open', mock_open(read_data=data)):
-            reader = XMLRecordsReader('file.xml')
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            reader = XMLRecordsReader("file.xml")
             list(reader.records())
-            self.assertEqual('BLASTN', reader.params['application'])
-            self.assertEqual('virus-nt-20130719', reader.params['database'])
+            self.assertEqual("BLASTN", reader.params["application"])
+            self.assertEqual("virus-nt-20130719", reader.params["database"])
 
     def testXMLInput(self):
         """
@@ -157,8 +153,8 @@ class TestXMLRecordsReader(TestCase):
         in what it tests.
         """
         mockOpener = mock_open(read_data=RECORD)
-        with patch.object(builtins, 'open', mockOpener):
-            reader = XMLRecordsReader('file.xml')
+        with patch.object(builtins, "open", mockOpener):
+            reader = XMLRecordsReader("file.xml")
             record1, record2 = list(reader.records())
             self.assertEqual(0, len(record1.alignments))
             self.assertEqual(2, len(record2.alignments))
@@ -166,230 +162,252 @@ class TestXMLRecordsReader(TestCase):
 
 _JSON_RECORDS = [
     {
-        'application': 'BLASTN',
-        'effective_search_space': 16800583950.0,
-        'num_sequences_in_database': 7194,
-        'version': '2.2.30+',
-        'query_letters': 101,
-        'database_letters': None,
-        'gap_penalties': [
+        "application": "BLASTN",
+        "effective_search_space": 16800583950.0,
+        "num_sequences_in_database": 7194,
+        "version": "2.2.30+",
+        "query_letters": 101,
+        "database_letters": None,
+        "gap_penalties": [
             5,
             2,
         ],
-        'database': 'virus-refseq-20160316',
-        'database_sequences': 7194,
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
-        'hsps_prelim_gapped_attemped': None,
-        'sc_mismatch': -3,
-        'effective_hsp_length': 26,
-        'threshold': None,
-        'num_seqs_better_e': None,
-        'num_hits': None,
-        'hsps_no_gap': None,
-        'hsps_gapped': None,
-        'matrix': '',
-        'database_length': 224194830,
-        'sc_match': 2,
-        'gap_trigger': [
+        "database": "virus-refseq-20160316",
+        "database_sequences": 7194,
+        "query": "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA",
+        "hsps_prelim_gapped_attemped": None,
+        "sc_mismatch": -3,
+        "effective_hsp_length": 26,
+        "threshold": None,
+        "num_seqs_better_e": None,
+        "num_hits": None,
+        "hsps_no_gap": None,
+        "hsps_gapped": None,
+        "matrix": "",
+        "database_length": 224194830,
+        "sc_match": 2,
+        "gap_trigger": [
             None,
             None,
         ],
-        'num_good_extends': None,
-        'ka_params': [
+        "num_good_extends": None,
+        "ka_params": [
             0.625,
             0.41,
             0.78,
         ],
-        'gap_x_dropoff_final': [
+        "gap_x_dropoff_final": [
             None,
             None,
         ],
-        'effective_search_space_used': None,
-        'date': '',
-        'query_id': 'Query_1',
-        'database_name': [],
-        'num_sequences': None,
-        'effective_database_length': None,
-        'reference': 'Stephen F. Altschul, ...',
-        'dropoff_1st_pass': [
+        "effective_search_space_used": None,
+        "date": "",
+        "query_id": "Query_1",
+        "database_name": [],
+        "num_sequences": None,
+        "effective_database_length": None,
+        "reference": "Stephen F. Altschul, ...",
+        "dropoff_1st_pass": [
             None,
             None,
         ],
-        'hsps_prelim_gapped': None,
-        'frameshift': [
+        "hsps_prelim_gapped": None,
+        "frameshift": [
             None,
             None,
         ],
-        'window_size': None,
-        'query_length': 101,
-        'num_letters_in_database': 224194830,
-        'gapped': 0,
-        'gap_x_dropoff': [
+        "window_size": None,
+        "query_length": 101,
+        "num_letters_in_database": 224194830,
+        "gapped": 0,
+        "gap_x_dropoff": [
             None,
             None,
         ],
-        'blast_cutoff': [
+        "blast_cutoff": [
             None,
             None,
         ],
-        'posted_date': [],
-        'effective_query_length': None,
-        'ka_params_gap': [
+        "posted_date": [],
+        "effective_query_length": None,
+        "ka_params_gap": [
             None,
             None,
             None,
-        ]
+        ],
     },
     {
-        'alignments': [
+        "alignments": [
             {
-                'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
-                'hsps': [
+                "title": "gi|9629198|ref|NC_001781.1| Human RSV",
+                "length": 15225,
+                "hsps": [
                     {
-                        'sbjct_start': 5548,
-                        'sbjct_end': 5450,
-                        'bits': 165.393,
-                        'frame': [
+                        "sbjct_start": 5548,
+                        "sbjct_end": 5450,
+                        "bits": 165.393,
+                        "frame": [
                             1,
                             -1,
                         ],
-                        'identicalCount': 38,
-                        'positiveCount': 77,
-                        'query_start': 1,
-                        'expect': 2.73597e-40,
-                        'query_end': 99,
-                        'sbjct': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
-                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
-                                  'GTTCTAATGTGGTTG'),
-                        'query': ('AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT'
-                                  'TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT'
-                                  'GTTTTGTTGTGGTTG'),
+                        "identicalCount": 38,
+                        "positiveCount": 77,
+                        "query_start": 1,
+                        "expect": 2.73597e-40,
+                        "query_end": 99,
+                        "sbjct": (
+                            "AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT"
+                            "TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT"
+                            "GTTCTAATGTGGTTG"
+                        ),
+                        "query": (
+                            "AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGT"
+                            "TTTCGGGGGTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGT"
+                            "GTTTTGTTGTGGTTG"
+                        ),
                     }
-                ]
+                ],
             }
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA'
+        "query": "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA",
     },
     {
-        'alignments': [
+        "alignments": [
             {
-                'title': 'gi|9629198|ref|NC_001781.1| Human RSV',
-                'length': 15225,
-                'hsps': [
+                "title": "gi|9629198|ref|NC_001781.1| Human RSV",
+                "length": 15225,
+                "hsps": [
                     {
-                        'sbjct_start': 12320,
-                        'sbjct_end': 12220,
-                        'bits': 178.016,
-                        'frame': [
+                        "sbjct_start": 12320,
+                        "sbjct_end": 12220,
+                        "bits": 178.016,
+                        "frame": [
                             1,
                             -1,
                         ],
-                        'identicalCount': 380,
-                        'positiveCount': 770,
-                        'query_start': 1,
-                        'expect': 4.33545e-44,
-                        'query_end': 101,
-                        'sbjct': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
-                        'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        "identicalCount": 380,
+                        "positiveCount": 770,
+                        "query_start": 1,
+                        "expect": 4.33545e-44,
+                        "query_end": 101,
+                        "sbjct": (
+                            "TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT"
+                            "CCTCTTTCACCACGAGTTAAACTATTAACATTATATTTTTCT"
+                            "ATAATTATACCACTGGC"
+                        ),
+                        "query": (
+                            "TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT"
+                            "CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT"
+                            "ATAATTATACCACTGGC"
+                        ),
                     }
-                ]
+                ],
             },
             {
-                'title': 'gi|9629367|ref|NC_001803.1| RSV',
-                'length': 15191,
-                'hsps': [
+                "title": "gi|9629367|ref|NC_001803.1| RSV",
+                "length": 15191,
+                "hsps": [
                     {
-                        'sbjct_start': 12279,
-                        'sbjct_end': 12179,
-                        'bits': 123.915,
-                        'frame': [
+                        "sbjct_start": 12279,
+                        "sbjct_end": 12179,
+                        "bits": 123.915,
+                        "frame": [
                             1,
                             -1,
                         ],
-                        'identicalCount': 3,
-                        'positiveCount': 7,
-                        'query_start': 1,
-                        'expect': 8.37678e-28,
-                        'query_end': 101,
-                        'sbjct': ('TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT'
-                                  'CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT'
-                                  'ATGATTATGCCACTAGC'),
-                        'query': ('TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT'
-                                  'CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT'
-                                  'ATAATTATACCACTGGC'),
+                        "identicalCount": 3,
+                        "positiveCount": 7,
+                        "query_start": 1,
+                        "expect": 8.37678e-28,
+                        "query_end": 101,
+                        "sbjct": (
+                            "TTTTTCTCTTGTGTAGATGAACCAACCCATGGTTTAGTGGGT"
+                            "CCTCTCTCACCACGTGTTAAACTGTTAACATTATATTTCTCT"
+                            "ATGATTATGCCACTAGC"
+                        ),
+                        "query": (
+                            "TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGT"
+                            "CCTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCT"
+                            "ATAATTATACCACTGGC"
+                        ),
                     }
-                ]
+                ],
             },
             {
-                'title': 'gi|9631267|ref|NC_001989.1| Bovine RSV',
-                'length': 15140,
-                'hsps': [
+                "title": "gi|9631267|ref|NC_001989.1| Bovine RSV",
+                "length": 15140,
+                "hsps": [
                     {
-                        'sbjct_start': 12213,
-                        'sbjct_end': 12119,
-                        'bits': 87.848,
-                        'frame': [
+                        "sbjct_start": 12213,
+                        "sbjct_end": 12119,
+                        "bits": 87.848,
+                        "frame": [
                             1,
                             -1,
                         ],
-                        'identicalCount': 3800,
-                        'positiveCount': 7700,
-                        'query_start': 2,
-                        'expect': 6.03169e-17,
-                        'query_end': 98,
-                        'sbjct': ('TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC'
-                                  'CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA'
-                                  'TTATTATACCACT'),
-                        'query': ('TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC'
-                                  'CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA'
-                                  'TAATTATACCACT'),
+                        "identicalCount": 3800,
+                        "positiveCount": 7700,
+                        "query_start": 2,
+                        "expect": 6.03169e-17,
+                        "query_end": 98,
+                        "sbjct": (
+                            "TTTTCT--TGGGTTGATGATCCTACCCATGGTTTAGTGGGAC"
+                            "CCCTCTCACCACGAGTCAAAAAATTGGAATTGTATTTTTCAA"
+                            "TTATTATACCACT"
+                        ),
+                        "query": (
+                            "TTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTC"
+                            "CTCTTTCACCACGAGTTAAACCATTAACATTATATTTTTCTA"
+                            "TAATTATACCACT"
+                        ),
                     }
-                ]
-            }
+                ],
+            },
         ],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA'
+        "query": "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA",
     },
     {
-        'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA'
+        "alignments": [],
+        "query": "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA",
     },
     {
-        'alignments': [],
-        'query': 'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA'
-    }
-
+        "alignments": [],
+        "query": "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA",
+    },
 ]
 
-JSON = '\n'.join(dumps(record) for record in _JSON_RECORDS) + '\n'
+JSON = "\n".join(dumps(record) for record in _JSON_RECORDS) + "\n"
 
 
 class TestJSONRecordsReader(TestCase):
     """
     Test the JSONRecordsReader class.
     """
-    READS = Reads([
-        DNARead(
-            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA',
-            'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
-            'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
-        DNARead(
-            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA',
-            'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
-            'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
-        DNARead(
-            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA',
-            'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
-            'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
-        DNARead(
-            'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA',
-            'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
-            'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
-    ])
+
+    READS = Reads(
+        [
+            DNARead(
+                "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234 1:N:0:TGACCA",
+                "AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG"
+                "GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG",
+            ),
+            DNARead(
+                "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287 1:N:0:TGACCA",
+                "TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC"
+                "ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC",
+            ),
+            DNARead(
+                "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488 1:N:0:TGACCA",
+                "ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA"
+                "GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT",
+            ),
+            DNARead(
+                "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512 1:N:0:TGACCA",
+                "GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT"
+                "AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC",
+            ),
+        ]
+    )
 
     # TODO: This class is quite incomplete. It was added long after the
     # original code was written, due to laziness at the time. Additional
@@ -400,8 +418,8 @@ class TestJSONRecordsReader(TestCase):
         A JSONRecordsReader must return the expected number of read alignments.
         """
         mockOpener = mock_open(read_data=JSON)
-        with patch.object(builtins, 'open', mockOpener):
-            reader = JSONRecordsReader('file.json')
+        with patch.object(builtins, "open", mockOpener):
+            reader = JSONRecordsReader("file.json")
             alignments = list(reader.readAlignments(self.READS))
             self.assertEqual(4, len(alignments))
 
@@ -413,28 +431,34 @@ class TestJSONRecordsReader(TestCase):
         the reads in the FASTA have just the first part of those names (up to
         the first space).
         """
-        reads = Reads([
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234',
-                'AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG'
-                'GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG'),
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287',
-                'TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC'
-                'ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC'),
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488',
-                'ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA'
-                'GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT'),
-            DNARead(
-                'BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512',
-                'GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT'
-                'AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC'),
-        ])
+        reads = Reads(
+            [
+                DNARead(
+                    "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:9489:4234",
+                    "AGGGCTCGGATGCTGTGGGTGTTTGTGTGGAGTTGGGTGTGTTTTCGGGG"
+                    "GTGGTTGAGTGGAGGGATTGCTGTTGGATTGTGTGTTTTGTTGTGGTTGCG",
+                ),
+                DNARead(
+                    "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:19964:6287",
+                    "TTTTTCTCCTGCGTAGATGAACCTACCCATGGCTTAGTAGGTCCTCTTTC"
+                    "ACCACGAGTTAAACCATTAACATTATATTTTTCTATAATTATACCACTGGC",
+                ),
+                DNARead(
+                    "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:11488:7488",
+                    "ACCTCCGCCTCCCAGGTTCAAGCAATTCTCCTGCCTTAGCCTCCTGAATA"
+                    "GCTGGGATTACAGGTATGCAGGAGGCTAAGGCAGGAGAATTGCTTGAACCT",
+                ),
+                DNARead(
+                    "BIOMICS-HISEQTP:140:HJFH5BCXX:1:1101:14734:7512",
+                    "GAGGGTGGAGGTAACTGAGGAAGCAAAGGCTTGGAGACAGGGCCCCTCAT"
+                    "AGCCAGTGAGTGCGCCATTTTCTTTGGAGCAATTGGGTGGGGAGATGGGGC",
+                ),
+            ]
+        )
 
         mockOpener = mock_open(read_data=JSON)
-        with patch.object(builtins, 'open', mockOpener):
-            reader = JSONRecordsReader('file.json')
+        with patch.object(builtins, "open", mockOpener):
+            reader = JSONRecordsReader("file.json")
             readAlignments = list(reader.readAlignments(reads))
             self.assertEqual(4, len(readAlignments))
 
@@ -443,8 +467,8 @@ class TestJSONRecordsReader(TestCase):
         The identity value must be read correctly from the HSPs.
         """
         mockOpener = mock_open(read_data=JSON)
-        with patch.object(builtins, 'open', mockOpener):
-            reader = JSONRecordsReader('file.json')
+        with patch.object(builtins, "open", mockOpener):
+            reader = JSONRecordsReader("file.json")
             readAlignments = list(reader.readAlignments(self.READS))
             self.assertEqual(38, readAlignments[0][0].hsps[0].identicalCount)
             self.assertEqual(77, readAlignments[0][0].hsps[0].positiveCount)

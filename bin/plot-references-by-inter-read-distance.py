@@ -32,9 +32,7 @@ def HBVGenotypeKey(genotype):
     # The index is 0 for single-character genotypes (apart from ?, which
     # comes last), followed by 1 for genotypes with longer names
     # (Chimpanzee, Gibbon, etc), followed by 2 for unknown (?) genotypes.
-    return (
-        2 if genotype == '?' else (0 if len(genotype) == 1 else 1),
-        genotype)
+    return (2 if genotype == "?" else (0 if len(genotype) == 1 else 1), genotype)
 
 
 def getFigure(referenceIds, categories, dm, transform, args):
@@ -51,57 +49,65 @@ def getFigure(referenceIds, categories, dm, transform, args):
     """
     readCounts = [len(dm.scores[id_]) for id_ in referenceIds]
 
-    if not (len(transform) == len(readCounts) == len(categories) ==
-            len(referenceIds)):
+    if not (len(transform) == len(readCounts) == len(categories) == len(referenceIds)):
         raise ValueError(
-            f'Unequal lengths: transform={len(transform)}, '
-            f'readCounts={len(readCounts)}, categories={len(categories)}, '
-            f'referenceIds={len(referenceIds)}.')
+            f"Unequal lengths: transform={len(transform)}, "
+            f"readCounts={len(readCounts)}, categories={len(categories)}, "
+            f"referenceIds={len(referenceIds)}."
+        )
 
-    if args.categorySortKey == 'HBV genotype':
+    if args.categorySortKey == "HBV genotype":
         categorySortKey = HBVGenotypeKey
     else:
+
         def categorySortKey(c):
             return c
 
-    df = pd.DataFrame({
-        'x': transform[:, 0],
-        'y': transform[:, 1],
-        'Read count': readCounts,
-        args.categoryName: categories,
-        'Accession': referenceIds,
-    })
+    df = pd.DataFrame(
+        {
+            "x": transform[:, 0],
+            "y": transform[:, 1],
+            "Read count": readCounts,
+            args.categoryName: categories,
+            "Accession": referenceIds,
+        }
+    )
 
-    categoryOrders = {
-        args.categoryName: sorted(categories, key=categorySortKey)
-    }
+    categoryOrders = {args.categoryName: sorted(categories, key=categorySortKey)}
 
     if args.twoD:
-        fig = px.scatter(df, x='x', y='y',
-                         color=args.categoryName, opacity=0.70,
-                         title='Reference map',
-                         hover_data=('Accession', 'Read count'),
-                         category_orders=categoryOrders)
+        fig = px.scatter(
+            df,
+            x="x",
+            y="y",
+            color=args.categoryName,
+            opacity=0.70,
+            title="Reference map",
+            hover_data=("Accession", "Read count"),
+            category_orders=categoryOrders,
+        )
     else:
-        fig = px.scatter_3d(df, x='x', y='y', z='Read count',
-                            color=args.categoryName, opacity=0.70,
-                            title='Reference map', hover_data=('Accession',),
-                            category_orders=categoryOrders)
+        fig = px.scatter_3d(
+            df,
+            x="x",
+            y="y",
+            z="Read count",
+            color=args.categoryName,
+            opacity=0.70,
+            title="Reference map",
+            hover_data=("Accession",),
+            category_orders=categoryOrders,
+        )
 
-    fig.update_traces(marker={'size': 4.2})
+    fig.update_traces(marker={"size": 4.2})
 
     fig.update_layout(
         margin=dict(l=0, r=0, b=0, t=0),
-        legend=dict(
-            yanchor='top',
-            y=0.99,
-            xanchor='left',
-            x=0.01
-        )
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
     )
 
     if args.logZ and not args.twoD:
-        fig.update_layout(scene_zaxis_type='log')
+        fig.update_layout(scene_zaxis_type="log")
 
     return fig
 
@@ -120,25 +126,28 @@ def getTransform(referenceIds, dm, args):
     if args.mdsFile and exists(args.mdsFile):
         if args.verbose:
             modificationTime = time.strftime(
-                '%Y-%m-%d %H:%M:%S',
-                time.localtime(os.path.getmtime(args.mdsFile)))
-            print(f'Loading cached MDS transform file dated '
-                  f'{modificationTime} from {args.mdsFile!r}.',
-                  file=sys.stderr)
+                "%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(args.mdsFile))
+            )
+            print(
+                f"Loading cached MDS transform file dated "
+                f"{modificationTime} from {args.mdsFile!r}.",
+                file=sys.stderr,
+            )
         transform = np.load(args.mdsFile)
     else:
-        distance = dm.matrix(referenceIds=referenceIds, metric=args.metric,
-                             similarity=False)
-        mds = MDS(dissimilarity='precomputed', n_jobs=8)
+        distance = dm.matrix(
+            referenceIds=referenceIds, metric=args.metric, similarity=False
+        )
+        mds = MDS(dissimilarity="precomputed", n_jobs=8)
         if args.verbose:
-            print('Starting MDS fit.', file=sys.stderr)
+            print("Starting MDS fit.", file=sys.stderr)
         transform = mds.fit_transform(distance)
         if args.verbose:
-            print('Finished MDS fit.', file=sys.stderr)
+            print("Finished MDS fit.", file=sys.stderr)
 
         # Cache the result if an MDS file name was given.
         if args.mdsFile:
-            with open(args.mdsFile, 'wb') as fp:
+            with open(args.mdsFile, "wb") as fp:
                 np.save(fp, transform)
 
     return transform
@@ -156,11 +165,11 @@ def getDistanceMatrix(args):
 
     if args.samFile:
         for filename in args.samFile:
-            dm.addFile(filename, scoreTag='AS')
+            dm.addFile(filename, scoreTag="AS")
 
         # Cache the distance matrix scores if a file name was given.
         if args.scoreFile:
-            with open(args.scoreFile, 'w') as fp:
+            with open(args.scoreFile, "w") as fp:
                 dm.save(fp)
     else:
         # The argparse group should ensure that --scoreFile was used if
@@ -171,8 +180,7 @@ def getDistanceMatrix(args):
             with open(args.scoreFile) as fp:
                 dm.load(fp)
         else:
-            print('Score file {args.scoreFile!r} does not exist.',
-                  file=sys.stderr)
+            print("Score file {args.scoreFile!r} does not exist.", file=sys.stderr)
             sys.exit(1)
 
     return dm
@@ -187,8 +195,9 @@ def main(args):
         argument values passed on the command line.
     """
     if not (args.samFile or args.scoreFile):
-        print('At least a SAM file or a score file name must be given.',
-              file=sys.stderr)
+        print(
+            "At least a SAM file or a score file name must be given.", file=sys.stderr
+        )
         sys.exit(1)
 
     dm = getDistanceMatrix(args)
@@ -197,11 +206,16 @@ def main(args):
         referenceIds = sorted(dm.scores)
     else:
         referenceIds = sorted(
-            referenceId for (referenceId, reads) in dm.scores.items()
-            if len(reads) >= args.minMatchingReads)
+            referenceId
+            for (referenceId, reads) in dm.scores.items()
+            if len(reads) >= args.minMatchingReads
+        )
         if args.verbose:
-            print(f'Found {len(referenceIds)} references with at least '
-                  f'{args.minMatchingReads} matching reads.', file=sys.stderr)
+            print(
+                f"Found {len(referenceIds)} references with at least "
+                f"{args.minMatchingReads} matching reads.",
+                file=sys.stderr,
+            )
 
     if args.categoryFile:
         with open(args.categoryFile) as fp:
@@ -228,7 +242,7 @@ def main(args):
 
     fig.write_html(args.htmlFile)
     if args.verbose:
-        print(f'Wrote {args.htmlFile!r}.', file=sys.stderr)
+        print(f"Wrote {args.htmlFile!r}.", file=sys.stderr)
 
 
 def makeParser():
@@ -238,76 +252,107 @@ def makeParser():
     @return: An C{argparse.ArgumentParser} instance.
     """
     parser = argparse.ArgumentParser(
-        description=('Plot references according to their distances from one '
-                     'another, based on common read matches (and '
-                     'non-matches).'))
+        description=(
+            "Plot references according to their distances from one "
+            "another, based on common read matches (and "
+            "non-matches)."
+        )
+    )
 
     parser.add_argument(
-        '--samFile', action='append',
-        help='The SAM file(s) to load. May be repeated.')
+        "--samFile", action="append", help="The SAM file(s) to load. May be repeated."
+    )
 
     parser.add_argument(
-        '--scoreFile',
-        help=('A (JSON) file to read (JSON) the reference/read score matrix '
-              'from. This should have been produced by an earlier call with a '
-              '--scoreFile argument or else by saving the output of '
-              'reference-read-scores-to-JSON.py  If the file does not exist, '
-              'it will be created.'))
+        "--scoreFile",
+        help=(
+            "A (JSON) file to read (JSON) the reference/read score matrix "
+            "from. This should have been produced by an earlier call with a "
+            "--scoreFile argument or else by saving the output of "
+            "reference-read-scores-to-JSON.py  If the file does not exist, "
+            "it will be created."
+        ),
+    )
 
     parser.add_argument(
-        '--htmlFile', required=True,
-        help='The HTML plotly file to write.')
+        "--htmlFile", required=True, help="The HTML plotly file to write."
+    )
 
     parser.add_argument(
-        '--mdsFile',
-        help='A JSON to cache the result of the MDS optimization.')
+        "--mdsFile", help="A JSON to cache the result of the MDS optimization."
+    )
 
     parser.add_argument(
-        '--categoryName', default='Genotype',
-        help=('The name of the categories to which reference sequences are '
-              'assigned (e.g., "Genotype"). This name will appear at the '
-              'top of the legend.'))
+        "--categoryName",
+        default="Genotype",
+        help=(
+            "The name of the categories to which reference sequences are "
+            'assigned (e.g., "Genotype"). This name will appear at the '
+            "top of the legend."
+        ),
+    )
 
     parser.add_argument(
-        '--categorySortKey', choices=('HBV genotype',),
-        help=('The name of the function to use to sort categories (for the '
-              'legend). If not given, categories will be sorted by name.'))
+        "--categorySortKey",
+        choices=("HBV genotype",),
+        help=(
+            "The name of the function to use to sort categories (for the "
+            "legend). If not given, categories will be sorted by name."
+        ),
+    )
 
     parser.add_argument(
-        '--categoryFile',
-        help=('A file containing labels for reference sequences. The format '
-              'is lines containing a reference name, a TAB, and a new name '
-              '(to be shown in the plot). If no label file is given, or if '
-              'there is no new name for a reference, the original reference '
-              'names will be used.'))
+        "--categoryFile",
+        help=(
+            "A file containing labels for reference sequences. The format "
+            "is lines containing a reference name, a TAB, and a new name "
+            "(to be shown in the plot). If no label file is given, or if "
+            "there is no new name for a reference, the original reference "
+            "names will be used."
+        ),
+    )
 
     parser.add_argument(
-        '--minMatchingReads', type=int,
-        help=('The minimum number of reads that must match a reference for it '
-              'to be included.'))
+        "--minMatchingReads",
+        type=int,
+        help=(
+            "The minimum number of reads that must match a reference for it "
+            "to be included."
+        ),
+    )
 
     parser.add_argument(
-        '--verbose', action='store_true',
-        help='Print extra information.')
+        "--verbose", action="store_true", help="Print extra information."
+    )
 
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
-        '--2d', '--2D', action='store_true', dest='twoD',
-        help=('Make the figure in two dimensions, instead of three. The third '
-              'dimensions (reference matching read count) is omitted.'))
+        "--2d",
+        "--2D",
+        action="store_true",
+        dest="twoD",
+        help=(
+            "Make the figure in two dimensions, instead of three. The third "
+            "dimensions (reference matching read count) is omitted."
+        ),
+    )
 
     group.add_argument(
-        '--logZ', action='store_true',
-        help='Log the z (read count) axis (only valid if --2d is not used).')
+        "--logZ",
+        action="store_true",
+        help="Log the z (read count) axis (only valid if --2d is not used).",
+    )
 
     parser.add_argument(
-        '--metric',
-        choices=('jaccard', 'soergel'), default='soergel',
-        help=('The distance metric to use.'))
+        "--metric",
+        choices=("jaccard", "soergel"),
+        default="soergel",
+        help=("The distance metric to use."),
+    )
 
     return parser
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(makeParser().parse_args())

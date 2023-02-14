@@ -8,9 +8,9 @@ from dark.reads import DNARead, Reads
 from dark.utils import matchOffset
 
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
-CINS, CDEL, CMATCH = 'IDM'
+CINS, CDEL, CMATCH = tuple("IDM")
 
-REF_ID = 'ref-id'
+REF_ID = "ref-id"
 
 
 @contextmanager
@@ -28,11 +28,12 @@ def makeBAM(template, bamReferences=None, fastaReferences=None):
     """
     if len(template) % 2 != 1:
         raise ValueError(
-            'The template must have an odd number of strings, specifying the '
-            'reference sequence, then zero or more read/quality pairs.')
+            "The template must have an odd number of strings, specifying the "
+            "reference sequence, then zero or more read/quality pairs."
+        )
 
     leftPaddedReference = template[0]
-    templateSequence = leftPaddedReference.lstrip().replace('-', '')
+    templateSequence = leftPaddedReference.lstrip().replace("-", "")
 
     if bamReferences is None:
         matchedReference = DNARead(REF_ID, templateSequence)
@@ -44,23 +45,24 @@ def makeBAM(template, bamReferences=None, fastaReferences=None):
         assert matchedReference.sequence == templateSequence
         bamReferences = Reads(bamReferences)
 
-    fastaReferences = Reads(bamReferences if fastaReferences is None
-                            else fastaReferences)
+    fastaReferences = Reads(
+        bamReferences if fastaReferences is None else fastaReferences
+    )
 
     nSeqs = (len(template) - 1) >> 1
-    dirname = mkdtemp(prefix='test-consensus-')
+    dirname = mkdtemp(prefix="test-consensus-")
     e = Executor()
 
     try:
-        fastaFile = Path(dirname) / 'references.fasta'
-        samFile = Path(dirname) / 'file.sam'
-        bamFile = Path(dirname) / 'file.bam'
+        fastaFile = Path(dirname) / "references.fasta"
+        samFile = Path(dirname) / "file.sam"
+        bamFile = Path(dirname) / "file.bam"
 
         fastaReferences.save(fastaFile)
 
-        with open(samFile, 'w') as fp:
+        with open(samFile, "w") as fp:
             for reference in bamReferences:
-                print(f'@SQ\tSN:{reference.id}\tLN:{len(reference)}', file=fp)
+                print(f"@SQ\tSN:{reference.id}\tLN:{len(reference)}", file=fp)
 
             for count in range(nSeqs):
                 leftPaddedQuery = template[count * 2 + 1].rstrip()
@@ -68,29 +70,41 @@ def makeBAM(template, bamReferences=None, fastaReferences=None):
                 assert len(leftPaddedQuery) == len(leftPaddedQuality)
                 query = leftPaddedQuery.lstrip()
                 quality = leftPaddedQuality.lstrip()
-                queryNoGaps = qualityNoGaps = ''
+                queryNoGaps = qualityNoGaps = ""
                 for queryBase, qualityBase in zip(query, quality):
-                    if queryBase != '-':
+                    if queryBase != "-":
                         queryNoGaps += queryBase
                         qualityNoGaps += qualityBase
 
-                print('\t'.join(map(str, (
-                    f'read{count}',  # QNAME (query name)
-                    0,  # FLAGS
-                    matchedReference.id,  # RNAME (reference name)
-                    matchOffset(leftPaddedReference, leftPaddedQuery) + 1,
-                    30,  # MAPQ (mapping quality)
-                    makeCigar(leftPaddedReference, leftPaddedQuery),  # CIGAR
-                    '*',  # MRNM (mate reference name)
-                    0,  # MPOS (mate position)
-                    0,  # ISIZE (insert size)
-                    queryNoGaps,  # SEQ
-                    qualityNoGaps,  # QUAL
-                ))), file=fp)
+                print(
+                    "\t".join(
+                        map(
+                            str,
+                            (
+                                f"read{count}",  # QNAME (query name)
+                                0,  # FLAGS
+                                matchedReference.id,  # RNAME (reference name)
+                                matchOffset(leftPaddedReference, leftPaddedQuery) + 1,
+                                30,  # MAPQ (mapping quality)
+                                makeCigar(
+                                    leftPaddedReference, leftPaddedQuery
+                                ),  # CIGAR
+                                "*",  # MRNM (mate reference name)
+                                0,  # MPOS (mate position)
+                                0,  # ISIZE (insert size)
+                                queryNoGaps,  # SEQ
+                                qualityNoGaps,  # QUAL
+                            ),
+                        )
+                    ),
+                    file=fp,
+                )
 
-        e.execute(f'samtools sort -O BAM --write-index -o {str(bamFile)!r} '
-                  f'{str(samFile)!r}')
+        e.execute(
+            f"samtools sort -O BAM --write-index -o {str(bamFile)!r} "
+            f"{str(samFile)!r}"
+        )
         yield (fastaFile, bamFile)
     finally:
         # import sys; print(f'{samFile}', file=sys.stderr)
-        e.execute(f'rm -fr {dirname!r}')
+        e.execute(f"rm -fr {dirname!r}")

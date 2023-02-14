@@ -1,4 +1,4 @@
-class LocalAlignment(object):
+class LocalAlignment:
     """
     Perform a Smith-Waterman local alignment between two FASTA files.
 
@@ -13,8 +13,9 @@ class LocalAlignment(object):
     @raise ValueError: If either sequence is of zero length.
     """
 
-    def __init__(self, seq1, seq2, match=1, mismatch=-1, gap=-1,
-                 gapExtend=-1, gapExtendDecay=0.0):
+    def __init__(
+        self, seq1, seq2, match=1, mismatch=-1, gap=-1, gapExtend=-1, gapExtendDecay=0.0
+    ):
         self.seq1Seq = seq1.sequence.upper()
         self.seq1ID = seq1.id
         self.seq2Seq = seq2.sequence.upper()
@@ -26,16 +27,16 @@ class LocalAlignment(object):
         self.gapExtendDecay = gapExtendDecay
 
         if self.mismatch >= 0:
-            raise ValueError('Mismatch must be negative')
+            raise ValueError("Mismatch must be negative")
         if self.gapOpen >= 0:
-            raise ValueError('Gap must be negative')
+            raise ValueError("Gap must be negative")
         if self.gapExtend > 0:
-            raise ValueError('Gap extension penalty cannot be positive')
+            raise ValueError("Gap extension penalty cannot be positive")
 
         if len(self.seq1Seq) == 0:
-            raise ValueError('Empty sequence: %s' % self.seq1ID)
+            raise ValueError("Empty sequence: %s" % self.seq1ID)
         if len(self.seq2Seq) == 0:
-            raise ValueError('Empty sequence: %s' % self.seq2ID)
+            raise ValueError("Empty sequence: %s" % self.seq2ID)
 
         # This checking is too strict, I (Terry) think. There is nothing in
         # the code (at least based on a quick eyeballing) that depends on the
@@ -58,7 +59,7 @@ class LocalAlignment(object):
         """
         Initialises table with dictionary.
         """
-        d = {'score': 0, 'pointer': None, 'ins': 0, 'del': 0}
+        d = {"score": 0, "pointer": None, "ins": 0, "del": 0}
         cols = len(self.seq1Seq) + 1
         rows = len(self.seq2Seq) + 1
         # Note that this puts a ref to the same dict (d) into each cell of
@@ -85,116 +86,132 @@ class LocalAlignment(object):
                 letter1 = self.seq1Seq[col - 1]
                 letter2 = self.seq2Seq[row - 1]
                 if letter1 == letter2:
-                    diagonal_score = (table[row - 1][col - 1]['score'] +
-                                      self.match)
+                    diagonal_score = table[row - 1][col - 1]["score"] + self.match
                 else:
-                    diagonal_score = (table[row - 1][col - 1]['score'] +
-                                      self.mismatch)
+                    diagonal_score = table[row - 1][col - 1]["score"] + self.mismatch
 
-                ins_run = table[row - 1][col]['ins']
-                del_run = table[row][col - 1]['del']
+                ins_run = table[row - 1][col]["ins"]
+                del_run = table[row][col - 1]["del"]
 
                 # Calculate gap scores ensuring extension is not > 0
-                if table[row - 1][col]['ins'] <= 0:
-                    ins_score = table[row - 1][col]['score'] + self.gapOpen
+                if table[row - 1][col]["ins"] <= 0:
+                    ins_score = table[row - 1][col]["score"] + self.gapOpen
                 else:
                     if self.gapExtend + ins_run * self.gapExtendDecay <= 0.0:
-                        ins_score = (table[row - 1][col]['score'] +
-                                     self.gapExtend +
-                                     ins_run * self.gapExtendDecay)
+                        ins_score = (
+                            table[row - 1][col]["score"]
+                            + self.gapExtend
+                            + ins_run * self.gapExtendDecay
+                        )
                     else:
-                        ins_score = table[row - 1][col]['score']
+                        ins_score = table[row - 1][col]["score"]
 
-                if table[row - 1][col]['del'] <= 0:
-                    del_score = table[row][col - 1]['score'] + self.gapOpen
+                if table[row - 1][col]["del"] <= 0:
+                    del_score = table[row][col - 1]["score"] + self.gapOpen
                 else:
                     if self.gapExtend + del_run * self.gapExtendDecay <= 0.0:
-                        del_score = (table[row][col - 1]['score'] +
-                                     self.gapExtend +
-                                     del_run * self.gapExtendDecay)
+                        del_score = (
+                            table[row][col - 1]["score"]
+                            + self.gapExtend
+                            + del_run * self.gapExtendDecay
+                        )
                     else:
-                        del_score = table[row][col - 1]['score']
+                        del_score = table[row][col - 1]["score"]
 
                 # Choose best score
                 if diagonal_score <= 0 and ins_score <= 0 and del_score <= 0:
-                    table[row][col] = {'score': 0, 'pointer': None, 'ins': 0,
-                                       'del': 0}
+                    table[row][col] = {"score": 0, "pointer": None, "ins": 0, "del": 0}
                 else:
                     if diagonal_score >= ins_score:
                         if diagonal_score >= del_score:  # diag lef/up
-                            diagonal = {'score': diagonal_score,
-                                        'pointer': 'diagonal', 'ins': 0,
-                                        'del': 0}
+                            diagonal = {
+                                "score": diagonal_score,
+                                "pointer": "diagonal",
+                                "ins": 0,
+                                "del": 0,
+                            }
                             table[row][col] = diagonal
                         else:  # lef diag/up
-                            deletion = {'score': del_score, 'pointer': 'del',
-                                        'ins': 0, 'del': del_run + 1}
+                            deletion = {
+                                "score": del_score,
+                                "pointer": "del",
+                                "ins": 0,
+                                "del": del_run + 1,
+                            }
                             table[row][col] = deletion
                     else:  # up diag
                         if ins_score >= del_score:  # up diag/lef
-                            insertion = {'score': ins_score, 'pointer': 'ins',
-                                         'ins': ins_run + 1, 'del': 0}
+                            insertion = {
+                                "score": ins_score,
+                                "pointer": "ins",
+                                "ins": ins_run + 1,
+                                "del": 0,
+                            }
                             table[row][col] = insertion
                         else:  # lef up diag
-                            deletion = {'score': del_score, 'pointer': 'del',
-                                        'ins': 0, 'del': del_run + 1}
+                            deletion = {
+                                "score": del_score,
+                                "pointer": "del",
+                                "ins": 0,
+                                "del": del_run + 1,
+                            }
                             table[row][col] = deletion
 
                 # Set max score - is this the best way of getting max score
                 # considering how the for loop iterates through the matrix?
-                if table[row][col]['score'] >= max_score:
+                if table[row][col]["score"] >= max_score:
                     max_row = row
                     max_col = col
-                    max_score = table[row][col]['score']
+                    max_score = table[row][col]["score"]
 
         # Traceback
-        indexes = {'max_row': max_row, 'max_col': max_col}
-        align1 = ''
-        align2 = ''
-        align = ''
+        indexes = {"max_row": max_row, "max_col": max_col}
+        align1 = ""
+        align2 = ""
+        align = ""
 
         current_row = max_row
         current_col = max_col
 
         while True:
-            arrow = table[current_row][current_col]['pointer']
+            arrow = table[current_row][current_col]["pointer"]
             if arrow is None:
                 min_row = current_row + 1
                 min_col = current_col + 1
                 break
-            elif arrow == 'diagonal':
+            elif arrow == "diagonal":
                 align1 += self.seq1Seq[current_col - 1]
                 align2 += self.seq2Seq[current_row - 1]
-                if self.seq1Seq[current_col - 1] == self.seq2Seq[
-                        current_row - 1]:
-                    align += '|'
+                if self.seq1Seq[current_col - 1] == self.seq2Seq[current_row - 1]:
+                    align += "|"
                 else:
-                    align += ' '
+                    align += " "
                 current_row -= 1
                 current_col -= 1
-            elif arrow == 'del':
+            elif arrow == "del":
                 align1 += self.seq1Seq[current_col - 1]
-                align2 += '-'
-                align += ' '
+                align2 += "-"
+                align += " "
                 current_col -= 1
-            elif arrow == 'ins':
-                align1 += '-'
+            elif arrow == "ins":
+                align1 += "-"
                 align2 += self.seq2Seq[current_row - 1]
-                align += ' '
+                align += " "
                 current_row -= 1
             else:
-                raise ValueError('Invalid pointer: %s' % arrow)
+                raise ValueError("Invalid pointer: %s" % arrow)
 
-        indexes['min_row'] = min_row
-        indexes['min_col'] = min_col
+        indexes["min_row"] = min_row
+        indexes["min_col"] = min_col
         align1 = align1[::-1]
         align2 = align2[::-1]
         align = align[::-1]
 
         if len(align1) != len(align2):
             raise ValueError(
-                'Lengths of locally aligned sequences differ (%d != %d).' % (
-                    len(align1), len(align2)))
+                "Lengths of locally aligned sequences differ (%d != %d)."
+                % (len(align1), len(align2))
+            )
 
         return ([align1, align, align2], indexes)
 
@@ -212,19 +229,19 @@ class LocalAlignment(object):
         align2 = output[2]
         for nt1, nt2 in zip(align1, align2):
             if nt1 == nt2:
-                cigar.append('=')
-            elif nt1 == '-':
-                cigar.append('I')
-            elif nt2 == '-':
-                cigar.append('D')
+                cigar.append("=")
+            elif nt1 == "-":
+                cigar.append("I")
+            elif nt2 == "-":
+                cigar.append("D")
             else:
-                cigar.append('X')
+                cigar.append("X")
         # Initially create a list of characters,
         # eg ['=', '=', 'D', '=', 'X', '=', '=', '=']
-        cigar.append('*')
+        cigar.append("*")
         # Append an arbitrary character to ensure parsing below functions
-        cigarString = ''
-        previousCharacter = ''
+        cigarString = ""
+        previousCharacter = ""
         count = 0
         first = True
         for character in cigar:
@@ -236,7 +253,7 @@ class LocalAlignment(object):
                 if character == previousCharacter:
                     count += 1
                 else:
-                    cigarString += (str(count) + str(previousCharacter))
+                    cigarString += str(count) + str(previousCharacter)
                     count = 1
                 previousCharacter = character
         return cigarString
@@ -250,43 +267,43 @@ class LocalAlignment(object):
             the ID of the sequences and the positions where the alignment
             begins/ends.
         """
-        align1 = ''
-        align2 = ''
-        align = ''
+        align1 = ""
+        align2 = ""
+        align = ""
 
         if len(self.seq1ID) > len(self.seq2ID):
             diff = len(self.seq1ID) - len(self.seq2ID)
             align1 += self.seq1ID
-            align2 += (self.seq2ID + ' ' * diff)
-            align += (' ' * len(self.seq1ID))
+            align2 += self.seq2ID + " " * diff
+            align += " " * len(self.seq1ID)
         elif len(self.seq1ID) < len(self.seq2ID):
             diff = len(self.seq2ID) - len(self.seq1ID)
-            align1 += (self.seq1ID + ' ' * diff)
+            align1 += self.seq1ID + " " * diff
             align2 += self.seq2ID
-            align += (' ' * len(self.seq2ID))
+            align += " " * len(self.seq2ID)
         else:
-            align1 += (self.seq1ID)
-            align2 += (self.seq2ID)
-            align += (' ' * len(self.seq1ID))
+            align1 += self.seq1ID
+            align2 += self.seq2ID
+            align += " " * len(self.seq1ID)
 
-        if len(str(indexes['min_col'])) > len(str(indexes['min_row'])):
-            diff = len(str(indexes['min_col'])) - len(str(indexes['min_row']))
-            align1 += (' ' + str(indexes['min_col']) + ' ')
-            align2 += (' ' + str(indexes['min_row']) + ' ' * (diff + 1))
-            align += (' ' * (2 + len(str(indexes['min_col']))))
-        elif len(str(indexes['min_col'])) < len(str(indexes['min_row'])):
-            diff = len(str(indexes['min_row'])) - len(str(indexes['min_col']))
-            align1 += (' ' + str(indexes['min_col']) + ' ' * (diff + 1))
-            align2 += (' ' + str(indexes['min_row']) + ' ')
-            align += (' ' * (2 + len(str(indexes['min_row']))))
+        if len(str(indexes["min_col"])) > len(str(indexes["min_row"])):
+            diff = len(str(indexes["min_col"])) - len(str(indexes["min_row"]))
+            align1 += " " + str(indexes["min_col"]) + " "
+            align2 += " " + str(indexes["min_row"]) + " " * (diff + 1)
+            align += " " * (2 + len(str(indexes["min_col"])))
+        elif len(str(indexes["min_col"])) < len(str(indexes["min_row"])):
+            diff = len(str(indexes["min_row"])) - len(str(indexes["min_col"]))
+            align1 += " " + str(indexes["min_col"]) + " " * (diff + 1)
+            align2 += " " + str(indexes["min_row"]) + " "
+            align += " " * (2 + len(str(indexes["min_row"])))
         else:
-            align1 += (' ' + str(indexes['min_col']) + ' ')
-            align2 += (' ' + str(indexes['min_row']) + ' ')
-            align += (' ' * (2 + len(str(indexes['min_row']))))
+            align1 += " " + str(indexes["min_col"]) + " "
+            align2 += " " + str(indexes["min_row"]) + " "
+            align += " " * (2 + len(str(indexes["min_row"])))
 
-        align1 += (output[0] + ' ' + str(indexes['max_col']))
-        align += (output[1])
-        align2 += (output[2] + ' ' + str(indexes['max_row']))
+        align1 += output[0] + " " + str(indexes["max_col"])
+        align += output[1]
+        align2 += output[2] + " " + str(indexes["max_row"])
 
         return [align1, align, align2]
 
@@ -310,18 +327,23 @@ class LocalAlignment(object):
             Id2:  1 (seq) 50
         """
         if result is None:
-            return ('\nNo alignment between %s and %s\n' % (
-                self.seq1ID, self.seq2ID))
+            return "\nNo alignment between %s and %s\n" % (self.seq1ID, self.seq2ID)
         else:
             header = (
-                '\nCigar string of aligned region: %s\n'
-                '%s Match start: %d Match end: %d\n'
-                '%s Match start: %d Match end: %d\n' %
-                (result['cigar'],
-                 self.seq1ID, result['sequence1Start'], result['sequence1End'],
-                 self.seq2ID, result['sequence2Start'], result['sequence2End'])
+                "\nCigar string of aligned region: %s\n"
+                "%s Match start: %d Match end: %d\n"
+                "%s Match start: %d Match end: %d\n"
+                % (
+                    result["cigar"],
+                    self.seq1ID,
+                    result["sequence1Start"],
+                    result["sequence1End"],
+                    self.seq2ID,
+                    result["sequence2Start"],
+                    result["sequence2End"],
+                )
             )
-            text = '\n'.join(result['text'])
+            text = "\n".join(result["text"])
 
             return header + text
 
@@ -340,17 +362,17 @@ class LocalAlignment(object):
         table = self._initialise()
         alignment = self._fillAndTraceback(table)
         output = alignment[0]
-        if output[0] == '' or output[2] == '':
+        if output[0] == "" or output[2] == "":
             result = None
         else:
             indexes = alignment[1]
             result = {
-                'cigar': self._cigarString(output),
-                'sequence1Start': indexes['min_col'],
-                'sequence1End': indexes['max_col'],
-                'sequence2Start': indexes['min_row'],
-                'sequence2End': indexes['max_row'],
-                'text': self._formatAlignment(output, indexes),
+                "cigar": self._cigarString(output),
+                "sequence1Start": indexes["min_col"],
+                "sequence1End": indexes["max_col"],
+                "sequence2Start": indexes["min_row"],
+                "sequence2End": indexes["max_row"],
+                "text": self._formatAlignment(output, indexes),
             }
 
         return self._alignmentToStr(result) if resultFormat is str else result

@@ -4,7 +4,7 @@ from dark.score import HigherIsBetterScore, LowerIsBetterScore
 
 
 @total_ordering
-class _Base(object):
+class _Base:
     """
     Holds information about a matching region from a read alignment.
 
@@ -65,12 +65,24 @@ class _Base(object):
     @param percentIdentical: A C{float} percentage (i.e., ranging from 0.0 to
         100.0, NOT a fraction) of amino acids that were identical in the match.
     """
-    def __init__(self, readStart=None, readEnd=None, readStartInSubject=None,
-                 readEndInSubject=None, readFrame=None, subjectStart=None,
-                 subjectEnd=None, subjectFrame=None, readMatchedSequence=None,
-                 subjectMatchedSequence=None, identicalCount=None,
-                 percentIdentical=None, positiveCount=None,
-                 percentPositive=None):
+
+    def __init__(
+        self,
+        readStart=None,
+        readEnd=None,
+        readStartInSubject=None,
+        readEndInSubject=None,
+        readFrame=None,
+        subjectStart=None,
+        subjectEnd=None,
+        subjectFrame=None,
+        readMatchedSequence=None,
+        subjectMatchedSequence=None,
+        identicalCount=None,
+        percentIdentical=None,
+        positiveCount=None,
+        percentPositive=None,
+    ):
         self.readStart = readStart
         self.readEnd = readEnd
         self.readStartInSubject = readStartInSubject
@@ -108,20 +120,20 @@ class _Base(object):
         @return: A C{dict} representation of the HSP/LSP.
         """
         return {
-            'readStart': self.readStart,
-            'readEnd': self.readEnd,
-            'readStartInSubject': self.readStartInSubject,
-            'readEndInSubject': self.readEndInSubject,
-            'readFrame': self.readFrame,
-            'subjectStart': self.subjectStart,
-            'subjectEnd': self.subjectEnd,
-            'subjectFrame': self.subjectFrame,
-            'readMatchedSequence': self.readMatchedSequence,
-            'subjectMatchedSequence': self.subjectMatchedSequence,
-            'identicalCount': self.identicalCount,
-            'percentIdentical': self.percentIdentical,
-            'positiveCount': self.positiveCount,
-            'percentPositive': self.percentPositive,
+            "readStart": self.readStart,
+            "readEnd": self.readEnd,
+            "readStartInSubject": self.readStartInSubject,
+            "readEndInSubject": self.readEndInSubject,
+            "readFrame": self.readFrame,
+            "subjectStart": self.subjectStart,
+            "subjectEnd": self.subjectEnd,
+            "subjectFrame": self.subjectFrame,
+            "readMatchedSequence": self.readMatchedSequence,
+            "subjectMatchedSequence": self.subjectMatchedSequence,
+            "identicalCount": self.identicalCount,
+            "percentIdentical": self.percentIdentical,
+            "positiveCount": self.positiveCount,
+            "percentPositive": self.percentPositive,
         }
 
 
@@ -144,7 +156,7 @@ class HSP(_Base):
         @return: A C{dict} representation of the HSP.
         """
         result = _Base.toDict(self)
-        result['score'] = self.score.score
+        result["score"] = self.score.score
         return result
 
 
@@ -167,5 +179,5 @@ class LSP(_Base):
         @return: A C{dict} representation of the LSP.
         """
         result = _Base.toDict(self)
-        result['score'] = self.score.score
+        result["score"] = self.score.score
         return result

@@ -1,24 +1,38 @@
 import six
 from six.moves import builtins
 from unittest import TestCase
+from unittest.mock import patch, call, mock_open
 from random import seed
 from os import stat
 
-try:
-    from unittest.mock import patch, call, mock_open
-except ImportError:
-    from mock import patch, call
-
-from dark.aa import (
-    BASIC_POSITIVE, HYDROPHOBIC, HYDROPHILIC, NEGATIVE, NONE, POLAR, SMALL,
-    TINY)
+from dark.aaVars import (
+    BASIC_POSITIVE,
+    HYDROPHOBIC,
+    HYDROPHILIC,
+    NEGATIVE,
+    NONE,
+    POLAR,
+    SMALL,
+    TINY,
+)
 from dark.errors import ReadLengthsNotIdenticalError
 from dark.fasta import FastaReads
 from dark.hsp import HSP
 from dark.reads import (
-    Read, TranslatedRead, Reads, ReadsInRAM, DNARead, RNARead, DNAKozakRead,
-    AARead, AAReadORF, AAReadWithX, SSAARead, SSAAReadWithX,
-    readClassNameToClass)
+    Read,
+    TranslatedRead,
+    Reads,
+    ReadsInRAM,
+    DNARead,
+    RNARead,
+    DNAKozakRead,
+    AARead,
+    AAReadORF,
+    AAReadWithX,
+    SSAARead,
+    SSAAReadWithX,
+    readClassNameToClass,
+)
 from dark.utils import StringIO
 
 
@@ -26,103 +40,100 @@ class TestRead(TestCase):
     """
     Test the Read class.
     """
+
     def testGetitemReturnsNewRead(self):
         """
         __getitem__ must return a new Read instance.
         """
-        self.assertIs(Read, Read('id', 'ACGT')[0:3].__class__)
+        self.assertIs(Read, Read("id", "ACGT")[0:3].__class__)
 
     def testGetitemId(self):
         """
         __getitem__ must return a new Read instance with the same read id.
         """
-        self.assertEqual('id-1234', Read('id-1234', 'ACGT')[0:3].id)
+        self.assertEqual("id-1234", Read("id-1234", "ACGT")[0:3].id)
 
     def testGetitemSequence(self):
         """
         __getitem__ must return a Read instance with the expected sequence.
         """
-        self.assertEqual('CG', Read('id', 'ACGT')[1:3].sequence)
+        self.assertEqual("CG", Read("id", "ACGT")[1:3].sequence)
 
     def testGetitemQuality(self):
         """
         __getitem__ must return a Read instance with the expected quality
         string.
         """
-        self.assertEqual('12', Read('id', 'ACGT', '1234')[0:2].quality)
+        self.assertEqual("12", Read("id", "ACGT", "1234")[0:2].quality)
 
     def testGetitemLength(self):
         """
         __getitem__ must return a Read instance of the expected length.
         """
-        self.assertEqual(3, len(Read('id-1234', 'ACGT')[0:3]))
+        self.assertEqual(3, len(Read("id-1234", "ACGT")[0:3]))
 
     def testGetitemSingleIndex(self):
         """
         A single-index __getitem__ must return a length-one Read.
         """
-        self.assertEqual(1, len(Read('id', 'ACGT')[0]))
+        self.assertEqual(1, len(Read("id", "ACGT")[0]))
 
     def testGetitemFullCopy(self):
         """
         A full copy __getitem__ must return the expected result.
         """
-        self.assertEqual(Read('id', 'ACGT'),
-                         Read('id', 'ACGT')[:])
+        self.assertEqual(Read("id", "ACGT"), Read("id", "ACGT")[:])
 
     def testGetitemWithStep(self):
         """
         A stepped __getitem__ must return the expected result.
         """
-        self.assertEqual(Read('id', 'AG', '13'),
-                         Read('id', 'ACGT', '1234')[::2])
+        self.assertEqual(Read("id", "AG", "13"), Read("id", "ACGT", "1234")[::2])
 
     def testGetitemReversed(self):
         """
         A reverse copy __getitem__ must return the expected result.
         """
-        self.assertEqual(Read('id', 'TGCA', '4321'),
-                         Read('id', 'ACGT', '1234')[::-1])
+        self.assertEqual(Read("id", "TGCA", "4321"), Read("id", "ACGT", "1234")[::-1])
 
     def testUnequalLengths(self):
         """
         Attempting to construct a read whose sequence and quality strings are
         of different lengths must raise a ValueError.
         """
-        error = (r'Invalid read: sequence length \(4\) != quality '
-                 r'length \(3\)')
+        error = r"Invalid read: sequence length \(4\) != quality " r"length \(3\)"
         with six.assertRaisesRegex(self, ValueError, error):
-            Read('id', 'ACGT', '!!!')
+            Read("id", "ACGT", "!!!")
 
     def testNoQuality(self):
         """
         If no quality information is given, the read's 'quality' attribute must
         be None.
         """
-        read = Read('id', 'ACGT')
+        read = Read("id", "ACGT")
         self.assertIs(None, read.quality)
 
     def testCasePreservation(self):
         """
         The sequence passed to Read must not have its case converted.
         """
-        read = Read('id', 'aCGt')
-        self.assertEqual('aCGt', read.sequence)
+        read = Read("id", "aCGt")
+        self.assertEqual("aCGt", read.sequence)
 
     def testExpectedAttributes(self):
         """
         After constructing a read, the expected attributes must be present.
         """
-        read = Read('id', 'ACGT', '!!!!')
-        self.assertEqual('id', read.id)
-        self.assertEqual('ACGT', read.sequence)
-        self.assertEqual('!!!!', read.quality)
+        read = Read("id", "ACGT", "!!!!")
+        self.assertEqual("id", read.id)
+        self.assertEqual("ACGT", read.sequence)
+        self.assertEqual("!!!!", read.quality)
 
     def testLength(self):
         """
         len() must return the length of a read's sequence.
         """
-        read = Read('id', 'ACGT', '!!!!')
+        read = Read("id", "ACGT", "!!!!")
         self.assertEqual(4, len(read))
 
     def testToUnknownFormat(self):
@@ -130,80 +141,84 @@ class TestRead(TestCase):
         toString must raise a ValueError if asked to convert to an unknown
         format.
         """
-        read = Read('id', 'ACGT', '!!!!')
+        read = Read("id", "ACGT", "!!!!")
         error = r"Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
-        six.assertRaisesRegex(self, ValueError, error, read.toString,
-                              'unknown')
+        six.assertRaisesRegex(self, ValueError, error, read.toString, "unknown")
 
     def testToFASTA(self):
         """
         toString must return correct FASTA.
         """
-        read = Read('id', 'ACGT')
-        self.assertEqual('>id\nACGT\n', read.toString('fasta'))
+        read = Read("id", "ACGT")
+        self.assertEqual(">id\nACGT\n", read.toString("fasta"))
 
     def testToFASTAWithQuality(self):
         """
         toString must return correct FASTA, including when a read has quality
         information (which is not present in FASTA).
         """
-        read = Read('id', 'ACGT', '!!!!')
-        self.assertEqual('>id\nACGT\n', read.toString('fasta'))
+        read = Read("id", "ACGT", "!!!!")
+        self.assertEqual(">id\nACGT\n", read.toString("fasta"))
 
     def testToFASTQWithNoQuality(self):
         """
         toString must raise a ValueError if asked to convert to FASTQ but the
         read has no quality.
         """
-        read = Read('id', 'ACGT')
+        read = Read("id", "ACGT")
         error = "Read 'id' has no quality information"
-        six.assertRaisesRegex(self, ValueError, error, read.toString, 'fastq')
+        six.assertRaisesRegex(self, ValueError, error, read.toString, "fastq")
 
     def testToFASTQ(self):
         """
         toString must return correct FASTA.
         """
-        read = Read('id', 'ACGT', '!@#$')
-        self.assertEqual('@id\nACGT\n+id\n!@#$\n', read.toString('fastq'))
+        read = Read("id", "ACGT", "!@#$")
+        self.assertEqual("@id\nACGT\n+id\n!@#$\n", read.toString("fastq"))
 
     def testToDict(self):
         """
         toDict must return the correct dictionary.
         """
-        read = Read('id3', 'ACGT', '!!2&')
+        read = Read("id3", "ACGT", "!!2&")
         self.assertEqual(
             {
-                'id': 'id3',
-                'sequence': 'ACGT',
-                'quality': '!!2&',
+                "id": "id3",
+                "sequence": "ACGT",
+                "quality": "!!2&",
             },
-            read.toDict())
+            read.toDict(),
+        )
 
     def testToDictNoQuality(self):
         """
         toDict must return the correct dictionary when the read has no quality
         string.
         """
-        read = Read('id3', 'ACGT')
+        read = Read("id3", "ACGT")
         self.assertEqual(
             {
-                'id': 'id3',
-                'sequence': 'ACGT',
-                'quality': None,
+                "id": "id3",
+                "sequence": "ACGT",
+                "quality": None,
             },
-            read.toDict())
+            read.toDict(),
+        )
 
     def testFromDict(self):
         """
         fromDict must return the expected instance.
         """
         self.assertEqual(
-            Read('id3', 'ACGT', '!!2&'),
-            Read.fromDict({
-                'id': 'id3',
-                'sequence': 'ACGT',
-                'quality': '!!2&',
-            }))
+            Read("id3", "ACGT", "!!2&"),
+            Read.fromDict(
+                {
+                    "id": "id3",
+                    "sequence": "ACGT",
+                    "quality": "!!2&",
+                }
+            ),
+        )
 
     def testFromDictNoQuality(self):
         """
@@ -211,98 +226,96 @@ class TestRead(TestCase):
         quality key.
         """
         self.assertEqual(
-            Read('id3', 'ACGT'),
-            Read.fromDict({
-                'id': 'id3',
-                'sequence': 'ACGT',
-            }))
+            Read("id3", "ACGT"),
+            Read.fromDict(
+                {
+                    "id": "id3",
+                    "sequence": "ACGT",
+                }
+            ),
+        )
 
     def testEqualityWithDifferingIds(self):
         """
         If two Read instances have different ids, they must not be
         considered equal.
         """
-        self.assertNotEqual(Read('id1', 'AC'), Read('id2', 'AC'))
+        self.assertNotEqual(Read("id1", "AC"), Read("id2", "AC"))
 
     def testEqualityWithDifferingSequences(self):
         """
         If two Read instances have different sequences, they must not be
         considered equal.
         """
-        self.assertNotEqual(Read('id1', 'AA'), Read('id1', 'CC'))
+        self.assertNotEqual(Read("id1", "AA"), Read("id1", "CC"))
 
     def testEqualityWithDifferingQuality(self):
         """
         If two Read instances have different quality, they must not be
         considered equal.
         """
-        self.assertNotEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'rr'))
+        self.assertNotEqual(Read("id1", "AC", "qq"), Read("id1", "AC", "rr"))
 
     def testEqualityWithOneOmittedQuality(self):
         """
         If two Read instances have different quality (one is omitted), they
         must not be considered equal.
         """
-        self.assertNotEqual(Read('id1', 'AC'), Read('id1', 'AC', 'rr'))
+        self.assertNotEqual(Read("id1", "AC"), Read("id1", "AC", "rr"))
 
     def testEqualityWithNoQuality(self):
         """
         If two Read instances have the same id and sequence and neither has a
         quality, they must be considered equal.
         """
-        self.assertEqual(Read('id1', 'AC'), Read('id1', 'AC'))
+        self.assertEqual(Read("id1", "AC"), Read("id1", "AC"))
 
     def testEquality(self):
         """
         If two Read instances have the same id, sequence, and quality, they
         must be considered equal.
         """
-        self.assertEqual(Read('id1', 'AC', 'qq'), Read('id1', 'AC', 'qq'))
+        self.assertEqual(Read("id1", "AC", "qq"), Read("id1", "AC", "qq"))
 
     def testHashDiffersIfIdDiffers(self):
         """
         The __hash__ value for two reads must differ if their ids differ.
         """
-        self.assertNotEqual(hash(Read('id1', 'AA')),
-                            hash(Read('id2', 'AA')))
+        self.assertNotEqual(hash(Read("id1", "AA")), hash(Read("id2", "AA")))
 
     def testHashDiffersIfSequenceDiffers(self):
         """
         The __hash__ value for two reads must differ if their sequences
         differ.
         """
-        self.assertNotEqual(hash(Read('id', 'AAT')),
-                            hash(Read('id', 'AAG')))
+        self.assertNotEqual(hash(Read("id", "AAT")), hash(Read("id", "AAG")))
 
     def testHashDiffersIfQualityDiffers(self):
         """
         The __hash__ value for two reads must differ if their quality strings
         differ.
         """
-        self.assertNotEqual(hash(Read('id', 'AA', '!!')),
-                            hash(Read('id', 'AA', '++')))
+        self.assertNotEqual(hash(Read("id", "AA", "!!")), hash(Read("id", "AA", "++")))
 
     def testHashIdenticalNoQuality(self):
         """
         The __hash__ value for two identical reads (with no quality strings)
         must be identical.
         """
-        self.assertEqual(hash(Read('id', 'AA')),
-                         hash(Read('id', 'AA')))
+        self.assertEqual(hash(Read("id", "AA")), hash(Read("id", "AA")))
 
     def testHashIdenticalWithQuality(self):
         """
         The __hash__ value for two identical reads (with quality strings) must
         be identical.
         """
-        self.assertEqual(hash(Read('id', 'AA', '!!')),
-                         hash(Read('id', 'AA', '!!')))
+        self.assertEqual(hash(Read("id", "AA", "!!")), hash(Read("id", "AA", "!!")))
 
     def testHashViaSet(self):
         """
         If two identical reads are put into a set, the set must have size one.
         """
-        read = Read('id', 'AA', '!!')
+        read = Read("id", "AA", "!!")
         self.assertEqual(1, len(set([read, read])))
 
     def testHashViaDict(self):
@@ -310,7 +323,7 @@ class TestRead(TestCase):
         If two identical reads are used as keys in a dict, the dict must have
         size one.
         """
-        read = Read('id', 'AA', '!!')
+        read = Read("id", "AA", "!!")
         self.assertEqual(1, len(dict.fromkeys([read, read])))
 
     def testLowComplexityFractionEmptySequence(self):
@@ -318,7 +331,7 @@ class TestRead(TestCase):
         A read with an empty sequence must return a zero result from its
         lowComplexityFraction method.
         """
-        read = Read('id', '')
+        read = Read("id", "")
         self.assertEqual(0.0, read.lowComplexityFraction())
 
     def testLowComplexityFractionZero(self):
@@ -326,7 +339,7 @@ class TestRead(TestCase):
         A read with no low-complexity bases must return a zero result from its
         lowComplexityFraction method.
         """
-        read = Read('id', 'ACGT')
+        read = Read("id", "ACGT")
         self.assertEqual(0.0, read.lowComplexityFraction())
 
     def testLowComplexityFractionOne(self):
@@ -334,7 +347,7 @@ class TestRead(TestCase):
         A read with all low-complexity bases must return a one result from its
         lowComplexityFraction method.
         """
-        read = Read('id', 'acgt')
+        read = Read("id", "acgt")
         self.assertEqual(1.0, read.lowComplexityFraction())
 
     def testLowComplexityFraction(self):
@@ -342,7 +355,7 @@ class TestRead(TestCase):
         A read with all low-complexity bases must return the correct result
         from its lowComplexityFraction method.
         """
-        read = Read('id', 'aCGT')
+        read = Read("id", "aCGT")
         self.assertEqual(0.25, read.lowComplexityFraction())
 
     def testWalkHSPExactMatch(self):
@@ -353,15 +366,22 @@ class TestRead(TestCase):
         Subject:     ACGT
         Read:        ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
-                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
-                  readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
-        self.assertEqual([(0, 'A', True),
-                          (1, 'C', True),
-                          (2, 'G', True),
-                          (3, 'T', True)],
-                         list(read.walkHSP(hsp)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=0,
+            readEndInSubject=4,
+            subjectStart=0,
+            subjectEnd=4,
+            readMatchedSequence="ACGT",
+            subjectMatchedSequence="ACGT",
+        )
+        self.assertEqual(
+            [(0, "A", True), (1, "C", True), (2, "G", True), (3, "T", True)],
+            list(read.walkHSP(hsp)),
+        )
 
     def testWalkHSPExactMatchWithGap(self):
         """
@@ -371,15 +391,22 @@ class TestRead(TestCase):
         Subject:     ACGT
         Read:        A-GT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
-                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
-                  readMatchedSequence='A-GT', subjectMatchedSequence='ACGT')
-        self.assertEqual([(0, 'A', True),
-                          (1, '-', True),
-                          (2, 'G', True),
-                          (3, 'T', True)],
-                         list(read.walkHSP(hsp)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=0,
+            readEndInSubject=4,
+            subjectStart=0,
+            subjectEnd=4,
+            readMatchedSequence="A-GT",
+            subjectMatchedSequence="ACGT",
+        )
+        self.assertEqual(
+            [(0, "A", True), (1, "-", True), (2, "G", True), (3, "T", True)],
+            list(read.walkHSP(hsp)),
+        )
 
     def testWalkHSPLeftOverhangingMatch(self):
         """
@@ -390,15 +417,22 @@ class TestRead(TestCase):
         Subject:       GT.....
         Read:        ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=2, readEnd=4, readStartInSubject=-2,
-                  readEndInSubject=2, subjectStart=0, subjectEnd=2,
-                  readMatchedSequence='GT', subjectMatchedSequence='GT')
-        self.assertEqual([(-2, 'A', False),
-                          (-1, 'C', False),
-                          (0, 'G', True),
-                          (1, 'T', True)],
-                         list(read.walkHSP(hsp)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=2,
+            readEnd=4,
+            readStartInSubject=-2,
+            readEndInSubject=2,
+            subjectStart=0,
+            subjectEnd=2,
+            readMatchedSequence="GT",
+            subjectMatchedSequence="GT",
+        )
+        self.assertEqual(
+            [(-2, "A", False), (-1, "C", False), (0, "G", True), (1, "T", True)],
+            list(read.walkHSP(hsp)),
+        )
 
     def testWalkHSPLeftOverhangingMatchNoWhiskers(self):
         """
@@ -409,13 +443,22 @@ class TestRead(TestCase):
         Subject:       GT.....
         Read:        ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=2, readEnd=4, readStartInSubject=-2,
-                  readEndInSubject=2, subjectStart=0, subjectEnd=2,
-                  readMatchedSequence='GT', subjectMatchedSequence='GT')
-        self.assertEqual([(0, 'G', True),
-                          (1, 'T', True)],
-                         list(read.walkHSP(hsp, includeWhiskers=False)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=2,
+            readEnd=4,
+            readStartInSubject=-2,
+            readEndInSubject=2,
+            subjectStart=0,
+            subjectEnd=2,
+            readMatchedSequence="GT",
+            subjectMatchedSequence="GT",
+        )
+        self.assertEqual(
+            [(0, "G", True), (1, "T", True)],
+            list(read.walkHSP(hsp, includeWhiskers=False)),
+        )
 
     def testWalkHSPRightOverhangingMatch(self):
         """
@@ -426,15 +469,22 @@ class TestRead(TestCase):
         Subject:       AC
         Read:          ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=0, readEnd=2, readStartInSubject=10,
-                  readEndInSubject=14, subjectStart=10, subjectEnd=12,
-                  readMatchedSequence='AC', subjectMatchedSequence='AC')
-        self.assertEqual([(10, 'A', True),
-                          (11, 'C', True),
-                          (12, 'G', False),
-                          (13, 'T', False)],
-                         list(read.walkHSP(hsp)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=0,
+            readEnd=2,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=12,
+            readMatchedSequence="AC",
+            subjectMatchedSequence="AC",
+        )
+        self.assertEqual(
+            [(10, "A", True), (11, "C", True), (12, "G", False), (13, "T", False)],
+            list(read.walkHSP(hsp)),
+        )
 
     def testWalkHSPRightOverhangingMatchNoWhiskers(self):
         """
@@ -445,13 +495,22 @@ class TestRead(TestCase):
         Subject:       AC
         Read:          ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=0, readEnd=2, readStartInSubject=10,
-                  readEndInSubject=14, subjectStart=10, subjectEnd=12,
-                  readMatchedSequence='AC', subjectMatchedSequence='AC')
-        self.assertEqual([(10, 'A', True),
-                          (11, 'C', True)],
-                         list(read.walkHSP(hsp, includeWhiskers=False)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=0,
+            readEnd=2,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=12,
+            readMatchedSequence="AC",
+            subjectMatchedSequence="AC",
+        )
+        self.assertEqual(
+            [(10, "A", True), (11, "C", True)],
+            list(read.walkHSP(hsp, includeWhiskers=False)),
+        )
 
     def testWalkHSPLeftAndRightOverhangingMatch(self):
         """
@@ -462,15 +521,22 @@ class TestRead(TestCase):
         Subject:        CG
         Read:          ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=1, readEnd=3, readStartInSubject=10,
-                  readEndInSubject=14, subjectStart=11, subjectEnd=13,
-                  readMatchedSequence='CG', subjectMatchedSequence='CG')
-        self.assertEqual([(10, 'A', False),
-                          (11, 'C', True),
-                          (12, 'G', True),
-                          (13, 'T', False)],
-                         list(read.walkHSP(hsp)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=1,
+            readEnd=3,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=11,
+            subjectEnd=13,
+            readMatchedSequence="CG",
+            subjectMatchedSequence="CG",
+        )
+        self.assertEqual(
+            [(10, "A", False), (11, "C", True), (12, "G", True), (13, "T", False)],
+            list(read.walkHSP(hsp)),
+        )
 
     def testWalkHSPLeftAndRightOverhangingMatchNoWhiskers(self):
         """
@@ -481,44 +547,53 @@ class TestRead(TestCase):
         Subject:        CG
         Read:          ACGT
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=1, readEnd=3, readStartInSubject=10,
-                  readEndInSubject=14, subjectStart=11, subjectEnd=13,
-                  readMatchedSequence='CG', subjectMatchedSequence='CG')
-        self.assertEqual([(11, 'C', True),
-                          (12, 'G', True)],
-                         list(read.walkHSP(hsp, includeWhiskers=False)))
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=1,
+            readEnd=3,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=11,
+            subjectEnd=13,
+            readMatchedSequence="CG",
+            subjectMatchedSequence="CG",
+        )
+        self.assertEqual(
+            [(11, "C", True), (12, "G", True)],
+            list(read.walkHSP(hsp, includeWhiskers=False)),
+        )
 
     def testCheckAlphabetwithReadMustBePermissive(self):
         """
         The checkAlphabet function must return the expected alphabet if a
         dark.Read is passed.
         """
-        read = Read('id', 'ARSTGATGCASASASASASAS')
-        self.assertEqual(set('ACGSRT'), read.checkAlphabet())
+        read = Read("id", "ARSTGATGCASASASASASAS")
+        self.assertEqual(set("ACGSRT"), read.checkAlphabet())
 
     def testCheckAlphabetAAReadMatchingReturnTrue(self):
         """
         If an AA read with an AARead readClass is passed in, the checkAlphabet
         function must return the alphabet of the sequence.
         """
-        read = AARead('id', 'ARSTGATGCASASASASASAS')
-        self.assertEqual(set('ACGSRT'), read.checkAlphabet())
+        read = AARead("id", "ARSTGATGCASASASASASAS")
+        self.assertEqual(set("ACGSRT"), read.checkAlphabet())
 
     def testCheckAlphabetDNAReadMatchingReturnTrue(self):
         """
         If a DNA read with a DNARead readClass is passed in, the checkAlphabet
         function must return the alphabet of the sequence.
         """
-        read = DNARead('id', 'AAATTAACGGGCCTAGG')
-        self.assertEqual(set('ACTG'), read.checkAlphabet())
+        read = DNARead("id", "AAATTAACGGGCCTAGG")
+        self.assertEqual(set("ACTG"), read.checkAlphabet())
 
     def testCheckAlphabetAAReadNotMatchingRaise(self):
         """
         If an AA read with a DNARead readClass is passed in, the checkAlphabet
         function must raise an IndexError.
         """
-        read = AARead('id', 'AAATTAACGGGCCTAGG')
+        read = AARead("id", "AAATTAACGGGCCTAGG")
         error = "It looks like a DNA sequence has been passed to AARead()."
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
@@ -527,9 +602,11 @@ class TestRead(TestCase):
         If a DNA read with an AARead readClass is passed in, the checkAlphabet
         function must raise an IndexError.
         """
-        read = DNARead('id', 'ARSTGATGCASASASASASAS')
-        error = (r"Read alphabet \('ACGRST'\) is not a subset of expected "
-                 r"alphabet \('ACGT'\) for read class DNARead.")
+        read = DNARead("id", "ARSTGATGCASASASASASAS")
+        error = (
+            r"Read alphabet \('ACGRST'\) is not a subset of expected "
+            r"alphabet \('ACGT'\) for read class DNARead."
+        )
         six.assertRaisesRegex(self, ValueError, error, read.checkAlphabet)
 
     def testKeepSites(self):
@@ -537,33 +614,33 @@ class TestRead(TestCase):
         If only a certain set of sites should be kept, newFromSites should
         return a read with the correct sequence.
         """
-        self.assertEqual(Read('id1', 'TC'),
-                         Read('id1', 'ATCGAT').newFromSites({1, 2}))
+        self.assertEqual(Read("id1", "TC"), Read("id1", "ATCGAT").newFromSites({1, 2}))
 
     def testKeepSitesNoSites(self):
         """
         If only the empty set of sites should be kept, newFromSites should
         return a read with the correct (empty) sequence.
         """
-        self.assertEqual(Read('id1', ''),
-                         Read('id1', 'ATCGAT').newFromSites(set()))
+        self.assertEqual(Read("id1", ""), Read("id1", "ATCGAT").newFromSites(set()))
 
     def testKeepSitesAllSites(self):
         """
         If all sites should be kept, newFromSites should return a read with
         the correct (full) sequence.
         """
-        self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'ATCGAT').newFromSites(set(range(6))))
+        self.assertEqual(
+            Read("id1", "ATCGAT"), Read("id1", "ATCGAT").newFromSites(set(range(6)))
+        )
 
     def testKeepSitesWithQuality(self):
         """
         If only a certain set of sites should be kept, newFromSites should
         return a read with the correct sequence and quality.
         """
-        self.assertEqual(Read('id1', 'TC', '23'),
-                         Read('id1', 'ATCGAT', '123456').newFromSites(
-                             {1, 2}))
+        self.assertEqual(
+            Read("id1", "TC", "23"),
+            Read("id1", "ATCGAT", "123456").newFromSites({1, 2}),
+        )
 
     def testKeepSitesOutOfRange(self):
         """
@@ -571,44 +648,49 @@ class TestRead(TestCase):
         are higher than the length of the input sequences, newFromSites
         should return a read with the correct (empty) sequence.
         """
-        self.assertEqual(Read('id1', ''),
-                         Read('id1', 'ATCGAT').newFromSites({100, 200}))
+        self.assertEqual(
+            Read("id1", ""), Read("id1", "ATCGAT").newFromSites({100, 200})
+        )
 
     def testRemoveSites(self):
         """
         If only a certain set of sites should be removed, newFromSites
         should return a read with the correct sequence.
         """
-        self.assertEqual(Read('id1', 'AGAT'),
-                         Read('id1', 'ATCGAT').newFromSites({1, 2},
-                                                            exclude=True))
+        self.assertEqual(
+            Read("id1", "AGAT"),
+            Read("id1", "ATCGAT").newFromSites({1, 2}, exclude=True),
+        )
 
     def testRemoveSitesNoSites(self):
         """
         If no sites should be removed, newFromSites should return a read
         with the correct (full) sequence.
         """
-        self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'ATCGAT').newFromSites(set(),
-                                                            exclude=True))
+        self.assertEqual(
+            Read("id1", "ATCGAT"),
+            Read("id1", "ATCGAT").newFromSites(set(), exclude=True),
+        )
 
     def testRemoveSitesAllSites(self):
         """
         If all sites should be removed, newFromSites should return a read
         with the correct (empty) sequence.
         """
-        self.assertEqual(Read('id1', ''),
-                         Read('id1', 'ATCGAT').newFromSites(set(range(6)),
-                                                            exclude=True))
+        self.assertEqual(
+            Read("id1", ""),
+            Read("id1", "ATCGAT").newFromSites(set(range(6)), exclude=True),
+        )
 
     def testRemoveSitesWithQuality(self):
         """
         If only a certain set of sites should be removed, newFromSites
         should return a read with the correct sequence and quality.
         """
-        self.assertEqual(Read('id1', 'AGAT', '1456'),
-                         Read('id1', 'ATCGAT', '123456').newFromSites(
-                             {1, 2}, exclude=True))
+        self.assertEqual(
+            Read("id1", "AGAT", "1456"),
+            Read("id1", "ATCGAT", "123456").newFromSites({1, 2}, exclude=True),
+        )
 
     def testRemoveSitesOutOfRange(self):
         """
@@ -616,58 +698,60 @@ class TestRead(TestCase):
         sites are higher than the length of the input sequences,
         newFromSites should return a read with the correct (full) sequence.
         """
-        self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'ATCGAT').newFromSites({100, 200},
-                                                            exclude=True))
+        self.assertEqual(
+            Read("id1", "ATCGAT"),
+            Read("id1", "ATCGAT").newFromSites({100, 200}, exclude=True),
+        )
 
     def testReverseNoQuality(self):
         """
         The reverse method must work as expected when there is no quality
         string.
         """
-        self.assertEqual(Read('id1', 'ATCGAT'),
-                         Read('id1', 'TAGCTA').reverse())
+        self.assertEqual(Read("id1", "ATCGAT"), Read("id1", "TAGCTA").reverse())
 
     def testReverseWithQuality(self):
         """
         The reverse method must work as expected when there is a quality
         string.
         """
-        self.assertEqual(Read('id1', 'ATCGAT', '123456'),
-                         Read('id1', 'TAGCTA', '654321').reverse())
+        self.assertEqual(
+            Read("id1", "ATCGAT", "123456"), Read("id1", "TAGCTA", "654321").reverse()
+        )
 
 
 class TestDNARead(TestCase):
     """
     Tests for the DNARead class.
     """
+
     def testGetitemReturnsNewDNARead(self):
         """
         __getitem__ must return a new DNARead instance.
         """
-        self.assertIs(DNARead, DNARead('id', 'ACGT')[0:3].__class__)
+        self.assertIs(DNARead, DNARead("id", "ACGT")[0:3].__class__)
 
     def testReverseComplementReversesQuality(self):
         """
         The reverseComplement function must return a reversed quality string.
         """
-        read = DNARead('id', 'atcg', quality='!@#$')
-        self.assertEqual('$#@!', read.reverseComplement().quality)
+        read = DNARead("id", "atcg", quality="!@#$")
+        self.assertEqual("$#@!", read.reverseComplement().quality)
 
     def testReverseComplement(self):
         """
         The reverseComplement function must work.
         """
-        read = DNARead('id', 'ATCG', quality='!@#$')
-        self.assertEqual('CGAT', read.reverseComplement().sequence)
+        read = DNARead("id", "ATCG", quality="!@#$")
+        self.assertEqual("CGAT", read.reverseComplement().sequence)
 
     def testReverseComplementAmbiguous(self):
         """
         The reverseComplement function must work for a sequence that includes
         ambiguous bases.
         """
-        read = DNARead('id', 'ATCGMRWSVHXN')
-        self.assertEqual('NXDBSWYKCGAT', read.reverseComplement().sequence)
+        read = DNARead("id", "ATCGMRWSVHXN")
+        self.assertEqual("NXDBSWYKCGAT", read.reverseComplement().sequence)
 
     def testReverseComplementLowercaseLetters(self):
         """
@@ -675,8 +759,8 @@ class TestDNARead(TestCase):
         lowercase letters. The issue is described here:
         https://github.com/acorg/dark-matter/issues/662
         """
-        read = DNARead('id', 'CAGCAGctgcagcaccagcaccagcagcttcCACAT')
-        expected = ('ATGTGgaagctgctggtgctggtgctgcagCTGCTG')
+        read = DNARead("id", "CAGCAGctgcagcaccagcaccagcagcttcCACAT")
+        expected = "ATGTGgaagctgctggtgctggtgctgcagCTGCTG"
         self.assertEqual(expected, read.reverseComplement().sequence)
 
     def testTranslationsOfEmptySequence(self):
@@ -684,159 +768,157 @@ class TestDNARead(TestCase):
         The translations function must correctly return all six (empty)
         translations of the empty sequence.
         """
-        read = DNARead('id', '')
+        read = DNARead("id", "")
         self.assertEqual(
             [
-                TranslatedRead(read, '', 0, False),
-                TranslatedRead(read, '', 1, False),
-                TranslatedRead(read, '', 2, False),
-                TranslatedRead(read, '', 0, True),
-                TranslatedRead(read, '', 1, True),
-                TranslatedRead(read, '', 2, True)
+                TranslatedRead(read, "", 0, False),
+                TranslatedRead(read, "", 1, False),
+                TranslatedRead(read, "", 2, False),
+                TranslatedRead(read, "", 0, True),
+                TranslatedRead(read, "", 1, True),
+                TranslatedRead(read, "", 2, True),
             ],
-            list(read.translations()))
+            list(read.translations()),
+        )
 
     def testTranslationsOfOneBaseSequence(self):
         """
         The translations function must correctly return all six translations
         of a sequence with just one base.
         """
-        read = DNARead('id', 'a')
+        read = DNARead("id", "a")
         self.assertEqual(
             [
-                TranslatedRead(read, 'X', 0, False),
-                TranslatedRead(read, '', 1, False),
-                TranslatedRead(read, '', 2, False),
-                TranslatedRead(read, 'X', 0, True),
-                TranslatedRead(read, '', 1, True),
-                TranslatedRead(read, '', 2, True)
+                TranslatedRead(read, "X", 0, False),
+                TranslatedRead(read, "", 1, False),
+                TranslatedRead(read, "", 2, False),
+                TranslatedRead(read, "X", 0, True),
+                TranslatedRead(read, "", 1, True),
+                TranslatedRead(read, "", 2, True),
             ],
-            list(read.translations()))
+            list(read.translations()),
+        )
 
     def testTranslationsOfTwoBaseSequence(self):
         """
         The translations function must correctly return all six translations
         of a sequence with just two bases.
         """
-        read = DNARead('id', 'AG')
+        read = DNARead("id", "AG")
         self.assertEqual(
             [
-                TranslatedRead(read, 'X', 0, False),
-                TranslatedRead(read, 'X', 1, False),
-                TranslatedRead(read, '', 2, False),
-                TranslatedRead(read, 'L', 0, True),
-                TranslatedRead(read, 'X', 1, True),
-                TranslatedRead(read, '', 2, True)
+                TranslatedRead(read, "X", 0, False),
+                TranslatedRead(read, "X", 1, False),
+                TranslatedRead(read, "", 2, False),
+                TranslatedRead(read, "L", 0, True),
+                TranslatedRead(read, "X", 1, True),
+                TranslatedRead(read, "", 2, True),
             ],
-            list(read.translations()))
+            list(read.translations()),
+        )
 
     def testTranslationOfStopCodonTAG(self):
         """
         The translations function must correctly translate the TAG stop codon.
         """
-        read = DNARead('id', 'tag')
-        self.assertEqual(
-            TranslatedRead(read, '*', 0, False),
-            next(read.translations()))
+        read = DNARead("id", "tag")
+        self.assertEqual(TranslatedRead(read, "*", 0, False), next(read.translations()))
 
     def testTranslationOfStopCodonTGA(self):
         """
         The translations function must correctly translate the TGA stop codon.
         """
-        read = DNARead('id', 'tga')
-        self.assertEqual(
-            TranslatedRead(read, '*', 0, False),
-            next(read.translations()))
+        read = DNARead("id", "tga")
+        self.assertEqual(TranslatedRead(read, "*", 0, False), next(read.translations()))
 
     def testTranslationOfMultipleStopCodons(self):
         """
         The translations function must correctly translate multiple stop codons
         in a sequence.
         """
-        read = DNARead('id', 'taatagtga')
+        read = DNARead("id", "taatagtga")
         self.assertEqual(
-            TranslatedRead(read, '***', 0, False),
-            next(read.translations()))
+            TranslatedRead(read, "***", 0, False), next(read.translations())
+        )
 
     def testTranslationOfStartCodonATG(self):
         """
         The translations function must correctly translate the ATG start codon
         to a methionine (M).
         """
-        read = DNARead('id', 'atg')
-        self.assertEqual(
-            TranslatedRead(read, 'M', 0, False),
-            next(read.translations()))
+        read = DNARead("id", "atg")
+        self.assertEqual(TranslatedRead(read, "M", 0, False), next(read.translations()))
 
     def testTranslations(self):
         """
         The translations function must correctly return all six translations.
         """
-        read = DNARead('id', 'ACCGTCAGG')
+        read = DNARead("id", "ACCGTCAGG")
         self.assertEqual(
             [
-                TranslatedRead(read, 'TVR', 0, False),
-                TranslatedRead(read, 'PSG', 1, False),
-                TranslatedRead(read, 'RQX', 2, False),
-                TranslatedRead(read, 'PDG', 0, True),
-                TranslatedRead(read, 'LTV', 1, True),
-                TranslatedRead(read, '*RX', 2, True)
+                TranslatedRead(read, "TVR", 0, False),
+                TranslatedRead(read, "PSG", 1, False),
+                TranslatedRead(read, "RQX", 2, False),
+                TranslatedRead(read, "PDG", 0, True),
+                TranslatedRead(read, "LTV", 1, True),
+                TranslatedRead(read, "*RX", 2, True),
             ],
-            list(read.translations()))
+            list(read.translations()),
+        )
 
 
 class TestRNARead(TestCase):
     """
     Tests for the RNARead class.
     """
+
     def testGetitemReturnsNewRNARead(self):
         """
         __getitem__ must return a new RNARead instance.
         """
-        self.assertIs(RNARead, RNARead('id', 'ACGU')[0:3].__class__)
+        self.assertIs(RNARead, RNARead("id", "ACGU")[0:3].__class__)
 
     def testReverseComplement(self):
         """
         The reverseComplement function must work.
         """
-        read = RNARead('id', 'AUCG')
-        self.assertEqual('CGAU', read.reverseComplement().sequence)
+        read = RNARead("id", "AUCG")
+        self.assertEqual("CGAU", read.reverseComplement().sequence)
 
     def testReverseComplementAmbiguous(self):
         """
         The reverseComplement function must work for a sequence that includes
         ambiguous bases.
         """
-        read = RNARead('id', 'AUCGMRWSYKVHXN')
-        self.assertEqual('NXDBMRSWYKCGAU', read.reverseComplement().sequence)
+        read = RNARead("id", "AUCGMRWSYKVHXN")
+        self.assertEqual("NXDBMRSWYKCGAU", read.reverseComplement().sequence)
 
     def testTranslationOfStopCodonUAA(self):
         """
         The translations function must correctly translate the UAA stop codon.
         """
-        read = RNARead('id', 'UAA')
-        self.assertEqual(
-            TranslatedRead(read, '*', 0, False),
-            next(read.translations()))
+        read = RNARead("id", "UAA")
+        self.assertEqual(TranslatedRead(read, "*", 0, False), next(read.translations()))
 
 
 class TestDNAKozakRead(TestCase):
     """
     Test the DNAKozakRead class.
     """
+
     def testSequence(self):
         """
         A DNAKozakRead instance must have the correct sequence.
         """
-        originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
+        originalRead = DNARead("id", "AAGTAAGGGCTGTGA")
         read = DNAKozakRead(originalRead, 0, 4, 100.0)
-        self.assertEqual('AAGT', read.sequence)
+        self.assertEqual("AAGT", read.sequence)
 
     def testStart(self):
         """
         A DNAKozakRead instance must store the correct start offset.
         """
-        originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
+        originalRead = DNARead("id", "AAGTAAGGGCTGTGA")
         read = DNAKozakRead(originalRead, 2, 4, 100.0)
         self.assertEqual(2, read.start)
 
@@ -844,7 +926,7 @@ class TestDNAKozakRead(TestCase):
         """
         A DNAKozakRead instance must store the correct stop offset.
         """
-        originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
+        originalRead = DNARead("id", "AAGTAAGGGCTGTGA")
         read = DNAKozakRead(originalRead, 2, 4, 100.0)
         self.assertEqual(4, read.stop)
         read = DNAKozakRead(originalRead, 4, 10, 100.0)
@@ -854,36 +936,39 @@ class TestDNAKozakRead(TestCase):
         """
         A DNAKozakRead start offset must not be less than zero.
         """
-        originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
-        error = r'^start offset \(-1\) less than zero$'
+        originalRead = DNARead("id", "AAGTAAGGGCTGTGA")
+        error = r"^start offset \(-1\) less than zero$"
         six.assertRaisesRegex(
-            self, ValueError, error, DNAKozakRead, originalRead, -1, 6, 100.0)
+            self, ValueError, error, DNAKozakRead, originalRead, -1, 6, 100.0
+        )
 
     def testStartGreaterThanStop(self):
         """
         A DNAKozakRead start offset must not be greater than its stop offset.
         """
-        originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
-        error = r'start offset \(4\) greater than stop offset \(0\)'
+        originalRead = DNARead("id", "AAGTAAGGGCTGTGA")
+        error = r"start offset \(4\) greater than stop offset \(0\)"
         six.assertRaisesRegex(
-            self, ValueError, error, DNAKozakRead, originalRead, 4, 0, 100.0)
+            self, ValueError, error, DNAKozakRead, originalRead, 4, 0, 100.0
+        )
 
     def testStopGreaterThanOriginalSequenceLength(self):
         """
         A DNAKozakRead stop offset must not be greater than the length of the
         original sequence.
         """
-        originalRead = DNARead('id', 'AAGTAA')
-        error = r'stop offset \(10\) > original read length \(6\)'
+        originalRead = DNARead("id", "AAGTAA")
+        error = r"stop offset \(10\) > original read length \(6\)"
         six.assertRaisesRegex(
-            self, ValueError, error, DNAKozakRead, originalRead, 0, 10, 100.0)
+            self, ValueError, error, DNAKozakRead, originalRead, 0, 10, 100.0
+        )
 
     def testEqualFunction(self):
         """
         A DNAKozakRead needs to compare correctly to an equal other
         DNAKozakRead.
         """
-        originalRead = DNARead('id', 'AAGTAAGGGCTGTGA')
+        originalRead = DNARead("id", "AAGTAAGGGCTGTGA")
         kozakRead1 = DNAKozakRead(originalRead, 0, 4, 100.0)
         kozakRead2 = DNAKozakRead(originalRead, 0, 4, 100.0)
         self.assertEqual(kozakRead1, kozakRead2)
@@ -893,8 +978,8 @@ class TestDNAKozakRead(TestCase):
         A DNAKozakRead needs to compare correctly to a different other
         DNAKozakRead.
         """
-        originalRead1 = DNARead('id', 'AAGTAAGGGCTGTGA')
-        originalRead2 = DNARead('id', 'AAGTAAGGGCTGTGAAA')
+        originalRead1 = DNARead("id", "AAGTAAGGGCTGTGA")
+        originalRead2 = DNARead("id", "AAGTAAGGGCTGTGAAA")
         kozakRead1 = DNAKozakRead(originalRead1, 0, 4, 100.0)
         kozakRead2 = DNAKozakRead(originalRead2, 0, 4, 100.0)
         self.assertNotEqual(kozakRead1, kozakRead2)
@@ -904,8 +989,8 @@ class TestDNAKozakRead(TestCase):
         A DNAKozakRead needs to compare correctly to a different other
         DNAKozakRead.
         """
-        originalRead1 = DNARead('id', 'AAGTAAGGGCTGTGA')
-        originalRead2 = DNARead('id', 'AAGTAAGGGCTGTGAAA')
+        originalRead1 = DNARead("id", "AAGTAAGGGCTGTGA")
+        originalRead2 = DNARead("id", "AAGTAAGGGCTGTGAAA")
         kozakRead1 = DNAKozakRead(originalRead1, 0, 4, 100.0)
         kozakRead2 = DNAKozakRead(originalRead2, 1, 5, 100.0)
         self.assertNotEqual(kozakRead1, kozakRead2)
@@ -915,26 +1000,27 @@ class TestAARead(TestCase):
     """
     Tests for the AARead class.
     """
+
     def testGetitemReturnsNewAARead(self):
         """
         __getitem__ must return a new AARead instance.
         """
-        self.assertIs(AARead, AARead('id', 'ACGU')[0:3].__class__)
+        self.assertIs(AARead, AARead("id", "ACGU")[0:3].__class__)
 
     def testPropertiesCorrectTranslation(self):
         """
         The properties function must work correctly.
         """
-        read = AARead('id', 'ADR*')
+        read = AARead("id", "ADR*")
         properties = read.properties()
         self.assertEqual(
             [
                 HYDROPHOBIC | SMALL | TINY,
                 HYDROPHILIC | SMALL | POLAR | NEGATIVE,
                 HYDROPHILIC | POLAR | BASIC_POSITIVE,
-                NONE
+                NONE,
             ],
-            list(properties)
+            list(properties),
         )
 
     def testPropertyDetailsCorrectTranslation(self):
@@ -942,55 +1028,56 @@ class TestAARead(TestCase):
         The propertyDetails function must return the right property details
         sequence.
         """
-        read = AARead('id', 'ADR*')
+        read = AARead("id", "ADR*")
         properties = read.propertyDetails()
         self.assertEqual(
             [
                 {
-                    'polarity': -0.20987654321,
-                    'aliphaticity': 0.305785123967,
-                    'volume': -0.664670658683,
-                    'polar requirement': -0.463414634146,
-                    'hydropathy': 0.4,
-                    'iep': -0.191489361702,
-                    'hydroxythiolation': -0.265160523187,
-                    'aromaticity': -0.550128534704,
-                    'hydrogenation': 0.8973042362,
-                    'composition': -1.0
+                    "polarity": -0.20987654321,
+                    "aliphaticity": 0.305785123967,
+                    "volume": -0.664670658683,
+                    "polar requirement": -0.463414634146,
+                    "hydropathy": 0.4,
+                    "iep": -0.191489361702,
+                    "hydroxythiolation": -0.265160523187,
+                    "aromaticity": -0.550128534704,
+                    "hydrogenation": 0.8973042362,
+                    "composition": -1.0,
                 },
                 {
-                    'polarity': 1.0,
-                    'aliphaticity': -0.818181818182,
-                    'volume': -0.389221556886,
-                    'polar requirement': 1.0,
-                    'hydropathy': -0.777777777778,
-                    'iep': -1.0,
-                    'hydroxythiolation': -0.348394768133,
-                    'aromaticity': -1.0,
-                    'hydrogenation': -0.90243902439,
-                    'composition': 0.00363636363636
+                    "polarity": 1.0,
+                    "aliphaticity": -0.818181818182,
+                    "volume": -0.389221556886,
+                    "polar requirement": 1.0,
+                    "hydropathy": -0.777777777778,
+                    "iep": -1.0,
+                    "hydroxythiolation": -0.348394768133,
+                    "aromaticity": -1.0,
+                    "hydrogenation": -0.90243902439,
+                    "composition": 0.00363636363636,
                 },
                 {
-                    'polarity': 0.382716049383,
-                    'aliphaticity': -0.157024793388,
-                    'volume': 0.449101796407,
-                    'polar requirement': 0.0487804878049,
-                    'hydropathy': -1.0,
-                    'iep': 1.0,
-                    'hydroxythiolation': -0.51486325802,
-                    'aromaticity': -0.0642673521851,
-                    'hydrogenation': -0.401797175866,
-                    'composition': -0.527272727273
+                    "polarity": 0.382716049383,
+                    "aliphaticity": -0.157024793388,
+                    "volume": 0.449101796407,
+                    "polar requirement": 0.0487804878049,
+                    "hydropathy": -1.0,
+                    "iep": 1.0,
+                    "hydroxythiolation": -0.51486325802,
+                    "aromaticity": -0.0642673521851,
+                    "hydrogenation": -0.401797175866,
+                    "composition": -0.527272727273,
                 },
-                NONE],
-            list(properties)
+                NONE,
+            ],
+            list(properties),
         )
 
     def testORFsEmptySequence(self):
         """
         An AA read of length zero must not have any ORFs.
         """
-        read = AARead('id', '')
+        read = AARead("id", "")
         orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
@@ -998,7 +1085,7 @@ class TestAARead(TestCase):
         """
         An AA read with just a start and stop codon must not have any ORFs.
         """
-        read = AARead('id', 'M*')
+        read = AARead("id", "M*")
         orfs = list(read.ORFs(False))
         self.assertEqual(0, len(orfs))
 
@@ -1006,7 +1093,7 @@ class TestAARead(TestCase):
         """
         An AA read with just a start and stop codon must have one ORF.
         """
-        read = AARead('id', 'M*')
+        read = AARead("id", "M*")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
@@ -1014,7 +1101,7 @@ class TestAARead(TestCase):
         """
         An AA read with just a start and stop codon must have one ORF.
         """
-        read = AARead('id', '*M')
+        read = AARead("id", "*M")
         orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
@@ -1022,7 +1109,7 @@ class TestAARead(TestCase):
         """
         An AA read with just a start codon must not have any ORFs.
         """
-        read = AARead('id', 'M')
+        read = AARead("id", "M")
         orfs = list(read.ORFs(False))
         self.assertEqual(0, len(orfs))
 
@@ -1030,7 +1117,7 @@ class TestAARead(TestCase):
         """
         An AA read with just a start codon must have one ORF.
         """
-        read = AARead('id', 'M')
+        read = AARead("id", "M")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
@@ -1038,7 +1125,7 @@ class TestAARead(TestCase):
         """
         An AA read with just a start codon must have one ORF.
         """
-        read = AARead('id', 'A')
+        read = AARead("id", "A")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
@@ -1046,7 +1133,7 @@ class TestAARead(TestCase):
         """
         An AA read of a single stop codon must not have any ORFs.
         """
-        read = AARead('id', '*')
+        read = AARead("id", "*")
         orfs = list(read.ORFs(False))
         self.assertEqual(0, len(orfs))
 
@@ -1054,7 +1141,7 @@ class TestAARead(TestCase):
         """
         An AA read of a single stop codon must not have any ORFs.
         """
-        read = AARead('id', '*')
+        read = AARead("id", "*")
         orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
@@ -1062,7 +1149,7 @@ class TestAARead(TestCase):
         """
         An AA read of two stop codons must not have any ORFs.
         """
-        read = AARead('id', '**')
+        read = AARead("id", "**")
         orfs = list(read.ORFs(True))
         self.assertEqual(0, len(orfs))
 
@@ -1070,7 +1157,7 @@ class TestAARead(TestCase):
         """
         An AA read of only start and stop codons must not have any ORFs.
         """
-        read = AARead('id', '**MM*M**MMM*')
+        read = AARead("id", "**MM*M**MMM*")
         orfs = list(read.ORFs(False))
         self.assertEqual(2, len(orfs))
 
@@ -1081,16 +1168,16 @@ class TestAARead(TestCase):
         the correct start/stop offsets and its left and right side must be
         marked as open.
         """
-        read = AARead('id', 'ADRADR')
+        read = AARead("id", "ADRADR")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
-        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual("ADRADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(6, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:6)')
+        self.assertEqual(orf.id, "id-(0:6)")
 
     def testOpenCloseORF(self):
         """
@@ -1100,16 +1187,16 @@ class TestAARead(TestCase):
         left and right sides must be marked as open and closed,
         respectively.
         """
-        read = AARead('id', 'ADRADR*')
+        read = AARead("id", "ADRADR*")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
-        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual("ADRADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(6, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:6]')
+        self.assertEqual(orf.id, "id-(0:6]")
 
     def testOpenCloseORFWithMultipleStops(self):
         """
@@ -1119,16 +1206,16 @@ class TestAARead(TestCase):
         and its left and right sides must be marked as open and closed,
         respectively.
         """
-        read = AARead('id', 'ADRADR***')
+        read = AARead("id", "ADRADR***")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
-        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual("ADRADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(6, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:6]')
+        self.assertEqual(orf.id, "id-(0:6]")
 
     def testCloseOpenORFWithMultipleStarts(self):
         """
@@ -1138,16 +1225,16 @@ class TestAARead(TestCase):
         left and right sides must be marked as closed and open,
         respectively.
         """
-        read = AARead('id', 'MMMADRADR')
+        read = AARead("id", "MMMADRADR")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
-        self.assertEqual('MMMADRADR', orf.sequence)
+        self.assertEqual("MMMADRADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(9, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:9)')
+        self.assertEqual(orf.id, "id-(0:9)")
 
     def testCloseCloseORF(self):
         """
@@ -1156,16 +1243,16 @@ class TestAARead(TestCase):
         the correct start/stop offsets and its left and right sides must be
         both marked as closed.
         """
-        read = AARead('id', 'MADRADR*')
+        read = AARead("id", "MADRADR*")
         orfs = list(read.ORFs(False))
         self.assertEqual(1, len(orfs))
         orf = orfs[0]
-        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual("ADRADR", orf.sequence)
         self.assertEqual(1, orf.start)
         self.assertEqual(7, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[1:7]')
+        self.assertEqual(orf.id, "id-[1:7]")
 
     def testCloseCloseORFWithJunk(self):
         """
@@ -1174,14 +1261,14 @@ class TestAARead(TestCase):
         the correct start/stop offsets and its left and right sides must be
         both marked as closed.
         """
-        read = AARead('id', 'AAAMADRADR*')
+        read = AARead("id", "AAAMADRADR*")
         [orf] = list(read.ORFs(False))
-        self.assertEqual('ADRADR', orf.sequence)
+        self.assertEqual("ADRADR", orf.sequence)
         self.assertEqual(4, orf.start)
         self.assertEqual(10, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[4:10]')
+        self.assertEqual(orf.id, "id-[4:10]")
 
     def testOpenCloseThenCloseOpenORF(self):
         """
@@ -1189,25 +1276,25 @@ class TestAARead(TestCase):
         followed by an ORF that is left closed and right open must have the
         ORFs detected correctly when its ORFs method is called.
         """
-        read = AARead('id', 'ADR*MRRR')
+        read = AARead("id", "ADR*MRRR")
         orfs = list(read.ORFs(True))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(3, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:3]')
+        self.assertEqual(orf.id, "id-(0:3]")
 
         orf = orfs[1]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(5, orf.start)
         self.assertEqual(8, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-[5:8)')
+        self.assertEqual(orf.id, "id-[5:8)")
 
     def testCloseCloseThenCloseOpenORF(self):
         """
@@ -1215,50 +1302,50 @@ class TestAARead(TestCase):
         followed by an ORF that is left closed and right open must have the
         ORFs detected correctly when its ORFs method is called.
         """
-        read = AARead('id', '*MADR*MRRR')
+        read = AARead("id", "*MADR*MRRR")
         orfs = list(read.ORFs(True))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(2, orf.start)
         self.assertEqual(5, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[2:5]')
+        self.assertEqual(orf.id, "id-[2:5]")
 
         orf = orfs[1]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(7, orf.start)
         self.assertEqual(10, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-[7:10)')
+        self.assertEqual(orf.id, "id-[7:10)")
 
     def testCloseCloseThenCloseCloseORF(self):
         """
         An AA read that contains two ORFs that are both left and right closed
         must have the ORFs detected correctly when its ORFs method is called.
         """
-        read = AARead('id', 'MADR*MRRR*')
+        read = AARead("id", "MADR*MRRR*")
         orfs = list(read.ORFs(False))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(1, orf.start)
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[1:4]')
+        self.assertEqual(orf.id, "id-[1:4]")
 
         orf = orfs[1]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(6, orf.start)
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[6:9]')
+        self.assertEqual(orf.id, "id-[6:9]")
 
     def testOpenCloseThenCloseCloseThenCloseOpenORF(self):
         """
@@ -1267,33 +1354,33 @@ class TestAARead(TestCase):
         and right open must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        read = AARead('id', 'ADR*MAAA*MRRR')
+        read = AARead("id", "ADR*MAAA*MRRR")
         orfs = list(read.ORFs(True))
         self.assertEqual(3, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(3, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:3]')
+        self.assertEqual(orf.id, "id-(0:3]")
 
         orf = orfs[1]
-        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual("AAA", orf.sequence)
         self.assertEqual(5, orf.start)
         self.assertEqual(8, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[5:8]')
+        self.assertEqual(orf.id, "id-[5:8]")
 
         orf = orfs[2]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(10, orf.start)
         self.assertEqual(13, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-[10:13)')
+        self.assertEqual(orf.id, "id-[10:13)")
 
     def testCloseCloseThenCloseCloseThenNothingORF(self):
         """
@@ -1302,25 +1389,25 @@ class TestAARead(TestCase):
         and right open must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        read = AARead('id', 'MADR*MAAA*MRRR')
+        read = AARead("id", "MADR*MAAA*MRRR")
         orfs = list(read.ORFs(False))
         self.assertEqual(2, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(1, orf.start)
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[1:4]')
+        self.assertEqual(orf.id, "id-[1:4]")
 
         orf = orfs[1]
-        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual("AAA", orf.sequence)
         self.assertEqual(6, orf.start)
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[6:9]')
+        self.assertEqual(orf.id, "id-[6:9]")
 
     def testCloseCloseThenCloseCloseThenCloseCloseORF(self):
         """
@@ -1329,33 +1416,33 @@ class TestAARead(TestCase):
         right closed must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        read = AARead('id', 'MADR*MAAA*MRRR*')
+        read = AARead("id", "MADR*MAAA*MRRR*")
         orfs = list(read.ORFs(False))
         self.assertEqual(3, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(1, orf.start)
         self.assertEqual(4, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[1:4]')
+        self.assertEqual(orf.id, "id-[1:4]")
 
         orf = orfs[1]
-        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual("AAA", orf.sequence)
         self.assertEqual(6, orf.start)
         self.assertEqual(9, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[6:9]')
+        self.assertEqual(orf.id, "id-[6:9]")
 
         orf = orfs[2]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(11, orf.start)
         self.assertEqual(14, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[11:14]')
+        self.assertEqual(orf.id, "id-[11:14]")
 
     def testOpenCloseThenCloseCloseThenCloseOpenORFWithJunk(self):
         """
@@ -1365,41 +1452,41 @@ class TestAARead(TestCase):
         method is called, including when there are intermediate start and
         stop codons.
         """
-        read = AARead('id', 'ADR***M*MAAA***MMM*MRRR')
+        read = AARead("id", "ADR***M*MAAA***MMM*MRRR")
         orfs = list(read.ORFs(True))
         self.assertEqual(4, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(3, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:3]')
+        self.assertEqual(orf.id, "id-(0:3]")
 
         orf = orfs[1]
-        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual("AAA", orf.sequence)
         self.assertEqual(9, orf.start)
         self.assertEqual(12, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[9:12]')
+        self.assertEqual(orf.id, "id-[9:12]")
 
         orf = orfs[2]
-        self.assertEqual('MM', orf.sequence)
+        self.assertEqual("MM", orf.sequence)
         self.assertEqual(16, orf.start)
         self.assertEqual(18, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[16:18]')
+        self.assertEqual(orf.id, "id-[16:18]")
 
         orf = orfs[3]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(20, orf.start)
         self.assertEqual(23, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-[20:23)')
+        self.assertEqual(orf.id, "id-[20:23)")
 
     def testCloseCloseThenCloseCloseThenCloseOpenORFWithJunk(self):
         """
@@ -1408,41 +1495,41 @@ class TestAARead(TestCase):
         and right open must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        read = AARead('id', '**MADR***MM**MAAA***M*MRRR')
+        read = AARead("id", "**MADR***MM**MAAA***M*MRRR")
         orfs = list(read.ORFs(True))
         self.assertEqual(4, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(3, orf.start)
         self.assertEqual(6, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[3:6]')
+        self.assertEqual(orf.id, "id-[3:6]")
 
         orf = orfs[1]
-        self.assertEqual('M', orf.sequence)
+        self.assertEqual("M", orf.sequence)
         self.assertEqual(10, orf.start)
         self.assertEqual(11, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[10:11]')
+        self.assertEqual(orf.id, "id-[10:11]")
 
         orf = orfs[2]
-        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual("AAA", orf.sequence)
         self.assertEqual(14, orf.start)
         self.assertEqual(17, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[14:17]')
+        self.assertEqual(orf.id, "id-[14:17]")
 
         orf = orfs[3]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(23, orf.start)
         self.assertEqual(26, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertTrue(orf.openRight)
-        self.assertEqual(orf.id, 'id-[23:26)')
+        self.assertEqual(orf.id, "id-[23:26)")
 
     def testCloseCloseThenCloseCloseThenCloseCloseORFWithJunk(self):
         """
@@ -1451,33 +1538,33 @@ class TestAARead(TestCase):
         right closed must have the ORFs detected correctly when its ORFs
         method is called.
         """
-        read = AARead('id', 'M***MADR***MAAA***MRRR***MM')
+        read = AARead("id", "M***MADR***MAAA***MRRR***MM")
         orfs = list(read.ORFs(False))
         self.assertEqual(3, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('ADR', orf.sequence)
+        self.assertEqual("ADR", orf.sequence)
         self.assertEqual(5, orf.start)
         self.assertEqual(8, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[5:8]')
+        self.assertEqual(orf.id, "id-[5:8]")
 
         orf = orfs[1]
-        self.assertEqual('AAA', orf.sequence)
+        self.assertEqual("AAA", orf.sequence)
         self.assertEqual(12, orf.start)
         self.assertEqual(15, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[12:15]')
+        self.assertEqual(orf.id, "id-[12:15]")
 
         orf = orfs[2]
-        self.assertEqual('RRR', orf.sequence)
+        self.assertEqual("RRR", orf.sequence)
         self.assertEqual(19, orf.start)
         self.assertEqual(22, orf.stop)
         self.assertFalse(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-[19:22]')
+        self.assertEqual(orf.id, "id-[19:22]")
 
     def testNoStartCodon_GithubIssue239(self):
         """
@@ -1485,62 +1572,64 @@ class TestAARead(TestCase):
         as an ORF.
         """
         # Example from https://github.com/acorg/dark-matter/issues/239
-        read = AARead('id', 'KK*LLILFSCQRWSRKSICVHLTQR*G*')
+        read = AARead("id", "KK*LLILFSCQRWSRKSICVHLTQR*G*")
         orfs = list(read.ORFs(True))
         self.assertEqual(1, len(orfs))
 
         orf = orfs[0]
-        self.assertEqual('KK', orf.sequence)
+        self.assertEqual("KK", orf.sequence)
         self.assertEqual(0, orf.start)
         self.assertEqual(2, orf.stop)
         self.assertTrue(orf.openLeft)
         self.assertFalse(orf.openRight)
-        self.assertEqual(orf.id, 'id-(0:2]')
+        self.assertEqual(orf.id, "id-(0:2]")
 
 
 class TestAAReadWithX(TestCase):
     """
     Tests for the TestAAReadWithX class.
     """
+
     def testGetitemReturnsNewAAReadWithX(self):
         """
         __getitem__ must return a new AAReadWithX instance.
         """
-        self.assertIs(AAReadWithX, AAReadWithX('id', 'ACGU')[0:3].__class__)
+        self.assertIs(AAReadWithX, AAReadWithX("id", "ACGU")[0:3].__class__)
 
     def testAlphabet(self):
         """
         The correct alphabet must be used.
         """
-        read = AAReadWithX('id', 'ATFDX')
-        expected = set('ACDEFGHIKLMNPQRSTVWXY')
+        read = AAReadWithX("id", "ATFDX")
+        expected = set("ACDEFGHIKLMNPQRSTVWXY")
         self.assertEqual(expected, read.ALPHABET)
 
     def testAlphabetChecking(self):
         """
         The alphabet check must work.
         """
-        read = AAReadWithX('id', 'ARDGGCFFXEE')
-        self.assertEqual(set('ARDGCFFXE'), read.checkAlphabet())
+        read = AAReadWithX("id", "ARDGGCFFXEE")
+        self.assertEqual(set("ARDGCFFXE"), read.checkAlphabet())
 
 
 class TestAAReadORF(TestCase):
     """
     Test the AAReadORF class.
     """
+
     def testSequence(self):
         """
         An AAReadORF instance must have the correct sequence.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 0, 4, True, True)
-        self.assertEqual('ADRA', read.sequence)
+        self.assertEqual("ADRA", read.sequence)
 
     def testStart(self):
         """
         An AAReadORF instance must store the correct start offset.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 3, 4, True, True)
         self.assertEqual(3, read.start)
         read = AAReadORF(originalRead, 4, 4, True, True)
@@ -1550,7 +1639,7 @@ class TestAAReadORF(TestCase):
         """
         An AAReadORF instance must store the correct stop offset.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 0, 4, True, True)
         self.assertEqual(4, read.stop)
         read = AAReadORF(originalRead, 0, 6, True, True)
@@ -1560,7 +1649,7 @@ class TestAAReadORF(TestCase):
         """
         An AAReadORF instance must store the correct openLeft value.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 0, 4, True, True)
         self.assertTrue(read.openLeft)
         read = AAReadORF(originalRead, 0, 4, False, True)
@@ -1570,7 +1659,7 @@ class TestAAReadORF(TestCase):
         """
         An AAReadORF instance must store the correct openRight value.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 0, 4, True, True)
         self.assertTrue(read.openRight)
         read = AAReadORF(originalRead, 0, 4, True, False)
@@ -1580,40 +1669,41 @@ class TestAAReadORF(TestCase):
         """
         An AAReadORF start offset must not be greater than its stop offset.
         """
-        originalRead = AARead('id', 'ADRADR')
-        error = r'start offset \(4\) greater than stop offset \(0\)'
+        originalRead = AARead("id", "ADRADR")
+        error = r"start offset \(4\) greater than stop offset \(0\)"
         six.assertRaisesRegex(
-            self, ValueError, error, AAReadORF, originalRead, 4, 0, True, True)
+            self, ValueError, error, AAReadORF, originalRead, 4, 0, True, True
+        )
 
     def testStartNegative(self):
         """
         An AAReadORF start offset must not be less than zero.
         """
-        originalRead = AARead('id', 'ADRADR')
-        error = r'start offset \(-1\) less than zero'
+        originalRead = AARead("id", "ADRADR")
+        error = r"start offset \(-1\) less than zero"
         six.assertRaisesRegex(
-            self, ValueError, error, AAReadORF, originalRead, -1, 6, True,
-            True)
+            self, ValueError, error, AAReadORF, originalRead, -1, 6, True, True
+        )
 
     def testStopGreaterThanOriginalSequenceLength(self):
         """
         An AAReadORF stop offset must not be greater than the length of the
         original sequence.
         """
-        originalRead = AARead('id', 'ADRADR')
-        error = r'stop offset \(10\) > original read length \(6\)'
+        originalRead = AARead("id", "ADRADR")
+        error = r"stop offset \(10\) > original read length \(6\)"
         six.assertRaisesRegex(
-            self, ValueError, error, AAReadORF, originalRead, 0, 10, True,
-            True)
+            self, ValueError, error, AAReadORF, originalRead, 0, 10, True, True
+        )
 
     def testOpenOpenId(self):
         """
         An AAReadORF instance must have a correctly annotated (containing the
         sequence offsets) id when the left and right sides of the ORF are open.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 3, 4, True, True)
-        self.assertEqual('id-(3:4)', read.id)
+        self.assertEqual("id-(3:4)", read.id)
 
     def testOpenClosedId(self):
         """
@@ -1621,9 +1711,9 @@ class TestAAReadORF(TestCase):
         sequence offsets) id when the left side of the ORF is open and the
         right is closed.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 3, 4, True, False)
-        self.assertEqual('id-(3:4]', read.id)
+        self.assertEqual("id-(3:4]", read.id)
 
     def testClosedOpenId(self):
         """
@@ -1631,78 +1721,81 @@ class TestAAReadORF(TestCase):
         sequence offsets) id when the left side of the ORF is closed and the
         right is open.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 3, 4, False, True)
-        self.assertEqual('id-[3:4)', read.id)
+        self.assertEqual("id-[3:4)", read.id)
 
     def testClosedClosedId(self):
         """
         An AAReadORF instance must have a correctly annotated (containing the
         sequence offsets) id when both sides of the ORF are closed.
         """
-        originalRead = AARead('id', 'ADRADR')
+        originalRead = AARead("id", "ADRADR")
         read = AAReadORF(originalRead, 3, 4, False, False)
-        self.assertEqual('id-[3:4]', read.id)
+        self.assertEqual("id-[3:4]", read.id)
 
     def testToDict(self):
         """
         toDict must return the correct dictionary.
         """
-        originalRead = AARead('id3', 'ACGT', '!!2&')
+        originalRead = AARead("id3", "ACGT", "!!2&")
         read = AAReadORF(originalRead, 1, 3, True, False)
         self.assertEqual(
             {
-                'id': 'id3-(1:3]',
-                'sequence': 'CG',
-                'quality': '!2',
-                'start': 1,
-                'stop': 3,
-                'openLeft': True,
-                'openRight': False,
+                "id": "id3-(1:3]",
+                "sequence": "CG",
+                "quality": "!2",
+                "start": 1,
+                "stop": 3,
+                "openLeft": True,
+                "openRight": False,
             },
-            read.toDict())
+            read.toDict(),
+        )
 
     def testFromDict(self):
         """
         fromDict must return the expected instance.
         """
-        originalRead = AARead('id3', 'ACGT', '!!2&')
+        originalRead = AARead("id3", "ACGT", "!!2&")
         self.assertEqual(
             AAReadORF(originalRead, 1, 3, True, False),
-            AAReadORF.fromDict({
-                'id': 'id3-(1:3]',
-                'sequence': 'CG',
-                'quality': '!2',
-                'start': 1,
-                'stop': 3,
-                'openLeft': True,
-                'openRight': False,
-            }))
+            AAReadORF.fromDict(
+                {
+                    "id": "id3-(1:3]",
+                    "sequence": "CG",
+                    "quality": "!2",
+                    "start": 1,
+                    "stop": 3,
+                    "openLeft": True,
+                    "openRight": False,
+                }
+            ),
+        )
 
 
-class _TestSSAAReadMixin(object):
+class _TestSSAAReadMixin:
     """
     Mixin class with tests for the SSAARead and SSAAReadWithX classes.
     """
+
     def testSequenceLengthMatchesStructureLength(self):
         """
         An SSAARead (or SSAAReadWithX) must have sequence and structure
         lengths that are the same.
         """
-        error = (
-            r'^Invalid read: sequence length \(4\) != structure '
-            r'length \(3\)$')
+        error = r"^Invalid read: sequence length \(4\) != structure " r"length \(3\)$"
         with six.assertRaisesRegex(self, ValueError, error):
-            self.CLASS('id', 'ACGT', '!!!')
+            self.CLASS("id", "ACGT", "!!!")
 
     def testCorrectAttributes(self):
         """
         An SSAARead (or SSAAReadWithX) must have the correct attributes.
         """
-        read = self.CLASS('id', 'AFGGCED', 'HHH  HH')
-        self.assertEqual('id', read.id)
-        self.assertEqual('AFGGCED', read.sequence)
-        self.assertEqual('HHH  HH', read.structure)
+        read = self.CLASS("id", "AFGGCED", "HHH  HH")
+        self.assertEqual("id", read.id)
+        self.assertEqual("AFGGCED", read.sequence)
+        self.assertEqual("HHH  HH", read.structure)
         self.assertIs(None, read.quality)
 
     def testReads(self):
@@ -1712,67 +1805,69 @@ class _TestSSAAReadMixin(object):
         length.
         """
         reads = Reads()
-        reads.add(self.CLASS('id1', 'AFGGCED', 'HHHHHHH'))
-        reads.add(self.CLASS('id2', 'AFGGKLL', 'HHHHIII'))
+        reads.add(self.CLASS("id1", "AFGGCED", "HHHHHHH"))
+        reads.add(self.CLASS("id2", "AFGGKLL", "HHHHIII"))
         self.assertEqual(2, len(list(reads)))
 
     def testGetitemReturnsNewRead(self):
         """
         __getitem__ must return a new instance of the correct class.
         """
-        self.assertIs(self.CLASS,
-                      self.CLASS('id', 'ACGT', 'HHHH')[0:3].__class__)
+        self.assertIs(self.CLASS, self.CLASS("id", "ACGT", "HHHH")[0:3].__class__)
 
     def testGetitemId(self):
         """
         __getitem__ must return a new instance with the same read id.
         """
-        self.assertEqual('id-12', self.CLASS('id-12', 'FFRR', 'HHHH')[0:3].id)
+        self.assertEqual("id-12", self.CLASS("id-12", "FFRR", "HHHH")[0:3].id)
 
     def testGetitemSequence(self):
         """
         __getitem__ must return a new instance with the expected sequence.
         """
-        self.assertEqual('RM', self.CLASS('id', 'FRML', 'HHHH')[1:3].sequence)
+        self.assertEqual("RM", self.CLASS("id", "FRML", "HHHH")[1:3].sequence)
 
     def testGetitemStructure(self):
         """
         __getitem__ must return a new instance with the expected structure.
         """
-        self.assertEqual('HE', self.CLASS('id', 'FFRR', 'HEIS')[0:2].structure)
+        self.assertEqual("HE", self.CLASS("id", "FFRR", "HEIS")[0:2].structure)
 
     def testGetitemLength(self):
         """
         __getitem__ must return a new instance of the expected length.
         """
-        self.assertEqual(3, len(self.CLASS('id-1234', 'FFMM', 'HHHH')[0:3]))
+        self.assertEqual(3, len(self.CLASS("id-1234", "FFMM", "HHHH")[0:3]))
 
     def testGetitemSingleIndex(self):
         """
         A single-index __getitem__ must return a length-one instance.
         """
-        self.assertEqual(1, len(self.CLASS('id', 'FRFR', 'HHHH')[0]))
+        self.assertEqual(1, len(self.CLASS("id", "FRFR", "HHHH")[0]))
 
     def testGetitemFullCopy(self):
         """
         A full copy __getitem__ must return the expected result.
         """
-        self.assertEqual(self.CLASS('id', 'RRFF', 'HEIH'),
-                         self.CLASS('id', 'RRFF', 'HEIH')[:])
+        self.assertEqual(
+            self.CLASS("id", "RRFF", "HEIH"), self.CLASS("id", "RRFF", "HEIH")[:]
+        )
 
     def testGetitemWithStep(self):
         """
         A stepped __getitem__ must return the expected result.
         """
-        self.assertEqual(self.CLASS('id', 'FR', 'HS'),
-                         self.CLASS('id', 'FMRL', 'HESE')[::2])
+        self.assertEqual(
+            self.CLASS("id", "FR", "HS"), self.CLASS("id", "FMRL", "HESE")[::2]
+        )
 
     def testGetitemReversed(self):
         """
         A reverse copy __getitem__ must return the expected result.
         """
-        self.assertEqual(self.CLASS('id', 'FRML', 'HESB'),
-                         self.CLASS('id', 'LMRF', 'BSEH')[::-1])
+        self.assertEqual(
+            self.CLASS("id", "FRML", "HESB"), self.CLASS("id", "LMRF", "BSEH")[::-1]
+        )
 
     def testToString(self):
         """
@@ -1780,11 +1875,9 @@ class _TestSSAAReadMixin(object):
         the structure information).
         """
         self.assertEqual(
-            '>id-1234\n'
-            'FFMM\n'
-            '>id-1234:structure\n'
-            'HHHH\n',
-            self.CLASS('id-1234', 'FFMM', 'HHHH').toString())
+            ">id-1234\n" "FFMM\n" ">id-1234:structure\n" "HHHH\n",
+            self.CLASS("id-1234", "FFMM", "HHHH").toString(),
+        )
 
     def testToStringWithStructureSuffix(self):
         """
@@ -1792,11 +1885,9 @@ class _TestSSAAReadMixin(object):
         specific structure id suffix.
         """
         self.assertEqual(
-            '>id-12\n'
-            'FFMM\n'
-            '>id-12:x\n'
-            'HHHH\n',
-            self.CLASS('id-12', 'FFMM', 'HHHH').toString(structureSuffix=':x'))
+            ">id-12\n" "FFMM\n" ">id-12:x\n" "HHHH\n",
+            self.CLASS("id-12", "FFMM", "HHHH").toString(structureSuffix=":x"),
+        )
 
     def testToStringWithExplicitFastaSSFormat(self):
         """
@@ -1804,11 +1895,9 @@ class _TestSSAAReadMixin(object):
         passed as the C{format_} argument.
         """
         self.assertEqual(
-            '>id-1234\n'
-            'FFMM\n'
-            '>id-1234:structure\n'
-            'HHHH\n',
-            self.CLASS('id-1234', 'FFMM', 'HHHH').toString(format_='fasta-ss'))
+            ">id-1234\n" "FFMM\n" ">id-1234:structure\n" "HHHH\n",
+            self.CLASS("id-1234", "FFMM", "HHHH").toString(format_="fasta-ss"),
+        )
 
     def testToStringWithExplicitFastaFormat(self):
         """
@@ -1816,73 +1905,79 @@ class _TestSSAAReadMixin(object):
         C{format_} argument.
         """
         self.assertEqual(
-            '>id-1234\n'
-            'FFMM\n',
-            self.CLASS('id-1234', 'FFMM', 'HHHH').toString(format_='fasta'))
+            ">id-1234\n" "FFMM\n",
+            self.CLASS("id-1234", "FFMM", "HHHH").toString(format_="fasta"),
+        )
 
     def testToStringWithUnknownFormat(self):
         """
         toString must raise ValueError when something other than 'fasta' or
         'fasta-ss' is passed as the C{format_} argument.
         """
-        read = self.CLASS('id-1234', 'FFMM', 'HHHH')
+        read = self.CLASS("id-1234", "FFMM", "HHHH")
         error = r"^Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
-        six.assertRaisesRegex(
-            self, ValueError, error, read.toString, format_='pasta')
+        six.assertRaisesRegex(self, ValueError, error, read.toString, format_="pasta")
 
     def testToDict(self):
         """
         toDict must return the correct dictionary.
         """
-        read = SSAARead('id3', 'ACGT', 'HHEE')
+        read = SSAARead("id3", "ACGT", "HHEE")
         self.assertEqual(
             {
-                'id': 'id3',
-                'sequence': 'ACGT',
-                'structure': 'HHEE',
+                "id": "id3",
+                "sequence": "ACGT",
+                "structure": "HHEE",
             },
-            read.toDict())
+            read.toDict(),
+        )
 
     def testFromDict(self):
         """
         fromDict must return the expected instance.
         """
         self.assertEqual(
-            SSAARead('id3', 'ACGT', 'HHEE'),
-            SSAARead.fromDict({
-                'id': 'id3',
-                'sequence': 'ACGT',
-                'structure': 'HHEE',
-            }))
+            SSAARead("id3", "ACGT", "HHEE"),
+            SSAARead.fromDict(
+                {
+                    "id": "id3",
+                    "sequence": "ACGT",
+                    "structure": "HHEE",
+                }
+            ),
+        )
 
     def testHashDiffersIfIdDiffers(self):
         """
         The __hash__ value for two reads must differ if their ids differ.
         """
-        self.assertNotEqual(hash(self.CLASS('id1', 'AA', 'HH')),
-                            hash(self.CLASS('id2', 'AA', 'HH')))
+        self.assertNotEqual(
+            hash(self.CLASS("id1", "AA", "HH")), hash(self.CLASS("id2", "AA", "HH"))
+        )
 
     def testHashDiffersIfSequenceDiffers(self):
         """
         The __hash__ value for two reads must differ if their sequence strings
         differ.
         """
-        self.assertNotEqual(hash(self.CLASS('id', 'MMR', 'HHH')),
-                            hash(self.CLASS('id', 'MMF', 'HHH')))
+        self.assertNotEqual(
+            hash(self.CLASS("id", "MMR", "HHH")), hash(self.CLASS("id", "MMF", "HHH"))
+        )
 
     def testHashDiffersIfStructureDiffers(self):
         """
         The __hash__ value for two reads must differ if their structure strings
         differ.
         """
-        self.assertNotEqual(hash(self.CLASS('id', 'AA', 'HH')),
-                            hash(self.CLASS('id', 'AA', 'HE')))
+        self.assertNotEqual(
+            hash(self.CLASS("id", "AA", "HH")), hash(self.CLASS("id", "AA", "HE"))
+        )
 
     def testHashViaSet(self):
         """
         If two identical reads are put into a set, the set must have size one.
         """
-        read = self.CLASS('id', 'AA', 'HH')
+        read = self.CLASS("id", "AA", "HH")
         self.assertEqual(1, len(set([read, read])))
 
     def testHashViaDict(self):
@@ -1890,7 +1985,7 @@ class _TestSSAAReadMixin(object):
         If two identical reads are used as keys in a dict, the dict must have
         size one.
         """
-        read = self.CLASS('id', 'AA', 'HH')
+        read = self.CLASS("id", "AA", "HH")
         self.assertEqual(1, len(dict.fromkeys([read, read])))
 
     def testKeepSites(self):
@@ -1898,27 +1993,30 @@ class _TestSSAAReadMixin(object):
         If only a certain set of sites should be kept, newFromSites should
         return a read with the correct sequence.
         """
-        self.assertEqual(self.CLASS('id1', 'TC', 'HG'),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCX').newFromSites(
-                             {1, 2}))
+        self.assertEqual(
+            self.CLASS("id1", "TC", "HG"),
+            self.CLASS("id1", "ATCGAT", "CHGCCX").newFromSites({1, 2}),
+        )
 
     def testKeepSitesNoSites(self):
         """
         If an empty set of sites should be kept, newFromSites should
         return a read with the correct (empty) sequence.
         """
-        self.assertEqual(self.CLASS('id1', '', ''),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromSites(
-                             set()))
+        self.assertEqual(
+            self.CLASS("id1", "", ""),
+            self.CLASS("id1", "ATCGAT", "CHGCCC").newFromSites(set()),
+        )
 
     def testKeepSitesAllSites(self):
         """
         If all sites should be kept, newFromSites should return a read
         with the correct (full) sequence.
         """
-        self.assertEqual(self.CLASS('id1', 'ATCGAT', 'CHGCCC'),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromSites(
-                             set(range(6))))
+        self.assertEqual(
+            self.CLASS("id1", "ATCGAT", "CHGCCC"),
+            self.CLASS("id1", "ATCGAT", "CHGCCC").newFromSites(set(range(6))),
+        )
 
     def testKeepSitesOutOfRange(self):
         """
@@ -1926,36 +2024,42 @@ class _TestSSAAReadMixin(object):
         are higher than the length of the input sequences, newFromSites
         should return a read with the correct (empty) sequence.
         """
-        self.assertEqual(self.CLASS('id1', '', ''),
-                         self.CLASS('id1', 'ATCGAT', 'CHGCCC').newFromSites(
-                             {100, 200}))
+        self.assertEqual(
+            self.CLASS("id1", "", ""),
+            self.CLASS("id1", "ATCGAT", "CHGCCC").newFromSites({100, 200}),
+        )
 
     def testRemoveSites(self):
         """
         If only a certain set of sites should be removed, newFromSites
         should return a read with the correct sequence.
         """
-        self.assertEqual(self.CLASS('id1', 'AGAT', 'CSHG'),
-                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromSites(
-                             {1, 2}, exclude=True))
+        self.assertEqual(
+            self.CLASS("id1", "AGAT", "CSHG"),
+            self.CLASS("id1", "ATCGAT", "CXXSHG").newFromSites({1, 2}, exclude=True),
+        )
 
     def testRemoveSitesNoSites(self):
         """
         If the empty set of sites should be removed, newFromSites
         should return a read with the correct (full) sequence.
         """
-        self.assertEqual(self.CLASS('id1', 'ATCGAT', 'CXXSHG'),
-                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromSites(
-                             set(), exclude=True))
+        self.assertEqual(
+            self.CLASS("id1", "ATCGAT", "CXXSHG"),
+            self.CLASS("id1", "ATCGAT", "CXXSHG").newFromSites(set(), exclude=True),
+        )
 
     def testRemoveSitesAllSites(self):
         """
         If all sites should be removed, newFromSites should return a read
         with the correct (empty) sequence.
         """
-        self.assertEqual(self.CLASS('id1', '', ''),
-                         self.CLASS('id1', 'ATCGAT', 'CXXSHG').newFromSites(
-                             set(range(6)), exclude=True))
+        self.assertEqual(
+            self.CLASS("id1", "", ""),
+            self.CLASS("id1", "ATCGAT", "CXXSHG").newFromSites(
+                set(range(6)), exclude=True
+            ),
+        )
 
     def testRemoveSitesOutOfRange(self):
         """
@@ -1963,15 +2067,19 @@ class _TestSSAAReadMixin(object):
         sites are higher than the length of the input sequences,
         newFromSites should return a read with the correct (full) sequence.
         """
-        self.assertEqual(self.CLASS('id1', 'ATCGAT', 'HGSTCC'),
-                         self.CLASS('id1', 'ATCGAT', 'HGSTCC').newFromSites(
-                             {100, 200}, exclude=True))
+        self.assertEqual(
+            self.CLASS("id1", "ATCGAT", "HGSTCC"),
+            self.CLASS("id1", "ATCGAT", "HGSTCC").newFromSites(
+                {100, 200}, exclude=True
+            ),
+        )
 
 
 class TestSSAARead(TestCase, _TestSSAAReadMixin):
     """
     Tests for the SSAARead class.
     """
+
     CLASS = SSAARead
 
 
@@ -1979,13 +2087,14 @@ class TestSSAAReadWithX(TestCase, _TestSSAAReadMixin):
     """
     Tests for the SSAAReadWithX class.
     """
+
     CLASS = SSAAReadWithX
 
     def testSequenceContainingX(self):
         """
         An SSAAReadWithX must be able to contain an 'X' character.
         """
-        self.assertEqual('AFGX', SSAAReadWithX('id', 'AFGX', 'HHHH').sequence)
+        self.assertEqual("AFGX", SSAAReadWithX("id", "AFGX", "HHHH").sequence)
 
 
 class TestTranslatedRead(TestCase):
@@ -1997,35 +2106,34 @@ class TestTranslatedRead(TestCase):
         """
         A TranslatedRead instance must have the expected attributes.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 0)
-        self.assertEqual('IRDS', translated.sequence)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 0)
+        self.assertEqual("IRDS", translated.sequence)
         self.assertEqual(0, translated.frame)
 
     def testSequence(self):
         """
         A TranslatedRead instance must have the expected sequence.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 0)
-        self.assertEqual('IRDS', translated.sequence)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 0)
+        self.assertEqual("IRDS", translated.sequence)
 
     def testOutOfRangeFrame(self):
         """
         A TranslatedRead instance must raise a ValueError if the passed frame
         is not 0, 1, or 2.
         """
-        read = Read('id', 'atcgatcgatcg')
-        error = 'Frame must be 0, 1, or 2'
-        six.assertRaisesRegex(self, ValueError, error, TranslatedRead, read,
-                              'IRDS', 3)
+        read = Read("id", "atcgatcgatcg")
+        error = "Frame must be 0, 1, or 2"
+        six.assertRaisesRegex(self, ValueError, error, TranslatedRead, read, "IRDS", 3)
 
     def testExpectedFrame(self):
         """
         A TranslatedRead instance must have the expected frame.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 2)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 2)
         self.assertEqual(2, translated.frame)
 
     def testReverseComplemented(self):
@@ -2033,10 +2141,10 @@ class TestTranslatedRead(TestCase):
         A TranslatedRead instance must have the expected reversedComplemented
         value.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 0)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 0)
         self.assertFalse(translated.reverseComplemented)
-        translated = TranslatedRead(read, 'IRDS', 0, reverseComplemented=True)
+        translated = TranslatedRead(read, "IRDS", 0, reverseComplemented=True)
         self.assertTrue(translated.reverseComplemented)
 
     def testId(self):
@@ -2044,34 +2152,34 @@ class TestTranslatedRead(TestCase):
         A TranslatedRead instance must put the the frame information into its
         read id.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 0)
-        self.assertEqual('id-frame0', translated.id)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 0)
+        self.assertEqual("id-frame0", translated.id)
 
     def testIdReverseComplemented(self):
         """
         A TranslatedRead instance must put the the frame information into its
         read id when the original read was reverse complemented.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 1, True)
-        self.assertEqual('id-frame1rc', translated.id)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 1, True)
+        self.assertEqual("id-frame1rc", translated.id)
 
     def testMaximumORFLengthNoStops(self):
         """
         The maximumORFLength function must return the correct value when
         there are no stop codons in a translated read.
         """
-        read = Read('id', 'atcgatcgatcg')
-        translated = TranslatedRead(read, 'IRDS', 0)
+        read = Read("id", "atcgatcgatcg")
+        translated = TranslatedRead(read, "IRDS", 0)
         self.assertEqual(4, translated.maximumORFLength())
 
     def testMaximumORFLength(self):
         """
         The maximumORFLength function must return the correct value.
         """
-        read = Read('id', 'acctagatggttgtttag')
-        translated = TranslatedRead(read, 'T*MVV*', 0)
+        read = Read("id", "acctagatggttgtttag")
+        translated = TranslatedRead(read, "T*MVV*", 0)
         self.assertEqual(2, translated.maximumORFLength())
 
     def testMaximumORFLengthNoOpenORF(self):
@@ -2079,57 +2187,62 @@ class TestTranslatedRead(TestCase):
         The maximumORFLength function must return the correct value if
         open ORFs are not allowed.
         """
-        read = Read('id', 'atgacctagatggttgtttag')
-        translated = TranslatedRead(read, 'MT*MVV*', 0)
+        read = Read("id", "atgacctagatggttgtttag")
+        translated = TranslatedRead(read, "MT*MVV*", 0)
         self.assertEqual(2, translated.maximumORFLength(False))
 
     def testToDict(self):
         """
         toDict must return the correct dictionary.
         """
-        originalRead = AARead('id3', 'ACGT', '!!2&')
-        read = TranslatedRead(originalRead, 'MMMM', 0, True)
+        originalRead = AARead("id3", "ACGT", "!!2&")
+        read = TranslatedRead(originalRead, "MMMM", 0, True)
         self.assertEqual(
             {
-                'id': 'id3-frame0rc',
-                'sequence': 'MMMM',
-                'quality': None,
-                'frame': 0,
-                'reverseComplemented': True,
+                "id": "id3-frame0rc",
+                "sequence": "MMMM",
+                "quality": None,
+                "frame": 0,
+                "reverseComplemented": True,
             },
-            read.toDict())
+            read.toDict(),
+        )
 
     def testFromDict(self):
         """
         fromDict must return the expected instance.
         """
-        originalRead = AARead('id3', 'ACGT')
+        originalRead = AARead("id3", "ACGT")
         self.assertEqual(
-            TranslatedRead(originalRead, 'MMMM', 0, True),
-            TranslatedRead.fromDict({
-                'id': 'id3-frame0rc',
-                'sequence': 'MMMM',
-                'quality': None,
-                'frame': 0,
-                'reverseComplemented': True,
-            }))
+            TranslatedRead(originalRead, "MMMM", 0, True),
+            TranslatedRead.fromDict(
+                {
+                    "id": "id3-frame0rc",
+                    "sequence": "MMMM",
+                    "quality": None,
+                    "frame": 0,
+                    "reverseComplemented": True,
+                }
+            ),
+        )
 
 
 class TestReadClassNameToClass(TestCase):
     """
     Test that the light.reads.readClassNameToClass dictionary is correct.
     """
+
     def testNames(self):
         self.assertEqual(9, len(readClassNameToClass))
-        self.assertIs(AARead, readClassNameToClass['AARead'])
-        self.assertIs(AAReadORF, readClassNameToClass['AAReadORF'])
-        self.assertIs(AAReadWithX, readClassNameToClass['AAReadWithX'])
-        self.assertIs(DNARead, readClassNameToClass['DNARead'])
-        self.assertIs(RNARead, readClassNameToClass['RNARead'])
-        self.assertIs(Read, readClassNameToClass['Read'])
-        self.assertIs(SSAARead, readClassNameToClass['SSAARead'])
-        self.assertIs(SSAAReadWithX, readClassNameToClass['SSAAReadWithX'])
-        self.assertIs(TranslatedRead, readClassNameToClass['TranslatedRead'])
+        self.assertIs(AARead, readClassNameToClass["AARead"])
+        self.assertIs(AAReadORF, readClassNameToClass["AAReadORF"])
+        self.assertIs(AAReadWithX, readClassNameToClass["AAReadWithX"])
+        self.assertIs(DNARead, readClassNameToClass["DNARead"])
+        self.assertIs(RNARead, readClassNameToClass["RNARead"])
+        self.assertIs(Read, readClassNameToClass["Read"])
+        self.assertIs(SSAARead, readClassNameToClass["SSAARead"])
+        self.assertIs(SSAAReadWithX, readClassNameToClass["SSAAReadWithX"])
+        self.assertIs(TranslatedRead, readClassNameToClass["TranslatedRead"])
 
 
 class TestReads(TestCase):
@@ -2156,8 +2269,8 @@ class TestReads(TestCase):
         A Reads instance with reads added manually must be able to be listed.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         self.assertEqual([read1, read2], list(reads))
@@ -2175,8 +2288,8 @@ class TestReads(TestCase):
         A Reads instance must be able to accept a non-empty initial iterable
         of reads.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads = Reads(initialReads=[read1, read2])
         self.assertEqual([read1, read2], list(reads))
 
@@ -2186,8 +2299,8 @@ class TestReads(TestCase):
         length.
         """
         reads = Reads()
-        reads.add(Read('id1', 'AT'))
-        reads.add(Read('id2', 'AC'))
+        reads.add(Read("id1", "AT"))
+        reads.add(Read("id2", "AC"))
         self.assertEqual(2, len(list(reads)))
 
     def testSubclass(self):
@@ -2195,8 +2308,8 @@ class TestReads(TestCase):
         A Reads subclass with an iter method must result in an instance
         with a correct iterator.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
 
         class ReadsSubclass(Reads):
             def iter(self):
@@ -2211,8 +2324,8 @@ class TestReads(TestCase):
         A Reads subclass with an iter method must result in an instance
         with a correct length.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
 
         class ReadsSubclass(Reads):
             def iter(self):
@@ -2227,8 +2340,8 @@ class TestReads(TestCase):
         A Reads subclass with an iter method must be able to be listed
         more than once.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
 
         class ReadsSubclass(Reads):
             def iter(self):
@@ -2244,9 +2357,9 @@ class TestReads(TestCase):
         A Reads subclass with an iter method that is then added to manually
         must result in an instance with a correct iterator.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
-        read3 = Read('id3', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
+        read3 = Read("id3", "AC")
 
         class ReadsSubclass(Reads):
             def iter(self):
@@ -2263,48 +2376,49 @@ class TestReads(TestCase):
         format.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT', '!!')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT", "!!")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         error = r"Format must be either 'fasta', 'fastq' or 'fasta-ss'\."
-        six.assertRaisesRegex(self, ValueError, error, reads.save, 'file',
-                              'xxx')
+        six.assertRaisesRegex(self, ValueError, error, reads.save, "file", "xxx")
         # The output file must not exist following the save() failure.
         error = "No such file or directory: 'file'"
-        six.assertRaisesRegex(self, OSError, error, stat, 'file')
+        six.assertRaisesRegex(self, OSError, error, stat, "file")
 
     def testSaveFASTAIsDefault(self):
         """
         A Reads instance must save in FASTA format by default.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         mockOpener = mock_open()
-        with patch.object(builtins, 'open', mockOpener):
-            reads.save('filename')
+        with patch.object(builtins, "open", mockOpener):
+            reads.save("filename")
         handle = mockOpener()
-        self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
-                         handle.write.mock_calls)
+        self.assertEqual(
+            [call(">id1\nAT\n"), call(">id2\nAC\n")], handle.write.mock_calls
+        )
 
     def testSaveAsFASTA(self):
         """
         A Reads instance must be able to save in FASTA format.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         mockOpener = mock_open()
-        with patch.object(builtins, 'open', mockOpener):
-            reads.save('filename', 'fasta')
+        with patch.object(builtins, "open", mockOpener):
+            reads.save("filename", "fasta")
         handle = mockOpener()
-        self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
-                         handle.write.mock_calls)
+        self.assertEqual(
+            [call(">id1\nAT\n"), call(">id2\nAC\n")], handle.write.mock_calls
+        )
 
     def testSaveReturnsReadCount(self):
         """
@@ -2312,13 +2426,13 @@ class TestReads(TestCase):
         of reads in the instance.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         mockOpener = mock_open()
-        with patch.object(builtins, 'open', mockOpener):
-            result = reads.save('filename')
+        with patch.object(builtins, "open", mockOpener):
+            result = reads.save("filename")
             self.assertIs(2, result)
 
     def testSaveWithUppercaseFormat(self):
@@ -2327,33 +2441,35 @@ class TestReads(TestCase):
         given in upper case.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         mockOpener = mock_open()
-        with patch.object(builtins, 'open', mockOpener):
-            reads.save('filename', 'FASTA')
+        with patch.object(builtins, "open", mockOpener):
+            reads.save("filename", "FASTA")
         handle = mockOpener()
-        self.assertEqual([call('>id1\nAT\n'), call('>id2\nAC\n')],
-                         handle.write.mock_calls)
+        self.assertEqual(
+            [call(">id1\nAT\n"), call(">id2\nAC\n")], handle.write.mock_calls
+        )
 
     def testSaveAsFASTQ(self):
         """
         A Reads instance must be able to save in FASTQ format.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT', '!!')
-        read2 = Read('id2', 'AC', '@@')
+        read1 = Read("id1", "AT", "!!")
+        read2 = Read("id2", "AC", "@@")
         reads.add(read1)
         reads.add(read2)
         mockOpener = mock_open()
-        with patch.object(builtins, 'open', mockOpener):
-            reads.save('filename', 'fastq')
+        with patch.object(builtins, "open", mockOpener):
+            reads.save("filename", "fastq")
         handle = mockOpener()
         self.assertEqual(
-            [call('@id1\nAT\n+id1\n!!\n'), call('@id2\nAC\n+id2\n@@\n')],
-            handle.write.mock_calls)
+            [call("@id1\nAT\n+id1\n!!\n"), call("@id2\nAC\n+id2\n@@\n")],
+            handle.write.mock_calls,
+        )
 
     def testSaveAsFASTQFailsOnReadWithNoQuality(self):
         """
@@ -2361,16 +2477,15 @@ class TestReads(TestCase):
         format and there is a read with no quality present.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT', '!!')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT", "!!")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         error = "Read 'id2' has no quality information"
-        six.assertRaisesRegex(self, ValueError, error, reads.save, 'file',
-                              'fastq')
+        six.assertRaisesRegex(self, ValueError, error, reads.save, "file", "fastq")
         # The output file must not exist following the save() failure.
         error = "No such file or directory: 'file'"
-        six.assertRaisesRegex(self, OSError, error, stat, 'file')
+        six.assertRaisesRegex(self, OSError, error, stat, "file")
 
     def testSaveToFileDescriptor(self):
         """
@@ -2378,13 +2493,13 @@ class TestReads(TestCase):
         filename.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         fp = StringIO()
         reads.save(fp)
-        self.assertEqual('>id1\nAT\n>id2\nAC\n', fp.getvalue())
+        self.assertEqual(">id1\nAT\n>id2\nAC\n", fp.getvalue())
 
     def testUnfilteredLengthBeforeIterating(self):
         """
@@ -2392,10 +2507,11 @@ class TestReads(TestCase):
         is called before it has been iterated.
         """
         reads = Reads()
-        error = (r'^The unfiltered length of a Reads instance is unknown '
-                 r'until it has been iterated\.$')
-        six.assertRaisesRegex(self, RuntimeError, error,
-                              reads.unfilteredLength)
+        error = (
+            r"^The unfiltered length of a Reads instance is unknown "
+            r"until it has been iterated\.$"
+        )
+        six.assertRaisesRegex(self, RuntimeError, error, reads.unfilteredLength)
 
     def testUnfilteredLengthNoReads(self):
         """
@@ -2411,8 +2527,8 @@ class TestReads(TestCase):
         unfiltered length.
         """
         reads = Reads()
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         list(reads)
@@ -2425,8 +2541,8 @@ class TestReads(TestCase):
         returns must be correct.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
         reads.add(read1)
         reads.add(read2)
         reads.filter(minLength=3)
@@ -2438,8 +2554,8 @@ class TestReads(TestCase):
         A Reads instance that has been given reads initially must have the
         correct unfiltered length.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
         reads = Reads([read1, read2])
         list(reads)
         self.assertEqual(2, reads.unfilteredLength())
@@ -2450,8 +2566,8 @@ class TestReads(TestCase):
         must have the correct (original) unfiltered length and the filtered
         list it returns must be correct.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
         reads = Reads([read1, read2])
         reads.filter(minLength=3)
         self.assertEqual([read1], list(reads))
@@ -2463,8 +2579,8 @@ class TestReads(TestCase):
         intially must have the correct (original) unfiltered length and the
         filtered list it returns must be correct.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
         initialReads = Reads([read1, read2])
         initialReads.filter(minLength=3)
 
@@ -2478,12 +2594,12 @@ class TestReads(TestCase):
         intially and then an additional read must have the correct (original)
         unfiltered length and the filtered list it returns must be correct.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
         initialReads = Reads([read1, read2])
         initialReads.filter(minLength=3)
 
-        read3 = Read('id3', 'AC')
+        read3 = Read("id3", "AC")
         reads = Reads(initialReads)
         reads.add(read3)
         self.assertEqual(sorted((read1, read3)), sorted(reads))
@@ -2495,8 +2611,8 @@ class TestReads(TestCase):
         instance intially, it must have the correct (original)
         unfiltered length and the filtered list it returns must be correct.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
 
         class Subclass(Reads):
             def iter(self):
@@ -2513,8 +2629,8 @@ class TestReads(TestCase):
         then filtered, it must have the correct (original) unfiltered length
         and the filtered list it returns must be correct.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
 
         class Subclass(Reads):
             def iter(self):
@@ -2533,9 +2649,9 @@ class TestReads(TestCase):
         (original) unfiltered length and the filtered list it returns must be
         correct.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'AC')
-        read3 = Read('id3', 'AC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "AC")
+        read3 = Read("id3", "AC")
 
         class Subclass(Reads):
             def iter(self):
@@ -2554,8 +2670,8 @@ class TestReads(TestCase):
         Test filtering by maximum fraction of Ns. If there are no Ns in the
         sequences, all must pass the filtering.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'ATTAAC')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "ATTAAC")
         initialReads = Reads([read1, read2])
         initialReads.filter(maxNFraction=0.9)
 
@@ -2567,8 +2683,8 @@ class TestReads(TestCase):
         Test filtering by maximum fraction of Ns. If there are too many Ns in
         one of the sequences, only one must pass the filtering.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'ATTNNN')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "ATTNNN")
         initialReads = Reads([read1, read2])
         initialReads.filter(maxNFraction=0.4)
 
@@ -2581,8 +2697,8 @@ class TestReads(TestCase):
         sequence, but below the threshold, all sequences must pass the
         filtering.
         """
-        read1 = Read('id1', 'ATTA')
-        read2 = Read('id2', 'ATTNNN')
+        read1 = Read("id1", "ATTA")
+        read2 = Read("id2", "ATTNNN")
         initialReads = Reads([read1, read2])
         initialReads.filter(maxNFraction=0.6)
 
@@ -2594,8 +2710,8 @@ class TestReads(TestCase):
         If two Reads have no bases that are variable, nothing should be
         returned by the C{variableSites} method when confirm is True.
         """
-        read1 = Read('id1', 'AC')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AC")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=True)
@@ -2606,8 +2722,8 @@ class TestReads(TestCase):
         If two Reads have no bases that are variable, nothing should be
         returned by the C{variableSites} method when confirm is False.
         """
-        read1 = Read('id1', 'AC')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AC")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=False)
@@ -2618,8 +2734,8 @@ class TestReads(TestCase):
         If two Reads have one base that is variable, the site must be returned
         by the C{variableSites} method when confirm is True.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=True)
@@ -2630,8 +2746,8 @@ class TestReads(TestCase):
         If two Reads have one base that is variable, the site must be returned
         by the C{variableSites} method when confirm is False.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=False)
@@ -2643,8 +2759,8 @@ class TestReads(TestCase):
         incompatible) in one read, the site must be returned by the
         C{variableSites} method when confirm is True.
         """
-        read1 = Read('id1', 'AW')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AW")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=True)
@@ -2656,8 +2772,8 @@ class TestReads(TestCase):
         incompatible) in one read, the site must be returned by the
         C{variableSites} method when confirm is False.
         """
-        read1 = Read('id1', 'AW')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AW")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=False)
@@ -2669,8 +2785,8 @@ class TestReads(TestCase):
         compatible) in one read, the site must not be returned by the
         C{variableSites} method when confirm is True.
         """
-        read1 = Read('id1', 'AM')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AM")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=True)
@@ -2682,8 +2798,8 @@ class TestReads(TestCase):
         compatible) in one read, the site must be returned by the
         C{variableSites} method when confirm is False.
         """
-        read1 = Read('id1', 'AM')
-        read2 = Read('id2', 'AC')
+        read1 = Read("id1", "AM")
+        read2 = Read("id2", "AC")
 
         reads = Reads([read1, read2])
         varSites = reads.variableSites(confirm=False)
@@ -2695,9 +2811,9 @@ class TestReads(TestCase):
         is too homogeneous, the site must not be returned by the
         C{variableSites} method.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
-        read3 = Read('id3', 'AC')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
+        read3 = Read("id3", "AC")
 
         reads = Reads([read1, read2, read3])
         varSites = reads.variableSites(homogeneityLevel=0.6)
@@ -2709,9 +2825,9 @@ class TestReads(TestCase):
         is not too homogeneous, the site must be returned by the
         C{variableSites} method.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
-        read3 = Read('id3', 'AG')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
+        read3 = Read("id3", "AG")
 
         reads = Reads([read1, read2, read3])
         varSites = reads.variableSites(homogeneityLevel=0.6)
@@ -2723,144 +2839,144 @@ class TestReads(TestCase):
         is not too homogeneous, the site must be returned by the
         C{variableSites} method and the counts must be as expected.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'AC')
-        read3 = Read('id3', 'AG')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "AC")
+        read3 = Read("id3", "AG")
 
         reads = Reads([read1, read2, read3])
         varSites = reads.variableSites(homogeneityLevel=0.6)
         self.assertEqual([1], list(varSites))
-        self.assertEqual(
-            {'T': 1.0, 'C': 1.0, 'G': 1.0}, varSites[1].counts)
+        self.assertEqual({"T": 1.0, "C": 1.0, "G": 1.0}, varSites[1].counts)
 
     def testVariableSitesUnequalLengths(self):
         """
         The C{variableSites} method must raise a ReadLengthsNotIdenticalError
         if all reads do not have the same length.
         """
-        read1 = Read('id1', 'AT')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "AT")
+        read2 = Read("id2", "ACG")
 
         reads = Reads([read1, read2])
-        error = r'^$'
-        six.assertRaisesRegex(self, ReadLengthsNotIdenticalError, error,
-                              reads.variableSites)
+        error = r"^$"
+        six.assertRaisesRegex(
+            self, ReadLengthsNotIdenticalError, error, reads.variableSites
+        )
 
     def testCombineReadsIdentical(self):
         """
         Reads that are identical at a position must result in the correct
         combination.
         """
-        read1 = Read('id1', 'A')
-        read2 = Read('id2', 'A')
+        read1 = Read("id1", "A")
+        read2 = Read("id2", "A")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('A', combined)
+        self.assertEqual("A", combined)
 
     def testCombineReadsNBaseTwoReads(self):
         """
         Reads where one has an N and the other has a base must result in the
         correct combination.
         """
-        read1 = Read('id1', 'A')
-        read2 = Read('id2', 'N')
+        read1 = Read("id1", "A")
+        read2 = Read("id2", "N")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('A', combined)
+        self.assertEqual("A", combined)
 
     def testCombineReadsNBaseThreeReads(self):
         """
         Reads where one has an N and the other two have a base must result in
         the correct combination.
         """
-        read1 = Read('id1', 'A')
-        read2 = Read('id2', 'N')
-        read3 = Read('id3', 'A')
+        read1 = Read("id1", "A")
+        read2 = Read("id2", "N")
+        read3 = Read("id3", "A")
 
         reads = Reads([read1, read2, read3])
         combined = reads.combineReads()
-        self.assertEqual('A', combined)
+        self.assertEqual("A", combined)
 
     def testCombineReadsTwoDifferentBases(self):
         """
         Reads which have two different bases must return the correct
         combination.
         """
-        read1 = Read('id1', 'T')
-        read2 = Read('id2', 'A')
+        read1 = Read("id1", "T")
+        read2 = Read("id2", "A")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('W', combined)
+        self.assertEqual("W", combined)
 
     def testCombineReadsThreeDifferentBases(self):
         """
         Reads which have three different bases must return the correct
         combination.
         """
-        read1 = Read('id1', 'T')
-        read2 = Read('id2', 'A')
-        read3 = Read('id3', 'G')
+        read1 = Read("id1", "T")
+        read2 = Read("id2", "A")
+        read3 = Read("id3", "G")
 
         reads = Reads([read1, read2, read3])
         combined = reads.combineReads()
-        self.assertEqual('D', combined)
+        self.assertEqual("D", combined)
 
     def testCombineReadsAmbiguityBase(self):
         """
         Reads where one has an ambiguity and the other has a base must result
         in the correct combination.
         """
-        read1 = Read('id1', 'T')
-        read2 = Read('id2', 'S')
+        read1 = Read("id1", "T")
+        read2 = Read("id2", "S")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('B', combined)
+        self.assertEqual("B", combined)
 
     def testCombineReadsTwoAmbiguities(self):
         """
         Reads where one has an ambiguity and the other has a base must result
         in the correct combination.
         """
-        read1 = Read('id1', 'M')
-        read2 = Read('id2', 'S')
+        read1 = Read("id1", "M")
+        read2 = Read("id2", "S")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('V', combined)
+        self.assertEqual("V", combined)
 
     def testCombineReadsNGap(self):
         """
         Positions with an N and a gap must result in the correct combination.
         """
-        read1 = Read('id1', 'N')
-        read2 = Read('id2', '-')
+        read1 = Read("id1", "N")
+        read2 = Read("id2", "-")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('N', combined)
+        self.assertEqual("N", combined)
 
     def testCombineReadsBaseGap(self):
         """
         Positions with a base and a gap must result in the correct combination.
         """
-        read1 = Read('id1', 'A')
-        read2 = Read('id2', '-')
+        read1 = Read("id1", "A")
+        read2 = Read("id2", "-")
 
         reads = Reads([read1, read2])
         combined = reads.combineReads()
-        self.assertEqual('A', combined)
+        self.assertEqual("A", combined)
 
     def testCombineReadsUnequalLengthAssertionError(self):
         """
         If combineReads is called with reads of unequal length an
         AssertionError must be raised.
         """
-        read1 = Read('id1', 'AAAA')
-        read2 = Read('id2', 'T')
+        read1 = Read("id1", "AAAA")
+        read2 = Read("id2", "T")
 
         reads = Reads([read1, read2])
         self.assertRaises(AssertionError, reads.combineReads)
@@ -2883,8 +2999,8 @@ class TestReadsFiltering(TestCase):
         Filtering must return the same list when not asked to do anything.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter()
@@ -2902,10 +3018,10 @@ class TestReadsFiltering(TestCase):
         length.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
-        read3 = Read('id3', 'AC')
-        read4 = Read('id4', 'A')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
+        read3 = Read("id3", "AC")
+        read4 = Read("id4", "A")
         reads.add(read1)
         reads.add(read2)
         reads.add(read3)
@@ -2918,8 +3034,12 @@ class TestReadsFiltering(TestCase):
         If filters are added and then all filters are cleared, the result must
         be the same as the reads that were originally added.
         """
-        initial = [Read('id1', 'ATCG'), Read('id2', 'ACG'), Read('id3', 'AC'),
-                   Read('id4', 'A')]
+        initial = [
+            Read("id1", "ATCG"),
+            Read("id2", "ACG"),
+            Read("id3", "AC"),
+            Read("id4", "A"),
+        ]
         reads = Reads(initial)
         result = reads.filter(minLength=3).filter(maxLength=3).clearFilters()
         self.assertEqual(initial, list(result))
@@ -2929,8 +3049,8 @@ class TestReadsFiltering(TestCase):
         Filtering on minimal length must work.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(minLength=4)
@@ -2941,8 +3061,8 @@ class TestReadsFiltering(TestCase):
         Filtering on maximal length must work.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(maxLength=3)
@@ -2954,8 +3074,8 @@ class TestReadsFiltering(TestCase):
         satisfy the length requirements.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(minLength=10, maxLength=15)
@@ -2967,8 +3087,8 @@ class TestReadsFiltering(TestCase):
         satisfy the length requirements.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(minLength=2, maxLength=5)
@@ -2980,8 +3100,8 @@ class TestReadsFiltering(TestCase):
         equals a passed minimum and maximum length.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ACG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ACG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(minLength=4, maxLength=4)
@@ -2992,9 +3112,9 @@ class TestReadsFiltering(TestCase):
         Filtering must be able to remove gaps.
         """
         reads = Reads()
-        reads.add(Read('id', '-AT--CG-'))
+        reads.add(Read("id", "-AT--CG-"))
         result = reads.filter(removeGaps=True)
-        self.assertEqual([Read('id', 'ATCG')], list(result))
+        self.assertEqual([Read("id", "ATCG")], list(result))
 
     def testFilterRemoveGapsWithQuality(self):
         """
@@ -3002,9 +3122,9 @@ class TestReadsFiltering(TestCase):
         properly.
         """
         reads = Reads()
-        reads.add(Read('id', '-AT--CG-', '12345678'))
+        reads.add(Read("id", "-AT--CG-", "12345678"))
         result = reads.filter(removeGaps=True)
-        self.assertEqual([Read('id', 'ATCG', '2367')], list(result))
+        self.assertEqual([Read("id", "ATCG", "2367")], list(result))
 
     def testFilterNegativeRegex(self):
         """
@@ -3012,13 +3132,13 @@ class TestReadsFiltering(TestCase):
         expression.
         """
         reads = Reads()
-        reads.add(Read('cats', 'ATCG'))
-        reads.add(Read('kittens', 'ATCG'))
-        reads.add(Read('dogs', 'ATCG'))
-        reads.add(Read('puppies', 'ATCG'))
-        reads.add(Read('lion', 'ATCG'))
-        result = reads.filter(negativeTitleRegex='s')
-        self.assertEqual([Read('lion', 'ATCG')], list(result))
+        reads.add(Read("cats", "ATCG"))
+        reads.add(Read("kittens", "ATCG"))
+        reads.add(Read("dogs", "ATCG"))
+        reads.add(Read("puppies", "ATCG"))
+        reads.add(Read("lion", "ATCG"))
+        result = reads.filter(negativeTitleRegex="s")
+        self.assertEqual([Read("lion", "ATCG")], list(result))
 
     def testFilterPositiveRegex(self):
         """
@@ -3026,57 +3146,58 @@ class TestReadsFiltering(TestCase):
         expression.
         """
         reads = Reads()
-        reads.add(Read('cats', 'ATCG'))
-        reads.add(Read('kittens', 'ATCG'))
-        reads.add(Read('dogs', 'ATCG'))
-        reads.add(Read('puppies', 'ATCG'))
-        reads.add(Read('lion', 'ATCG'))
-        result = reads.filter(titleRegex='tt')
-        self.assertEqual([Read('kittens', 'ATCG')], list(result))
+        reads.add(Read("cats", "ATCG"))
+        reads.add(Read("kittens", "ATCG"))
+        reads.add(Read("dogs", "ATCG"))
+        reads.add(Read("puppies", "ATCG"))
+        reads.add(Read("lion", "ATCG"))
+        result = reads.filter(titleRegex="tt")
+        self.assertEqual([Read("kittens", "ATCG")], list(result))
 
     def testFilterWhitelist(self):
         """
         Filtering must be able to filter reads based on a whitelist.
         """
         reads = Reads()
-        reads.add(Read('cats', 'ATCG'))
-        reads.add(Read('kittens', 'ATCG'))
-        reads.add(Read('dogs', 'ATCG'))
-        reads.add(Read('puppies', 'ATCG'))
-        reads.add(Read('lion', 'ATCG'))
-        result = reads.filter(negativeTitleRegex='.', whitelist=['lion'])
-        self.assertEqual([Read('lion', 'ATCG')], list(result))
+        reads.add(Read("cats", "ATCG"))
+        reads.add(Read("kittens", "ATCG"))
+        reads.add(Read("dogs", "ATCG"))
+        reads.add(Read("puppies", "ATCG"))
+        reads.add(Read("lion", "ATCG"))
+        result = reads.filter(negativeTitleRegex=".", whitelist=["lion"])
+        self.assertEqual([Read("lion", "ATCG")], list(result))
 
     def testFilterBlacklist(self):
         """
         Filtering must be able to filter reads based on a blacklist.
         """
         reads = Reads()
-        reads.add(Read('cats', 'ATCG'))
-        reads.add(Read('kittens', 'ATCG'))
-        reads.add(Read('dogs', 'ATCG'))
-        reads.add(Read('puppies', 'ATCG'))
-        reads.add(Read('lion', 'ATCG'))
-        result = reads.filter(titleRegex='.',
-                              blacklist=['cats', 'kittens', 'dogs', 'puppies'])
-        self.assertEqual([Read('lion', 'ATCG')], list(result))
+        reads.add(Read("cats", "ATCG"))
+        reads.add(Read("kittens", "ATCG"))
+        reads.add(Read("dogs", "ATCG"))
+        reads.add(Read("puppies", "ATCG"))
+        reads.add(Read("lion", "ATCG"))
+        result = reads.filter(
+            titleRegex=".", blacklist=["cats", "kittens", "dogs", "puppies"]
+        )
+        self.assertEqual([Read("lion", "ATCG")], list(result))
 
     def testFilterTruncateTitles(self):
         """
         Filtering must be able to filter reads based on a blacklist.
         """
         reads = Reads()
-        reads.add(Read('cat 400', 'AA'))
-        reads.add(Read('cat 500', 'GG'))
-        result = reads.filter(truncateTitlesAfter='cat')
-        self.assertEqual([Read('cat 400', 'AA')], list(result))
+        reads.add(Read("cat 400", "AA"))
+        reads.add(Read("cat 500", "GG"))
+        result = reads.filter(truncateTitlesAfter="cat")
+        self.assertEqual([Read("cat 400", "AA")], list(result))
 
     def testFilterKeepSequencesNoSequences(self):
         """
         Filtering must be able to filter reads based on their sequential
         number when no sequences are wanted.
         """
-        reads = Reads((Read('cow', 'A'), Read('dog', 'G'), Read('cat', 'T')))
+        reads = Reads((Read("cow", "A"), Read("dog", "G"), Read("cat", "T")))
         result = reads.filter(keepSequences=set())
         self.assertEqual([], list(result))
 
@@ -3086,18 +3207,18 @@ class TestReadsFiltering(TestCase):
         number.
         """
         reads = Reads()
-        reads.add(Read('cow', 'AA'))
-        reads.add(Read('dog', 'GG'))
-        reads.add(Read('cat', 'TT'))
+        reads.add(Read("cow", "AA"))
+        reads.add(Read("dog", "GG"))
+        reads.add(Read("cat", "TT"))
         result = reads.filter(keepSequences=set([0, 2]))
-        self.assertEqual([Read('cow', 'AA'), Read('cat', 'TT')], list(result))
+        self.assertEqual([Read("cow", "AA"), Read("cat", "TT")], list(result))
 
     def testFilterRemoveSequencesNoSequences(self):
         """
         Filtering must be able to filter reads based on their sequential
         number when no sequences are excluded.
         """
-        animals = [Read('cow', 'A'), Read('dog', 'G'), Read('cat', 'T')]
+        animals = [Read("cow", "A"), Read("dog", "G"), Read("cat", "T")]
         reads = Reads(animals)
         result = reads.filter(removeSequences=set())
         self.assertEqual(animals, list(result))
@@ -3108,11 +3229,11 @@ class TestReadsFiltering(TestCase):
         number.
         """
         reads = Reads()
-        reads.add(Read('cow', 'AA'))
-        reads.add(Read('dog', 'GG'))
-        reads.add(Read('cat', 'TT'))
+        reads.add(Read("cow", "AA"))
+        reads.add(Read("dog", "GG"))
+        reads.add(Read("cat", "TT"))
         result = reads.filter(removeSequences=set([1]))
-        self.assertEqual([Read('cow', 'AA'), Read('cat', 'TT')], list(result))
+        self.assertEqual([Read("cow", "AA"), Read("cat", "TT")], list(result))
 
     def testFilterHeadZero(self):
         """
@@ -3120,9 +3241,9 @@ class TestReadsFiltering(TestCase):
         including when N=0.
         """
         reads = Reads()
-        reads.add(Read('cow', 'AA'))
-        reads.add(Read('dog', 'GG'))
-        reads.add(Read('cat', 'TT'))
+        reads.add(Read("cow", "AA"))
+        reads.add(Read("dog", "GG"))
+        reads.add(Read("cat", "TT"))
         result = reads.filter(head=0)
         self.assertEqual([], list(result))
 
@@ -3131,11 +3252,11 @@ class TestReadsFiltering(TestCase):
         Filtering must be able to filter just the first N of a set of reads.
         """
         reads = Reads()
-        reads.add(Read('cow', 'AA'))
-        reads.add(Read('dog', 'GG'))
-        reads.add(Read('cat', 'TT'))
+        reads.add(Read("cow", "AA"))
+        reads.add(Read("dog", "GG"))
+        reads.add(Read("cat", "TT"))
         result = reads.filter(head=2)
-        self.assertEqual([Read('cow', 'AA'), Read('dog', 'GG')], list(result))
+        self.assertEqual([Read("cow", "AA"), Read("dog", "GG")], list(result))
 
     def testFilterDuplicates(self):
         """
@@ -3143,8 +3264,8 @@ class TestReadsFiltering(TestCase):
         set of duplicated reads is the one that should be retained.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(removeDuplicates=True)
@@ -3156,8 +3277,8 @@ class TestReadsFiltering(TestCase):
         set of duplicated reads is the one that should be retained.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id1', 'ATTT')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id1", "ATTT")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(removeDuplicatesById=True)
@@ -3170,12 +3291,11 @@ class TestReadsFiltering(TestCase):
         reads is the one that should be retained.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads.add(read1)
         reads.add(read2)
-        result = reads.filter(removeDuplicates=True,
-                              removeDuplicatesUseMD5=True)
+        result = reads.filter(removeDuplicates=True, removeDuplicatesUseMD5=True)
         self.assertEqual([read1], list(result))
 
     def testFilterDuplicatesByIdMD5(self):
@@ -3185,33 +3305,31 @@ class TestReadsFiltering(TestCase):
         reads is the one that should be retained.
         """
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id1', 'ATTT')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id1", "ATTT")
         reads.add(read1)
         reads.add(read2)
-        result = reads.filter(removeDuplicatesById=True,
-                              removeDuplicatesUseMD5=True)
+        result = reads.filter(removeDuplicatesById=True, removeDuplicatesUseMD5=True)
         self.assertEqual([read1], list(result))
 
     def testFilterRemoveDescriptions(self):
         """
         Removing read id descriptions must work correctly.
         """
-        read1 = Read('id1 description', 'ATCG')
-        read2 = Read('id2 another description', 'ATTT')
-        read3 = Read('id3', 'ATT')
+        read1 = Read("id1 description", "ATCG")
+        read2 = Read("id2 another description", "ATTT")
+        read3 = Read("id3", "ATT")
         reads = Reads([read1, read2, read3])
         result = reads.filter(removeDescriptions=True)
-        self.assertEqual(['id1', 'id2', 'id3'],
-                         [read.id for read in result])
+        self.assertEqual(["id1", "id2", "id3"], [read.id for read in result])
 
     def testFilterDoNotRemoveDescriptions(self):
         """
         Not removing read id descriptions must work correctly.
         """
-        read1 = Read('id1 description', 'ATCG')
-        read2 = Read('id2 another description', 'ATTT')
-        read3 = Read('id3', 'ATT')
+        read1 = Read("id1 description", "ATCG")
+        read2 = Read("id2 another description", "ATTT")
+        read3 = Read("id3", "ATT")
         reads = Reads([read1, read2, read3])
         result = reads.filter(removeDescriptions=False)
         self.assertEqual([read1, read2, read3], list(result))
@@ -3221,13 +3339,14 @@ class TestReadsFiltering(TestCase):
         Filtering with a modifier function must work correctly if the modifier
         returns C{None} for some reads.
         """
+
         def modifier(read):
-            if read.id == 'id1':
+            if read.id == "id1":
                 return read
 
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(modifier=modifier)
@@ -3238,52 +3357,52 @@ class TestReadsFiltering(TestCase):
         Filtering with a modifier function must work correctly if the modifier
         changes the ids of reads.
         """
+
         def modifier(read):
             read.id = read.id.upper()
             return read
 
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(modifier=modifier)
-        self.assertEqual([Read('ID1', 'ATCG'), Read('ID2', 'ATCG')],
-                         list(result))
+        self.assertEqual([Read("ID1", "ATCG"), Read("ID2", "ATCG")], list(result))
 
     def testFilterWithModifierThatOmitsAndChangesIds(self):
         """
         Filtering with a modifier function must work correctly if the modifier
         omits some reads and changes the ids of others.
         """
+
         def modifier(read):
-            if read.id == 'id1':
-                read.id = 'xxx'
+            if read.id == "id1":
+                read.id = "xxx"
                 return read
 
         reads = Reads()
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(modifier=modifier)
-        self.assertEqual([Read('xxx', 'ATCG')], list(result))
+        self.assertEqual([Read("xxx", "ATCG")], list(result))
 
     def testFilterRandomSubsetSizeZeroNoReads(self):
         """
         Asking for a random subset of length zero must work as expected when
         there are no reads in the Reads instance.
         """
-        self.assertEqual([],
-                         list(Reads().filter(randomSubset=0, trueLength=0)))
+        self.assertEqual([], list(Reads().filter(randomSubset=0, trueLength=0)))
 
     def testFilterRandomSubsetSizeZeroTwoReads(self):
         """
         Asking for a random subset of length zero from a set of two reads must
         work as expected.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads = Reads(initialReads=[read1, read2])
         result = reads.filter(randomSubset=0, trueLength=2)
         self.assertEqual([], list(result))
@@ -3302,7 +3421,7 @@ class TestReadsFiltering(TestCase):
         Asking for a size one random subset of a set of one read must work
         as expected.
         """
-        read = Read('id', 'ATCG')
+        read = Read("id", "ATCG")
         reads = Reads(initialReads=[read])
         result = reads.filter(randomSubset=1, trueLength=1)
         self.assertEqual([read], list(result))
@@ -3312,7 +3431,7 @@ class TestReadsFiltering(TestCase):
         Asking for a size five random subset of a set of one read must work
         as expected.
         """
-        read = Read('id', 'ATCG')
+        read = Read("id", "ATCG")
         reads = Reads(initialReads=[read])
         result = reads.filter(randomSubset=5, trueLength=1)
         self.assertEqual([read], list(result))
@@ -3322,11 +3441,11 @@ class TestReadsFiltering(TestCase):
         Asking for a size five random subset of a set of five reads must work
         as expected.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATCG')
-        read4 = Read('id4', 'ATCG')
-        read5 = Read('id5', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATCG")
+        read4 = Read("id4", "ATCG")
+        read5 = Read("id5", "ATCG")
         reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(randomSubset=5, trueLength=5)
         self.assertEqual([read1, read2, read3, read4, read5], list(result))
@@ -3336,11 +3455,11 @@ class TestReadsFiltering(TestCase):
         Asking for a size two random subset of a set of five reads must return
         two (different) reads.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATCG')
-        read4 = Read('id4', 'ATCG')
-        read5 = Read('id5', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATCG")
+        read4 = Read("id4", "ATCG")
+        read5 = Read("id5", "ATCG")
         reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(randomSubset=2, trueLength=5)
         self.assertEqual(2, len(set(result)))
@@ -3351,11 +3470,14 @@ class TestReadsFiltering(TestCase):
         same time must raise a ValueError.
         """
         reads = Reads()
-        error = (r"^randomSubset and sampleFraction cannot be used "
-                 r"simultaneously in a filter. Make two read filters "
-                 r"instead\.$")
-        six.assertRaisesRegex(self, ValueError, error, reads.filter,
-                              sampleFraction=0.1, randomSubset=3)
+        error = (
+            r"^randomSubset and sampleFraction cannot be used "
+            r"simultaneously in a filter. Make two read filters "
+            r"instead\.$"
+        )
+        six.assertRaisesRegex(
+            self, ValueError, error, reads.filter, sampleFraction=0.1, randomSubset=3
+        )
 
     def testSampleFractionAndNoTrueLengthRaisesValueError(self):
         """
@@ -3364,19 +3486,18 @@ class TestReadsFiltering(TestCase):
         """
         reads = Reads()
         error = r"^trueLength must be supplied if randomSubset is specified\.$"
-        six.assertRaisesRegex(self, ValueError, error, reads.filter,
-                              randomSubset=3)
+        six.assertRaisesRegex(self, ValueError, error, reads.filter, randomSubset=3)
 
     def testSampleFractionZero(self):
         """
         Asking for a sample fraction of 0.0 from a set of five reads must
         return the empty list.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATCG')
-        read4 = Read('id4', 'ATCG')
-        read5 = Read('id5', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATCG")
+        read4 = Read("id4", "ATCG")
+        read5 = Read("id5", "ATCG")
         reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(sampleFraction=0.0)
         self.assertEqual(0, len(list(result)))
@@ -3386,11 +3507,11 @@ class TestReadsFiltering(TestCase):
         Asking for a sample fraction of 1.0 from a set of five reads must
         return all reads.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATCG')
-        read4 = Read('id4', 'ATCG')
-        read5 = Read('id5', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATCG")
+        read4 = Read("id4", "ATCG")
+        read5 = Read("id5", "ATCG")
         reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(sampleFraction=1.0)
         self.assertEqual([read1, read2, read3, read4, read5], list(result))
@@ -3401,7 +3522,7 @@ class TestReadsFiltering(TestCase):
         return 11 reads (given a particular random seed value).
         """
         seed(1)
-        reads = Reads(initialReads=[Read('id1', 'ATCG')] * 100)
+        reads = Reads(initialReads=[Read("id1", "ATCG")] * 100)
         result = reads.filter(sampleFraction=0.1)
         self.assertEqual(11, len(list(result)))
 
@@ -3410,41 +3531,44 @@ class TestReadsFiltering(TestCase):
         If a line number file is passed to filter but its first line is
         less than 1, a ValueError must be raised.
         """
-        data = '0\n'
-        with patch.object(builtins, 'open', mock_open(read_data=data)):
+        data = "0\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = Reads([])
-            error = (r"^First line of sequence number file 'file' must be at "
-                     r"least 1\.$")
+            error = (
+                r"^First line of sequence number file 'file' must be at " r"least 1\.$"
+            )
             with six.assertRaisesRegex(self, ValueError, error):
-                reads.filter(sequenceNumbersFile='file')
+                reads.filter(sequenceNumbersFile="file")
 
     def testLineNumberFileNonAscending(self):
         """
         If a line number file is passed to filter but it contains non-ascending
         line numbers, a ValueError must be raised.
         """
-        data = '2\n2\n'
-        with patch.object(builtins, 'open', mock_open(read_data=data)):
-            read1 = Read('id1', 'ATCG')
-            read2 = Read('id2', 'ATCG')
-            read3 = Read('id3', 'ATCG')
+        data = "2\n2\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            read1 = Read("id1", "ATCG")
+            read2 = Read("id2", "ATCG")
+            read3 = Read("id3", "ATCG")
             reads = Reads(initialReads=[read1, read2, read3])
-            error = (r"^Line number file 'file' contains non-ascending "
-                     r"numbers 2 and 2\.$")
+            error = (
+                r"^Line number file 'file' contains non-ascending "
+                r"numbers 2 and 2\.$"
+            )
             with six.assertRaisesRegex(self, ValueError, error):
-                list(reads.filter(sequenceNumbersFile='file'))
+                list(reads.filter(sequenceNumbersFile="file"))
 
     def testLineNumberFileEmpty(self):
         """
         If an empty line number file is passed to filter, no sequences should
         be returned.
         """
-        data = ''
-        with patch.object(builtins, 'open', mock_open(read_data=data)):
-            read1 = Read('id1', 'ATCG')
-            read2 = Read('id2', 'ATCG')
+        data = ""
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            read1 = Read("id1", "ATCG")
+            read2 = Read("id2", "ATCG")
             reads = Reads(initialReads=[read1, read2])
-            result = reads.filter(sequenceNumbersFile='file')
+            result = reads.filter(sequenceNumbersFile="file")
             self.assertEqual([], list(result))
 
     def testLineNumberFile(self):
@@ -3452,14 +3576,14 @@ class TestReadsFiltering(TestCase):
         If a line number file is passed to filter, the correct sequences should
         be returned.
         """
-        data = '1\n3\n'
-        with patch.object(builtins, 'open', mock_open(read_data=data)):
-            read1 = Read('id1', 'ATCG')
-            read2 = Read('id2', 'ATCG')
-            read3 = Read('id3', 'ATCG')
-            read4 = Read('id4', 'ATCG')
+        data = "1\n3\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            read1 = Read("id1", "ATCG")
+            read2 = Read("id2", "ATCG")
+            read3 = Read("id3", "ATCG")
+            read4 = Read("id4", "ATCG")
             reads = Reads(initialReads=[read1, read2, read3, read4])
-            result = reads.filter(sequenceNumbersFile='file')
+            result = reads.filter(sequenceNumbersFile="file")
             self.assertEqual([read1, read3], list(result))
 
     def testLineNumberFileRunOutOfSequences(self):
@@ -3468,14 +3592,14 @@ class TestReadsFiltering(TestCase):
         are bigger than the number of sequences, the correct sequences should
         be returned.
         """
-        data = '1\n3\n200\n'
-        with patch.object(builtins, 'open', mock_open(read_data=data)):
-            read1 = Read('id1', 'ATCG')
-            read2 = Read('id2', 'ATCG')
-            read3 = Read('id3', 'ATCG')
-            read4 = Read('id4', 'ATCG')
+        data = "1\n3\n200\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            read1 = Read("id1", "ATCG")
+            read2 = Read("id2", "ATCG")
+            read3 = Read("id3", "ATCG")
+            read4 = Read("id4", "ATCG")
             reads = Reads(initialReads=[read1, read2, read3, read4])
-            result = reads.filter(sequenceNumbersFile='file')
+            result = reads.filter(sequenceNumbersFile="file")
             self.assertEqual([read1, read3], list(result))
 
     def testKeepSites(self):
@@ -3483,50 +3607,52 @@ class TestReadsFiltering(TestCase):
         If only a certain set of sites should be kept, the correct sequences
         should be returned.
         """
-        read1 = Read('id1', 'ATCGAT')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATC')
-        read4 = Read('id4', 'AT')
+        read1 = Read("id1", "ATCGAT")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATC")
+        read4 = Read("id4", "AT")
         reads = Reads(initialReads=[read1, read2, read3, read4])
         result = reads.filter(keepSites={1, 2})
         self.assertEqual(
             [
-                Read('id1', 'TC'),
-                Read('id2', 'TC'),
-                Read('id3', 'TC'),
-                Read('id4', 'T'),
+                Read("id1", "TC"),
+                Read("id2", "TC"),
+                Read("id3", "TC"),
+                Read("id4", "T"),
             ],
-            list(result))
+            list(result),
+        )
 
     def testKeepSitesNoSites(self):
         """
         If the empty set of sites should be kept, the correct (empty)
         sequences should be returned.
         """
-        read1 = Read('id1', 'ATCGAT')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATC')
-        read4 = Read('id4', 'AT')
+        read1 = Read("id1", "ATCGAT")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATC")
+        read4 = Read("id4", "AT")
         reads = Reads(initialReads=[read1, read2, read3, read4])
         result = reads.filter(keepSites=set())
         self.assertEqual(
             [
-                Read('id1', ''),
-                Read('id2', ''),
-                Read('id3', ''),
-                Read('id4', ''),
+                Read("id1", ""),
+                Read("id2", ""),
+                Read("id3", ""),
+                Read("id4", ""),
             ],
-            list(result))
+            list(result),
+        )
 
     def testKeepSitesAllSites(self):
         """
         If the set of all sites should be kept, the correct (full) sequences
         should be returned.
         """
-        read1 = Read('id1', 'ATCGAT')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATC')
-        read4 = Read('id4', 'AT')
+        read1 = Read("id1", "ATCGAT")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATC")
+        read4 = Read("id4", "AT")
         reads = Reads(initialReads=[read1, read2, read3, read4])
         result = reads.filter(keepSites=set(range(6)))
         self.assertEqual([read1, read2, read3, read4], list(result))
@@ -3536,9 +3662,9 @@ class TestReadsFiltering(TestCase):
         If only a certain set of sites should be kept, the correct sequences
         should be returned, including a modified quality string.
         """
-        reads = Reads(initialReads=[Read('id1', 'ATCGAT', '123456')])
+        reads = Reads(initialReads=[Read("id1", "ATCGAT", "123456")])
         result = reads.filter(keepSites={1, 2})
-        self.assertEqual([Read('id1', 'TC', '23')], list(result))
+        self.assertEqual([Read("id1", "TC", "23")], list(result))
 
     def testKeepSitesOutOfRange(self):
         """
@@ -3546,79 +3672,81 @@ class TestReadsFiltering(TestCase):
         are higher than the length of the input sequences, the correct
         (empty) sequences should be returned.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCGCC')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCGCC")
         reads = Reads(initialReads=[read1, read2])
         result = reads.filter(keepSites={100, 200})
         self.assertEqual(
             [
-                Read('id1', ''),
-                Read('id2', ''),
+                Read("id1", ""),
+                Read("id2", ""),
             ],
-            list(result))
+            list(result),
+        )
 
     def testRemoveSites(self):
         """
         If a certain set of sites should be removed, the correct sequences
         should be returned.
         """
-        read1 = Read('id1', 'ATCGCC')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATC')
-        read4 = Read('id4', 'A')
+        read1 = Read("id1", "ATCGCC")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATC")
+        read4 = Read("id4", "A")
         reads = Reads(initialReads=[read1, read2, read3, read4])
         result = reads.filter(removeSites={1, 2})
         self.assertEqual(
             [
-                Read('id1', 'AGCC'),
-                Read('id2', 'AG'),
-                Read('id3', 'A'),
-                Read('id4', 'A'),
+                Read("id1", "AGCC"),
+                Read("id2", "AG"),
+                Read("id3", "A"),
+                Read("id4", "A"),
             ],
-            list(result))
+            list(result),
+        )
 
     def testRemoveSitesNoSites(self):
         """
         If the empty set of sites should be removed, the correct (full)
         sequences should be returned.
         """
-        read1 = Read('id1', 'ATCGCC')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATC')
-        read4 = Read('id4', 'A')
+        read1 = Read("id1", "ATCGCC")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATC")
+        read4 = Read("id4", "A")
         reads = Reads(initialReads=[read1, read2, read3, read4])
         result = reads.filter(removeSites=set())
-        self.assertEqual([read1, read2, read3, read4],
-                         list(result))
+        self.assertEqual([read1, read2, read3, read4], list(result))
 
     def testRemoveSitesAllSites(self):
         """
         If the full set of sites should be removed, the correct (empty)
         sequences should be returned.
         """
-        read1 = Read('id1', 'ATCGCC')
-        read2 = Read('id2', 'ATCG')
-        read3 = Read('id3', 'ATC')
-        read4 = Read('id4', 'A')
+        read1 = Read("id1", "ATCGCC")
+        read2 = Read("id2", "ATCG")
+        read3 = Read("id3", "ATC")
+        read4 = Read("id4", "A")
         reads = Reads(initialReads=[read1, read2, read3, read4])
         result = reads.filter(removeSites=set(range(6)))
         self.assertEqual(
             [
-                Read('id1', ''),
-                Read('id2', ''),
-                Read('id3', ''),
-                Read('id4', ''),
+                Read("id1", ""),
+                Read("id2", ""),
+                Read("id3", ""),
+                Read("id4", ""),
             ],
-            list(result))
+            list(result),
+        )
 
     def testRemoveSitesWithQuality(self):
         """
         If a certain set of sites should be removed, the correct sequences
         should be returned, including a modified quality string.
         """
-        reads = Reads(initialReads=[Read('id1', 'ATCGAT', '123456')])
+        reads = Reads(initialReads=[Read("id1", "ATCGAT", "123456")])
         result = reads.filter(removeSites={1, 2})
-        self.assertEqual([Read('id1', 'AGAT', '1456')], list(result))
+        self.assertEqual([Read("id1", "AGAT", "1456")], list(result))
 
     def testRemoveSitesOutOfRange(self):
         """
@@ -3626,8 +3754,8 @@ class TestReadsFiltering(TestCase):
         are higher than the length of the input sequences, the correct
         (full) sequences should be returned.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCGAA')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCGAA")
         reads = Reads(initialReads=[read1, read2])
         result = reads.filter(removeSites={100, 200})
         self.assertEqual([read1, read2], list(result))
@@ -3637,113 +3765,119 @@ class TestReadsFiltering(TestCase):
         Passing a keepSites and a removeSites set to reads.filter
         must result in a ValueError.
         """
-        error = (r'^Cannot simultaneously filter using keepSites and '
-                 r'removeSites\. Call filter twice in succession instead\.$')
-        six.assertRaisesRegex(self, ValueError, error, Reads().filter,
-                              keepSites={4}, removeSites={5})
+        error = (
+            r"^Cannot simultaneously filter using keepSites and "
+            r"removeSites\. Call filter twice in succession instead\.$"
+        )
+        six.assertRaisesRegex(
+            self, ValueError, error, Reads().filter, keepSites={4}, removeSites={5}
+        )
 
     def testIdLambda(self):
         """
         A passed idLambda function should produce the expected read ids.
         """
-        read = Read('id1', 'ATCGCC')
+        read = Read("id1", "ATCGCC")
         reads = Reads(initialReads=[read])
         result = reads.filter(idLambda='lambda id: "x-" + id.upper()')
-        self.assertEqual('x-ID1', list(result)[0].id)
+        self.assertEqual("x-ID1", list(result)[0].id)
 
     def testIdLambdaReturningNone(self):
         """
         A passed idLambda function should produce the expected read ids,
         including when it returns None.
         """
-        read1 = Read('id1', 'ATCGCC')
-        read2 = Read('id2', 'GGATCG')
+        read1 = Read("id1", "ATCGCC")
+        read2 = Read("id2", "GGATCG")
         reads = Reads(initialReads=[read1, read2])
-        result = reads.filter(
-            idLambda='lambda id: "aa" if id.find("1") > -1 else None')
+        result = reads.filter(idLambda='lambda id: "aa" if id.find("1") > -1 else None')
         (result,) = list(result)
-        self.assertEqual('aa', result.id)
+        self.assertEqual("aa", result.id)
 
     def testReadLambda(self):
         """
         A passed readLambda function should produce the expected reads.
         """
-        read = Read('id1', 'ATCGCC')
+        read = Read("id1", "ATCGCC")
         reads = Reads(initialReads=[read])
         result = reads.filter(readLambda='lambda r: Read("hey", "AAA")')
         (result,) = list(result)
-        self.assertEqual(Read('hey', 'AAA'), result)
+        self.assertEqual(Read("hey", "AAA"), result)
 
     def testReadLambdaReturningNone(self):
         """
         A passed readLambda function should produce the expected reads,
         including when it returns None.
         """
-        read1 = Read('xid1', 'ATCGCC')
-        read2 = Read('yid2', 'GGATCG')
+        read1 = Read("xid1", "ATCGCC")
+        read2 = Read("yid2", "GGATCG")
         reads = Reads(initialReads=[read1, read2])
         result = reads.filter(
-            readLambda=('lambda r: Read(r.id + "-x", r.sequence[:2]) '
-                        'if r.id.startswith("x") else None'))
+            readLambda=(
+                'lambda r: Read(r.id + "-x", r.sequence[:2]) '
+                'if r.id.startswith("x") else None'
+            )
+        )
         (result,) = list(result)
-        self.assertEqual(Read('xid1-x', 'AT'), result)
+        self.assertEqual(Read("xid1-x", "AT"), result)
 
     def testReverse(self):
         """
         When reverse=True, reads with the expected sequences and qualities
         must be returned.
         """
-        read1 = Read('id1', 'ATCGCC', '123456')
-        read2 = Read('id2', 'GGATCG', '987654')
+        read1 = Read("id1", "ATCGCC", "123456")
+        read2 = Read("id2", "GGATCG", "987654")
         reads = Reads(initialReads=[read1, read2])
         result1, result2 = list(reads.filter(reverse=True))
-        self.assertEqual(Read('id1', 'CCGCTA', '654321'), result1)
-        self.assertEqual(Read('id2', 'GCTAGG', '456789'), result2)
+        self.assertEqual(Read("id1", "CCGCTA", "654321"), result1)
+        self.assertEqual(Read("id2", "GCTAGG", "456789"), result2)
 
     def testReverseComplement(self):
         """
         When reverseComplement=True, reads with the expected sequences and
         qualities must be returned when the reads are of type DNARead.
         """
-        read1 = DNARead('id1', 'ATCGCC', '123456')
-        read2 = DNARead('id2', 'GGATCG', '987654')
+        read1 = DNARead("id1", "ATCGCC", "123456")
+        read2 = DNARead("id2", "GGATCG", "987654")
         reads = Reads(initialReads=[read1, read2])
         result1, result2 = list(reads.filter(reverseComplement=True))
-        self.assertEqual(Read('id1', 'GGCGAT', '654321'), result1)
-        self.assertEqual(Read('id2', 'CGATCC', '456789'), result2)
+        self.assertEqual(Read("id1", "GGCGAT", "654321"), result1)
+        self.assertEqual(Read("id2", "CGATCC", "456789"), result2)
 
     def testReverseAndReverseComplement(self):
         """
         When reverseComplement=True and reverse=True, the expected reads must
         be returned (reverse complemented) when the reads are of type DNARead.
         """
-        read1 = DNARead('id1', 'ATCGCC', '123456')
-        read2 = DNARead('id2', 'GGATCG', '987654')
+        read1 = DNARead("id1", "ATCGCC", "123456")
+        read2 = DNARead("id2", "GGATCG", "987654")
         reads = Reads(initialReads=[read1, read2])
-        result1, result2 = list(reads.filter(reverseComplement=True,
-                                             reverse=True))
-        self.assertEqual(Read('id1', 'GGCGAT', '654321'), result1)
-        self.assertEqual(Read('id2', 'CGATCC', '456789'), result2)
+        result1, result2 = list(reads.filter(reverseComplement=True, reverse=True))
+        self.assertEqual(Read("id1", "GGCGAT", "654321"), result1)
+        self.assertEqual(Read("id2", "CGATCC", "456789"), result2)
 
     def testReverseComplementNonDNA(self):
         """
         When reverseComplement=True and the read is not a DNARead, an
         AttributeError must be raised.
         """
-        reads = Reads(initialReads=[Read('id1', 'ATCGCC', '123456')])
+        reads = Reads(initialReads=[Read("id1", "ATCGCC", "123456")])
         error = "^'Read' object has no attribute 'reverseComplement'$"
-        six.assertRaisesRegex(self, AttributeError, error, list,
-                              reads.filter(reverseComplement=True))
+        six.assertRaisesRegex(
+            self, AttributeError, error, list, reads.filter(reverseComplement=True)
+        )
 
     def testReverseComplementAARead(self):
         """
         When reverseComplement=True and the read is an AARead, an
         AttributeError must be raised.
         """
-        reads = Reads(initialReads=[AARead('id1', 'ATCGCC', '123456')])
+        reads = Reads(initialReads=[AARead("id1", "ATCGCC", "123456")])
         error = "^'AARead' object has no attribute 'reverseComplement'$"
-        six.assertRaisesRegex(self, AttributeError, error, list,
-                              reads.filter(reverseComplement=True))
+        six.assertRaisesRegex(
+            self, AttributeError, error, list, reads.filter(reverseComplement=True)
+        )
 
 
 class TestReadsInRAM(TestCase):
@@ -3763,7 +3897,7 @@ class TestReadsInRAM(TestCase):
         It must be possible to add reads to a ReadsInRAM instance.
         """
         reads = ReadsInRAM()
-        read = Read('id', 'ACGT')
+        read = Read("id", "ACGT")
         reads.add(read)
         self.assertEqual([read], list(reads))
 
@@ -3771,7 +3905,7 @@ class TestReadsInRAM(TestCase):
         """
         A ReadsInRAM instance with one read must have length one.
         """
-        read1 = Read('id1', 'ATCG')
+        read1 = Read("id1", "ATCG")
         reads = ReadsInRAM([read1])
         self.assertEqual(1, len(reads))
 
@@ -3779,7 +3913,7 @@ class TestReadsInRAM(TestCase):
         """
         A ReadsInRAM instance with one read must iterate as expected.
         """
-        read1 = Read('id1', 'ATCG')
+        read1 = Read("id1", "ATCG")
         reads = ReadsInRAM([read1])
         self.assertEqual([read1], list(reads))
 
@@ -3787,7 +3921,7 @@ class TestReadsInRAM(TestCase):
         """
         A ReadsInRAM instance with one read must be able to be indexed.
         """
-        read1 = Read('id1', 'ATCG')
+        read1 = Read("id1", "ATCG")
         reads = ReadsInRAM([read1])
         self.assertEqual(read1, reads[0])
 
@@ -3795,8 +3929,8 @@ class TestReadsInRAM(TestCase):
         """
         A ReadsInRAM instance with two reads must have length one.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads = ReadsInRAM([read1, read2])
         self.assertEqual(2, len(reads))
 
@@ -3804,8 +3938,8 @@ class TestReadsInRAM(TestCase):
         """
         A ReadsInRAM instance with two reads must iterate as expected.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads = ReadsInRAM([read1, read2])
         self.assertEqual([read1, read2], list(reads))
 
@@ -3813,8 +3947,8 @@ class TestReadsInRAM(TestCase):
         """
         A ReadsInRAM instance with two reads must be able to be indexed.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads = ReadsInRAM([read1, read2])
         self.assertEqual(read1, reads[0])
         self.assertEqual(read2, reads[1])
@@ -3824,8 +3958,8 @@ class TestReadsInRAM(TestCase):
         A ReadsInRAM instance must be able to initialize itself from a Reads
         instance.
         """
-        read1 = Read('id1', 'ATCG')
-        read2 = Read('id2', 'ATCG')
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
         reads = Reads([read1, read2])
         readsInRAM = ReadsInRAM(reads)
         self.assertEqual(2, len(readsInRAM))
@@ -3838,25 +3972,26 @@ class TestReadsInRAM(TestCase):
         FastaReads instance and be iterated twice without the underlying file
         being opened twice.
         """
-        class SideEffect(object):
+
+        class SideEffect:
             def __init__(self, test):
                 self.test = test
                 self.count = 0
 
             def sideEffect(self, filename, **kwargs):
                 if self.count == 0:
-                    self.test.assertEqual('file1.fasta', filename)
+                    self.test.assertEqual("file1.fasta", filename)
                     self.count += 1
-                    return StringIO('>id1\nACTG\n>id2\nAA\n')
+                    return StringIO(">id1\nACTG\n>id2\nAA\n")
                 else:
-                    self.test.fail('We are only supposed to be called once!')
+                    self.test.fail("We are only supposed to be called once!")
 
         sideEffect = SideEffect(self)
-        with patch.object(builtins, 'open') as mockMethod:
+        with patch.object(builtins, "open") as mockMethod:
             mockMethod.side_effect = sideEffect.sideEffect
-            reads = FastaReads('file1.fasta')
+            reads = FastaReads("file1.fasta")
             readsInRAM = ReadsInRAM(reads)
-            expected = [Read('id1', 'ACTG'), Read('id2', 'AA')]
+            expected = [Read("id1", "ACTG"), Read("id2", "AA")]
             self.assertEqual(expected, list(readsInRAM))
             self.assertEqual(expected, list(readsInRAM))
             self.assertEqual(1, sideEffect.count)
@@ -3865,9 +4000,9 @@ class TestReadsInRAM(TestCase):
         """
         It must be possible to set a value for a ReadsInRAM index.
         """
-        read1 = Read('id1', 'ATCG')
+        read1 = Read("id1", "ATCG")
         reads = ReadsInRAM([read1])
-        read2 = Read('id2', 'ATCG')
+        read2 = Read("id2", "ATCG")
         reads[0] = read2
         self.assertEqual(read2, reads[0])
 
@@ -3876,13 +4011,14 @@ class TestSummarizePosition(TestCase):
     """
     Tests for the reads.summarizePosition function.
     """
+
     def testFrequenciesNoReads(self):
         """
         Must return empty counts if no reads are present.
         """
         reads = Reads()
         result = reads.summarizePosition(2)
-        self.assertEqual({}, result['countAtPosition'])
+        self.assertEqual({}, result["countAtPosition"])
 
     def testNumberOfExclusionsNoReads(self):
         """
@@ -3890,54 +4026,66 @@ class TestSummarizePosition(TestCase):
         """
         reads = Reads()
         result = reads.summarizePosition(2)
-        self.assertEqual(0, result['excludedCount'])
+        self.assertEqual(0, result["excludedCount"])
 
     def testExcludeShortSequences(self):
         """
         Sequences that are too short should be ignored.
         """
         reads = Reads()
-        reads.add(Read('id1', 'agtcagtcagtc'))
-        reads.add(Read('id2', 'acctg'))
-        reads.add(Read('id3', 'atg'))
+        reads.add(Read("id1", "agtcagtcagtc"))
+        reads.add(Read("id2", "acctg"))
+        reads.add(Read("id3", "atg"))
         result = reads.summarizePosition(9)
-        self.assertEqual(2, result['excludedCount'])
+        self.assertEqual(2, result["excludedCount"])
 
     def testIndexLargerThanSequenceLength(self):
         """
         Must not count residues in sequences that are too short.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaaaa'))
-        reads.add(Read('id2', 'aaca'))
-        reads.add(Read('id3', 'aat'))
+        reads.add(Read("id1", "aaaaaa"))
+        reads.add(Read("id2", "aaca"))
+        reads.add(Read("id3", "aat"))
         result = reads.summarizePosition(5)
-        self.assertEqual({'a': 1}, result['countAtPosition'])
+        self.assertEqual({"a": 1}, result["countAtPosition"])
 
     def testCorrectFrequencies(self):
         """
         Must return the correct frequencies.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaaaa'))
-        reads.add(Read('id2', 'aata'))
-        reads.add(Read('id3', 'aataaaaaa'))
+        reads.add(Read("id1", "aaaaaa"))
+        reads.add(Read("id2", "aata"))
+        reads.add(Read("id3", "aataaaaaa"))
         result = reads.summarizePosition(2)
-        self.assertEqual({'a': 1, 't': 2}, result['countAtPosition'])
+        self.assertEqual({"a": 1, "t": 2}, result["countAtPosition"])
+
+    def testReadCount(self):
+        """
+        Must return the correct number of reads.
+        """
+        reads = Reads()
+        reads.add(Read("id1", "aaaaaa"))
+        reads.add(Read("id2", "aata"))
+        reads.add(Read("id3", "aataaaaaa"))
+        result = reads.summarizePosition(2)
+        self.assertEqual(3, result["readCount"])
 
 
 class TestSitesMatching(TestCase):
     """
     Tests for the Reads.sitesMatching method.
     """
+
     def testNoMatches(self):
         """
         If no reads match the target bases, sitesMatching must return the
         empty set.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaaaa'))
-        result = reads.sitesMatching({'b'}, matchCase=True, any_=True)
+        reads.add(Read("id1", "aaaaaa"))
+        result = reads.sitesMatching({"b"}, matchCase=True, any_=True)
         self.assertEqual(set(), result)
 
     def testAllMatches(self):
@@ -3946,8 +4094,8 @@ class TestSitesMatching(TestCase):
         return the full set of sites.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaga'))
-        result = reads.sitesMatching({'a', 'g'}, matchCase=True, any_=True)
+        reads.add(Read("id1", "aaaga"))
+        result = reads.sitesMatching({"a", "g"}, matchCase=True, any_=True)
         self.assertEqual(set(range(5)), result)
 
     def testPartialMatch(self):
@@ -3956,8 +4104,8 @@ class TestSitesMatching(TestCase):
         must return the expected set of sites.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaga'))
-        result = reads.sitesMatching({'a'}, matchCase=True, any_=True)
+        reads.add(Read("id1", "aaaga"))
+        result = reads.sitesMatching({"a"}, matchCase=True, any_=True)
         self.assertEqual({0, 1, 2, 4}, result)
 
     def testMatchCase(self):
@@ -3966,8 +4114,8 @@ class TestSitesMatching(TestCase):
         matching case, sitesMatching must return the expected set of sites.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aAAga'))
-        result = reads.sitesMatching({'a'}, matchCase=True, any_=False)
+        reads.add(Read("id1", "aAAga"))
+        result = reads.sitesMatching({"a"}, matchCase=True, any_=False)
         self.assertEqual({0, 4}, result)
 
     def testIgnoreCase(self):
@@ -3977,8 +4125,8 @@ class TestSitesMatching(TestCase):
         when we tell it to ignore case.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aAAga'))
-        result = reads.sitesMatching({'a'}, matchCase=False, any_=False)
+        reads.add(Read("id1", "aAAga"))
+        result = reads.sitesMatching({"a"}, matchCase=False, any_=False)
         self.assertEqual({0, 1, 2, 4}, result)
 
     def testMultipleReadsAny(self):
@@ -3987,9 +4135,9 @@ class TestSitesMatching(TestCase):
         set of sites when we pass any_=True.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaga'))
-        reads.add(Read('id2', 'caata'))
-        result = reads.sitesMatching({'c', 'g'}, matchCase=False, any_=True)
+        reads.add(Read("id1", "aaaga"))
+        reads.add(Read("id2", "caata"))
+        result = reads.sitesMatching({"c", "g"}, matchCase=False, any_=True)
         self.assertEqual({0, 3}, result)
 
     def testMultipleReadsAll(self):
@@ -3998,9 +4146,9 @@ class TestSitesMatching(TestCase):
         set of sites when we pass any_=False.
         """
         reads = Reads()
-        reads.add(Read('id1', 'aaaga'))
-        reads.add(Read('id2', 'caaga'))
-        result = reads.sitesMatching({'c', 'g'}, matchCase=False, any_=False)
+        reads.add(Read("id1", "aaaga"))
+        reads.add(Read("id2", "caaga"))
+        result = reads.sitesMatching({"c", "g"}, matchCase=False, any_=False)
         self.assertEqual({3}, result)
 
     def testMultipleReadsAllWithDifferingLengths(self):
@@ -4010,9 +4158,9 @@ class TestSitesMatching(TestCase):
         lengths.
         """
         reads = Reads()
-        reads.add(Read('id2', 'caa-agt-'))
-        reads.add(Read('id1', '-aa-a'))
-        result = reads.sitesMatching({'-'}, matchCase=False, any_=False)
+        reads.add(Read("id2", "caa-agt-"))
+        reads.add(Read("id1", "-aa-a"))
+        result = reads.sitesMatching({"-"}, matchCase=False, any_=False)
         self.assertEqual({3}, result)
 
     def testMultipleReadsAnyWithDifferingLengths(self):
@@ -4022,9 +4170,9 @@ class TestSitesMatching(TestCase):
         lengths.
         """
         reads = Reads()
-        reads.add(Read('id2', 'caa-agt-'))
-        reads.add(Read('id1', '-aa-a'))
-        result = reads.sitesMatching({'-'}, matchCase=False, any_=True)
+        reads.add(Read("id2", "caa-agt-"))
+        reads.add(Read("id1", "-aa-a"))
+        result = reads.sitesMatching({"-"}, matchCase=False, any_=True)
         self.assertEqual({0, 3, 7}, result)
 
 
@@ -4032,210 +4180,224 @@ class TestFindORF(TestCase):
     """
     Tests for the DNARead.findORF method.
     """
+
     def testEmpty(self):
         """
         If an empty read is passed we must get back a dictionary indicating
         failure to find anything.
         """
-        read = DNARead('id', '')
+        read = DNARead("id", "")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(0))
+            read.findORF(0),
+        )
 
     def testLengthOne(self):
         """
         If a read of length one is passed we must get back a dictionary
         indicating failure to find anything.
         """
-        read = DNARead('id', 'A')
+        read = DNARead("id", "A")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(0))
+            read.findORF(0),
+        )
 
     def testLengthTwo(self):
         """
         If a read of length two is passed we must get back a dictionary
         indicating failure to find anything.
         """
-        read = DNARead('id', 'AT')
+        read = DNARead("id", "AT")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(0))
+            read.findORF(0),
+        )
 
     def testOffsetOutOfRangeForward(self):
         """
         If an out-of-range offset and forward is True, is passed we must get
         back a dictionary indicating failure to find anything.
         """
-        read = DNARead('id', '')
+        read = DNARead("id", "")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(10, forward=True))
+            read.findORF(10, forward=True),
+        )
 
     def testOffsetOutOfRangeReverse(self):
         """
         If an out-of-range offset and forward is False, is passed we must get
         back a dictionary indicating failure to find anything.
         """
-        read = DNARead('id', '')
+        read = DNARead("id", "")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(10, forward=False))
+            read.findORF(10, forward=False),
+        )
 
     def testRequireStartCodonForward(self):
         """
         If a start codon is required but is not present when forward is True,
         we must get back a dictionary indicating failure to find anything.
         """
-        read = DNARead('id', 'CCAGG')
+        read = DNARead("id", "CCAGG")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(0, requireStartCodon=True, forward=True))
+            read.findORF(0, requireStartCodon=True, forward=True),
+        )
 
     def testRequireStartCodonReverse(self):
         """
         If a start codon is required but is not present when forward is False,
         we must get back a dictionary indicating failure to find anything.
         """
-        read = DNARead('id', 'CCAGG')
+        read = DNARead("id", "CCAGG")
         self.assertEqual(
             {
-                'foundStartCodon': False,
-                'foundStopCodon': False,
-                'length': 0,
-                'sequence': '',
-                'translation': '',
+                "foundStartCodon": False,
+                "foundStopCodon": False,
+                "length": 0,
+                "sequence": "",
+                "translation": "",
             },
-            read.findORF(0, requireStartCodon=True, forward=False))
+            read.findORF(0, requireStartCodon=True, forward=False),
+        )
 
     def testOnlyStartCodonForward(self):
         """
         If a read consists just of a start codon and forward is True we must
         get the expected result.
         """
-        read = DNARead('id', 'ATG')
+        read = DNARead("id", "ATG")
         self.assertEqual(
             {
-                'foundStartCodon': True,
-                'foundStopCodon': False,
-                'length': 1,
-                'sequence': 'ATG',
-                'translation': 'M',
+                "foundStartCodon": True,
+                "foundStopCodon": False,
+                "length": 1,
+                "sequence": "ATG",
+                "translation": "M",
             },
-            read.findORF(0, forward=True))
+            read.findORF(0, forward=True),
+        )
 
     def testOnlyStartCodonReverse(self):
         """
         If a read consists just of a start codon and forward is False we must
         get the expected result.
         """
-        read = DNARead('id', 'CAT')
+        read = DNARead("id", "CAT")
         self.assertEqual(
             {
-                'foundStartCodon': True,
-                'foundStopCodon': False,
-                'length': 1,
-                'sequence': 'ATG',
-                'translation': 'M',
+                "foundStartCodon": True,
+                "foundStopCodon": False,
+                "length": 1,
+                "sequence": "ATG",
+                "translation": "M",
             },
-            read.findORF(0, forward=False))
+            read.findORF(0, forward=False),
+        )
 
     def testOnlyStartStopCodonForward(self):
         """
         If a read consists just of a start codon and then a stop codon
         and forward is True we must get the expected result.
         """
-        read = DNARead('id', 'ATGTAG')
+        read = DNARead("id", "ATGTAG")
         self.assertEqual(
             {
-                'foundStartCodon': True,
-                'foundStopCodon': True,
-                'length': 2,
-                'sequence': 'ATGTAG',
-                'translation': 'M*',
+                "foundStartCodon": True,
+                "foundStopCodon": True,
+                "length": 2,
+                "sequence": "ATGTAG",
+                "translation": "M*",
             },
-            read.findORF(0, forward=True))
+            read.findORF(0, forward=True),
+        )
 
     def testOnlyStartStopCodonReverse(self):
         """
         If a read consists just of a start codon and then a stop codon
         and forward is False we must get the expected result.
         """
-        read = DNARead('id', 'CTACAT')
+        read = DNARead("id", "CTACAT")
         self.assertEqual(
             {
-                'foundStartCodon': True,
-                'foundStopCodon': True,
-                'length': 2,
-                'sequence': 'ATGTAG',
-                'translation': 'M*',
+                "foundStartCodon": True,
+                "foundStopCodon": True,
+                "length": 2,
+                "sequence": "ATGTAG",
+                "translation": "M*",
             },
-            read.findORF(0, forward=False))
+            read.findORF(0, forward=False),
+        )
 
     def testStartAndNoStopCodonForward(self):
         """
         If a read consists just of a start codon and then a non-stop codon
         and forward is True we must get the expected result.
         """
-        read = DNARead('id', 'ATGTCC')
+        read = DNARead("id", "ATGTCC")
         self.assertEqual(
             {
-                'foundStartCodon': True,
-                'foundStopCodon': False,
-                'length': 2,
-                'sequence': 'ATGTCC',
-                'translation': 'MS',
+                "foundStartCodon": True,
+                "foundStopCodon": False,
+                "length": 2,
+                "sequence": "ATGTCC",
+                "translation": "MS",
             },
-            read.findORF(0, forward=True))
+            read.findORF(0, forward=True),
+        )
 
     def testStartAndNoStopCodonReverse(self):
         """
         If a read consists just of a start codon and then a stop codon
         and forward is False we must get the expected result.
         """
-        read = DNARead('id', 'CTCCAT')
+        read = DNARead("id", "CTCCAT")
         self.assertEqual(
             {
-                'foundStartCodon': True,
-                'foundStopCodon': False,
-                'length': 2,
-                'sequence': 'ATGGAG',
-                'translation': 'ME',
+                "foundStartCodon": True,
+                "foundStopCodon": False,
+                "length": 2,
+                "sequence": "ATGGAG",
+                "translation": "ME",
             },
-            read.findORF(0, forward=False))
+            read.findORF(0, forward=False),
+        )

@@ -1,7 +1,16 @@
-def printHSP(hsp, indent=''):
-    for attr in ['bits', 'expect', 'frame', 'query_end', 'query_start',
-                 'sbjct', 'query', 'sbjct_end', 'sbjct_start']:
-        print('%s%s: %s' % (indent, attr, hsp[attr]))
+def printHSP(hsp, indent=""):
+    for attr in [
+        "bits",
+        "expect",
+        "frame",
+        "query_end",
+        "query_start",
+        "sbjct",
+        "query",
+        "sbjct_end",
+        "sbjct_start",
+    ]:
+        print("%s%s: %s" % (indent, attr, hsp[attr]))
 
 
 def normalizeHSP(hsp, readLen, blastApplication):
@@ -46,29 +55,29 @@ def normalizeHSP(hsp, readLen, blastApplication):
         @param locals: A C{dict} of local variables.
         @param msg: A C{str} message to raise C{AssertionError} with.
         """
-        print('normalizeHSP error:')
-        print('  readLen: %d' % readLen)
+        print("normalizeHSP error:")
+        print("  readLen: %d" % readLen)
         for var in sorted(locals):
-            if var in ('debugPrint', 'hsp'):
+            if var in ("debugPrint", "hsp"):
                 continue
-            print('  %s: %s' % (var, locals[var]))
-        print('  Original HSP:')
-        printHSP(hsp, '    ')
+            print("  %s: %s" % (var, locals[var]))
+        print("  Original HSP:")
+        printHSP(hsp, "    ")
         if msg:
             raise AssertionError(msg)
         else:
             raise AssertionError()
 
-    readPositive = hsp['frame'][0] > 0
-    hitPositive = hsp['frame'][1] > 0
+    readPositive = hsp["frame"][0] > 0
+    hitPositive = hsp["frame"][1] > 0
 
     # The following variable names with underscores match the names of
     # attributes BioPython uses and the values (1-based) match those
     # reported by BLAST.
-    read_start = hsp['query_start']
-    read_end = hsp['query_end']
-    sbjct_start = hsp['sbjct_start']
-    sbjct_end = hsp['sbjct_end']
+    read_start = hsp["query_start"]
+    read_end = hsp["query_end"]
+    sbjct_start = hsp["sbjct_start"]
+    sbjct_end = hsp["sbjct_end"]
 
     # When the read is positive, BLASTN and TBLASTX give read offsets
     # ascending.
@@ -78,10 +87,12 @@ def normalizeHSP(hsp, readLen, blastApplication):
     #
     # In all cases the read offsets should be ascending.
     if read_start > read_end:
-        debugPrint(locals(),
-                   'Assertion "read_start <= read_end" failed. Read '
-                   'positive is %s. read_start = %d, read_end = %d' %
-                   (readPositive, read_start, read_end))
+        debugPrint(
+            locals(),
+            'Assertion "read_start <= read_end" failed. Read '
+            "positive is %s. read_start = %d, read_end = %d"
+            % (readPositive, read_start, read_end),
+        )
 
     if hitPositive:
         # Make sure indices are ascending.
@@ -101,7 +112,7 @@ def normalizeHSP(hsp, readLen, blastApplication):
     subjectStart = sbjct_start - 1
     subjectEnd = sbjct_end
 
-    if blastApplication == 'blastx':
+    if blastApplication == "blastx":
         # In Blastx output, hit offsets are based on protein sequence
         # length but queries (and the reported offsets) are nucleotide.
         # Convert the read offsets to protein because we will plot against
@@ -129,8 +140,8 @@ def normalizeHSP(hsp, readLen, blastApplication):
     # of the read.  This should be cleaned up. See ../diamond/hsp.py for
     # something cleaner.
 
-    hitGaps = hsp['sbjct'].count('-')
-    readGaps = hsp['query'].count('-')
+    hitGaps = hsp["sbjct"].count("-")
+    readGaps = hsp["query"].count("-")
 
     # Sanity check that the length of the matches in the hit and read
     # are identical, taking into account gaps in either (indicated by '-'
@@ -138,10 +149,11 @@ def normalizeHSP(hsp, readLen, blastApplication):
     subjectLengthWithGaps = subjectLength + hitGaps
     readLengthWithGaps = readLength + readGaps
     if subjectLengthWithGaps != readLengthWithGaps:
-        debugPrint(locals(),
-                   'Including gaps, hit match length (%d) != Read match '
-                   'length (%d)' % (subjectLengthWithGaps,
-                                    readLengthWithGaps))
+        debugPrint(
+            locals(),
+            "Including gaps, hit match length (%d) != Read match "
+            "length (%d)" % (subjectLengthWithGaps, readLengthWithGaps),
+        )
 
     # TODO: check the mod 3 value of the start offsets.
 
@@ -166,15 +178,15 @@ def normalizeHSP(hsp, readLen, blastApplication):
 
     # Final sanity checks.
     if readStartInSubject > subjectStart:
-        debugPrint(locals(), 'readStartInSubject > subjectStart')
+        debugPrint(locals(), "readStartInSubject > subjectStart")
     if readEndInSubject < subjectEnd:
-        debugPrint(locals(), 'readEndInSubject < subjectEnd')
+        debugPrint(locals(), "readEndInSubject < subjectEnd")
 
     return {
-        'readStart': read_start - 1,
-        'readEnd': read_end,
-        'readStartInSubject': readStartInSubject,
-        'readEndInSubject': readEndInSubject,
-        'subjectStart': subjectStart,
-        'subjectEnd': subjectEnd,
+        "readStart": read_start - 1,
+        "readEnd": read_end,
+        "readStartInSubject": readStartInSubject,
+        "readEndInSubject": readEndInSubject,
+        "subjectStart": subjectStart,
+        "subjectEnd": subjectEnd,
     }

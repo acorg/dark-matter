@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function, division
-
 import sys
 import warnings
 from time import time
@@ -11,7 +9,8 @@ import argparse
 from dark.civ.proteins import SqliteIndexWriter
 from dark.taxonomy import (
     addTaxonomyDatabaseCommandLineOptions,
-    parseTaxonomyDatabaseCommandLineOptions)
+    parseTaxonomyDatabaseCommandLineOptions,
+)
 
 
 def filenamesAndAdders(args, db):
@@ -33,17 +32,20 @@ def filenamesAndAdders(args, db):
     # https://github.com/acorg/dark-matter/issues/453
 
     if not (args.gb or args.json):
-        print('At least one of --gb or --json must be used to indicate input '
-              'files to process.', file=sys.stderr)
+        print(
+            "At least one of --gb or --json must be used to indicate input "
+            "files to process.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if args.gb:
         for filename in chain.from_iterable(args.gb):
-            yield filename, db.addGenBankFile, 'gb'
+            yield filename, db.addGenBankFile, "gb"
 
     if args.json:
         for filename in chain.from_iterable(args.json):
-            yield filename, db.addJSONFile, 'json'
+            yield filename, db.addJSONFile, "json"
 
 
 def main(args, parser):
@@ -55,15 +57,15 @@ def main(args, parser):
     @param parser: An C{argparse.ArgumentParser} instance.
     """
 
-    if (args.minGenomeLength is not None and
-            args.maxGenomeLength is not None and
-            args.minGenomeLength > args.maxGenomeLength):
-        raise ValueError(
-            '--minGenomeLength cannot be larger than --maxGenomeLength')
+    if (
+        args.minGenomeLength is not None
+        and args.maxGenomeLength is not None
+        and args.minGenomeLength > args.maxGenomeLength
+    ):
+        raise ValueError("--minGenomeLength cannot be larger than --maxGenomeLength")
 
     if args.excludeExclusiveHost:
-        excludeExclusiveHosts = set(chain.from_iterable(
-            args.excludeExclusiveHost))
+        excludeExclusiveHosts = set(chain.from_iterable(args.excludeExclusiveHost))
     else:
         excludeExclusiveHosts = None
 
@@ -76,17 +78,19 @@ def main(args, parser):
 
     with SqliteIndexWriter(args.databaseFile) as db:
         for fileCount, (filename, addFunc, type_) in enumerate(
-                filenamesAndAdders(args, db), start=1):
+            filenamesAndAdders(args, db), start=1
+        ):
 
             if args.logFile:
-                print("\n>>> Indexing '%s'." % filename, end='\n\n',
-                      file=args.logFile)
+                print("\n>>> Indexing '%s'." % filename, end="\n\n", file=args.logFile)
 
             if progress:
                 start = time()
 
             examinedGenomeCount, genomeCount, proteinCount = addFunc(
-                filename, dnaOnly=args.dnaOnly, rnaOnly=args.rnaOnly,
+                filename,
+                dnaOnly=args.dnaOnly,
+                rnaOnly=args.rnaOnly,
                 minGenomeLength=args.minGenomeLength,
                 maxGenomeLength=args.maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
@@ -96,132 +100,211 @@ def main(args, parser):
                 taxonomyDatabase=taxonomyDatabase,
                 proteinSource=args.proteinSource,
                 genomeSource=args.genomeSource,
-                duplicationPolicy=args.duplicationPolicy, logfp=args.logFile)
+                duplicationPolicy=args.duplicationPolicy,
+                logfp=args.logFile,
+            )
 
             if examinedGenomeCount == 0:
-                if type_ == 'gb':
-                    print('WARNING: No genomes found in %r. Did the GenBank '
-                          'download fail on that file?' % filename,
-                          file=sys.stderr)
+                if type_ == "gb":
+                    print(
+                        "WARNING: No genomes found in %r. Did the GenBank "
+                        "download fail on that file?" % filename,
+                        file=sys.stderr,
+                    )
                 else:
-                    assert type_ == 'json'
-                    print('WARNING: no genomes found in JSON file %r.' %
-                          filename, file=sys.stderr)
+                    assert type_ == "json"
+                    print(
+                        "WARNING: no genomes found in JSON file %r." % filename,
+                        file=sys.stderr,
+                    )
 
             if progress:
                 elapsed = time() - start
                 totalGenomeCount += genomeCount
                 totalProteinCount += proteinCount
-                print('Processed %r: added %3d of %3d genome%s (%5d '
-                      'protein%s) in %.2f seconds.' %
-                      (filename, genomeCount, examinedGenomeCount,
-                       ' ' if examinedGenomeCount == 1 else 's',
-                       proteinCount, '' if proteinCount == 1 else 's',
-                       elapsed), file=sys.stderr)
+                print(
+                    "Processed %r: added %3d of %3d genome%s (%5d "
+                    "protein%s) in %.2f seconds."
+                    % (
+                        filename,
+                        genomeCount,
+                        examinedGenomeCount,
+                        " " if examinedGenomeCount == 1 else "s",
+                        proteinCount,
+                        "" if proteinCount == 1 else "s",
+                        elapsed,
+                    ),
+                    file=sys.stderr,
+                )
 
     if progress:
         elapsed = time() - overallStart
-        print('%d files (containing %d genomes and %d proteins) '
-              'indexed in %.2f seconds (%.2f mins).' %
-              (fileCount, totalGenomeCount, totalProteinCount, elapsed,
-               elapsed / 60), file=sys.stderr)
+        print(
+            "%d files (containing %d genomes and %d proteins) "
+            "indexed in %.2f seconds (%.2f mins)."
+            % (fileCount, totalGenomeCount, totalProteinCount, elapsed, elapsed / 60),
+            file=sys.stderr,
+        )
 
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=('Create a genome/protein sqlite3 database from GenBank '
-                 'and JSON files. The protein sequences for the database are '
-                 'printed to standard output for indexing by other tools.'))
+    description=(
+        "Create a genome/protein sqlite3 database from GenBank "
+        "and JSON files. The protein sequences for the database are "
+        "printed to standard output for indexing by other tools."
+    ),
+)
 
 parser.add_argument(
-    '--databaseFile', required=True,
-    help=('The output file. This file must not exist (use --force to '
-          'overwrite).'))
+    "--databaseFile",
+    required=True,
+    help=("The output file. This file must not exist (use --force to " "overwrite)."),
+)
 
 parser.add_argument(
-    '--databaseName',
-    help=('The database that the records in the (--gb) GenBank files came '
-          'from (e.g., "refseq" or "RVDB").'))
+    "--databaseName",
+    help=(
+        "The database that the records in the (--gb) GenBank files came "
+        'from (e.g., "refseq" or "RVDB").'
+    ),
+)
 
 parser.add_argument(
-    '--duplicationPolicy', choices=('error', 'ignore'), default='ignore',
-    help=('What to do if a to-be-inserted accession number is already '
-          'present in the database. "error" results in a ValueError being '
-          'raised, "ignore" will ignore the duplicate. It should also be '
-          'possible to update (i.e., replace) but that is not supported yet.'))
+    "--duplicationPolicy",
+    choices=("error", "ignore"),
+    default="ignore",
+    help=(
+        "What to do if a to-be-inserted accession number is already "
+        'present in the database. "error" results in a ValueError being '
+        'raised, "ignore" will ignore the duplicate. It should also be '
+        "possible to update (i.e., replace) but that is not supported yet."
+    ),
+)
+
+parser.add_argument("--progress", action="store_true", help="Print indexing progress.")
 
 parser.add_argument(
-    '--progress', action='store_true',
-    help='Print indexing progress.')
+    "--logFile",
+    type=argparse.FileType("w"),
+    help="Write indexing details to a log file.",
+)
 
 parser.add_argument(
-    '--logFile', type=argparse.FileType('w'),
-    help='Write indexing details to a log file.')
-
-parser.add_argument(
-    '--noWarnings', action='store_true',
-    help='Do not print warnings about unparseable GenBank or JSON records.')
+    "--noWarnings",
+    action="store_true",
+    help="Do not print warnings about unparseable GenBank or JSON records.",
+)
 
 # A mutually exclusive group for DNA/RNA only.
 group = parser.add_mutually_exclusive_group()
 
 group.add_argument(
-    '--dnaOnly', action='store_true',
-    help='If given, only include DNA viruses.')
+    "--dnaOnly", action="store_true", help="If given, only include DNA viruses."
+)
 
 group.add_argument(
-    '--rnaOnly', action='store_true',
-    help='If given, only include RNA viruses.')
+    "--rnaOnly", action="store_true", help="If given, only include RNA viruses."
+)
 
 parser.add_argument(
-    '--maxGenomeLength', type=int,
-    help='Genomes longer than this will not be considered.')
+    "--maxGenomeLength",
+    type=int,
+    help="Genomes longer than this will not be considered.",
+)
 
 parser.add_argument(
-    '--minGenomeLength', type=int,
-    help='Genomes shorter than this will not be considered.')
+    "--minGenomeLength",
+    type=int,
+    help="Genomes shorter than this will not be considered.",
+)
 
 parser.add_argument(
-    '--excludeFungusOnlyViruses', action='store_true',
-    help=('If given, exclude fungus-only viruses (i.e., viruses that only '
-          'infect fungi host species).'))
+    "--excludeFungusOnlyViruses",
+    action="store_true",
+    help=(
+        "If given, exclude fungus-only viruses (i.e., viruses that only "
+        "infect fungi host species)."
+    ),
+)
 
 parser.add_argument(
-    '--excludePlantOnlyViruses', action='store_true',
-    help=('If given, exclude plant-only viruses (i.e., viruses that only '
-          'infect plant host species).'))
+    "--excludePlantOnlyViruses",
+    action="store_true",
+    help=(
+        "If given, exclude plant-only viruses (i.e., viruses that only "
+        "infect plant host species)."
+    ),
+)
 
 parser.add_argument(
-    '--gb', metavar='GenBank-file', nargs='+', action='append',
-    help=('The GenBank file(s) to make the database from. These may be '
-          'uncompressed, or compressed with bgzip (from samtools), with '
-          'a .gz suffix.'))
+    "--gb",
+    metavar="GenBank-file",
+    nargs="+",
+    action="append",
+    help=(
+        "The GenBank file(s) to make the database from. These may be "
+        "uncompressed, or compressed with bgzip (from samtools), with "
+        "a .gz suffix."
+    ),
+)
 
 parser.add_argument(
-    '--json', metavar='JSON-file', nargs='+', action='append',
-    help=('The JSON file(s) to make the database from. These contain '
-          'genome and protein information for cases where sequences that '
-          'are not in GenBank should be added.'))
+    "--json",
+    metavar="JSON-file",
+    nargs="+",
+    action="append",
+    help=(
+        "The JSON file(s) to make the database from. These contain "
+        "genome and protein information for cases where sequences that "
+        "are not in GenBank should be added."
+    ),
+)
 
 parser.add_argument(
-    '--proteinSource', default='GenBank',
-    help=('The source of the accession numbers for the proteins found in the '
-          'input files. This becomes part of the sequence id printed in the '
-          'protein FASTA output.'))
+    "--proteinSource",
+    default="GenBank",
+    help=(
+        "The source of the accession numbers for the proteins found in the "
+        "input files. This becomes part of the sequence id printed in the "
+        "protein FASTA output."
+    ),
+)
 
 parser.add_argument(
-    '--genomeSource', default='GenBank',
-    help=('The source of the accession numbers for the genomes in the input '
-          'files. This becomes part of the sequence id printed in the '
-          'protein FASTA output.'))
+    "--genomeSource",
+    default="GenBank",
+    help=(
+        "The source of the accession numbers for the genomes in the input "
+        "files. This becomes part of the sequence id printed in the "
+        "protein FASTA output."
+    ),
+)
 
 parser.add_argument(
-    '--excludeExclusiveHost', metavar='hostname', nargs='+', action='append',
-    choices=('algae', 'archaea', 'bacteria', 'diatom', 'environment',
-             'eukaryotes', 'fungi', 'human', 'invertebrates', 'plants',
-             'protozoa', 'vertebrates'),
-    help=('A host type that should be excluded, but only if this is the only '
-          'host of the virus.'))
+    "--excludeExclusiveHost",
+    metavar="hostname",
+    nargs="+",
+    action="append",
+    choices=(
+        "algae",
+        "archaea",
+        "bacteria",
+        "diatom",
+        "environment",
+        "eukaryotes",
+        "fungi",
+        "human",
+        "invertebrates",
+        "plants",
+        "protozoa",
+        "vertebrates",
+    ),
+    help=(
+        "A host type that should be excluded, but only if this is the only "
+        "host of the virus."
+    ),
+)
 
 addTaxonomyDatabaseCommandLineOptions(parser)
 
@@ -229,7 +312,7 @@ args = parser.parse_args()
 
 if args.noWarnings:
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         main(args, parser)
 else:
     main(args, parser)

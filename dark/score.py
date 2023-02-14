@@ -2,13 +2,14 @@ from functools import total_ordering
 
 
 @total_ordering
-class HigherIsBetterScore(object):
+class HigherIsBetterScore:
     """
     Provide comparison functions for scores where numerically higher values
     are considered better.
 
     @param score: The numeric score of this HSP.
     """
+
     def __init__(self, score):
         self.score = score
 
@@ -29,13 +30,14 @@ class HigherIsBetterScore(object):
 
 
 @total_ordering
-class LowerIsBetterScore(object):
+class LowerIsBetterScore:
     """
     Provide comparison functions for scores where numerically lower values
     are considered better.
 
     @param score: The numeric score of this LSP.
     """
+
     def __init__(self, score):
         self.score = score
 

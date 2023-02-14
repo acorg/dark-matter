@@ -33,12 +33,12 @@ from dark.reads import Reads
 #
 # I decided not to worry about nested [...] sections (there are only 2
 # instances that I know of).
-_PATHOGEN_RE = re.compile(r'^(.*)\[([^\]]+)\]$')
+_PATHOGEN_RE = re.compile(r"^(.*)\[([^\]]+)\]$")
 
 # The pathogen name assigned to proteins whose id strings cannot be parsed
 # for a pathogen name (see previous comment).  Do not use '<', '>' or any
 # other HTML special chars in the following.
-_NO_PATHOGEN_NAME = '[no pathogen name found in sequence id]'
+_NO_PATHOGEN_NAME = "[no pathogen name found in sequence id]"
 
 
 def splitNames(names):
@@ -85,7 +85,7 @@ def getPathogenProteinCounts(filenames):
     return result
 
 
-class PathogenSampleFiles(object):
+class PathogenSampleFiles:
     """
     Maintain a cache of FASTA/FASTQ file names for the samples that contain a
     given pathogen, create de-duplicated (by read id) FASTA/FASTQ files
@@ -99,11 +99,12 @@ class PathogenSampleFiles(object):
         of the files containing the reads matching proteins.
     @raise ValueError: If C{format_} is unknown.
     """
-    def __init__(self, proteinGrouper, format_='fasta'):
+
+    def __init__(self, proteinGrouper, format_="fasta"):
         self._proteinGrouper = proteinGrouper
-        if format_ in ('fasta', 'fastq'):
+        if format_ in ("fasta", "fastq"):
             self._format = format_
-            self._readsClass = FastaReads if format_ == 'fasta' else FastqReads
+            self._readsClass = FastaReads if format_ == "fasta" else FastqReads
         else:
             raise ValueError("format_ must be either 'fasta' or 'fastq'.")
         self._pathogens = {}
@@ -123,27 +124,28 @@ class PathogenSampleFiles(object):
             reads (without duplicates, by id) from the sample that matched the
             proteins in the given pathogen.
         """
-        pathogenIndex = self._pathogens.setdefault(pathogenName,
-                                                   len(self._pathogens))
+        pathogenIndex = self._pathogens.setdefault(pathogenName, len(self._pathogens))
         sampleIndex = self._samples.setdefault(sampleName, len(self._samples))
 
         try:
             return self._readsFilenames[(pathogenIndex, sampleIndex)]
         except KeyError:
             reads = Reads()
-            for proteinMatch in self._proteinGrouper.pathogenNames[
-                    pathogenName][sampleName]['proteins'].values():
-                for read in self._readsClass(proteinMatch['readsFilename']):
+            for proteinMatch in self._proteinGrouper.pathogenNames[pathogenName][
+                sampleName
+            ]["proteins"].values():
+                for read in self._readsClass(proteinMatch["readsFilename"]):
                     reads.add(read)
             saveFilename = join(
-                proteinMatch['outDir'],
-                'pathogen-%d-sample-%d.%s' % (pathogenIndex, sampleIndex,
-                                              self._format))
+                proteinMatch["outDir"],
+                "pathogen-%d-sample-%d.%s" % (pathogenIndex, sampleIndex, self._format),
+            )
             reads.filter(removeDuplicatesById=True)
             nReads = reads.save(saveFilename, format_=self._format)
             # Save the unique read count into self._proteinGrouper
-            self._proteinGrouper.pathogenNames[
-                pathogenName][sampleName]['uniqueReadCount'] = nReads
+            self._proteinGrouper.pathogenNames[pathogenName][sampleName][
+                "uniqueReadCount"
+            ] = nReads
             self._readsFilenames[(pathogenIndex, sampleIndex)] = saveFilename
             return saveFilename
 
@@ -172,10 +174,15 @@ class PathogenSampleFiles(object):
 
         @param fp: A file-like object, opened for writing.
         """
-        print('\n'.join(
-            '%d %s' % (index, name) for (index, name) in
-            sorted((index, name) for (name, index) in self._samples.items())
-        ), file=fp)
+        print(
+            "\n".join(
+                "%d %s" % (index, name)
+                for (index, name) in sorted(
+                    (index, name) for (name, index) in self._samples.items()
+                )
+            ),
+            file=fp,
+        )
 
     def writePathogenIndex(self, fp):
         """
@@ -183,10 +190,15 @@ class PathogenSampleFiles(object):
 
         @param fp: A file-like object, opened for writing.
         """
-        print('\n'.join(
-            '%d %s' % (index, name) for (index, name) in
-            sorted((index, name) for (name, index) in self._pathogens.items())
-        ), file=fp)
+        print(
+            "\n".join(
+                "%d %s" % (index, name)
+                for (index, name) in sorted(
+                    (index, name) for (name, index) in self._pathogens.items()
+                )
+            ),
+            file=fp,
+        )
 
     def pathogenIndex(self, pathogenName):
         """
@@ -200,7 +212,7 @@ class PathogenSampleFiles(object):
         return self._pathogens[pathogenName]
 
 
-class ProteinGrouper(object):
+class ProteinGrouper:
     """
     Group matched proteins by the pathogen they come from.
 
@@ -239,20 +251,27 @@ class ProteinGrouper(object):
     @raise ValueError: If C{format_} is unknown.
     """
 
-    VIRALZONE = 'https://viralzone.expasy.org/search?query='
-    ICTV = 'https://talk.ictvonline.org/search-124283882/?q='
-    READCOUNT_MARKER = '*READ-COUNT*'
-    READ_AND_HSP_COUNT_STR_SEP = '/'
+    VIRALZONE = "https://viralzone.expasy.org/search?query="
+    ICTV = "https://talk.ictvonline.org/search-124283882/?q="
+    READCOUNT_MARKER = "*READ-COUNT*"
+    READ_AND_HSP_COUNT_STR_SEP = "/"
 
-    def __init__(self, assetDir='out', sampleName=None, sampleNameRegex=None,
-                 format_='fasta', proteinFastaFilenames=None,
-                 saveReadLengths=False, titleRegex=None,
-                 negativeTitleRegex=None, pathogenDataDir='pathogen-data'):
+    def __init__(
+        self,
+        assetDir="out",
+        sampleName=None,
+        sampleNameRegex=None,
+        format_="fasta",
+        proteinFastaFilenames=None,
+        saveReadLengths=False,
+        titleRegex=None,
+        negativeTitleRegex=None,
+        pathogenDataDir="pathogen-data",
+    ):
         self._assetDir = assetDir
         self._sampleName = sampleName
-        self._sampleNameRegex = (re.compile(sampleNameRegex) if sampleNameRegex
-                                 else None)
-        if format_ in ('fasta', 'fastq'):
+        self._sampleNameRegex = re.compile(sampleNameRegex) if sampleNameRegex else None
+        if format_ in ("fasta", "fastq"):
             self._format = format_
         else:
             raise ValueError("format_ must be either 'fasta' or 'fastq'.")
@@ -260,14 +279,14 @@ class ProteinGrouper(object):
 
         if titleRegex or negativeTitleRegex:
             self.titleFilter = TitleFilter(
-                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex)
+                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex
+            )
         else:
             self.titleFilter = None
 
         self._pathogenDataDir = pathogenDataDir
 
-        self._pathogenProteinCount = getPathogenProteinCounts(
-            proteinFastaFilenames)
+        self._pathogenProteinCount = getPathogenProteinCounts(proteinFastaFilenames)
 
         # pathogenNames will be a dict of dicts of dicts. The first two keys
         # will be a pathogen name and a sample name. The final dict will
@@ -284,12 +303,12 @@ class ProteinGrouper(object):
 
         @return: A C{str} title.
         """
-        return (
-            'Overall, proteins from %d pathogen%s were found in %d sample%s.' %
-            (len(self.pathogenNames),
-             '' if len(self.pathogenNames) == 1 else 's',
-             len(self.sampleNames),
-             '' if len(self.sampleNames) == 1 else 's'))
+        return "Overall, proteins from %d pathogen%s were found in %d sample%s." % (
+            len(self.pathogenNames),
+            "" if len(self.pathogenNames) == 1 else "s",
+            len(self.sampleNames),
+            "" if len(self.sampleNames) == 1 else "s",
+        )
 
     def addFile(self, filename, fp):
         """
@@ -313,18 +332,27 @@ class ProteinGrouper(object):
 
         outDir = join(dirname(filename), self._assetDir)
 
-        self.sampleNames[sampleName] = join(outDir, 'index.html')
+        self.sampleNames[sampleName] = join(outDir, "index.html")
 
         for index, proteinLine in enumerate(fp):
             proteinLine = proteinLine[:-1]
-            (coverage, medianScore, bestScore, readCount, hspCount,
-             proteinLength, names) = proteinLine.split(None, 6)
+            (
+                coverage,
+                medianScore,
+                bestScore,
+                readCount,
+                hspCount,
+                proteinLength,
+                names,
+            ) = proteinLine.split(None, 6)
 
             proteinName, pathogenName = splitNames(names)
 
             # Ignore pathogens with names we don't want.
-            if (self.titleFilter and self.titleFilter.accept(
-                    pathogenName) == TitleFilter.REJECT):
+            if (
+                self.titleFilter
+                and self.titleFilter.accept(pathogenName) == TitleFilter.REJECT
+            ):
                 continue
 
             if pathogenName not in self.pathogenNames:
@@ -332,27 +360,27 @@ class ProteinGrouper(object):
 
             if sampleName not in self.pathogenNames[pathogenName]:
                 self.pathogenNames[pathogenName][sampleName] = {
-                    'proteins': {},
-                    'uniqueReadCount': None,
+                    "proteins": {},
+                    "uniqueReadCount": None,
                 }
 
-            proteins = self.pathogenNames[pathogenName][sampleName]['proteins']
+            proteins = self.pathogenNames[pathogenName][sampleName]["proteins"]
 
             # We should only receive one line of information for a given
             # pathogen/sample/protein combination.
             if proteinName in proteins:
                 raise ValueError(
-                    'Protein %r already seen for pathogen %r sample %r.' %
-                    (proteinName, pathogenName, sampleName))
+                    "Protein %r already seen for pathogen %r sample %r."
+                    % (proteinName, pathogenName, sampleName)
+                )
 
-            readsFilename = join(outDir, '%d.%s' % (index, self._format))
+            readsFilename = join(outDir, "%d.%s" % (index, self._format))
 
-            if proteinName.count('|') < 5:
+            if proteinName.count("|") < 5:
                 # Assume this is an NCBI refseq id, like
                 # YP_009137153.1 uracil glycosylase [Human alphaherpesvirus 2]
                 # with a protein but not a genome accession.
-                proteinURL = NCBISequenceLinkURL(proteinName, field=0,
-                                                 delim=' ')
+                proteinURL = NCBISequenceLinkURL(proteinName, field=0, delim=" ")
                 genomeURL = None
             else:
                 # Assume this is an RVDB id, like
@@ -362,32 +390,35 @@ class ProteinGrouper(object):
                 genomeURL = NCBISequenceLinkURL(proteinName, field=4)
 
             proteinInfo = proteins[proteinName] = {
-                'bestScore': float(bestScore),
-                'bluePlotFilename': join(outDir, '%d.png' % index),
-                'coverage': float(coverage),
-                'readsFilename': readsFilename,
-                'hspCount': int(hspCount),
-                'index': index,
-                'medianScore': float(medianScore),
-                'outDir': outDir,
-                'proteinLength': int(proteinLength),
-                'proteinName': proteinName,
-                'proteinURL': proteinURL,
-                'genomeURL': genomeURL,
-                'readCount': int(readCount),
+                "bestScore": float(bestScore),
+                "bluePlotFilename": join(outDir, "%d.png" % index),
+                "coverage": float(coverage),
+                "readsFilename": readsFilename,
+                "hspCount": int(hspCount),
+                "index": index,
+                "medianScore": float(medianScore),
+                "outDir": outDir,
+                "proteinLength": int(proteinLength),
+                "proteinName": proteinName,
+                "proteinURL": proteinURL,
+                "genomeURL": genomeURL,
+                "readCount": int(readCount),
             }
 
-            if proteinInfo['readCount'] == proteinInfo['hspCount']:
-                proteinInfo['readAndHspCountStr'] = readCount
+            if proteinInfo["readCount"] == proteinInfo["hspCount"]:
+                proteinInfo["readAndHspCountStr"] = readCount
             else:
-                proteinInfo['readAndHspCountStr'] = '%s%s%s' % (
-                    readCount, self.READ_AND_HSP_COUNT_STR_SEP, hspCount)
+                proteinInfo["readAndHspCountStr"] = "%s%s%s" % (
+                    readCount,
+                    self.READ_AND_HSP_COUNT_STR_SEP,
+                    hspCount,
+                )
 
             if self._saveReadLengths:
-                readsClass = (FastaReads if self._format == 'fasta'
-                              else FastqReads)
-                proteins[proteinName]['readLengths'] = tuple(
-                    len(read) for read in readsClass(readsFilename))
+                readsClass = FastaReads if self._format == "fasta" else FastqReads
+                proteins[proteinName]["readLengths"] = tuple(
+                    len(read) for read in readsClass(readsFilename)
+                )
 
     def _computeUniqueReadCounts(self):
         """
@@ -400,7 +431,7 @@ class ProteinGrouper(object):
             for sampleName in samples:
                 self.pathogenSampleFiles.add(pathogenName, sampleName)
 
-    def toStr(self, title='Summary of pathogens', preamble=None):
+    def toStr(self, title="Summary of pathogens", preamble=None):
         """
         Produce a string representation of the pathogen summary.
 
@@ -414,44 +445,59 @@ class ProteinGrouper(object):
         # unique (de-duplicated, by id) read count, since that is only computed
         # when we are making combined FASTA files of reads matching a
         # pathogen.
-        readCountGetter = itemgetter('readCount')
+        readCountGetter = itemgetter("readCount")
         result = []
         append = result.append
 
-        result.extend((title, ''))
+        result.extend((title, ""))
         if preamble:
-            result.extend((preamble, ''))
-        result.extend((self._title(), ''))
+            result.extend((preamble, ""))
+        result.extend((self._title(), ""))
 
         for pathogenName in sorted(self.pathogenNames):
             samples = self.pathogenNames[pathogenName]
             sampleCount = len(samples)
-            append('%s (in %d sample%s)' %
-                   (pathogenName,
-                    sampleCount, '' if sampleCount == 1 else 's'))
+            append(
+                "%s (in %d sample%s)"
+                % (pathogenName, sampleCount, "" if sampleCount == 1 else "s")
+            )
             for sampleName in sorted(samples):
-                proteins = samples[sampleName]['proteins']
+                proteins = samples[sampleName]["proteins"]
                 proteinCount = len(proteins)
                 totalReads = sum(readCountGetter(p) for p in proteins.values())
-                append('  %s (%d protein%s, %d read%s)' %
-                       (sampleName,
-                        proteinCount, '' if proteinCount == 1 else 's',
-                        totalReads, '' if totalReads == 1 else 's'))
+                append(
+                    "  %s (%d protein%s, %d read%s)"
+                    % (
+                        sampleName,
+                        proteinCount,
+                        "" if proteinCount == 1 else "s",
+                        totalReads,
+                        "" if totalReads == 1 else "s",
+                    )
+                )
                 for proteinName in sorted(proteins):
                     append(
-                        '    %(coverage).2f\t%(medianScore).2f\t'
-                        '%(bestScore).2f\t%(readAndHspCountStr)11s\t'
-                        '%(proteinName)s'
-                        % proteins[proteinName])
-            append('')
+                        "    %(coverage).2f\t%(medianScore).2f\t"
+                        "%(bestScore).2f\t%(readAndHspCountStr)11s\t"
+                        "%(proteinName)s" % proteins[proteinName]
+                    )
+            append("")
 
-        return '\n'.join(result)
+        return "\n".join(result)
 
-    def toHTML(self, pathogenPanelFilename=None, minProteinFraction=0.0,
-               minProteinCount=0, pathogenType='viral',
-               title='Summary of pathogens', preamble=None,
-               sampleIndexFilename=None, pathogenIndexFilename=None,
-               omitVirusLinks=False, omitSampleProteinCount=False):
+    def toHTML(
+        self,
+        pathogenPanelFilename=None,
+        minProteinFraction=0.0,
+        minProteinCount=0,
+        pathogenType="viral",
+        title="Summary of pathogens",
+        preamble=None,
+        sampleIndexFilename=None,
+        pathogenIndexFilename=None,
+        omitVirusLinks=False,
+        omitSampleProteinCount=False,
+    ):
         """
         Produce an HTML string representation of the pathogen summary.
 
@@ -483,10 +529,11 @@ class ProteinGrouper(object):
             protein).
         @return: An HTML C{str} suitable for printing.
         """
-        if pathogenType not in ('bacterial', 'viral'):
+        if pathogenType not in ("bacterial", "viral"):
             raise ValueError(
                 "Unrecognized pathogenType argument: %r. Value must be either "
-                "'bacterial' or 'viral'." % pathogenType)
+                "'bacterial' or 'viral'." % pathogenType
+            )
 
         if not exists(self._pathogenDataDir):
             os.mkdir(self._pathogenDataDir)
@@ -497,11 +544,11 @@ class ProteinGrouper(object):
             self.pathogenPanel(pathogenPanelFilename)
 
         if sampleIndexFilename:
-            with open(sampleIndexFilename, 'w') as fp:
+            with open(sampleIndexFilename, "w") as fp:
                 self.pathogenSampleFiles.writeSampleIndex(fp)
 
         if pathogenIndexFilename:
-            with open(pathogenIndexFilename, 'w') as fp:
+            with open(pathogenIndexFilename, "w") as fp:
                 self.pathogenSampleFiles.writePathogenIndex(fp)
 
         # Figure out if we have to delete some pathogens because the number
@@ -510,16 +557,18 @@ class ProteinGrouper(object):
             toDelete = defaultdict(list)
             for genomeAccession in self.genomeAccessions:
                 genomeInfo = self._db.findGenome(genomeAccession)
-                pathogenProteinCount = genomeInfo['proteinCount']
+                pathogenProteinCount = genomeInfo["proteinCount"]
                 assert pathogenProteinCount > 0
                 for s in self.genomeAccessions[genomeAccession]:
-                    sampleProteinCount = len(self.genomeAccessions[
-                        genomeAccession][s]['proteins'])
+                    sampleProteinCount = len(
+                        self.genomeAccessions[genomeAccession][s]["proteins"]
+                    )
                     if sampleProteinCount < minProteinCount:
                         toDelete[genomeAccession].append(s)
                     else:
                         sampleProteinFraction = (
-                            sampleProteinCount / pathogenProteinCount)
+                            sampleProteinCount / pathogenProteinCount
+                        )
                         if sampleProteinFraction < minProteinFraction:
                             toDelete[genomeAccession].append(s)
 
@@ -528,22 +577,24 @@ class ProteinGrouper(object):
                     del self.genomeAccessions[genomeAccession][sample]
 
         pathogenNames = sorted(
-            pathogenName for pathogenName in self.pathogenNames
-            if len(self.pathogenNames[pathogenName]) > 0)
+            pathogenName
+            for pathogenName in self.pathogenNames
+            if len(self.pathogenNames[pathogenName]) > 0
+        )
         nPathogenNames = len(pathogenNames)
         sampleNames = sorted(self.sampleNames)
 
         result = [
-            '<html>',
-            '<head>',
-            '<title>',
+            "<html>",
+            "<head>",
+            "<title>",
             title,
-            '</title>',
+            "</title>",
             '<meta charset="UTF-8">',
-            '</head>',
-            '<body>',
-            '<style>',
-            '''\
+            "</head>",
+            "<body>",
+            "<style>",
+            """\
             body {
                 margin-left: 2%;
                 margin-right: 2%;
@@ -598,74 +649,88 @@ class ProteinGrouper(object):
             }
             .protein-list {
                 margin-top: 2px;
-            }''',
-            '</style>',
-            '</head>',
-            '<body>',
+            }""",
+            "</style>",
+            "</head>",
+            "<body>",
         ]
 
         proteinFieldsDescription = [
-            '<p>',
-            'In all bullet point protein lists below, there are the following '
-            'fields:',
-            '<ol>',
-            '<li>Coverage fraction.</li>',
-            '<li>Median bit score.</li>',
-            '<li>Best bit score.</li>',
-            '<li>Read count (if the HSP count differs, read and HSP ',
-            ('counts are both given, separated by "%s").</li>' %
-             self.READ_AND_HSP_COUNT_STR_SEP),
-            '<li>Protein length (in amino acids).</li>',
+            "<p>",
+            "In all bullet point protein lists below, there are the following "
+            "fields:",
+            "<ol>",
+            "<li>Coverage fraction.</li>",
+            "<li>Median bit score.</li>",
+            "<li>Best bit score.</li>",
+            "<li>Read count (if the HSP count differs, read and HSP ",
+            (
+                'counts are both given, separated by "%s").</li>'
+                % self.READ_AND_HSP_COUNT_STR_SEP
+            ),
+            "<li>Protein length (in amino acids).</li>",
         ]
 
         if self._saveReadLengths:
             proteinFieldsDescription.append(
-                '<li>All read lengths (in parentheses).</li>')
+                "<li>All read lengths (in parentheses).</li>"
+            )
 
-        proteinFieldsDescription.extend([
-            '<li>Protein name.</li>',
-            '</ol>',
-            '</p>',
-        ])
+        proteinFieldsDescription.extend(
+            [
+                "<li>Protein name.</li>",
+                "</ol>",
+                "</p>",
+            ]
+        )
 
         append = result.append
 
-        append('<h1>%s</h1>' % title)
+        append("<h1>%s</h1>" % title)
         if preamble:
-            append('<p>%s</p>' % preamble)
-        append('<p>')
+            append("<p>%s</p>" % preamble)
+        append("<p>")
         append(self._title())
 
         if self._pathogenProteinCount and minProteinFraction:
             percent = minProteinFraction * 100.0
             if nPathogenNames < len(self.pathogenNames):
                 if nPathogenNames == 1:
-                    append('Pathogen protein fraction filtering has been '
-                           'applied, so information on only 1 pathogen is '
-                           'displayed. This is the only pathogen for which at '
-                           'least one sample matches at least %.2f%% of the '
-                           'pathogen proteins.' % percent)
+                    append(
+                        "Pathogen protein fraction filtering has been "
+                        "applied, so information on only 1 pathogen is "
+                        "displayed. This is the only pathogen for which at "
+                        "least one sample matches at least %.2f%% of the "
+                        "pathogen proteins." % percent
+                    )
                 else:
-                    append('Pathogen protein fraction filtering has been '
-                           'applied, so information on only %d pathogens is '
-                           'displayed. These are the only pathogens for which '
-                           'at least one sample matches at least %.2f%% of '
-                           'the pathogen proteins.' % (nPathogenNames,
-                                                       percent))
+                    append(
+                        "Pathogen protein fraction filtering has been "
+                        "applied, so information on only %d pathogens is "
+                        "displayed. These are the only pathogens for which "
+                        "at least one sample matches at least %.2f%% of "
+                        "the pathogen proteins." % (nPathogenNames, percent)
+                    )
             else:
-                append('Pathogen protein fraction filtering was applied, '
-                       'but all pathogens have at least %.2f%% of their '
-                       'proteins matched by at least one sample.' % percent)
+                append(
+                    "Pathogen protein fraction filtering was applied, "
+                    "but all pathogens have at least %.2f%% of their "
+                    "proteins matched by at least one sample." % percent
+                )
 
-        append('</p>')
+        append("</p>")
 
         if pathogenPanelFilename:
-            append('<p>')
-            append('<a href="%s">Panel showing read count per pathogen, per '
-                   'sample.</a>' % pathogenPanelFilename)
-            append('Red vertical bars indicate samples with an unusually high '
-                   'read count.')
-            append('</p>')
+            append("<p>")
+            append(
+                '<a href="%s">Panel showing read count per pathogen, per '
+                "sample.</a>" % pathogenPanelFilename
+            )
+            append(
+                "Red vertical bars indicate samples with an unusually high "
+                "read count."
+            )
+            append("</p>")
 
         result.extend(proteinFieldsDescription)
 
@@ -673,71 +738,76 @@ class ProteinGrouper(object):
         append('<p><span class="index-name">Pathogen index:</span>')
         append('<span class="index">')
         for pathogenName in pathogenNames:
-            append('<a href="#pathogen-%s">%s</a>' % (pathogenName,
-                                                      pathogenName))
-            append('&middot;')
+            append('<a href="#pathogen-%s">%s</a>' % (pathogenName, pathogenName))
+            append("&middot;")
         # Get rid of final middle dot and add a period.
         result.pop()
-        result[-1] += '.'
-        append('</span></p>')
+        result[-1] += "."
+        append("</span></p>")
 
         # Write a linked table of contents by sample.
         append('<p><span class="index-name">Sample index:</span>')
         append('<span class="index">')
         for sampleName in sampleNames:
             append('<a href="#sample-%s">%s</a>' % (sampleName, sampleName))
-            append('&middot;')
+            append("&middot;")
         # Get rid of final middle dot and add a period.
         result.pop()
-        result[-1] += '.'
-        append('</span></p>')
+        result[-1] += "."
+        append("</span></p>")
 
         # Write all pathogens (with samples (with proteins)).
-        append('<hr>')
-        append('<h1>Pathogens by sample</h1>')
+        append("<hr>")
+        append("<h1>Pathogens by sample</h1>")
 
         for pathogenName in pathogenNames:
             samples = self.pathogenNames[pathogenName]
             sampleCount = len(samples)
             pathogenProteinCount = self._pathogenProteinCount[pathogenName]
-            if pathogenType == 'viral' and not omitVirusLinks:
+            if pathogenType == "viral" and not omitVirusLinks:
                 quoted = quote(pathogenName)
                 pathogenLinksHTML = (
                     ' (<a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
                 ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
             else:
-                pathogenLinksHTML = ''
+                pathogenLinksHTML = ""
 
             if pathogenProteinCount:
-                withStr = (' with %d protein%s' %
-                           (pathogenProteinCount,
-                            '' if pathogenProteinCount == 1 else 's'))
+                withStr = " with %d protein%s" % (
+                    pathogenProteinCount,
+                    "" if pathogenProteinCount == 1 else "s",
+                )
             else:
-                withStr = ''
+                withStr = ""
 
-            pathogenIndex = self.pathogenSampleFiles.pathogenIndex(
-                pathogenName)
+            pathogenIndex = self.pathogenSampleFiles.pathogenIndex(pathogenName)
 
             pathogenReadsFilename = join(
-                self._pathogenDataDir,
-                'pathogen-%d.%s' % (pathogenIndex, self._format))
+                self._pathogenDataDir, "pathogen-%d.%s" % (pathogenIndex, self._format)
+            )
 
-            pathogenReadsFp = open(pathogenReadsFilename, 'w')
+            pathogenReadsFp = open(pathogenReadsFilename, "w")
             pathogenReadCount = 0
 
             append(
                 '<a id="pathogen-%s"></a>'
                 '<p class="pathogen">'
                 '<span class="pathogen-name">%s</span>'
-                '%s %s, '
-                'was matched by %d sample%s '
+                "%s %s, "
+                "was matched by %d sample%s "
                 '(<a href="%s">%s</a> in total):'
-                '</p>' %
-                (pathogenName,
-                 pathogenName,
-                 pathogenLinksHTML, withStr,
-                 sampleCount, '' if sampleCount == 1 else 's',
-                 pathogenReadsFilename, self.READCOUNT_MARKER))
+                "</p>"
+                % (
+                    pathogenName,
+                    pathogenName,
+                    pathogenLinksHTML,
+                    withStr,
+                    sampleCount,
+                    "" if sampleCount == 1 else "s",
+                    pathogenReadsFilename,
+                    self.READCOUNT_MARKER,
+                )
+            )
 
             # Remember where we are in the output result so we can fill in
             # the total read count once we have processed all samples for
@@ -746,7 +816,8 @@ class ProteinGrouper(object):
 
             for sampleName in sorted(samples):
                 readsFileName = self.pathogenSampleFiles.lookup(
-                    pathogenName, sampleName)
+                    pathogenName, sampleName
+                )
 
                 # Copy the read data from the per-sample reads for this
                 # pathogen into the per-pathogen file of reads.
@@ -758,69 +829,80 @@ class ProteinGrouper(object):
                         else:
                             break
 
-                proteins = samples[sampleName]['proteins']
+                proteins = samples[sampleName]["proteins"]
                 proteinCount = len(proteins)
-                uniqueReadCount = samples[sampleName]['uniqueReadCount']
+                uniqueReadCount = samples[sampleName]["uniqueReadCount"]
                 pathogenReadCount += uniqueReadCount
 
                 if omitSampleProteinCount:
-                    proteinCountHTML = ''
+                    proteinCountHTML = ""
                 else:
-                    proteinCountHTML = '%d protein%s, ' % (
-                        proteinCount, '' if proteinCount == 1 else 's')
+                    proteinCountHTML = "%d protein%s, " % (
+                        proteinCount,
+                        "" if proteinCount == 1 else "s",
+                    )
 
                 append(
                     '<p class="sample indented">'
                     'Sample <a href="#sample-%s">%s</a> '
                     '(%s<a href="%s">%d de-duplicated (by id) '
-                    'read%s</a>, <a href="%s">panel</a>):</p>' %
-                    (sampleName, sampleName,
-                     proteinCountHTML,
-                     readsFileName,
-                     uniqueReadCount, '' if uniqueReadCount == 1 else 's',
-                     self.sampleNames[sampleName]))
+                    'read%s</a>, <a href="%s">panel</a>):</p>'
+                    % (
+                        sampleName,
+                        sampleName,
+                        proteinCountHTML,
+                        readsFileName,
+                        uniqueReadCount,
+                        "" if uniqueReadCount == 1 else "s",
+                        self.sampleNames[sampleName],
+                    )
+                )
                 append('<ul class="protein-list indented">')
                 for proteinName in sorted(proteins):
                     proteinMatch = proteins[proteinName]
                     append(
-                        '<li>'
+                        "<li>"
                         '<span class="stats">'
-                        '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readAndHspCountStr)11s %(proteinLength)4d '
-                        % proteinMatch
+                        "%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f "
+                        "%(readAndHspCountStr)11s %(proteinLength)4d " % proteinMatch
                     )
 
                     if self._saveReadLengths:
-                        append('(%s) ' % ', '.join(
-                            map(str, sorted(proteinMatch['readLengths']))))
+                        append(
+                            "(%s) "
+                            % ", ".join(map(str, sorted(proteinMatch["readLengths"])))
+                        )
 
                     append(
-                        '</span> '
+                        "</span> "
                         '<span class="protein-name">'
-                        '%(proteinName)s'
-                        '</span> '
+                        "%(proteinName)s"
+                        "</span> "
                         '(<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(readsFilename)s">reads</a>'
-                        % proteinMatch)
+                        '<a href="%(readsFilename)s">reads</a>' % proteinMatch
+                    )
 
-                    if proteinMatch['proteinURL']:
+                    if proteinMatch["proteinURL"]:
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI protein</a>' %
-                                       proteinMatch['proteinURL'])
+                        result[-1] += (
+                            ', <a href="%s">NCBI protein</a>'
+                            % proteinMatch["proteinURL"]
+                        )
 
-                    if proteinMatch['genomeURL']:
+                    if proteinMatch["genomeURL"]:
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI genome</a>' %
-                                       proteinMatch['genomeURL'])
-                    result[-1] += ')'
+                        result[-1] += (
+                            ', <a href="%s">NCBI genome</a>' % proteinMatch["genomeURL"]
+                        )
+                    result[-1] += ")"
 
-                    append('</li>')
+                    append("</li>")
 
-                append('</ul>')
+                append("</ul>")
 
             pathogenReadsFp.close()
 
@@ -829,112 +911,134 @@ class ProteinGrouper(object):
             readCountLine = result[pathogenReadCountLineIndex]
             if readCountLine.find(self.READCOUNT_MARKER) == -1:
                 raise ValueError(
-                    'Could not find pathogen read count marker (%s) in result '
-                    'index %d text (%s).' %
-                    (self.READCOUNT_MARKER, pathogenReadCountLineIndex,
-                     readCountLine))
+                    "Could not find pathogen read count marker (%s) in result "
+                    "index %d text (%s)."
+                    % (self.READCOUNT_MARKER, pathogenReadCountLineIndex, readCountLine)
+                )
 
             # Put the read count into the pathogen summary line we wrote
             # earlier, replacing the read count marker with the correct
             # text.
             result[pathogenReadCountLineIndex] = readCountLine.replace(
                 self.READCOUNT_MARKER,
-                '%d read%s' % (pathogenReadCount,
-                               '' if pathogenReadCount == 1 else 's'))
+                "%d read%s"
+                % (pathogenReadCount, "" if pathogenReadCount == 1 else "s"),
+            )
 
         # Write all samples (with pathogens (with proteins)).
-        append('<hr>')
-        append('<h1>Samples by pathogen</h1>')
+        append("<hr>")
+        append("<h1>Samples by pathogen</h1>")
 
         for sampleName in sampleNames:
             samplePathogenNames = [
-                pathName for pathName in self.pathogenNames
-                if sampleName in self.pathogenNames[pathName]]
+                pathName
+                for pathName in self.pathogenNames
+                if sampleName in self.pathogenNames[pathName]
+            ]
 
             if len(samplePathogenNames):
                 append(
                     '<a id="sample-%s"></a>'
                     '<p class="sample">Sample '
                     '<span class="sample-name">%s</span> '
-                    'matched proteins from %d pathogen%s, '
-                    '<a href="%s">panel</a>:</p>' %
-                    (sampleName, sampleName, len(samplePathogenNames),
-                     '' if len(samplePathogenNames) == 1 else 's',
-                     self.sampleNames[sampleName]))
+                    "matched proteins from %d pathogen%s, "
+                    '<a href="%s">panel</a>:</p>'
+                    % (
+                        sampleName,
+                        sampleName,
+                        len(samplePathogenNames),
+                        "" if len(samplePathogenNames) == 1 else "s",
+                        self.sampleNames[sampleName],
+                    )
+                )
             else:
                 append(
                     '<a id="sample-%s"></a>'
                     '<p class="sample">Sample '
                     '<span class="sample-name">%s</span> '
-                    'did not match anything.</p>' %
-                    (sampleName, sampleName))
+                    "did not match anything.</p>" % (sampleName, sampleName)
+                )
                 continue
 
             for pathogenName in sorted(samplePathogenNames):
-                readsFileName = self.pathogenSampleFiles.lookup(pathogenName,
-                                                                sampleName)
-                proteins = self.pathogenNames[pathogenName][sampleName][
-                    'proteins']
-                uniqueReadCount = self.pathogenNames[
-                    pathogenName][sampleName]['uniqueReadCount']
+                readsFileName = self.pathogenSampleFiles.lookup(
+                    pathogenName, sampleName
+                )
+                proteins = self.pathogenNames[pathogenName][sampleName]["proteins"]
+                uniqueReadCount = self.pathogenNames[pathogenName][sampleName][
+                    "uniqueReadCount"
+                ]
                 proteinCount = len(proteins)
                 pathogenProteinCount = self._pathogenProteinCount[pathogenName]
 
                 if pathogenProteinCount:
-                    proteinCountStr = '%d/%d protein%s' % (
-                        proteinCount, pathogenProteinCount,
-                        '' if pathogenProteinCount == 1 else 's')
+                    proteinCountStr = "%d/%d protein%s" % (
+                        proteinCount,
+                        pathogenProteinCount,
+                        "" if pathogenProteinCount == 1 else "s",
+                    )
                 else:
-                    proteinCountStr = '%d protein%s' % (
-                        proteinCount, '' if proteinCount == 1 else 's')
+                    proteinCountStr = "%d protein%s" % (
+                        proteinCount,
+                        "" if proteinCount == 1 else "s",
+                    )
 
                 append(
                     '<p class="sample indented">'
                     '<a href="#pathogen-%s">%s</a> %s, '
-                    '<a href="%s">%d de-duplicated (by id) read%s</a>:</p>' %
-                    (pathogenName, pathogenName,
-                     proteinCountStr, readsFileName,
-                     uniqueReadCount, '' if uniqueReadCount == 1 else 's'))
+                    '<a href="%s">%d de-duplicated (by id) read%s</a>:</p>'
+                    % (
+                        pathogenName,
+                        pathogenName,
+                        proteinCountStr,
+                        readsFileName,
+                        uniqueReadCount,
+                        "" if uniqueReadCount == 1 else "s",
+                    )
+                )
                 append('<ul class="protein-list indented">')
                 for proteinName in sorted(proteins):
                     proteinMatch = proteins[proteinName]
                     append(
-                        '<li>'
+                        "<li>"
                         '<span class="stats">'
-                        '%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f '
-                        '%(readAndHspCountStr)11s %(proteinLength)4d '
-                        '</span> '
+                        "%(coverage).2f %(medianScore)6.2f %(bestScore)6.2f "
+                        "%(readAndHspCountStr)11s %(proteinLength)4d "
+                        "</span> "
                         '<span class="protein-name">'
-                        '%(proteinName)s'
-                        '</span> '
+                        "%(proteinName)s"
+                        "</span> "
                         '(<a href="%(bluePlotFilename)s">blue plot</a>, '
-                        '<a href="%(readsFilename)s">reads</a>'
-                        % proteinMatch)
+                        '<a href="%(readsFilename)s">reads</a>' % proteinMatch
+                    )
 
-                    if proteinMatch['proteinURL']:
+                    if proteinMatch["proteinURL"]:
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI protein</a>' %
-                                       proteinMatch['proteinURL'])
+                        result[-1] += (
+                            ', <a href="%s">NCBI protein</a>'
+                            % proteinMatch["proteinURL"]
+                        )
 
-                    if proteinMatch['genomeURL']:
+                    if proteinMatch["genomeURL"]:
                         # Append this directly to the last string in result, to
                         # avoid introducing whitespace when we join result
                         # using '\n'.
-                        result[-1] += (', <a href="%s">NCBI genome</a>' %
-                                       proteinMatch['genomeURL'])
+                        result[-1] += (
+                            ', <a href="%s">NCBI genome</a>' % proteinMatch["genomeURL"]
+                        )
 
-                    result[-1] += ')'
+                    result[-1] += ")"
 
-                    append('</li>')
+                    append("</li>")
 
-                append('</ul>')
+                append("</ul>")
 
-        append('</body>')
-        append('</html>')
+        append("</body>")
+        append("</html>")
 
-        return '\n'.join(result)
+        return "\n".join(result)
 
     def _pathogenSamplePlot(self, pathogenName, sampleNames, ax):
         """
@@ -949,13 +1053,14 @@ class ProteinGrouper(object):
         for i, sampleName in enumerate(sampleNames):
             try:
                 readCount = self.pathogenNames[pathogenName][sampleName][
-                    'uniqueReadCount']
+                    "uniqueReadCount"
+                ]
             except KeyError:
                 readCount = 0
             readCounts.append(readCount)
 
-        highlight = 'r'
-        normal = 'gray'
+        highlight = "r"
+        normal = "gray"
         sdMultiple = 2.5
         minReadsForHighlighting = 10
         highlighted = []
@@ -971,8 +1076,10 @@ class ProteinGrouper(object):
             sd = np.std(readCounts)
             color = []
             for readCount, sampleName in zip(readCounts, sampleNames):
-                if (readCount > (sdMultiple * sd) + mean and
-                        readCount >= minReadsForHighlighting):
+                if (
+                    readCount > (sdMultiple * sd) + mean
+                    and readCount >= minReadsForHighlighting
+                ):
                     color.append(highlight)
                     highlighted.append(sampleName)
                 else:
@@ -985,17 +1092,16 @@ class ProteinGrouper(object):
         ax.set_xlim((-0.5, nSamples - 0.5))
         ax.vlines(x, yMin, readCounts, color=color)
         if highlighted:
-            title = '%s\nIn red: %s' % (
-                pathogenName, fill(', '.join(highlighted), 50))
+            title = "%s\nIn red: %s" % (pathogenName, fill(", ".join(highlighted), 50))
         else:
             # Add a newline to keep the first line of each title at the
             # same place as those titles that have an "In red:" second
             # line.
-            title = pathogenName + '\n'
+            title = pathogenName + "\n"
 
         ax.set_title(title, fontsize=10)
-        ax.tick_params(axis='both', which='major', labelsize=8)
-        ax.tick_params(axis='both', which='minor', labelsize=6)
+        ax.tick_params(axis="both", which="major", labelsize=8)
+        ax.tick_params(axis="both", which="minor", labelsize=6)
 
     def pathogenPanel(self, filename):
         """
@@ -1005,7 +1111,8 @@ class ProteinGrouper(object):
         @param filename: A C{str} file name to write the image to.
         """
         import matplotlib
-        matplotlib.use('PDF')
+
+        matplotlib.use("PDF")
         import matplotlib.pyplot as plt
 
         self._computeUniqueReadCounts()
@@ -1014,7 +1121,8 @@ class ProteinGrouper(object):
 
         cols = 5
         rows = int(len(pathogenNames) / cols) + (
-            0 if len(pathogenNames) % cols == 0 else 1)
+            0 if len(pathogenNames) % cols == 0 else 1
+        )
         figure, ax = plt.subplots(rows, cols, squeeze=False)
 
         coords = dimensionalIterator((rows, cols))
@@ -1027,18 +1135,23 @@ class ProteinGrouper(object):
         # this because the panel is a rectangular grid and some of the
         # plots at the end of the last row may be unused.
         for row, col in coords:
-            ax[row][col].axis('off')
+            ax[row][col].axis("off")
 
         figure.suptitle(
-            ('Per-sample read count for %d pathogen%s and %d sample%s.\n\n'
-             'Sample name%s: %s') % (
-                 len(pathogenNames),
-                 '' if len(pathogenNames) == 1 else 's',
-                 len(sampleNames),
-                 '' if len(sampleNames) == 1 else 's',
-                 '' if len(sampleNames) == 1 else 's',
-                 fill(', '.join(sampleNames), 50)),
-            fontsize=20)
+            (
+                "Per-sample read count for %d pathogen%s and %d sample%s.\n\n"
+                "Sample name%s: %s"
+            )
+            % (
+                len(pathogenNames),
+                "" if len(pathogenNames) == 1 else "s",
+                len(sampleNames),
+                "" if len(sampleNames) == 1 else "s",
+                "" if len(sampleNames) == 1 else "s",
+                fill(", ".join(sampleNames), 50),
+            ),
+            fontsize=20,
+        )
         figure.set_size_inches(5.0 * cols, 2.0 * rows, forward=True)
         plt.subplots_adjust(hspace=0.4)
 

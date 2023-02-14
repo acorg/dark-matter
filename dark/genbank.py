@@ -1,7 +1,7 @@
 from warnings import warn
 
 
-class GenomeRanges(object):
+class GenomeRanges:
     """
     Split and manage a GenBank range string as converted by BioPython.
 
@@ -36,8 +36,9 @@ class GenomeRanges(object):
                 ((126386, 126881, False),
                  (125941, 126232, True))
     """
+
     def __init__(self, rangeStr):
-        if rangeStr.startswith('join{') and rangeStr[-1] == '}':
+        if rangeStr.startswith("join{") and rangeStr[-1] == "}":
             join = True
             inner = rangeStr[5:-1]
         else:
@@ -45,49 +46,55 @@ class GenomeRanges(object):
             inner = rangeStr
 
         ranges = []
-        subRanges = inner.split(', ')
+        subRanges = inner.split(", ")
         nRanges = len(subRanges)
 
         if nRanges == 1 and join:
-            raise ValueError('Could not parse GenBank range string "%s". '
-                             'join{} can only be used with multiple ranges.' %
-                             rangeStr)
+            raise ValueError(
+                'Could not parse GenBank range string "%s". '
+                "join{} can only be used with multiple ranges." % rangeStr
+            )
         elif nRanges > 1 and not join:
-            raise ValueError('Could not parse GenBank range string "%s". '
-                             'Multiple ranges must be wrapped in join{}.' %
-                             rangeStr)
+            raise ValueError(
+                'Could not parse GenBank range string "%s". '
+                "Multiple ranges must be wrapped in join{}." % rangeStr
+            )
 
         for subRange in subRanges:
-            if subRange.endswith('](+)'):
+            if subRange.endswith("](+)"):
                 forward = True
-            elif subRange.endswith('](-)'):
+            elif subRange.endswith("](-)"):
                 forward = False
             else:
-                raise ValueError('Could not parse GenBank range string "%s". '
-                                 'Range "%s" does not end with ](+) or ](-).' %
-                                 (rangeStr, subRange))
+                raise ValueError(
+                    'Could not parse GenBank range string "%s". '
+                    'Range "%s" does not end with ](+) or ](-).' % (rangeStr, subRange)
+                )
 
-            if not subRange.startswith('['):
-                raise ValueError('Could not parse GenBank range string "%s". '
-                                 'Range "%s" does not start with "[".' %
-                                 (rangeStr, subRange))
+            if not subRange.startswith("["):
+                raise ValueError(
+                    'Could not parse GenBank range string "%s". '
+                    'Range "%s" does not start with "[".' % (rangeStr, subRange)
+                )
             try:
-                start, stop = subRange[1:-4].split(':')
+                start, stop = subRange[1:-4].split(":")
             except ValueError as e:
-                raise ValueError('Could not parse GenBank range string "%s". '
-                                 'Original parsing ValueError was "%s".' %
-                                 (rangeStr, e))
+                raise ValueError(
+                    'Could not parse GenBank range string "%s". '
+                    'Original parsing ValueError was "%s".' % (rangeStr, e)
+                )
             else:
-                if start.startswith('<'):
+                if start.startswith("<"):
                     start = start[1:]
-                if stop.startswith('>'):
+                if stop.startswith(">"):
                     stop = stop[1:]
                 start, stop = map(int, (start, stop))
                 if start > stop:
                     raise ValueError(
                         'Could not parse GenBank range string "%s". '
-                        'Offset values (%d, %d) cannot decrease.' %
-                        (rangeStr, start, stop))
+                        "Offset values (%d, %d) cannot decrease."
+                        % (rangeStr, start, stop)
+                    )
 
                 ranges.append((start, stop, forward))
 
@@ -112,9 +119,10 @@ class GenomeRanges(object):
             else:
                 if start == lastStop and forward == lastForward:
                     # This range continues the previous one.
-                    warn('Contiguous GenBank ranges detected: [%d:%d] '
-                         'followed by [%d:%d].' %
-                         (lastStart, lastStop, start, stop))
+                    warn(
+                        "Contiguous GenBank ranges detected: [%d:%d] "
+                        "followed by [%d:%d]." % (lastStart, lastStop, start, stop)
+                    )
                     lastStop = stop
                 else:
                     # Emit the range that just got terminated.
@@ -128,8 +136,7 @@ class GenomeRanges(object):
         return tuple(result)
 
     def __str__(self):
-        return '<%s: %s>' % (
-            self.__class__.__name__, ', '.join(map(str, self.ranges)))
+        return "<%s: %s>" % (self.__class__.__name__, ", ".join(map(str, self.ranges)))
 
     def circular(self, genomeLength):
         """
@@ -184,7 +191,7 @@ class GenomeRanges(object):
 
         # Calculate the start of the match in the genome, given its start in
         # the protein.
-        offsetInGenome = remaining = (match['sstart'] - 1) * 3
+        offsetInGenome = remaining = (match["sstart"] - 1) * 3
 
         for start, stop, _ in self.ranges:
             rangeWidth = stop - start
@@ -195,11 +202,13 @@ class GenomeRanges(object):
                 remaining -= rangeWidth
         else:
             raise ValueError(
-                'Starting nucleotide offset %d not found in protein '
-                'nucleotide ranges %s.' %
-                (offsetInGenome,
-                 ', '.join(('(%d, %d)' % (i, j))
-                           for i, j, _ in self.ranges)))
+                "Starting nucleotide offset %d not found in protein "
+                "nucleotide ranges %s."
+                % (
+                    offsetInGenome,
+                    ", ".join(("(%d, %d)" % (i, j)) for i, j, _ in self.ranges),
+                )
+            )
 
     def orientations(self):
         """
@@ -220,8 +229,7 @@ class GenomeRanges(object):
         return len(self.ranges) - int(self.circular(genomeLength))
 
 
-def getSourceInfo(genome, keys=('host', 'note', 'organism', 'mol_type'),
-                  logfp=None):
+def getSourceInfo(genome, keys=("host", "note", "organism", "mol_type"), logfp=None):
     """
     Extract summary information from a genome source feature.
 
@@ -238,32 +246,35 @@ def getSourceInfo(genome, keys=('host', 'note', 'organism', 'mol_type'),
     result = {}
 
     for feature in genome.features:
-        if feature.type == 'source':
+        if feature.type == "source":
             for key in keys:
                 try:
                     values = feature.qualifiers[key]
                 except KeyError:
                     value = None
-                    if key != 'note' and logfp:
-                        print('Genome %r (accession %s) source info has '
-                              'no %r feature.' %
-                              (genome.description, genome.id, key),
-                              file=logfp)
+                    if key != "note" and logfp:
+                        print(
+                            "Genome %r (accession %s) source info has "
+                            "no %r feature." % (genome.description, genome.id, key),
+                            file=logfp,
+                        )
                 else:
                     if len(values) == 1:
                         value = values[0]
 
-                        if key == 'mol_type':
-                            assert value[-3:] in ('DNA', 'RNA')
+                        if key == "mol_type":
+                            assert value[-3:] in ("DNA", "RNA")
 
-                    elif len(values) > 1 and key == 'host':
-                        value = ', '.join(values)
+                    elif len(values) > 1 and key == "host":
+                        value = ", ".join(values)
                     else:
                         if logfp:
-                            print('Genome %r (accession %s) has source '
-                                  'feature %r with length != 1: %r' % (
-                                      genome.description, genome.id, key,
-                                      values), file=logfp)
+                            print(
+                                "Genome %r (accession %s) has source "
+                                "feature %r with length != 1: %r"
+                                % (genome.description, genome.id, key, values),
+                                file=logfp,
+                            )
                         return
 
                 result[key] = value
@@ -272,15 +283,19 @@ def getSourceInfo(genome, keys=('host', 'note', 'organism', 'mol_type'),
             break
     else:
         if logfp:
-            print('Genome %r (accession %s) had no source feature! '
-                  'Skipping.' % (genome.description, genome.id), file=logfp)
+            print(
+                "Genome %r (accession %s) had no source feature! "
+                "Skipping." % (genome.description, genome.id),
+                file=logfp,
+            )
         return
 
     return result
 
 
-def getCDSInfo(genome, feature,
-               keys=('gene', 'note', 'product', 'protein_id', 'translation')):
+def getCDSInfo(
+    genome, feature, keys=("gene", "note", "product", "protein_id", "translation")
+):
     """
     Extract summary information from a genome CDS feature.
 
@@ -297,30 +312,33 @@ def getCDSInfo(genome, feature,
 
     # Check in advance that all feature qualifiers we're interested in
     # have the right lengths, if they're present.
-    for key in 'gene', 'note', 'product', 'protein_id', 'translation':
+    for key in "gene", "note", "product", "protein_id", "translation":
         if key in qualifiers:
-            assert len(qualifiers[key]) == 1, (
-                'GenBank qualifier key %s is not length one %r' %
-                (key, qualifiers[key]))
+            assert (
+                len(qualifiers[key]) == 1
+            ), "GenBank qualifier key %s is not length one %r" % (key, qualifiers[key])
 
     # A protein id is mandatory.
-    if 'protein_id' in qualifiers:
-        proteinId = qualifiers['protein_id'][0]
+    if "protein_id" in qualifiers:
+        proteinId = qualifiers["protein_id"][0]
     else:
-        if 'translation' in qualifiers:
-            warn('Genome %r (accession %s) has CDS feature with no '
-                 'protein_id feature but has a translation! '
-                 'Skipping.\nFeature: %s' %
-                 (genome.description, genome.id, feature))
+        if "translation" in qualifiers:
+            warn(
+                "Genome %r (accession %s) has CDS feature with no "
+                "protein_id feature but has a translation! "
+                "Skipping.\nFeature: %s" % (genome.description, genome.id, feature)
+            )
         return
 
     # A translated (i.e., amino acid) sequence is mandatory.
-    if 'translation' in qualifiers:
-        translation = qualifiers['translation'][0]
+    if "translation" in qualifiers:
+        translation = qualifiers["translation"][0]
     else:
-        warn('Genome %r (accession %s) has CDS feature with protein '
-             '%r with no translated sequence. Skipping.' %
-             (genome.description, genome.id, proteinId))
+        warn(
+            "Genome %r (accession %s) has CDS feature with protein "
+            "%r with no translated sequence. Skipping."
+            % (genome.description, genome.id, proteinId)
+        )
         return
 
     featureLocation = str(feature.location)
@@ -329,9 +347,11 @@ def getCDSInfo(genome, feature,
     try:
         ranges = GenomeRanges(featureLocation)
     except ValueError as e:
-        warn('Genome %r  (accession %s) contains unparseable CDS '
-             'location for protein %r. Skipping. Error: %s' %
-             (genome.description, genome.id, proteinId, e))
+        warn(
+            "Genome %r  (accession %s) contains unparseable CDS "
+            "location for protein %r. Skipping. Error: %s"
+            % (genome.description, genome.id, proteinId, e)
+        )
         return
     else:
         # Does the protein span the end of the genome? This indicates a
@@ -339,10 +359,17 @@ def getCDSInfo(genome, feature,
         circular = int(ranges.circular(len(genome.seq)))
 
     if feature.location.start >= feature.location.end:
-        warn('Genome %r (accession %s) contains feature with start '
-             '(%d) >= stop (%d). Skipping.\nFeature: %s' %
-             (genome.description, genome.id, feature.location.start,
-              feature.location.end, feature))
+        warn(
+            "Genome %r (accession %s) contains feature with start "
+            "(%d) >= stop (%d). Skipping.\nFeature: %s"
+            % (
+                genome.description,
+                genome.id,
+                feature.location.start,
+                feature.location.end,
+                feature,
+            )
+        )
         return
 
     strand = feature.strand
@@ -363,16 +390,18 @@ def getCDSInfo(genome, feature,
         # and tests for that are more complex than I want to deal
         # with at the moment, just for the sake of one protein in a
         # frog herpesvirus.
-        warn('Genome %s (accession %s) has protein %r with mixed '
-             'orientation!' % (genome.description, genome.id,
-                               proteinId))
+        warn(
+            "Genome %s (accession %s) has protein %r with mixed "
+            "orientation!" % (genome.description, genome.id, proteinId)
+        )
         return
     elif strand == 0:
         # This never occurs for proteins corresponding to genomes in
         # the RVDB database C-RVDBv15.1.
-        warn('Genome %r (accession %s) has protein %r with feature '
-             'with strand of zero!' %
-             (genome.description, genome.id, proteinId))
+        warn(
+            "Genome %r (accession %s) has protein %r with feature "
+            "with strand of zero!" % (genome.description, genome.id, proteinId)
+        )
         return
     else:
         assert strand in (1, -1)
@@ -382,14 +411,14 @@ def getCDSInfo(genome, feature,
         assert ranges.orientations() == {forward}
 
     return {
-        'circular': circular,
-        'featureLocation': featureLocation,
-        'forward': forward,
-        'gene': qualifiers.get('gene', [''])[0],
-        'note': qualifiers.get('note', [''])[0],
-        'product': qualifiers.get('product', ['UNKNOWN'])[0],
-        'proteinId': proteinId,
-        'ranges': ranges,
-        'strand': strand,
-        'translation': translation,
+        "circular": circular,
+        "featureLocation": featureLocation,
+        "forward": forward,
+        "gene": qualifiers.get("gene", [""])[0],
+        "note": qualifiers.get("note", [""])[0],
+        "product": qualifiers.get("product", ["UNKNOWN"])[0],
+        "proteinId": proteinId,
+        "ranges": ranges,
+        "strand": strand,
+        "translation": translation,
     }

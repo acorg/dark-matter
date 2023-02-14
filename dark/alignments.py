@@ -1,11 +1,55 @@
-import re
+from __future__ import annotations
 
+import re
+from typing import Union, Optional, Literal, Type, Generator, Callable
 from dark.taxonomy import LineageFetcher
 from dark.filter import TitleFilter
-from dark.score import HigherIsBetterScore
+from dark.hsp import HSP, LSP
+from dark.reads import Read, Reads
+from dark.score import HigherIsBetterScore, LowerIsBetterScore
 
 
-def bestAlignment(readAlignments):
+class Alignment:
+    """
+    Hold information about a read alignment.
+
+    @param subjectLength: The C{int} length of the sequence a read matched
+        against.
+    @param subjectTitle: The C{str} title of the sequence a read matched
+        against.
+    """
+
+    def __init__(self, subjectLength: int, subjectTitle: str):
+        self.subjectLength = subjectLength
+        self.subjectTitle = subjectTitle
+        self.hsps: list[Union[HSP, LSP]] = []
+
+    def addHsp(self, hsp: Union[HSP, LSP]) -> None:
+        """
+        Add an HSP (or LSP) to the list of HSPs for this alignment.
+
+        @param hsp: A L{dark.hsp} (or subclass) instance.
+        """
+        self.hsps.append(hsp)
+
+
+class ReadAlignments(list):
+    """
+    Holds information about the alignments for a read.
+
+    @param read: A C{Read} instance.
+    @param alignments: A C{list} of L{dark.alignment.Alignment} instances or
+        C{None} if the read has no alignments.
+    """
+
+    def __init__(self, read: Read, alignments: Optional[list[Alignment]] = None):
+        list.__init__(self)
+        self.read = read
+        if alignments:
+            self.extend(alignments)
+
+
+def bestAlignment(readAlignments: ReadAlignments) -> Alignment:
     """
     Find the best alignment for a read. This is the one whose first HSP
     has the best score.
@@ -21,46 +65,7 @@ def bestAlignment(readAlignments):
     return max(readAlignments, key=lambda alignment: alignment.hsps[0])
 
 
-class Alignment(object):
-    """
-    Hold information about a read alignment.
-
-    @param subjectLength: The C{int} length of the sequence a read matched
-        against.
-    @param subjectTitle: The C{str} title of the sequence a read matched
-        against.
-    """
-
-    def __init__(self, subjectLength, subjectTitle):
-        self.subjectLength = subjectLength
-        self.subjectTitle = subjectTitle
-        self.hsps = []
-
-    def addHsp(self, hsp):
-        """
-        Add an HSP to the list of HSPs for this alignment.
-
-        @param hsp: A L{dark.hsp} (or subclass) instance.
-        """
-        self.hsps.append(hsp)
-
-
-class ReadAlignments(list):
-    """
-    Holds information about the alignments for a read.
-
-    @param read: A C{Read} instance.
-    @param alignments: A C{list} of L{dark.alignment.Alignment} instances or
-        C{None} if the read has no alignments.
-    """
-    def __init__(self, read, alignments=None):
-        list.__init__(self)
-        self.read = read
-        if alignments:
-            self.extend(alignments)
-
-
-class ReadsAlignmentsParams(object):
+class ReadsAlignmentsParams:
     """
     Holds information about how a ReadsAlignments instance was created.
 
@@ -75,15 +80,20 @@ class ReadsAlignmentsParams(object):
         or "E value".
     """
 
-    def __init__(self, application, applicationParams=None,
-                 subjectIsNucleotides=True, scoreTitle='Score'):
+    def __init__(
+        self,
+        application: str,
+        applicationParams: Optional[dict[str, str]] = None,
+        subjectIsNucleotides: bool = True,
+        scoreTitle: str = "Score",
+    ):
         self.application = application
         self.applicationParams = applicationParams
         self.subjectIsNucleotides = subjectIsNucleotides
         self.scoreTitle = scoreTitle
 
 
-class ReadsAlignmentsFilter(object):
+class ReadsAlignmentsFilter:
     """
     Provide a filter for C{ReadsAlignments} instances.
 
@@ -112,10 +122,10 @@ class ReadsAlignmentsFilter(object):
         0.0 to 100.0 NOT a fraction). Matches with a percentage positive less
         than this will be ignored. An AA match is considered positive (by
         DIAMOND) if its entry in the substitution (scoring) matrix is positive.
-    @param whitelist: If not C{None}, a set of exact titles that are always
+    @param whitelist: If not C{None}, a set of exact C{str} titles that are always
         acceptable (though the match info for a whitelist title may rule it
         out for other reasons).
-    @param blacklist: If not C{None}, a set of exact titles that are never
+    @param blacklist: If not C{None}, a set of exact C{str} titles that are never
         acceptable.
     @param whitelistFile: If not C{None}, a C{str} filename containing lines
         that give exact ids that are always acceptable.
@@ -133,16 +143,30 @@ class ReadsAlignmentsFilter(object):
         match.
     @return: C{self}.
     """
-    def __init__(self, limit=None, maxAlignmentsPerRead=None,
-                 minSequenceLen=None, maxSequenceLen=None,
-                 minStart=None, maxStop=None,
-                 oneAlignmentPerRead=False, maxHspsPerHit=None,
-                 scoreCutoff=None, percentageIdenticalCutoff=None,
-                 percentagePositiveCutoff=None,
-                 whitelist=None, blacklist=None,
-                 whitelistFile=None, blacklistFile=None,
-                 titleRegex=None, negativeTitleRegex=None,
-                 truncateTitlesAfter=None, taxonomy=None, readIdRegex=None):
+
+    def __init__(
+        self,
+        limit: Optional[int] = None,
+        maxAlignmentsPerRead: Optional[int] = None,
+        minSequenceLen: Optional[int] = None,
+        maxSequenceLen: Optional[int] = None,
+        minStart: Optional[int] = None,
+        maxStop: Optional[int] = None,
+        oneAlignmentPerRead: bool = False,
+        maxHspsPerHit: Optional[int] = None,
+        scoreCutoff: Optional[float] = None,
+        percentageIdenticalCutoff: Optional[float] = None,
+        percentagePositiveCutoff: Optional[float] = None,
+        whitelist: Optional[set[str]] = None,
+        blacklist: Optional[set[str]] = None,
+        whitelistFile: Optional[str] = None,
+        blacklistFile: Optional[str] = None,
+        titleRegex: Optional[str] = None,
+        negativeTitleRegex: Optional[str] = None,
+        truncateTitlesAfter: Optional[str] = None,
+        taxonomy: Optional[Union[str, int]] = None,
+        readIdRegex: Optional[str] = None,
+    ):
 
         self.limit = limit
         self.maxAlignmentsPerRead = maxAlignmentsPerRead
@@ -155,33 +179,38 @@ class ReadsAlignmentsFilter(object):
         self.scoreCutoff = scoreCutoff
         self.percentageIdenticalCutoff = percentageIdenticalCutoff
         self.percentagePositiveCutoff = percentagePositiveCutoff
+        self.titleFilter: Optional[TitleFilter]
+        self.lineageFetcher: Optional[LineageFetcher]
 
         # If we've been asked to filter on matched sequence titles in any way,
         # build a title filter.
-        if (whitelist or blacklist or whitelistFile or blacklistFile or
-                titleRegex or negativeTitleRegex or truncateTitlesAfter):
+        if (
+            whitelist
+            or blacklist
+            or whitelistFile
+            or blacklistFile
+            or titleRegex
+            or negativeTitleRegex
+            or truncateTitlesAfter
+        ):
             self.titleFilter = TitleFilter(
-                whitelist=whitelist, blacklist=blacklist,
-                whitelistFile=whitelistFile, blacklistFile=blacklistFile,
-                positiveRegex=titleRegex, negativeRegex=negativeTitleRegex,
-                truncateAfter=truncateTitlesAfter)
+                whitelist=whitelist,
+                blacklist=blacklist,
+                whitelistFile=whitelistFile,
+                blacklistFile=blacklistFile,
+                positiveRegex=titleRegex,
+                negativeRegex=negativeTitleRegex,
+                truncateAfter=truncateTitlesAfter,
+            )
         else:
             self.titleFilter = None
 
-        if taxonomy is not None:
-            self.lineageFetcher = LineageFetcher()
-        else:
-            self.lineageFetcher = None
         self.taxonomy = taxonomy
-
-        if readIdRegex is None:
-            self.readIdRegex = None
-        else:
-            self.readIdRegex = re.compile(readIdRegex)
-
+        self.lineageFetcher = None if taxonomy is None else LineageFetcher()
+        self.readIdRegex = None if readIdRegex is None else re.compile(readIdRegex)
         self.count = 0
 
-    def filter(self, readAlignments):
+    def filter(self, readAlignments) -> Union[ReadAlignments, Literal[False]]:
         """
         Filter a read's alignments.
 
@@ -219,13 +248,14 @@ class ReadsAlignmentsFilter(object):
             return False
 
         # Does the read have too many alignments?
-        if (self.maxAlignmentsPerRead is not None and
-                len(readAlignments) > self.maxAlignmentsPerRead):
+        if (
+            self.maxAlignmentsPerRead is not None
+            and len(readAlignments) > self.maxAlignmentsPerRead
+        ):
             return False
 
         # Filter on the read id.
-        if (self.readIdRegex and
-                self.readIdRegex.search(readAlignments.read.id) is None):
+        if self.readIdRegex and self.readIdRegex.search(readAlignments.read.id) is None:
             return False
 
         if self.titleFilter:
@@ -233,8 +263,10 @@ class ReadsAlignmentsFilter(object):
             # unacceptable.
             wantedAlignments = []
             for alignment in readAlignments:
-                if (self.titleFilter.accept(alignment.subjectTitle) !=
-                        TitleFilter.REJECT):
+                if (
+                    self.titleFilter.accept(alignment.subjectTitle)
+                    != TitleFilter.REJECT
+                ):
                     wantedAlignments.append(alignment)
             if wantedAlignments:
                 readAlignments[:] = wantedAlignments
@@ -249,10 +281,10 @@ class ReadsAlignmentsFilter(object):
             wantedAlignments = []
             for alignment in readAlignments:
                 length = alignment.subjectLength
-                if not ((minSequenceLen is not None and
-                         length < minSequenceLen) or
-                        (maxSequenceLen is not None and
-                         length > self.maxSequenceLen)):
+                if not (
+                    (minSequenceLen is not None and length < minSequenceLen)
+                    or (maxSequenceLen is not None and length > self.maxSequenceLen)
+                ):
                     wantedAlignments.append(alignment)
             if wantedAlignments:
                 readAlignments[:] = wantedAlignments
@@ -262,6 +294,7 @@ class ReadsAlignmentsFilter(object):
         if self.taxonomy is not None:
             wantedAlignments = []
             for alignment in readAlignments:
+                assert self.lineageFetcher
                 lineage = self.lineageFetcher.lineage(alignment.subjectTitle)
                 if lineage:
                     for taxonomyIdAndScientificName in lineage:
@@ -289,7 +322,7 @@ class ReadsAlignmentsFilter(object):
             for alignment in readAlignments:
                 hsps = alignment.hsps
                 if len(hsps) > self.maxHspsPerHit:
-                    alignment.hsps = hsps[:self.maxHspsPerHit]
+                    alignment.hsps = hsps[: self.maxHspsPerHit]
 
         # Throw out HSPs whose scores are not good enough.
         if self.scoreCutoff is not None:
@@ -364,10 +397,10 @@ class ReadsAlignmentsFilter(object):
                 hsps = alignment.hsps
                 wantedHsps = []
                 for hsp in hsps:
-                    if not ((minStart is not None and
-                             hsp.readStartInSubject < minStart) or
-                            (maxStop is not None and
-                             hsp.readEndInSubject > maxStop)):
+                    if not (
+                        (minStart is not None and hsp.readStartInSubject < minStart)
+                        or (maxStop is not None and hsp.readEndInSubject > maxStop)
+                    ):
                         wantedHsps.append(hsp)
                 if wantedHsps:
                     alignment.hsps = wantedHsps
@@ -380,15 +413,15 @@ class ReadsAlignmentsFilter(object):
         self.count += 1
         return readAlignments
 
-    def close(self):
+    def close(self) -> None:
         """
         Close our lineage fetcher, if any.
         """
-        if self.taxonomy:
+        if self.lineageFetcher:
             self.lineageFetcher.close()
 
 
-class ReadsAlignments(object):
+class ReadsAlignments:
     """
     Provide for filtering for a collection of reads and their alignments.
 
@@ -407,13 +440,20 @@ class ReadsAlignments(object):
         are using e.g., BLAST e-values, pass LowerIsBetterScore instead.
     """
 
-    def __init__(self, reads, params, scoreClass=HigherIsBetterScore):
+    def __init__(
+        self,
+        reads: Reads,
+        params: ReadsAlignmentsParams,
+        scoreClass: Union[
+            Type[HigherIsBetterScore], Type[LowerIsBetterScore]
+        ] = HigherIsBetterScore,
+    ):
         self.reads = reads
         self.params = params
         self.scoreClass = scoreClass
-        self._filters = []
+        self._filters: list[Callable] = []
 
-    def getSubjectSequence(self, title):
+    def getSubjectSequence(self, title: str):
         """
         Obtain information about a sequence given its title.
 
@@ -426,38 +466,39 @@ class ReadsAlignments(object):
         @raise NotImplementedError: This method must be implemented by a
             subclass.
         """
-        raise NotImplementedError('getSubjectSequence must be implemented by '
-                                  'a subclass')
+        raise NotImplementedError(
+            "getSubjectSequence must be implemented by " "a subclass"
+        )
 
-    def hsps(self):
+    def hsps(self) -> Generator[Union[HSP, LSP], None, None]:
         """
         Provide access to all HSPs for all alignments of all reads.
 
         @return: A generator that yields HSPs (or LSPs).
         """
         for readAlignments in self:
-            for alignment in readAlignments:
-                for hsp in alignment.hsps:
+            for readAlignment in readAlignments:
+                for hsp in readAlignment.hsps:
                     yield hsp
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[ReadAlignments, None, None]:
         """
-        Iterate through all readsAlignments, yielding those that pass any
+        Iterate through all readsAlignments, yielding the readAlignments that pass any
         filters that have been added.
 
         @return: A generator that yields readsAlignments.
         """
-        for readsAlignments in self.iter():
+        for readAlignments in self.iter():
             for filterFunc in self._filters:
-                filteredReadsAlignments = filterFunc(readsAlignments)
-                if filteredReadsAlignments is False:
+                filteredReadAlignments = filterFunc(readAlignments)
+                if filteredReadAlignments is False:
                     break
                 else:
-                    readsAlignments = filteredReadsAlignments
+                    readAlignments = filteredReadAlignments
             else:
-                yield readsAlignments
+                yield readAlignments
 
-    def iter(self):
+    def iter(self) -> Union[Generator[ReadAlignments, None, None], list]:
         """
         Placeholder to allow subclasses to provide readsAlignments.
 
@@ -470,7 +511,7 @@ class ReadsAlignments(object):
         """
         return []
 
-    def filter(self, **kwargs):
+    def filter(self, **kwargs) -> ReadsAlignments:
         """
         Add a filter to this C{readsAlignments}.
 

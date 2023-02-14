@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from os import unlink
 from tempfile import TemporaryFile
 from resource import getrlimit, RLIMIT_NOFILE
@@ -11,7 +9,7 @@ from dark.reads import DNARead
 from dark.utils import asHandle
 
 
-class SAMWriter(object):
+class SAMWriter:
     """
     A class that collects SAM output lines and writes SAM to a file.
 
@@ -20,6 +18,7 @@ class SAMWriter(object):
         non-header SAM output will be stored in RAM and only written out when
         the full header can be determined.
     """
+
     def __init__(self, ram=False):
         self._ram = ram
         self._referenceLengths = {}
@@ -34,8 +33,8 @@ class SAMWriter(object):
             as returned by C{dark.proteins.SqliteIndex.findGenome}.
         @param fp: The file pointer to write the line to.
         """
-        genomeName = genome['accession']
-        genomeLength = genome['length']
+        genomeName = genome["accession"]
+        genomeLength = genome["length"]
         try:
             preexistingLength = self._referenceLengths[genomeName]
         except KeyError:
@@ -43,9 +42,10 @@ class SAMWriter(object):
         else:
             if preexistingLength != genomeLength:
                 raise ValueError(
-                    'Reference %r passed with length %d but has already been '
-                    'given with a different length (%d).' %
-                    (genomeName, genomeLength, preexistingLength))
+                    "Reference %r passed with length %d but has already been "
+                    "given with a different length (%d)."
+                    % (genomeName, genomeLength, preexistingLength)
+                )
 
         print(line, file=fp)
 
@@ -60,12 +60,16 @@ class SAMWriter(object):
             lines (with no trailing newlines).
         """
         # Print SAM headers.
-        print('\n'.join(
-            (headerLines or []) +
-            [
-                '@SQ\tSN:%s\tLN:%d' % (name, self._referenceLengths[name])
-                for name in sorted(self._referenceLengths)
-            ]), file=fp)
+        print(
+            "\n".join(
+                (headerLines or [])
+                + [
+                    "@SQ\tSN:%s\tLN:%d" % (name, self._referenceLengths[name])
+                    for name in sorted(self._referenceLengths)
+                ]
+            ),
+            file=fp,
+        )
 
         # Print SAM match lines.
         if self._ram:
@@ -78,10 +82,10 @@ class SAMWriter(object):
         else:
             tmpfp.seek(0)
             for line in tmpfp:
-                print(line, end='', file=fp)
+                print(line, end="", file=fp)
 
 
-class _DiamondSAMWriter(object):
+class _DiamondSAMWriter:
     """
     A base class for converting DIAMOND tabular output to SAM.
 
@@ -100,8 +104,10 @@ class _DiamondSAMWriter(object):
         SAM specification, but since SAM files are TAB-separated there may be
         only a small chance this will cause problems downstream.
     """
-    def __init__(self, genomesProteins, mappingQuality=255, ram=False,
-                 keepDescriptions=False):
+
+    def __init__(
+        self, genomesProteins, mappingQuality=255, ram=False, keepDescriptions=False
+    ):
         self._genomesProteins = genomesProteins
         self._mappingQuality = mappingQuality
         self._ram = ram
@@ -121,23 +127,25 @@ class _DiamondSAMWriter(object):
             as looked up by C{self._genomesProteins.findGenome}.
         """
         match = self._strToDiamondDict(diamondStr)
-        stitle = match['stitle']
+        stitle = match["stitle"]
 
         genomeAccession = self._genomesProteins.genomeAccession(stitle)
         genome = self._genomesProteins.findGenome(genomeAccession)
         if genome is None:
             raise ValueError(
-                'Could not find accession %r in genomes database table.' %
-                genomeAccession)
+                "Could not find accession %r in genomes database table."
+                % genomeAccession
+            )
 
         proteinAccession = self._genomesProteins.proteinAccession(stitle)
         protein = self._genomesProteins.findProtein(proteinAccession)
         if protein is None:
             raise ValueError(
-                'Could not find accession %r in proteins database table.' %
-                proteinAccession)
+                "Could not find accession %r in proteins database table."
+                % proteinAccession
+            )
 
-        self._referenceLengths[genomeAccession] = genome['length']
+        self._referenceLengths[genomeAccession] = genome["length"]
 
         return match, protein, genome
 
@@ -156,8 +164,11 @@ class _DiamondSAMWriter(object):
             as returned by C{dark.proteins.SqliteIndex.findGenome}.
         @return: A TAB-separated C{str} line of SAM.
         """
-        qseqid = (match['qseqid'] if self._keepDescriptions else
-                  match['qseqid'].split(None, 1)[0])
+        qseqid = (
+            match["qseqid"]
+            if self._keepDescriptions
+            else match["qseqid"].split(None, 1)[0]
+        )
 
         # from dark.genbank import GenomeRanges
         # ranges = GenomeRanges(protein['offsets'])
@@ -176,60 +187,70 @@ class _DiamondSAMWriter(object):
         # / accepted practice, based on my web searches.  See e.g.,
         # https://www.biostars.org/p/131891/ for what Bowtie2 does and for
         # some comments on this issue for SAM/BAM files in general.
-        if match['qframe'] > 0:
+        if match["qframe"] > 0:
             flag = 0
-            qseq = match['full_qseq']
-            qqual = match['full_qqual'] or '*'
+            qseq = match["full_qseq"]
+            qqual = match["full_qqual"] or "*"
         else:
             flag = 16
-            qseq = DNARead('id',
-                           match['full_qseq']).reverseComplement().sequence
-            qqual = match['full_qqual'][::-1] if match['full_qqual'] else '*'
+            qseq = DNARead("id", match["full_qseq"]).reverseComplement().sequence
+            qqual = match["full_qqual"][::-1] if match["full_qqual"] else "*"
 
         # Make a CIGAR string, including hard-clipped bases at the start and
         # end of the query (DIAMOND outputs a hard-clipped query sequence).
-        startClipCount = match['qstart'] - 1
-        endClipCount = match['qlen'] - match['qend']
+        startClipCount = match["qstart"] - 1
+        endClipCount = match["qlen"] - match["qend"]
 
         assert startClipCount >= 0
-        assert endClipCount >= 0, (
-            'Query sequence %s has length %d but the qend value is %d' %
-            (qseq, len(match['qseq']), match['qend']))
+        assert (
+            endClipCount >= 0
+        ), "Query sequence %s has length %d but the qend value is %d" % (
+            qseq,
+            len(match["qseq"]),
+            match["qend"],
+        )
 
         cigar = (
-            ('%dH' % startClipCount if startClipCount else '') +
-            ''.join(btop2cigar(match['btop'], concise=False, aa=True)) +
-            ('%dH' % endClipCount if endClipCount else ''))
+            ("%dH" % startClipCount if startClipCount else "")
+            + "".join(btop2cigar(match["btop"], concise=False, aa=True))
+            + ("%dH" % endClipCount if endClipCount else "")
+        )
 
-        return '\t'.join(map(str, (
-            # 1. QNAME
-            qseqid,
-            # 2. FLAG
-            flag,
-            # 3. RNAME
-            genome['accession'],
-            # 4. POS. This needs to be a 1-based offset into the
-            # nucleotide-equivalent of the DIAMOND subject sequence (which was
-            # a protein since that is how DIAMOND operates). Because DIAMOND
-            # gives back a 1-based protein location, we adjust to 0-based,
-            # multiply by 3 to get to nucleotides, then adjust to 1-based.
-            3 * (match['sstart'] - 1) + 1,
-            # 5. MAPQ
-            self._mappingQuality,
-            # 6. CIGAR
-            cigar,
-            # 7. RNEXT
-            '*',
-            # 8. PNEXT
-            0,
-            # 9. TLEN
-            0,
-            # 10. SEQ
-            qseq,
-            # 11. QUAL
-            qqual,
-            # 12. Alignment score
-            'AS:i:%d' % int(match['bitscore']))))
+        return "\t".join(
+            map(
+                str,
+                (
+                    # 1. QNAME
+                    qseqid,
+                    # 2. FLAG
+                    flag,
+                    # 3. RNAME
+                    genome["accession"],
+                    # 4. POS. This needs to be a 1-based offset into the
+                    # nucleotide-equivalent of the DIAMOND subject sequence (which was
+                    # a protein since that is how DIAMOND operates). Because DIAMOND
+                    # gives back a 1-based protein location, we adjust to 0-based,
+                    # multiply by 3 to get to nucleotides, then adjust to 1-based.
+                    3 * (match["sstart"] - 1) + 1,
+                    # 5. MAPQ
+                    self._mappingQuality,
+                    # 6. CIGAR
+                    cigar,
+                    # 7. RNEXT
+                    "*",
+                    # 8. PNEXT
+                    0,
+                    # 9. TLEN
+                    0,
+                    # 10. SEQ
+                    qseq,
+                    # 11. QUAL
+                    qqual,
+                    # 12. Alignment score
+                    "AS:i:%d" % int(match["bitscore"]),
+                ),
+            )
+        )
 
     def addMatch(self, diamondStr):
         """
@@ -238,13 +259,13 @@ class _DiamondSAMWriter(object):
         @param diamondStr: A C{str} with TAB-separated fields from DIAMOND
             output format 6.
         """
-        raise NotImplementedError('addMatch must be implemented by a subclass')
+        raise NotImplementedError("addMatch must be implemented by a subclass")
 
     def save(self, fp):
         """
         Write SAM output to a file.
         """
-        raise NotImplementedError('save must be implemented by a subclass')
+        raise NotImplementedError("save must be implemented by a subclass")
 
 
 class SimpleDiamondSAMWriter(_DiamondSAMWriter):
@@ -266,12 +287,18 @@ class SimpleDiamondSAMWriter(_DiamondSAMWriter):
         SAM specification, but since SAM files are TAB-separated there may be
         only a small chance this will cause problems downstream.
     """
-    def __init__(self, genomesProteins, mappingQuality=255, ram=False,
-                 keepDescriptions=False):
+
+    def __init__(
+        self, genomesProteins, mappingQuality=255, ram=False, keepDescriptions=False
+    ):
         _DiamondSAMWriter.__init__(
-            self, genomesProteins, mappingQuality=mappingQuality, ram=ram,
-            keepDescriptions=keepDescriptions)
-        self._tf = TemporaryFile(mode='w+t', encoding='utf-8')
+            self,
+            genomesProteins,
+            mappingQuality=mappingQuality,
+            ram=ram,
+            keepDescriptions=keepDescriptions,
+        )
+        self._tf = TemporaryFile(mode="w+t", encoding="utf-8")
         self._writer = SAMWriter(ram=ram)
 
     def addMatch(self, diamondStr):
@@ -283,7 +310,8 @@ class SimpleDiamondSAMWriter(_DiamondSAMWriter):
         """
         match, protein, genome = self._preprocessMatch(diamondStr)
         self._writer.addMatchLine(
-            self._SAMLine(match, protein, genome), genome, self._tf)
+            self._SAMLine(match, protein, genome), genome, self._tf
+        )
 
     def save(self, filename):
         """
@@ -326,21 +354,34 @@ class PerReferenceDiamondSAMWriter(_DiamondSAMWriter):
         writing single lines to files). If C{None} or C{0} is passed, a size
         of half the maximum number of files will be used.
     """
-    SAM_SUFFIX = '.sam'
-    TMP_SUFFIX = '.tmp'
 
-    def __init__(self, genomesProteins, baseFilenameFunc=None,
-                 mappingQuality=255, ram=False, keepDescriptions=False,
-                 fpcMaxsize=0):
+    SAM_SUFFIX = ".sam"
+    TMP_SUFFIX = ".tmp"
+
+    def __init__(
+        self,
+        genomesProteins,
+        baseFilenameFunc=None,
+        mappingQuality=255,
+        ram=False,
+        keepDescriptions=False,
+        fpcMaxsize=0,
+    ):
         _DiamondSAMWriter.__init__(
-            self, genomesProteins, mappingQuality=mappingQuality, ram=ram,
-            keepDescriptions=keepDescriptions)
+            self,
+            genomesProteins,
+            mappingQuality=mappingQuality,
+            ram=ram,
+            keepDescriptions=keepDescriptions,
+        )
 
         self._writers = {}
         self._baseFilenameFunc = baseFilenameFunc
         self._fpc = FilePointerCache(
             maxsize=(fpcMaxsize or getrlimit(RLIMIT_NOFILE)[0] >> 1),
-            openArgs={'mode': 'wt'}, reopenArgs={'mode': 'at'})
+            openArgs={"mode": "wt"},
+            reopenArgs={"mode": "at"},
+        )
 
     def addMatch(self, diamondStr):
         """
@@ -350,8 +391,8 @@ class PerReferenceDiamondSAMWriter(_DiamondSAMWriter):
             output format 6.
         """
         match, protein, genome = self._preprocessMatch(diamondStr)
-        genomeAccession = genome['accession']
-        basename = self._baseFilenameFunc(match['stitle'])
+        genomeAccession = genome["accession"]
+        basename = self._baseFilenameFunc(match["stitle"])
 
         try:
             writer, _ = self._writers[genomeAccession]
@@ -359,8 +400,11 @@ class PerReferenceDiamondSAMWriter(_DiamondSAMWriter):
             writer = SAMWriter()
             self._writers[genomeAccession] = (writer, basename)
 
-        writer.addMatchLine(self._SAMLine(match, protein, genome), genome,
-                            self._fpc.open(basename + self.TMP_SUFFIX))
+        writer.addMatchLine(
+            self._SAMLine(match, protein, genome),
+            genome,
+            self._fpc.open(basename + self.TMP_SUFFIX),
+        )
 
     def save(self):
         """
@@ -372,7 +416,7 @@ class PerReferenceDiamondSAMWriter(_DiamondSAMWriter):
         # Write out SAM (including headers) for each reference.
         for writer, basename in self._writers.values():
             tmp = basename + self.TMP_SUFFIX
-            with open(basename + self.SAM_SUFFIX, 'wt') as samfp:
+            with open(basename + self.SAM_SUFFIX, "wt") as samfp:
                 with open(tmp) as tmpfp:
                     writer.save(samfp, tmpfp)
             unlink(tmp)

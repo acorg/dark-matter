@@ -3,9 +3,10 @@ from collections import defaultdict
 import numpy as np
 
 import matplotlib
-if not os.environ.get('DISPLAY'):
+
+if not os.environ.get("DISPLAY"):
     # Use non-interactive Agg backend
-    matplotlib.use('Agg')
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from random import choice, uniform
@@ -27,41 +28,42 @@ def basePlotter(blastHits, title):
     """
     result = []
     params = blastHits.plotParams
-    assert params is not None, ('Oops, it looks like you forgot to run '
-                                'computePlotInfo.')
+    assert params is not None, (
+        "Oops, it looks like you forgot to run " "computePlotInfo."
+    )
 
     sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
     subject = sequence.seq
-    gi = title.split('|')[1]
-    sub = '%s\t \t \t%s' % (gi, subject)
+    gi = title.split("|")[1]
+    sub = "%s\t \t \t%s" % (gi, subject)
     result.append(sub)
 
-    plotInfo = blastHits.titles[title]['plotInfo']
-    assert plotInfo is not None, ('Oops, it looks like you forgot to run '
-                                  'computePlotInfo.')
+    plotInfo = blastHits.titles[title]["plotInfo"]
+    assert plotInfo is not None, (
+        "Oops, it looks like you forgot to run " "computePlotInfo."
+    )
 
-    items = plotInfo['items']
+    items = plotInfo["items"]
     count = 0
     for item in items:
         count += 1
-        hsp = item['hsp']
-        queryTitle = blastHits.fasta[item['readNum']].id
+        hsp = item["hsp"]
+        queryTitle = blastHits.fasta[item["readNum"]].id
         # If the product of the subject and query frame values is +ve,
         # then they're either both +ve or both -ve, so we just use the
         # query as is. Otherwise, we need to reverse complement it.
-        if item['frame']['subject'] * item['frame']['query'] > 0:
-            query = blastHits.fasta[item['readNum']].seq
+        if item["frame"]["subject"] * item["frame"]["query"] > 0:
+            query = blastHits.fasta[item["readNum"]].seq
             reverse = False
         else:
             # One of the subject or query has negative sense.
-            query = blastHits.fasta[
-                item['readNum']].reverse_complement().seq
+            query = blastHits.fasta[item["readNum"]].reverse_complement().seq
             reverse = True
         query = query.upper()
-        queryStart = hsp['queryStart']
-        subjectStart = hsp['subjectStart']
-        queryEnd = hsp['queryEnd']
-        subjectEnd = hsp['subjectEnd']
+        queryStart = hsp["queryStart"]
+        subjectStart = hsp["subjectStart"]
+        queryEnd = hsp["queryEnd"]
+        subjectEnd = hsp["subjectEnd"]
 
         # Before comparing the read to the subject, make a string of the
         # same length as the subject, which contains the read and
@@ -75,10 +77,10 @@ def basePlotter(blastHits, title):
         # Do part 1) and 2).
         if queryStart < 0:
             # The query is sticking out to the left.
-            leftQuery = ''
+            leftQuery = ""
             if subjectStart == 0:
                 # The match starts at the first base of the subject.
-                middleLeftQuery = ''
+                middleLeftQuery = ""
             else:
                 # The match starts into the subject.
                 # Determine the length of the not matching query
@@ -89,27 +91,35 @@ def basePlotter(blastHits, title):
         else:
             # The query is not sticking out to the left
             # make the left offset.
-            leftQuery = queryStart * ' '
+            leftQuery = queryStart * " "
 
             leftQueryOffset = subjectStart - queryStart
             middleLeftQuery = query[:leftQueryOffset]
 
         # Do part 3).
         # Disregard gaps in subject while adding.
-        matchQuery = item['origHsp'].query
-        matchSubject = item['origHsp'].sbjct
+        matchQuery = item["origHsp"].query
+        matchSubject = item["origHsp"].sbjct
         index = 0
-        mid = ''
+        mid = ""
         for item in range(len(matchQuery)):
-            if matchSubject[index] != ' ':
+            if matchSubject[index] != " ":
                 mid += matchQuery[index]
             index += 1
         # if the query has been reversed, turn the matched part around
         if reverse:
-            rev = ''
+            rev = ""
             toReverse = mid
-            reverseDict = {' ': ' ', '-': '-', 'A': 'T', 'T': 'A',
-                           'C': 'G', 'G': 'C', '.': '.', 'N': 'N'}
+            reverseDict = {
+                " ": " ",
+                "-": "-",
+                "A": "T",
+                "T": "A",
+                "C": "G",
+                "G": "C",
+                ".": ".",
+                "N": "N",
+            }
             for item in toReverse:
                 newItem = reverseDict[item]
                 rev += newItem
@@ -132,34 +142,39 @@ def basePlotter(blastHits, title):
             read = read[:offset]
         # if it's not sticking out, fill the space with ' '
         elif offset > 0:
-            read += offset * ' '
+            read += offset * " "
 
         # compare the subject and the read, make a string
         # called 'comparison', which contains a '.' if the bases
         # are equal and the letter of the read if they are not.
-        comparison = ''
+        comparison = ""
         for readBase, subjectBase in zip(read, subject):
-            if readBase == ' ':
-                comparison += ' '
+            if readBase == " ":
+                comparison += " "
             elif readBase == subjectBase:
-                comparison += '.'
+                comparison += "."
             elif readBase != subjectBase:
                 comparison += readBase
             index += 1
-        que = '%s \t %s' % (queryTitle, comparison)
+        que = "%s \t %s" % (queryTitle, comparison)
         result.append(que)
 
         # sanity checks
-        assert (len(comparison) == len(subject)), (
-            '%d != %d' % (len(comparison), len(subject)))
+        assert len(comparison) == len(subject), "%d != %d" % (
+            len(comparison),
+            len(subject),
+        )
 
         index = 0
-        if comparison[index] == ' ':
+        if comparison[index] == " ":
             index += 1
         else:
             start = index - 1
-            assert (start == queryStart or start == -1), (
-                '%s != %s or %s != -1' % (start, queryStart, start))
+            assert start == queryStart or start == -1, "%s != %s or %s != -1" % (
+                start,
+                queryStart,
+                start,
+            )
 
     return result
 
@@ -174,28 +189,60 @@ def getAPOBECFrequencies(dotAlignment, orig, new, pattern):
     @param pattern: A C{str}m which pattern we're looking for
         (must be one of 'cPattern', 'tPattern')
     """
-    cPattern = ['ACA', 'ACC', 'ACG', 'ACT', 'CCA', 'CCC', 'CCG', 'CCT',
-                'GCA', 'GCC', 'GCG', 'GCT', 'TCA', 'TCC', 'TCG', 'TCT']
-    tPattern = ['ATA', 'ATC', 'ATG', 'ATT', 'CTA', 'CTC', 'CTG', 'CTT',
-                'GTA', 'GTC', 'GTG', 'GTT', 'TTA', 'TTC', 'TTG', 'TTT']
+    cPattern = [
+        "ACA",
+        "ACC",
+        "ACG",
+        "ACT",
+        "CCA",
+        "CCC",
+        "CCG",
+        "CCT",
+        "GCA",
+        "GCC",
+        "GCG",
+        "GCT",
+        "TCA",
+        "TCC",
+        "TCG",
+        "TCT",
+    ]
+    tPattern = [
+        "ATA",
+        "ATC",
+        "ATG",
+        "ATT",
+        "CTA",
+        "CTC",
+        "CTG",
+        "CTT",
+        "GTA",
+        "GTC",
+        "GTG",
+        "GTT",
+        "TTA",
+        "TTC",
+        "TTG",
+        "TTT",
+    ]
     # choose the right pattern
-    if pattern == 'cPattern':
+    if pattern == "cPattern":
         patterns = cPattern
-        middleBase = 'C'
+        middleBase = "C"
     else:
         patterns = tPattern
-        middleBase = 'T'
+        middleBase = "T"
     # generate the freqs dict with the right pattern
     freqs = defaultdict(int)
     for pattern in patterns:
         freqs[pattern] = 0
     # get the subject sequence from dotAlignment
-    subject = dotAlignment[0].split('\t')[3]
+    subject = dotAlignment[0].split("\t")[3]
     # exclude the subject from the dotAlignment, so just the queries
     # are left over
     queries = dotAlignment[1:]
     for item in queries:
-        query = item.split('\t')[1]
+        query = item.split("\t")[1]
         index = 0
         for queryBase in query:
             qBase = query[index]
@@ -205,8 +252,8 @@ def getAPOBECFrequencies(dotAlignment, orig, new, pattern):
                     plusSb = subject[index + 1]
                     minusSb = subject[index - 1]
                 except IndexError:
-                    plusSb = 'end'
-                motif = '%s%s%s' % (minusSb, middleBase, plusSb)
+                    plusSb = "end"
+                motif = "%s%s%s" % (minusSb, middleBase, plusSb)
                 if motif in freqs:
                     freqs[motif] += 1
             index += 1
@@ -227,33 +274,41 @@ def getCompleteFreqs(blastHits):
     allFreqs = {}
     for title in blastHits.titles:
         allFreqs[title] = {
-            'C>A': {},
-            'C>G': {},
-            'C>T': {},
-            'T>A': {},
-            'T>C': {},
-            'T>G': {},
+            "C>A": {},
+            "C>G": {},
+            "C>T": {},
+            "T>A": {},
+            "T>C": {},
+            "T>G": {},
         }
         basesPlotted = basePlotter(blastHits, title)
         for mutation in allFreqs[title]:
             orig = mutation[0]
             new = mutation[2]
-            if orig == 'C':
-                pattern = 'cPattern'
+            if orig == "C":
+                pattern = "cPattern"
             else:
-                pattern = 'tPattern'
+                pattern = "tPattern"
             freqs = getAPOBECFrequencies(basesPlotted, orig, new, pattern)
             allFreqs[title][mutation] = freqs
-        numberOfReads = len(blastHits.titles[title]['plotInfo']['items'])
-        allFreqs[title]['numberOfReads'] = numberOfReads
-        allFreqs[title]['bitScoreMax'] = blastHits.titles[
-            title]['plotInfo']['bitScoreMax']
+        numberOfReads = len(blastHits.titles[title]["plotInfo"]["items"])
+        allFreqs[title]["numberOfReads"] = numberOfReads
+        allFreqs[title]["bitScoreMax"] = blastHits.titles[title]["plotInfo"][
+            "bitScoreMax"
+        ]
     return allFreqs
 
 
-def makeFrequencyGraph(allFreqs, title, substitution, pattern,
-                       color='blue', createFigure=True, showFigure=True,
-                       readsAx=False):
+def makeFrequencyGraph(
+    allFreqs,
+    title,
+    substitution,
+    pattern,
+    color="blue",
+    createFigure=True,
+    showFigure=True,
+    readsAx=False,
+):
     """
     For a title, make a graph showing the frequencies.
 
@@ -269,13 +324,45 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     @param showFigure: If C{True}, show the created figure.
     @param readsAx: If not None, use this as the subplot for displaying reads.
     """
-    cPattern = ['ACA', 'ACC', 'ACG', 'ACT', 'CCA', 'CCC', 'CCG', 'CCT',
-                'GCA', 'GCC', 'GCG', 'GCT', 'TCA', 'TCC', 'TCG', 'TCT']
-    tPattern = ['ATA', 'ATC', 'ATG', 'ATT', 'CTA', 'CTC', 'CTG', 'CTT',
-                'GTA', 'GTC', 'GTG', 'GTT', 'TTA', 'TTC', 'TTG', 'TTT']
+    cPattern = [
+        "ACA",
+        "ACC",
+        "ACG",
+        "ACT",
+        "CCA",
+        "CCC",
+        "CCG",
+        "CCT",
+        "GCA",
+        "GCC",
+        "GCG",
+        "GCT",
+        "TCA",
+        "TCC",
+        "TCG",
+        "TCT",
+    ]
+    tPattern = [
+        "ATA",
+        "ATC",
+        "ATG",
+        "ATT",
+        "CTA",
+        "CTC",
+        "CTG",
+        "CTT",
+        "GTA",
+        "GTC",
+        "GTG",
+        "GTT",
+        "TTA",
+        "TTC",
+        "TTG",
+        "TTT",
+    ]
 
     # choose the right pattern
-    if pattern == 'cPattern':
+    if pattern == "cPattern":
         patterns = cPattern
     else:
         patterns = tPattern
@@ -287,7 +374,7 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     ind = np.arange(N)
     width = 0.4
     # make a list in the right order, so that it can be plotted easily
-    divisor = allFreqs[title]['numberOfReads']
+    divisor = allFreqs[title]["numberOfReads"]
     toPlot = allFreqs[title][substitution]
     index = 0
     data = []
@@ -300,10 +387,10 @@ def makeFrequencyGraph(allFreqs, title, substitution, pattern,
     maxY = np.max(data) + 5
     # axes and labels
     if createFigure:
-        title = title.split('|')[4][:50]
-        ax.set_title('%s \n %s' % (title, substitution), fontsize=20)
+        title = title.split("|")[4][:50]
+        ax.set_title("%s \n %s" % (title, substitution), fontsize=20)
         ax.set_ylim(0, maxY)
-        ax.set_ylabel('Absolute Number of Mutations', fontsize=16)
+        ax.set_ylabel("Absolute Number of Mutations", fontsize=16)
         ax.set_xticks(ind + width)
         ax.set_xticklabels(patterns, rotation=45, fontsize=8)
     if createFigure is False:
@@ -323,58 +410,99 @@ def makeFrequencyPanel(allFreqs, patientName):
     @param patientName: A C{str}, title for the panel
     """
     titles = sorted(
-        iter(allFreqs),
-        key=lambda title: (allFreqs[title]['bitScoreMax'], title))
+        iter(allFreqs), key=lambda title: (allFreqs[title]["bitScoreMax"], title)
+    )
 
     origMaxY = 0
     cols = 6
     rows = len(allFreqs)
     figure, ax = plt.subplots(rows, cols, squeeze=False)
-    substitutions = ['C>A', 'C>G', 'C>T', 'T>A', 'T>C', 'T>G']
-    colors = ['blue', 'black', 'red', 'yellow', 'green', 'orange']
+    substitutions = ["C>A", "C>G", "C>T", "T>A", "T>C", "T>G"]
+    colors = ["blue", "black", "red", "yellow", "green", "orange"]
 
     for i, title in enumerate(titles):
         for index in range(6):
             for subst in allFreqs[str(title)]:
                 substitution = substitutions[index]
-                print(i, index, title, 'substitution', substitutions[index])
-                if substitution[0] == 'C':
-                    pattern = 'cPattern'
+                print(i, index, title, "substitution", substitutions[index])
+                if substitution[0] == "C":
+                    pattern = "cPattern"
                 else:
-                    pattern = 'tPattern'
-                maxY = makeFrequencyGraph(allFreqs, title, substitution,
-                                          pattern, color=colors[index],
-                                          createFigure=False, showFigure=False,
-                                          readsAx=ax[i][index])
+                    pattern = "tPattern"
+                maxY = makeFrequencyGraph(
+                    allFreqs,
+                    title,
+                    substitution,
+                    pattern,
+                    color=colors[index],
+                    createFigure=False,
+                    showFigure=False,
+                    readsAx=ax[i][index],
+                )
                 if maxY > origMaxY:
                     origMaxY = maxY
 
             # add title for individual plot.
             # if used for other viruses, this will have to be adapted.
             if index == 0:
-                gi = title.split('|')[1]
-                titles = title.split(' ')
+                gi = title.split("|")[1]
+                titles = title.split(" ")
                 try:
-                    typeIndex = titles.index('type')
+                    typeIndex = titles.index("type")
                 except ValueError:
-                    typeNumber = 'gi: %s' % gi
+                    typeNumber = "gi: %s" % gi
                 else:
                     typeNumber = titles[typeIndex + 1]
 
-                ax[i][index].set_ylabel(('Type %s \n maxBitScore: %s' % (
-                    typeNumber, allFreqs[title]['bitScoreMax'])), fontsize=10)
+                ax[i][index].set_ylabel(
+                    (
+                        "Type %s \n maxBitScore: %s"
+                        % (typeNumber, allFreqs[title]["bitScoreMax"])
+                    ),
+                    fontsize=10,
+                )
             # add xAxis tick labels
             if i == 0:
                 ax[i][index].set_title(substitution, fontsize=13)
             if i == len(allFreqs) - 1 or i == (len(allFreqs) - 1) / 2:
                 if index < 3:
-                    pat = ['ACA', 'ACC', 'ACG', 'ACT', 'CCA', 'CCC', 'CCG',
-                           'CCT', 'GCA', 'GCC', 'GCG', 'GCT', 'TCA', 'TCC',
-                           'TCG', 'TCT']
+                    pat = [
+                        "ACA",
+                        "ACC",
+                        "ACG",
+                        "ACT",
+                        "CCA",
+                        "CCC",
+                        "CCG",
+                        "CCT",
+                        "GCA",
+                        "GCC",
+                        "GCG",
+                        "GCT",
+                        "TCA",
+                        "TCC",
+                        "TCG",
+                        "TCT",
+                    ]
                 else:
-                    pat = ['ATA', 'ATC', 'ATG', 'ATT', 'CTA', 'CTC', 'CTG',
-                           'CTT', 'GTA', 'GTC', 'GTG', 'GTT', 'TTA', 'TTC',
-                           'TTG', 'TTT']
+                    pat = [
+                        "ATA",
+                        "ATC",
+                        "ATG",
+                        "ATT",
+                        "CTA",
+                        "CTC",
+                        "CTG",
+                        "CTT",
+                        "GTA",
+                        "GTC",
+                        "GTG",
+                        "GTT",
+                        "TTA",
+                        "TTC",
+                        "TTG",
+                        "TTT",
+                    ]
                 ax[i][index].set_xticklabels(pat, rotation=45, fontsize=8)
 
     # make Y-axis equal
@@ -383,14 +511,14 @@ def makeFrequencyPanel(allFreqs, patientName):
             a = ax[i][index]
             a.set_ylim([0, origMaxY])
     # add title of whole panel
-    figure.suptitle('Mutation Signatures in %s' % patientName, fontsize=20)
+    figure.suptitle("Mutation Signatures in %s" % patientName, fontsize=20)
     figure.set_size_inches(5 * cols, 3 * rows, forward=True)
     figure.show()
 
     return allFreqs
 
 
-def mutateString(original, n, replacements='acgt'):
+def mutateString(original, n, replacements="acgt"):
     """
     Mutate C{original} in C{n} places with chars chosen from C{replacements}.
 
@@ -405,17 +533,18 @@ def mutateString(original, n, replacements='acgt'):
         zero length.
     """
     if not original:
-        raise ValueError('Empty original string passed.')
+        raise ValueError("Empty original string passed.")
 
     if n > len(original):
-        raise ValueError('Cannot make %d mutations in a string of length %d' %
-                         (n, len(original)))
+        raise ValueError(
+            "Cannot make %d mutations in a string of length %d" % (n, len(original))
+        )
 
     if len(replacements) != len(set(replacements)):
-        raise ValueError('Replacement string contains duplicates')
+        raise ValueError("Replacement string contains duplicates")
 
     if len(replacements) == 1 and original.find(replacements) != -1:
-        raise ValueError('Impossible replacement')
+        raise ValueError("Impossible replacement")
 
     result = list(original)
     length = len(original)
@@ -432,4 +561,4 @@ def mutateString(original, n, replacements='acgt'):
             if n == 0:
                 break
 
-    return ''.join(result)
+    return "".join(result)

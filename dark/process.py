@@ -1,16 +1,15 @@
-from __future__ import division, print_function
-
 import six
 from time import time, ctime
 
 from subprocess import PIPE, CalledProcessError
+
 if six.PY3:
     from subprocess import run
 else:
     from subprocess import check_call
 
 
-class Executor(object):
+class Executor:
     """
     Log and execute shell commands.
 
@@ -18,11 +17,10 @@ class Executor(object):
         This sets the default and can be overidden for a specific command
         by passing C{dryRun} to the C{execute} method.
     """
+
     def __init__(self, dryRun=False):
         self.dryRun = dryRun
-        self.log = [
-            '# Executor created at %s. Dry run = %s.' % (ctime(time()), dryRun)
-        ]
+        self.log = ["# Executor created at %s. Dry run = %s." % (ctime(time()), dryRun)]
 
     def dryRun(self):
         """
@@ -59,57 +57,75 @@ class Executor(object):
         """
         if isinstance(command, six.string_types):
             # Can't have newlines in a command given to the shell.
-            strCommand = command = command.replace('\n', ' ').strip()
+            strCommand = command = command.replace("\n", " ").strip()
             shell = True
         else:
-            strCommand = ' '.join(command)
+            strCommand = " ".join(command)
             shell = False
 
         dryRun = self.dryRun if dryRun is None else dryRun
 
         if dryRun:
-            self.log.append('$ ' + strCommand)
+            self.log.append("$ " + strCommand)
             return
 
         start = time()
-        self.log.extend([
-            '# Start command (shell=%s) at %s' % (shell, ctime(start)),
-            '$ ' + strCommand,
-        ])
+        self.log.extend(
+            [
+                "# Start command (shell=%s) at %s" % (shell, ctime(start)),
+                "$ " + strCommand,
+            ]
+        )
 
         if six.PY3:
             try:
-                result = run(command, check=True, stdout=PIPE, stderr=PIPE,
-                             shell=shell, universal_newlines=True, **kwargs)
+                result = run(
+                    command,
+                    check=True,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    shell=shell,
+                    universal_newlines=True,
+                    **kwargs
+                )
             except CalledProcessError as e:
                 if callable(useStderr):
                     useStderr = useStderr(e)
                 if useStderr:
                     import sys
-                    print('CalledProcessError:', e, file=sys.stderr)
-                    print('STDOUT:\n%s' % e.stdout, file=sys.stderr)
-                    print('STDERR:\n%s' % e.stderr, file=sys.stderr)
+
+                    print("CalledProcessError:", e, file=sys.stderr)
+                    print("STDOUT:\n%s" % e.stdout, file=sys.stderr)
+                    print("STDERR:\n%s" % e.stderr, file=sys.stderr)
                 raise
         else:
             try:
-                result = check_call(command, stdout=PIPE, stderr=PIPE,
-                                    shell=shell, universal_newlines=True,
-                                    **kwargs)
+                result = check_call(
+                    command,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    shell=shell,
+                    universal_newlines=True,
+                    **kwargs
+                )
             except CalledProcessError as e:
                 if callable(useStderr):
                     useStderr = useStderr(e)
                 if useStderr:
                     import sys
-                    print('CalledProcessError:', e, file=sys.stderr)
-                    print('Return code: %s' % e.returncode, file=sys.stderr)
-                    print('Output:\n%s' % e.output, file=sys.stderr)
+
+                    print("CalledProcessError:", e, file=sys.stderr)
+                    print("Return code: %s" % e.returncode, file=sys.stderr)
+                    print("Output:\n%s" % e.output, file=sys.stderr)
                 raise
 
         stop = time()
-        elapsed = (stop - start)
-        self.log.extend([
-            '# Stop command at %s' % ctime(stop),
-            '# Elapsed = %f seconds' % elapsed,
-        ])
+        elapsed = stop - start
+        self.log.extend(
+            [
+                "# Stop command at %s" % ctime(stop),
+                "# Elapsed = %f seconds" % elapsed,
+            ]
+        )
 
         return result

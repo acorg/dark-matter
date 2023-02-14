@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 from re import compile
 import sys
+
 from dark.entrez import getSequence
 
 
@@ -28,9 +27,11 @@ def main(gi, ranges):
         if ranges:
             for (start, end) in ranges:
                 for index, feature in enumerate(record.features):
-                    if (start < int(feature.location.end) and
-                            end > int(feature.location.start) and
-                            index not in printed):
+                    if (
+                        start < int(feature.location.end)
+                        and end > int(feature.location.start)
+                        and index not in printed
+                    ):
                         print(feature)
                         printed.add(index)
         else:
@@ -39,13 +40,14 @@ def main(gi, ranges):
                 print(feature)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print('Usage: %s gi-number [offset1, offset2, ...]' %
-              sys.argv[0], file=sys.stderr)
+        print(
+            "Usage: %s gi-number [offset1, offset2, ...]" % sys.argv[0], file=sys.stderr
+        )
         sys.exit(1)
 
-    rangeRegex = compile(r'^(\d+)(?:-(\d+))?$')
+    rangeRegex = compile(r"^(\d+)(?:-(\d+))?$")
     ranges = []
     for arg in sys.argv[2:]:
         match = rangeRegex.match(arg)
@@ -60,9 +62,13 @@ if __name__ == '__main__':
                 start, end = end, start
             ranges.append((start, end))
         else:
-            print((
-                'Illegal argument %r. Ranges must single numbers or '
-                'number-number.' % arg), file=sys.stderr)
+            print(
+                (
+                    "Illegal argument %r. Ranges must single numbers or "
+                    "number-number." % arg
+                ),
+                file=sys.stderr,
+            )
             sys.exit(2)
 
     main(sys.argv[1], ranges)

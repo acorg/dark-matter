@@ -6,32 +6,11 @@
 
 from collections import Counter
 import six
-import warnings
-import platform
 from unittest import TestCase
 
 from dark.titles import TitleAlignment, TitleAlignments
 from dark.reads import Read
 from dark.hsp import HSP, LSP
-
-_pypy = platform.python_implementation() == 'PyPy'
-
-
-class WarningTestMixin(object):
-    """
-    Provide an assertion test which checks to see that a specified warning
-    was raised.
-    """
-    # Taken from
-    # http://stackoverflow.com/questions/3892218/
-    # how-to-test-with-pythons-unittest-that-a-warning-has-been-thrown
-
-    def assertWarns(self, warning, callable, *args, **kwds):
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter('always')
-            callable(*args, **kwds)
-            self.assertTrue(
-                any(item.category == warning for item in warning_list))
 
 
 class TestTitleAlignment(TestCase):
@@ -43,7 +22,7 @@ class TestTitleAlignment(TestCase):
         """
         An instance of TitleAlignment must have the expected attributes.
         """
-        read = Read('id', 'AAA')
+        read = Read("id", "AAA")
         titleAlignment = TitleAlignment(read, [])
         self.assertEqual(read, titleAlignment.read)
         self.assertEqual([], titleAlignment.hsps)
@@ -52,71 +31,92 @@ class TestTitleAlignment(TestCase):
         """
         The toDict method must return the expected result.
         """
-        read = Read('the-id', 'AAA')
-        hsp1 = HSP(0, readStart=1, readEnd=2,
-                   readStartInSubject=3, readEndInSubject=4,
-                   subjectStart=5, subjectEnd=6,
-                   readMatchedSequence='aaa', subjectMatchedSequence='ccc',
-                   readFrame=7, subjectFrame=8, identicalCount=9,
-                   percentIdentical=31.3, positiveCount=10,
-                   percentPositive=4.5)
-        hsp2 = HSP(10, readStart=11, readEnd=12,
-                   readStartInSubject=13, readEndInSubject=14,
-                   subjectStart=15, subjectEnd=16,
-                   readMatchedSequence='ggg', subjectMatchedSequence='ttt',
-                   readFrame=17, subjectFrame=18, identicalCount=19,
-                   percentIdentical=32.3, positiveCount=20,
-                   percentPositive=4.6)
+        read = Read("the-id", "AAA")
+        hsp1 = HSP(
+            0,
+            readStart=1,
+            readEnd=2,
+            readStartInSubject=3,
+            readEndInSubject=4,
+            subjectStart=5,
+            subjectEnd=6,
+            readMatchedSequence="aaa",
+            subjectMatchedSequence="ccc",
+            readFrame=7,
+            subjectFrame=8,
+            identicalCount=9,
+            percentIdentical=31.3,
+            positiveCount=10,
+            percentPositive=4.5,
+        )
+        hsp2 = HSP(
+            10,
+            readStart=11,
+            readEnd=12,
+            readStartInSubject=13,
+            readEndInSubject=14,
+            subjectStart=15,
+            subjectEnd=16,
+            readMatchedSequence="ggg",
+            subjectMatchedSequence="ttt",
+            readFrame=17,
+            subjectFrame=18,
+            identicalCount=19,
+            percentIdentical=32.3,
+            positiveCount=20,
+            percentPositive=4.6,
+        )
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
 
         self.assertEqual(
             {
-                'hsps': [
+                "hsps": [
                     {
-                        'score': 0,
-                        'readStart': 1,
-                        'readEnd': 2,
-                        'readStartInSubject': 3,
-                        'readEndInSubject': 4,
-                        'subjectStart': 5,
-                        'subjectEnd': 6,
-                        'readFrame': 7,
-                        'subjectFrame': 8,
-                        'identicalCount': 9,
-                        'percentIdentical': 31.3,
-                        'positiveCount': 10,
-                        'percentPositive': 4.5,
-                        'readMatchedSequence': 'aaa',
-                        'subjectMatchedSequence': 'ccc',
+                        "score": 0,
+                        "readStart": 1,
+                        "readEnd": 2,
+                        "readStartInSubject": 3,
+                        "readEndInSubject": 4,
+                        "subjectStart": 5,
+                        "subjectEnd": 6,
+                        "readFrame": 7,
+                        "subjectFrame": 8,
+                        "identicalCount": 9,
+                        "percentIdentical": 31.3,
+                        "positiveCount": 10,
+                        "percentPositive": 4.5,
+                        "readMatchedSequence": "aaa",
+                        "subjectMatchedSequence": "ccc",
                     },
                     {
-                        'score': 10,
-                        'readStart': 11,
-                        'readEnd': 12,
-                        'readStartInSubject': 13,
-                        'readEndInSubject': 14,
-                        'subjectStart': 15,
-                        'subjectEnd': 16,
-                        'readFrame': 17,
-                        'subjectFrame': 18,
-                        'identicalCount': 19,
-                        'percentIdentical': 32.3,
-                        'positiveCount': 20,
-                        'percentPositive': 4.6,
-                        'readMatchedSequence': 'ggg',
-                        'subjectMatchedSequence': 'ttt',
+                        "score": 10,
+                        "readStart": 11,
+                        "readEnd": 12,
+                        "readStartInSubject": 13,
+                        "readEndInSubject": 14,
+                        "subjectStart": 15,
+                        "subjectEnd": 16,
+                        "readFrame": 17,
+                        "subjectFrame": 18,
+                        "identicalCount": 19,
+                        "percentIdentical": 32.3,
+                        "positiveCount": 20,
+                        "percentPositive": 4.6,
+                        "readMatchedSequence": "ggg",
+                        "subjectMatchedSequence": "ttt",
                     },
                 ],
-                'read': {
-                    'id': 'the-id',
-                    'quality': None,
-                    'sequence': 'AAA',
+                "read": {
+                    "id": "the-id",
+                    "quality": None,
+                    "sequence": "AAA",
                 },
             },
-            titleAlignment.toDict())
+            titleAlignment.toDict(),
+        )
 
 
-class TestTitleAlignments(WarningTestMixin, TestCase):
+class TestTitleAlignments(TestCase):
     """
     Test the TitleAlignments class.
     """
@@ -125,8 +125,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         An instance of TitleAlignments must have the expected attributes.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        self.assertEqual('subject title', titleAlignments.subjectTitle)
+        titleAlignments = TitleAlignments("subject title", 55)
+        self.assertEqual("subject title", titleAlignments.subjectTitle)
         self.assertEqual(55, titleAlignments.subjectLength)
         self.assertEqual([], titleAlignments)
 
@@ -135,8 +135,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         It must be possible to add an alignment to an instance of
         TitleAlignments.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(read, titleAlignments[0].read)
@@ -149,22 +149,23 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(14)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
-        self.assertEqual([7, 14, 21],
-                         [hsp.score.score for hsp in titleAlignments.hsps()])
+        self.assertEqual(
+            [7, 14, 21], [hsp.score.score for hsp in titleAlignments.hsps()]
+        )
 
     def testReadsEmpty(self):
         """
         The reads function must return an empty Reads instance if there are no
         reads for the title.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         self.assertEqual(0, len(list(titleAlignments.reads())))
 
     def testReads(self):
@@ -175,11 +176,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(14)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read1 = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read1 = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read1, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read2 = Read('id2', 'AAA')
+        read2 = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read2, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual([read1, read2], list(titleAlignments.reads()))
@@ -188,7 +189,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         The readCount function must return zero if no reads matched a title.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         self.assertEqual(0, titleAlignments.readCount())
 
     def testReadCount(self):
@@ -198,11 +199,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(14)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(2, titleAlignments.readCount())
@@ -211,7 +212,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         The hspCount function must return zero if no reads matched a title.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         self.assertEqual(0, titleAlignments.hspCount())
 
     def testHspCount(self):
@@ -222,11 +223,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(14)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(3, titleAlignments.hspCount())
@@ -236,22 +237,20 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         The medianScore function must raise IndexError (due to no inputs)
         if there are no alignments matching a title.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        error = '^arg is an empty sequence$'
-        six.assertRaisesRegex(self, ValueError, error,
-                              titleAlignments.medianScore)
+        titleAlignments = TitleAlignments("subject title", 55)
+        error = "^arg is an empty sequence$"
+        six.assertRaisesRegex(self, ValueError, error, titleAlignments.medianScore)
 
     def testMedianScoreWithNoHsps(self):
         """
         The medianScore function must raise ValueError if there are no HSPs.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        error = '^arg is an empty sequence$'
-        six.assertRaisesRegex(self, ValueError, error,
-                              titleAlignments.medianScore)
+        error = "^arg is an empty sequence$"
+        six.assertRaisesRegex(self, ValueError, error, titleAlignments.medianScore)
 
     def testMedianScoreOfTwo(self):
         """
@@ -260,8 +259,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         hsp1 = HSP(7)
         hsp2 = HSP(15)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(11, titleAlignments.medianScore())
@@ -274,11 +273,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(15)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(15, titleAlignments.medianScore())
@@ -287,17 +286,14 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         The bestHsp function must raise ValueError if there are no HSPs.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        if _pypy:
-            error = '^arg is an empty sequence$'
-        else:
-            error = '^max\\(\\) arg is an empty sequence$'
+        error = "^max\\(\\) arg is an empty sequence$"
         six.assertRaisesRegex(self, ValueError, error, titleAlignments.bestHsp)
 
     def testBestHsp(self):
@@ -308,11 +304,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(15)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp3, titleAlignments.bestHsp())
@@ -321,19 +317,15 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         The worstHsp function must raise ValueError if there are no HSPs.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        if _pypy:
-            error = '^arg is an empty sequence$'
-        else:
-            error = '^min\\(\\) arg is an empty sequence$'
-        six.assertRaisesRegex(self, ValueError, error,
-                              titleAlignments.worstHsp)
+        error = "^min\\(\\) arg is an empty sequence$"
+        six.assertRaisesRegex(self, ValueError, error, titleAlignments.worstHsp)
 
     def testWorstHsp(self):
         """
@@ -343,11 +335,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(15)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp1, titleAlignments.worstHsp())
@@ -360,11 +352,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(15)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertFalse(titleAlignments.hasScoreBetterThan(21))
@@ -377,11 +369,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7)
         hsp2 = HSP(15)
         hsp3 = HSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertTrue(titleAlignments.hasScoreBetterThan(20))
@@ -391,7 +383,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         The coverage method must return zero when a title alignments has no
         alignments (and therefore no coverage).
         """
-        titleAlignments = TitleAlignments('subject title', 100)
+        titleAlignments = TitleAlignments("subject title", 100)
         self.assertEqual(0.0, titleAlignments.coverage())
 
     def testFullCoverage(self):
@@ -401,8 +393,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         hsp1 = HSP(7, subjectStart=0, subjectEnd=50)
         hsp2 = HSP(8, subjectStart=50, subjectEnd=100)
-        titleAlignments = TitleAlignments('subject title', 100)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 100)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(1.0, titleAlignments.coverage())
@@ -415,11 +407,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7, subjectStart=10, subjectEnd=20)
         hsp2 = HSP(15, subjectStart=30, subjectEnd=40)
         hsp3 = HSP(21, subjectStart=50, subjectEnd=60)
-        titleAlignments = TitleAlignments('subject title', 100)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 100)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(0.3, titleAlignments.coverage())
@@ -431,8 +423,8 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         """
         hsp1 = HSP(7, subjectStart=0, subjectEnd=5)
         hsp2 = HSP(8, subjectStart=5, subjectEnd=10)
-        titleAlignments = TitleAlignments('subject title', 10)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 10)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         c = Counter([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -446,11 +438,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7, subjectStart=1, subjectEnd=2)
         hsp2 = HSP(15, subjectStart=3, subjectEnd=4)
         hsp3 = HSP(21, subjectStart=5, subjectEnd=6)
-        titleAlignments = TitleAlignments('subject title', 10)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 10)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         c = Counter([1, 3, 5])
@@ -464,11 +456,11 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         hsp1 = HSP(7, subjectStart=1, subjectEnd=2)
         hsp2 = HSP(15, subjectStart=3, subjectEnd=6)
         hsp3 = HSP(21, subjectStart=5, subjectEnd=6)
-        titleAlignments = TitleAlignments('subject title', 10)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 10)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         c = Counter([1, 3, 4, 5, 5])
@@ -479,7 +471,7 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         When a title has no reads aligned to it, the coverageInfo method
         must return an empty result.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         coverage = titleAlignments.coverageInfo()
         self.assertEqual({}, coverage)
 
@@ -488,41 +480,43 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         When a title has one read with one HSP aligned to it, the coverageInfo
         method must return just the indices and bases from that read.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        hsp = HSP(15, subjectStart=3, subjectEnd=6, readMatchedSequence='CGT')
-        read = Read('id1', 'AAACGT')
+        titleAlignments = TitleAlignments("subject title", 55)
+        hsp = HSP(15, subjectStart=3, subjectEnd=6, readMatchedSequence="CGT")
+        read = Read("id1", "AAACGT")
         titleAlignment = TitleAlignment(read, [hsp])
         titleAlignments.addAlignment(titleAlignment)
         coverage = titleAlignments.coverageInfo()
         self.assertEqual(
             {
-                3: [(15, 'C')],
-                4: [(15, 'G')],
-                5: [(15, 'T')],
+                3: [(15, "C")],
+                4: [(15, "G")],
+                5: [(15, "T")],
             },
-            coverage)
+            coverage,
+        )
 
     def testCoverageInfoOneReadWithTwoHSPs(self):
         """
         When a title has one read with two HSPs aligned to it, the coverageInfo
         method must return the correct indices and bases from that read.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        hsp1 = HSP(15, subjectStart=1, subjectEnd=4, readMatchedSequence='A-A')
-        hsp2 = HSP(10, subjectStart=3, subjectEnd=6, readMatchedSequence='CGT')
-        read = Read('id1', 'AAACGT')
+        titleAlignments = TitleAlignments("subject title", 55)
+        hsp1 = HSP(15, subjectStart=1, subjectEnd=4, readMatchedSequence="A-A")
+        hsp2 = HSP(10, subjectStart=3, subjectEnd=6, readMatchedSequence="CGT")
+        read = Read("id1", "AAACGT")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         coverage = titleAlignments.coverageInfo()
         self.assertEqual(
             {
-                1: [(15, 'A')],
-                2: [(15, '-')],
-                3: [(15, 'A'), (10, 'C')],
-                4: [(10, 'G')],
-                5: [(10, 'T')],
+                1: [(15, "A")],
+                2: [(15, "-")],
+                3: [(15, "A"), (10, "C")],
+                4: [(10, "G")],
+                5: [(10, "T")],
             },
-            coverage)
+            coverage,
+        )
 
     def testCoverageInfoTwoReadsWithThreeHSPs(self):
         """
@@ -530,43 +524,43 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         to it, the coverageInfo method must return the correct indices and
         bases from the read.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
 
         # First read.
-        hsp1 = HSP(15, subjectStart=1, subjectEnd=4, readMatchedSequence='A-A')
-        hsp2 = HSP(10, subjectStart=3, subjectEnd=6, readMatchedSequence='CGT')
-        read = Read('id1', 'AAACGT')
+        hsp1 = HSP(15, subjectStart=1, subjectEnd=4, readMatchedSequence="A-A")
+        hsp2 = HSP(10, subjectStart=3, subjectEnd=6, readMatchedSequence="CGT")
+        read = Read("id1", "AAACGT")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
 
         # Second read.
-        hsp1 = HSP(20, subjectStart=5, subjectEnd=10,
-                   readMatchedSequence='CGGTA')
-        read = Read('id2', 'AAACGTCGGTAAAA')
+        hsp1 = HSP(20, subjectStart=5, subjectEnd=10, readMatchedSequence="CGGTA")
+        read = Read("id2", "AAACGTCGGTAAAA")
         titleAlignment = TitleAlignment(read, [hsp1])
         titleAlignments.addAlignment(titleAlignment)
 
         coverage = titleAlignments.coverageInfo()
         self.assertEqual(
             {
-                1: [(15, 'A')],
-                2: [(15, '-')],
-                3: [(15, 'A'), (10, 'C')],
-                4: [(10, 'G')],
-                5: [(10, 'T'), (20, 'C')],
-                6: [(20, 'G')],
-                7: [(20, 'G')],
-                8: [(20, 'T')],
-                9: [(20, 'A')],
+                1: [(15, "A")],
+                2: [(15, "-")],
+                3: [(15, "A"), (10, "C")],
+                4: [(10, "G")],
+                5: [(10, "T"), (20, "C")],
+                6: [(20, "G")],
+                7: [(20, "G")],
+                8: [(20, "T")],
+                9: [(20, "A")],
             },
-            coverage)
+            coverage,
+        )
 
     def testResidueCountsNoReads(self):
         """
         When a title has no reads aligned to it, the residueCounts method
         must return an empty result.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         counts = titleAlignments.residueCounts()
         self.assertEqual(0, len(counts))
 
@@ -575,32 +569,41 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         The residueCounts method must raise a ValueError when asked to do an
         unknown case conversion.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         error = "convertCaseTo must be one of 'none', 'lower', or 'upper'"
         six.assertRaisesRegex(
-            self, ValueError, error, titleAlignments.residueCounts,
-            convertCaseTo='xxx')
+            self, ValueError, error, titleAlignments.residueCounts, convertCaseTo="xxx"
+        )
 
     def testResidueCountsOneReadOneHSP(self):
         """
         The residueCounts method must return the correct result when just one
         read with one HSP is aligned to a title.
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
-                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
-                  readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=0,
+            readEndInSubject=4,
+            subjectStart=0,
+            subjectEnd=4,
+            readMatchedSequence="ACGT",
+            subjectMatchedSequence="ACGT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                0: {'A': 1},
-                1: {'C': 1},
-                2: {'G': 1},
-                3: {'T': 1},
+                0: {"A": 1},
+                1: {"C": 1},
+                2: {"G": 1},
+                3: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testResidueCountsOneReadOneHSPPartialMatch(self):
         """
@@ -609,21 +612,30 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         matched the subject (all the read bases are still counted and
         returned).
         """
-        read = Read('id', 'ACGT')
-        hsp = HSP(33, readStart=0, readEnd=2, readStartInSubject=0,
-                  readEndInSubject=4, subjectStart=0, subjectEnd=4,
-                  readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp = HSP(
+            33,
+            readStart=0,
+            readEnd=2,
+            readStartInSubject=0,
+            readEndInSubject=4,
+            subjectStart=0,
+            subjectEnd=4,
+            readMatchedSequence="ACGT",
+            subjectMatchedSequence="ACGT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                0: {'A': 1},
-                1: {'C': 1},
-                2: {'G': 1},
-                3: {'T': 1},
+                0: {"A": 1},
+                1: {"C": 1},
+                2: {"G": 1},
+                3: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testResidueCountsOneReadTwoHSPsAtStartOfSubject(self):
         """
@@ -634,25 +646,42 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       ACGT
         HSP2:        CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
-                   readEndInSubject=4, subjectStart=0, subjectEnd=4,
-                   readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=1,
-                   readEndInSubject=5, subjectStart=1, subjectEnd=5,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=0,
+            readEndInSubject=4,
+            subjectStart=0,
+            subjectEnd=4,
+            readMatchedSequence="ACGT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=1,
+            readEndInSubject=5,
+            subjectStart=1,
+            subjectEnd=5,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                0: {'A': 1},
-                1: {'C': 2},
-                2: {'G': 2},
-                3: {'T': 2},
-                4: {'T': 1},
+                0: {"A": 1},
+                1: {"C": 2},
+                2: {"G": 2},
+                3: {"T": 2},
+                4: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testResidueCountsOneReadTwoHSPsNotAtStartOfSubject(self):
         """
@@ -663,25 +692,42 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       ACGT
         HSP2:        CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
-                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
-                   readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
-                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=14,
+            readMatchedSequence="ACGT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=11,
+            readEndInSubject=15,
+            subjectStart=11,
+            subjectEnd=15,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                10: {'A': 1},
-                11: {'C': 2},
-                12: {'G': 2},
-                13: {'T': 2},
-                14: {'T': 1},
+                10: {"A": 1},
+                11: {"C": 2},
+                12: {"G": 2},
+                13: {"T": 2},
+                14: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testResidueCountsNoCaseConversion(self):
         """
@@ -691,25 +737,42 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       AcgT
         HSP2:        CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
-                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
-                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
-                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=14,
+            readMatchedSequence="AcgT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=11,
+            readEndInSubject=15,
+            subjectStart=11,
+            subjectEnd=15,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                10: {'A': 1},
-                11: {'C': 1, 'c': 1},
-                12: {'G': 1, 'g': 1},
-                13: {'T': 2},
-                14: {'T': 1},
+                10: {"A": 1},
+                11: {"C": 1, "c": 1},
+                12: {"G": 1, "g": 1},
+                13: {"T": 2},
+                14: {"T": 1},
             },
-            titleAlignments.residueCounts(convertCaseTo='none'))
+            titleAlignments.residueCounts(convertCaseTo="none"),
+        )
 
     def testResidueCountsCaseConvertLower(self):
         """
@@ -719,25 +782,42 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       AcgT
         HSP2:        CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
-                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
-                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
-                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=14,
+            readMatchedSequence="AcgT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=11,
+            readEndInSubject=15,
+            subjectStart=11,
+            subjectEnd=15,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                10: {'a': 1},
-                11: {'c': 2},
-                12: {'g': 2},
-                13: {'t': 2},
-                14: {'t': 1},
+                10: {"a": 1},
+                11: {"c": 2},
+                12: {"g": 2},
+                13: {"t": 2},
+                14: {"t": 1},
             },
-            titleAlignments.residueCounts(convertCaseTo='lower'))
+            titleAlignments.residueCounts(convertCaseTo="lower"),
+        )
 
     def testResidueCountsCaseConvertUpper(self):
         """
@@ -747,25 +827,42 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       AcgT
         HSP2:        CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
-                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
-                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
-                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=14,
+            readMatchedSequence="AcgT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=11,
+            readEndInSubject=15,
+            subjectStart=11,
+            subjectEnd=15,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                10: {'A': 1},
-                11: {'C': 2},
-                12: {'G': 2},
-                13: {'T': 2},
-                14: {'T': 1},
+                10: {"A": 1},
+                11: {"C": 2},
+                12: {"G": 2},
+                13: {"T": 2},
+                14: {"T": 1},
             },
-            titleAlignments.residueCounts(convertCaseTo='upper'))
+            titleAlignments.residueCounts(convertCaseTo="upper"),
+        )
 
     def testResidueCountsCaseConvertUpperIsDefault(self):
         """
@@ -774,25 +871,42 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       AcgT
         HSP2:        CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
-                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
-                   readMatchedSequence='AcgT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=11,
-                   readEndInSubject=15, subjectStart=11, subjectEnd=15,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=14,
+            readMatchedSequence="AcgT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=11,
+            readEndInSubject=15,
+            subjectStart=11,
+            subjectEnd=15,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                10: {'A': 1},
-                11: {'C': 2},
-                12: {'G': 2},
-                13: {'T': 2},
-                14: {'T': 1},
+                10: {"A": 1},
+                11: {"C": 2},
+                12: {"G": 2},
+                13: {"T": 2},
+                14: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testResidueCountsTwoReadsTwoHSPsLeftOverhang(self):
         """
@@ -805,28 +919,45 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:       ACGT
         HSP2:        CGTT
         """
-        read1 = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=-2,
-                   readEndInSubject=2, subjectStart=0, subjectEnd=2,
-                   readMatchedSequence='GT', subjectMatchedSequence='GT')
-        read2 = Read('id', 'CGTT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=-1,
-                   readEndInSubject=3, subjectStart=0, subjectEnd=3,
-                   readMatchedSequence='GTT', subjectMatchedSequence='GTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read1 = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=-2,
+            readEndInSubject=2,
+            subjectStart=0,
+            subjectEnd=2,
+            readMatchedSequence="GT",
+            subjectMatchedSequence="GT",
+        )
+        read2 = Read("id", "CGTT")
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=-1,
+            readEndInSubject=3,
+            subjectStart=0,
+            subjectEnd=3,
+            readMatchedSequence="GTT",
+            subjectMatchedSequence="GTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read1, [hsp1])
         titleAlignments.addAlignment(titleAlignment)
         titleAlignment = TitleAlignment(read2, [hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                -2: {'A': 1},
-                -1: {'C': 2},
-                0: {'G': 2},
-                1: {'T': 2},
-                2: {'T': 1},
+                -2: {"A": 1},
+                -1: {"C": 2},
+                0: {"G": 2},
+                1: {"T": 2},
+                2: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testResidueCountsOneReadTwoHSPsNotOverlapping(self):
         """
@@ -837,138 +968,185 @@ class TestTitleAlignments(WarningTestMixin, TestCase):
         HSP1:    ACGT
         HSP2:              CGTT
         """
-        read = Read('id', 'ACGT')
-        hsp1 = HSP(33, readStart=0, readEnd=4, readStartInSubject=0,
-                   readEndInSubject=4, subjectStart=0, subjectEnd=4,
-                   readMatchedSequence='ACGT', subjectMatchedSequence='ACGT')
-        hsp2 = HSP(33, readStart=0, readEnd=4, readStartInSubject=10,
-                   readEndInSubject=14, subjectStart=10, subjectEnd=14,
-                   readMatchedSequence='CGTT', subjectMatchedSequence='CGTT')
-        titleAlignments = TitleAlignments('subject title', 55)
+        read = Read("id", "ACGT")
+        hsp1 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=0,
+            readEndInSubject=4,
+            subjectStart=0,
+            subjectEnd=4,
+            readMatchedSequence="ACGT",
+            subjectMatchedSequence="ACGT",
+        )
+        hsp2 = HSP(
+            33,
+            readStart=0,
+            readEnd=4,
+            readStartInSubject=10,
+            readEndInSubject=14,
+            subjectStart=10,
+            subjectEnd=14,
+            readMatchedSequence="CGTT",
+            subjectMatchedSequence="CGTT",
+        )
+        titleAlignments = TitleAlignments("subject title", 55)
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(
             {
-                0: {'A': 1},
-                1: {'C': 1},
-                2: {'G': 1},
-                3: {'T': 1},
-                10: {'C': 1},
-                11: {'G': 1},
-                12: {'T': 1},
-                13: {'T': 1},
+                0: {"A": 1},
+                1: {"C": 1},
+                2: {"G": 1},
+                3: {"T": 1},
+                10: {"C": 1},
+                11: {"G": 1},
+                12: {"T": 1},
+                13: {"T": 1},
             },
-            titleAlignments.residueCounts())
+            titleAlignments.residueCounts(),
+        )
 
     def testSummaryWhenEmpty(self):
         """
         If summary is called on an instance of TitleAlignments with no
         alignments a ValueError must be raised.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
-        error = '^max\\(\\) arg is an empty sequence$'
+        titleAlignments = TitleAlignments("subject title", 55)
+        error = "^max\\(\\) arg is an empty sequence$"
         six.assertRaisesRegex(self, ValueError, error, titleAlignments.summary)
 
     def testSummary(self):
         """
         The summary method must return the correct result.
         """
-        titleAlignments = TitleAlignments('subject title', 10)
+        titleAlignments = TitleAlignments("subject title", 10)
         titleAlignments.addAlignment(
-            TitleAlignment(Read('id1', 'ACGT'), [
-                HSP(30, subjectStart=0, subjectEnd=2),
-            ]))
+            TitleAlignment(
+                Read("id1", "ACGT"),
+                [
+                    HSP(30, subjectStart=0, subjectEnd=2),
+                ],
+            )
+        )
         titleAlignments.addAlignment(
-            TitleAlignment(Read('id2', 'ACGT'), [
-                HSP(55, subjectStart=2, subjectEnd=4),
-                HSP(40, subjectStart=8, subjectEnd=9),
-            ]))
+            TitleAlignment(
+                Read("id2", "ACGT"),
+                [
+                    HSP(55, subjectStart=2, subjectEnd=4),
+                    HSP(40, subjectStart=8, subjectEnd=9),
+                ],
+            )
+        )
         self.assertEqual(
             {
-                'bestScore': 55,
-                'coverage': 0.5,
-                'hspCount': 3,
-                'medianScore': 40,
-                'readCount': 2,
-                'subjectLength': 10,
-                'subjectTitle': 'subject title',
+                "bestScore": 55,
+                "coverage": 0.5,
+                "hspCount": 3,
+                "medianScore": 40,
+                "readCount": 2,
+                "subjectLength": 10,
+                "subjectTitle": "subject title",
             },
-            titleAlignments.summary())
+            titleAlignments.summary(),
+        )
 
     def testToDict(self):
         """
         The toDict method must return the expected result.
         """
-        read = Read('the-id', 'AAA')
-        hsp1 = HSP(0, readStart=1, readEnd=2,
-                   readStartInSubject=3, readEndInSubject=4,
-                   subjectStart=5, subjectEnd=6,
-                   readMatchedSequence='aaa', subjectMatchedSequence='ccc',
-                   readFrame=7, subjectFrame=8, identicalCount=9,
-                   percentIdentical=17.9, positiveCount=10,
-                   percentPositive=3.9)
-        hsp2 = HSP(10, readStart=11, readEnd=12,
-                   readStartInSubject=13, readEndInSubject=14,
-                   subjectStart=15, subjectEnd=16,
-                   readMatchedSequence='ggg', subjectMatchedSequence='ttt',
-                   readFrame=17, subjectFrame=18, identicalCount=19,
-                   percentIdentical=27.9, positiveCount=20,
-                   percentPositive=3.8)
+        read = Read("the-id", "AAA")
+        hsp1 = HSP(
+            0,
+            readStart=1,
+            readEnd=2,
+            readStartInSubject=3,
+            readEndInSubject=4,
+            subjectStart=5,
+            subjectEnd=6,
+            readMatchedSequence="aaa",
+            subjectMatchedSequence="ccc",
+            readFrame=7,
+            subjectFrame=8,
+            identicalCount=9,
+            percentIdentical=17.9,
+            positiveCount=10,
+            percentPositive=3.9,
+        )
+        hsp2 = HSP(
+            10,
+            readStart=11,
+            readEnd=12,
+            readStartInSubject=13,
+            readEndInSubject=14,
+            subjectStart=15,
+            subjectEnd=16,
+            readMatchedSequence="ggg",
+            subjectMatchedSequence="ttt",
+            readFrame=17,
+            subjectFrame=18,
+            identicalCount=19,
+            percentIdentical=27.9,
+            positiveCount=20,
+            percentPositive=3.8,
+        )
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
-        titleAlignments = TitleAlignments('subject title', 10)
+        titleAlignments = TitleAlignments("subject title", 10)
         titleAlignments.addAlignment(titleAlignment)
 
         self.assertEqual(
             {
-                'subjectTitle': 'subject title',
-                'subjectLength': 10,
-                'titleAlignments': [
+                "subjectTitle": "subject title",
+                "subjectLength": 10,
+                "titleAlignments": [
                     {
-                        'hsps': [
+                        "hsps": [
                             {
-                                'score': 0,
-                                'readStart': 1,
-                                'readEnd': 2,
-                                'readStartInSubject': 3,
-                                'readEndInSubject': 4,
-                                'subjectStart': 5,
-                                'subjectEnd': 6,
-                                'readFrame': 7,
-                                'subjectFrame': 8,
-                                'identicalCount': 9,
-                                'percentIdentical': 17.9,
-                                'positiveCount': 10,
-                                'percentPositive': 3.9,
-                                'readMatchedSequence': 'aaa',
-                                'subjectMatchedSequence': 'ccc',
+                                "score": 0,
+                                "readStart": 1,
+                                "readEnd": 2,
+                                "readStartInSubject": 3,
+                                "readEndInSubject": 4,
+                                "subjectStart": 5,
+                                "subjectEnd": 6,
+                                "readFrame": 7,
+                                "subjectFrame": 8,
+                                "identicalCount": 9,
+                                "percentIdentical": 17.9,
+                                "positiveCount": 10,
+                                "percentPositive": 3.9,
+                                "readMatchedSequence": "aaa",
+                                "subjectMatchedSequence": "ccc",
                             },
                             {
-                                'score': 10,
-                                'readStart': 11,
-                                'readEnd': 12,
-                                'readStartInSubject': 13,
-                                'readEndInSubject': 14,
-                                'subjectStart': 15,
-                                'subjectEnd': 16,
-                                'readFrame': 17,
-                                'subjectFrame': 18,
-                                'identicalCount': 19,
-                                'percentIdentical': 27.9,
-                                'positiveCount': 20,
-                                'percentPositive': 3.8,
-                                'readMatchedSequence': 'ggg',
-                                'subjectMatchedSequence': 'ttt',
+                                "score": 10,
+                                "readStart": 11,
+                                "readEnd": 12,
+                                "readStartInSubject": 13,
+                                "readEndInSubject": 14,
+                                "subjectStart": 15,
+                                "subjectEnd": 16,
+                                "readFrame": 17,
+                                "subjectFrame": 18,
+                                "identicalCount": 19,
+                                "percentIdentical": 27.9,
+                                "positiveCount": 20,
+                                "percentPositive": 3.8,
+                                "readMatchedSequence": "ggg",
+                                "subjectMatchedSequence": "ttt",
                             },
                         ],
-                        'read': {
-                            'id': 'the-id',
-                            'quality': None,
-                            'sequence': 'AAA',
+                        "read": {
+                            "id": "the-id",
+                            "quality": None,
+                            "sequence": "AAA",
                         },
                     },
                 ],
             },
-            titleAlignments.toDict())
+            titleAlignments.toDict(),
+        )
 
 
 class TestTitleAlignmentsLSP(TestCase):
@@ -985,11 +1163,11 @@ class TestTitleAlignmentsLSP(TestCase):
         hsp1 = LSP(7)
         hsp2 = LSP(15)
         hsp3 = LSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp1, titleAlignments.bestHsp())
@@ -1002,11 +1180,11 @@ class TestTitleAlignmentsLSP(TestCase):
         hsp1 = LSP(7)
         hsp2 = LSP(15)
         hsp3 = LSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertEqual(hsp3, titleAlignments.worstHsp())
@@ -1019,11 +1197,11 @@ class TestTitleAlignmentsLSP(TestCase):
         hsp1 = LSP(7)
         hsp2 = LSP(15)
         hsp3 = LSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertFalse(titleAlignments.hasScoreBetterThan(7))
@@ -1036,11 +1214,11 @@ class TestTitleAlignmentsLSP(TestCase):
         hsp1 = LSP(7)
         hsp2 = LSP(15)
         hsp3 = LSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
         self.assertTrue(titleAlignments.hasScoreBetterThan(9))
@@ -1050,7 +1228,7 @@ class TestTitleAlignmentsLSP(TestCase):
         The readIds function must return the empty set if no reads matched a
         title.
         """
-        titleAlignments = TitleAlignments('subject title', 55)
+        titleAlignments = TitleAlignments("subject title", 55)
         self.assertEqual(0, len(titleAlignments.readIds()))
 
     def testReadIds(self):
@@ -1061,11 +1239,11 @@ class TestTitleAlignmentsLSP(TestCase):
         hsp1 = LSP(7)
         hsp2 = LSP(15)
         hsp3 = LSP(21)
-        titleAlignments = TitleAlignments('subject title', 55)
-        read = Read('id1', 'AAA')
+        titleAlignments = TitleAlignments("subject title", 55)
+        read = Read("id1", "AAA")
         titleAlignment = TitleAlignment(read, [hsp1, hsp2])
         titleAlignments.addAlignment(titleAlignment)
-        read = Read('id2', 'AAA')
+        read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [hsp3])
         titleAlignments.addAlignment(titleAlignment)
-        self.assertEqual(set(['id1', 'id2']), titleAlignments.readIds())
+        self.assertEqual(set(["id1", "id2"]), titleAlignments.readIds())

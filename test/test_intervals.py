@@ -20,11 +20,7 @@ class TestReadIntervals(TestCase):
         length.
         """
         ri = ReadIntervals(100)
-        self.assertEqual(
-            [
-                (self.EMPTY, (0, 100))
-            ],
-            list(ri.walk()))
+        self.assertEqual([(self.EMPTY, (0, 100))], list(ri.walk()))
 
     def testOneIntervalExactCovering(self):
         """
@@ -33,11 +29,7 @@ class TestReadIntervals(TestCase):
         """
         ri = ReadIntervals(100)
         ri.add(0, 100)
-        self.assertEqual(
-            [
-                (self.FULL, (0, 100))
-            ],
-            list(ri.walk()))
+        self.assertEqual([(self.FULL, (0, 100))], list(ri.walk()))
 
     def testOneIntervalCoveringAllExtendingLeft(self):
         """
@@ -47,11 +39,7 @@ class TestReadIntervals(TestCase):
         """
         ri = ReadIntervals(100)
         ri.add(-10, 100)
-        self.assertEqual(
-            [
-                (self.FULL, (-10, 100))
-            ],
-            list(ri.walk()))
+        self.assertEqual([(self.FULL, (-10, 100))], list(ri.walk()))
 
     def testOneIntervalCoveringAllExtendingRight(self):
         """
@@ -61,11 +49,7 @@ class TestReadIntervals(TestCase):
         """
         ri = ReadIntervals(100)
         ri.add(0, 110)
-        self.assertEqual(
-            [
-                (self.FULL, (0, 110))
-            ],
-            list(ri.walk()))
+        self.assertEqual([(self.FULL, (0, 110))], list(ri.walk()))
 
     def testOneIntervalCoveringAllExtendingBoth(self):
         """
@@ -75,11 +59,7 @@ class TestReadIntervals(TestCase):
         """
         ri = ReadIntervals(100)
         ri.add(-10, 110)
-        self.assertEqual(
-            [
-                (self.FULL, (-10, 110))
-            ],
-            list(ri.walk()))
+        self.assertEqual([(self.FULL, (-10, 110))], list(ri.walk()))
 
     def testOneIntervalStartingAtZero(self):
         """
@@ -94,7 +74,8 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (0, 50)),
                 (self.EMPTY, (50, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testOneIntervalStartingBeforeZero(self):
         """
@@ -109,7 +90,8 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (-50, 50)),
                 (self.EMPTY, (50, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testOneIntervalEndingAtHitEnd(self):
         """
@@ -124,7 +106,8 @@ class TestReadIntervals(TestCase):
                 (self.EMPTY, (0, 50)),
                 (self.FULL, (50, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testOneIntervalEndingAfterHitEnd(self):
         """
@@ -139,7 +122,8 @@ class TestReadIntervals(TestCase):
                 (self.EMPTY, (0, 50)),
                 (self.FULL, (50, 150)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testOneIntervalInMiddle(self):
         """
@@ -155,7 +139,8 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (50, 60)),
                 (self.EMPTY, (60, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testTwoOverlappingIntervalsInMiddle(self):
         """
@@ -171,7 +156,8 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (50, 70)),
                 (self.EMPTY, (70, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testThreeOverlappingIntervalsInMiddle(self):
         """
@@ -188,7 +174,8 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (50, 75)),
                 (self.EMPTY, (75, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testPairOfTwoOverlappingIntervals(self):
         """
@@ -210,7 +197,8 @@ class TestReadIntervals(TestCase):
                 (self.FULL, (80, 95)),
                 (self.EMPTY, (95, 100)),
             ],
-            list(ri.walk()))
+            list(ri.walk()),
+        )
 
     def testOverlappingIntervalsThatCoverEverything(self):
         """
@@ -224,11 +212,7 @@ class TestReadIntervals(TestCase):
         ri.add(66, 89)
         ri.add(77, 93)
         ri.add(70, 110)
-        self.assertEqual(
-            [
-                (self.FULL, (-10, 110))
-            ],
-            list(ri.walk()))
+        self.assertEqual([(self.FULL, (-10, 110))], list(ri.walk()))
 
     # The following tests have the same setup as above, but they test the
     # coverageCounts() method.
@@ -494,11 +478,7 @@ class TestOffsetAdjuster(TestCase):
         """
         ri = ReadIntervals(64)
         adjuster = OffsetAdjuster(ri)
-        self.assertEqual(
-            [
-                (64, 58)
-            ],
-            adjuster.adjustments())
+        self.assertEqual([(64, 58)], adjuster.adjustments())
         self.assertEqual(6, adjuster.adjustOffset(64))
 
     def testOneReadThatExactlyCoversHit(self):
@@ -509,10 +489,7 @@ class TestOffsetAdjuster(TestCase):
         ri = ReadIntervals(106)
         ri.add(0, 106)
         adjuster = OffsetAdjuster(ri)
-        self.assertEqual(
-            [
-            ],
-            adjuster.adjustments())
+        self.assertEqual([], adjuster.adjustments())
         self.assertEqual(106, adjuster.adjustOffset(106))
 
     def testOneReadThatExceedsHitOnBothEnds(self):
@@ -523,10 +500,7 @@ class TestOffsetAdjuster(TestCase):
         ri = ReadIntervals(106)
         ri.add(-100, 200)
         adjuster = OffsetAdjuster(ri)
-        self.assertEqual(
-            [
-            ],
-            adjuster.adjustments())
+        self.assertEqual([], adjuster.adjustments())
         self.assertEqual(106, adjuster.adjustOffset(106))
 
     def testOneReadAtStart(self):
@@ -541,7 +515,8 @@ class TestOffsetAdjuster(TestCase):
             [
                 (228, 121),
             ],
-            adjuster.adjustments())
+            adjuster.adjustments(),
+        )
         self.assertEqual(107, adjuster.adjustOffset(228))
 
     def testOneReadBeforeStart(self):
@@ -556,7 +531,8 @@ class TestOffsetAdjuster(TestCase):
             [
                 (228, 121),
             ],
-            adjuster.adjustments())
+            adjuster.adjustments(),
+        )
         self.assertEqual(107, adjuster.adjustOffset(228))
 
     def testOneReadAtEnd(self):
@@ -571,7 +547,8 @@ class TestOffsetAdjuster(TestCase):
             [
                 (128, 121),
             ],
-            adjuster.adjustments())
+            adjuster.adjustments(),
+        )
         self.assertEqual(107, adjuster.adjustOffset(228))
 
     def testOneReadAfterEnd(self):
@@ -587,7 +564,8 @@ class TestOffsetAdjuster(TestCase):
             [
                 (128, 121),
             ],
-            adjuster.adjustments())
+            adjuster.adjustments(),
+        )
         self.assertEqual(107, adjuster.adjustOffset(228))
 
     def testOneReadInMiddle(self):
@@ -603,7 +581,8 @@ class TestOffsetAdjuster(TestCase):
                 (32, 27),
                 (106, 58),
             ],
-            adjuster.adjustments())
+            adjuster.adjustments(),
+        )
         self.assertEqual(106 - 27 - 58, adjuster.adjustOffset(106))
 
     def testTwoReadsInMiddle(self):
@@ -622,12 +601,14 @@ class TestOffsetAdjuster(TestCase):
                 (58, 12),
                 (132, 58),
             ],
-            adjuster.adjustments())
+            adjuster.adjustments(),
+        )
         self.assertEqual(132 - 27 - 12 - 58, adjuster.adjustOffset(132))
 
         # Test an HSP at the beginning is unchanged.
-        hsp = HSP(10, readEndInSubject=10, readStartInSubject=0,
-                  subjectEnd=10, subjectStart=0)
+        hsp = HSP(
+            10, readEndInSubject=10, readStartInSubject=0, subjectEnd=10, subjectStart=0
+        )
         adjuster.adjustHSP(hsp)
         self.assertEqual(10, hsp.readEndInSubject)
         self.assertEqual(0, hsp.readStartInSubject)
@@ -635,8 +616,13 @@ class TestOffsetAdjuster(TestCase):
         self.assertEqual(0, hsp.subjectStart)
 
         # Test an HSP in the first read region.
-        hsp = HSP(10, readEndInSubject=42, readStartInSubject=32,
-                  subjectEnd=40, subjectStart=35)
+        hsp = HSP(
+            10,
+            readEndInSubject=42,
+            readStartInSubject=32,
+            subjectEnd=40,
+            subjectStart=35,
+        )
         adjuster.adjustHSP(hsp)
         self.assertEqual(15, hsp.readEndInSubject)
         self.assertEqual(5, hsp.readStartInSubject)
@@ -644,8 +630,13 @@ class TestOffsetAdjuster(TestCase):
         self.assertEqual(8, hsp.subjectStart)
 
         # Test an HSP in the second read region.
-        hsp = HSP(10, readEndInSubject=68, readStartInSubject=58,
-                  subjectEnd=66, subjectStart=60)
+        hsp = HSP(
+            10,
+            readEndInSubject=68,
+            readStartInSubject=58,
+            subjectEnd=66,
+            subjectStart=60,
+        )
         adjuster.adjustHSP(hsp)
         self.assertEqual(29, hsp.readEndInSubject)
         self.assertEqual(19, hsp.readStartInSubject)

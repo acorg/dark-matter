@@ -8,6 +8,7 @@ class _FilePointerCache(LFUCache):
     A least-frequently-used file pointer cache class with an eviction method
     that closes open files.
     """
+
     def popitem(self):
         """
         Evict a cache item.
@@ -26,7 +27,7 @@ class _FilePointerCache(LFUCache):
             self.popitem()
 
 
-class FilePointerCache(object):
+class FilePointerCache:
     """
     A file pointer cache class for simultaneously opening multiple files,
     without exceeeding the per-process operating system limit on open file
@@ -40,6 +41,7 @@ class FilePointerCache(object):
         to open when opening an already existing file. If C{None}, the file
         will be opened with the default mode ('rt').
     """
+
     def __init__(self, maxsize=32, openArgs=None, reopenArgs=None):
         self._openArgs = openArgs or {}
         self._reopenArgs = reopenArgs or {}

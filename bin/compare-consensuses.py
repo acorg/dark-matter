@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 import sys
 import argparse
 from os.path import exists, join
@@ -22,14 +20,16 @@ def makeOuputDir(outputDir, force):
     if outputDir:
         if exists(outputDir):
             if not force:
-                print('Will not overwrite pre-existing files. Use --force to '
-                      'make me.', file=sys.stderr)
+                print(
+                    "Will not overwrite pre-existing files. Use --force to " "make me.",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
         else:
             mkdir(outputDir)
     else:
         outputDir = mkdtemp()
-        print('Writing output files to %s' % outputDir)
+        print("Writing output files to %s" % outputDir)
 
     return outputDir
 
@@ -45,8 +45,8 @@ def samtoolsMpileup(outFile, referenceFile, alignmentFile, executor):
     @param executor: An C{Executor} instance.
     """
     executor.execute(
-        'samtools mpileup -u -v -f %s %s > %s' %
-        (referenceFile, alignmentFile, outFile))
+        "samtools mpileup -u -v -f %s %s > %s" % (referenceFile, alignmentFile, outFile)
+    )
 
 
 def bcftoolsMpileup(outFile, referenceFile, alignmentFile, executor):
@@ -60,8 +60,8 @@ def bcftoolsMpileup(outFile, referenceFile, alignmentFile, executor):
     @param executor: An C{Executor} instance.
     """
     executor.execute(
-        'bcftools mpileup -Ov -f %s %s > %s' %
-        (referenceFile, alignmentFile, outFile))
+        "bcftools mpileup -Ov -f %s %s > %s" % (referenceFile, alignmentFile, outFile)
+    )
 
 
 def bcftoolsCallMulti(outFile, vcfFile, executor):
@@ -74,8 +74,7 @@ def bcftoolsCallMulti(outFile, vcfFile, executor):
     @param executor: An C{Executor} instance.
     """
     # Note that this just gives a call on the first genome in the calls file.
-    executor.execute(
-        'bcftools call -m -Ov -o %s < %s' % (outFile, vcfFile))
+    executor.execute("bcftools call -m -Ov -o %s < %s" % (outFile, vcfFile))
 
 
 def bcftoolsCallConsensus(outFile, vcfFile, executor):
@@ -88,8 +87,7 @@ def bcftoolsCallConsensus(outFile, vcfFile, executor):
     @param executor: An C{Executor} instance.
     """
     # Note that this just gives a call on the first genome in the calls file.
-    executor.execute(
-        'bcftools call -c -Ov -o %s < %s' % (outFile, vcfFile))
+    executor.execute("bcftools call -c -Ov -o %s < %s" % (outFile, vcfFile))
 
 
 def bcftoolsConsensus(outFile, vcfFile, id_, referenceFile, executor):
@@ -104,13 +102,14 @@ def bcftoolsConsensus(outFile, vcfFile, id_, referenceFile, executor):
         sequence.
     @param executor: An C{Executor} instance.
     """
-    bgz = vcfFile + '.gz'
-    executor.execute('bgzip -c %s > %s' % (vcfFile, bgz))
-    executor.execute('tabix %s' % bgz)
+    bgz = vcfFile + ".gz"
+    executor.execute("bgzip -c %s > %s" % (vcfFile, bgz))
+    executor.execute("tabix %s" % bgz)
     executor.execute(
-        'bcftools consensus %s < %s | '
-        'filter-fasta.py --idLambda \'lambda id: "%s"\' > %s' %
-        (bgz, referenceFile, id_, outFile))
+        "bcftools consensus %s < %s | "
+        "filter-fasta.py --idLambda 'lambda id: \"%s\"' > %s"
+        % (bgz, referenceFile, id_, outFile)
+    )
 
 
 def vcfutilsConsensus(outFile, vcfFile, id_, _, executor):
@@ -124,38 +123,56 @@ def vcfutilsConsensus(outFile, vcfFile, id_, _, executor):
     @param executor: An C{Executor} instance.
     """
     executor.execute(
-        'vcfutils.pl vcf2fq < %s | '
-        'filter-fasta.py --fastq --quiet --saveAs fasta '
-        '--idLambda \'lambda id: "%s"\' > %s' %
-        (vcfFile, id_, outFile))
+        "vcfutils.pl vcf2fq < %s | "
+        "filter-fasta.py --fastq --quiet --saveAs fasta "
+        "--idLambda 'lambda id: \"%s\"' > %s" % (vcfFile, id_, outFile)
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Compare different consensus making methods.')
+        description="Compare different consensus making methods.",
+    )
 
     parser.add_argument(
-        '--referenceFile', required=True, metavar='FILENAME',
-        help='The name of the FASTA file containing the reference sequence.')
+        "--referenceFile",
+        required=True,
+        metavar="FILENAME",
+        help="The name of the FASTA file containing the reference sequence.",
+    )
 
     parser.add_argument(
-        '--alignmentFile', required=True, metavar='FILENAME',
-        help=('The name of the SAM or BAM file containing an alignment to the '
-              'reference.'))
+        "--alignmentFile",
+        required=True,
+        metavar="FILENAME",
+        help=(
+            "The name of the SAM or BAM file containing an alignment to the "
+            "reference."
+        ),
+    )
 
     parser.add_argument(
-        '--verbose', type=int, default=0, metavar='N',
-        help=('The integer verbosity level (0 = no output, 1 = some output, '
-              '2 = maximal output).'))
+        "--verbose",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "The integer verbosity level (0 = no output, 1 = some output, "
+            "2 = maximal output)."
+        ),
+    )
 
     parser.add_argument(
-        '--force', default=False, action='store_true',
-        help='If given, overwrite pre-existing files.')
+        "--force",
+        default=False,
+        action="store_true",
+        help="If given, overwrite pre-existing files.",
+    )
 
     parser.add_argument(
-        '--outputDir', metavar='DIRNAME',
-        help='The directory to save result files to.')
+        "--outputDir", metavar="DIRNAME", help="The directory to save result files to."
+    )
 
     args = parser.parse_args()
 
@@ -164,58 +181,67 @@ if __name__ == '__main__':
     executor = Executor()
 
     pileuppers = (
-        ('samtools-mpileup', samtoolsMpileup),
-        ('bcftools-mpileup', bcftoolsMpileup))
+        ("samtools-mpileup", samtoolsMpileup),
+        ("bcftools-mpileup", bcftoolsMpileup),
+    )
 
-    callers = (
-        ('bcftools-c', bcftoolsCallConsensus),
-        ('bcftools-m', bcftoolsCallMulti))
+    callers = (("bcftools-c", bcftoolsCallConsensus), ("bcftools-m", bcftoolsCallMulti))
 
     consensusers = (
-        ('bcftools-consensus', bcftoolsConsensus),
-        ('vcfutils-vcf2fq', vcfutilsConsensus))
+        ("bcftools-consensus", bcftoolsConsensus),
+        ("vcfutils-vcf2fq", vcfutilsConsensus),
+    )
 
     consensusFiles = []
 
     for pileupName, pileupFunc in pileuppers:
         pileupMiddle = pileupName
-        pileupFile = join(outputDir, 'pileup-' + pileupMiddle + '.vcf')
-        pileupFunc(pileupFile, args.referenceFile,
-                   args.alignmentFile, executor)
+        pileupFile = join(outputDir, "pileup-" + pileupMiddle + ".vcf")
+        pileupFunc(pileupFile, args.referenceFile, args.alignmentFile, executor)
 
         for callerName, callerFunc in callers:
-            callerMiddle = pileupMiddle + '-' + callerName
-            callerFile = join(outputDir, 'calls-' + callerMiddle + '.vcf')
+            callerMiddle = pileupMiddle + "-" + callerName
+            callerFile = join(outputDir, "calls-" + callerMiddle + ".vcf")
             callerFunc(callerFile, pileupFile, executor)
 
             for consensusName, consensusFunc in consensusers:
-                consensusMiddle = callerMiddle + '-' + consensusName
-                consensusFile = join(outputDir,
-                                     'consensus-' + consensusMiddle + '.fasta')
+                consensusMiddle = callerMiddle + "-" + consensusName
+                consensusFile = join(
+                    outputDir, "consensus-" + consensusMiddle + ".fasta"
+                )
                 consensusFiles.append(consensusFile)
-                consensusFunc(consensusFile, callerFile, consensusMiddle,
-                              args.referenceFile, executor)
+                consensusFunc(
+                    consensusFile,
+                    callerFile,
+                    consensusMiddle,
+                    args.referenceFile,
+                    executor,
+                )
 
     # Let's assume there's at least one consensus file.
-    consensusesFile = join(outputDir, 'consensuses.fasta')
-    executor.execute(
-        'cat %s > %s' % (' '.join(consensusFiles), consensusesFile))
+    consensusesFile = join(outputDir, "consensuses.fasta")
+    executor.execute("cat %s > %s" % (" ".join(consensusFiles), consensusesFile))
 
-    htmlFile = join(outputDir, 'consensus-identity.html')
+    htmlFile = join(outputDir, "consensus-identity.html")
     executor.execute(
-        ('fasta-identity-table.py --footer --showGaps --showLengths < %s | '
-         "perl -pe 's/-(bcftools|vcfutils)/ $1/g' > %s") %
-        (consensusesFile, htmlFile))
+        (
+            "fasta-identity-table.py --footer --showGaps --showLengths < %s | "
+            "perl -pe 's/-(bcftools|vcfutils)/ $1/g' > %s"
+        )
+        % (consensusesFile, htmlFile)
+    )
 
     verbose = args.verbose
     if verbose > 0:
-        print('The following commands were executed:')
+        print("The following commands were executed:")
         for line in executor.log:
-            if line.startswith('#'):
+            if line.startswith("#"):
                 if verbose > 1:
                     print(line)
             else:
                 print(line)
 
-    print('Identity table comparing %d consensuses written to %s' %
-          (len(consensusFiles), htmlFile))
+    print(
+        "Identity table comparing %d consensuses written to %s"
+        % (len(consensusFiles), htmlFile)
+    )

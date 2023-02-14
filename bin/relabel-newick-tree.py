@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 import sys
 from ete3 import Tree
 import argparse
@@ -19,10 +17,9 @@ def readNames(fp):
     """
     result = {}
     for line in fp:
-        old, new = line.strip().split('\t')
+        old, new = line.strip().split("\t")
         if old in result:
-            raise ValueError('Sequence id %r appears twice in the input.' %
-                             old)
+            raise ValueError("Sequence id %r appears twice in the input." % old)
         else:
             result[old] = new
 
@@ -31,42 +28,60 @@ def readNames(fp):
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=('Relabel a Newick tree according to a file of from/to '
-                 'names.'))
+    description=("Relabel a Newick tree according to a file of from/to " "names."),
+)
+
+parser.add_argument("newickFile", help="The Newick tree file.")
 
 parser.add_argument(
-    'newickFile',
-    help='The Newick tree file.')
+    "--nameFile",
+    help=(
+        "The file of renamings. Each line should contain an existing (in "
+        "the tree) sequence id, a TAB, and then a new sequence id. If not "
+        "given, the renaming is read from standard input."
+    ),
+)
 
 parser.add_argument(
-    '--nameFile',
-    help=('The file of renamings. Each line should contain an existing (in '
-          'the tree) sequence id, a TAB, and then a new sequence id. If not '
-          'given, the renaming is read from standard input.'))
+    "--inputFormat",
+    type=int,
+    default=0,
+    help=(
+        "The format argument to pass to the ete3 Tree class initializer to "
+        "read the input Newick."
+    ),
+)
 
 parser.add_argument(
-    '--inputFormat', type=int, default=0,
-    help=('The format argument to pass to the ete3 Tree class initializer to '
-          'read the input Newick.'))
+    "--outputFormat",
+    type=int,
+    default=0,
+    help=(
+        "The format argument to pass to the ete3 Tree writer for the " "resulting tree."
+    ),
+)
 
 parser.add_argument(
-    '--outputFormat', type=int, default=0,
-    help=('The format argument to pass to the ete3 Tree writer for the '
-          'resulting tree.'))
+    "--quotedNames",
+    default=False,
+    action="store_true",
+    help=(
+        "If given, pass quoted_node_names=True to the ete3 Tree class " "initializer"
+    ),
+)
 
 parser.add_argument(
-    '--quotedNames', default=False, action='store_true',
-    help=('If given, pass quoted_node_names=True to the ete3 Tree class '
-          'initializer'))
-
-parser.add_argument(
-    '--verbose', default=False, action='store_true',
-    help='If given, print details of the renaming(s).')
+    "--verbose",
+    default=False,
+    action="store_true",
+    help="If given, print details of the renaming(s).",
+)
 
 args = parser.parse_args()
 
-tree = Tree(args.newickFile, format=args.inputFormat,
-            quoted_node_names=args.quotedNames)
+tree = Tree(
+    args.newickFile, format=args.inputFormat, quoted_node_names=args.quotedNames
+)
 
 if args.nameFile:
     with open(args.nameFile) as fp:
@@ -83,8 +98,8 @@ for node in tree.traverse():
         pass
     else:
         if args.verbose:
-            print('Renaming %s to %s' % (node.name, newName), file=sys.stderr)
+            print("Renaming %s to %s" % (node.name, newName), file=sys.stderr)
         node.name = newName
 
 # Print the tree, including the name of the root.
-print('%s%s;' % (tree.write(format=args.outputFormat)[:-1], tree.name))
+print("%s%s;" % (tree.write(format=args.outputFormat)[:-1], tree.name))

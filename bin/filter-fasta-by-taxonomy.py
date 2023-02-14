@@ -19,11 +19,10 @@ If you see sequences unexpectedly rejected because they have no associated
 taxonomy, make sure you have the latest taxonomy files loaded into MySQL.
 """
 
-from __future__ import print_function
-
 import sys
 import argparse
 import re
+from typing import Optional, TextIO
 
 from dark.fasta import FastaReads
 from dark.taxonomy import LineageFetcher
@@ -39,44 +38,64 @@ def writeDetails(accept, readId, taxonomy, fp):
     @taxonomy: A C{list} of taxonomy C{str} levels.
     @fp: An open file pointer to write to.
     """
-    fp.write('%s %s\n       %s\n\n' % (
-        'MATCH:' if accept else 'MISS: ', readId,
-        ' | '.join(taxonomy) if taxonomy else 'No taxonomy found.'))
+    fp.write(
+        "%s %s\n       %s\n\n"
+        % (
+            "MATCH:" if accept else "MISS: ",
+            readId,
+            " | ".join(taxonomy) if taxonomy else "No taxonomy found.",
+        )
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Filter FASTA based on taxonomy',
-        epilog='Read DNA FASTA from stdin and print FASTA to stdout, only '
-        'including sequences that match the requested taxonomy regular '
-        'expression at any level.')
+        description="Filter FASTA based on taxonomy",
+        epilog="Read DNA FASTA from stdin and print FASTA to stdout, only "
+        "including sequences that match the requested taxonomy regular "
+        "expression at any level.",
+    )
 
     parser.add_argument(
-        '--taxonomy', required=True,
-        help='The regex to match the taxonomy on. Case is ignored.')
+        "--taxonomy",
+        required=True,
+        help="The regex to match the taxonomy on. Case is ignored.",
+    )
 
     parser.add_argument(
-        '--invert', action='store_true', default=False,
-        help='If True, only write sequences whose taxonomy does not match.')
+        "--invert",
+        action="store_true",
+        default=False,
+        help="If True, only write sequences whose taxonomy does not match.",
+    )
 
     parser.add_argument(
-        '--detailsFile', metavar='FILE', default=None,
-        help='The name of a file to save taxonomy details to')
+        "--detailsFile",
+        metavar="FILE",
+        default=None,
+        help="The name of a file to save taxonomy details to",
+    )
 
     args = parser.parse_args()
 
     try:
         regexp = re.compile(args.taxonomy, re.I)
     except re.error as e:
-        print('Could not compile %r to a regular expression:' % args.taxonomy,
-              e, file=sys.stderr)
+        print(
+            "Could not compile %r to a regular expression:" % args.taxonomy,
+            e,
+            file=sys.stderr,
+        )
         sys.exit(1)
 
+    detailsFp: Optional[TextIO]
+
     if args.detailsFile is not None:
-        detailsFp = open(args.detailsFile, 'w')
+        detailsFp = open(args.detailsFile, "w")
 
         def details(accept, readId, taxonomy):
             return writeDetails(accept, readId, taxonomy, detailsFp)
+
     else:
         detailsFp = None
 
@@ -90,7 +109,7 @@ if __name__ == '__main__':
 
     for read in reads:
         readCount += 1
-        fasta = read.toString('fasta')
+        fasta = read.toString("fasta")
         taxonomy = lineageFetcher.lineage(read.id)
         if taxonomy:
             for taxonomyId, scientificName in taxonomy:
@@ -114,10 +133,17 @@ if __name__ == '__main__':
     lineageFetcher.close()
 
     rejectCount = readCount - saveCount - noTaxonomyCount
-    print('%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected, '
-          '%d (%.2f%%) no taxomony found.' % (
-              readCount,
-              saveCount, saveCount / float(readCount) * 100.0,
-              rejectCount, (rejectCount) / float(readCount) * 100.0,
-              noTaxonomyCount, noTaxonomyCount / float(readCount) * 100.0),
-          file=sys.stderr)
+    print(
+        "%d sequences read, %d (%.2f%%) saved, %d (%.2f%%) rejected, "
+        "%d (%.2f%%) no taxomony found."
+        % (
+            readCount,
+            saveCount,
+            saveCount / float(readCount) * 100.0,
+            rejectCount,
+            (rejectCount) / float(readCount) * 100.0,
+            noTaxonomyCount,
+            noTaxonomyCount / float(readCount) * 100.0,
+        ),
+        file=sys.stderr,
+    )
