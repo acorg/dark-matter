@@ -1,6 +1,15 @@
-## 4.0.48 February 11, 2023
+## 4.0.49 February 15, 2023
 
 Removed `bin/find-hits.py`.
+
+## 4.0.48 February 14, 2023
+
+More careful calling of `pysam.pileup` in `sam-coverage-depth.py` to avoid
+an index error if a read mapping extends beyond the end of the reference
+genome. `pysam` was returning an invalid `column.reference_pos` in that
+case (invalid because the value is beyond the end of the reference, so it
+can't be used as a reference offset).
+>>>>>>> master
 
 ## 4.0.47 February 10, 2023
 

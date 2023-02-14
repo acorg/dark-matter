@@ -107,9 +107,31 @@ def printSiteInfo(
     offsetInfo["featureNames"] = sorted(offsetInfo["featureNames"])
 
     # Add an "nt" entry to the reference and genome and delete the id.
-    for what in "reference", "genome":
+    gappedOffset = alignment.gappedOffsets[site]
+    for what, gappedSequence in zip(
+        ("reference", "genome"),
+        (alignment.referenceAligned.sequence, alignment.genomeAligned.sequence),
+    ):
         info = offsetInfo[what]
-        info["nt"] = info["codon"][info["frame"]]
+        try:
+            info["nt"] = gappedSequence[gappedOffset]
+        except IndexError:
+            error = (
+                f"Index error determining nt at site {site} of {what}: "
+                f"{gappedOffset=}. Alignment has length {len(gappedSequence)}. "
+                f"Ref has length {len(alignment.features.reference)}."
+            )
+            # An index error was occurring before we started passing start,
+            # stop, and truncate=True to pysam's pileup method, which was
+            # returning an offset bigger than the reference genome
+            # length. See
+            # https://github.com/VirologyCharite/bih-pipeline/issues/199
+            # (assuming you have access to that repo). This should now be
+            # fixed. Here, just print a message to standard error, put the
+            # error into the JSON that is printed, and keep going.
+            print(error, file=sys.stderr)
+            print(offsetInfo, file=sys.stderr)
+            info["IndexError"] = error
         del offsetInfo[what]["id"]
 
     offsetInfo["bases"] = bases
@@ -207,7 +229,9 @@ def main():
                 )
                 sys.exit(1)
 
-        for column in sam.pileup(reference=referenceId):
+        for column in sam.pileup(
+            reference=referenceId, start=0, stop=len(features.reference), truncate=True
+        ):
             bases = defaultdict(int)
             for read in column.pileups:
                 if filterRead(read):
