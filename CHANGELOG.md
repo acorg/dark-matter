@@ -1,3 +1,11 @@
+## 4.0.48 February 14, 2023
+
+More careful calling of `pysam.pileup` in `sam-coverage-depth.py` to avoid
+an index error if a read mapping extends beyond the end of the reference
+genome. `pysam` was returning an invalid `column.reference_pos` in that
+case (invalid because the value is beyond the end of the reference, so it
+can't be used as a reference offset).
+
 ## 4.0.47 February 10, 2023
 
 Added printing of transversion and transition counts to
