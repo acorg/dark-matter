@@ -57,6 +57,7 @@ scripts = [
     'bin/fasta-ids.py',
     'bin/fasta-join.py',
     'bin/fasta-lengths.py',
+    'bin/fasta-match-offsets.py',
     'bin/fasta-sequences.py',
     'bin/fasta-sort.py',
     'bin/fasta-split-by-id.py',

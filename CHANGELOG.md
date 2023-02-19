@@ -1,3 +1,8 @@
+## 4.0.49 February 19, 2023
+
+Added `bin/fasta-match-offsets.py` to print offsets of sequence regular
+expression matches.
+
 ## 4.0.48 February 14, 2023
 
 More careful calling of `pysam.pileup` in `sam-coverage-depth.py` to avoid
