@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=(
-            "Given FASTA on stdin, write the sequence ids and " "lengths to stdout."
+            "Given FASTA on stdin, write the sequence ids and lengths to stdout."
         )
     )
 
