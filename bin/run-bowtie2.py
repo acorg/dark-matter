@@ -312,12 +312,12 @@ def main():
               '--callHaplotypesBcftools are used.'))
 
     parser.add_argument(
-        '--markDuplicatesGATK', default=False, action='store_true',
+        '--markDuplicatesGATK', action='store_true',
         help=('Use GATK to mark duplicates. See '
               'https://gatk.broadinstitute.org for details on GATK.'))
 
     parser.add_argument(
-        '--markDuplicatesPicard', default=False, action='store_true',
+        '--markDuplicatesPicard', action='store_true',
         help=('Use Picard to mark duplicates. See '
               'https://github.com/broadinstitute/picard for details on '
               'Picard.'))
@@ -335,18 +335,18 @@ def main():
               'could specify "g+rwx", for example.'))
 
     parser.add_argument(
-        '--removeDuplicates', default=False, action='store_true',
+        '--removeDuplicates', action='store_true',
         help=('Remove duplicates from the resulting SAM/BAM file. Best used '
               'in combination with an option that marks duplicates, such as '
               '--markDuplicatesGATK.'))
 
     parser.add_argument(
-        '--verbose', default=False, action='store_true',
+        '--verbose', action='store_true',
         help=('Print a description of commands as they are (or would be, if '
               '--dryRun is used) executed.'))
 
     parser.add_argument(
-        '--log', default=False, action='store_true',
+        '--log', action='store_true',
         help=('Show a log of commands that were (or would be, if --dryRun is '
               'used) executed.'))
 
@@ -355,42 +355,42 @@ def main():
         help='The number of threads to use when running bowtie2 commands.')
 
     parser.add_argument(
-        '--noAlign', default=True, action='store_false', dest='align',
+        '--noAlign', action='store_false', dest='align',
         help='Do not align with Bowtie2, just build an index.')
 
     parser.add_argument(
-        '--noBAM', default=True, action='store_false', dest='bam',
+        '--noBAM', action='store_false', dest='bam',
         help='Do not convert SAM to BAM.')
 
     parser.add_argument(
-        '--noSort', default=True, action='store_false', dest='sort',
+        '--noSort', action='store_false', dest='sort',
         help='Do not sort the BAM.')
 
     parser.add_argument(
-        '--noIndexBAM', default=True, action='store_false', dest='indexBAM',
+        '--noIndexBAM', action='store_false', dest='indexBAM',
         help='Do not index the BAM file.')
 
     parser.add_argument(
-        '--noClean', default=True, action='store_false', dest='clean',
+        '--noClean', action='store_false', dest='clean',
         help='Do not remove intermediate files or the temporary directory.')
 
     parser.add_argument(
-        '--force', default=False, action='store_true',
+        '--force', action='store_true',
         help='Overwrite pre-existing output file.')
 
     parser.add_argument(
-        '--dryRun', default=False, action='store_true',
+        '--dryRun', action='store_true',
         help='Do not run commands, just print what would be done.')
 
     haplotypeCaller = parser.add_mutually_exclusive_group()
 
     haplotypeCaller.add_argument(
-        '--callHaplotypesGATK', default=False, action='store_true',
+        '--callHaplotypesGATK', action='store_true',
         help=('Use GATK to call haplotypes. See '
               'https://gatk.broadinstitute.org for details on GATK.'))
 
     haplotypeCaller.add_argument(
-        '--callHaplotypesBcftools', default=False, action='store_true',
+        '--callHaplotypesBcftools', action='store_true',
         help='Use bcftools call to call haplotypes.')
 
     parser.add_argument(
