@@ -1,3 +1,9 @@
+## 4.0.50 March 30, 2023
+
+Added `bin/fasta-find.py` which, like `bin/fasta-match-offsets.py`, also
+reports matching sequence offsets in FASTA files but can match numeric
+regions and also look for reverse complemented matches.
+
 ## 4.0.49 February 19, 2023
 
 Added `bin/fasta-match-offsets.py` to print offsets of sequence regular

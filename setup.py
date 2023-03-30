@@ -53,6 +53,7 @@ scripts = [
     'bin/fasta-count-chars.py',
     'bin/fasta-coverage.py',
     'bin/fasta-diff.sh',
+    'bin/fasta-find.py',
     'bin/fasta-identity-table.py',
     'bin/fasta-ids.py',
     'bin/fasta-join.py',
