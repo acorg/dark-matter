@@ -1,3 +1,8 @@
+## 4.0.51 March 30, 2023
+
+Added `--reverse` and `--complement` options to `bin/fasta-find.py` to tell
+it to also look for simple inversions and complement sequences.
+
 ## 4.0.50 March 30, 2023
 
 Added `bin/fasta-find.py` which, like `bin/fasta-match-offsets.py`, also
