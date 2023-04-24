@@ -69,8 +69,6 @@ if __name__ == '__main__':
         referenceLengths = SAMFilter(
             args.alignmentFile,
             filterRead=Reads().filter().filterRead).referenceLengths()
-        assert 'hCoV-19/Wuhan-Hu-1/2019|EPI_ISL_402125' in referenceLengths, (
-               'This looks like an incorrect reference')
 
     coverageDepthSum = 0
     coverageDepthMin = 10000
