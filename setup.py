@@ -133,7 +133,6 @@ setup(name='dark-matter',
       author_email='tcj25@cam.ac.uk',
       keywords=['virus discovery'],
       classifiers=[
-          'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3',
           'Development Status :: 4 - Beta',
           'Intended Audience :: Developers',
@@ -142,7 +141,8 @@ setup(name='dark-matter',
           'Topic :: Software Development :: Libraries :: Python Modules',
       ],
       license='MIT',
-      description='Python classes for working with genetic sequence data',
+      description=('Python classes and utility scripts for '
+                   'working with genetic sequence data.'),
       scripts=scripts,
       install_requires=[
           'biopython>=1.71',

@@ -1,3 +1,7 @@
+## 4.0.52 April 24, 2023
+
+Added `--force` option to `bcftools index` command in `dark/bowtie2.py`.
+
 ## 4.0.51 March 30, 2023
 
 Added `--reverse` and `--complement` options to `bin/fasta-find.py` to tell
