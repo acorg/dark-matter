@@ -1,3 +1,9 @@
+## 4.0.53 April 27, 2023
+
+Replace use of `features` in `sam-coverage-depth.py` with the SAM file
+reference length, to avoid trying to use an undefined `features` variable
+when no reference is given.
+
 ## 4.0.52 April 24, 2023
 
 Added `--force` option to `bcftools index` command in `dark/bowtie2.py`.
