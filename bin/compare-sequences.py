@@ -93,6 +93,18 @@ parser.add_argument(
           'nucleotide code.'))
 
 parser.add_argument(
+    '--includeAmbiguousMatches', action='store_true',
+    help=('Print (1-based) sites of ambiguous matches. The output gives the '
+          'site, the base from the first sequence, then the base from the '
+          'second sequence.'))
+
+parser.add_argument(
+    '--includeNonGapMismatches', action='store_true',
+    help=('Print (1-based) sites of mismatches that do not involve a gap. The '
+          'output gives the site, the base from the first sequence, then the '
+          'base from the second sequence.'))
+
+parser.add_argument(
     '--gapChars', default='-', metavar='CHARS',
     help=('The sequence characters that should be considered to be gaps. '
           'These characters will be ignored in computing sequence lengths '
@@ -183,10 +195,13 @@ else:
     print('%s lengths: %d, %d (difference %d)' % (x, len1, len2,
                                                   abs(len1 - len2)))
 
-print(matchToString(match, read1, read2, matchAmbiguous=(not args.strict),
-                    offsets=offsets,
-                    includeGapLocations=args.includeGapLocations,
-                    includeNoCoverageLocations=args.includeCoverageLocations))
+print(matchToString(
+    match, read1, read2, matchAmbiguous=(not args.strict),
+    offsets=offsets,
+    includeGapLocations=args.includeGapLocations,
+    includeNoCoverageLocations=args.includeCoverageLocations,
+    includeAmbiguousMatches=args.includeAmbiguousMatches,
+    includeNonGapMismatches=args.includeNonGapMismatches))
 
 if args.showDiffs:
     # Print all sites where the sequences differ.

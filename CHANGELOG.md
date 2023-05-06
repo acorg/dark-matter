@@ -1,3 +1,8 @@
+## 4.0.55 May 6, 2023
+
+Added `--includeAmbiguousMatches` and `--includeNonGapMismatches` options to
+`bin/compare-sequences.py`.
+
 ## 4.0.54 May 6, 2023
 
 Added `includeAmbiguousMatches` and `includeNonGapMismatches` options to
