@@ -41,7 +41,9 @@ BASES_TO_AMBIGUOUS = dict(
 
 def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
                   offsets=None, includeGapLocations=True,
-                  includeNoCoverageLocations=True):
+                  includeNoCoverageLocations=True,
+                  includeAmbiguousMatches=False,
+                  includeNonGapMismatches=False):
     """
     Format a DNA match as a string.
 
@@ -59,6 +61,10 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
         gaps.
     @param includeNoCoverageLocations: If C{True} indicate the (1-based)
         locations of no coverage.
+    @param includeNonGapMismatches: If C{True} indicate the (1-based) locations
+        of non-gap mismatches.
+    @param includeAmbiguousMatches: If C{True} indicate the (1-based)
+        locations of ambiguous matches.
     @return: A C{str} describing the match.
     """
     match = dnaMatch['match']
@@ -145,6 +151,16 @@ def matchToString(dnaMatch, read1, read2, matchAmbiguous=True, indent='',
             append(countPrint('%s    Extra nucleotides at end' % indent,
                               extraCount, length))
 
+    if includeAmbiguousMatches and match['ambiguousMatches']:
+        append(f"{indent}Ambiguous matches:")
+        for offset, a, b in match['ambiguousMatches']:
+            append(f"{indent}    {offset + 1} {a} {b}")
+
+    if includeNonGapMismatches and match['nonGapMismatches']:
+        append(f"{indent}Non-gap mismatches:")
+        for offset, a, b in match['nonGapMismatches']:
+            append(f"{indent}    {offset + 1} {a} {b}")
+
     return '\n'.join(result)
 
 
@@ -183,6 +199,8 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
     read2NoCoverageOffsets = []
     empty = set()
     noCoverageChars = noCoverageChars or empty
+    nonGapMismatches = []
+    ambiguousMatches = []
 
     def _identicalMatch(a, b):
         """
@@ -264,8 +282,10 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
                         identicalMatchCount += 1
                     elif _ambiguousMatch(a, b, matchAmbiguous):
                         ambiguousMatchCount += 1
+                        ambiguousMatches.append((offset, a, b))
                     else:
                         nonGapMismatchCount += 1
+                        nonGapMismatches.append((offset, a, b))
 
     return {
         'match': {
@@ -276,6 +296,8 @@ def compareDNAReads(read1, read2, matchAmbiguous=True, gapChars='-',
             'nonGapMismatchCount': nonGapMismatchCount,
             'noCoverageCount': noCoverageCount,
             'noCoverageNoCoverageCount': noCoverageNoCoverageCount,
+            'ambiguousMatches': ambiguousMatches,
+            'nonGapMismatches': nonGapMismatches,
         },
         'read1': {
             'ambiguousOffsets': read1AmbiguousOffsets,
