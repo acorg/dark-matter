@@ -96,6 +96,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -127,6 +129,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -158,6 +162,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -190,6 +196,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(4, 'T', 'C')],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -223,6 +231,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(5, 'S', 'C')],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -255,6 +265,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [(5, 'S', 'C')],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -287,6 +299,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [(5, 'C', 'S')],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -319,6 +333,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(5, 'W', 'C')],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -352,6 +368,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [(5, 'K', 'S')],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -385,6 +403,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(5, 'K', 'S')],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -418,6 +438,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(5, 'W', 'S')],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -451,6 +473,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(5, 'W', 'S')],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -484,6 +508,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [(5, 'N', 'N')],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -517,6 +543,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(5, 'N', 'N')],
                 },
                 'read1': {
                     'ambiguousOffsets': [5],
@@ -548,6 +576,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -579,6 +609,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -611,6 +643,8 @@ class TestCompareDNAReads(TestCase):
                         'nonGapMismatchCount': 0,
                         'noCoverageCount': 0,
                         'noCoverageNoCoverageCount': 0,
+                        'ambiguousMatches': [],
+                        'nonGapMismatches': [],
                     },
                     'read1': {
                         'ambiguousOffsets': [],
@@ -642,6 +676,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -674,6 +710,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [1],
@@ -706,6 +744,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 1,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -738,6 +778,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 2,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -770,6 +812,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 2,
                     'noCoverageNoCoverageCount': 1,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -803,6 +847,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 1,
                     'noCoverageCount': 2,
                     'noCoverageNoCoverageCount': 1,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(10, 'T', 'A')],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -836,6 +882,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -868,6 +916,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -900,6 +950,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 0,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [],
                 },
                 'read1': {
                     'ambiguousOffsets': [6],
@@ -932,6 +984,8 @@ class TestCompareDNAReads(TestCase):
                     'nonGapMismatchCount': 2,
                     'noCoverageCount': 0,
                     'noCoverageNoCoverageCount': 0,
+                    'ambiguousMatches': [],
+                    'nonGapMismatches': [(3, 'T', 'C'), (4, 'T', 'C')],
                 },
                 'read1': {
                     'ambiguousOffsets': [],
@@ -1050,6 +1104,76 @@ Mismatches: 6/16 (37.50%)
     No coverage: 0
     Ambiguous: 0''',
             matchToString(match, read1, read2)
+        )
+
+    def testAmbiguousMatchLocations(self):
+        """
+        Ambiguous match locations must be returned correctly.
+        """
+        read1 = Read('id1', 'TWTTTAAAAAAGCGCG')
+        read2 = Read('id2', 'TTTTT------GCGCK')
+        match = compareDNAReads(read1, read2)
+        self.assertEqual(
+            '''\
+Exact matches: 8/16 (50.00%)
+Ambiguous matches: 2/16 (12.50%)
+Exact or ambiguous matches: 10/16 (62.50%)
+Mismatches: 6/16 (37.50%)
+  Not involving gaps (i.e., conflicts): 0
+  Involving a gap in one sequence: 6/16 (37.50%)
+  Involving a gap in both sequences: 0
+  Involving no coverage in one sequence: 0
+  Involving no coverage in both sequences: 0
+  Id: id1
+    Length: 16
+    Gaps: 0
+    No coverage: 0
+    Ambiguous: 1/16 (6.25%)
+  Id: id2
+    Length: 16
+    Gaps: 6/16 (37.50%)
+    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    No coverage: 0
+    Ambiguous: 1/16 (6.25%)
+Ambiguous matches:
+    2 W T
+    16 G K''',
+            matchToString(match, read1, read2, includeAmbiguousMatches=True)
+        )
+
+    def testNonGapMismatchLocations(self):
+        """
+        Non-gap mismatch locations must be returned correctly.
+        """
+        read1 = Read('id1', 'TATTTAAAAAAGCGCG')
+        read2 = Read('id2', 'TTTTT------GCGCC')
+        match = compareDNAReads(read1, read2)
+        self.maxDiff = None
+        self.assertEqual(
+            '''\
+Exact matches: 8/16 (50.00%)
+Ambiguous matches: 0
+Mismatches: 8/16 (50.00%)
+  Not involving gaps (i.e., conflicts): 2/16 (12.50%)
+  Involving a gap in one sequence: 6/16 (37.50%)
+  Involving a gap in both sequences: 0
+  Involving no coverage in one sequence: 0
+  Involving no coverage in both sequences: 0
+  Id: id1
+    Length: 16
+    Gaps: 0
+    No coverage: 0
+    Ambiguous: 0
+  Id: id2
+    Length: 16
+    Gaps: 6/16 (37.50%)
+    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    No coverage: 0
+    Ambiguous: 0
+Non-gap mismatches:
+    2 A T
+    16 G C''',
+            matchToString(match, read1, read2, includeNonGapMismatches=True)
         )
 
     def testNoCoverageLocations(self):

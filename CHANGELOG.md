@@ -1,3 +1,8 @@
+## 4.0.54 May 6, 2023
+
+Added `includeAmbiguousMatches` and `includeNonGapMismatches` options to
+`matchToString` in `dark/dna.py`.
+
 ## 4.0.53 April 27, 2023
 
 Replace use of `features` in `sam-coverage-depth.py` with the SAM file
