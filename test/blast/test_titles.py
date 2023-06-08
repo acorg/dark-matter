@@ -1,6 +1,7 @@
 import six
 from json import dumps
 from unittest import TestCase
+from io import StringIO
 
 try:
     from unittest.mock import patch, mock_open
@@ -16,7 +17,6 @@ from dark.hsp import HSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import BlastReadsAlignments
 from dark.titles import titleCounts, TitleAlignments, TitlesAlignments
-from dark.utils import StringIO
 
 
 class TestTitleCounts(TestCase):

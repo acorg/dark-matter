@@ -3,6 +3,7 @@ from six.moves import builtins
 from unittest import TestCase
 from random import seed
 from os import stat
+from io import StringIO
 
 try:
     from unittest.mock import patch, call, mock_open
@@ -19,7 +20,6 @@ from dark.reads import (
     Read, TranslatedRead, Reads, ReadsInRAM, DNARead, RNARead, DNAKozakRead,
     AARead, AAReadORF, AAReadWithX, SSAARead, SSAAReadWithX,
     readClassNameToClass)
-from dark.utils import StringIO
 
 
 class TestRead(TestCase):

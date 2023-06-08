@@ -1,3 +1,7 @@
+## 4.0.56 June 8, 2023
+
+Make `utils.py` `asHandle` work when passed a `pathlib.Path` argument.
+
 ## 4.0.55 May 6, 2023
 
 Added `--includeAmbiguousMatches` and `--includeNonGapMismatches` options to

@@ -3,6 +3,7 @@ from six.moves import builtins
 from six import assertRaisesRegex
 from io import BytesIO
 from unittest import TestCase
+from io import StringIO
 
 from Bio import SeqIO, bgzf
 
@@ -14,7 +15,6 @@ except ImportError:
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (dedupFasta, dePrefixAndSuffixFasta, fastaSubtract,
                         FastaReads, combineReads, SqliteIndex)
-from dark.utils import StringIO
 
 
 class FastaDeDup(TestCase):

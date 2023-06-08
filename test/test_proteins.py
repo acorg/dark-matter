@@ -2,11 +2,11 @@ from unittest import TestCase, skip
 from six import assertRaisesRegex
 from six.moves import builtins
 from contextlib import contextmanager
+from io import StringIO
 
 from dark.proteins import (
     splitNames, _NO_PATHOGEN_NAME, getPathogenProteinCounts, ProteinGrouper,
     PathogenSampleFiles)
-from dark.utils import StringIO
 
 try:
     from unittest.mock import patch

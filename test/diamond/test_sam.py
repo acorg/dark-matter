@@ -1,5 +1,5 @@
 from unittest import TestCase, skipUnless, skip
-from six import StringIO
+from io import StringIO
 
 from dark.aa import CODONS
 from dark.civ.proteins import SqliteIndex, SqliteIndexWriter, _Genome

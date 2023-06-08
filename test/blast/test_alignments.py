@@ -7,6 +7,7 @@ from copy import deepcopy
 from json import dumps
 from unittest import TestCase, skip
 import sqlite3
+from io import StringIO
 
 try:
     from unittest.mock import patch, mock_open
@@ -24,7 +25,6 @@ from dark.blast.alignments import (
     BlastReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
 from dark import ncbidb
-from dark.utils import StringIO
 
 
 class TestBlastReadsAlignments(TestCase):

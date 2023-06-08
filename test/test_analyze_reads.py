@@ -1,8 +1,7 @@
 from unittest import TestCase
 from dark.analyze_reads import getPrefixAndSuffix, trimReads
 from Bio import SeqIO
-
-from dark.utils import StringIO
+from io import StringIO
 
 
 class TestGetPrefixAndSuffix(TestCase):

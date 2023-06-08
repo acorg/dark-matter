@@ -1,8 +1,8 @@
 from six.moves import builtins
+from io import StringIO
 
 from dark.reads import AARead, DNARead, RNARead
 from dark.fastq import FastqReads
-from dark.utils import StringIO
 
 from unittest import TestCase, skip
 

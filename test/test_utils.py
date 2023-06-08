@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import mock_open
 from six import assertRaisesRegex
 from collections import Counter
+from io import StringIO
 
 try:
     from unittest.mock import patch
@@ -15,7 +16,7 @@ from io import BytesIO
 
 from dark.utils import (
     numericallySortFilenames, median, asHandle, parseRangeString,
-    parseRangeExpression, pct, StringIO, baseCountsToStr, nucleotidesToStr,
+    parseRangeExpression, pct, baseCountsToStr, nucleotidesToStr,
     countPrint, take, matchOffset)
 
 

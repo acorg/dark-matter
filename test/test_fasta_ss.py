@@ -1,6 +1,7 @@
 import six
 from six.moves import builtins
 from unittest import TestCase
+from io import StringIO
 
 try:
     from unittest.mock import patch, mock_open
@@ -9,7 +10,6 @@ except ImportError:
 
 from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
-from dark.utils import StringIO
 
 
 class TestSSFastaReads(TestCase):

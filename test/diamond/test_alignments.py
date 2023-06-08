@@ -6,6 +6,7 @@ from six.moves import builtins
 from copy import deepcopy
 from json import dumps
 from unittest import TestCase, skip
+from io import StringIO
 
 try:
     from unittest.mock import patch, mock_open
@@ -20,7 +21,6 @@ from dark.score import LowerIsBetterScore
 from dark.diamond.alignments import (
     DiamondReadsAlignments, ZERO_EVALUE_UPPER_RANDOM_INCREMENT)
 from dark.titles import TitlesAlignments
-from dark.utils import StringIO
 
 
 class TestDiamondReadsAlignments(TestCase):
