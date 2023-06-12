@@ -1,3 +1,8 @@
+## 4.0.57 June 12, 2023
+
+Use `[0-9]' instead of `\d` in `bin/download-refseq-viral-gbff.sh` so that
+`egrep` works with the brew-installed GNU egrep on OS X.
+
 ## 4.0.56 June 8, 2023
 
 Make `utils.py` `asHandle` work when passed a `pathlib.Path` argument.
