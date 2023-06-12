@@ -1,3 +1,8 @@
+## 4.0.58 June 12, 2023
+
+Make `bin/download-refseq-viral-gbff.sh` exit non-zero if no viral genome
+files are downloaded.
+
 ## 4.0.57 June 12, 2023
 
 Use `[0-9]' instead of `\d` in `bin/download-refseq-viral-gbff.sh` so that
