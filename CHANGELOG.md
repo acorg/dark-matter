@@ -1,3 +1,8 @@
+## 4.0.59 July 1, 2023
+
+Subtract one from `stop` arg to pysam.pileup because, despite being
+0-based, pysam apparently includes the final index.
+
 ## 4.0.58 June 12, 2023
 
 Make `bin/download-refseq-viral-gbff.sh` exit non-zero if no viral genome
