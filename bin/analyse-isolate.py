@@ -168,9 +168,14 @@ if __name__ == '__main__':
                             mvInfo.countsPerBase[position].values()),
                         baseInfo))
 
-    print('Genome coverage: %.2f, mean coverage depth: %.2f (min: %d, '
-          'max: %d)\n' % (
-              (len(consensusSeq) -
-               consensusSeq.sequence.count('N')) / len(consensusSeq),
-              coverageDepthSum / len(consensusSeq),
-              coverageDepthMin, coverageDepthMax))
+    consensusLen = len(consensusSeq)
+
+    if consensusLen:
+        print('Genome coverage: %.2f, mean coverage depth: %.2f (min: %d, '
+              'max: %d)\n' % (
+                  (consensusLen -
+                   consensusSeq.sequence.count('N')) / consensusLen,
+                  coverageDepthSum / consensusLen,
+                  coverageDepthMin, coverageDepthMax))
+    else:
+        print('Consensus sequence has zero length!')
