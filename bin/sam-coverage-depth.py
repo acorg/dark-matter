@@ -244,7 +244,12 @@ def main():
             if printStats:
                 counts.append(baseCount)
 
-            if printOffsets:
+            # You would thing that column.reference_pos could not be as big
+            # as referenceLengths[referenceId], due to the stop and
+            # truncate args to sam.pileup, but you would be wrong :-( So we
+            # check.
+            if (printOffsets and
+                    column.reference_pos < referenceLengths[referenceId]):
                 if alignment:
                     printSiteInfo(
                         alignment,

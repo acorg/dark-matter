@@ -1,3 +1,7 @@
+## 4.0.60 July 2, 2023
+
+More index checking in `bin/sam-coverage-depth.py`.
+
 ## 4.0.59 July 1, 2023
 
 Subtract one from `stop` arg to pysam.pileup because, despite being
