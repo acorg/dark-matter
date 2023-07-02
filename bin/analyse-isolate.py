@@ -85,7 +85,7 @@ if __name__ == '__main__':
               f'insertions.')
 
     else:
-        for position in range(len(consensusSeq)):
+        for position in range(consensusLen):
             # 'position' here will be relative to the reference sequence (has
             # to be EPI_ISL_402125/NC_045512.2) that the reads from the
             # isolate were aligned against.
