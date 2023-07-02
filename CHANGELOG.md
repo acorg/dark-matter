@@ -1,3 +1,7 @@
+## 4.0.61 July 2, 2023
+
+Backed out 4.0.59 and 4.0.60 changes.
+
 ## 4.0.60 July 2, 2023
 
 More index checking in `bin/sam-coverage-depth.py`.

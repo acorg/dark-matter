@@ -230,8 +230,8 @@ def main():
                 sys.exit(1)
 
         for column in sam.pileup(
-            reference=referenceId, start=0,
-            stop=referenceLengths[referenceId] - 1, truncate=True
+            reference=referenceId, start=0, stop=referenceLengths[referenceId],
+                truncate=True
         ):
             bases = defaultdict(int)
             for read in column.pileups:
@@ -244,12 +244,7 @@ def main():
             if printStats:
                 counts.append(baseCount)
 
-            # You would thing that column.reference_pos could not be as big
-            # as referenceLengths[referenceId], due to the stop and
-            # truncate args to sam.pileup, but you would be wrong :-( So we
-            # check.
-            if (printOffsets and
-                    column.reference_pos < referenceLengths[referenceId]):
+            if printOffsets:
                 if alignment:
                     printSiteInfo(
                         alignment,
