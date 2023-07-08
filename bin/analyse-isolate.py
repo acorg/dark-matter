@@ -59,6 +59,8 @@ if __name__ == '__main__':
     clinicalAlignment = Gb2Alignment(clinicalSeq, features)
     consensusAlignment = Gb2Alignment(consensusSeq, features)
 
+    consensusLen = len(consensusSeq)
+
     # Get the minor variant information
     if args.alignmentFile.endswith('.json'):
         mvInfo = MinorVariantInfo(jsonFile=args.alignmentFile)
@@ -77,98 +79,105 @@ if __name__ == '__main__':
     print('Isolate analysis for sample %s' % args.sampleName)
     print('Sequence ID of clinical sample: %s' % clinicalSeq.id)
 
-    for position in range(len(consensusSeq)):
-        # 'position' here will be relative to the reference sequence (has to
-        # be EPI_ISL_402125/NC_045512.2) that the reads from the isolate were
-        # aligned against.
+    if mvInfo.length < consensusLen:
+        print(f'Length of the alignment ({mvInfo.length}) is shorter than '
+              f'length of the consensus ({consensusLen}). Check for '
+              f'insertions.')
 
-        # Count the coverage
-        readCountAtPos = sum(mvInfo.countsPerBase[position].values())
-        coverageDepthSum += readCountAtPos
-        if coverageDepthMin > readCountAtPos:
-            coverageDepthMin = readCountAtPos
-        if coverageDepthMax < readCountAtPos:
-            coverageDepthMax = readCountAtPos
+    else:
+        for position in range(consensusLen):
+            # 'position' here will be relative to the reference sequence (has
+            # to be EPI_ISL_402125/NC_045512.2) that the reads from the
+            # isolate were aligned against.
 
-        # Get just one feature at this position
-        feats = features.getFeatureNames(position, includeUntranslated=True)
+            # Count the coverage
+            readCountAtPos = sum(mvInfo.countsPerBase[position].values())
+            coverageDepthSum += readCountAtPos
+            if coverageDepthMin > readCountAtPos:
+                coverageDepthMin = readCountAtPos
+            if coverageDepthMax < readCountAtPos:
+                coverageDepthMax = readCountAtPos
 
-        feature = sorted(list(feats))[0] if feats else None
+            # Get just one feature at this position
+            feats = features.getFeatureNames(
+                position, includeUntranslated=True)
 
-        offsetInfo = offsetInfoMultipleGenomes(
-            [clinicalAlignment, consensusAlignment], position,
-            featureName=feature, relativeToFeature=False,
-            includeUntranslated=True)
+            feature = sorted(list(feats))[0] if feats else None
 
-        clinInfo = offsetInfo['genomes'][0]
-        clinBase = clinInfo['codon'][clinInfo['frame']]
-        consInfo = offsetInfo['genomes'][1]
-        consBase = consInfo['codon'][consInfo['frame']]
+            offsetInfo = offsetInfoMultipleGenomes(
+                [clinicalAlignment, consensusAlignment], position,
+                featureName=feature, relativeToFeature=False,
+                includeUntranslated=True)
 
-        # Check if there are any differences between the consensus from
-        # the isolate and the consensus from the clinical sample.
-        if clinBase != consBase:
-            furin = ''
-            if clinInfo['aa'] == consInfo['aa']:
-                synInfo = 'synonymous'
-            else:
-                synInfo = 'non-synonymous (%s, %s%d%s)' % (
-                    offsetInfo['featureName'], clinInfo['aa'],
-                    offsetInfo['reference']['aaOffset'] + 1, consInfo['aa'])
-                if (offsetInfo['featureName'] == 'surface glycoprotein' and
-                        670 < offsetInfo['reference']['aaOffset'] < 690):
-                    furin = ' FURIN SITE!'
-            if clinBase != '-' and 70 < position < 29714:
-                print('\tChange from clinical sample sequence at position %d '
-                      '(nt change: %s>%s), %s%s' % (
-                          position + 1, clinBase, consBase, synInfo, furin))
+            clinInfo = offsetInfo['genomes'][0]
+            clinBase = clinInfo['codon'][clinInfo['frame']]
+            consInfo = offsetInfo['genomes'][1]
+            consBase = consInfo['codon'][consInfo['frame']]
 
-        # Check if there are any minority variants at this position.
-        if isMinorVariantPosition(mvInfo.countsPerBase[position],
-                                  args.minorVariantCoverageCutoff,
-                                  args.minorVariantFrequencyCutoff):
+            # Check if there are any differences between the consensus from
+            # the isolate and the consensus from the clinical sample.
+            if clinBase != consBase:
+                furin = ''
+                if clinInfo['aa'] == consInfo['aa']:
+                    synInfo = 'synonymous'
+                else:
+                    synInfo = 'non-synonymous (%s, %s%d%s)' % (
+                        offsetInfo['featureName'], clinInfo['aa'],
+                        offsetInfo['reference']['aaOffset'] + 1,
+                        consInfo['aa'])
+                    if (offsetInfo['featureName'] == 'surface glycoprotein' and
+                            670 < offsetInfo['reference']['aaOffset'] < 690):
+                        furin = ' FURIN SITE!'
+                if clinBase != '-' and 70 < position < 29714:
+                    print('\tChange from clinical sample sequence at '
+                          'position %d (nt change: %s>%s), %s%s' % (
+                              position + 1, clinBase, consBase, synInfo,
+                              furin))
 
-            clinCod = clinInfo['codon']
-            consCod = consInfo['codon']
+            # Check if there are any minority variants at this position.
+            if isMinorVariantPosition(mvInfo.countsPerBase[position],
+                                      args.minorVariantCoverageCutoff,
+                                      args.minorVariantFrequencyCutoff):
 
-            print('\t\tMinority variant at position: %d (%s), '
-                  'coverage: %d reads' % (
-                      position + 1, offsetInfo['featureName'],
-                      sum(mvInfo.countsPerBase[position].values())))
-            for base in mvInfo.countsPerBase[position]:
-                if (mvInfo.countsPerBase[position][base] >
-                        args.minorVariantCoverageCutoff):
-                    mvCod = (
-                        consInfo['codon'][:consInfo['frame']] +
-                        base + consInfo['codon'][consInfo['frame'] + 1:])
-                    if clinBase == base:
-                        baseInfo = 'consensus base'
-                    else:
-                        # Get the amino acid
-                        if 'N' in clinCod:
-                            clinCodT = 'X'
+                clinCod = clinInfo['codon']
+                consCod = consInfo['codon']
+
+                print('\t\tMinority variant at position: %d (%s), '
+                      'coverage: %d reads' % (
+                          position + 1, offsetInfo['featureName'],
+                          sum(mvInfo.countsPerBase[position].values())))
+                for base in mvInfo.countsPerBase[position]:
+                    if (mvInfo.countsPerBase[position][base] >
+                            args.minorVariantCoverageCutoff):
+                        mvCod = (
+                            consInfo['codon'][:consInfo['frame']] +
+                            base + consInfo['codon'][consInfo['frame'] + 1:])
+                        if clinBase == base:
+                            baseInfo = 'consensus base'
                         else:
-                            clinCodT = codonTable.get(clinCod)
-                        if 'N' in mvCod:
-                            mvCodT = 'X'
-                        else:
-                            mvCodT = codonTable.get(mvCod)
-                        # Compare the amino acids
-                        if clinCodT == mvCodT:
-                            baseInfo = 'synonymous'
-                        else:
-                            baseInfo = '%s%d%s, %s' % (
-                                clinCodT,
-                                offsetInfo['reference']['aaOffset'] + 1,
-                                mvCodT, offsetInfo['featureName'])
+                            # Get the amino acid
+                            if 'N' in clinCod:
+                                clinCodT = 'X'
+                            else:
+                                clinCodT = codonTable.get(clinCod)
+                            if 'N' in mvCod:
+                                mvCodT = 'X'
+                            else:
+                                mvCodT = codonTable.get(mvCod)
+                            # Compare the amino acids
+                            if clinCodT == mvCodT:
+                                baseInfo = 'synonymous'
+                            else:
+                                baseInfo = '%s%d%s, %s' % (
+                                    clinCodT,
+                                    offsetInfo['reference']['aaOffset'] + 1,
+                                    mvCodT, offsetInfo['featureName'])
 
-                    print('\t\t\tBase: %s, count: %d (%.2f): %s' % (
-                        base, mvInfo.countsPerBase[position][base],
-                        mvInfo.countsPerBase[position][base] / sum(
-                            mvInfo.countsPerBase[position].values()),
-                        baseInfo))
-
-    consensusLen = len(consensusSeq)
+                        print('\t\t\tBase: %s, count: %d (%.2f): %s' % (
+                            base, mvInfo.countsPerBase[position][base],
+                            mvInfo.countsPerBase[position][base] / sum(
+                                mvInfo.countsPerBase[position].values()),
+                            baseInfo))
 
     if consensusLen:
         print('Genome coverage: %.2f, mean coverage depth: %.2f (min: %d, '
