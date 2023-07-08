@@ -80,7 +80,7 @@ if __name__ == '__main__':
     print('Sequence ID of clinical sample: %s' % clinicalSeq.id)
 
     if mvInfo.length < consensusLen:
-        print(f'Lenght of the alignment ({mvInfo.length}) is shorter than '
+        print(f'Length of the alignment ({mvInfo.length}) is shorter than '
               f'length of the consensus ({consensusLen}). Check for '
               f'insertions.')
 
