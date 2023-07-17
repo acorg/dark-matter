@@ -4,6 +4,15 @@ from itertools import product
 from collections import defaultdict
 
 from dark.aa import (
+    AminoAcid,
+    find,
+    propertiesForSequence,
+    clustersForSequence,
+    compareAaReads,
+    matchToString,
+)
+
+from dark.aaVars import (
     PROPERTIES,
     ALL_PROPERTIES,
     PROPERTY_NAMES,
@@ -25,18 +34,12 @@ from dark.aa import (
     ABBREV3,
     ABBREV3_TO_ABBREV1,
     AA_LETTERS,
-    find,
-    AminoAcid,
-    clustersForSequence,
-    propertiesForSequence,
     PROPERTY_CLUSTERS,
     PROPERTY_DETAILS_RAW,
     CODONS,
     REVERSE_CODONS,
     START_CODON,
     STOP_CODONS,
-    compareAaReads,
-    matchToString,
 )
 from dark.reads import AARead
 

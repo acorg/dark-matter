@@ -230,7 +230,8 @@ def main():
                 sys.exit(1)
 
         for column in sam.pileup(
-            reference=referenceId, start=0, stop=len(features.reference), truncate=True
+            reference=referenceId, start=0, stop=referenceLengths[referenceId],
+                truncate=True
         ):
             bases = defaultdict(int)
             for read in column.pileups:

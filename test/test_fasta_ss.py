@@ -2,10 +2,10 @@ import six
 from six.moves import builtins
 from unittest import TestCase
 from unittest.mock import patch, mock_open
+from io import StringIO
 
 from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
-from dark.utils import StringIO
 
 
 class TestSSFastaReads(TestCase):

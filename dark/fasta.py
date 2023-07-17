@@ -1,7 +1,7 @@
 from hashlib import md5
 import sqlite3
 import os
-from typing import Generator, Iterable, TextIO, Union, Type, Optional, TextIO
+from typing import Generator, Iterable, TextIO, Union, Type, Optional, TextIO, List
 
 from Bio import SeqIO, bgzf  # type: ignore
 from Bio.Seq import Seq
@@ -57,7 +57,7 @@ def dePrefixAndSuffixFasta(
             yield s
 
 
-def fastaSubtract(fastaFiles: Union[list[TextIO], map[TextIO]]) -> Iterable[Seq]:
+def fastaSubtract(fastaFiles: List[TextIO]) -> Iterable[Seq]:
     """
     Given a list of open file descriptors, each with FASTA content,
     remove the reads found in the 2nd, 3rd, etc files from the first file

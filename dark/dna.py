@@ -39,6 +39,8 @@ def matchToString(
     offsets=None,
     includeGapLocations=True,
     includeNoCoverageLocations=True,
+    includeAmbiguousMatches=False,
+    includeNonGapMismatches=False,
 ):
     """
     Format a DNA match as a string.
@@ -57,6 +59,10 @@ def matchToString(
         gaps.
     @param includeNoCoverageLocations: If C{True} indicate the (1-based)
         locations of no coverage.
+    @param includeAmbiguousMatches: If C{True} indicate the (1-based)
+        locations of ambiguous matches.
+    @param includeNonGapMismatches: If C{True} indicate the (1-based) locations
+        of non-gap mismatches.
     @return: A C{str} describing the match.
     """
     match = dnaMatch["match"]
@@ -200,7 +206,17 @@ def matchToString(
                 )
             )
 
-    return "\n".join(result)
+    if includeAmbiguousMatches and match['ambiguousMatches']:
+        append(f"{indent}Ambiguous matches:")
+        for offset, a, b in match['ambiguousMatches']:
+            append(f"{indent}    {offset + 1} {a} {b}")
+
+    if includeNonGapMismatches and match['nonGapMismatches']:
+        append(f"{indent}Non-gap mismatches:")
+        for offset, a, b in match['nonGapMismatches']:
+            append(f"{indent}    {offset + 1} {a} {b}")
+
+    return '\n'.join(result)
 
 
 def compareDNAReads(
@@ -239,6 +255,8 @@ def compareDNAReads(
     read2NoCoverageOffsets = []
     empty = set()
     noCoverageChars = noCoverageChars or empty
+    nonGapMismatches = []
+    ambiguousMatches = []
 
     def _identicalMatch(a, b):
         """
@@ -323,18 +341,22 @@ def compareDNAReads(
                         identicalMatchCount += 1
                     elif _ambiguousMatch(a, b, matchAmbiguous):
                         ambiguousMatchCount += 1
+                        ambiguousMatches.append((offset, a, b))
                     else:
                         nonGapMismatchCount += 1
+                        nonGapMismatches.append((offset, a, b))
 
     return {
-        "match": {
-            "identicalMatchCount": identicalMatchCount,
-            "ambiguousMatchCount": ambiguousMatchCount,
-            "gapMismatchCount": gapMismatchCount,
-            "gapGapMismatchCount": gapGapMismatchCount,
-            "nonGapMismatchCount": nonGapMismatchCount,
-            "noCoverageCount": noCoverageCount,
-            "noCoverageNoCoverageCount": noCoverageNoCoverageCount,
+        'match': {
+            'identicalMatchCount': identicalMatchCount,
+            'ambiguousMatchCount': ambiguousMatchCount,
+            'gapMismatchCount': gapMismatchCount,
+            'gapGapMismatchCount': gapGapMismatchCount,
+            'nonGapMismatchCount': nonGapMismatchCount,
+            'noCoverageCount': noCoverageCount,
+            'noCoverageNoCoverageCount': noCoverageNoCoverageCount,
+            'ambiguousMatches': ambiguousMatches,
+            'nonGapMismatches': nonGapMismatches,
         },
         "read1": {
             "ambiguousOffsets": read1AmbiguousOffsets,

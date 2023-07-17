@@ -1,6 +1,69 @@
-## 4.0.49 February 15, 2023
+## 4.0.62 July 17, 2023
 
 Removed `bin/find-hits.py`.
+
+## 4.0.61 July 2, 2023
+
+Backed out 4.0.59 and 4.0.60 changes.
+
+## 4.0.60 July 2, 2023
+
+More index checking in `bin/sam-coverage-depth.py`.
+
+## 4.0.59 July 1, 2023
+
+Subtract one from `stop` arg to pysam.pileup because, despite being
+0-based, pysam apparently includes the final index.
+
+## 4.0.58 June 12, 2023
+
+Make `bin/download-refseq-viral-gbff.sh` exit non-zero if no viral genome
+files are downloaded.
+
+## 4.0.57 June 12, 2023
+
+Use `[0-9]' instead of `\d` in `bin/download-refseq-viral-gbff.sh` so that
+`egrep` works with the brew-installed GNU egrep on OS X.
+
+## 4.0.56 June 8, 2023
+
+Make `utils.py` `asHandle` work when passed a `pathlib.Path` argument.
+
+## 4.0.55 May 6, 2023
+
+Added `--includeAmbiguousMatches` and `--includeNonGapMismatches` options to
+`bin/compare-sequences.py`.
+
+## 4.0.54 May 6, 2023
+
+Added `includeAmbiguousMatches` and `includeNonGapMismatches` options to
+`matchToString` in `dark/dna.py`.
+
+## 4.0.53 April 27, 2023
+
+Replace use of `features` in `sam-coverage-depth.py` with the SAM file
+reference length, to avoid trying to use an undefined `features` variable
+when no reference is given.
+
+## 4.0.52 April 24, 2023
+
+Added `--force` option to `bcftools index` command in `dark/bowtie2.py`.
+
+## 4.0.51 March 30, 2023
+
+Added `--reverse` and `--complement` options to `bin/fasta-find.py` to tell
+it to also look for simple inversions and complement sequences.
+
+## 4.0.50 March 30, 2023
+
+Added `bin/fasta-find.py` which, like `bin/fasta-match-offsets.py`, also
+reports matching sequence offsets in FASTA files but can match numeric
+regions and also look for reverse complemented matches.
+
+## 4.0.49 February 19, 2023
+
+Added `bin/fasta-match-offsets.py` to print offsets of sequence regular
+expression matches.
 
 ## 4.0.48 February 14, 2023
 
@@ -9,7 +72,6 @@ an index error if a read mapping extends beyond the end of the reference
 genome. `pysam` was returning an invalid `column.reference_pos` in that
 case (invalid because the value is beyond the end of the reference, so it
 can't be used as a reference offset).
->>>>>>> master
 
 ## 4.0.47 February 10, 2023
 

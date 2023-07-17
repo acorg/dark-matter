@@ -4,6 +4,7 @@ from unittest import TestCase
 from unittest.mock import patch, call, mock_open
 from random import seed
 from os import stat
+from io import StringIO
 
 from dark.aaVars import (
     BASIC_POSITIVE,
@@ -33,7 +34,6 @@ from dark.reads import (
     SSAAReadWithX,
     readClassNameToClass,
 )
-from dark.utils import StringIO
 
 
 class TestRead(TestCase):

@@ -429,7 +429,7 @@ class Taxonomy:
             C{func} returns C{True}. The elements in the returned value will
             be in the order in which they are present in C{lineage}.
         """
-        return filter(lambda l: func(l.rank), lineage)
+        return filter(lambda thisLineage: func(thisLineage.rank), lineage)
 
     def close(self) -> None:
         """

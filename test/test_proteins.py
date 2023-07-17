@@ -3,6 +3,7 @@ from unittest.mock import patch
 from six import assertRaisesRegex
 from six.moves import builtins
 from contextlib import contextmanager
+from io import StringIO
 
 from dark.proteins import (
     splitNames,
@@ -11,7 +12,6 @@ from dark.proteins import (
     ProteinGrouper,
     PathogenSampleFiles,
 )
-from dark.utils import StringIO
 
 
 class TestSplitNames(TestCase):

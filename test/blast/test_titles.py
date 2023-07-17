@@ -2,6 +2,7 @@ import six
 from json import dumps
 from unittest import TestCase
 from unittest.mock import patch, mock_open
+from io import StringIO
 from six.moves import builtins
 
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
@@ -11,7 +12,6 @@ from dark.hsp import HSP
 from dark.score import LowerIsBetterScore
 from dark.blast.alignments import BlastReadsAlignments
 from dark.titles import titleCounts, TitleAlignments, TitlesAlignments
-from dark.utils import StringIO
 
 
 class TestTitleCounts(TestCase):

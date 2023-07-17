@@ -4,6 +4,7 @@ from six import assertRaisesRegex
 from io import BytesIO
 from unittest import TestCase
 from unittest.mock import patch, mock_open
+from io import StringIO
 from Bio import SeqIO, bgzf
 
 from dark.reads import Read, AARead, DNARead, RNARead, Reads
@@ -15,7 +16,6 @@ from dark.fasta import (
     combineReads,
     SqliteIndex,
 )
-from dark.utils import StringIO
 
 
 class FastaDeDup(TestCase):

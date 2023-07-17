@@ -7,6 +7,7 @@ from copy import deepcopy
 from json import dumps
 from unittest import TestCase, skip
 from unittest.mock import patch, mock_open
+from io import StringIO
 
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
@@ -18,7 +19,6 @@ from dark.diamond.alignments import (
     ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
 )
 from dark.titles import TitlesAlignments
-from dark.utils import StringIO
 
 
 class TestDiamondReadsAlignments(TestCase):

@@ -1,9 +1,9 @@
 import os
 import re
 import string
-import six
 import bz2
 import gzip
+from pathlib import Path
 from os.path import basename
 from contextlib import contextmanager
 from re import compile
@@ -71,17 +71,12 @@ def asHandle(fileNameOrHandle, mode="rt", encoding="UTF-8"):
     @return: A generator that can be turned into a context manager via
         L{contextlib.contextmanager}.
     """
-    if isinstance(fileNameOrHandle, six.string_types):
-        if fileNameOrHandle.endswith(".gz"):
-            if six.PY3:
-                yield gzip.open(fileNameOrHandle, mode=mode, encoding=encoding)
-            else:
-                yield gzip.GzipFile(fileNameOrHandle, mode=mode)
-        elif fileNameOrHandle.endswith(".bz2"):
-            if six.PY3:
-                yield bz2.open(fileNameOrHandle, mode=mode, encoding=encoding)
-            else:
-                yield bz2.BZ2File(fileNameOrHandle, mode=mode)
+    if isinstance(fileNameOrHandle, (Path, str)):
+        fileNameOrHandle = str(fileNameOrHandle)
+        if fileNameOrHandle.endswith('.gz'):
+            yield gzip.open(fileNameOrHandle, mode=mode, encoding=encoding)
+        elif fileNameOrHandle.endswith('.bz2'):
+            yield bz2.open(fileNameOrHandle, mode=mode, encoding=encoding)
         else:
             # Putting mode=mode, encoding=encoding into the following
             # causes a hard-to-understand error from the mocking library.
@@ -178,26 +173,6 @@ def parseRangeExpression(s, convertToZeroBased=False):
         return eval(expr)
     except Exception:
         raise ValueError(expr)
-
-
-if six.PY3:
-    from io import StringIO
-else:
-    from six import StringIO as sixStringIO
-
-    class StringIO(sixStringIO):
-        """
-        A StringIO class that can be used as a context manager, seeing as the
-        six.StringIO class does not provide __enter__ and __exit__ methods
-        under Python 2.
-        """
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            self.close()
-            return False
 
 
 def baseCountsToStr(counts):

@@ -8,6 +8,7 @@ from json import dumps
 from unittest import TestCase, skip
 from unittest.mock import patch, mock_open
 import sqlite3
+from io import StringIO
 
 from Bio import SeqIO
 
@@ -22,7 +23,6 @@ from dark.blast.alignments import (
 )
 from dark.titles import TitlesAlignments
 from dark import ncbidb
-from dark.utils import StringIO
 
 
 class TestBlastReadsAlignments(TestCase):
