@@ -1,6 +1,6 @@
 ## 4.0.62 July 17, 2023
 
-Removed `bin/find-hits.py`.
+Removed `bin/find-hits.py`. Fixed matplotlib deprecation warnings.
 
 ## 4.0.61 July 2, 2023
 
