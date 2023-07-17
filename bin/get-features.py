@@ -25,7 +25,7 @@ def main(gi, ranges):
     else:
         printed = set()
         if ranges:
-            for (start, end) in ranges:
+            for start, end in ranges:
                 for index, feature in enumerate(record.features):
                     if (
                         start < int(feature.location.end)

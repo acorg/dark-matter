@@ -368,15 +368,23 @@ def main():
     )
 
     parser.add_argument(
-        '--markDuplicatesGATK', action='store_true',
-        help=('Use GATK to mark duplicates. See '
-              'https://gatk.broadinstitute.org for details on GATK.'))
+        "--markDuplicatesGATK",
+        action="store_true",
+        help=(
+            "Use GATK to mark duplicates. See "
+            "https://gatk.broadinstitute.org for details on GATK."
+        ),
+    )
 
     parser.add_argument(
-        '--markDuplicatesPicard', action='store_true',
-        help=('Use Picard to mark duplicates. See '
-              'https://github.com/broadinstitute/picard for details on '
-              'Picard.'))
+        "--markDuplicatesPicard",
+        action="store_true",
+        help=(
+            "Use Picard to mark duplicates. See "
+            "https://github.com/broadinstitute/picard for details on "
+            "Picard."
+        ),
+    )
 
     parser.add_argument(
         "--picardJar",
@@ -397,20 +405,32 @@ def main():
     )
 
     parser.add_argument(
-        '--removeDuplicates', action='store_true',
-        help=('Remove duplicates from the resulting SAM/BAM file. Best used '
-              'in combination with an option that marks duplicates, such as '
-              '--markDuplicatesGATK.'))
+        "--removeDuplicates",
+        action="store_true",
+        help=(
+            "Remove duplicates from the resulting SAM/BAM file. Best used "
+            "in combination with an option that marks duplicates, such as "
+            "--markDuplicatesGATK."
+        ),
+    )
 
     parser.add_argument(
-        '--verbose', action='store_true',
-        help=('Print a description of commands as they are (or would be, if '
-              '--dryRun is used) executed.'))
+        "--verbose",
+        action="store_true",
+        help=(
+            "Print a description of commands as they are (or would be, if "
+            "--dryRun is used) executed."
+        ),
+    )
 
     parser.add_argument(
-        '--log', action='store_true',
-        help=('Show a log of commands that were (or would be, if --dryRun is '
-              'used) executed.'))
+        "--log",
+        action="store_true",
+        help=(
+            "Show a log of commands that were (or would be, if --dryRun is "
+            "used) executed."
+        ),
+    )
 
     parser.add_argument(
         "--threads",
@@ -419,43 +439,60 @@ def main():
     )
 
     parser.add_argument(
-        '--noAlign', action='store_false', dest='align',
-        help='Do not align with Bowtie2, just build an index.')
+        "--noAlign",
+        action="store_false",
+        dest="align",
+        help="Do not align with Bowtie2, just build an index.",
+    )
 
     parser.add_argument(
-        '--noBAM', action='store_false', dest='bam',
-        help='Do not convert SAM to BAM.')
+        "--noBAM", action="store_false", dest="bam", help="Do not convert SAM to BAM."
+    )
 
     parser.add_argument(
-        '--noSort', action='store_false', dest='sort',
-        help='Do not sort the BAM.')
+        "--noSort", action="store_false", dest="sort", help="Do not sort the BAM."
+    )
 
     parser.add_argument(
-        '--noIndexBAM', action='store_false', dest='indexBAM',
-        help='Do not index the BAM file.')
+        "--noIndexBAM",
+        action="store_false",
+        dest="indexBAM",
+        help="Do not index the BAM file.",
+    )
 
     parser.add_argument(
-        '--noClean', action='store_false', dest='clean',
-        help='Do not remove intermediate files or the temporary directory.')
+        "--noClean",
+        action="store_false",
+        dest="clean",
+        help="Do not remove intermediate files or the temporary directory.",
+    )
 
     parser.add_argument(
-        '--force', action='store_true',
-        help='Overwrite pre-existing output file.')
+        "--force", action="store_true", help="Overwrite pre-existing output file."
+    )
 
     parser.add_argument(
-        '--dryRun', action='store_true',
-        help='Do not run commands, just print what would be done.')
+        "--dryRun",
+        action="store_true",
+        help="Do not run commands, just print what would be done.",
+    )
 
     haplotypeCaller = parser.add_mutually_exclusive_group()
 
     haplotypeCaller.add_argument(
-        '--callHaplotypesGATK', action='store_true',
-        help=('Use GATK to call haplotypes. See '
-              'https://gatk.broadinstitute.org for details on GATK.'))
+        "--callHaplotypesGATK",
+        action="store_true",
+        help=(
+            "Use GATK to call haplotypes. See "
+            "https://gatk.broadinstitute.org for details on GATK."
+        ),
+    )
 
     haplotypeCaller.add_argument(
-        '--callHaplotypesBcftools', action='store_true',
-        help='Use bcftools call to call haplotypes.')
+        "--callHaplotypesBcftools",
+        action="store_true",
+        help="Use bcftools call to call haplotypes.",
+    )
 
     parser.add_argument(
         "--removePrimersFromBedFile",

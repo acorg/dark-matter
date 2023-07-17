@@ -8,7 +8,6 @@ from dark.diamond.conversion import DiamondTabularFormatReader
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Convert DIAMOND tabular output to JSON.",
         epilog=(

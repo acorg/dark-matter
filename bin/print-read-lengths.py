@@ -11,7 +11,6 @@ from Bio import SeqIO
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Print lengths of reads in a FASTA or FASTQ file",
     )

@@ -34,7 +34,7 @@ def addORFs(fig, seq, minX, maxX, offsetAdjuster):
     """
     for frame in range(3):
         target = seq[frame:]
-        for (codons, codonType, color) in (
+        for codons, codonType, color in (
             (START_CODONS, "start", "green"),
             (STOP_CODONS, "stop", "red"),
         ):
@@ -70,7 +70,7 @@ def addReversedORFs(fig, seq, minX, maxX, offsetAdjuster):
     """
     for frame in range(3):
         target = seq[frame:]
-        for (codons, codonType, color) in (
+        for codons, codonType, color in (
             (START_CODONS, "start", "green"),
             (STOP_CODONS, "stop", "red"),
         ):

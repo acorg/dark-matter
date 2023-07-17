@@ -73,9 +73,9 @@ def asHandle(fileNameOrHandle, mode="rt", encoding="UTF-8"):
     """
     if isinstance(fileNameOrHandle, (Path, str)):
         fileNameOrHandle = str(fileNameOrHandle)
-        if fileNameOrHandle.endswith('.gz'):
+        if fileNameOrHandle.endswith(".gz"):
             yield gzip.open(fileNameOrHandle, mode=mode, encoding=encoding)
-        elif fileNameOrHandle.endswith('.bz2'):
+        elif fileNameOrHandle.endswith(".bz2"):
             yield bz2.open(fileNameOrHandle, mode=mode, encoding=encoding)
         else:
             # Putting mode=mode, encoding=encoding into the following

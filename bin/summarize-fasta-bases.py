@@ -79,7 +79,7 @@ if __name__ == "__main__":
             summary: list[str] = []
             append = summary.append
             offset = 1
-        for (category, count) in sequenceCategoryLengths(
+        for category, count in sequenceCategoryLengths(
             read, categories, defaultCategory=default, minLength=minLength
         ):
             counts[category] += count

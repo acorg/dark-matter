@@ -80,7 +80,6 @@ def main(args, parser):
         for fileCount, (filename, addFunc, type_) in enumerate(
             filenamesAndAdders(args, db), start=1
         ):
-
             if args.logFile:
                 print("\n>>> Indexing '%s'." % filename, end="\n\n", file=args.logFile)
 

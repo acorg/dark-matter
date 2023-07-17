@@ -69,7 +69,6 @@ def parseColors(colors, args):
 
 
 if __name__ == "__main__":
-
     # We do not use the addFASTACommandLineOptions and
     # parseFASTACommandLineOptions utility functions below because we allow
     # multiple FASTA or FASTQ files on the command line, which we specify

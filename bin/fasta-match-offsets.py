@@ -22,62 +22,65 @@ if __name__ == "__main__":
     parser.add_argument(
         "--regex",
         required=True,
-        help=("The regular expression pattern to match. For matching, input "
-              "sequences will be converted to uppercase unless --noUpper is used.")
+        help=(
+            "The regular expression pattern to match. For matching, input "
+            "sequences will be converted to uppercase unless --noUpper is used."
+        ),
     )
 
     parser.add_argument(
         "--noUpper",
         dest="upper",
-        action='store_false',
+        action="store_false",
         help="Do not convert sequences to uppercase for the matching.",
     )
 
     parser.add_argument(
-        "--overlapping",
-        action='store_true',
-        help="Include overlapping matches."
+        "--overlapping", action="store_true", help="Include overlapping matches."
     )
 
     parser.add_argument(
         "--noId",
         dest="printId",
-        action='store_false',
-        help="Do not print sequence ids."
+        action="store_false",
+        help="Do not print sequence ids.",
     )
 
     parser.add_argument(
         "--noEnd",
         dest="printEnd",
-        action='store_false',
-        help="Do not print the end offset of matches."
+        action="store_false",
+        help="Do not print the end offset of matches.",
     )
 
     parser.add_argument(
         "--noSequence",
         dest="printSequence",
-        action='store_false',
-        help="Do not print sequence match regions."
+        action="store_false",
+        help="Do not print sequence match regions.",
     )
 
     parser.add_argument(
         "--noOverlapping",
         dest="printOverlapping",
-        action='store_false',
-        help=(f"Do not print a {OVERLAPPING_INDICATOR!r} indicator to "
-              f"identify matches that overlap the previously printed one."),
+        action="store_false",
+        help=(
+            f"Do not print a {OVERLAPPING_INDICATOR!r} indicator to "
+            f"identify matches that overlap the previously printed one."
+        ),
     )
 
     parser.add_argument(
         "--zeroBased",
-        action='store_true',
-        help="Print half-open zero-based offsets, as in Python."
+        action="store_true",
+        help="Print half-open zero-based offsets, as in Python.",
     )
 
     parser.add_argument(
-        "--count", "-c",
-        action='store_true',
-        help="Just print the count of the number of matches, if the count is non-zero."
+        "--count",
+        "-c",
+        action="store_true",
+        help="Just print the count of the number of matches, if the count is non-zero.",
     )
 
     addFASTACommandLineOptions(parser)

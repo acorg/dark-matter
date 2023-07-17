@@ -1153,7 +1153,6 @@ class ReadFilter:
         reverse=False,
         reverseComplement=False,
     ):
-
         if randomSubset is not None:
             if sampleFraction is not None:
                 raise ValueError(
@@ -2028,7 +2027,9 @@ from dark.fastq import FastqReads
 from dark.fasta_ss import SSFastaReads
 
 
-def parseFASTACommandLineOptions(args: argparse.Namespace) -> Union[FastaReads, FastqReads, SSFastaReads]:
+def parseFASTACommandLineOptions(
+    args: argparse.Namespace,
+) -> Union[FastaReads, FastqReads, SSFastaReads]:
     """
     Examine parsed command-line options and return a Reads instance.
 

@@ -2006,7 +2006,6 @@ class SqliteIndexWriter:
                 duplicationPolicy=duplicationPolicy,
                 logfp=logfp,
             ):
-
                 self.addProteins(
                     genome,
                     source,
@@ -2148,7 +2147,6 @@ class SqliteIndexWriter:
         genomeLen = len(genome.seq)
 
         for fInfo in self._genomeProteins(genome, logfp=logfp):
-
             # Write FASTA for the protein.
             seqId = self.SEQUENCE_ID_SEPARATOR.join(
                 (

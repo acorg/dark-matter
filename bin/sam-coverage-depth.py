@@ -207,7 +207,6 @@ def main():
         alignment = None
 
     with samfile(args.samfile) as sam:
-
         if samFilter.referenceIds:
             # No need to check if the given reference id is in referenceLengths
             # because the samFilter.referenceLengths call above catches that.
@@ -230,8 +229,10 @@ def main():
                 sys.exit(1)
 
         for column in sam.pileup(
-            reference=referenceId, start=0, stop=referenceLengths[referenceId],
-                truncate=True
+            reference=referenceId,
+            start=0,
+            stop=referenceLengths[referenceId],
+            truncate=True,
         ):
             bases = defaultdict(int)
             for read in column.pileups:

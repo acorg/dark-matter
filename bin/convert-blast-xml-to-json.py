@@ -8,7 +8,6 @@ from dark.blast.conversion import XMLRecordsReader
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Convert a BLAST XML file to JSON.",
         epilog=(

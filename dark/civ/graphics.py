@@ -194,7 +194,7 @@ def alignmentGraph(
     # we could have millions of tiny gaps for a bacteria and drawing them
     # all will be slow and only serves to make the entire background grey.
     if logLinearXAxis and len(offsetAdjuster.adjustments()) < 100:
-        for (intervalType, interval) in readIntervals.walk():
+        for intervalType, interval in readIntervals.walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = adjustOffset(interval[0])
                 adjustedStop = adjustOffset(interval[1])

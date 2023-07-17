@@ -314,7 +314,6 @@ def consensusFromBAM(
             )
 
     with samfile(bamFilename) as bam:
-
         bamId, reference, referenceLength = getReferenceInfo(
             bam, bamFilename, bamId, referenceFasta, fastaId, quiet
         )
@@ -476,7 +475,6 @@ def addPairsInfo(
     for count, ((queryOffset, referenceOffset), cigarOperation) in enumerate(
         zip(pairs, cigarOperations)
     ):
-
         if queryOffset is None:
             # The query is missing something that is in the reference. So this
             # is a deletion from the reference.
@@ -582,7 +580,6 @@ def fetchConsensus(
     with maybeProgressBar(progress, maxOffset - minOffset + 1, "Collect  : ") as bar:
         insertCount = 0
         for barCount, offset in enumerate(range(minOffset, maxOffset + 1), start=1):
-
             if offset in insertions:
                 insertion = insertions[offset]
                 assert offset == insertion.insertionOffset

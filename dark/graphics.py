@@ -266,7 +266,7 @@ def alignmentGraph(
     # we could have millions of tiny gaps for a bacteria and drawing them
     # all will be slow and only serves to make the entire background grey.
     if logLinearXAxis and len(offsetAdjuster.adjustments()) < 100:
-        for (intervalType, interval) in readIntervals.walk():
+        for intervalType, interval in readIntervals.walk():
             if intervalType == ReadIntervals.EMPTY:
                 adjustedStart = adjustOffset(interval[0])
                 adjustedStop = adjustOffset(interval[1])
@@ -859,7 +859,7 @@ def scatterAlign(seq1, seq2, window=7):
     """
     d1 = defaultdict(list)
     d2 = defaultdict(list)
-    for (seq, section_dict) in [(seq1, d1), (seq2, d2)]:
+    for seq, section_dict in [(seq1, d1), (seq2, d2)]:
         for i in range(len(seq) - window):
             section = seq[i : i + window]
             section_dict[section].append(i)

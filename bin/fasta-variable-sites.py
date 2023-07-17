@@ -4,7 +4,12 @@ import sys
 from typing import Optional
 
 from dark.errors import ReadLengthsNotIdenticalError
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, Reads, Read
+from dark.reads import (
+    addFASTACommandLineOptions,
+    parseFASTACommandLineOptions,
+    Reads,
+    Read,
+)
 
 
 def printHeader(variableSites, args, baseOffset):

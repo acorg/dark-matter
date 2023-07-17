@@ -52,7 +52,7 @@ class GenomeProteinInfo:
             # print('Protein accession', proteinAccession)
             # print(ranges)
 
-            for (start, stop, forward) in ranges:
+            for start, stop, forward in ranges:
                 for offset in range(start, stop):
                     if offset not in self.offsets:
                         self.offsets[offset] = {
@@ -162,7 +162,7 @@ class GenomeProteinInfo:
         # Do an initial pass across all the offsets of the protein to see
         # which reads intersect and where. We will then do a second pass in
         # which we ignore reads that do not sufficiently overlap.
-        for (start, stop, forward) in proteinRanges:
+        for start, stop, forward in proteinRanges:
             proteinLength += stop - start
             for offset in range(start, stop):
                 assert offset not in offsetsSeen
@@ -198,7 +198,7 @@ class GenomeProteinInfo:
 
         # Second pass, in which we ignore unwanted (i.e., insufficiently
         # overlapping) reads.
-        for (start, stop, forward) in proteinRanges:
+        for start, stop, forward in proteinRanges:
             for offset in range(start, stop):
                 readIds = set(self.offsets[offset]["readIds"]) - unwanted
                 if readIds:

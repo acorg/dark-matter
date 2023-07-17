@@ -7,8 +7,10 @@ from dark.fasta import FastaReads
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=("For a fasta file with sequences, summarize what is "
-                     "happening at a specific position."),
+        description=(
+            "For a fasta file with sequences, summarize what is "
+            "happening at a specific position."
+        ),
     )
 
     parser.add_argument(

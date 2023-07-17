@@ -775,7 +775,6 @@ def htmlTable(
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Print a FASTA sequence identity table."
     )

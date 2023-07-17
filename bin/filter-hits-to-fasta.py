@@ -18,7 +18,6 @@ from dark.blast.alignments import BlastReadsAlignments
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         description="Extract FASTA from matching BLAST hits.",
         epilog="Given JSON BLAST output files, a FASTA sequence file, "

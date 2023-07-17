@@ -29,7 +29,6 @@ def check(fastaFile, jsonFiles):
     reads = FastaReads(fastaFile)
     readsAlignments = BlastReadsAlignments(reads, jsonFiles)
     for index, readAlignments in enumerate(readsAlignments):
-
         # Check that all the alignments in the BLAST JSON do not have query
         # sequences or query offsets that are greater than the length of
         # the sequence given in the FASTA file.

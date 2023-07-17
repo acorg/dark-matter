@@ -139,7 +139,6 @@ if __name__ == "__main__":
                         if (minORFLength is None or len(orf) >= minORFLength) and (
                             maxORFLength is None or len(orf) <= maxORFLength
                         ):
-
                             if kozakOnly:
                                 for kozakread in findKozakConsensus(read):
                                     start = orf.start * 3

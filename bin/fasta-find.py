@@ -98,9 +98,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--zeroBased",
-    action='store_true',
-    help="Print zero-based matched offsets."
+    "--zeroBased", action="store_true", help="Print zero-based matched offsets."
 )
 
 group = parser.add_mutually_exclusive_group(required=True)
@@ -132,8 +130,11 @@ if args.region:
             sys.exit(1)
     else:
         if not (0 < lo <= hi):
-            extra = (" Or use --zeroBased if you really want to specify "
-                     "a zero offset." if lo == 0 else "")
+            extra = (
+                " Or use --zeroBased if you really want to specify " "a zero offset."
+                if lo == 0
+                else ""
+            )
 
             print(
                 f"Invalid range {args.region!r}. Give two positive "

@@ -333,7 +333,7 @@ class Bowtie2:
             % (referenceFasta, inFile, vcfFile)
         )
 
-        self._executor.execute(f'bcftools index --force {vcfFile!r}')
+        self._executor.execute(f"bcftools index --force {vcfFile!r}")
 
     def removeDuplicates(self):
         """

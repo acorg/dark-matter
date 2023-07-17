@@ -206,17 +206,17 @@ def matchToString(
                 )
             )
 
-    if includeAmbiguousMatches and match['ambiguousMatches']:
+    if includeAmbiguousMatches and match["ambiguousMatches"]:
         append(f"{indent}Ambiguous matches:")
-        for offset, a, b in match['ambiguousMatches']:
+        for offset, a, b in match["ambiguousMatches"]:
             append(f"{indent}    {offset + 1} {a} {b}")
 
-    if includeNonGapMismatches and match['nonGapMismatches']:
+    if includeNonGapMismatches and match["nonGapMismatches"]:
         append(f"{indent}Non-gap mismatches:")
-        for offset, a, b in match['nonGapMismatches']:
+        for offset, a, b in match["nonGapMismatches"]:
             append(f"{indent}    {offset + 1} {a} {b}")
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def compareDNAReads(
@@ -347,16 +347,16 @@ def compareDNAReads(
                         nonGapMismatches.append((offset, a, b))
 
     return {
-        'match': {
-            'identicalMatchCount': identicalMatchCount,
-            'ambiguousMatchCount': ambiguousMatchCount,
-            'gapMismatchCount': gapMismatchCount,
-            'gapGapMismatchCount': gapGapMismatchCount,
-            'nonGapMismatchCount': nonGapMismatchCount,
-            'noCoverageCount': noCoverageCount,
-            'noCoverageNoCoverageCount': noCoverageNoCoverageCount,
-            'ambiguousMatches': ambiguousMatches,
-            'nonGapMismatches': nonGapMismatches,
+        "match": {
+            "identicalMatchCount": identicalMatchCount,
+            "ambiguousMatchCount": ambiguousMatchCount,
+            "gapMismatchCount": gapMismatchCount,
+            "gapGapMismatchCount": gapGapMismatchCount,
+            "nonGapMismatchCount": nonGapMismatchCount,
+            "noCoverageCount": noCoverageCount,
+            "noCoverageNoCoverageCount": noCoverageNoCoverageCount,
+            "ambiguousMatches": ambiguousMatches,
+            "nonGapMismatches": nonGapMismatches,
         },
         "read1": {
             "ambiguousOffsets": read1AmbiguousOffsets,

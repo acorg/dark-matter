@@ -81,7 +81,7 @@ class ReadIntervals:
             return 0.0
 
         coverage = 0
-        for (intervalType, (start, end)) in self.walk():
+        for intervalType, (start, end) in self.walk():
             if intervalType == self.FULL:
                 # Adjust start and end to ignore areas where the read falls
                 # outside the target.
@@ -117,7 +117,7 @@ class OffsetAdjuster:
         self._adjustments = []  # Pairs of (X offset, adjustment).
         if intervals:
             divisor = log(base)
-            for (intervalType, (start, stop)) in intervals.walk():
+            for intervalType, (start, stop) in intervals.walk():
                 if intervalType == ReadIntervals.EMPTY:
                     width = stop - start
                     logWidth = log(width) / divisor
@@ -141,7 +141,7 @@ class OffsetAdjuster:
             offset.
         """
         reduction = 0
-        for (thisOffset, thisReduction) in self._adjustments:
+        for thisOffset, thisReduction in self._adjustments:
             if offset >= thisOffset:
                 reduction += thisReduction
             else:

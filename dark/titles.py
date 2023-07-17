@@ -193,7 +193,7 @@ class TitleAlignments(list):
         for titleAlignment in self:
             for hsp in titleAlignment.hsps:
                 score = hsp.score.score
-                for (subjectOffset, base, _) in titleAlignment.read.walkHSP(
+                for subjectOffset, base, _ in titleAlignment.read.walkHSP(
                     hsp, includeWhiskers=False
                 ):
                     result[subjectOffset].append((score, base))
@@ -229,7 +229,7 @@ class TitleAlignments(list):
         for titleAlignment in self:
             read = titleAlignment.read
             for hsp in titleAlignment.hsps:
-                for (subjectOffset, residue, inMatch) in read.walkHSP(hsp):
+                for subjectOffset, residue, inMatch in read.walkHSP(hsp):
                     counts[subjectOffset][convert(residue)] += 1
 
         return counts

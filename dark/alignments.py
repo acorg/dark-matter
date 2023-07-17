@@ -167,7 +167,6 @@ class ReadsAlignmentsFilter:
         taxonomy: Optional[Union[str, int]] = None,
         readIdRegex: Optional[str] = None,
     ):
-
         self.limit = limit
         self.maxAlignmentsPerRead = maxAlignmentsPerRead
         self.minSequenceLen = minSequenceLen

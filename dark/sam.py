@@ -146,7 +146,7 @@ def _hardClip(sequence, quality, cigartuples):
                done.
     """
     hardClipCount = cigarLength = 0
-    for (operation, length) in cigartuples:
+    for operation, length in cigartuples:
         hardClipCount += operation == CHARD_CLIP
         cigarLength += length if operation in CONSUMES_QUERY else 0
 
@@ -716,7 +716,6 @@ class PaddedSAM:
         MATCH_OPERATIONS = {CMATCH, CEQUAL, CDIFF}
 
         for lineNumber, alignment in enumerate(self.samFilter.alignments(), start=1):
-
             query = alignment.query_sequence
             quality = "".join(chr(q + 33) for q in alignment.query_qualities)
 
@@ -744,7 +743,6 @@ class PaddedSAM:
             alignedQuality = ""
 
             for operation, length in alignment.cigartuples:
-
                 # The operations are tested in the order they appear in
                 # https://samtools.github.io/hts-specs/SAMv1.pdf It would be
                 # more efficient to test them in order of frequency of
