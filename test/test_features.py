@@ -296,10 +296,10 @@ class Test_FeatureAdder(TestCase):
             return None
 
         featureAdder = _FeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.set_title = MagicMock()
-        featureAdder.add(fig, "title", 0, 100, sequenceFetcher=fetcher)
-        fig.set_title.assert_called_with("Target sequence features", fontsize=16)
+        fig, ax = plt.subplots()
+        ax.set_title = MagicMock()
+        featureAdder.add(ax, "title", 0, 100, sequenceFetcher=fetcher)
+        ax.set_title.assert_called_with("Target sequence features", fontsize=16)
 
     def testYTicks(self):
         """
@@ -310,10 +310,10 @@ class Test_FeatureAdder(TestCase):
             return None
 
         featureAdder = _FeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.set_yticks = MagicMock()
-        featureAdder.add(fig, "title", 0, 100, sequenceFetcher=fetcher)
-        fig.set_yticks.assert_called_with([])
+        fig, ax = plt.subplots()
+        ax.set_yticks = MagicMock()
+        featureAdder.add(ax, "title", 0, 100, sequenceFetcher=fetcher)
+        ax.set_yticks.assert_called_with([])
 
     def testOffline(self):
         """
@@ -326,14 +326,14 @@ class Test_FeatureAdder(TestCase):
             return None
 
         featureAdder = _FeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.text = MagicMock()
-        fig.axis = MagicMock()
-        featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        fig.text.assert_called_with(
+        fig, ax = plt.subplots()
+        ax.text = MagicMock()
+        ax.axis = MagicMock()
+        featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        ax.text.assert_called_with(
             100, 0, "You (or Genbank) appear to be offline.", fontsize=20
         )
-        fig.axis.assert_called_with([0, 300, -1, 1])
+        ax.axis.assert_called_with([0, 300, -1, 1])
 
     def testNoFeatures(self):
         """
@@ -347,11 +347,11 @@ class Test_FeatureAdder(TestCase):
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ("site",)
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.text = MagicMock()
-        fig.axis = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        fig.text.assert_called_with(
+        fig, ax = plt.subplots()
+        ax.text = MagicMock()
+        ax.axis = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        ax.text.assert_called_with(
             0.5,
             0.5,
             "No features found",
@@ -360,7 +360,7 @@ class Test_FeatureAdder(TestCase):
             transform=ANY,
             fontsize=20,
         )
-        fig.axis.assert_called_with([0, 300, -1, 1])
+        ax.axis.assert_called_with([0, 300, -1, 1])
         self.assertEqual([], result)
 
     def testOneFeatureRaisesNotImplementedError(self):
@@ -379,11 +379,11 @@ class Test_FeatureAdder(TestCase):
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ("site",)
-        fig = plt.subplot(111, label=_randomLabel())
+        fig, ax = plt.subplots()
         self.assertRaises(
             NotImplementedError,
             featureAdder.add,
-            fig,
+            ax,
             "title",
             0,
             300,
@@ -406,11 +406,11 @@ class Test_FeatureAdder(TestCase):
 
         featureAdder = _FeatureAdder()
         featureAdder.WANTED_TYPES = ("site",)
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.text = MagicMock()
-        fig.axis = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        fig.text.assert_called_with(
+        fig, ax = plt.subplots()
+        ax.text = MagicMock()
+        ax.axis = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        ax.text.assert_called_with(
             0.5,
             0.5,
             "Too many features to plot",
@@ -419,7 +419,7 @@ class Test_FeatureAdder(TestCase):
             transform=ANY,
             fontsize=20,
         )
-        fig.axis.assert_called_with([0, 300, -1, 1])
+        ax.axis.assert_called_with([0, 300, -1, 1])
         self.assertTrue(isinstance(result, FeatureList))
         self.assertEqual(100, len(result))
 
@@ -444,10 +444,10 @@ class TestProteinFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = ProteinFeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.plot = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        self.assertEqual([], fig.plot.call_args_list)
+        fig, ax = plt.subplots()
+        ax.plot = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        self.assertEqual([], ax.plot.call_args_list)
         self.assertEqual([], result)
 
     def testOneFeature(self):
@@ -465,19 +465,19 @@ class TestProteinFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = ProteinFeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.plot = MagicMock()
-        fig.axis = MagicMock()
-        fig.legend = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        fig.plot.assert_called_with(
+        fig, ax = plt.subplots()
+        ax.plot = MagicMock()
+        ax.axis = MagicMock()
+        ax.legend = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        ax.plot.assert_called_with(
             [100, 200],
             [-0.0, -0.0],
             color=(0.2298057, 0.298717966, 0.75368315299999999, 1.0),
             linewidth=2,
         )
-        fig.axis.assert_called_with([0, 300, -0.4, 0.2])
-        fig.legend.assert_called_with(
+        ax.axis.assert_called_with([0, 300, -0.4, 0.2])
+        ax.legend.assert_called_with(
             ["100-200 Site. a: b"],
             loc="lower center",
             shadow=True,
@@ -509,10 +509,10 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.plot = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        self.assertEqual([], fig.plot.call_args_list)
+        fig, ax = plt.subplots()
+        ax.plot = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        self.assertEqual([], ax.plot.call_args_list)
         self.assertEqual([], result)
 
     def testOneFeature(self):
@@ -528,19 +528,19 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.plot = MagicMock()
-        fig.axis = MagicMock()
-        fig.legend = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
-        fig.plot.assert_called_with(
+        fig, ax = plt.subplots()
+        ax.plot = MagicMock()
+        ax.axis = MagicMock()
+        ax.legend = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
+        ax.plot.assert_called_with(
             [100, 200],
             [1, 1],
             color=(0.2298057, 0.298717966, 0.75368315299999999, 1.0),
             linewidth=2,
         )
-        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
-        fig.legend.assert_called_with(
+        ax.axis.assert_called_with([0, 300, -0.5, 2.5])
+        ax.legend.assert_called_with(
             ["100-200 CDS. a: b"],
             loc="lower center",
             shadow=True,
@@ -567,25 +567,25 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.plot = MagicMock()
-        fig.axis = MagicMock()
-        fig.legend = MagicMock()
+        fig, ax = plt.subplots()
+        ax.plot = MagicMock()
+        ax.axis = MagicMock()
+        ax.legend = MagicMock()
 
         def adjuster(x):
             return 3 * x
 
         result = featureAdder.add(
-            fig, "title", 0, 300, adjuster, sequenceFetcher=fetcher
+            ax, "title", 0, 300, adjuster, sequenceFetcher=fetcher
         )
-        fig.plot.assert_called_with(
+        ax.plot.assert_called_with(
             [300, 600],
             [0, 0],
             color=(0.2298057, 0.298717966, 0.75368315299999999, 1.0),
             linewidth=2,
         )
-        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
-        fig.legend.assert_called_with(
+        ax.axis.assert_called_with([0, 300, -0.5, 2.5])
+        ax.legend.assert_called_with(
             ["100-200 CDS. a: b"],
             loc="lower center",
             shadow=True,
@@ -615,20 +615,20 @@ class TestNucleotideFeatureAdder(TestCase):
             return SeqRecord(None, features=[feature1, feature2])
 
         featureAdder = NucleotideFeatureAdder()
-        fig = plt.subplot(111, label=_randomLabel())
-        fig.plot = MagicMock()
-        fig.axis = MagicMock()
-        fig.legend = MagicMock()
-        result = featureAdder.add(fig, "title", 0, 300, sequenceFetcher=fetcher)
+        fig, ax = plt.subplots()
+        ax.plot = MagicMock()
+        ax.axis = MagicMock()
+        ax.legend = MagicMock()
+        result = featureAdder.add(ax, "title", 0, 300, sequenceFetcher=fetcher)
         self.assertEqual(
-            fig.plot.call_args_list,
+            ax.plot.call_args_list,
             [
                 call([100, 200], [1.2, 1.2], color=ANY, linewidth=2),
                 call([130, 150], [1.0, 1.0], color=ANY, linewidth=2),
             ],
         )
-        fig.axis.assert_called_with([0, 300, -0.5, 2.5])
-        fig.legend.assert_called_with(
+        ax.axis.assert_called_with([0, 300, -0.5, 2.5])
+        ax.legend.assert_called_with(
             ["100-200 CDS. product: a polyprotein", "130-150 CDS. a: b"],
             loc="lower center",
             shadow=True,
