@@ -336,9 +336,6 @@ class Read:
         return read
 
 
-ReadVar = TypeVar("ReadVar", bound=Read)
-
-
 class _NucleotideRead(Read):
     """
     Holds methods to work with nucleotide (DNA and RNA) sequences.
@@ -653,8 +650,8 @@ class AARead(Read):
                         ORFStart = index + 1
                 elif residue == "*":
                     if inORF:
-                        if not ORFStart == index:
-                            yield AAReadORF(self, ORFStart, index, False, False)
+                        if not ORFStart == index:  # type: ignore (false unboud variable report for ORFStart)
+                            yield AAReadORF(self, ORFStart, index, False, False)  # type: ignore (false unboud variable report for ORFStart)
                         inORF = False
 
 
@@ -822,7 +819,7 @@ class SSAARead(AARead):
 
     def __getitem__(self, item: Union[int, slice]) -> SSAARead:
         sequence = self.sequence[item]
-        structure = None if self.structure is None else self.structure[item]
+        structure = self.structure[item] if self.structure else ''
         return self.__class__(self.id, sequence, structure)
 
     def toString(
@@ -935,6 +932,8 @@ class TranslatedRead(AARead):
         self.reverseComplemented = reverseComplemented
 
     def __eq__(self, other):
+        if not isinstance(other, TranslatedRead):
+            return False
         return (
             AARead.__eq__(self, other)
             and self.frame == other.frame
@@ -1123,35 +1122,35 @@ class ReadFilter:
 
     def __init__(
         self,
-        minLength=None,
-        maxLength=None,
-        maxNFraction=None,
-        removeGaps=False,
-        whitelist=None,
-        blacklist=None,
-        whitelistFile=None,
-        blacklistFile=None,
-        titleRegex=None,
-        negativeTitleRegex=None,
-        truncateTitlesAfter=None,
-        keepSequences=None,
-        removeSequences=None,
-        head=None,
-        removeDuplicates=False,
-        removeDuplicatesById=False,
-        removeDuplicatesUseMD5=False,
-        removeDescriptions=False,
-        modifier=None,
-        randomSubset=None,
-        trueLength=None,
-        sampleFraction=None,
-        sequenceNumbersFile=None,
-        idLambda=None,
-        readLambda=None,
-        keepSites=None,
-        removeSites=None,
-        reverse=False,
-        reverseComplement=False,
+        minLength: Optional[int]=None,
+        maxLength: Optional[int]=None,
+        maxNFraction: Optional[float]=None,
+        removeGaps: bool=False,
+        whitelist: Optional[set[str]]=None,
+        blacklist: Optional[set[str]]=None,
+        whitelistFile: Optional[str]=None,
+        blacklistFile: Optional[str]=None,
+        titleRegex: Optional[str]=None,
+        negativeTitleRegex: Optional[str]=None,
+        truncateTitlesAfter: Optional[str]=None,
+        keepSequences: Optional[set[int]]=None,
+        removeSequences: Optional[set[int]]=None,
+        head: Optional[int]=None,
+        removeDuplicates: bool=False,
+        removeDuplicatesById: bool=False,
+        removeDuplicatesUseMD5: bool=False,
+        removeDescriptions: bool=False,
+        modifier: Optional[Callable[[Read],Union[Read,None]]]=None,
+        randomSubset: Optional[int]=None,
+        trueLength: Optional[int]=None,
+        sampleFraction: Optional[float]=None,
+        sequenceNumbersFile: Optional[str]=None,
+        idLambda: Optional[str]=None,
+        readLambda: Optional[str]=None,
+        keepSites: Optional[set[int]]=None,
+        removeSites: Optional[set[int]]=None,
+        reverse: bool=False,
+        reverseComplement: bool=False,
     ):
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -1289,7 +1288,6 @@ class ReadFilter:
                 # This makes the filter code below simpler.
                 sampleFraction = None
         self.sampleFraction = sampleFraction
-
         self.idLambda = eval(idLambda) if idLambda else None
         self.readLambda = eval(readLambda) if readLambda else None
 
@@ -1485,13 +1483,13 @@ class Reads:
         subclass) instances.
     """
 
-    def __init__(self, initialReads: Optional[Iterable[ReadVar]] = None) -> None:
+    def __init__(self, initialReads: Optional[Iterable[Read]] = None) -> None:
         self._initialReads = initialReads
-        self._additionalReads: List[ReadVar] = []
+        self._additionalReads: List[Read] = []
         self._filters: List[Callable] = []
         self._iterated = False
 
-    def filterRead(self, read: ReadVar) -> Union[Literal[False], Read]:
+    def filterRead(self, read: Read) -> Union[Literal[False], Read]:
         """
         Filter a read, according to our set of filters.
 
@@ -1507,7 +1505,7 @@ class Reads:
                 read = filteredRead
         return read
 
-    def add(self, read: ReadVar) -> None:
+    def add(self, read: Read) -> None:
         """
         Add a read to this collection of reads.
 
@@ -1952,13 +1950,13 @@ class ReadsInRAM(Reads):
     def __len__(self) -> int:
         return self._additionalReads.__len__()
 
-    def __getitem__(self, item: SupportsIndex) -> Union[ReadVar, Reads]:
+    def __getitem__(self, item: SupportsIndex) -> Union[Read, Reads]:
         return self._additionalReads.__getitem__(item)
 
-    def __setitem__(self, item: SupportsIndex, value: ReadVar) -> None:
+    def __setitem__(self, item: SupportsIndex, value: Read) -> None:
         return self._additionalReads.__setitem__(item, value)
 
-    def __iter__(self) -> Generator[ReadVar, None, None]:
+    def __iter__(self) -> Generator[Read, None, None]:
         for read in self._additionalReads.__iter__():
             yield read
 
