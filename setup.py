@@ -92,7 +92,6 @@ scripts = [
     "bin/plot-references-by-inter-read-distance.py",
     "bin/position-summary.py",
     "bin/pre-commit.sh",
-    "bin/print-blast-xml-for-derek.py",
     "bin/print-blast-xml.py",
     "bin/print-read-lengths.py",
     "bin/proteins-to-pathogens.py",
