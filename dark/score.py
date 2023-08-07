@@ -10,16 +10,20 @@ class HigherIsBetterScore:
     @param score: The numeric score of this HSP.
     """
 
-    def __init__(self, score):
+    def __init__(self, score: float) -> None:
         self.score = score
 
-    def __lt__(self, other):
-        return self.score < other.score
+    def __lt__(self, other: 'HigherIsBetterScore') -> bool:
+        if isinstance(other, HigherIsBetterScore):
+            return self.score < other.score
+        return NotImplemented
 
-    def __eq__(self, other):
-        return self.score == other.score
+    def __eq__(self, other: 'HigherIsBetterScore') -> bool:
+        if isinstance(other, HigherIsBetterScore):
+            return self.score == other.score
+        return NotImplemented
 
-    def betterThan(self, score):
+    def betterThan(self, score: float) -> bool:
         """
         Compare this score with another score.
 
@@ -38,16 +42,20 @@ class LowerIsBetterScore:
     @param score: The numeric score of this LSP.
     """
 
-    def __init__(self, score):
+    def __init__(self, score: float) -> None:
         self.score = score
 
-    def __lt__(self, other):
-        return self.score > other.score
+    def __lt__(self, other: 'LowerIsBetterScore') -> bool:
+        if isinstance(other, LowerIsBetterScore):
+            return self.score > other.score
+        return NotImplemented
 
-    def __eq__(self, other):
-        return self.score == other.score
+    def __eq__(self, other: 'LowerIsBetterScore') -> bool:
+        if isinstance(other, LowerIsBetterScore):
+            return self.score == other.score
+        return NotImplemented
 
-    def betterThan(self, score):
+    def betterThan(self, score: float) -> bool:
         """
         Compare this score with another score.
 

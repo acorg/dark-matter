@@ -1,3 +1,7 @@
+## 4.0.63 August 7, 2023
+
+Added type hints to scory.py and some to reads.py.
+
 ## 4.0.62 July 24, 2023
 
 Removed `bin/find-hits.py`. Fixed matplotlib deprecation warnings. Ran black.
