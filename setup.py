@@ -73,7 +73,6 @@ scripts = [
     "bin/filter-hits-to-fasta.py",
     "bin/filter-reads-alignments.py",
     "bin/filter-sam.py",
-    "bin/find-hits.py",
     "bin/format-fasta.py",
     "bin/genbank-grep.py",
     "bin/genome-protein-summary.py",

@@ -1,4 +1,4 @@
-.PHONY: check, tcheck, pycodestyle, pyflakes, flake8, lint, wc, clean, clobber, upload
+.PHONY: check tcheck pycodestyle pyflakes flake8 lint wc clean clobber upload
 
 XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
 

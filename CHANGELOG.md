@@ -1,3 +1,7 @@
+## 4.0.64 August 7, 2023
+
+Removed `find-hits.py` from setup.py
+
 ## 4.0.63 August 7, 2023
 
 Added type hints to scory.py and some to reads.py.
