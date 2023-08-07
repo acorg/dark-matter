@@ -1,3 +1,7 @@
+## 4.0.68 August 7, 2023
+
+Fixed circular import.
+
 ## 4.0.67 August 7, 2023
 
 Removed `bin/print-blast-xml.py`.

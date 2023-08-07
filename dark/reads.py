@@ -2020,14 +2020,7 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
     )
 
 
-from dark.fasta import FastaReads
-from dark.fastq import FastqReads
-from dark.fasta_ss import SSFastaReads
-
-
-def parseFASTACommandLineOptions(
-    args: argparse.Namespace,
-) -> Union[FastaReads, FastqReads, SSFastaReads]:
+def parseFASTACommandLineOptions(args: argparse.Namespace) -> Reads:
     """
     Examine parsed command-line options and return a Reads instance.
 
