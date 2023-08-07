@@ -14,12 +14,14 @@ class HigherIsBetterScore:
         self.score = score
 
     def __lt__(self, other: 'HigherIsBetterScore') -> bool:
-        return self.score < other.score
+        if isinstance(other, HigherIsBetterScore):
+            return self.score < other.score
+        return NotImplemented
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: 'HigherIsBetterScore') -> bool:
         if isinstance(other, HigherIsBetterScore):
             return self.score == other.score
-        raise NotImplemented
+        return NotImplemented
 
     def betterThan(self, score: float) -> bool:
         """
@@ -44,12 +46,14 @@ class LowerIsBetterScore:
         self.score = score
 
     def __lt__(self, other: 'LowerIsBetterScore') -> bool:
-        return self.score > other.score
+        if isinstance(other, LowerIsBetterScore):
+            return self.score > other.score
+        return NotImplemented
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: 'LowerIsBetterScore') -> bool:
         if isinstance(other, LowerIsBetterScore):
             return self.score == other.score
-        raise NotImplemented
+        return NotImplemented
 
     def betterThan(self, score: float) -> bool:
         """
