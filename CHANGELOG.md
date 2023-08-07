@@ -1,3 +1,7 @@
+## 4.0.67 August 7, 2023
+
+Removed `bin/print-blast-xml.py`.
+
 ## 4.0.66 August 7, 2023
 
 Removed `bin/print-blast-xml-for-derek.py`.
