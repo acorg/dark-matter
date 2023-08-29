@@ -151,7 +151,7 @@ setup(
         "gb2seq>=0.2.4",
         "ipython>=3.1.0",
         "matplotlib>=1.4.3",
-        "mysql-connector-python==8.0.19",
+        "mysql-connector-python>=8.1.0",
         "numpy>=1.14.2",
         "progressbar2>=4.0.0",
         "pysam>=0.15.2",

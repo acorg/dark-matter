@@ -1,3 +1,7 @@
+## 4.0.70 August 30, 2023
+
+Change to more recent `mysql-connector-python` in `setup.py`.
+
 ## 4.0.69 August 29, 2023
 
 Added `bin/fastq-set-quality.py` script.
