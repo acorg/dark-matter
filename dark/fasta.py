@@ -1,7 +1,7 @@
 from hashlib import md5
 import sqlite3
 import os
-from typing import Generator, Iterable, TextIO, Union, Type, Optional, TextIO, List
+from typing import Generator, Iterable, TextIO, Union, Type, Optional, List
 
 from Bio import SeqIO, bgzf  # type: ignore
 from Bio.Seq import Seq

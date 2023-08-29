@@ -67,6 +67,7 @@ scripts = [
     "bin/fasta-to-phylip.py",
     "bin/fasta-translate.py",
     "bin/fasta-variable-sites.py",
+    "bin/fastq-set-quality.py",
     "bin/filter-fasta-by-complexity.py",
     "bin/filter-fasta-by-taxonomy.py",
     "bin/filter-fasta.py",
@@ -125,9 +126,7 @@ setup(
     packages=["dark", "dark.blast", "dark.diamond", "dark.civ"],
     url="https://github.com/acorg/dark-matter",
     download_url="https://github.com/acorg/dark-matter",
-    author=(
-        "Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, " "Udo Gieraths"
-    ),
+    author="Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, Udo Gieraths",
     author_email="tcj25@cam.ac.uk",
     keywords=["virus discovery"],
     classifiers=[
@@ -140,7 +139,7 @@ setup(
     ],
     license="MIT",
     description=(
-        "Python classes and utility scripts for " "working with genetic sequence data."
+        "Python classes and utility scripts for working with genetic sequence data."
     ),
     scripts=scripts,
     install_requires=[

@@ -20,7 +20,6 @@ from typing import (
     Set,
     TextIO,
     Tuple,
-    TypeVar,
     Union,
     Dict,
     Sequence,
@@ -819,7 +818,7 @@ class SSAARead(AARead):
 
     def __getitem__(self, item: Union[int, slice]) -> SSAARead:
         sequence = self.sequence[item]
-        structure = self.structure[item] if self.structure else ''
+        structure = self.structure[item] if self.structure else ""
         return self.__class__(self.id, sequence, structure)
 
     def toString(
@@ -1122,35 +1121,35 @@ class ReadFilter:
 
     def __init__(
         self,
-        minLength: Optional[int]=None,
-        maxLength: Optional[int]=None,
-        maxNFraction: Optional[float]=None,
-        removeGaps: bool=False,
-        whitelist: Optional[set[str]]=None,
-        blacklist: Optional[set[str]]=None,
-        whitelistFile: Optional[str]=None,
-        blacklistFile: Optional[str]=None,
-        titleRegex: Optional[str]=None,
-        negativeTitleRegex: Optional[str]=None,
-        truncateTitlesAfter: Optional[str]=None,
-        keepSequences: Optional[set[int]]=None,
-        removeSequences: Optional[set[int]]=None,
-        head: Optional[int]=None,
-        removeDuplicates: bool=False,
-        removeDuplicatesById: bool=False,
-        removeDuplicatesUseMD5: bool=False,
-        removeDescriptions: bool=False,
-        modifier: Optional[Callable[[Read],Union[Read,None]]]=None,
-        randomSubset: Optional[int]=None,
-        trueLength: Optional[int]=None,
-        sampleFraction: Optional[float]=None,
-        sequenceNumbersFile: Optional[str]=None,
-        idLambda: Optional[str]=None,
-        readLambda: Optional[str]=None,
-        keepSites: Optional[set[int]]=None,
-        removeSites: Optional[set[int]]=None,
-        reverse: bool=False,
-        reverseComplement: bool=False,
+        minLength: Optional[int] = None,
+        maxLength: Optional[int] = None,
+        maxNFraction: Optional[float] = None,
+        removeGaps: bool = False,
+        whitelist: Optional[set[str]] = None,
+        blacklist: Optional[set[str]] = None,
+        whitelistFile: Optional[str] = None,
+        blacklistFile: Optional[str] = None,
+        titleRegex: Optional[str] = None,
+        negativeTitleRegex: Optional[str] = None,
+        truncateTitlesAfter: Optional[str] = None,
+        keepSequences: Optional[set[int]] = None,
+        removeSequences: Optional[set[int]] = None,
+        head: Optional[int] = None,
+        removeDuplicates: bool = False,
+        removeDuplicatesById: bool = False,
+        removeDuplicatesUseMD5: bool = False,
+        removeDescriptions: bool = False,
+        modifier: Optional[Callable[[Read], Union[Read, None]]] = None,
+        randomSubset: Optional[int] = None,
+        trueLength: Optional[int] = None,
+        sampleFraction: Optional[float] = None,
+        sequenceNumbersFile: Optional[str] = None,
+        idLambda: Optional[str] = None,
+        readLambda: Optional[str] = None,
+        keepSites: Optional[set[int]] = None,
+        removeSites: Optional[set[int]] = None,
+        reverse: bool = False,
+        reverseComplement: bool = False,
     ):
         if randomSubset is not None:
             if sampleFraction is not None:

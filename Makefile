@@ -18,7 +18,7 @@ pyflakes:
 	find bin dark test -name '*.py' -print0 | $(XARGS) -0 pyflakes
 
 flake8:
-	find bin dark test -name '*.py' -print0 | $(XARGS) -0 flake8 --ignore E402,W504,BLK100,E501
+	find bin dark test -name '*.py' -print0 | $(XARGS) -0 flake8
 
 wc:
 	find . -path './.tox' -prune -o -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | $(XARGS) -0 wc -l

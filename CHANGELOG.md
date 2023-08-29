@@ -1,3 +1,7 @@
+## 4.0.69 August 29, 2023
+
+Added `bin/fastq-set-quality.py` script.
+
 ## 4.0.68 August 7, 2023
 
 Fixed circular import.
