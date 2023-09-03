@@ -1,3 +1,7 @@
+## 4.0.71 September 3, 2023
+
+Corrected `aaVars` import in a few bins scripts.
+
 ## 4.0.70 August 30, 2023
 
 Change to more recent `mysql-connector-python` in `setup.py`.

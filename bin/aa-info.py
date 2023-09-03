@@ -3,9 +3,7 @@
 import sys
 
 from dark.aa import find
-from dark.aa import CODONS
-
-from dark.aa import AA_LETTERS, ALL_PROPERTIES, PROPERTY_NAMES
+from dark.aaVars import CODONS, AA_LETTERS, ALL_PROPERTIES, PROPERTY_NAMES
 
 args = AA_LETTERS if len(sys.argv) == 1 else sys.argv[1:]
 error = False

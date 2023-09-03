@@ -3,7 +3,7 @@
 from random import choice
 from operator import itemgetter
 
-from dark.aa import CODONS
+from dark.aaVars import CODONS
 from dark.reads import Read, addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 

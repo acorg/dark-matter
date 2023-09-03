@@ -3,7 +3,7 @@
 from collections import defaultdict
 from math import log10
 
-from dark.aa import NAMES
+from dark.aaVars import NAMES
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.summarize import sequenceCategoryLengths
 
