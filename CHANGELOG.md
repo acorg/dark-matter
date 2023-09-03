@@ -1,3 +1,9 @@
+## 4.0.72 September 3, 2023
+
+Made `aa-info.py` slightly more useful by identifying stop codons. Added
+`--details` option to request printing of amino acid property numeric
+details.
+
 ## 4.0.71 September 3, 2023
 
 Corrected `aaVars` import in a few bins scripts.
