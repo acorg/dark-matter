@@ -1,3 +1,45 @@
+## 4.0.72 September 3, 2023
+
+Made `aa-info.py` slightly more useful by identifying stop codons. Added
+`--details` option to request printing of amino acid property numeric
+details.
+
+## 4.0.71 September 3, 2023
+
+Corrected `aaVars` import in a few bins scripts.
+
+## 4.0.70 August 30, 2023
+
+Change to more recent `mysql-connector-python` in `setup.py`.
+
+## 4.0.69 August 29, 2023
+
+Added `bin/fastq-set-quality.py` script.
+
+## 4.0.68 August 7, 2023
+
+Fixed circular import.
+
+## 4.0.67 August 7, 2023
+
+Removed `bin/print-blast-xml.py`.
+
+## 4.0.66 August 7, 2023
+
+Removed `bin/print-blast-xml-for-derek.py`.
+
+## 4.0.65 August 7, 2023
+
+Nothing.
+
+## 4.0.64 August 7, 2023
+
+Removed `find-hits.py` from setup.py
+
+## 4.0.63 August 7, 2023
+
+Added type hints to scory.py and some to reads.py.
+
 ## 4.0.62 July 24, 2023
 
 Removed `bin/find-hits.py`. Fixed matplotlib deprecation warnings. Ran black.

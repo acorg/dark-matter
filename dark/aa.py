@@ -110,7 +110,8 @@ def find(s: str) -> Generator[AminoAcid, None, None]:
                     if codon == target:
                         return abbrev1
 
-        abbrev1 = findCodon(origS.upper())
+        # Allow for RNA in this lookup by replacing U with T.
+        abbrev1 = findCodon(origS.upper().replace("U", "T"))
 
     if abbrev1:
         abbrev1s = [abbrev1]

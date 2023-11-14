@@ -1,17 +1,30 @@
 #!/usr/bin/env python
 
 import sys
+from argparse import ArgumentParser
 
 from dark.aa import find
-from dark.aa import CODONS
+from dark.aaVars import (
+    CODONS,
+    NAMES_TO_ABBREV1,
+    ALL_PROPERTIES,
+    PROPERTY_NAMES,
+    STOP_CODONS,
+)
 
-from dark.aa import AA_LETTERS, ALL_PROPERTIES, PROPERTY_NAMES
+parser = ArgumentParser()
+parser.add_argument("targets", nargs="*", help="The items to look up.")
+parser.add_argument(
+    "--details", action="store_true", help="Display numeric amino acid property values."
+)
+args = parser.parse_args()
 
-args = AA_LETTERS if len(sys.argv) == 1 else sys.argv[1:]
+targets = args.targets or sorted(NAMES_TO_ABBREV1)
+
 error = False
 
-for arg in args:
-    aas = list(find(arg))
+for target in targets:
+    aas = list(find(target))
     if aas:
         for aa in aas:
             print(aa.name)
@@ -26,12 +39,20 @@ for arg in args:
                     properties.append(PROPERTY_NAMES[prop])
             print(", ".join(properties))
 
-            print("  Property details:")
-            for propertyDetail, value in aa.propertyDetails.items():
-                print("    %s: %s" % (propertyDetail, value))
+            if args.details:
+                print("  Property details:")
+                for propertyDetail, value in aa.propertyDetails.items():
+                    print("    %s: %s" % (propertyDetail, value))
     else:
-        error = True
-        print("Unknown amino acid or codon: %s" % arg, file=sys.stderr)
+        if (
+            target.upper() in STOP_CODONS
+            or target.upper().replace("U", "T") in STOP_CODONS
+        ):
+            print("Stop codon.")
+        else:
+            error = True
+            print("Unknown amino acid or codon: %s" % target, file=sys.stderr)
 
 if error:
-    print("Valid arguments are: %s." % list(CODONS), file=sys.stderr)
+    print("Valid AA arguments are: %s." % list(CODONS), file=sys.stderr)
+    sys.exit(1)

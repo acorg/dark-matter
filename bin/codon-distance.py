@@ -3,8 +3,8 @@
 import sys
 
 from dark.aa import find
+from dark.aaVars import CODONS
 from dark.codonDistance import codonInformation
-from dark.aa import CODONS
 
 
 def findOrDie(s):

@@ -67,13 +67,13 @@ scripts = [
     "bin/fasta-to-phylip.py",
     "bin/fasta-translate.py",
     "bin/fasta-variable-sites.py",
+    "bin/fastq-set-quality.py",
     "bin/filter-fasta-by-complexity.py",
     "bin/filter-fasta-by-taxonomy.py",
     "bin/filter-fasta.py",
     "bin/filter-hits-to-fasta.py",
     "bin/filter-reads-alignments.py",
     "bin/filter-sam.py",
-    "bin/find-hits.py",
     "bin/format-fasta.py",
     "bin/genbank-grep.py",
     "bin/genome-protein-summary.py",
@@ -93,8 +93,6 @@ scripts = [
     "bin/plot-references-by-inter-read-distance.py",
     "bin/position-summary.py",
     "bin/pre-commit.sh",
-    "bin/print-blast-xml-for-derek.py",
-    "bin/print-blast-xml.py",
     "bin/print-read-lengths.py",
     "bin/proteins-to-pathogens.py",
     "bin/proteins-to-pathogens-civ.py",
@@ -128,9 +126,7 @@ setup(
     packages=["dark", "dark.blast", "dark.diamond", "dark.civ"],
     url="https://github.com/acorg/dark-matter",
     download_url="https://github.com/acorg/dark-matter",
-    author=(
-        "Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, " "Udo Gieraths"
-    ),
+    author="Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, Udo Gieraths",
     author_email="tcj25@cam.ac.uk",
     keywords=["virus discovery"],
     classifiers=[
@@ -143,7 +139,7 @@ setup(
     ],
     license="MIT",
     description=(
-        "Python classes and utility scripts for " "working with genetic sequence data."
+        "Python classes and utility scripts for working with genetic sequence data."
     ),
     scripts=scripts,
     install_requires=[
@@ -155,7 +151,7 @@ setup(
         "gb2seq>=0.2.4",
         "ipython>=3.1.0",
         "matplotlib>=1.4.3",
-        "mysql-connector-python==8.0.19",
+        "mysql-connector-python>=8.1.0",
         "numpy>=1.14.2",
         "progressbar2>=4.0.0",
         "pysam>=0.15.2",
