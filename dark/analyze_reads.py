@@ -3,7 +3,7 @@ from typing import IO, Sequence, AnyStr
 from Bio import SeqIO
 
 
-def _longestPrefixOfTwoSeqs(a:str, b:str):
+def _longestPrefixOfTwoSeqs(a: str, b: str):
     length = min(len(a), len(b))
     result = 0
     while result < length:
@@ -14,11 +14,11 @@ def _longestPrefixOfTwoSeqs(a:str, b:str):
     return result
 
 
-def getPrefixAndSuffix(file_handle:IO[AnyStr]):
+def getPrefixAndSuffix(file_handle: IO[AnyStr]):
     read_list = list(SeqIO.parse(file_handle, "fasta"))
     reversed_read_list = [read[::-1] for read in read_list]
 
-    def longestCommonPrefix(read_list:Sequence):
+    def longestCommonPrefix(read_list: Sequence):
         sequences = read_list
         nSequences = len(sequences)
         if nSequences == 1:
@@ -44,7 +44,7 @@ def getPrefixAndSuffix(file_handle:IO[AnyStr]):
     return prefix, suffix
 
 
-def trimReads(prefix:int, suffix:int, file_handle:IO[AnyStr]):
+def trimReads(prefix: int, suffix: int, file_handle: IO[AnyStr]):
     for record in SeqIO.parse(file_handle, "fasta"):
         if suffix == 0:
             yield record[prefix:]

@@ -7,8 +7,9 @@ from dark.reads import Read
 from dark.utils import median
 
 
-def summarizeReads(file_handle: Union[str, TextIOWrapper], file_type: str
-        ) -> dict[str, Union[int, float, defaultdict[str, int]]]:
+def summarizeReads(
+    file_handle: Union[str, TextIOWrapper], file_type: str
+) -> dict[str, Union[int, float, defaultdict[str, int]]]:
     """
     open a fasta or fastq file, prints number of of reads,
     average length of read, total number of bases, longest,
@@ -43,7 +44,11 @@ def summarizeReads(file_handle: Union[str, TextIOWrapper], file_type: str
 
 
 def sequenceCategoryLengths(
-        read: Read, categories: dict[str, str], defaultCategory: Optional[str]=None, suppressedCategory: str="...", minLength: int=1
+    read: Read,
+    categories: dict[str, str],
+    defaultCategory: Optional[str] = None,
+    suppressedCategory: str = "...",
+    minLength: int = 1,
 ):
     """
     Summarize the nucleotides or AAs found in a read by assigning each to a
