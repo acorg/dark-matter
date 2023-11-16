@@ -13,12 +13,12 @@ class HigherIsBetterScore:
     def __init__(self, score: float) -> None:
         self.score = score
 
-    def __lt__(self, other: 'HigherIsBetterScore') -> bool:
+    def __lt__(self, other: "HigherIsBetterScore") -> bool:
         if isinstance(other, HigherIsBetterScore):
             return self.score < other.score
         return NotImplemented
 
-    def __eq__(self, other: 'HigherIsBetterScore') -> bool:
+    def __eq__(self, other: "HigherIsBetterScore") -> bool:
         if isinstance(other, HigherIsBetterScore):
             return self.score == other.score
         return NotImplemented
@@ -45,12 +45,12 @@ class LowerIsBetterScore:
     def __init__(self, score: float) -> None:
         self.score = score
 
-    def __lt__(self, other: 'LowerIsBetterScore') -> bool:
+    def __lt__(self, other: "LowerIsBetterScore") -> bool:
         if isinstance(other, LowerIsBetterScore):
             return self.score > other.score
         return NotImplemented
 
-    def __eq__(self, other: 'LowerIsBetterScore') -> bool:
+    def __eq__(self, other: "LowerIsBetterScore") -> bool:
         if isinstance(other, LowerIsBetterScore):
             return self.score == other.score
         return NotImplemented
