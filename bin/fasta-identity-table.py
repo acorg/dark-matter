@@ -835,14 +835,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--showNoCoverage",
         action="store_true",
-        help=("If given, show the number of no-coverage characters in " "sequences."),
+        help=("If given, show the number of no-coverage characters in sequences."),
     )
 
     parser.add_argument(
         "--showNs",
         action="store_true",
         help=(
-            "If given, show the number of fully ambiguous N characters in " "sequences."
+            "If given, show the number of fully ambiguous N characters in sequences."
         ),
     )
 

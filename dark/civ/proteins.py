@@ -1460,7 +1460,15 @@ class ProteinGrouper:
         figure.set_size_inches(5.0 * cols, 2.0 * rows, forward=True)
         plt.subplots_adjust(hspace=0.4)
 
-        figure.savefig(filename)
+        try:
+            figure.savefig(filename)
+        except ValueError as e:
+            print(
+                f"WARNING! Could not save pathogens panel figure: {e}. "
+                "That file has not been created and therefore the link to it ",
+                "from the results HTML will be broken.",
+                file=sys.stderr,
+            )
 
 
 class _Genome:

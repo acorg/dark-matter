@@ -1,3 +1,9 @@
+## 4.0.73 January 20, 2024
+
+Wrap the `savefig` call to make the pathogens panel (in
+`dark/civ/proteins.py`) in a `try/except` to catch the `ValueError` that
+results if the image has a dimension exceeding 2^16.
+
 ## 4.0.72 September 3, 2023
 
 Made `aa-info.py` slightly more useful by identifying stop codons. Added
