@@ -59,7 +59,7 @@ class DiamondReadsAlignments(ReadsAlignments):
         sortFilenames=False,
         randomizeZeroEValues=True,
     ):
-        if type(filenames) == str:
+        if type(filenames) is str:
             filenames = [filenames]
         if sortFilenames:
             self.filenames = numericallySortFilenames(filenames)
