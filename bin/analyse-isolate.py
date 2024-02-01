@@ -47,6 +47,11 @@ if __name__ == '__main__':
         help=('The minimum number of reads required to evaluate a sequence '
               'for minority variants.'))
 
+    parser.add_argument(
+        '--alternativeReferenceGB', default=False,
+        help=('Either a genbank file containing the features to be used, or '
+              'a genbank accession number.'))
+
     args = parser.parse_args()
 
     codonTable = ambiguous_dna_by_id[1].forward_table
@@ -55,7 +60,10 @@ if __name__ == '__main__':
     # sequence of the isolate sequencing run.
     clinicalSeq = list(FastaReads(args.clinicalSequence))[0]
     consensusSeq = list(FastaReads(args.consensusSequence))[0]
-    features = Features(sars2=True)
+    if args.alternativeReferenceGB:
+        features = Features(referenceSpecification=args.alternativeReferenceGB)
+    else:
+        features = Features(sars2=True)
     clinicalAlignment = Gb2Alignment(clinicalSeq, features)
     consensusAlignment = Gb2Alignment(consensusSeq, features)
 
