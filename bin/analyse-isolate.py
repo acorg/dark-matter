@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--notSARS2', action='store_true',
-        help=('If the reference is not a SARS-CoV-2 sequence.'))
+        help='If the reference is not a SARS-CoV-2 sequence.')
 
     args = parser.parse_args()
 
