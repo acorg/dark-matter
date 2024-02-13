@@ -82,7 +82,7 @@ if __name__ == '__main__':
         if args.notSARS2:
             print('Please specify an alternative reference via '
                   '"--alternativeReferenceGB", or use "--notSARS2" if this is '
-                  'not a SARS-CoV-2 sample.')
+                  'not a SARS-CoV-2 sample.', file=sys.stderr)
             sys.exit()
         else:
             # This is a SARS-CoV-2 sample and you want to use the default
