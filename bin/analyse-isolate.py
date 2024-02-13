@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+
 from Bio.Data.CodonTable import ambiguous_dna_by_id
 
 from dark.fasta import FastaReads
@@ -52,6 +54,10 @@ if __name__ == '__main__':
         help=('Either a genbank file containing the features to be used, or '
               'a genbank accession number.'))
 
+    parser.add_argument(
+        '--notSARS2', action='store_true',
+        help='If the reference is not a SARS-CoV-2 sequence.')
+
     args = parser.parse_args()
 
     codonTable = ambiguous_dna_by_id[1].forward_table
@@ -60,10 +66,29 @@ if __name__ == '__main__':
     # sequence of the isolate sequencing run.
     clinicalSeq = list(FastaReads(args.clinicalSequence))[0]
     consensusSeq = list(FastaReads(args.consensusSequence))[0]
+
     if args.alternativeReferenceGB:
-        features = Features(referenceSpecification=args.alternativeReferenceGB)
+        if args.notSARS2:
+            # This is not a SARS-CoV-2 sample, and you want to specify an
+            # alternative reference.
+            features = Features(
+                referenceSpecification=args.alternativeReferenceGB)
+        else:
+            # This is a SARS-CoV-2 sample, but you want to use a reference that
+            # is not the default Wuhan-Hu1.
+            features = Features(
+                referenceSpecification=args.alternativeReferenceGB, sars2=True)
     else:
-        features = Features(sars2=True)
+        if args.notSARS2:
+            print('Please specify an alternative reference via '
+                  '"--alternativeReferenceGB", or use "--notSARS2" if this is '
+                  'not a SARS-CoV-2 sample.', file=sys.stderr)
+            sys.exit()
+        else:
+            # This is a SARS-CoV-2 sample and you want to use the default
+            # reference.
+            features = Features(sars2=True)
+
     clinicalAlignment = Gb2Alignment(clinicalSeq, features)
     consensusAlignment = Gb2Alignment(consensusSeq, features)
 
