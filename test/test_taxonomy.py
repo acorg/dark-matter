@@ -8,6 +8,7 @@ from dark.taxonomy import (
     Taxonomy,
     isRetrovirus,
     isRNAVirus,
+    isAllowedTaxonomicRank,
 )
 
 
@@ -504,6 +505,92 @@ class TestIsRNAVirus(TestCase):
                 )
             )
         )
+
+
+class TestAllowedTaxonomicRank(TestCase):
+    """
+    Test the isAllowedTaxonomicRank function.
+    """
+
+    def testEmpty(self):
+        """
+        The function must return True when more than one part of the lineage matches.
+        """
+        lineage = (
+            LE(245, "x", "realm"),
+            LE(246, "bacteria", "kingdom"),
+            LE(247, "y", "species"),
+        )
+        self.assertTrue(
+            isAllowedTaxonomicRank(
+                set((("bacteria", "kingdom"), ("y", "species"))), lineage
+            )
+        )
+
+    def testExactCase(self):
+        """
+        The function must return True when case matches exactly.
+        """
+        lineage = (
+            LE(245, "x", "realm"),
+            LE(246, "bacteria", "kingdom"),
+            LE(247, "y", "species"),
+        )
+        self.assertTrue(
+            isAllowedTaxonomicRank(set((("bacteria", "kingdom"),)), lineage)
+        )
+
+    def testNonMatchingCase(self):
+        """
+        The function must return True when case doesn't match.
+        """
+        lineage = (
+            LE(245, "x", "realm"),
+            LE(246, "bacteria", "kingdom"),
+            LE(247, "y", "species"),
+        )
+        self.assertTrue(
+            isAllowedTaxonomicRank(set((("BACTERIA", "KINGDOM"),)), lineage)
+        )
+
+    def testMultipleMatches(self):
+        """
+        The function must return True when more than one part of the lineage matches.
+        """
+        lineage = (
+            LE(245, "x", "realm"),
+            LE(246, "bacteria", "kingdom"),
+            LE(247, "y", "species"),
+        )
+        self.assertTrue(
+            isAllowedTaxonomicRank(
+                set((("bacteria", "kingdom"), ("y", "species"))), lineage
+            )
+        )
+
+    def testRankMismatch(self):
+        """
+        The function must return False when the name matches but the rank does not.
+        """
+        lineage = (
+            LE(245, "x", "realm"),
+            LE(246, "bacteria", "kingdom"),
+            LE(247, "y", "species"),
+        )
+        self.assertFalse(
+            isAllowedTaxonomicRank(set((("bacteria", "species"),)), lineage)
+        )
+
+    def testNameMismatch(self):
+        """
+        The function must return False when the rank matches but the name does not.
+        """
+        lineage = (
+            LE(245, "x", "realm"),
+            LE(246, "bacteria", "kingdom"),
+            LE(247, "y", "species"),
+        )
+        self.assertFalse(isAllowedTaxonomicRank(set((("virus", "kingdom"),)), lineage))
 
 
 class TestLineageElement(TestCase):

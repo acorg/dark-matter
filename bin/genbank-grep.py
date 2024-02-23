@@ -8,7 +8,7 @@ from Bio import SeqIO
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description=(
-        "Read a GenBank flat file and print GenBank or FASTA for " "matching records."
+        "Read a GenBank flat file and print GenBank or FASTA for matching records."
     ),
 )
 
@@ -30,7 +30,7 @@ parser.add_argument(
     "--match",
     choices=("fullmatch", "match", "search"),
     default="search",
-    help=("How to match the regular expression. See pydoc re for an " "explanation."),
+    help="How to match the regular expression. See pydoc re for an " "explanation.",
 )
 
 parser.add_argument(

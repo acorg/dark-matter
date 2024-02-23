@@ -22,7 +22,12 @@ from dark.filter import TitleFilter
 from dark.genbank import getCDSInfo, getSourceInfo
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink, readCountText
 from dark.reads import Reads
-from dark.taxonomy import lineageTaxonomyLinks, Hierarchy, LineageElement
+from dark.taxonomy import (
+    lineageTaxonomyLinks,
+    Hierarchy,
+    LineageElement,
+    isAllowedTaxonomicRank,
+)
 from dark.utils import asHandle
 
 
@@ -1586,6 +1591,7 @@ class SqliteIndexWriter:
         taxonomyDatabase,
         dnaOnly=False,
         rnaOnly=False,
+        allowedTaxonomicRanks=None,
         minGenomeLength=None,
         maxGenomeLength=None,
         excludeExclusiveHosts=None,
@@ -1607,6 +1613,14 @@ class SqliteIndexWriter:
             C{excludeExclusiveHosts} is not C{None}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param allowedTaxonomicRanks: If not C{None}, a set of case-insensitive
+            name, rank C{str} 2-tuples. E.g.,
+                set((
+                    ("Nidovirales", "order"),
+                    ("Retroviridae", "family"),
+                ))
+            Viruses will be included only if they match at least one of
+            the name, rank pairs.
         @param minGenomeLength: If not C{None}, genomes of a length shorter
             than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
@@ -1651,6 +1665,7 @@ class SqliteIndexWriter:
                     lineageFetcher,
                     dnaOnly=dnaOnly,
                     rnaOnly=rnaOnly,
+                    allowedTaxonomicRanks=allowedTaxonomicRanks,
                     minGenomeLength=minGenomeLength,
                     maxGenomeLength=maxGenomeLength,
                     excludeExclusiveHosts=excludeExclusiveHosts,
@@ -1669,6 +1684,7 @@ class SqliteIndexWriter:
         taxonomyDatabase,
         dnaOnly=False,
         rnaOnly=False,
+        allowedTaxonomicRanks=None,
         minGenomeLength=None,
         maxGenomeLength=None,
         excludeExclusiveHosts=None,
@@ -1689,6 +1705,14 @@ class SqliteIndexWriter:
             C{excludeExclusiveHosts} is not C{None}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param allowedTaxonomicRanks: If not C{None}, a set of case-insensitive
+            name, rank C{str} 2-tuples. E.g.,
+                set((
+                    ("Nidovirales", "order"),
+                    ("Retroviridae", "family"),
+                ))
+            Viruses will be included only if they match at least one of
+            the name, rank pairs.
         @param minGenomeLength: If not C{None}, genomes of a length shorter
             than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
@@ -1734,6 +1758,7 @@ class SqliteIndexWriter:
                 lineageFetcher,
                 dnaOnly=dnaOnly,
                 rnaOnly=rnaOnly,
+                allowedTaxonomicRanks=None,
                 minGenomeLength=minGenomeLength,
                 maxGenomeLength=maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
@@ -1753,6 +1778,7 @@ class SqliteIndexWriter:
         lineageFetcher,
         dnaOnly=False,
         rnaOnly=False,
+        allowedTaxonomicRanks=None,
         minGenomeLength=None,
         maxGenomeLength=None,
         excludeExclusiveHosts=None,
@@ -1777,6 +1803,14 @@ class SqliteIndexWriter:
             etc). I.e., as returned by L{dark.taxonomy.LineageFetcher.lineage}.
         @param dnaOnly: If C{True}, only include DNA viruses.
         @param rnaOnly: If C{True}, only include RNA viruses.
+        @param allowedTaxonomicRanks: If not C{None}, a set of case-insensitive
+            name, rank C{str} 2-tuples. E.g.,
+                set((
+                    ("Nidovirales", "order"),
+                    ("Retroviridae", "family"),
+                ))
+            Viruses will be included only if they match at least one of
+            the name, rank pairs.
         @param minGenomeLength: If not C{None}, genomes of a length shorter
             than this should not be added.
         @param maxGenomeLength: If not C{None}, genomes of a length greater
@@ -1865,6 +1899,22 @@ class SqliteIndexWriter:
                 lineage = taxonomyId = None
             else:
                 taxonomyId = lineage[0][0]
+
+            if allowedTaxonomicRanks:
+                if lineage:
+                    if not isAllowedTaxonomicRank(allowedTaxonomicRanks, lineage):
+                        if logfp:
+                            print(
+                                "  %s (%s) has an unwanted taxonomic lineage."
+                                % (genome.id, genome.description),
+                                file=logfp,
+                            )
+                        continue
+                else:
+                    # We are allowing only certain taxonomic ranks and we
+                    # have no lineage information for this virus. We skip
+                    # it because we cannot confirm that we want it.
+                    continue
 
             if dnaOnly:
                 if not source["mol_type"].endswith("DNA"):

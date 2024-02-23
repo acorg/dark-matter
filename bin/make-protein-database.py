@@ -69,6 +69,14 @@ def main(args, parser):
     else:
         excludeExclusiveHosts = None
 
+    if args.allowedTaxonomicRanks:
+        allowedTaxonomicRanks = set()
+        for nameRank in chain.from_iterable(args.allowedTaxonomicRanks):
+            name, rank = map(str.lower, map(str.strip, nameRank.split(":", maxsplit=1)))
+            allowedTaxonomicRanks.add((name, rank))
+    else:
+        allowedTaxonomicRanks = None
+
     taxonomyDatabase = parseTaxonomyDatabaseCommandLineOptions(args, parser)
     progress = args.progress
 
@@ -90,6 +98,7 @@ def main(args, parser):
                 filename,
                 dnaOnly=args.dnaOnly,
                 rnaOnly=args.rnaOnly,
+                allowedTaxonomicRanks=allowedTaxonomicRanks,
                 minGenomeLength=args.minGenomeLength,
                 maxGenomeLength=args.maxGenomeLength,
                 excludeExclusiveHosts=excludeExclusiveHosts,
@@ -257,6 +266,21 @@ parser.add_argument(
         "The JSON file(s) to make the database from. These contain "
         "genome and protein information for cases where sequences that "
         "are not in GenBank should be added."
+    ),
+)
+
+parser.add_argument(
+    "--allowedTaxonomicRanks",
+    metavar="name:rank",
+    nargs="+",
+    action="append",
+    help=(
+        "Strings of the form name:rank to restrict included viruses to be "
+        "from any of a specific set of taxonomic ranks. May be repeated. E.g., "
+        "--allowedTaxonomicRanks nidovirales:order "
+        "--allowedTaxonomicRanks retroviridae:family "
+        "Viruses will be included only if they match at least one of the name, "
+        "rank pairs. The strings are case insensitive."
     ),
 )
 
