@@ -264,6 +264,24 @@ The dictionary below contains for each amino acid the value for
 each property scaled from -1 to 1.
 For documentation, check https://notebooks.antigenic-cartography.org/barbara/
 pages/features/aa-properties.html
+
+The following references were used for the different aa properties:
+
+Aliphaticity, aromaticity, hydrogenation, hydroxyethilation: Sneath,
+1966, Journal of Theoretical Biology, Relations between Chemical Structure
+and Biological Activity in Peptides
+
+Composition, polarity, volume: Grantham 1974, Science, Amino Acid Difference
+Formula to Help Explain ProteinEvolution
+
+Hydropathy: Kyte and Doolittle, 1982, Journal of Molecular Biology, A Simple
+Method for Displaying the Hydropathic Character of a Protein
+
+IEP: Yu et al., 2011, Gene, Protein map: An alignment-free sequence comparison
+method based on various properties of amino acids
+
+Polar requirement: Mathew and Luthey-Schulten, 2008, Journal of Molecular
+Evolution, On the Physical Basis of the Amino Acid Polar Requirement
 """
 
 PROPERTY_DETAILS = {
