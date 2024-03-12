@@ -15,7 +15,11 @@ from dark.filter import (
     addFASTAEditingCommandLineOptions,
     parseFASTAEditingCommandLineOptions,
 )
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
+from dark.reads import (
+    addFASTACommandLineOptions,
+    parseFASTACommandLineOptions,
+    getNoCoverageCounts,
+)
 
 MAFFT_DEFAULT_ARGS = "--globalpair --maxiterate 1000 --preservecase"
 MAFFT_ALGORITHMS_URL = (
@@ -151,25 +155,6 @@ def getGapCounts(reads, gapChars):
     result = {}
     for read in reads:
         result[read.id] = sum(character in gapChars for character in read.sequence)
-    return result
-
-
-def getNoCoverageCounts(reads, noCoverageChars):
-    """
-    Get the no coverage counts for all reads.
-
-    @param reads: A C{Reads} instance.
-    @param noCoverageChars: A C{str} of sequence characters that indicate
-        no coverage.
-    @return: A C{dict} keyed by read id, with C{int} number of no coverage
-        counts.
-    """
-    noCoverageChars = set(noCoverageChars)
-    result = {}
-    for read in reads:
-        result[read.id] = sum(
-            character in noCoverageChars for character in read.sequence
-        )
     return result
 
 

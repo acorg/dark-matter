@@ -2046,3 +2046,29 @@ def parseFASTACommandLineOptions(args: argparse.Namespace) -> Reads:
         from dark.fasta_ss import SSFastaReads
 
         return SSFastaReads(args.fastaFile, readClass=readClass)
+
+
+def getNoCoverageCounts(
+    reads: Iterable[Read], noCoverageChars: Optional[str]
+) -> dict[str, int]:
+    """
+    Get the no-coverage character counts for all reads.
+
+    @param reads: A C{Reads} instance.
+    @param noCoverageChars: A C{str} of sequence characters that indicate
+        no coverage. If empty or C{None}, it is assumed there are no no-coverage
+        characters, so the count for all reads will be zero.
+    @return: A C{dict} keyed by read id, with C{int} number of no-coverage
+        characters in the read sequence.
+    """
+    if noCoverageChars:
+        noCoverageChars = set(noCoverageChars)
+        result = {}
+        for read in reads:
+            result[read.id] = sum(
+                character in noCoverageChars for character in read.sequence
+            )
+    else:
+        result = dict.fromkeys((read.id for read in reads), 0)
+
+    return result

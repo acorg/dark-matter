@@ -32,6 +32,7 @@ from dark.reads import (
     AAReadWithX,
     SSAARead,
     SSAAReadWithX,
+    getNoCoverageCounts,
     readClassNameToClass,
 )
 
@@ -4401,3 +4402,42 @@ class TestFindORF(TestCase):
             },
             read.findORF(0, forward=False),
         )
+
+
+class TestGetNoCoverageCounts(TestCase):
+    """
+    Test the getNoCoverageCounts function.
+    """
+
+    def testNoCoverageCharsNone(self):
+        """
+        When None is passed for the no-coverage chars, the result
+        counts must all be zero.
+        """
+        reads = Reads()
+        reads.add(Read("id1", "aaa"))
+        reads.add(Read("id2", "caa"))
+        result = getNoCoverageCounts(reads, None)
+        self.assertEqual({"id1": 0, "id2": 0}, result)
+
+    def testNoCoverageCharsEmptyString(self):
+        """
+        When an empty string is passed for the no-coverage chars, the result
+        counts must all be zero.
+        """
+        reads = Reads()
+        reads.add(Read("id1", "aaa"))
+        reads.add(Read("id2", "caa"))
+        result = getNoCoverageCounts(reads, "")
+        self.assertEqual({"id1": 0, "id2": 0}, result)
+
+    def testExpected(self):
+        """
+        When a non-empty string is passed for the no-coverage chars, the result
+        must be as expected.
+        """
+        reads = Reads()
+        reads.add(Read("id1", "aaa--c"))
+        reads.add(Read("id2", "caa?g"))
+        result = getNoCoverageCounts(reads, "-?")
+        self.assertEqual({"id1": 2, "id2": 1}, result)
