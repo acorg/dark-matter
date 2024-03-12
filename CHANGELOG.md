@@ -1,3 +1,9 @@
+## 4.0.75 March 12, 2024
+
+Moved `getNoCoverageCounts` from `bin/fasta-identity-table.py` into
+`dark/reads.py`. Made it handle an empty set of no-coverage chars. Added
+tests.
+
 ## 4.0.74 February 23, 2024
 
 Added `allowedTaxonomicRanks` argument to the `SqliteIndexWriter` class for
