@@ -1905,7 +1905,7 @@ class SqliteIndexWriter:
                     if not isAllowedTaxonomicRank(allowedTaxonomicRanks, lineage):
                         if logfp:
                             print(
-                                "  %s (%s) has an unwanted taxonomic lineage."
+                                "  %s (%s) has an unwanted taxonomic lineage. Skipping."
                                 % (genome.id, genome.description),
                                 file=logfp,
                             )
@@ -1914,13 +1914,19 @@ class SqliteIndexWriter:
                     # We are allowing only certain taxonomic ranks and we
                     # have no lineage information for this virus. We skip
                     # it because we cannot confirm that we want it.
+                    if logfp:
+                        print(
+                            "  %s (%s) has no taxonomic lineage information. Skipping."
+                            % (genome.id, genome.description),
+                            file=logfp,
+                        )
                     continue
 
             if dnaOnly:
                 if not source["mol_type"].endswith("DNA"):
                     if logfp:
                         print(
-                            "  %s (%s) is not a DNA virus (mol_type)."
+                            "  %s (%s) is not a DNA virus (mol_type). Skipping."
                             % (genome.id, genome.description),
                             file=logfp,
                         )
@@ -1949,7 +1955,7 @@ class SqliteIndexWriter:
                 if not source["mol_type"].endswith("RNA"):
                     if logfp:
                         print(
-                            "  %s (%s) is not a RNA virus (mol_type)."
+                            "  %s (%s) is not a RNA virus (mol_type). Skipping."
                             % (genome.id, genome.description),
                             file=logfp,
                         )
@@ -1977,16 +1983,16 @@ class SqliteIndexWriter:
             if excludeFungusOnlyViruses:
                 if lineage is None:
                     print(
-                        "Could not look up taxonomy lineage for %s "
-                        "(%s). Cannot confirm as fungus-only virus. "
-                        "Skipping." % (genome.id, genome.description),
+                        "  Could not look up taxonomy lineage for %s "
+                        "(%s). Cannot confirm as fungus-only virus."
+                        % (genome.id, genome.description),
                         file=logfp,
                     )
                 else:
                     if taxonomyDatabase.isFungusOnlyVirus(lineage, genome.description):
                         if logfp:
                             print(
-                                "  %s (%s) is a fungus-only virus."
+                                "  %s (%s) is a fungus-only virus. Skipping."
                                 % (genome.id, genome.description),
                                 file=logfp,
                             )
@@ -2002,16 +2008,16 @@ class SqliteIndexWriter:
             if excludePlantOnlyViruses:
                 if lineage is None:
                     print(
-                        "Could not look up taxonomy lineage for %s "
+                        "  Could not look up taxonomy lineage for %s "
                         "(%s). Cannot confirm as plant-only virus. "
-                        "Skipping." % (genome.id, genome.description),
+                        "Not skipping." % (genome.id, genome.description),
                         file=logfp,
                     )
                 else:
                     if taxonomyDatabase.isPlantOnlyVirus(lineage, genome.description):
                         if logfp:
                             print(
-                                "  %s (%s) is a plant-only virus."
+                                "  %s (%s) is a plant-only virus. Skipping."
                                 % (genome.id, genome.description),
                                 file=logfp,
                             )
@@ -2027,7 +2033,7 @@ class SqliteIndexWriter:
             if excludeExclusiveHosts:
                 if taxonomyId is None:
                     print(
-                        "Could not find taxonomy id for %s (%s). "
+                        "  Could not find taxonomy id for %s (%s). "
                         "Cannot exclude due to exclusive host criteria."
                         % (genome.id, genome.description),
                         file=logfp,
@@ -2036,7 +2042,7 @@ class SqliteIndexWriter:
                     hosts = taxonomyDatabase.hosts(taxonomyId)
                     if hosts is None:
                         print(
-                            "Could not find hosts for %s (%s). Cannot "
+                            "  Could not find hosts for %s (%s). Cannot "
                             "exclude due to exclusive host criteria."
                             % (genome.id, genome.description),
                             file=logfp,
@@ -2046,7 +2052,7 @@ class SqliteIndexWriter:
                             host = hosts.pop()
                             if host in excludeExclusiveHosts:
                                 print(
-                                    "Excluding %s (%s) due to exclusive "
+                                    "  Skipping %s (%s) due to exclusive "
                                     "host criteria (infects only %s hosts)."
                                     % (genome.id, genome.description, host),
                                     file=logfp,
