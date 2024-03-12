@@ -1,3 +1,9 @@
+## 4.0.74 February 23, 2024
+
+Added `allowedTaxonomicRanks` argument to the `SqliteIndexWriter` class for
+building a protein database, and corresponding command line argument to
+`bin/make-protein-database.py`.
+
 ## 4.0.73 January 20, 2024
 
 Wrap the `savefig` call to make the pathogens panel (in

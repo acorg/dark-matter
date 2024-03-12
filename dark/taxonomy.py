@@ -18,13 +18,13 @@ TAXONOMY_DATABASE_COMMAND_LINE_OPTION = "taxonomyDatabase"
 
 LineageElement = namedtuple("LineageElement", ("taxid", "name", "rank"))
 
-# These are rank/name tuples that indicate that a lineage is from an RNA
+# These are name/rank tuples that indicate that a lineage is from an RNA
 # virus.
 RNA_VIRUS_LINEAGE_ELEMENTS = set(
     (
-        ("family", "Retroviridae"),
-        ("family", "Pseudoviridae"),
-        ("realm", "Riboviria"),
+        ("Retroviridae", "family"),
+        ("Pseudoviridae", "family"),
+        ("Riboviria", "realm"),
     )
 )
 
@@ -472,7 +472,7 @@ def isRNAVirus(lineage):
         otherwise.
     """
     for element in lineage:
-        if (element.rank, element.name) in RNA_VIRUS_LINEAGE_ELEMENTS:
+        if (element.name, element.rank) in RNA_VIRUS_LINEAGE_ELEMENTS:
             return True
 
     return False
@@ -487,6 +487,31 @@ def isDNAVirus(lineage: Iterable[LineageElement]) -> bool:
         otherwise.
     """
     return not isRNAVirus(lineage)
+
+
+def isAllowedTaxonomicRank(allowedTaxonomicRanks, lineage):
+    """
+    Determine whether a lineage matches a set of desired ranks.
+
+    @param allowedTaxonomicRanks: If not C{None}, a set of (case insensitive)
+        acceptable (name, rank) C{str} tuples. E.g.,
+            set((
+                ("nidovirales", "order"),
+                ("retroviridae", "family"),
+            ))
+    @param lineage: An iterable of C{LineageElement} instances.
+    @return: C{True} if the lineage matches at least one of the name:rank
+        pairs. Else C{False}.
+    """
+    lcAllowedTaxonomicRanks = set()
+    for name, rank in allowedTaxonomicRanks:
+        lcAllowedTaxonomicRanks.add((name.lower(), rank.lower()))
+
+    for element in lineage:
+        if (element.name.lower(), element.rank.lower()) in lcAllowedTaxonomicRanks:
+            return True
+
+    return False
 
 
 def formatLineage(
