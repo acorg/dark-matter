@@ -34,7 +34,7 @@ def main(args):
     """
     if args.topReferenceIdsFile and args.sortBy != "count":
         print(
-            "--topReferenceIdsFile only makes sense when using --sortBy " "count",
+            "--topReferenceIdsFile only makes sense when using --sortBy count",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -94,7 +94,7 @@ def main(args):
             return len(referenceReads[referenceId]["readIds"])
 
         sortedReferenceReads = sorted(referenceReads, key=key, reverse=True)
-        topReference = sortedReferenceReads[0]
+        topReference = sortedReferenceReads[0] if sortedReferenceReads else None
     else:
         # Sort the references by name
         sortedReferenceReads = sorted(referenceReads)
@@ -136,7 +136,11 @@ def main(args):
     # Write out the (sorted) read ids of the reference with the most reads.
     if args.topReferenceIdsFile:
         with open(args.topReferenceIdsFile, "w") as fp:
-            print("\n".join(sorted(referenceReads[topReference]["readIds"])), file=fp)
+            # Note that the file will be empty if there is no top reference.
+            if topReference:
+                print(
+                    "\n".join(sorted(referenceReads[topReference]["readIds"])), file=fp
+                )
 
 
 if __name__ == "__main__":

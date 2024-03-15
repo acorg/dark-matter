@@ -1,3 +1,8 @@
+## 4.0.77 March 15, 2024
+
+Prevent an `IndexError` in `bin/sam-reference-read-counts.py` when there
+are no matching reads.
+
 ## 4.0.76 March 14, 2024
 
 Fixed (hopefully!) a bug in `bin/fasta-identity-table.py` that could cause
