@@ -1,3 +1,9 @@
+## 4.0.76 March 14, 2024
+
+Fixed (hopefully!) a bug in `bin/fasta-identity-table.py` that could cause
+a `KeyError` when producing a non-square table,
+[as described here](https://github.com/acorg/dark-matter/issues/780).
+
 ## 4.0.75 March 12, 2024
 
 Moved `getNoCoverageCounts` from `bin/fasta-identity-table.py` into
