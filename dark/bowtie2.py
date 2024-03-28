@@ -345,8 +345,13 @@ class Bowtie2:
         inFile = self._bamFile if which == "BAM" else self._samFile
         tempFile = join(self.tempdir, "non-duplicates." + which.lower())
 
+        # See the comment on the testRemoveDuplicates test in
+        # ../test/test_bowtie2.py regarding there being two spaces in the
+        # samtools command below if we are not producing BAM.  If you
+        # change spacing here you will also need to change that test.
+        bArg = "-b" if which == "BAM" else ""
         self._executor.execute(
-            "samtools view -b -F 1024 '%s' > '%s'" % (inFile, tempFile)
+            "samtools view %s -F 1024 '%s' > '%s'" % (bArg, inFile, tempFile)
         )
         self._executor.execute("mv '%s' '%s'" % (tempFile, inFile))
 
