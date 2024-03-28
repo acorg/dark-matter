@@ -1,3 +1,8 @@
+## 4.0.78 March 15, 2024
+
+Fix tiny bug in `bowtie2.py` so that BAM is not accidentally created when
+removing duplicates.
+
 ## 4.0.77 March 15, 2024
 
 Prevent an `IndexError` in `bin/sam-reference-read-counts.py` when there
