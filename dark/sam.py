@@ -391,28 +391,24 @@ class SAMFilter:
 
         parser.add_argument(
             "--dropUnmapped",
-            default=False,
             action="store_true",
             help="If given, unmapped matches will not be output.",
         )
 
         parser.add_argument(
             "--dropSecondary",
-            default=False,
             action="store_true",
             help="If given, secondary matches will not be output.",
         )
 
         parser.add_argument(
             "--dropSupplementary",
-            default=False,
             action="store_true",
             help="If given, supplementary matches will not be output.",
         )
 
         parser.add_argument(
             "--dropDuplicates",
-            default=False,
             action="store_true",
             help=(
                 "If given, matches flagged as optical or PCR duplicates "
@@ -422,7 +418,6 @@ class SAMFilter:
 
         parser.add_argument(
             "--keepQCFailures",
-            default=False,
             action="store_true",
             help=(
                 "If given, reads that are considered quality control "
