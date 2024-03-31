@@ -63,7 +63,7 @@ SAMPLE_DATA = {
             ),
         },
         "AM282986.1": {
-            "id": ("Hepatitis B virus (SUBTYPE ADW2), genotype A, complete " "genome"),
+            "id": ("Hepatitis B virus (SUBTYPE ADW2), genotype A, complete genome"),
             "genome": (
                 "TTCCACTGCCTTCCACCAAGCTCTGCAGGATCCCAAAGTCAGGGGTCTGTATTTTCCTGC"
                 "TGGTGGCTCCAGTTCAGGAACAGTAAACCCTGCTCCGAATATTGCCTCTCACATCTCGTC"

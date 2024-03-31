@@ -1,14 +1,17 @@
 import sys
-import six
 import numpy as np
+from typing import Optional
 
 from json import dump, load
 from contextlib import contextmanager
 from collections import Counter, defaultdict
 from subprocess import CalledProcessError
 
+from dark.utils import pct
+
 from pysam import (
     AlignmentFile,
+    AlignedRead,
     CMATCH,
     CINS,
     CDEL,
@@ -92,7 +95,7 @@ def samReferences(filenameOrSamfile):
     def _references(sam):
         return [sam.get_reference_name(i) for i in range(sam.nreferences)]
 
-    if isinstance(filenameOrSamfile, six.string_types):
+    if isinstance(filenameOrSamfile, str):
         with samfile(filenameOrSamfile) as sam:
             return _references(sam)
     else:
@@ -118,7 +121,7 @@ def samReferencesToStr(filenameOrSamfile, indent=0):
             )
         return "\n".join(result)
 
-    if isinstance(filenameOrSamfile, six.string_types):
+    if isinstance(filenameOrSamfile, str):
         with samfile(filenameOrSamfile) as sam:
             return _references(sam)
     else:
@@ -343,7 +346,7 @@ class SAMFilter:
         if samfileIsPositional:
             # Positional arguments are always required.
             assert samfileRequired, (
-                "samfileIsPositional is True, so " "samfileRequired must also be True."
+                "samfileIsPositional is True, so samfileRequired must also be True."
             )
             if samfileNargs is None:
                 parser.add_argument(
@@ -1123,7 +1126,7 @@ def getReferenceInfo(
     bam, bamFilename, bamId=None, referenceFasta=None, fastaId=None, quiet=False
 ):
     """
-    Get the id and length of a BAM file reference seqeunce.
+    Get the id and length of a BAM file reference sequence.
 
     @param bam: An open BAM file.
     @param bamFilename: The C{str} file name of the BAM file.
@@ -1262,3 +1265,233 @@ def getReferenceInfo(
             )
 
     return bamId, reference, referenceLength
+
+
+class ReferenceReads:
+    """
+    Hold information about the reads that match a reference.
+
+    @param id_: A C{str} reference id.
+    @param length: The C{int} length of the reference.
+    """
+
+    def __init__(self, id_: str, length: int) -> None:
+        assert length
+        self.id_ = id_
+        self.length = length
+        self.coveredOffsets: set = set()
+        self.duplicate: set = set()
+        self.nonDuplicate: set = set()
+        self.primary: set = set()
+        self.qcFail: set = set()
+        self.readIds: set = set()
+        self.secondary: set = set()
+        self.supplementary: set = set()
+
+    def add(self, read: AlignedRead) -> None:
+        """
+        Add a matching read to this reference.
+
+        @param read: An C{AlignedRead} to add.
+        """
+        id_ = read.query_name
+
+        if read.is_secondary:
+            self.secondary.add(id_)
+        elif read.is_supplementary:
+            self.supplementary.add(id_)
+        else:
+            self.primary.add(id_)
+
+        # Note that it is possible that a SAM/BAM file has the same read id
+        # more than once with identical flags (with the flags not including
+        # 0x400 (1024, pysam.FDUP). Bowtie2 produces such lines. In such
+        # cases, the read has not been flagged as a duplicate even though
+        # it clearly is. To deal with this, if we see a read id again, we
+        # unconditionally put it into self.duplicate (and make sure it is
+        # not in self.nonDuplicate).
+        if id_ in self.readIds:
+            self.duplicate.add(id_)
+            self.nonDuplicate.discard(id_)
+        else:
+            if read.is_duplicate:
+                self.duplicate.add(id_)
+            else:
+                self.nonDuplicate.add(id_)
+
+        self.readIds.add(id_)
+
+        if read.is_qcfail:
+            self.qcFail.add(id_)
+
+        if read.reference_length is not None:
+            self.coveredOffsets.update(
+                range(
+                    read.reference_start,
+                    read.reference_start + read.reference_length,
+                )
+            )
+
+    def coverage(self) -> float:
+        """
+        Determine the fraction of the reference covered by at least one read.
+
+        @return: The C{float} coverage fraction.
+        """
+        return len(self.coveredOffsets) / self.length
+
+
+class ReadsSummary:
+    """
+    Hold information about reads found in a BAM/SAM file.
+
+    @param samFile: A C{str} filename to read.
+    """
+
+    def __init__(self, samFile: str) -> None:
+        self.mapped: set[str] = set()
+        self.unmapped: set[str] = set()
+        self.readIds: set[str] = set()
+        self.references: dict[str, ReferenceReads] = {}
+        self.referenceLengths = SAMFilter(samFile).referenceLengths()
+        self.sortedBy: Optional[str] = None
+        self.sortedReferences: list[ReferenceReads] = []
+
+        with samfile(samFile) as fp:
+            for read in fp.fetch():
+                id_ = read.query_name
+                self.readIds.add(id_)
+
+                if read.is_unmapped:
+                    self.unmapped.add(id_)
+                    continue
+
+                self.mapped.add(id_)
+
+                referenceName = read.reference_name
+                try:
+                    reference = self.references[referenceName]
+                except KeyError:
+                    reference = self.references[referenceName] = ReferenceReads(
+                        referenceName, self.referenceLengths[referenceName]
+                    )
+
+                reference.add(read)
+
+    def toString(
+        self,
+        excludeZeroes: bool = False,
+        excludeIfNoAdditional: bool = False,
+        sortBy: str = "count",
+    ) -> str:
+        """
+        Return a string suitable for printing.
+
+        @param excludeZeroes: Do not summarize references unmatched by any read.
+        @param excludeIfNoAdditional: Do not summarize references that are mapped
+            by no additional reads (i.e., reads other than those matching
+            already-summarized references). This is useful C{sortBy} is 'count',
+            making it possible to not summarize references only matched by reads
+            matching references that have already been summarized
+        @param sortBy: A C{str} indicating how to sort. Use 'count' to sort by
+            decreasing read count (i.e., the reference with the highest number
+            of matching reads comes first), or 'coverage' to sort by decreasing
+            genome coverage, or 'name' to sort by reference name."
+        @return: A C{list} of sorted C{ReferenceReads} instances.
+        """
+        totalReads = len(self.readIds)
+        result = [
+            "Found a total of %d read%s (%d mapped, %d unmapped) mapping "
+            "against %d of %d reference%s."
+            % (
+                totalReads,
+                "" if totalReads == 1 else "s",
+                len(self.mapped),
+                len(self.unmapped),
+                len(self.references),
+                len(self.referenceLengths),
+                "" if len(self.referenceLengths) == 1 else "s",
+            )
+        ]
+
+        if not self.references:
+            result.append("No reads were mapped to any reference.")
+            return "\n".join(result)
+
+        cumulativeReadIds: set[str] = set()
+
+        if self.sortedBy != sortBy:
+            self.sortedReferences = self.sortReferences(sortBy)
+
+        for count, reference in enumerate(self.sortedReferences, start=1):
+            readIds = reference.readIds
+            readCount = len(readIds)
+            if readCount == 0 and excludeZeroes:
+                continue
+            newReadCount = len(readIds - cumulativeReadIds)
+            if newReadCount == 0 and excludeIfNoAdditional:
+                continue
+            cumulativeReadIds.update(readIds)
+            result.append(
+                "\nReference %d: %s (%d nt):\n"
+                "  Genome coverage: %.2f%%\n"
+                "  Overall reads mapped to the reference: %s\n"
+                "    Non-duplicates: %s, Duplicates: %s, QC fails: %s\n"
+                "    Primary: %s, Secondary: %s, Supplementary: %s\n"
+                "    Reads not matching any reference above: %s\n"
+                "  Previously unmatched reads for this reference: %s"
+                % (
+                    count,
+                    reference.id_,
+                    reference.length,
+                    reference.coverage() * 100.0,
+                    pct(readCount, totalReads),
+                    pct(len(reference.nonDuplicate), readCount),
+                    pct(len(reference.duplicate), readCount),
+                    pct(len(reference.qcFail), readCount),
+                    pct(len(reference.primary), readCount),
+                    pct(len(reference.secondary), readCount),
+                    pct(len(reference.supplementary), readCount),
+                    pct(newReadCount, totalReads),
+                    pct(newReadCount, readCount),
+                )
+            )
+
+        return "\n".join(result)
+
+    def sortReferences(self, sortBy: str = "count"):
+        """
+        Sort the references.
+
+        @param sortBy: A C{str} indicating how to sort. Use 'count' to sort by
+            decreasing read count (i.e., the reference with the highest number
+            of matching reads comes first), or 'coverage' to sort by decreasing
+            genome coverage, or 'name' to sort by reference name."
+        @return: A C{list} of sorted C{ReferenceReads} instances.
+        """
+        if self.sortedBy == sortBy:
+            return self.sortedReferences
+
+        if sortBy == "count":
+            reverse = True
+
+            def key(reference):
+                return len(reference.readIds), reference.coverage()
+
+        elif sortBy == "coverage":
+            reverse = True
+
+            def key(reference):
+                return reference.coverage(), len(reference.readIds)
+
+        else:
+            # Sort by name.
+            reverse = False
+
+            def key(reference):
+                return reference.id_, len(reference.readIds), reference.coverage()
+
+        self.sortedReferences = sorted(self.references.values(), key=key, reverse=reverse)
+        self.sortedBy = sortBy
+
+        return self.sortedReferences

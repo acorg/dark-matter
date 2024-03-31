@@ -1,3 +1,8 @@
+## 4.0.79 March 31, 2024
+
+Added `--sortBy coverage` option to `bin/sam-reference-read-counts.py` and
+moved much of its code into `dark/sam.py`.
+
 ## 4.0.77 March 15, 2024
 
 Prevent an `IndexError` in `bin/sam-reference-read-counts.py` when there

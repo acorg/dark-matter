@@ -219,7 +219,7 @@ class _FeatureAdder:
             for plotting.
         """
         raise NotImplementedError(
-            "_displayFeatures must be implemented in " "a subclass."
+            "_displayFeatures must be implemented in a subclass."
         )
 
 

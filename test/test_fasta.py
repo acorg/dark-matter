@@ -570,7 +570,7 @@ class TestSqliteIndex(TestCase):
     """
 
     def testAddFilename(self):
-        """ "
+        """
         Test the internal _addFilename method.
         """
         index = SqliteIndex(":memory:")
@@ -579,7 +579,7 @@ class TestSqliteIndex(TestCase):
         index.close()
 
     def testAddDuplicateFilename(self):
-        """ "
+        """
         When _addFilename is called twice with the same name, a ValueError
         must be raised.
         """
@@ -589,7 +589,7 @@ class TestSqliteIndex(TestCase):
         assertRaisesRegex(self, ValueError, error, index._addFilename, "f.fas")
 
     def testGetNonexistentFilename(self):
-        """ "
+        """
         If the internal _getFilename method is called with a file number that
         has not been added, it must return None.
         """
@@ -598,7 +598,7 @@ class TestSqliteIndex(TestCase):
         index.close()
 
     def testGetFilename(self):
-        """ "
+        """
         The internal _getFilename method must return the expected result.
         """
         index = SqliteIndex(":memory:")
@@ -607,7 +607,7 @@ class TestSqliteIndex(TestCase):
         index.close()
 
     def testGetNonexistentFileNumber(self):
-        """ "
+        """
         If the internal _getFileNumber method is called with a file whose name
         has not been added, it must return None.
         """
@@ -616,7 +616,7 @@ class TestSqliteIndex(TestCase):
         index.close()
 
     def testGetFileNumber(self):
-        """ "
+        """
         The internal _getFileNumber method must return the expected result.
         """
         index = SqliteIndex(":memory:")
@@ -625,7 +625,7 @@ class TestSqliteIndex(TestCase):
         index.close()
 
     def testBZ2File(self):
-        """ "
+        """
         Trying to add a .bz2 file must result in a ValueError.
         """
         index = SqliteIndex(":memory:")
@@ -636,7 +636,7 @@ class TestSqliteIndex(TestCase):
         assertRaisesRegex(self, ValueError, error, index.addFile, "file.bz2")
 
     def testAddOneFile(self):
-        """ "
+        """
         Test the creation of an index with sequences added from one file.
         """
 
@@ -664,7 +664,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testAddFileWithDuplicateSequence(self):
-        """ "
+        """
         If a sequence id is duplicated in a FASTA file, a ValueError must be
         raised.
         """
@@ -690,13 +690,13 @@ class TestSqliteIndex(TestCase):
             mockMethod.side_effect = sideEffect
             index = SqliteIndex(":memory:")
             error = (
-                "^FASTA sequence id 'id1' found twice in file " "'filename.fasta'\\.$"
+                "^FASTA sequence id 'id1' found twice in file 'filename.fasta'\\.$"
             )
             assertRaisesRegex(self, ValueError, error, index.addFile, "filename.fasta")
             index.close()
 
     def testAddFilesWithDuplicateSequence(self):
-        """ "
+        """
         If a sequence id occurs in more than one FASTA file, a ValueError must
         be raised.
         """
@@ -735,7 +735,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testAddDuplicateFile(self):
-        """ "
+        """
         If a filename is passed to addFile more than once, a ValueError must
         be raised.
         """
@@ -768,7 +768,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testFind(self):
-        """ "
+        """
         The _find method must return the expected filename and offset.
         """
 
@@ -798,7 +798,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testFindWithTwoFiles(self):
-        """ "
+        """
         The _find method must return the expected filename and offset when
         sequences are added from two files.
         """
@@ -835,7 +835,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testDictLookupSequenceCrossesNewlines(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected read when the sequence spans multiple lines of the input file,
         including lines ending in \n and \r\n.
@@ -866,7 +866,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testDictLookupWithFastaDirectory(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected read, obtained from the expected file name, when a FASTA base
         directory is specified.
@@ -903,7 +903,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testDictLookupSequenceLastInFile(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected read when the sequence spans multiple lines and is the last
         one in the input file.
@@ -934,7 +934,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testDictLookupSequenceMiddleOfThree(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected read when the sequence spans multiple lines and is the middle
         one of three sequences in the input file.
@@ -965,7 +965,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testDictLookupWithTwoFiles(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected reads when sequences are added from two files.
         """
@@ -1002,7 +1002,7 @@ class TestSqliteIndex(TestCase):
             index.close()
 
     def testDictLookupSpecificReadClass(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected read type.
         """
@@ -1035,7 +1035,7 @@ class TestSqliteIndex(TestCase):
 
     @skip("Skipped until fix in matplotlib is released")
     def testDictLookupGzipDataWithBGZsuffix(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected read when the index file is in BGZF format and has a .bgz
         suffix.
@@ -1073,7 +1073,7 @@ class TestSqliteIndex(TestCase):
 
     @skip("Skipped until fix in matplotlib is released")
     def testDictLookupGzipData(self):
-        """ "
+        """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
         expected reads when sequences span multiple lines of the input file,
         and include lines ending in \n and \r\n and have been compressed with

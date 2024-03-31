@@ -29,7 +29,7 @@ class TestSSFastaReads(TestCase):
         """
         data = "\n".join([">seq1", "REDD", ">str1", "HH--", ">seq2", "REAA"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            error = "^Structure file 'x.fasta' has an odd number of " "records\\.$"
+            error = "^Structure file 'x.fasta' has an odd number of records\\.$"
             six.assertRaisesRegex(
                 self, ValueError, error, list, SSFastaReads("x.fasta")
             )

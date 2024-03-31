@@ -2362,10 +2362,10 @@ class SqliteIndexWriter:
         """
         cur = self._connection.cursor()
         cur.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS protein_idx ON " "proteins(accession)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS protein_idx ON proteins(accession)"
         )
         cur.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS genomes_idx ON " "genomes(accession)"
+            "CREATE UNIQUE INDEX IF NOT EXISTS genomes_idx ON genomes(accession)"
         )
         self._connection.commit()
         self._connection.close()

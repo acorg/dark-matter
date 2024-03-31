@@ -21,12 +21,12 @@ class TestBowtie2(TestCase):
         bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
         bt.buildIndex("MN908947.3")
         self.assertEqual(
-            "$ bowtie2-build --quiet '/tmp/xxx/MN908947.3.fasta' " "'/tmp/xxx/index'",
+            "$ bowtie2-build --quiet '/tmp/xxx/MN908947.3.fasta' '/tmp/xxx/index'",
             e.log[-1],
         )
         log = fp.getvalue()
         self.assertTrue(
-            log.startswith("Downloading FASTA for accession MN908947.3 " "from NCBI.\n")
+            log.startswith("Downloading FASTA for accession MN908947.3 from NCBI.\n")
         )
 
     @patch("os.path.exists")
@@ -258,7 +258,7 @@ class TestBowtie2(TestCase):
         log = fp.getvalue()
         self.assertTrue(log.endswith("\nConverting SAM to BAM.\n"))
         self.assertEqual(
-            "$ samtools view -b  '/tmp/xxx/result.sam' > " "'/tmp/xxx/result.bam'",
+            "$ samtools view -b  '/tmp/xxx/result.sam' > '/tmp/xxx/result.bam'",
             e.log[-1],
         )
 
@@ -299,7 +299,7 @@ class TestBowtie2(TestCase):
             e.log[-2],
         )
         self.assertEqual(
-            "$ mv '/tmp/xxx/non-duplicates.sam' " "'/tmp/xxx/result.sam'", e.log[-1]
+            "$ mv '/tmp/xxx/non-duplicates.sam' '/tmp/xxx/result.sam'", e.log[-1]
         )
 
     @patch("os.path.exists")
@@ -317,11 +317,11 @@ class TestBowtie2(TestCase):
         log = fp.getvalue()
         self.assertTrue(log.endswith("\nSorting SAM (by coord).\n"))
         self.assertEqual(
-            "$ samtools sort '/tmp/xxx/result.sam' > " "'/tmp/xxx/result-sorted.sam'",
+            "$ samtools sort '/tmp/xxx/result.sam' > '/tmp/xxx/result-sorted.sam'",
             e.log[-2],
         )
         self.assertEqual(
-            "$ mv '/tmp/xxx/result-sorted.sam' " "'/tmp/xxx/result.sam'", e.log[-1]
+            "$ mv '/tmp/xxx/result-sorted.sam' '/tmp/xxx/result.sam'", e.log[-1]
         )
 
     @patch("os.path.exists")
@@ -344,7 +344,7 @@ class TestBowtie2(TestCase):
             e.log[-2],
         )
         self.assertEqual(
-            "$ mv '/tmp/xxx/result-sorted.sam' " "'/tmp/xxx/result.sam'", e.log[-1]
+            "$ mv '/tmp/xxx/result-sorted.sam' '/tmp/xxx/result.sam'", e.log[-1]
         )
 
     @patch("os.path.exists")
@@ -425,7 +425,7 @@ class TestBowtie2(TestCase):
             e.log[-2],
         )
         self.assertEqual(
-            "$ mv '/tmp/xxx/picard-duplicates.bam' " "'/tmp/xxx/result.bam'", e.log[-1]
+            "$ mv '/tmp/xxx/picard-duplicates.bam' '/tmp/xxx/result.bam'", e.log[-1]
         )
 
     @patch("os.path.exists")
@@ -451,7 +451,7 @@ class TestBowtie2(TestCase):
             e.log[-2],
         )
         self.assertEqual(
-            "$ mv '/tmp/xxx/gatk-duplicates.bam' " "'/tmp/xxx/result.bam'", e.log[-1]
+            "$ mv '/tmp/xxx/gatk-duplicates.bam' '/tmp/xxx/result.bam'", e.log[-1]
         )
 
     @patch("os.path.exists")
@@ -478,7 +478,7 @@ class TestBowtie2(TestCase):
             e.log[-2],
         )
         self.assertEqual(
-            "$ mv '/tmp/xxx/gatk-duplicates.bam' " "'/tmp/xxx/result.bam'", e.log[-1]
+            "$ mv '/tmp/xxx/gatk-duplicates.bam' '/tmp/xxx/result.bam'", e.log[-1]
         )
 
     def testClose(self):

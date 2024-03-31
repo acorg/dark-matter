@@ -47,7 +47,7 @@ class Bowtie2:
             # complain). We do things this way to allow a user to use TAB
             # completion on the command line to give them the full path to
             # any bowtie index file.
-            for suffix in ("1.bt2 2.bt2 3.bt2 4.bt2 rev.1.bt2 " "rev.2.bt2").split():
+            for suffix in ("1.bt2 2.bt2 3.bt2 4.bt2 rev.1.bt2 rev.2.bt2").split():
                 suffix = "." + suffix
                 if index.endswith(suffix):
                     self._indexFile = index[: -len(suffix)]
@@ -359,7 +359,7 @@ class Bowtie2:
         )
 
         if self._reference is None:
-            self._report("Will use this FASTA file as the reference " "(if needed).")
+            self._report("Will use this FASTA file as the reference (if needed).")
             self._reference = fastaFilename
 
         return index

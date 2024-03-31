@@ -470,7 +470,7 @@ class TestBlastReadsAlignments(TestCase):
                 cur.execute("INSERT INTO files(name) VALUES (?)", ("xxx.fasta",))
                 fileNumber = cur.lastrowid
                 cur.execute(
-                    "INSERT INTO sequences(id, " "fileNumber, offset) VALUES (?, ?, ?)",
+                    "INSERT INTO sequences(id, fileNumber, offset) VALUES (?, ?, ?)",
                     ("seqid", fileNumber, 7),
                 )
                 connection.commit()

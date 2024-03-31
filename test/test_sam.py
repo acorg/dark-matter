@@ -6,19 +6,21 @@ from contextlib import contextmanager
 from io import StringIO
 from json import dumps, loads
 import numpy as np
+from dataclasses import dataclass
 
 from pysam import CHARD_CLIP, CMATCH
 
 from dark.reads import Read, ReadFilter
 from dark.sam import (
+    DistanceMatrix,
+    InvalidSAM,
     PaddedSAM,
+    ReferenceReads,
     SAMFilter,
     UnequalReferenceLengthError,
     UnknownReference,
-    InvalidSAM,
-    samReferencesToStr,
     _hardClip,
-    DistanceMatrix,
+    samReferencesToStr,
 )
 
 # Note: getReferenceInfo in dark/sam.py is tested by the calls to
@@ -61,7 +63,7 @@ class TestSAMFilter(TestCase):
 
         with dataFile(data) as filename:
             sam = SAMFilter(filename, referenceIds={"unknown"})
-            error = "^Reference 'unknown' is not present in the " "SAM/BAM file\\.$"
+            error = "^Reference 'unknown' is not present in the SAM/BAM file\\.$"
             assertRaisesRegex(self, UnknownReference, error, sam.referenceLengths)
 
     def testNoFilteringOptions(self):
@@ -2149,3 +2151,137 @@ class TestDistanceMatrix(TestCase):
                 matrix,
             )
         )
+
+
+@dataclass
+class AlignedRead:
+    """
+    Hold aligned read attributes that correspond to the pysam.AlignedRead class.
+
+    We cannot just make an instance of that class using pure Python because
+    it is implemented in C using data read from a BAM/SAM file and its attributes
+    are read-only.
+    """
+
+    is_duplicate: bool = False
+    is_qcfail: bool = False
+    is_secondary: bool = False
+    is_supplementary: bool = False
+    query_name: str = ""
+    reference_length: int = 0
+    reference_start: int = 0
+
+
+class TestReferenceReads(TestCase):
+    """
+    Test the ReferenceReads class.
+    """
+
+    def testAttributes(self):
+        "A ReferenceReads instance must have attributes with the expected values."
+        rr = ReferenceReads("id", 500)
+        self.assertEqual("id", rr.id_)
+        self.assertEqual(500, rr.length)
+        # The read id sets must all be empty.
+        for attr in (
+            "coveredOffsets",
+            "duplicate",
+            "nonDuplicate",
+            "primary",
+            "qcFail",
+            "readIds",
+            "secondary",
+            "supplementary",
+        ):
+            self.assertEqual(set(), getattr(rr, attr))
+
+    def testQueryName(self):
+        "Query names (read ids) must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1"))
+        rr.add(AlignedRead(query_name="q2"))
+        self.assertEqual({"q1", "q2"}, rr.readIds)
+
+    def testPrimary(self):
+        "Primary (non-secondary, non-supplementary) reads must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1"))
+        self.assertEqual({"q1"}, rr.primary)
+
+    def testSecondary(self):
+        "Secondary reads must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1", is_secondary=True))
+        self.assertEqual({"q1"}, rr.secondary)
+
+    def testSupplementar(self):
+        "Supplementary reads must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1", is_supplementary=True))
+        self.assertEqual({"q1"}, rr.supplementary)
+
+    def testDuplicate(self):
+        "Duplicate reads must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1", is_duplicate=True))
+        self.assertEqual({"q1"}, rr.duplicate)
+
+    def testNonDuplicate(self):
+        "Non-duplicate reads must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1"))
+        self.assertEqual({"q1"}, rr.nonDuplicate)
+
+    def testDuplicateId(self):
+        "If a read id is repeated, the read id must be placed in the duplicate set."
+        # See the comment about this possibility in the 'add' method of the
+        # ReferenceReads class in ../dark/sam.py
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1"))
+        rr.add(AlignedRead(query_name="q1"))
+        self.assertEqual({"q1"}, rr.duplicate)
+        self.assertEqual(set(), rr.nonDuplicate)
+
+    def testQcFail(self):
+        "QC failed reads must be added correctly."
+        rr = ReferenceReads("id", 500)
+        rr.add(AlignedRead(query_name="q1", is_qcfail=True))
+        self.assertEqual({"q1"}, rr.qcFail)
+
+    def testZeroCoverage(self):
+        "If no reads are added, the coverage fraction must be 0.0"
+        rr = ReferenceReads("id", 500)
+        self.assertEqual(0.0, rr.coverage())
+
+    def testCoverageTwentyPercent(self):
+        "If one-fifth of the reference genome is covered, coverage() must return 0.2"
+        rr = ReferenceReads("id", 500)
+        read = AlignedRead(
+            reference_start=100,
+            reference_length=100,
+        )
+        rr.add(read)
+        self.assertEqual(set(range(100, 200)), rr.coveredOffsets)
+        self.assertEqual(0.2, rr.coverage())
+
+    def testOverlappingCoverageEightyPercent(self):
+        "If 80% of the reference genome is covered, coverage() must return 0.8"
+        rr = ReferenceReads("id", 500)
+        for count, (start, length) in enumerate(
+            (
+                (50, 100),
+                (150, 100),
+                (250, 100),
+                (350, 100),
+            )
+        ):
+            rr.add(
+                AlignedRead(
+                    query_name=str(count),
+                    reference_start=start,
+                    reference_length=length,
+                )
+            ),
+
+        self.assertEqual(set(range(50, 450)), rr.coveredOffsets)
+        self.assertEqual(0.8, rr.coverage())

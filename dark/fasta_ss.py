@@ -59,7 +59,7 @@ class SSFastaReads(Reads):
                         structureRecord = next(records)
                     except StopIteration:
                         raise ValueError(
-                            "Structure file %r has an odd number " "of records." % _file
+                            "Structure file %r has an odd number of records." % _file
                         )
 
                     if len(structureRecord) != len(record):

@@ -235,7 +235,7 @@ def removeUnnecessaryGaps(
             return seq1, seq2
 
     raise RuntimeError(
-        "Fell off the end of removeFirstUnnecessaryGaps. " "This should be impossible!"
+        "Fell off the end of removeFirstUnnecessaryGaps. This should be impossible!"
     )
 
 
