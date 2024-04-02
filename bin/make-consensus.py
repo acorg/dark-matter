@@ -102,7 +102,7 @@ def main():
         "--noClean",
         action="store_false",
         dest="clean",
-        help=("Do not remove intermediate files or the temporary directory."),
+        help="Do not remove intermediate files or the temporary directory.",
     )
 
     parser.add_argument(
@@ -147,7 +147,7 @@ def main():
 
     parser.add_argument(
         "--ivarBedFile",
-        help=("If ivar should trim primers, a BED file of the primer " "positions."),
+        help="If ivar should trim primers, a BED file of the primer " "positions.",
     )
 
     args = parser.parse_args()
