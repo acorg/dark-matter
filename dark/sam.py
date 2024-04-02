@@ -1480,13 +1480,14 @@ class ReadsSummary:
             def key(reference):
                 return reference.coverage(), len(reference.readIds)
 
-        else:
-            # Sort by name.
-            assert sortBy == "name", f"Unknown sortBy value {sortBy!r}."
+        elif sortBy == "name":
             reverse = False
 
             def key(reference):
                 return reference.id_, len(reference.readIds), reference.coverage()
+
+        else:
+            raise ValueError(f"Unknown sortBy value {sortBy!r}.")
 
         self.sortedReferences = sorted(self.references.values(), key=key, reverse=reverse)
         self.sortedBy = sortBy

@@ -13,7 +13,7 @@ def main(args):
     @param args: An argparse namespace with information about parsed
         command-line options.
     """
-    if args.topReferenceIdsFile and args.sortBy == "name":
+    if args.topReferenceIdsFile and args.sortBy not in ("count", "coverage"):
         print(
             "--topReferenceIdsFile only makes sense when sorting by count or coverage",
             file=sys.stderr,

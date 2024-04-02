@@ -126,7 +126,7 @@ setup(
     packages=["dark", "dark.blast", "dark.diamond", "dark.civ"],
     url="https://github.com/acorg/dark-matter",
     download_url="https://github.com/acorg/dark-matter",
-    author="Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, Udo Gieraths",
+    author="Terry Jones, Barbara Mühlemann, Tali Veith, Sophie Mathias, Udo Gieraths, Nikolai Zaki",
     author_email="tcj25@cam.ac.uk",
     keywords=["virus discovery"],
     classifiers=[
