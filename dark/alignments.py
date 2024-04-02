@@ -466,7 +466,7 @@ class ReadsAlignments:
             subclass.
         """
         raise NotImplementedError(
-            "getSubjectSequence must be implemented by " "a subclass"
+            "getSubjectSequence must be implemented by a subclass"
         )
 
     def hsps(self) -> Generator[Union[HSP, LSP], None, None]:

@@ -280,7 +280,6 @@ def addFASTAFilteringCommandLineOptions(parser):
     _removeGroup.add_argument(
         "--removeDuplicates",
         action="store_true",
-        default=False,
         help=(
             "Duplicate reads will be removed, based only on "
             "sequence identity. The first occurrence is kept."
@@ -290,7 +289,6 @@ def addFASTAFilteringCommandLineOptions(parser):
     _removeGroup.add_argument(
         "--removeDuplicatesById",
         action="store_true",
-        default=False,
         help=(
             "Duplicate reads will be removed, based only on "
             "read id. The first occurrence is kept."
@@ -300,7 +298,6 @@ def addFASTAFilteringCommandLineOptions(parser):
     parser.add_argument(
         "--removeDuplicatesUseMD5",
         action="store_true",
-        default=False,
         help=(
             "MD5 sums will be stored instead of the full sequence or read "
             "id when either --removeDuplicates or removeDuplicatesById are "
@@ -518,14 +515,12 @@ def addFASTAEditingCommandLineOptions(parser):
     parser.add_argument(
         "--reverse",
         action="store_true",
-        default=False,
-        help=("Reverse the sequences. Note that this is NOT reverse " "complementing."),
+        help="Reverse the sequences. Note that this is NOT reverse complementing.",
     )
 
     parser.add_argument(
         "--reverseComplement",
         action="store_true",
-        default=False,
         help="Reverse complement the sequences.",
     )
 

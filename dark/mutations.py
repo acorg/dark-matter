@@ -29,7 +29,7 @@ def basePlotter(blastHits, title):
     result = []
     params = blastHits.plotParams
     assert params is not None, (
-        "Oops, it looks like you forgot to run " "computePlotInfo."
+        "Oops, it looks like you forgot to run computePlotInfo."
     )
 
     sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
@@ -40,7 +40,7 @@ def basePlotter(blastHits, title):
 
     plotInfo = blastHits.titles[title]["plotInfo"]
     assert plotInfo is not None, (
-        "Oops, it looks like you forgot to run " "computePlotInfo."
+        "Oops, it looks like you forgot to run computePlotInfo."
     )
 
     items = plotInfo["items"]

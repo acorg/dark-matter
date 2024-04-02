@@ -311,7 +311,7 @@ class TitlesAlignments(dict):
         """
         if title in self:
             raise KeyError(
-                "Title %r already present in TitlesAlignments " "instance." % title
+                "Title %r already present in TitlesAlignments instance." % title
             )
         else:
             self[title] = titleAlignments

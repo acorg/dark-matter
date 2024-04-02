@@ -168,7 +168,7 @@ class Read:
                     self.quality,
                 )
         else:
-            raise ValueError("Format must be either 'fasta', 'fastq' or " "'fasta-ss'.")
+            raise ValueError("Format must be either 'fasta', 'fastq' or 'fasta-ss'.")
 
     def toDict(self) -> dict:
         """
@@ -575,7 +575,7 @@ class AARead(Read):
         readLetters = super().checkAlphabet(count)
         if len(self) > 10 and readLetters.issubset(set("ACGT")):
             raise ValueError(
-                "It looks like a DNA sequence has been passed to " "AARead()."
+                "It looks like a DNA sequence has been passed to AARead()."
             )
         return readLetters
 
@@ -1161,7 +1161,7 @@ class ReadFilter:
 
             if trueLength is None:
                 raise ValueError(
-                    "trueLength must be supplied if randomSubset " "is specified."
+                    "trueLength must be supplied if randomSubset is specified."
                 )
 
         self.minLength = minLength
@@ -1996,7 +1996,7 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
         "--fasta",
         default=False,
         action="store_true",
-        help=("If specified, input will be treated as FASTA. This is the " "default."),
+        help="If specified, input will be treated as FASTA. This is the default.",
     )
 
     group.add_argument(

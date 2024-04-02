@@ -222,7 +222,7 @@ def softClippedOffset(offset, pairs, cigarOperations):
 
     # This should be impossible.
     raise ValueError(
-        "Soft-clipped base with no following or preceding " "non-hard-clipped bases."
+        "Soft-clipped base with no following or preceding non-hard-clipped bases."
     )
 
 
@@ -269,4 +269,4 @@ def insertionOffset(offset, pairs, cigarOperations):
                 return False, referenceOffset
 
     # This should be impossible.
-    raise ValueError("Inserted base with no following or preceding " "reference bases.")
+    raise ValueError("Inserted base with no following or preceding reference bases.")

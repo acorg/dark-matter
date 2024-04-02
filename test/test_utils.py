@@ -196,7 +196,7 @@ class TestParseRangeString(TestCase):
         """
         An empty string must produce an empty set of indices.
         """
-        error = "^Illegal range ''. Ranges must single numbers or " "number-number\\.$"
+        error = "^Illegal range ''. Ranges must single numbers or number-number\\.$"
         assertRaisesRegex(self, ValueError, error, parseRangeString, "")
 
     def testSingleNumber(self):
