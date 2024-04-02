@@ -1391,7 +1391,7 @@ class ReadsSummary:
         @param sortBy: A C{str} indicating how to sort. Use 'count' to sort by
             decreasing read count (i.e., the reference with the highest number
             of matching reads comes first), or 'coverage' to sort by decreasing
-            genome coverage, or 'name' to sort by reference name."
+            genome coverage, or 'name' to sort by reference name.
         @return: A C{list} of sorted C{ReferenceReads} instances.
         """
         totalReads = len(self.readIds)
@@ -1461,7 +1461,8 @@ class ReadsSummary:
         @param sortBy: A C{str} indicating how to sort. Use 'count' to sort by
             decreasing read count (i.e., the reference with the highest number
             of matching reads comes first), or 'coverage' to sort by decreasing
-            genome coverage, or 'name' to sort by reference name."
+            genome coverage, or 'name' to sort by reference name.
+        @raise AssertionError: If C{sortBy} has an unknown value.
         @return: A C{list} of sorted C{ReferenceReads} instances.
         """
         if self.sortedBy == sortBy:
@@ -1481,6 +1482,7 @@ class ReadsSummary:
 
         else:
             # Sort by name.
+            assert sortBy == "name", f"Unknown sortBy value {sortBy!r}."
             reverse = False
 
             def key(reference):
