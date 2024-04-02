@@ -293,8 +293,11 @@ class TestBowtie2(TestCase):
         bt.removeDuplicates()
         log = fp.getvalue()
         self.assertTrue(log.endswith("\nRemoving marked duplicates.\n"))
+        # Note the two spaces in the following. This is due to the way the "-b"
+        # argument is inserted when BAM is being made (which is not the case
+        # here).
         self.assertEqual(
-            "$ samtools view -b -F 1024 '/tmp/xxx/result.sam' "
+            "$ samtools view  -F 1024 '/tmp/xxx/result.sam' "
             "> '/tmp/xxx/non-duplicates.sam'",
             e.log[-2],
         )
