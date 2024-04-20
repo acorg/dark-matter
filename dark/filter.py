@@ -128,9 +128,9 @@ class SequenceFilter:
         that give exact sequences that are always acceptable.
     @param blacklistFile: If not C{None}, a C{str} filename containing lines
         that give exact sequences that are never acceptable.
-    @param positiveRegex: If not C{None}, a C{str} regex that sequence sequences
+    @param positiveRegex: If not C{None}, a C{str} regex that sequences
         must match (case is ignored).
-    @param negativeRegex: If not C{None}, a C{str} regex that sequence sequences
+    @param negativeRegex: If not C{None}, a C{str} regex that sequences
         must not match (case is ignored).
     """
 
