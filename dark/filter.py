@@ -116,6 +116,93 @@ class TitleFilter:
         return self.DEFAULT_ACCEPT
 
 
+class SequenceFilter:
+    """
+    Provide an acceptance test for sequences.
+
+    @param whitelist: If not C{None}, a C{set} of exact sequences that are always
+        acceptable.
+    @param blacklist: If not C{None}, a C{set} of exact sequences that are never
+        acceptable.
+    @param whitelistFile: If not C{None}, a C{str} filename containing lines
+        that give exact sequences that are always acceptable.
+    @param blacklistFile: If not C{None}, a C{str} filename containing lines
+        that give exact sequences that are never acceptable.
+    @param positiveRegex: If not C{None}, a C{str} regex that sequence sequences
+        must match (case is ignored).
+    @param negativeRegex: If not C{None}, a C{str} regex that sequence sequences
+        must not match (case is ignored).
+    """
+
+    REJECT = 0
+    WHITELIST_ACCEPT = 1
+    DEFAULT_ACCEPT = 2
+
+    def __init__(
+        self,
+        whitelist=None,
+        blacklist=None,
+        whitelistFile=None,
+        blacklistFile=None,
+        positiveRegex=None,
+        negativeRegex=None,
+    ):
+        whitelist = whitelist or set()
+        if whitelistFile:
+            with open(whitelistFile) as fp:
+                for line in fp:
+                    whitelist.add(line[:-1])
+        self._whitelist = whitelist
+
+        blacklist = blacklist or set()
+        if blacklistFile:
+            with open(blacklistFile) as fp:
+                for line in fp:
+                    blacklist.add(line[:-1])
+        self._blacklist = blacklist
+
+        if positiveRegex is None:
+            self._positiveRegex = None
+        else:
+            self._positiveRegex = re.compile(positiveRegex, re.I)
+
+        if negativeRegex is None:
+            self._negativeRegex = None
+        else:
+            self._negativeRegex = re.compile(negativeRegex, re.I)
+
+    def accept(self, sequence):
+        """
+        Return a value (see below) to indicate if a sequence is acceptable (and,
+        if so, in what way).
+
+        @param sequence: A C{str} sequence.
+        @return: An C{int} to indicate an acceptable sequence or not. This will be
+
+            C{self.REJECT} if the sequence is unacceptable.
+            C{self.WHITELIST_ACCEPT} if the sequence is whitelisted.
+            C{self.DEFAULT_ACCEPT} if the sequence is acceptable by default.
+
+            These three values are needed so our caller can distinguish between
+            the two reasons for acceptance.
+        """
+        if self._whitelist and sequence in self._whitelist:
+            return self.WHITELIST_ACCEPT
+
+        if self._blacklist and sequence in self._blacklist:
+            return self.REJECT
+
+        # If we have a positive regex but we don't match it, reject.
+        if self._positiveRegex and self._positiveRegex.search(sequence) is None:
+            return self.REJECT
+
+        # If we have a negative regex and we do match it, reject.
+        if self._negativeRegex and self._negativeRegex.search(sequence) is not None:
+            return self.REJECT
+
+        return self.DEFAULT_ACCEPT
+
+
 class ReadSetFilter:
     """
     Provide an acceptance test based on sequence read set.
@@ -241,6 +328,50 @@ def addFASTAFilteringCommandLineOptions(parser):
         "--negativeTitleRegex",
         metavar="REGEX",
         help="A regex that sequence titles (ids) must not match.",
+    )
+
+    parser.add_argument(
+        "--sequenceWhitelist",
+        action="append",
+        metavar="SEQUENCE",
+        help="Sequences that should be whitelisted",
+    )
+
+    parser.add_argument(
+        "--sequenceBlacklist",
+        action="append",
+        metavar="SEQUENCE",
+        help="Sequences that should be blacklisted",
+    )
+
+    parser.add_argument(
+        "--sequenceWhitelistFile",
+        metavar="SEQUENCE-FILE",
+        help=(
+            "The name of a file that contains sequences that "
+            "should be whitelisted, one per line"
+        ),
+    )
+
+    parser.add_argument(
+        "--sequenceBlacklistFile",
+        metavar="SEQUENCE-FILE",
+        help=(
+            "The name of a file that contains sequences that "
+            "should be blacklisted, one per line"
+        ),
+    )
+
+    parser.add_argument(
+        "--sequenceRegex",
+        metavar="REGEX",
+        help="A regex that sequences must match.",
+    )
+
+    parser.add_argument(
+        "--sequenceNegativeRegex",
+        metavar="REGEX",
+        help="A regex that sequences must not match.",
     )
 
     # A mutually exclusive group for --keepSequences and --removeSequences.
@@ -386,6 +517,12 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
         blacklistFile=args.blacklistFile,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
+        sequenceWhitelist=set(args.sequenceWhitelist) if args.sequenceWhitelist else None,
+        sequenceBlacklist=set(args.sequenceBlacklist) if args.sequenceBlacklist else None,
+        sequenceWhitelistFile=args.sequenceWhitelistFile,
+        sequenceBlacklistFile=args.sequenceBlacklistFile,
+        sequenceRegex=args.sequenceRegex,
+        sequenceNegativeRegex=args.sequenceNegativeRegex,
         keepSequences=keepSequences,
         removeSequences=removeSequences,
         head=args.head,

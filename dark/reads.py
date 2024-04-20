@@ -38,7 +38,7 @@ from dark.aaVars import (
     PROPERTY_DETAILS,
     NONE,
 )
-from dark.filter import TitleFilter
+from dark.filter import SequenceFilter, TitleFilter
 from dark.hsp import HSP
 from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
@@ -1132,6 +1132,12 @@ class ReadFilter:
         titleRegex: Optional[str] = None,
         negativeTitleRegex: Optional[str] = None,
         truncateTitlesAfter: Optional[str] = None,
+        sequenceWhitelist: Optional[set[str]] = None,
+        sequenceBlacklist: Optional[set[str]] = None,
+        sequenceWhitelistFile: Optional[str] = None,
+        sequenceBlacklistFile: Optional[str] = None,
+        sequenceRegex: Optional[str] = None,
+        sequenceNegativeRegex: Optional[str] = None,
         keepSequences: Optional[set[int]] = None,
         removeSequences: Optional[set[int]] = None,
         head: Optional[int] = None,
@@ -1272,6 +1278,25 @@ class ReadFilter:
         else:
             self.titleFilter = None
 
+        if (
+            sequenceWhitelist
+            or sequenceBlacklist
+            or sequenceWhitelistFile
+            or sequenceBlacklistFile
+            or sequenceRegex
+            or sequenceNegativeRegex
+        ):
+            self.sequenceFilter = SequenceFilter(
+                whitelist=sequenceWhitelist,
+                blacklist=sequenceBlacklist,
+                whitelistFile=sequenceWhitelistFile,
+                blacklistFile=sequenceBlacklistFile,
+                positiveRegex=sequenceRegex,
+                negativeRegex=sequenceNegativeRegex,
+            )
+        else:
+            self.sequenceFilter = None
+
         if removeDuplicates:
             self.sequencesSeen = set()
 
@@ -1373,6 +1398,12 @@ class ReadFilter:
                 )
 
         if self.titleFilter and self.titleFilter.accept(read.id) == TitleFilter.REJECT:
+            return False
+
+        if (
+            self.sequenceFilter
+            and self.sequenceFilter.accept(read.sequence) == SequenceFilter.REJECT
+        ):
             return False
 
         if self.keepSequences is not None and self.readIndex not in self.keepSequences:
