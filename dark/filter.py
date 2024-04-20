@@ -45,14 +45,14 @@ class TitleFilter:
         if whitelistFile:
             with open(whitelistFile) as fp:
                 for line in fp:
-                    whitelist.add(line[:-1])
+                    whitelist.add(line.strip())
         self._whitelist = whitelist
 
         blacklist = blacklist or set()
         if blacklistFile:
             with open(blacklistFile) as fp:
                 for line in fp:
-                    blacklist.add(line[:-1])
+                    blacklist.add(line.strip())
         self._blacklist = blacklist
 
         if truncateAfter is None:
@@ -151,14 +151,14 @@ class SequenceFilter:
         if whitelistFile:
             with open(whitelistFile) as fp:
                 for line in fp:
-                    whitelist.add(line[:-1])
+                    whitelist.add(line.strip())
         self._whitelist = whitelist
 
         blacklist = blacklist or set()
         if blacklistFile:
             with open(blacklistFile) as fp:
                 for line in fp:
-                    blacklist.add(line[:-1])
+                    blacklist.add(line.strip())
         self._blacklist = blacklist
 
         if positiveRegex is None:
