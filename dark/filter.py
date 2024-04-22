@@ -1,7 +1,14 @@
+from __future__ import annotations
+
 import re
 from math import ceil
 from collections import OrderedDict
+from typing import Optional, TYPE_CHECKING
+import argparse
 
+if TYPE_CHECKING:
+    from dark.reads import Reads
+    from dark.titles import TitleAlignment
 from dark.simplify import simplifyTitle
 from dark.utils import parseRangeExpression
 
@@ -27,20 +34,21 @@ class TitleFilter:
         be acceptable.
     """
 
+    # The following are return values for the self.accept method.
     REJECT = 0
     WHITELIST_ACCEPT = 1
     DEFAULT_ACCEPT = 2
 
     def __init__(
         self,
-        whitelist=None,
-        blacklist=None,
-        whitelistFile=None,
-        blacklistFile=None,
-        positiveRegex=None,
-        negativeRegex=None,
-        truncateAfter=None,
-    ):
+        whitelist: Optional[set[str]] = None,
+        blacklist: Optional[set[str]] = None,
+        whitelistFile: Optional[str] = None,
+        blacklistFile: Optional[str] = None,
+        positiveRegex: Optional[str] = None,
+        negativeRegex: Optional[str] = None,
+        truncateAfter: Optional[str] = None,
+    ) -> None:
         whitelist = whitelist or set()
         if whitelistFile:
             with open(whitelistFile) as fp:
@@ -56,7 +64,7 @@ class TitleFilter:
         self._blacklist = blacklist
 
         if truncateAfter is None:
-            self._truncated = None
+            self._truncated: Optional[dict[str, str]] = None
         else:
             self._truncateAfter = truncateAfter
             self._truncated = {}
@@ -71,7 +79,7 @@ class TitleFilter:
         else:
             self._negativeRegex = re.compile(negativeRegex, re.I)
 
-    def accept(self, title):
+    def accept(self, title: str) -> int:
         """
         Return a value (see below) to indicate if a title is acceptable (and,
         if so, in what way).
@@ -134,19 +142,20 @@ class SequenceFilter:
         must not match (case is ignored).
     """
 
+    # The following are return values for the self.accept method.
     REJECT = 0
     WHITELIST_ACCEPT = 1
     DEFAULT_ACCEPT = 2
 
     def __init__(
         self,
-        whitelist=None,
-        blacklist=None,
-        whitelistFile=None,
-        blacklistFile=None,
-        positiveRegex=None,
-        negativeRegex=None,
-    ):
+        whitelist: Optional[set[str]] = None,
+        blacklist: Optional[set[str]] = None,
+        whitelistFile: Optional[str] = None,
+        blacklistFile: Optional[str] = None,
+        positiveRegex: Optional[str] = None,
+        negativeRegex: Optional[str] = None,
+    ) -> None:
         whitelist = whitelist or set()
         if whitelistFile:
             with open(whitelistFile) as fp:
@@ -171,7 +180,7 @@ class SequenceFilter:
         else:
             self._negativeRegex = re.compile(negativeRegex, re.I)
 
-    def accept(self, sequence):
+    def accept(self, sequence: str) -> int:
         """
         Return a value (see below) to indicate if a sequence is acceptable (and,
         if so, in what way).
@@ -212,14 +221,14 @@ class ReadSetFilter:
         considered acceptably different.
     """
 
-    def __init__(self, minNew):
+    def __init__(self, minNew: float) -> None:
         self._minNew = minNew
         # Use an OrderedDict so that each time we walk through self._titles
         # we do it in the same order. This makes our runs deterministic /
         # reproducible.
         self._titles = OrderedDict()
 
-    def accept(self, title, titleAlignments):
+    def accept(self, title: str, titleAlignments: TitleAlignment) -> bool:
         """
         Return C{True} if the read id set in C{titleAlignments} is sufficiently
         different from all previously seen read sets.
@@ -248,7 +257,7 @@ class ReadSetFilter:
 
         return True
 
-    def invalidates(self, title):
+    def invalidates(self, title: str) -> list[str]:
         """
         Report on which other titles were invalidated by a given title.
 
@@ -261,7 +270,7 @@ class ReadSetFilter:
             return []
 
 
-def addFASTAFilteringCommandLineOptions(parser):
+def addFASTAFilteringCommandLineOptions(parser: argparse.ArgumentParser) -> None:
     """
     Add standard FASTA filtering command-line options to an argparse parser.
 
@@ -272,32 +281,32 @@ def addFASTAFilteringCommandLineOptions(parser):
     @param parser: An C{argparse.ArgumentParser} instance.
     """
     parser.add_argument(
-        "--minLength", type=int, metavar="N", help="The minimum sequence length"
+        "--minLength", type=int, metavar="N", help="The minimum sequence length."
     )
 
     parser.add_argument(
-        "--maxLength", type=int, metavar="N", help="The maximum sequence length"
+        "--maxLength", type=int, metavar="N", help="The maximum sequence length."
     )
 
     parser.add_argument(
         "--maxNFraction",
         type=float,
         metavar="N",
-        help="The maximum fraction of Ns that can be present in the sequence",
+        help="The maximum fraction of Ns that can be present in the sequence.",
     )
 
     parser.add_argument(
         "--whitelist",
         action="append",
         metavar="SEQUENCE-ID",
-        help="Sequence titles (ids) that should be whitelisted",
+        help="Sequence titles (ids) that should be whitelisted. May be repeated.",
     )
 
     parser.add_argument(
         "--blacklist",
         action="append",
         metavar="SEQUENCE-ID",
-        help="Sequence titles (ids) that should be blacklisted",
+        help="Sequence titles (ids) that should be blacklisted. May be repeated.",
     )
 
     parser.add_argument(
@@ -314,7 +323,7 @@ def addFASTAFilteringCommandLineOptions(parser):
         metavar="SEQUENCE-ID-FILE",
         help=(
             "The name of a file that contains sequence titles (ids) that "
-            "should be blacklisted, one per line"
+            "should be blacklisted, one per line."
         ),
     )
 
@@ -334,22 +343,22 @@ def addFASTAFilteringCommandLineOptions(parser):
         "--sequenceWhitelist",
         action="append",
         metavar="SEQUENCE",
-        help="Sequences that should be whitelisted",
+        help="Sequences that should be whitelisted. May be repeated.",
     )
 
     parser.add_argument(
         "--sequenceBlacklist",
         action="append",
         metavar="SEQUENCE",
-        help="Sequences that should be blacklisted",
+        help="Sequences that should be blacklisted. May be repeated.",
     )
 
     parser.add_argument(
         "--sequenceWhitelistFile",
         metavar="SEQUENCE-FILE",
         help=(
-            "The name of a file that contains sequences that "
-            "should be whitelisted, one per line"
+            "The name of a file that contains sequences that should be whitelisted, "
+            "one per line."
         ),
     )
 
@@ -357,8 +366,8 @@ def addFASTAFilteringCommandLineOptions(parser):
         "--sequenceBlacklistFile",
         metavar="SEQUENCE-FILE",
         help=(
-            "The name of a file that contains sequences that "
-            "should be blacklisted, one per line"
+            "The name of a file that contains sequences that should be blacklisted, "
+            "one per line."
         ),
     )
 
@@ -412,8 +421,8 @@ def addFASTAFilteringCommandLineOptions(parser):
         "--removeDuplicates",
         action="store_true",
         help=(
-            "Duplicate reads will be removed, based only on "
-            "sequence identity. The first occurrence is kept."
+            "Duplicate reads will be removed, based only on sequence identity. The "
+            "first occurrence is kept."
         ),
     )
 
@@ -421,8 +430,8 @@ def addFASTAFilteringCommandLineOptions(parser):
         "--removeDuplicatesById",
         action="store_true",
         help=(
-            "Duplicate reads will be removed, based only on "
-            "read id. The first occurrence is kept."
+            "Duplicate reads will be removed, based only on read id. The first "
+            "occurrence is kept."
         ),
     )
 
@@ -485,7 +494,9 @@ def addFASTAFilteringCommandLineOptions(parser):
     )
 
 
-def parseFASTAFilteringCommandLineOptions(args, reads):
+def parseFASTAFilteringCommandLineOptions(
+    args: argparse.Namespace, reads: Reads
+) -> Reads:
     """
     Examine parsed FASTA filtering command-line options and return filtered
     reads.
@@ -517,8 +528,12 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
         blacklistFile=args.blacklistFile,
         titleRegex=args.titleRegex,
         negativeTitleRegex=args.negativeTitleRegex,
-        sequenceWhitelist=set(args.sequenceWhitelist) if args.sequenceWhitelist else None,
-        sequenceBlacklist=set(args.sequenceBlacklist) if args.sequenceBlacklist else None,
+        sequenceWhitelist=set(args.sequenceWhitelist)
+        if args.sequenceWhitelist
+        else None,
+        sequenceBlacklist=set(args.sequenceBlacklist)
+        if args.sequenceBlacklist
+        else None,
         sequenceWhitelistFile=args.sequenceWhitelistFile,
         sequenceBlacklistFile=args.sequenceBlacklistFile,
         sequenceRegex=args.sequenceRegex,
@@ -536,7 +551,7 @@ def parseFASTAFilteringCommandLineOptions(args, reads):
     )
 
 
-def addFASTAEditingCommandLineOptions(parser):
+def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
     """
     Add standard FASTA editing command-line options to an argparse parser.
 
@@ -662,7 +677,9 @@ def addFASTAEditingCommandLineOptions(parser):
     )
 
 
-def parseFASTAEditingCommandLineOptions(args, reads):
+def parseFASTAEditingCommandLineOptions(
+    args: argparse.Namespace, reads: Reads
+) -> Reads:
     """
     Examine parsed FASTA editing command-line options and return information
     about kept sites and sequences.
