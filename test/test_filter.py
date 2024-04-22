@@ -2,7 +2,7 @@ from six.moves import builtins
 from unittest import TestCase
 from unittest.mock import patch, mock_open
 
-from dark.filter import ReadSetFilter, TitleFilter
+from dark.filter import ReadSetFilter, SequenceFilter, TitleFilter
 from dark.reads import Read
 from dark.titles import TitleAlignment, TitleAlignments
 
@@ -197,6 +197,125 @@ class TitleFilterTest(TestCase):
             self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept("id2"))
             self.assertEqual(TitleFilter.WHITELIST_ACCEPT, tf.accept("id3"))
             self.assertEqual(TitleFilter.REJECT, tf.accept("id4"))
+
+
+class SequenceFilterTest(TestCase):
+    """
+    Tests for the L{dark.filter.SequenceFilter} class.
+    """
+
+    def testNoRestriction(self):
+        """
+        Testing for acceptance against a sequence filter that has no
+        restrictions should return C{SequenceFilter.DEFAULT_ACCEPT}.
+        """
+        sf = SequenceFilter()
+        self.assertEqual(SequenceFilter.DEFAULT_ACCEPT, sf.accept("ACGT"))
+
+    def testPositiveRegex(self):
+        """
+        Testing for acceptance against a sequence filter with a positive regex
+        must work.
+        """
+        sf = SequenceFilter(positiveRegex=r"G+C")
+        self.assertEqual(SequenceFilter.DEFAULT_ACCEPT, sf.accept("AAGGGC"))
+        self.assertEqual(SequenceFilter.REJECT, sf.accept("AAGGGTT"))
+
+    def testNegativeRegex(self):
+        """
+        Testing for acceptance against a sequence filter with a negative regex
+        must work.
+        """
+        sf = SequenceFilter(negativeRegex=r"G+C")
+        self.assertEqual(SequenceFilter.REJECT, sf.accept("AAGGGC"))
+        self.assertEqual(SequenceFilter.DEFAULT_ACCEPT, sf.accept("AAGGGTT"))
+
+    def testWhitelist(self):
+        """
+        Testing for acceptance against a sequence filter with a whitelist
+        must work even when a sequence is ruled out for other violations.
+        """
+        sf = SequenceFilter(whitelist=["GGG"], negativeRegex=".")
+        self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("GGG"))
+        self.assertEqual(SequenceFilter.REJECT, sf.accept("TCAAGGT"))
+
+    def testBlacklist(self):
+        """
+        Testing for acceptance against a sequence filter with a blacklist
+        must work.
+        """
+        sf = SequenceFilter(blacklist=["GGG"], positiveRegex=".")
+        self.assertEqual(SequenceFilter.REJECT, sf.accept("GGG"))
+
+    def testBlacklistFile(self):
+        """
+        Testing for acceptance against a sequence filter with a blacklist file.
+        """
+        data = "\n".join(["GGG", "TTT"]) + "\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            sf = SequenceFilter(blacklistFile="black.txt")
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("GGG"))
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("TTT"))
+            self.assertEqual(SequenceFilter.DEFAULT_ACCEPT, sf.accept("CCC"))
+
+    def testBlacklistFileAndBlacklist(self):
+        """
+        Testing for acceptance against a sequence filter with a blacklist file and
+        some specific other blacklist sequences.
+        """
+        data = "\n".join(["GGG", "TTT"]) + "\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            sf = SequenceFilter(blacklistFile="black.txt", blacklist=set(["CCC"]))
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("GGG"))
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("TTT"))
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("CCC"))
+            self.assertEqual(SequenceFilter.DEFAULT_ACCEPT, sf.accept("AAA"))
+
+    def testWhitelistTakesPrecedenceOverBlacklist(self):
+        """
+        Testing for acceptance against a sequence filter with a whitelist
+        and a blacklist that contain the same sequence must work (the whitelist
+        takes precedence).
+        """
+        sf = SequenceFilter(whitelist=["AAA"], blacklist=["AAA"])
+        self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("AAA"))
+
+    def testWhitelistOnly(self):
+        """
+        Testing for acceptance against a sequence filter with a whitelist
+        and a negative regex that matches everything.
+        """
+        sf = SequenceFilter(whitelist=["AAA"], negativeRegex=".")
+        self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("AAA"))
+        self.assertEqual(SequenceFilter.REJECT, sf.accept("TTT"))
+
+    def testWhitelistFileOnly(self):
+        """
+        Testing for acceptance against a sequence filter with a whitelist file
+        and a negative regex that matches everything.
+        """
+        data = "\n".join(["AAA", "CCC"]) + "\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            sf = SequenceFilter(whitelistFile="white.txt", negativeRegex=".")
+            self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("AAA"))
+            self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("CCC"))
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("GGG"))
+
+    def testWhitelistFileAndWhitelistOnly(self):
+        """
+        Testing for acceptance against a sequence filter with a whitelist file
+        and some specific whitelist sequences, with a negative regex that matches
+        everything.
+        """
+        data = "\n".join(["AAA", "CCC"]) + "\n"
+        with patch.object(builtins, "open", mock_open(read_data=data)):
+            sf = SequenceFilter(
+                whitelistFile="white.txt", whitelist=set(["GGG"]), negativeRegex="."
+            )
+            self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("AAA"))
+            self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("CCC"))
+            self.assertEqual(SequenceFilter.WHITELIST_ACCEPT, sf.accept("GGG"))
+            self.assertEqual(SequenceFilter.REJECT, sf.accept("TTT"))
 
 
 class ReadSetTest(TestCase):

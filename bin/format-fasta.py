@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=(
-            "Given FASTA on stdin, write it to stdout according to a " "given format."
+            "Given FASTA on stdin, write it to stdout according to a given format."
         )
     )
 

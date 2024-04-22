@@ -1,3 +1,10 @@
+## 4.0.80 April 20, 2024
+
+Added `--sequenceWhitelist`, `--sequenceBlacklist`,
+`--sequenceWhitelistFile`, `--sequenceBlacklistFile`, `--sequenceRegex`,
+and `--sequenceNegativeRegex` arguments to `filter-fasta.py` to match the
+corresponding options for sequence titles (ids).
+
 ## 4.0.79 March 31, 2024
 
 Added `--sortBy coverage` option to `bin/sam-reference-read-counts.py` and

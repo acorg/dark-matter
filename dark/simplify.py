@@ -1,4 +1,4 @@
-def simplifyTitle(title, target):
+def simplifyTitle(title: str, target: str) -> str:
     """
     Simplify a given sequence title.  Given a title, look for the first
     occurrence of target anywhere in any of its words. Return a space-separated
