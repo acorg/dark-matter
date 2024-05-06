@@ -716,7 +716,7 @@ class TestPropertyDetailsRaw(TestCase):
         all floats.
         """
         for properties in PROPERTY_DETAILS_RAW.values():
-            self.assertTrue(all(type(v) is float for v in properties.values()))
+            self.assertTrue(all(isinstance(v, float) for v in properties.values()))
 
 
 class TestPropertiesForSequence(TestCase):

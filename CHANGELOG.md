@@ -1,3 +1,7 @@
+## 4.0.81 May 6, 2024
+
+Added `asList` option to `parseRangeString` function in `utils.py`.
+
 ## 4.0.80 April 20, 2024
 
 Added `--sequenceWhitelist`, `--sequenceBlacklist`,

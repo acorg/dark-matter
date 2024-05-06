@@ -96,7 +96,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--earlyExit",
-        default=False,
         action="store_true",
         help=(
             "If True, just print the number of interesting matches, but do "
@@ -160,7 +159,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--oneAlignmentPerRead",
-        default=False,
         action="store_true",
         help="If True, only keep the best alignment for each read.",
     )
@@ -333,8 +331,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--rankValues",
-        type=bool,
-        default=False,
+        action="store_true",
         help=(
             "If True, display reads with a Y axis coord that is the rank of "
             "the score."
@@ -359,7 +356,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--equalizeXAxes",
-        default=False,
         action="store_true",
         help=(
             "If True, all alignment graphs will have their X axes drawn "
@@ -379,7 +375,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--logLinearXAxis",
-        default=False,
         action="store_true",
         help=(
             "If True, convert read offsets so that empty regions in the "
@@ -397,7 +392,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--showFeatures",
-        default=False,
         action="store_true",
         help=(
             "If specified, look up features for the individual images in "
@@ -407,7 +401,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--sortFilenames",
-        default=False,
         action="store_true",
         help=(
             "If specified, the JSON and FASTA/Q file names will be "

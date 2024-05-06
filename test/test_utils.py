@@ -286,6 +286,34 @@ class TestParseRangeString(TestCase):
             parseRangeString("6-8,9,10-12,4", convertToZeroBased=True),
         )
 
+    def testAsListPreservesOrderAlreadyOrdered(self):
+        """
+        When asList is True, the returned value must be a list and the order
+        of the numbers in the range must be preserved. Here the passed range
+        is already in ascending order.
+        """
+        result = parseRangeString("6-9,7-10", asList=True)
+        self.assertIsInstance(result, list)
+        self.assertEqual([6, 7, 8, 9, 10], result)
+
+    def testAsListPreservesOrderDisordered(self):
+        """
+        When asList is True, the returned value must be a list and the order
+        of the numbers in the range must be preserved. Here the passed range
+        is not in ascending order (and must be ordered identically in the result).
+        """
+        result = parseRangeString("7-10,1-3", asList=True)
+        self.assertIsInstance(result, list)
+        self.assertEqual([7, 8, 9, 10, 1, 2, 3], result)
+
+    def testAsListIgnoresDuplicates(self):
+        """
+        When asList is True, the returned value must not include duplicates.
+        """
+        result = parseRangeString("7-10,1-3,8-12,2", asList=True)
+        self.assertIsInstance(result, list)
+        self.assertEqual([7, 8, 9, 10, 1, 2, 3, 11, 12], result)
+
 
 class TestParseRangeExpression(TestCase):
     """

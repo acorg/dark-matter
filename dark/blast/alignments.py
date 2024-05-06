@@ -61,7 +61,7 @@ class BlastReadsAlignments(ReadsAlignments):
         sortBlastFilenames=True,
         randomizeZeroEValues=True,
     ):
-        if type(blastFilenames) is str:
+        if isinstance(blastFilenames, str):
             blastFilenames = [blastFilenames]
         if sortBlastFilenames:
             self.blastFilenames = numericallySortFilenames(blastFilenames)
