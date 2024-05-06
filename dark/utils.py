@@ -92,7 +92,7 @@ _rangeRegex = compile(r"^\s*(\d+)(?:\s*-\s*(\d+))?\s*$")
 # Note: the parseRangeExpression, which uses the following function as a
 #       helper (see below) is more general / powerful than this function on
 #       its own.
-def parseRangeString(s, convertToZeroBased=False):
+def parseRangeString(s, convertToZeroBased=False, asList: bool = False):
     """
     Parse a range string of the form 1-5,12,100-200.
 
@@ -104,29 +104,32 @@ def parseRangeString(s, convertToZeroBased=False):
     @return: A C{set} of all C{int}s in the specified set.
     """
 
-    result = set()
+    result = []
+    seen = set()
     for _range in s.split(","):
         match = _rangeRegex.match(_range)
         if match:
             start, end = match.groups()
             start = int(start)
-            if end is None:
-                end = start
-            else:
-                end = int(end)
+            end = start if end is None else int(end)
             if start > end:
                 start, end = end, start
-            if convertToZeroBased:
-                result.update(range(start - 1, end))
-            else:
-                result.update(range(start, end + 1))
+
+            toAdd = (
+                range(start - 1, end) if convertToZeroBased else range(start, end + 1)
+            )
+
+            for n in toAdd:
+                if n not in seen:
+                    seen.add(n)
+                    result.append(n)
         else:
             raise ValueError(
                 "Illegal range %r. Ranges must single numbers or "
                 "number-number." % _range
             )
 
-    return result
+    return result if asList else set(result)
 
 
 # The following matches range expressions such as
