@@ -45,8 +45,10 @@ class TestDimensionalIterator(TestCase):
         """
         If passed a too-short start value, a ValueError must be raised.
         """
-        error = (r"^The start list is of length 2, but the number of dimensions "
-                 r"\(3\) differs\.$")
+        error = (
+            r"^The start list is of length 2, but the number of dimensions "
+            r"\(3\) differs\.$"
+        )
         self.assertRaisesRegex(
             ValueError, error, next, dimensionalIterator((2, 3, 4), start=(0, 0))
         )
@@ -55,8 +57,10 @@ class TestDimensionalIterator(TestCase):
         """
         If passed a too-long start value, a ValueError must be raised.
         """
-        error = (r"^The start list is of length 4, but the number of dimensions "
-                 r"\(3\) differs\.$")
+        error = (
+            r"^The start list is of length 4, but the number of dimensions "
+            r"\(3\) differs\.$"
+        )
         self.assertRaisesRegex(
             ValueError, error, next, dimensionalIterator((2, 3, 4), start=(0, 0, 0, 0))
         )
