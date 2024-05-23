@@ -82,6 +82,7 @@ scripts = [
     "bin/get-reads.py",
     "bin/get-taxonomy.py",
     "bin/graph-evalues.py",
+    "bin/ids.py",
     "bin/local-align.py",
     "bin/make-consensus.py",
     "bin/make-fasta-database.py",

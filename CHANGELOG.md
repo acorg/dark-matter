@@ -1,3 +1,7 @@
+## 4.0.83 May 23, 2024
+
+Added `bin/ids.py` script to generate incrementing lists of ids.
+
 ## 4.0.82 May 23, 2024
 
 Added `start` option to `dimensionalIterator`.
