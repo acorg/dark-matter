@@ -41,6 +41,42 @@ class TestDimensionalIterator(TestCase):
             ((0, 0), (0, 1), (1, 0), (1, 1)), tuple(dimensionalIterator((2, 2)))
         )
 
+    def test2X3WithStartValueTooShort(self):
+        """
+        If passed a too-short start value, a ValueError must be raised.
+        """
+        error = (
+            r"^The start list is of length 2, but the number of dimensions "
+            r"\(3\) differs\.$"
+        )
+        self.assertRaisesRegex(
+            ValueError, error, next, dimensionalIterator((2, 3, 4), start=(0, 0))
+        )
+
+    def test2X3WithStartValueTooLong(self):
+        """
+        If passed a too-long start value, a ValueError must be raised.
+        """
+        error = (
+            r"^The start list is of length 4, but the number of dimensions "
+            r"\(3\) differs\.$"
+        )
+        self.assertRaisesRegex(
+            ValueError, error, next, dimensionalIterator((2, 3, 4), start=(0, 0, 0, 0))
+        )
+
+    def test2X3WithStartValue(self):
+        self.assertEqual(
+            ((0, 2), (1, 0), (1, 1), (1, 2)),
+            tuple(dimensionalIterator((2, 3), start=(0, 2))),
+        )
+
+    def test2X3WithStartValueAndLimit(self):
+        self.assertEqual(
+            ((0, 2), (1, 0), (1, 1)),
+            tuple(dimensionalIterator((2, 3), start=(0, 2), maxItems=3)),
+        )
+
     def test2X2LimitedTo4Items(self):
         """
         If the passed maximum number of items is the same as the number
