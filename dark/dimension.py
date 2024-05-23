@@ -1,4 +1,9 @@
-def dimensionalIterator(dimensions, maxItems=-1):
+from typing import Optional, Iterator
+
+
+def dimensionalIterator(
+    dimensions: list[int], maxItems: int = -1, start: Optional[list[int]] = None
+) -> Iterator[tuple[int, ...]]:
     """
     Given a list of n positive integers, return a generator that yields
     n-tuples of coordinates to 'fill' the dimensions. This is like an
@@ -19,9 +24,19 @@ def dimensionalIterator(dimensions, maxItems=-1):
         return
     if any(map(lambda x: x != "*" and x <= 0, dimensions)):
         raise ValueError("Dimensions not all positive! %r" % (dimensions,))
-    odometer = [
-        0,
-    ] * nDimensions
+
+    if start:
+        if len(start) != len(dimensions):
+            raise ValueError(
+                f"The start list is of length {len(start)}, but "
+                f"the number of dimensions ({len(dimensions)}) differs."
+            )
+        odometer = list(start)
+    else:
+        odometer = [
+            0,
+        ] * nDimensions
+
     while maxItems != 0:
         yield tuple(odometer)
         maxItems -= 1

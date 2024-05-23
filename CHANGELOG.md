@@ -1,3 +1,7 @@
+## 4.0.82 May 23, 2024
+
+Added `start` option to `dimensionalIterator`.
+
 ## 4.0.81 May 6, 2024
 
 Added `asList` option to `parseRangeString` function in `utils.py`.
