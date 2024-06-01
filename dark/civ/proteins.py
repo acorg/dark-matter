@@ -22,6 +22,7 @@ from dark.filter import TitleFilter
 from dark.genbank import getCDSInfo, getSourceInfo
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink, readCountText
 from dark.reads import Reads
+from dark.sqlite3 import sqliteConnect
 from dark.taxonomy import (
     lineageTaxonomyLinks,
     Hierarchy,
@@ -1547,7 +1548,7 @@ class SqliteIndexWriter:
     SEQUENCE_ID_SEPARATOR = "|"
 
     def __init__(self, dbFilename, fastaFp=sys.stdout):
-        self._connection = sqlite3.connect(dbFilename)
+        self._connection = sqliteConnect(dbFilename)
         self._fastaFp = fastaFp
 
         cur = self._connection.cursor()
@@ -2397,7 +2398,7 @@ class SqliteIndex:
 
     def __init__(self, dbFilenameOrConnection, lookupCacheSize=1024):
         if isinstance(dbFilenameOrConnection, string_types):
-            self._connection = sqlite3.connect(dbFilenameOrConnection)
+            self._connection = sqliteConnect(dbFilenameOrConnection)
             self._closeConnection = True
         else:
             self._connection = dbFilenameOrConnection

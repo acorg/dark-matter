@@ -21,6 +21,7 @@ from dark.blast.alignments import (
     BlastReadsAlignments,
     ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
 )
+from dark.sqlite3 import sqliteConnect
 from dark.titles import TitlesAlignments
 from dark import ncbidb
 
@@ -451,7 +452,7 @@ class TestBlastReadsAlignments(TestCase):
 
         class ConnectSideEffect:
             def __init__(self):
-                connection = sqlite3.connect(":memory:")
+                connection = sqliteConnect(":memory:")
                 cur = connection.cursor()
                 cur.executescript(
                     """

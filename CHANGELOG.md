@@ -1,3 +1,8 @@
+## 4.0.84 June 1, 2024
+
+Use a helper function (that puts the filename into failure exceptions) to
+connect to sqlite3 databases.
+
 ## 4.0.83 May 23, 2024
 
 Added `bin/ids.py` script to generate incrementing lists of ids.
