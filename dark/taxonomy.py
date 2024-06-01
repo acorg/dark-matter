@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 from six import string_types
 from operator import attrgetter
 from cachetools import LRUCache, cachedmethod
@@ -12,6 +11,7 @@ from typing import Optional, Iterable
 import argparse
 
 from dark.database import getDatabaseConnection
+from dark.sqlite3 import sqliteConnect
 
 TAXONOMY_DATABASE_ENV_VAR = "DARK_MATTER_TAXONOMY_DATABASE"
 TAXONOMY_DATABASE_COMMAND_LINE_OPTION = "taxonomyDatabase"
@@ -162,7 +162,7 @@ class Taxonomy:
 
     def __init__(self, dbFilenameOrConnection):
         if isinstance(dbFilenameOrConnection, string_types):
-            self._db = sqlite3.connect(dbFilenameOrConnection)
+            self._db = sqliteConnect(dbFilenameOrConnection)
             self._closeConnection = True
         else:
             self._db = dbFilenameOrConnection

@@ -7,6 +7,7 @@ from Bio import SeqIO, bgzf  # type: ignore
 from Bio.Seq import Seq
 
 from dark.reads import Reads, DNARead, Read
+from dark.sqlite3 import sqliteConnect
 from dark.utils import asHandle
 
 
@@ -213,7 +214,7 @@ class SqliteIndex:
         self._readClass = readClass
         self._fastaDirectory = fastaDirectory
         creating = dbFilename == ":memory:" or not os.path.exists(dbFilename)
-        self._connection: sqlite3.Connection = sqlite3.connect(dbFilename)
+        self._connection: sqlite3.Connection = sqliteConnect(dbFilename)
         if creating:
             # Create a new database.
             cur = self._connection.cursor()
