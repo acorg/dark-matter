@@ -1,3 +1,7 @@
+## 4.0.85 June 14, 2024
+
+Added tiny `bin/reverse-complement.py` helper script.
+
 ## 4.0.84 June 1, 2024
 
 Use a helper function (that puts the filename into failure exceptions) to

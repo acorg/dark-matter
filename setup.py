@@ -102,6 +102,7 @@ scripts = [
     "bin/read-blast-xml.py",
     "bin/reference-read-scores-to-JSON.py",
     "bin/relabel-newick-tree.py",
+    "bin/reverse-complement.py",
     "bin/run-bwa.py",
     "bin/run-bowtie2.py",
     "bin/sam-coverage.py",
