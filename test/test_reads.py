@@ -34,6 +34,7 @@ from dark.reads import (
     SSAAReadWithX,
     getNoCoverageCounts,
     readClassNameToClass,
+    simpleReadSplitter,
 )
 
 
@@ -4441,3 +4442,38 @@ class TestGetNoCoverageCounts(TestCase):
         reads.add(Read("id2", "caa?g"))
         result = getNoCoverageCounts(reads, "-?")
         self.assertEqual({"id1": 2, "id2": 1}, result)
+
+
+class TestReadSplitter(TestCase):
+    """
+    Test the simpleReadSplitter function.
+    """
+
+    def testTooShort(self):
+        """
+        A read that is not longer than the length should not be split.
+        """
+        read = Read("id", "ACTGG")
+        splitter = simpleReadSplitter(5)
+        self.assertEqual([read], list(splitter(read)))
+
+    def testSplit(self):
+        """
+        A read that is longer than the length should be split as expected,
+        with the two fragments having the expected sequences and id prefix and suffix.
+        """
+        splitter = simpleReadSplitter(
+            3,
+            leftPrefix="left-prefix ",
+            leftSuffix=" left-suffix",
+            rightPrefix="right-prefix ",
+            rightSuffix=" right-suffix",
+        )
+
+        self.assertEqual(
+            [
+                Read("left-prefix ID left-suffix", "ACT"),
+                Read("right-prefix ID right-suffix", "GG"),
+            ],
+            list(splitter(Read("ID", "ACTGG"))),
+        )

@@ -2103,3 +2103,45 @@ def getNoCoverageCounts(
         result = dict.fromkeys((read.id for read in reads), 0)
 
     return result
+
+
+def simpleReadSplitter(
+    length: int,
+    leftPrefix: str = "",
+    leftSuffix: str = "",
+    rightPrefix: str = "",
+    rightSuffix: str = "",
+) -> Callable[[Read], Iterable[Read]]:
+    """
+    Return a function that splits reads above a certain length into left and
+    right fragments.
+
+    @param length: The C{int} read length, above which reads are to be split.
+    @param leftPrefix: The C{str} id prefix for left fragments.
+    @param leftSuffix: The C{str} id suffix for left fragments.
+    @param rightPrefix: The C{str} id prefix for right fragments.
+    @param rightSuffix: The C{str} id suffix for right fragments.
+    """
+
+    def splitter(read: Read) -> Iterable[Read]:
+        """
+        Split sufficiently long reads into left and right fragments and yield both.
+        Simply yield the original read if it is too short to be split.
+
+        @para read: The C{Read} to split.
+        @return: A generator that yields either one (for reads not longer than
+            C{length}) or two reads. If two fragments are yielded, their ids will
+            be the id of the original read, each with a left or right suffix and prefix.
+        """
+        if len(read) > length:
+            left = read[:length]
+            left.id = leftPrefix + read.id + leftSuffix
+            yield left
+
+            right = read[length:]
+            right.id = rightPrefix + read.id + rightSuffix
+            yield right
+        else:
+            yield read
+
+    return splitter
