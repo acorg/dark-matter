@@ -1,3 +1,7 @@
+## 4.0.86 June 15, 2024
+
+Added `bin/fasta-split-by-length.py`.
+
 ## 4.0.85 June 14, 2024
 
 Added tiny `bin/reverse-complement.py` helper script.
