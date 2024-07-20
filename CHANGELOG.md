@@ -1,3 +1,8 @@
+## 4.0.87 July 20, 2024
+
+Added `stdout` and `stderr` options to `dark.process.Executor` to allow
+for simple printing of executed commands and their outputs.
+
 ## 4.0.86 June 15, 2024
 
 Added `bin/fasta-split-by-length.py`.
