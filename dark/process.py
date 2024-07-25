@@ -2,16 +2,6 @@ import sys
 from time import time, ctime
 from subprocess import PIPE, CalledProcessError, run
 
-# Singleton object to indicate no file descriptor. This allows the user to pass None to
-# the 'execute' method to indicate that stdout and stderr should not be written to any
-# file descriptor, as opposed to defaulting to using the Executor instance value of
-# self.stdout self.stderr. I.e., this is just another version of None, which allows the
-# user to use the normal Python None as a valid value indicating a non-default behaviour
-# (because the default behaviour is to use self.stdout or self.stderr). I hope that
-# makes sense! If you can think of a simpler way to do this, go for it - but make sure
-# the tests all still pass :-)
-_NONE = object()
-
 
 class Executor:
     """
@@ -30,7 +20,7 @@ class Executor:
         self.dryRun = dryRun
         self.stdout = stdout
         self.stderr = stderr
-        self.log = [f"# Executor created at {ctime(time())}. Dry run = dryRun."]
+        self.log = [f"# Executor created at {ctime(time())}. Dry run = {dryRun}."]
 
     def dryRun(self):
         """
@@ -41,7 +31,7 @@ class Executor:
         return self._dryRun
 
     def execute(
-        self, command, dryRun=None, useStderr=True, stdout=_NONE, stderr=_NONE, **kwargs
+        self, command, dryRun=None, useStderr=True, stdout=False, stderr=False, **kwargs
     ):
         """
         Execute (or simulate) a command. Add to our log.
@@ -74,13 +64,8 @@ class Executor:
             C{returncode}, C{stdout}, and C{stderr}. See pydoc subprocess.
             If C{dryRun} is C{True}, C{None} is returned.
         """
-        stdout = self.stdout if stdout is _NONE else stdout
-        stderr = self.stderr if stderr is _NONE else stderr
-
-        # In case you have difficulty with the logic above, the following might
-        # be reassuring (both values are either a valid file descriptor or None).
-        assert stdout is not _NONE
-        assert stderr is not _NONE
+        stdout = self.stdout if stdout is False else stdout
+        stderr = self.stderr if stderr is False else stderr
 
         if isinstance(command, str):
             # Can't have newlines in a command given to the shell.
@@ -91,7 +76,7 @@ class Executor:
             shell = False
 
         if stdout:
-            print(strCommand, file=stdout)
+            print("$ " + strCommand, file=stdout)
 
         dryRun = self.dryRun if dryRun is None else dryRun
 

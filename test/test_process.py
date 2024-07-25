@@ -85,7 +85,7 @@ class TestProcess(TestCase):
         stdout = StringIO()
         e = Executor(stdout=stdout, dryRun=True)
         e.execute("echo hello")
-        self.assertEqual("echo hello\n", stdout.getvalue())
+        self.assertEqual("$ echo hello\n", stdout.getvalue())
 
     def testPassStdoutFileDescriptor(self):
         """
@@ -95,7 +95,7 @@ class TestProcess(TestCase):
         stdout = StringIO()
         e = Executor(stdout=stdout)
         e.execute("echo hello")
-        self.assertEqual("echo hello\nhello\n", stdout.getvalue())
+        self.assertEqual("$ echo hello\nhello\n", stdout.getvalue())
 
     def testPassStdoutFileDescriptorToExecute(self):
         """
@@ -105,7 +105,7 @@ class TestProcess(TestCase):
         stdout = StringIO()
         e = Executor()
         e.execute("echo hello", stdout=stdout)
-        self.assertEqual("echo hello\nhello\n", stdout.getvalue())
+        self.assertEqual("$ echo hello\nhello\n", stdout.getvalue())
 
     def testPassNoneStdoutFileDescriptorToExecute(self):
         """
@@ -149,5 +149,5 @@ class TestProcess(TestCase):
         stderr = StringIO()
         e = Executor(stdout=stdout, stderr=stderr)
         e.execute("echo one; echo two >&2")
-        self.assertEqual("echo one; echo two >&2\none\n", stdout.getvalue())
+        self.assertEqual("$ echo one; echo two >&2\none\n", stdout.getvalue())
         self.assertEqual("two\n", stderr.getvalue())
