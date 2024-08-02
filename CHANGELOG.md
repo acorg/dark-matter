@@ -1,3 +1,8 @@
+## 4.0.88 August 2, 2024
+
+Added `bin/window-split-alignment.py` to split a FASTA alignment into windowed
+sequences.
+
 ## 4.0.87 July 20, 2024
 
 Added `stdout` and `stderr` options to `dark.process.Executor` to allow

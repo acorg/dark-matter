@@ -120,6 +120,7 @@ scripts = [
     "bin/translate.py",
     "bin/trim-primers.py",
     "bin/trim-reads.py",
+    "bin/window-split-alignment.py",
     "bin/write-htcondor-job-spec.py",
 ]
 
