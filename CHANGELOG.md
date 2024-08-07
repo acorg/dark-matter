@@ -1,3 +1,7 @@
+## 4.0.89 August 7, 2024
+
+Allow for `minWindow` to be `None` in `window-split-alignment.py`.
+
 ## 4.0.88 August 2, 2024
 
 Added `bin/window-split-alignment.py` to split a FASTA alignment into windowed

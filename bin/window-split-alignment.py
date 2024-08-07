@@ -4,6 +4,7 @@ import sys
 import argparse
 from math import log10
 from pathlib import Path
+from typing import Optional
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, DNARead
 
@@ -120,7 +121,7 @@ def checkReads(reads: list[DNARead]) -> int:
 def writeFiles(
     reads: list[DNARead],
     window: int,
-    minWindow: int,
+    minWindow: Optional[int],
     startOffset: int,
     oneBased: bool,
     length: int,
@@ -133,7 +134,7 @@ def writeFiles(
 
     @param reads: A C{list} of C{DNARead} instances.
     @param window: The C{int} window size.
-    @param minWindow: The C{int} minimum window size.
+    @param minWindow: The C{int} minimum window size or C{None} if there is no minimum.
     @param startOffset: The C{int} starting offset in the genome, interpreted
         according to C{zeroBased}.
     @param oneBased: If C{True}, the passed C{startOffset} and the offsets
@@ -159,7 +160,7 @@ def writeFiles(
         # we have been told to use one-based values.
         displayStart = start + oneBased
 
-        tooShort = end - start < minWindow
+        tooShort = minWindow is not None and end - start < minWindow
 
         filename = Path(f"{base}{displayStart:0{width}d}-{end:0{width}d}.fasta")
 
