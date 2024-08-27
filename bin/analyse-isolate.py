@@ -2,7 +2,7 @@
 
 import sys
 
-from Bio.Data.CodonTable import ambiguous_dna_by_id
+from Bio.Data.CodonTable import ambiguous_dna_by_id, TranslationError
 
 from dark.fasta import FastaReads
 from dark.reads import Reads
@@ -234,11 +234,17 @@ if __name__ == "__main__":
                             if "N" in clinCod:
                                 clinCodT = "X"
                             else:
-                                clinCodT = codonTable.get(clinCod)
+                                try:
+                                    clinCodT = codonTable.get(clinCod)
+                                except TranslationError:
+                                    clinCodT = "X"
                             if "N" in mvCod:
                                 mvCodT = "X"
                             else:
-                                mvCodT = codonTable.get(mvCod)
+                                try:
+                                    mvCodT = codonTable.get(mvCod)
+                                except TranslationError:
+                                    mvCodT = "X"
                             # Compare the amino acids
                             if clinCodT == mvCodT:
                                 baseInfo = "synonymous"
