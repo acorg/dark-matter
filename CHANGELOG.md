@@ -1,3 +1,10 @@
+## 5.0.0 September 17, 2024
+
+Removed `gb2seq` aligner options from `bin/sam-coverage-depth.py`. Bumped
+major version number seeing as this will break things. I highly doubt anyone
+is using the removed option. I (Terry) put it in for Christian Gabriel and
+Annika Beyer during SARS-CoV-2 times.
+
 ## 4.0.89 August 7, 2024
 
 Allow for `minWindow` to be `None` in `window-split-alignment.py`.
