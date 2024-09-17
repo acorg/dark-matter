@@ -1470,8 +1470,8 @@ class ProteinGrouper:
             figure.savefig(filename)
         except ValueError as e:
             print(
-                f"WARNING! Could not save pathogens panel figure: {e}. "
-                "That file has not been created and therefore the link to it ",
+                f"WARNING! Could not save pathogens panel figure: {str(e)!r}. "
+                "That file has not been created and therefore the link to it "
                 "from the results HTML will be broken.",
                 file=sys.stderr,
             )

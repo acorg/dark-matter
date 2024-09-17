@@ -60,6 +60,7 @@ def alignmentGraph(
     quiet=False,
     idList=False,
     xRange="subject",
+    maxBluePlotReads=None,
 ):
     """
     Align a set of matching reads against a BLAST or DIAMOND hit.
@@ -91,6 +92,8 @@ def alignmentGraph(
         of read identifiers that should be colored in the respective color.
     @param xRange: set to either 'subject' or 'reads' to indicate the range of
         the X axis.
+    @param maxBluePlotReads: An C{int} maximum number of reads to plot on a
+        blue plot.
     """
 
     startTime = time()
