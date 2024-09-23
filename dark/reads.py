@@ -3,13 +3,13 @@ from __future__ import annotations
 import sys
 import os
 from functools import total_ordering
-from collections import Counter
+from collections import Counter, defaultdict
+from collections.abc import Sized
 from hashlib import md5
 from random import uniform
 from pathlib import Path
 import itertools
 import argparse
-from collections import defaultdict
 from typing import (
     Callable,
     Generator,
@@ -38,10 +38,10 @@ from dark.aaVars import (
     PROPERTY_DETAILS,
     NONE,
 )
-from dark.filter import SequenceFilter, TitleFilter
-from dark.hsp import HSP
 from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
 from dark.errors import ReadLengthsNotIdenticalError
+from dark.filter import SequenceFilter, TitleFilter
+from dark.hsp import HSP
 
 
 def _makeComplementTable(complementData: dict) -> Sequence[str]:
@@ -62,7 +62,7 @@ def _makeComplementTable(complementData: dict) -> Sequence[str]:
 
 
 @total_ordering
-class Read:
+class Read(Sized):
     """
     Hold information about a single read.
 
@@ -649,8 +649,8 @@ class AARead(Read):
                         ORFStart = index + 1
                 elif residue == "*":
                     if inORF:
-                        if not ORFStart == index:  # type: ignore (false unboud variable report for ORFStart)
-                            yield AAReadORF(self, ORFStart, index, False, False)  # type: ignore (false unboud variable report for ORFStart)
+                        if ORFStart != index:
+                            yield AAReadORF(self, ORFStart, index, False, False)
                         inORF = False
 
 
@@ -1215,6 +1215,9 @@ class ReadFilter:
         self.yieldCount = 0
         self.readIndex = -1
 
+        self.titleFilter: Optional[TitleFilter] = None
+        self.sequenceFilter: Optional[SequenceFilter] = None
+
         def _wantedSequences(filename):
             """
             Read and yield integer sequence numbers from a file.
@@ -1275,8 +1278,6 @@ class ReadFilter:
                 negativeRegex=negativeTitleRegex,
                 truncateAfter=truncateTitlesAfter,
             )
-        else:
-            self.titleFilter = None
 
         if (
             sequenceWhitelist
@@ -1294,14 +1295,12 @@ class ReadFilter:
                 positiveRegex=sequenceRegex,
                 negativeRegex=sequenceNegativeRegex,
             )
-        else:
-            self.sequenceFilter = None
 
         if removeDuplicates:
-            self.sequencesSeen = set()
+            self.sequencesSeen: set[str] = set()
 
         if removeDuplicatesById:
-            self.idsSeen = set()
+            self.idsSeen: set[str] = set()
 
         if sampleFraction is not None:
             if sampleFraction == 0.0:
@@ -1472,7 +1471,7 @@ class ReadFilter:
 
 # Provide a mapping from all read class names to read classes. This can be
 # useful in deserialization.
-readClassNameToClass = {
+readClassNameToClass: dict[str, type[Read]] = {
     "AARead": AARead,
     "AAReadORF": AAReadORF,
     "AAReadWithX": AAReadWithX,
@@ -2025,14 +2024,12 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
 
     group.add_argument(
         "--fasta",
-        default=False,
         action="store_true",
         help="If specified, input will be treated as FASTA. This is the default.",
     )
 
     group.add_argument(
         "--fastq",
-        default=False,
         action="store_true",
         help="If specified, input will be treated as FASTQ.",
     )
@@ -2040,7 +2037,6 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
     group.add_argument(
         "--fasta-ss",
         dest="fasta_ss",
-        default=False,
         action="store_true",
         help=(
             "If specified, input will be treated as PDB FASTA "
@@ -2092,15 +2088,15 @@ def getNoCoverageCounts(
     @return: A C{dict} keyed by read id, with C{int} number of no-coverage
         characters in the read sequence.
     """
-    if noCoverageChars:
-        noCoverageChars = set(noCoverageChars)
+    if noCoverageChars is None:
+        result = dict.fromkeys((read.id for read in reads), 0)
+    else:
+        noCoverageCharsSet = set(noCoverageChars)
         result = {}
         for read in reads:
             result[read.id] = sum(
-                character in noCoverageChars for character in read.sequence
+                character in noCoverageCharsSet for character in read.sequence
             )
-    else:
-        result = dict.fromkeys((read.id for read in reads), 0)
 
     return result
 

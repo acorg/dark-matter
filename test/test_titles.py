@@ -5,7 +5,6 @@
 #       TitleAlignment and TitleAlignments.
 
 from collections import Counter
-import six
 from unittest import TestCase
 
 from dark.titles import TitleAlignment, TitleAlignments
@@ -239,7 +238,7 @@ class TestTitleAlignments(TestCase):
         """
         titleAlignments = TitleAlignments("subject title", 55)
         error = "^arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.medianScore)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.medianScore)
 
     def testMedianScoreWithNoHsps(self):
         """
@@ -250,7 +249,7 @@ class TestTitleAlignments(TestCase):
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
         error = "^arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.medianScore)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.medianScore)
 
     def testMedianScoreOfTwo(self):
         """
@@ -294,7 +293,7 @@ class TestTitleAlignments(TestCase):
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
         error = "^max\\(\\) arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.bestHsp)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.bestHsp)
 
     def testBestHsp(self):
         """
@@ -325,7 +324,7 @@ class TestTitleAlignments(TestCase):
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
         error = "^min\\(\\) arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.worstHsp)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.worstHsp)
 
     def testWorstHsp(self):
         """
@@ -571,8 +570,8 @@ class TestTitleAlignments(TestCase):
         """
         titleAlignments = TitleAlignments("subject title", 55)
         error = "convertCaseTo must be one of 'none', 'lower', or 'upper'"
-        six.assertRaisesRegex(
-            self, ValueError, error, titleAlignments.residueCounts, convertCaseTo="xxx"
+        self.assertRaisesRegex(
+            ValueError, error, titleAlignments.residueCounts, convertCaseTo="xxx"
         )
 
     def testResidueCountsOneReadOneHSP(self):
@@ -1015,7 +1014,7 @@ class TestTitleAlignments(TestCase):
         """
         titleAlignments = TitleAlignments("subject title", 55)
         error = "^max\\(\\) arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.summary)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.summary)
 
     def testSummary(self):
         """

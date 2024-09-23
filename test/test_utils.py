@@ -1,9 +1,8 @@
 import bz2
 import gzip
-from six.moves import builtins
+import builtins
 from unittest import TestCase
 from unittest.mock import mock_open, patch
-from six import assertRaisesRegex
 from collections import Counter
 from io import BytesIO, StringIO
 
@@ -104,7 +103,7 @@ class TestMedian(TestCase):
         An empty list must cause median to raise ValueError.
         """
         error = "^arg is an empty sequence$"
-        assertRaisesRegex(self, ValueError, error, median, [])
+        self.assertRaisesRegex(ValueError, error, median, [])
 
     def testMedianOfOne(self):
         """
@@ -197,7 +196,7 @@ class TestParseRangeString(TestCase):
         An empty string must produce an empty set of indices.
         """
         error = "^Illegal range ''. Ranges must single numbers or number-number\\.$"
-        assertRaisesRegex(self, ValueError, error, parseRangeString, "")
+        self.assertRaisesRegex(ValueError, error, parseRangeString, "")
 
     def testSingleNumber(self):
         """
@@ -325,9 +324,9 @@ class TestParseRangeExpression(TestCase):
         An invalid string must raise a ValueError.
         """
         error = r"^\($"
-        assertRaisesRegex(self, ValueError, error, parseRangeExpression, "(")
+        self.assertRaisesRegex(ValueError, error, parseRangeExpression, "(")
         error = r"^hey$"
-        assertRaisesRegex(self, ValueError, error, parseRangeExpression, "hey")
+        self.assertRaisesRegex(ValueError, error, parseRangeExpression, "hey")
 
     def testEmptyString(self):
         """

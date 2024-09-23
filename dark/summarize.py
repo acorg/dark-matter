@@ -68,7 +68,7 @@ def sequenceCategoryLengths(
     @raise ValueError: If minLength is less than one.
     @return: A C{list} of 2-C{tuples}. Each tuple contains a (category, count).
     """
-    result = []
+    result: list[tuple[Optional[str], int]] = []
     append = result.append
     get = categories.get
     first = True

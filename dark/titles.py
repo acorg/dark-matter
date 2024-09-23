@@ -1,8 +1,11 @@
+from typing import Iterator, Union
 from collections import defaultdict, Counter
 
 from dark.utils import median
 from dark.filter import ReadSetFilter, TitleFilter
+from dark.hsp import HSP
 from dark.intervals import ReadIntervals
+from dark.reads import Read
 
 
 def titleCounts(readsAlignments):
@@ -31,11 +34,11 @@ class TitleAlignment:
     @param hsps: A C{list} of L{dark.hsp.HSP} (or subclass) instances.
     """
 
-    def __init__(self, read, hsps):
+    def __init__(self, read: Read, hsps: list[HSP]):
         self.read = read
         self.hsps = hsps
 
-    def toDict(self):
+    def toDict(self) -> dict[str, Union[list[dict], dict]]:
         """
         Get information about a title alignment as a dictionary.
 
@@ -57,11 +60,11 @@ class TitleAlignments(list):
         against.
     """
 
-    def __init__(self, subjectTitle, subjectLength):
+    def __init__(self, subjectTitle: str, subjectLength: int) -> None:
         self.subjectTitle = subjectTitle
         self.subjectLength = subjectLength
 
-    def addAlignment(self, alignment):
+    def addAlignment(self, alignment: TitleAlignment) -> None:
         """
         Add an alignment to the list of alignments that matched this title.
 
@@ -69,7 +72,7 @@ class TitleAlignments(list):
         """
         self.append(alignment)
 
-    def reads(self):
+    def reads(self) -> Iterator[Read]:
         """
         Find the set of reads matching this title.
 
@@ -78,7 +81,7 @@ class TitleAlignments(list):
         """
         return (alignment.read for alignment in self)
 
-    def readCount(self):
+    def readCount(self) -> int:
         """
         Find out how many reads aligned to this title.
 
@@ -86,7 +89,7 @@ class TitleAlignments(list):
         """
         return len(self)
 
-    def hspCount(self):
+    def hspCount(self) -> int:
         """
         How many HSPs were there in total for all the alignments to a title.
 
@@ -94,7 +97,7 @@ class TitleAlignments(list):
         """
         return sum(len(alignment.hsps) for alignment in self)
 
-    def readIds(self):
+    def readIds(self) -> set[str]:
         """
         Find the set of read ids that matched the title.
 
@@ -102,7 +105,7 @@ class TitleAlignments(list):
         """
         return set(alignment.read.id for alignment in self)
 
-    def hsps(self):
+    def hsps(self) -> Iterator[HSP]:
         """
         Get all HSPs for the alignments to a title.
 
@@ -110,7 +113,7 @@ class TitleAlignments(list):
         """
         return (hsp for alignment in self for hsp in alignment.hsps)
 
-    def bestHsp(self):
+    def bestHsp(self) -> HSP:
         """
         Find the HSP with the best score.
 
@@ -120,7 +123,7 @@ class TitleAlignments(list):
         """
         return max(hsp for hsp in self.hsps())
 
-    def worstHsp(self):
+    def worstHsp(self) -> HSP:
         """
         Find the HSP with the worst score.
 
@@ -130,10 +133,11 @@ class TitleAlignments(list):
         """
         return min(hsp for hsp in self.hsps())
 
-    def hasScoreBetterThan(self, score):
+    def hasScoreBetterThan(self, score: float) -> bool:
         """
         Is there an HSP with a score better than a given value?
 
+        @param score: A C{float} score.
         @return: A C{bool}, C{True} if there is at least one HSP in the
         alignments for this title with a score better than C{score}.
         """
@@ -145,7 +149,7 @@ class TitleAlignments(list):
                 return True
         return False
 
-    def medianScore(self):
+    def medianScore(self) -> float:
         """
         Find the median score for the HSPs in the alignments that match
         this title.
@@ -156,7 +160,7 @@ class TitleAlignments(list):
         """
         return median([hsp.score.score for hsp in self.hsps()])
 
-    def coverage(self):
+    def coverage(self) -> float:
         """
         Get the fraction of this title sequence that is matched by its reads.
 

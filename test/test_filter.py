@@ -1,4 +1,4 @@
-from six.moves import builtins
+import builtins
 from unittest import TestCase
 from unittest.mock import patch, mock_open
 

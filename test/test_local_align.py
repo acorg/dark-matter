@@ -1,4 +1,3 @@
-import six
 from unittest import TestCase
 
 from dark.reads import Read
@@ -19,8 +18,7 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "a")
         seq2 = Read("seq2", "a")
-        six.assertRaisesRegex(
-            self,
+        self.assertRaisesRegex(
             ValueError,
             "Mismatch must be negative",
             LocalAlignment,
@@ -36,8 +34,7 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "a")
         seq2 = Read("seq2", "a")
-        six.assertRaisesRegex(
-            self,
+        self.assertRaisesRegex(
             ValueError,
             "Mismatch must be negative",
             LocalAlignment,
@@ -53,8 +50,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "a")
         seq2 = Read("seq2", "a")
-        six.assertRaisesRegex(
-            self, ValueError, "Gap must be negative", LocalAlignment, seq1, seq2, gap=3
+        self.assertRaisesRegex(
+            ValueError, "Gap must be negative", LocalAlignment, seq1, seq2, gap=3
         )
 
     def testZeroGap(self):
@@ -64,8 +61,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "a")
         seq2 = Read("seq2", "a")
-        six.assertRaisesRegex(
-            self, ValueError, "Gap must be negative", LocalAlignment, seq1, seq2, gap=0
+        self.assertRaisesRegex(
+            ValueError, "Gap must be negative", LocalAlignment, seq1, seq2, gap=0
         )
 
     def testPositiveGapExtend(self):
@@ -75,8 +72,7 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "a")
         seq2 = Read("seq2", "a")
-        six.assertRaisesRegex(
-            self,
+        self.assertRaisesRegex(
             ValueError,
             "Gap extension penalty cannot be positive",
             LocalAlignment,
@@ -91,8 +87,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "")
         seq2 = Read("seq2", "agtcagtcagtc")
-        six.assertRaisesRegex(
-            self, ValueError, "Empty sequence: seq1", LocalAlignment, seq1, seq2
+        self.assertRaisesRegex(
+            ValueError, "Empty sequence: seq1", LocalAlignment, seq1, seq2
         )
 
     def testSecondSequenceEmpty(self):
@@ -101,8 +97,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "agtcagtcagtc")
         seq2 = Read("seq2", "")
-        six.assertRaisesRegex(
-            self, ValueError, "Empty sequence: seq2", LocalAlignment, seq1, seq2
+        self.assertRaisesRegex(
+            ValueError, "Empty sequence: seq2", LocalAlignment, seq1, seq2
         )
 
     def testBothSequencesEmpty(self):
@@ -111,8 +107,8 @@ class TestLocalAlign(TestCase):
         """
         seq1 = Read("seq1", "")
         seq2 = Read("seq2", "")
-        six.assertRaisesRegex(
-            self, ValueError, "Empty sequence: seq1", LocalAlignment, seq1, seq2
+        self.assertRaisesRegex(
+            ValueError, "Empty sequence: seq1", LocalAlignment, seq1, seq2
         )
 
     def testGapAtStartOfSeq1(self):

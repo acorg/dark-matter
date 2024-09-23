@@ -1,5 +1,4 @@
 from unittest import TestCase
-from six import assertRaisesRegex
 from io import StringIO
 
 from dark.reads import DNARead
@@ -104,8 +103,8 @@ class TestSequenceCategoryLengths(TestCase):
         """
         read = DNARead("id", "")
         error = "^minLength must be at least 1$"
-        assertRaisesRegex(
-            self, ValueError, error, sequenceCategoryLengths, read, {}, minLength=0
+        self.assertRaisesRegex(
+            ValueError, error, sequenceCategoryLengths, read, {}, minLength=0
         )
 
     def testEmpty(self):

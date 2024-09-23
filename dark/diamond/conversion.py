@@ -1,4 +1,3 @@
-import six
 import bz2
 from json import dumps, loads
 from operator import itemgetter
@@ -321,11 +320,11 @@ class DiamondTabularFormatReader:
                 fp.write(dumps(record, sort_keys=True).encode("UTF-8"))
                 fp.write(b"\n")
         else:
-            fp.write(six.u(dumps(self.params, sort_keys=True)))
-            fp.write(six.u("\n"))
+            fp.write(dumps(self.params, sort_keys=True))
+            fp.write("\n")
             for record in self.records():
-                fp.write(six.u(dumps(record, sort_keys=True)))
-                fp.write(six.u("\n"))
+                fp.write(dumps(record, sort_keys=True))
+                fp.write("\n")
 
 
 class JSONRecordsReader:
@@ -361,10 +360,7 @@ class JSONRecordsReader:
             'application' key.
         """
         if filename.endswith(".bz2"):
-            if six.PY3:
-                self._fp = bz2.open(filename, mode="rt", encoding="UTF-8")
-            else:
-                self._fp = bz2.BZ2File(filename)
+            self._fp = bz2.open(filename, mode="rt", encoding="UTF-8")
         else:
             self._fp = open(filename)
 

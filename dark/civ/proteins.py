@@ -10,8 +10,7 @@ from functools import partial
 from json import load
 from operator import attrgetter, itemgetter
 from os.path import dirname, exists, join
-from six import string_types
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 from textwrap import fill
 
 from dark.dimension import dimensionalIterator
@@ -1470,8 +1469,8 @@ class ProteinGrouper:
             figure.savefig(filename)
         except ValueError as e:
             print(
-                f"WARNING! Could not save pathogens panel figure: {e}. "
-                "That file has not been created and therefore the link to it ",
+                f"WARNING! Could not save pathogens panel figure: {str(e)!r}. "
+                "That file has not been created and therefore the link to it "
                 "from the results HTML will be broken.",
                 file=sys.stderr,
             )
@@ -2397,7 +2396,7 @@ class SqliteIndex:
     GENOME_ACCESSION_FIELD = 4
 
     def __init__(self, dbFilenameOrConnection, lookupCacheSize=1024):
-        if isinstance(dbFilenameOrConnection, string_types):
+        if isinstance(dbFilenameOrConnection, str):
             self._connection = sqliteConnect(dbFilenameOrConnection)
             self._closeConnection = True
         else:

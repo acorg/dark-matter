@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from six import string_types
 from operator import attrgetter
 from cachetools import LRUCache, cachedmethod
 from json import dumps
@@ -161,7 +160,7 @@ class Taxonomy:
     CACHE_SIZE = 10e6
 
     def __init__(self, dbFilenameOrConnection):
-        if isinstance(dbFilenameOrConnection, string_types):
+        if isinstance(dbFilenameOrConnection, str):
             self._db = sqliteConnect(dbFilenameOrConnection)
             self._closeConnection = True
         else:

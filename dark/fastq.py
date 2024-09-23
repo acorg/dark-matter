@@ -1,5 +1,3 @@
-from six import PY3
-
 from Bio.SeqIO.QualityIO import FastqGeneralIterator  # type: ignore
 
 from dark.reads import Reads, DNARead
@@ -19,10 +17,7 @@ class FastqReads(Reads):
     def __init__(self, _files, readClass=DNARead):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
         self.readClass = readClass
-        if PY3:
-            super().__init__()
-        else:
-            Reads.__init__(self)
+        super().__init__()
 
     def iter(self):
         """

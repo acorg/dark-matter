@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import re
 from math import ceil
-from collections import OrderedDict
 from typing import Optional, TYPE_CHECKING
 import argparse
 
 if TYPE_CHECKING:
     from dark.reads import Reads
-    from dark.titles import TitleAlignment
+    from dark.titles import TitleAlignments
 from dark.simplify import simplifyTitle
 from dark.utils import parseRangeExpression
 
@@ -223,12 +222,9 @@ class ReadSetFilter:
 
     def __init__(self, minNew: float) -> None:
         self._minNew = minNew
-        # Use an OrderedDict so that each time we walk through self._titles
-        # we do it in the same order. This makes our runs deterministic /
-        # reproducible.
-        self._titles = OrderedDict()
+        self._titles: dict[str, tuple[set[str], list[str]]] = {}
 
-    def accept(self, title: str, titleAlignments: TitleAlignment) -> bool:
+    def accept(self, title: str, titleAlignments: TitleAlignments) -> bool:
         """
         Return C{True} if the read id set in C{titleAlignments} is sufficiently
         different from all previously seen read sets.

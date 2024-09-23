@@ -1,5 +1,8 @@
 from math import log
 from collections import Counter
+from typing import Iterator, Optional
+
+from dark.hsp import HSP
 
 
 class ReadIntervals:
@@ -13,11 +16,11 @@ class ReadIntervals:
     EMPTY = 0
     FULL = 1
 
-    def __init__(self, targetLength):
+    def __init__(self, targetLength: int) -> None:
         self._targetLength = targetLength
-        self._intervals = []
+        self._intervals: list[tuple[int, int]] = []
 
-    def add(self, start, end):
+    def add(self, start: int, end: int) -> None:
         """
         Add the start and end offsets of a matching read.
 
@@ -28,7 +31,7 @@ class ReadIntervals:
         assert start <= end
         self._intervals.append((start, end))
 
-    def walk(self):
+    def walk(self) -> Iterator[tuple[int, tuple[int, int]]]:
         """
         Get the non-overlapping read intervals that match the subject.
 
@@ -71,7 +74,7 @@ class ReadIntervals:
         else:
             yield (self.EMPTY, (0, self._targetLength))
 
-    def coverage(self):
+    def coverage(self) -> float:
         """
         Get the fraction of a subject is matched by its set of reads.
 
@@ -88,7 +91,7 @@ class ReadIntervals:
                 coverage += min(end, self._targetLength) - max(0, start)
         return float(coverage) / self._targetLength
 
-    def coverageCounts(self):
+    def coverageCounts(self) -> Counter:
         """
         For each location in the subject, return a count of how many times that
         location is covered by a read.
@@ -97,7 +100,7 @@ class ReadIntervals:
             subject and the value is the number of times the location is
             covered by a read.
         """
-        coverageCounts = Counter()
+        coverageCounts: Counter[int] = Counter()
         for start, end in self._intervals:
             coverageCounts.update(range(max(0, start), min(self._targetLength, end)))
         return coverageCounts
@@ -113,7 +116,9 @@ class OffsetAdjuster:
         spaces in the hit sequence.
     """
 
-    def __init__(self, intervals=None, base=2.0):
+    def __init__(
+        self, intervals: Optional[ReadIntervals] = None, base: float = 2.0
+    ) -> None:
         self._adjustments = []  # Pairs of (X offset, adjustment).
         if intervals:
             divisor = log(base)
@@ -123,7 +128,7 @@ class OffsetAdjuster:
                     logWidth = log(width) / divisor
                     self._adjustments.append((stop, width - logWidth))
 
-    def adjustments(self):
+    def adjustments(self) -> list[tuple[int, float]]:
         """
         Provide the adjustment values for this instance.
 
@@ -132,7 +137,7 @@ class OffsetAdjuster:
         """
         return self._adjustments
 
-    def _reductionForOffset(self, offset):
+    def _reductionForOffset(self, offset: int) -> float:
         """
         Calculate the total reduction for a given X axis offset.
 
@@ -140,7 +145,7 @@ class OffsetAdjuster:
         @return: The total C{float} reduction that should be made for this
             offset.
         """
-        reduction = 0
+        reduction = 0.0
         for thisOffset, thisReduction in self._adjustments:
             if offset >= thisOffset:
                 reduction += thisReduction
@@ -148,7 +153,7 @@ class OffsetAdjuster:
                 break
         return reduction
 
-    def adjustOffset(self, offset):
+    def adjustOffset(self, offset: int) -> float:
         """
         Adjust a single X offset.
 
@@ -157,7 +162,7 @@ class OffsetAdjuster:
         """
         return offset - self._reductionForOffset(offset)
 
-    def adjustHSP(self, hsp):
+    def adjustHSP(self, hsp: HSP) -> None:
         """
         Adjust the read and subject start and end offsets in an HSP.
 

@@ -1,9 +1,8 @@
-import six
 from json import dumps
 from unittest import TestCase
 from unittest.mock import patch, mock_open
 from io import StringIO
-from six.moves import builtins
+import builtins
 
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
@@ -215,8 +214,8 @@ class TestTitlesAlignments(TestCase):
                 "Title 'gi\\|887699\\|gb\\|DQ37780 Squirrelpox virus "
                 "1296/99' already present in TitlesAlignments instance\\."
             )
-            six.assertRaisesRegex(
-                self, KeyError, error, titlesAlignments.addTitle, title, titleAlignments
+            self.assertRaisesRegex(
+                KeyError, error, titlesAlignments.addTitle, title, titleAlignments
             )
 
     def testAddTitle(self):
@@ -1030,8 +1029,8 @@ class TestTitlesAlignmentsFiltering(TestCase):
             readsAlignments = BlastReadsAlignments(reads, "file.json")
             titlesAlignments = TitlesAlignments(readsAlignments)
             error = "^maxTitles \\(-1\\) cannot be negative\\.$"
-            six.assertRaisesRegex(
-                self, ValueError, error, titlesAlignments.filter, maxTitles=-1
+            self.assertRaisesRegex(
+                ValueError, error, titlesAlignments.filter, maxTitles=-1
             )
 
     def testUnknownSortOn(self):
@@ -1049,8 +1048,7 @@ class TestTitlesAlignmentsFiltering(TestCase):
                 '^Sort attribute must be one of "length", "maxScore", '
                 '"medianScore", "readCount", "title"\\.$'
             )
-            six.assertRaisesRegex(
-                self,
+            self.assertRaisesRegex(
                 ValueError,
                 error,
                 titlesAlignments.filter,
