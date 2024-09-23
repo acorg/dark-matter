@@ -152,7 +152,6 @@ setup(
         "cachetools>=3.1.0",
         "edlib>=1.3.9",
         "Cython>=0.29.16",
-        "gb2seq>=0.2.4",
         "ipython>=3.1.0",
         "matplotlib>=1.4.3",
         "mysql-connector-python>=8.1.0",
