@@ -1,3 +1,7 @@
+## 5.0.1 September 22, 2024
+
+Added lots of type hints. Completely removed six.
+
 ## 5.0.0 September 17, 2024
 
 Removed `gb2seq` aligner options from `bin/sam-coverage-depth.py`. Bumped
