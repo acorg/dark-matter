@@ -66,7 +66,8 @@ def sequenceCategoryLengths(
         length will be summed and reported as being in the
         C{suppressedCategory} category.
     @raise ValueError: If minLength is less than one.
-    @return: A C{list} of 2-C{tuples}. Each tuple contains a (category, count).
+    @return: A C{list} of 2-C{tuples}. Each tuple contains a (category, count)
+        where category is either a C{str} or C{None} and count is an C{int}.
     """
     result: list[tuple[Optional[str], int]] = []
     append = result.append
