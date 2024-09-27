@@ -1,5 +1,5 @@
 from IPython.display import HTML  # type: ignore
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from dark.fastq import FastqReads
 

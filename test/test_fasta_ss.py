@@ -1,5 +1,4 @@
-import six
-from six.moves import builtins
+import builtins
 from unittest import TestCase
 from unittest.mock import patch, mock_open
 from io import StringIO
@@ -30,9 +29,7 @@ class TestSSFastaReads(TestCase):
         data = "\n".join([">seq1", "REDD", ">str1", "HH--", ">seq2", "REAA"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             error = "^Structure file 'x.fasta' has an odd number of records\\.$"
-            six.assertRaisesRegex(
-                self, ValueError, error, list, SSFastaReads("x.fasta")
-            )
+            self.assertRaisesRegex(ValueError, error, list, SSFastaReads("x.fasta"))
 
     def testUnequalSequenceAndStructureLengths(self):
         """
@@ -47,9 +44,7 @@ class TestSSFastaReads(TestCase):
                 "Sequence 'seq2' length \\(4\\) is not equal to structure "
                 "'str2' length \\(2\\) in input file 'x\\.fasta'\\.$"
             )
-            six.assertRaisesRegex(
-                self, ValueError, error, list, SSFastaReads("x.fasta")
-            )
+            self.assertRaisesRegex(ValueError, error, list, SSFastaReads("x.fasta"))
 
     def testOneRead(self):
         """

@@ -1,4 +1,3 @@
-from six import assertRaisesRegex
 from unittest import TestCase
 from tempfile import mkstemp
 from os import close, unlink, write
@@ -64,7 +63,7 @@ class TestSAMFilter(TestCase):
         with dataFile(data) as filename:
             sam = SAMFilter(filename, referenceIds={"unknown"})
             error = "^Reference 'unknown' is not present in the SAM/BAM file\\.$"
-            assertRaisesRegex(self, UnknownReference, error, sam.referenceLengths)
+            self.assertRaisesRegex(UnknownReference, error, sam.referenceLengths)
 
     def testNoFilteringOptions(self):
         """
@@ -393,8 +392,8 @@ class TestPaddedSAM(TestCase):
                 "^Your 2 SAM/BAM file reference sequence lengths "
                 "\\(id1=90, id2=91\\) are not all identical\\.$"
             )
-            assertRaisesRegex(
-                self, UnequalReferenceLengthError, error, PaddedSAM, SAMFilter(filename)
+            self.assertRaisesRegex(
+                UnequalReferenceLengthError, error, PaddedSAM, SAMFilter(filename)
             )
 
     def testQueryTooLong(self):
@@ -422,7 +421,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             error = "^Query TCTAGG not fully consumed when parsing CIGAR " "string\\."
-            assertRaisesRegex(self, ValueError, error, list, ps.queries())
+            self.assertRaisesRegex(ValueError, error, list, ps.queries())
 
     def testAllMMatch(self):
         """
@@ -995,7 +994,7 @@ class TestPaddedSAM(TestCase):
                 "with a sequence\\.$"
             )
             queries = ps.queries()
-            assertRaisesRegex(self, InvalidSAM, error, list, queries)
+            self.assertRaisesRegex(InvalidSAM, error, list, queries)
 
     def testSecondaryWithNoSequence(self):
         """
@@ -1038,7 +1037,7 @@ class TestPaddedSAM(TestCase):
                 "with a sequence\\.$"
             )
             queries = ps.queries()
-            assertRaisesRegex(self, InvalidSAM, error, list, queries)
+            self.assertRaisesRegex(InvalidSAM, error, list, queries)
 
     def testSupplementaryWithNoSequence(self):
         """
@@ -1081,7 +1080,7 @@ class TestPaddedSAM(TestCase):
                 "with a sequence\\.$"
             )
             queries = ps.queries()
-            assertRaisesRegex(self, InvalidSAM, error, list, queries)
+            self.assertRaisesRegex(InvalidSAM, error, list, queries)
 
     def testAlsoYieldAlignments(self):
         """
@@ -1257,8 +1256,7 @@ class TestHardClip(TestCase):
             "^Invalid CIGAR tuples .* contains hard-clipping operation "
             "that is neither at the start nor the end of the sequence\\.$"
         )
-        assertRaisesRegex(
-            self,
+        self.assertRaisesRegex(
             ValueError,
             error,
             _hardClip,
@@ -1280,8 +1278,7 @@ class TestHardClip(TestCase):
             "^Invalid CIGAR tuples .* specifies hard-clipping 3 times "
             "\\(2 is the maximum\\).$"
         )
-        assertRaisesRegex(
-            self,
+        self.assertRaisesRegex(
             ValueError,
             error,
             _hardClip,

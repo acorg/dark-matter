@@ -1,4 +1,3 @@
-import six
 from unittest import TestCase
 
 from dark.dna import (
@@ -1705,7 +1704,7 @@ class TestSequenceToRegex(TestCase):
         An unknown character should result in a KeyError.
         """
         error = "^'5'$"
-        six.assertRaisesRegex(self, KeyError, error, sequenceToRegex, "5")
+        self.assertRaisesRegex(KeyError, error, sequenceToRegex, "5")
 
 
 class TestLeastAmbiguous(TestCase):

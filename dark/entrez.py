@@ -1,7 +1,7 @@
 from Bio import Entrez, SeqIO
-from six.moves.urllib_error import URLError
+from urllib import error as URLError
 
-Entrez.email = "tcj25@cam.ac.uk"
+Entrez.email = "tcj25@cam.ac.uk"  # type: ignore
 
 
 def getSequence(title, db="nucleotide"):

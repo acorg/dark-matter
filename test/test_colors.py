@@ -1,4 +1,3 @@
-import six
 from unittest import TestCase
 
 from dark.colors import ColorsForCounts
@@ -18,8 +17,8 @@ class TestColorsForCounts(TestCase):
             r"\"count color\" where the count is an integer threshold\. "
             r"Your value \('non-int'\) was not an integer\.$"
         )
-        six.assertRaisesRegex(
-            self, ValueError, error, ColorsForCounts, ("non-int red",)
+        self.assertRaisesRegex(
+            ValueError, error, ColorsForCounts, ("non-int red",)
         )
 
     def testCountNegative(self):
@@ -31,7 +30,7 @@ class TestColorsForCounts(TestCase):
             r"of \"count color\" where the count is non-negative. Your "
             r"value \(-4\) is less than 0\.$"
         )
-        six.assertRaisesRegex(self, ValueError, error, ColorsForCounts, ("-4 red",))
+        self.assertRaisesRegex(ValueError, error, ColorsForCounts, ("-4 red",))
 
     def testNoSpace(self):
         """
@@ -42,15 +41,15 @@ class TestColorsForCounts(TestCase):
             r"of \"value color\"\. Your value \('4red'\) does not "
             r"contain a space\.$"
         )
-        six.assertRaisesRegex(self, ValueError, error, ColorsForCounts, ("4red",))
+        self.assertRaisesRegex(ValueError, error, ColorsForCounts, ("4red",))
 
     def testRepeatedCount(self):
         """
         A C{ValueError} must be raised if a count is repeated.
         """
         error = r"^repeated color argument count \(4\)\.$"
-        six.assertRaisesRegex(
-            self, ValueError, error, ColorsForCounts, ("4 red", "4 black")
+        self.assertRaisesRegex(
+            ValueError, error, ColorsForCounts, ("4 red", "4 black")
         )
 
     def testThresholdForCountNegative(self):
@@ -60,7 +59,7 @@ class TestColorsForCounts(TestCase):
         """
         colors = ColorsForCounts(("4 red",))
         error = r"^Count \(-4\) cannot be negative\.$"
-        six.assertRaisesRegex(self, AssertionError, error, colors.thresholdForCount, -4)
+        self.assertRaisesRegex(AssertionError, error, colors.thresholdForCount, -4)
 
     def testThresholdForTooLowCount(self):
         """

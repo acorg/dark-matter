@@ -1,4 +1,3 @@
-import six
 from unittest import TestCase
 from itertools import product
 from collections import defaultdict
@@ -730,9 +729,7 @@ class TestPropertiesForSequence(TestCase):
         """
         error = "Unknown property: xxx"
         read = AARead("id", "RRR")
-        six.assertRaisesRegex(
-            self, ValueError, error, propertiesForSequence, read, ["xxx"]
-        )
+        self.assertRaisesRegex(ValueError, error, propertiesForSequence, read, ["xxx"])
 
     def testNoProperties(self):
         """
@@ -845,9 +842,7 @@ class TestClustersForSequence(TestCase):
         """
         error = "Unknown property: xxx"
         read = AARead("id", "RRR")
-        six.assertRaisesRegex(
-            self, ValueError, error, clustersForSequence, read, ["xxx"]
-        )
+        self.assertRaisesRegex(ValueError, error, clustersForSequence, read, ["xxx"])
 
     def testNoProperties(self):
         """

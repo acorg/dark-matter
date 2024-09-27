@@ -161,6 +161,7 @@ setup(
         "pyzmq>=14.3.1",
         "requests>=2.18.4",
         "simplejson>=3.5.3",
-        "six>=1.11.0",
+        "types-cachetools>=5.5.0",
+        "types-requests>=2.32.0",
     ],
 )

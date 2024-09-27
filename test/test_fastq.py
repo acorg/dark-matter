@@ -1,4 +1,4 @@
-from six.moves import builtins
+import builtins
 from io import StringIO
 
 from dark.reads import AARead, DNARead, RNARead

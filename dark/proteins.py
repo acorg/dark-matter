@@ -4,7 +4,7 @@ import numpy as np
 from os.path import dirname, exists, join
 from operator import itemgetter
 import re
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 from textwrap import fill
 
 from dark.dimension import dimensionalIterator

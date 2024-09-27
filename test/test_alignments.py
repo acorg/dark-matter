@@ -1,4 +1,3 @@
-import six
 from unittest import TestCase
 
 from dark.reads import Read, Reads
@@ -219,8 +218,7 @@ class TestReadsAlignments(TestCase):
         reads = Reads()
         readsAlignments = ReadsAlignments(reads, "applicationName", None)
         error = "getSubjectSequence must be implemented by a subclass"
-        six.assertRaisesRegex(
-            self,
+        self.assertRaisesRegex(
             NotImplementedError,
             error,
             readsAlignments.getSubjectSequence,

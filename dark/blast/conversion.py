@@ -1,4 +1,3 @@
-import six
 import bz2
 from json import dumps, loads
 from operator import itemgetter
@@ -209,10 +208,7 @@ class JSONRecordsReader:
             'application' key.
         """
         if filename.endswith(".bz2"):
-            if six.PY3:
-                self._fp = bz2.open(filename, mode="rt", encoding="UTF-8")
-            else:
-                self._fp = bz2.BZ2File(filename)
+            self._fp = bz2.open(filename, mode="rt", encoding="UTF-8")
         else:
             self._fp = open(filename)
 

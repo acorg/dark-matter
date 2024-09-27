@@ -1,10 +1,9 @@
 from hashlib import md5
 import sqlite3
 import os
-from typing import Generator, Iterable, TextIO, Union, Type, Optional, List
+from typing import Generator, Iterator, Iterable, TextIO, Union, Type, Optional, List
 
 from Bio import SeqIO, bgzf  # type: ignore
-from Bio.Seq import Seq
 
 from dark.reads import Reads, DNARead, Read
 from dark.sqlite3 import sqliteConnect
@@ -33,12 +32,12 @@ def dedupFasta(reads: Reads) -> Generator[Read, None, None]:
 
 
 def dePrefixAndSuffixFasta(
-    sequences: Iterable[Seq],
-) -> Generator[Seq, None, None]:
+    sequences: Iterable[SeqIO.SeqRecord],
+) -> Iterator[SeqIO.SeqRecord]:
     """
     sequences: an iterator producing Bio.Seq sequences.
 
-    return: a generator of sequences with no duplicates and no fully contained
+    @return: a generator of sequences with no duplicates and no fully contained
         subsequences.
     """
     sequences = sorted(sequences, key=lambda s: len(s.seq), reverse=True)
@@ -58,7 +57,7 @@ def dePrefixAndSuffixFasta(
             yield s
 
 
-def fastaSubtract(fastaFiles: List[TextIO]) -> Iterable[Seq]:
+def fastaSubtract(fastaFiles: List[TextIO]) -> Iterator[SeqIO.SeqRecord]:
     """
     Given a list of open file descriptors, each with FASTA content,
     remove the reads found in the 2nd, 3rd, etc files from the first file

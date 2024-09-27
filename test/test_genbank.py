@@ -1,5 +1,4 @@
 from unittest import TestCase
-from six import assertRaisesRegex
 import warnings
 
 from dark.genbank import GenomeRanges
@@ -19,7 +18,7 @@ class TestErrors(TestCase):
             r'^Could not parse GenBank range string ""\. '
             r'Range "" does not end with \]\(\+\) or \]\(-\)\.$'
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "")
 
     def testUnparseableString(self):
         """
@@ -30,7 +29,7 @@ class TestErrors(TestCase):
             r'^Could not parse GenBank range string "x"\. '
             r'Range "x" does not end with \]\(\+\) or \]\(-\)\.$'
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "x")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "x")
 
     def testNoComplementIndicator(self):
         """
@@ -41,7 +40,7 @@ class TestErrors(TestCase):
             r'^Could not parse GenBank range string "\[33:40\]"\. '
             r'Range "\[33:40\]" does not end with \]\(\+\) or \]\(-\)\.$'
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "[33:40]")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "[33:40]")
 
     def testNoLeadingSquareBracket(self):
         """
@@ -52,7 +51,7 @@ class TestErrors(TestCase):
             r'^Could not parse GenBank range string "33:40\]\(-\)"\. '
             r'Range "33:40\]\(-\)" does not start with "\["\.$'
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "33:40](-)")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "33:40](-)")
 
     def testJoinWithNoRange(self):
         """
@@ -63,7 +62,7 @@ class TestErrors(TestCase):
             r'^Could not parse GenBank range string "join{}"\. '
             r"join{} can only be used with multiple ranges\.$"
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "join{}")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "join{}")
 
     def testDecreasingOrder(self):
         """
@@ -74,7 +73,7 @@ class TestErrors(TestCase):
             r'^Could not parse GenBank range string "\[7:4\]\(\+\)"\. '
             r"Offset values \(7, 4\) cannot decrease\.$"
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "[7:4](+)")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "[7:4](+)")
 
     def testContiguousRanges(self):
         """
@@ -109,7 +108,7 @@ class TestErrors(TestCase):
             r'"\[3:5\(\+\), 7:9\(-\)\]"\. '
             r"Multiple ranges must be wrapped in join{}\.$"
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "[3:5(+), 7:9(-)]")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "[3:5(+), 7:9(-)]")
 
     def testOneJoinedRange(self):
         """
@@ -120,7 +119,7 @@ class TestErrors(TestCase):
             r'"join{\[3:5\]\(-\)}"\. '
             r"join{} can only be used with multiple ranges\.$"
         )
-        assertRaisesRegex(self, ValueError, error, GenomeRanges, "join{[3:5](-)}")
+        self.assertRaisesRegex(ValueError, error, GenomeRanges, "join{[3:5](-)}")
 
 
 class TestRanges(TestCase):
@@ -298,7 +297,7 @@ class TestStartInGenome(TestCase):
             r"^Starting nucleotide offset 27 not found in protein "
             r"nucleotide ranges \(10, 20\)\.$"
         )
-        assertRaisesRegex(self, ValueError, error, ranges.startInGenome, {"sstart": 10})
+        self.assertRaisesRegex(ValueError, error, ranges.startInGenome, {"sstart": 10})
 
     def testStartOutsideGenomeRangeTwoRanges(self):
         """
@@ -313,7 +312,7 @@ class TestStartInGenome(TestCase):
             r"^Starting nucleotide offset 27 not found in protein "
             r"nucleotide ranges \(5, 10\), \(12, 18\)\.$"
         )
-        assertRaisesRegex(self, ValueError, error, ranges.startInGenome, {"sstart": 10})
+        self.assertRaisesRegex(ValueError, error, ranges.startInGenome, {"sstart": 10})
 
     def testMatchAtStartOfFirstRange(self):
         """

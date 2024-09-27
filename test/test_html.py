@@ -1,5 +1,4 @@
 from unittest import TestCase
-from six import assertRaisesRegex
 
 from dark.html import NCBISequenceLinkURL, NCBISequenceLink
 
@@ -41,7 +40,7 @@ class TestNCBISequenceLinkURL(TestCase):
             r"'gi\|37955203\|gb\|AY253278\.1\| Homo sapiens clone "
             "AL-11 HIV-1'$"
         )
-        assertRaisesRegex(self, IndexError, error, NCBISequenceLinkURL, title, 10)
+        self.assertRaisesRegex(IndexError, error, NCBISequenceLinkURL, title, 10)
 
 
 class TestNCBISequenceLink(TestCase):
@@ -89,4 +88,4 @@ class TestNCBISequenceLink(TestCase):
             r"'gi\|37955203\|gb\|AY253278\.1\| Homo sapiens clone "
             "AL-11 HIV-1'$"
         )
-        assertRaisesRegex(self, IndexError, error, NCBISequenceLink, title, 10)
+        self.assertRaisesRegex(IndexError, error, NCBISequenceLink, title, 10)
