@@ -149,9 +149,6 @@ def plotPlotly(
         },
     }
 
-    if args.y01:
-        yaxis["range"] = (0.0, 1.0)
-
     layout = go.Layout(
         title={"text": title, "x": 0.5, "xanchor": "center"},
         xaxis=xaxis,
@@ -171,7 +168,11 @@ def plotPlotly(
         write_image(fig, args.out)
 
 
-def main():
+def main() -> None:
+    """
+    Read the FASTA, compute the windowed identity and then make either a matplotlib
+    or plotly plot.
+    """
     parser = makeParser()
     args = parser.parse_args()
 
@@ -181,9 +182,11 @@ def main():
             "plotly HTML image (or both).",
         )
 
-    reads = list(parseFASTACommandLineOptions(args))
+    reads = tuple(
+        DNARead(read.id, read.sequence) for read in parseFASTACommandLineOptions(args)
+    )
 
-    idsSeen = set()
+    idsSeen: set[str] = set()
     for read in reads:
         if read.id in idsSeen:
             # We could be much more helpful here. E.g., compare the sequences, give the
@@ -202,6 +205,8 @@ def main():
         includeRegex=args.include,
         sort=args.sort,
         strict=args.strict,
+        startOffset=args.startOffset,
+        stopOffset=args.stopOffset,
     )
 
     if args.dryRun:
@@ -210,7 +215,7 @@ def main():
         print(f"The reference sequence is {reference.id!r}, ", end="")
         print(
             f"to which {nToCompare} sequence{s} would be compared:\n  "
-            + "\n  ".join(sorted(identity))
+            + "\n  ".join(sorted(read.id for read in identity))
         )
         sys.exit(0)
 
