@@ -1,3 +1,7 @@
+## 5.0.2 September 28, 2024
+
+Added `bin/plot-windowed-identity.py` along with `WindowedIdentity` class and tests.
+
 ## 5.0.1 September 22, 2024
 
 Added lots of type hints. Completely removed six.
