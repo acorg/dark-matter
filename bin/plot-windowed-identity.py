@@ -80,6 +80,12 @@ def makeParser() -> argparse.ArgumentParser:
         ),
     )
 
+    parser.add_argument(
+        "--markerSize",
+        type=int,
+        help="The size of the markers in plot lines.",
+    )
+
     return parser
 
 
@@ -123,20 +129,25 @@ def plotPlotly(
     titleFontSize: int = 18
 
     for read, identities in identity.items():
+
+        mode, marker = (
+            ("lines+markers", dict(size=args.markerSize))
+            if args.markerSize  # i.e., not 0 and not None.
+            else ("lines", None)
+        )
+
         data.append(
             go.Scatter(
                 x=centers,
                 y=identities,
-                # text=read.id,
-                # hoverinfo="text",
-                mode="lines",
+                mode=mode,
+                marker=marker,
                 name=read.id,
             )
         )
 
     xaxis = {
         "title": "Genome location",
-        "range": (0, len(reference)),
         "titlefont": {
             "size": axisFontSize,
         },
