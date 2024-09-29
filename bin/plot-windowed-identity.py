@@ -2,9 +2,13 @@
 
 import sys
 import argparse
+from operator import itemgetter
+from itertools import cycle, chain
 import matplotlib.pyplot as plt
+import plotly.express as px
 import plotly.graph_objs as go
 from plotly.io import write_image, write_html
+from collections import Counter, defaultdict
 
 from dark.windowedIdentity import WindowedIdentity, addCommandLineOptions
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, DNARead
@@ -59,6 +63,12 @@ def makeParser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--bestOnly",
+        action="store_true",
+        help="Only show the best matching sequences for each window.",
+    )
+
+    parser.add_argument(
         "--matplotlib",
         action="store_true",
         help="Use matplotlib to make a static image. Otherwise, plotly will be used.",
@@ -67,7 +77,7 @@ def makeParser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--y01",
         action="store_true",
-        help="Set the y-axis limits to (0.0, 1.0)",
+        help="Set the y-axis limits to (0.0, 1.0). Only applicable for matplotlib plots.",
     )
 
     parser.add_argument(
@@ -90,7 +100,6 @@ def makeParser() -> argparse.ArgumentParser:
 
 
 def plotMatplotlib(
-    reference: DNARead,
     centers: list[float],
     identity: dict[DNARead, list[float]],
     title: str,
@@ -98,6 +107,12 @@ def plotMatplotlib(
 ) -> None:
     """
     Make a matplotlib image.
+
+    @param centers: The x-axis centers of the genome windows.
+    @param identity: A mapping from sequences (that have been matched against the
+        reference) to a list of float identities (one for each window).
+    @param title: The title of the plot.
+    @param args: The command-line arguments.
     """
     figure, ax = plt.subplots(1, 1, figsize=(10, 8))
 
@@ -114,28 +129,130 @@ def plotMatplotlib(
     figure.savefig(args.out)
 
 
-def plotPlotly(
-    reference: DNARead,
-    centers: list[float],
-    identity: dict[DNARead, list[float]],
-    title: str,
-    args: argparse.Namespace,
-) -> None:
+def getBestOnly(
+    centers: list[float], identity: dict[DNARead, list[float]], args: argparse.Namespace
+) -> list[go.Scatter]:
     """
-    Make a plotly plot.
+    Find the best-matching sequence(s) for each window and return scatter plots for them.
+
+    @param centers: The x-axis centers of the genome windows.
+    @param identity: A mapping from sequences (that have been matched against the
+        reference) to a list of float identities (one for each window).
+    @param title: The title of the plot.
+    @param args: The command-line arguments.
+    """
+    tolerance = 0.99
+    delta = 0.005
+    half = args.jump / 2.0
+    inLegend = set()
+
+    mode, marker = (
+        ("lines+markers", dict(size=args.markerSize))
+        if args.markerSize  # i.e., not 0 and not None.
+        else ("lines", None)
+    )
+
+    # Keep track of how many times each read has a window that is amongst the
+    # best. We'll use that to update the legend to display the count.
+    bestCounts: Counter[str] = Counter()
+
+    # scatters will hold a list of go.Scatter instances, keyed by readId.
+    scatters = defaultdict(list)
+
+    colors: dict[str, str] = {}
+    colorIterator = cycle(
+        chain(px.colors.qualitative.Dark2, px.colors.qualitative.Pastel2)
+    )
+
+    for jumpIndex in range(len(centers)):
+        windowIdentities = []
+        # It's less efficient to loop over .items() repeatedly like this, but I think it
+        # makes for simpler code since we process each window in turn.
+        for read, identities in identity.items():
+            windowIdentities.append((identities[jumpIndex], read.id))
+        # Sort first by ascending read id.
+        windowIdentities.sort(key=itemgetter(1))
+        # Then by descending identity.
+        windowIdentities.sort(key=itemgetter(0), reverse=True)
+
+        bestMatches = [windowIdentities[0]]
+        bestIdentity = bestMatches[0][0]
+
+        # Collect all sequences that are within the tolerance of the best identity.
+        for thisIdentity, readId in windowIdentities[1:]:
+            if thisIdentity >= tolerance * bestIdentity:
+                bestMatches.append((thisIdentity, readId))
+            else:
+                break
+
+        center = centers[jumpIndex]
+        x = [center - half, center + half]
+
+        # Collect the best matches.
+        lastIdentity = 2.0  # Must be > 1.0 to start things off.
+        for thisIdentity, readId in bestMatches:
+            bestCounts[readId] += 1
+            showlegend = readId not in inLegend
+            inLegend.add(readId)
+            if thisIdentity >= lastIdentity:
+                adjustedIdentity = lastIdentity - delta
+            else:
+                adjustedIdentity = thisIdentity
+            lastIdentity = adjustedIdentity
+            try:
+                color = colors[readId]
+            except KeyError:
+                color = colors[readId] = next(colorIterator)
+            scatters[readId].append(
+                go.Scatter(
+                    x=x,
+                    y=[adjustedIdentity, adjustedIdentity],
+                    name=readId,
+                    text=f"{readId} {int(x[0])}-{int(x[1])} {thisIdentity:.4f}",
+                    hoverinfo="text",
+                    legendgroup=readId,
+                    showlegend=showlegend,
+                    mode=mode,
+                    marker=marker,
+                    line_color=color,
+                )
+            )
+
+    # Change legend names to include the count of best windows the sequence is in.
+    for readId, theseScatters in scatters.items():
+        for scatter in theseScatters:
+            scatter["name"] = f"{readId} ({bestCounts[readId]})"
+
+    data = []
+
+    # Add the scatters for each read in the order found in identity.
+    for read in identity:
+        data.extend(scatters[read.id])
+
+    return data
+
+
+def getAllLines(
+    centers: list[float], identity: dict[DNARead, list[float]], args: argparse.Namespace
+) -> list[go.Scatter]:
+    """
+    Plot identity lines for all sequences.
+
+    @param centers: The x-axis centers of the genome windows.
+    @param identity: A mapping from sequences (that have been matched against the
+        reference) to a list of float identities (one for each window).
+    @param title: The title of the plot.
+    @param args: The command-line arguments.
     """
     data = []
-    axisFontSize: int = 16
-    titleFontSize: int = 18
+
+    mode, marker = (
+        ("lines+markers", dict(size=args.markerSize))
+        if args.markerSize  # i.e., not 0 and not None.
+        else ("lines", None)
+    )
 
     for read, identities in identity.items():
-
-        mode, marker = (
-            ("lines+markers", dict(size=args.markerSize))
-            if args.markerSize  # i.e., not 0 and not None.
-            else ("lines", None)
-        )
-
         data.append(
             go.Scatter(
                 x=centers,
@@ -145,6 +262,30 @@ def plotPlotly(
                 name=read.id,
             )
         )
+
+    return data
+
+
+def plotPlotly(
+    centers: list[float],
+    identity: dict[DNARead, list[float]],
+    title: str,
+    args: argparse.Namespace,
+) -> None:
+    """
+    Make a plotly plot.
+
+    @param centers: The x-axis centers of the genome windows.
+    @param identity: A mapping from sequences (that have been matched against the
+        reference) to a list of float identities (one for each window).
+    @param title: The title of the plot.
+    @param args: The command-line arguments.
+    """
+    axisFontSize: int = 16
+    titleFontSize: int = 18
+
+    getData = getBestOnly if args.bestOnly else getAllLines
+    data = getData(centers, identity, args)
 
     xaxis = {
         "title": "Genome location",
@@ -236,16 +377,17 @@ def main() -> None:
     centers = [start + half for start in starts]
 
     title = args.title or (
-        f"{args.window} nt (jump {args.jump}) windowed identity against {reference.id}"
+        f"{args.window} nt (jump {args.jump}){' best' if args.bestOnly else ''} "
+        f"windowed identity against {reference.id}"
     )
 
     if args.out and args.matplotlib:
         # Produce a static image using matplotlib.
-        plotMatplotlib(reference, centers, identity, title, args)
+        plotMatplotlib(centers, identity, title, args)
 
     if args.html or (args.out and not args.matplotlib):
         # Produce HTML (and maybe a static image) using plotly.
-        plotPlotly(reference, centers, identity, title, args)
+        plotPlotly(centers, identity, title, args)
 
 
 if __name__ == "__main__":
