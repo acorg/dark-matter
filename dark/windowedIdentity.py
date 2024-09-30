@@ -72,8 +72,8 @@ class WindowedIdentity:
         stopOffset: Optional[int] = None,
     ) -> tuple[DNARead, list[int], dict[DNARead, list[float]]]:
         """
-        Make a windowed identity plot of the reads whose ids are matched by includeRegex
-        against the read whose id is matched by referenceRegex.
+        Compute windowed mucleotide identity of the reads whose ids are matched by
+        includeRegex against the read whose id is matched by referenceRegex.
 
         @param referenceRegex: A C{str} regular expression indicating the reference
             sequence id (i.e., the sequence that others should be compared to. This must
@@ -94,7 +94,7 @@ class WindowedIdentity:
             window at.
         @return: A C{tuple} containing the reference C{DNARead}, a C{list} of C{int}
             window start offsets, and a C{dict} keyed by C{DNARead} (for the reads whose
-            ids are matched by C{includeRegex}, with values being a C{list} of C{float}
+            ids are matched by C{includeRegex}), with values being a C{list} of C{float}
             nucleotide identity values for the windows across the genome.
         """
         self._checkReads()
