@@ -36,7 +36,6 @@ def makeParser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--out",
-        required=True,
         help=(
             "The name of the file to write the image to. The file suffix "
             "will determine the output format. The image will be created with "

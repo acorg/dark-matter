@@ -1,3 +1,7 @@
+## 5.0.3 September 30, 2024
+
+Removed `required` flag from `--out` option of `bin/plot-windowed-identity.py`.
+
 ## 5.0.2 September 28, 2024
 
 Added `bin/plot-windowed-identity.py` along with `WindowedIdentity` class and tests.
