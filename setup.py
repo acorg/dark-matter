@@ -93,6 +93,7 @@ scripts = [
     "bin/noninteractive-alignment-panel.py",
     "bin/parse-genbank-flat-file.py",
     "bin/plot-references-by-inter-read-distance.py",
+    "bin/plot-windowed-identity.py",
     "bin/position-summary.py",
     "bin/pre-commit.sh",
     "bin/print-read-lengths.py",

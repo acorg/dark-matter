@@ -544,12 +544,6 @@ class DNAKozakRead(DNARead):
             return NotImplemented
 
 
-# Keep a single GOR4 instance that can be used by all AA reads. This saves us
-# from re-scanning the GOR IV secondary structure database every time we make
-# an AARead instance. This will be initialized when it's first needed.
-_GOR4 = None
-
-
 class AARead(Read):
     """
     Hold information and methods to work with AA reads.
