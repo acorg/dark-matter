@@ -3912,6 +3912,66 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(lowerId=True)
         self.assertEqual(Read("id1", "ATCG"), list(result)[0])
 
+    def testRotateZero(self):
+        """
+        Rotating a sequence by zero must leave it unchanged.
+        """
+        reads = Reads([Read("id1", "atcg")])
+        result = reads.filter(rotate=0)
+        self.assertEqual(Read("id1", "atcg"), list(result)[0])
+
+    def testRotateRightOne(self):
+        """
+        Rotating a sequence to the right by one must work.
+        """
+        reads = Reads([Read("id1", "atcG")])
+        result = reads.filter(rotate=1)
+        self.assertEqual(Read("id1", "Gatc"), list(result)[0])
+
+    def testRotateRightTwo(self):
+        """
+        Rotating a sequence to the right by two must work.
+        """
+        reads = Reads([Read("id1", "atcGA")])
+        result = reads.filter(rotate=2)
+        self.assertEqual(Read("id1", "GAatc"), list(result)[0])
+
+    def testRotateRightBiggerThanSequenceLength(self):
+        """
+        Rotating a sequence to the right by an number bigger than the sequence
+        length must result in a rotation that is the modulus of the sequence
+        length.
+        """
+        reads = Reads([Read("id1", "aTCG")])
+        result = reads.filter(rotate=43)
+        self.assertEqual(Read("id1", "TCGa"), list(result)[0])
+
+    def testRotateLeftOne(self):
+        """
+        Rotating a sequence to the left by one must work.
+        """
+        reads = Reads([Read("id1", "Atcg")])
+        result = reads.filter(rotate=-1)
+        self.assertEqual(Read("id1", "tcgA"), list(result)[0])
+
+    def testRotateLeftTwo(self):
+        """
+        Rotating a sequence to the left by two must work.
+        """
+        reads = Reads([Read("id1", "ATcga")])
+        result = reads.filter(rotate=-2)
+        self.assertEqual(Read("id1", "cgaAT"), list(result)[0])
+
+    def testRotateLeftBiggerThanSequenceLength(self):
+        """
+        Rotating a sequence to the left by an number bigger than the sequence
+        length must result in a rotation that is the modulus of the sequence
+        length.
+        """
+        reads = Reads([Read("id1", "ATCg")])
+        result = reads.filter(rotate=-43)
+        self.assertEqual(Read("id1", "gATC"), list(result)[0])
+
 
 class TestReadsInRAM(TestCase):
     """

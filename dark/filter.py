@@ -670,6 +670,16 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
         help="Reverse complement the sequences.",
     )
 
+    parser.add_argument(
+        "--rotate",
+        type=int,
+        metavar="N",
+        help=(
+            "Rotate sequences. A positive integer rotates the sequence to the right, "
+            "negative to the left"
+        ),
+    )
+
     seqCaseGroup = parser.add_mutually_exclusive_group()
 
     seqCaseGroup.add_argument(
@@ -768,4 +778,5 @@ def parseFASTAEditingCommandLineOptions(
         lower=args.lower,
         upperId=args.upperId,
         lowerId=args.lowerId,
+        rotate=args.rotate,
     )

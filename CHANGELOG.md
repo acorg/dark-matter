@@ -1,3 +1,7 @@
+## 5.0.5 October 5, 2024
+
+Added `--rotate` option to `filter-fasta.py`.
+
 ## 5.0.4 October 5, 2024
 
 Added `--upper`, `--lower`, `--upperId`, and `--lowerId` options to `filter-fasta.py`.

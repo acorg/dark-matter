@@ -1102,6 +1102,8 @@ class ReadFilter:
     @param lower: Convert sequences to lowercase.
     @param upperId: Convert sequence IDs to uppercase.
     @param lowerId: Convert sequence IDs to lowercase.
+    @param rotate: Rotate the sequence an C{int} number of characters (to the
+        right if > 0, else to the left).
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
@@ -1158,6 +1160,7 @@ class ReadFilter:
         lower: bool = False,
         upperId: bool = False,
         lowerId: bool = False,
+        rotate: Optional[int] = None,
     ):
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -1217,6 +1220,8 @@ class ReadFilter:
         self.lower = lower
         self.upperId = upperId
         self.lowerId = lowerId
+
+        self.rotate = rotate
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -1330,18 +1335,6 @@ class ReadFilter:
         """
         self.readIndex += 1
 
-        if self.upper:
-            read.sequence = read.sequence.upper()
-
-        elif self.lower:
-            read.sequence = read.sequence.lower()
-
-        if self.upperId:
-            read.id = read.id.upper()
-
-        elif self.lowerId:
-            read.id = read.id.lower()
-
         if self.alwaysFalse:
             return False
 
@@ -1396,31 +1389,21 @@ class ReadFilter:
         ):
             return False
 
+        readSequence = read.sequence
+
         if self.maxNFraction is not None:
-            nFraction = read.sequence.count("N") / readLen
-            if self.maxNFraction < nFraction:
+            nFraction = readSequence.count("N") / readLen
+            if nFraction > self.maxNFraction:
                 return False
 
-        if self.removeGaps:
-            if read.quality is None:
-                read = read.__class__(read.id, read.sequence.replace("-", ""))
-            else:
-                newSequence = []
-                newQuality = []
-                for base, quality in zip(read.sequence, read.quality):
-                    if base != "-":
-                        newSequence.append(base)
-                        newQuality.append(quality)
-                read = read.__class__(
-                    read.id, "".join(newSequence), "".join(newQuality)
-                )
+        readId = read.id
 
-        if self.titleFilter and self.titleFilter.accept(read.id) == TitleFilter.REJECT:
+        if self.titleFilter and self.titleFilter.accept(readId) == TitleFilter.REJECT:
             return False
 
         if (
             self.sequenceFilter
-            and self.sequenceFilter.accept(read.sequence) == SequenceFilter.REJECT
+            and self.sequenceFilter.accept(readSequence) == SequenceFilter.REJECT
         ):
             return False
 
@@ -1432,21 +1415,59 @@ class ReadFilter:
 
         if self.removeDuplicates:
             if self.removeDuplicatesUseMD5:
-                sequence = md5(read.sequence.encode("UTF-8")).digest()
+                sequence = md5(readSequence.encode("UTF-8")).digest()
             else:
-                sequence = read.sequence
+                sequence = readSequence
             if sequence in self.sequencesSeen:
                 return False
             self.sequencesSeen.add(sequence)
 
         if self.removeDuplicatesById:
             if self.removeDuplicatesUseMD5:
-                id_ = md5(read.id.encode("UTF-8")).digest()
+                id_ = md5(readId.encode("UTF-8")).digest()
             else:
-                id_ = read.id
+                id_ = readId
             if id_ in self.idsSeen:
                 return False
             self.idsSeen.add(id_)
+
+        # Only from here on do we start possibly modifying the read.
+
+        if self.rotate:  # I.e., not None and not zero.
+            if self.rotate > 0:
+                # Rotate right
+                rotate = int(abs(self.rotate)) % readLen
+                read.sequence = (readSequence[-rotate:] + readSequence[:-rotate])
+            else:
+                # Rotate left
+                rotate = (-self.rotate) % readLen
+                read.sequence = (readSequence[rotate:] + readSequence[:rotate])
+
+        if self.upper:
+            read.sequence = readSequence.upper()
+
+        elif self.lower:
+            read.sequence = readSequence.lower()
+
+        if self.upperId:
+            read.id = readId.upper()
+
+        elif self.lowerId:
+            read.id = readId.lower()
+
+        if self.removeGaps:
+            if read.quality is None:
+                read = read.__class__(readId, readSequence.replace("-", ""))
+            else:
+                newSequence = []
+                newQuality = []
+                for base, quality in zip(readSequence, read.quality):
+                    if base != "-":
+                        newSequence.append(base)
+                        newQuality.append(quality)
+                read = read.__class__(
+                    readId, "".join(newSequence), "".join(newQuality)
+                )
 
         if self.modifier:
             modified = self.modifier(read)
@@ -1463,7 +1484,7 @@ class ReadFilter:
             read = read.newFromSites(self.removeSites, exclude=True)
 
         if self.idLambda:
-            newId = self.idLambda(read.id)
+            newId = self.idLambda(readId)
             if newId is None:
                 return False
             else:
@@ -1477,7 +1498,7 @@ class ReadFilter:
                 read = newRead
 
         if self.removeDescriptions:
-            read.id = read.id.split()[0]
+            read.id = readId.split()[0]
 
         if self.reverse:
             read = read.reverse()
