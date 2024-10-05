@@ -1,3 +1,7 @@
+## 5.0.6 October 5, 2024
+
+Add `rotate` method to `Read` class, plus tests.
+
 ## 5.0.5 October 5, 2024
 
 Added `--rotate` option to `filter-fasta.py`.
