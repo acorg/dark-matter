@@ -3880,6 +3880,38 @@ class TestReadsFiltering(TestCase):
             AttributeError, error, list, reads.filter(reverseComplement=True)
         )
 
+    def testUpper(self):
+        """
+        Converting sequences to uppercase must work.
+        """
+        reads = Reads([Read("id1", "atcg")])
+        result = reads.filter(upper=True)
+        self.assertEqual(Read("id1", "ATCG"), list(result)[0])
+
+    def testLower(self):
+        """
+        Converting sequences to lowercase must work.
+        """
+        reads = Reads([Read("id1", "ATCG")])
+        result = reads.filter(lower=True)
+        self.assertEqual(Read("id1", "atcg"), list(result)[0])
+
+    def testUpperId(self):
+        """
+        Converting sequence IDs to uppercase must work.
+        """
+        reads = Reads([Read("id1", "atcg")])
+        result = reads.filter(upperId=True)
+        self.assertEqual(Read("ID1", "atcg"), list(result)[0])
+
+    def testLowerId(self):
+        """
+        Converting sequences IDs to lowercase must work.
+        """
+        reads = Reads([Read("ID1", "ATCG")])
+        result = reads.filter(lowerId=True)
+        self.assertEqual(Read("id1", "ATCG"), list(result)[0])
+
 
 class TestReadsInRAM(TestCase):
     """

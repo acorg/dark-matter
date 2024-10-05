@@ -1,3 +1,7 @@
+## 5.0.4 October 5, 2024
+
+Added `--upper`, `--lower`, `--upperId`, and `--lowerId` options to `filter-fasta.py`.
+
 ## 5.0.3 September 30, 2024
 
 Removed `required` flag from `--out` option of `bin/plot-windowed-identity.py`.

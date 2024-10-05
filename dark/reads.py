@@ -1098,6 +1098,10 @@ class ReadFilter:
     @param reverseComplement: If C{True}, replace seqeunces with their reverse
         complements. Reversing happens at a very late stage (i.e., after sites
         are altered via keepSites and removeSites).
+    @param upper: Convert sequences to uppercase.
+    @param lower: Convert sequences to lowercase.
+    @param upperId: Convert sequence IDs to uppercase.
+    @param lowerId: Convert sequence IDs to lowercase.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
@@ -1150,6 +1154,10 @@ class ReadFilter:
         removeSites: Optional[set[int]] = None,
         reverse: bool = False,
         reverseComplement: bool = False,
+        upper: bool = False,
+        lower: bool = False,
+        upperId: bool = False,
+        lowerId: bool = False,
     ):
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -1204,6 +1212,11 @@ class ReadFilter:
             reverse = False
         self.reverse = reverse
         self.reverseComplement = reverseComplement
+
+        self.upper = upper
+        self.lower = lower
+        self.upperId = upperId
+        self.lowerId = lowerId
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -1316,6 +1329,18 @@ class ReadFilter:
         @return: C{read} if C{read} passes the filter, C{False} if not.
         """
         self.readIndex += 1
+
+        if self.upper:
+            read.sequence = read.sequence.upper()
+
+        elif self.lower:
+            read.sequence = read.sequence.lower()
+
+        if self.upperId:
+            read.id = read.id.upper()
+
+        elif self.lowerId:
+            read.id = read.id.lower()
 
         if self.alwaysFalse:
             return False
