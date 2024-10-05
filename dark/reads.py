@@ -1437,11 +1437,11 @@ class ReadFilter:
             if self.rotate > 0:
                 # Rotate right
                 rotate = self.rotate % readLen
-                read.sequence = (readSequence[-rotate:] + readSequence[:-rotate])
+                read.sequence = readSequence[-rotate:] + readSequence[:-rotate]
             else:
                 # Rotate left
-                rotate = (-self.rotate) % readLen
-                read.sequence = (readSequence[rotate:] + readSequence[:rotate])
+                rotate = -self.rotate % readLen
+                read.sequence = readSequence[rotate:] + readSequence[:rotate]
 
         if self.upper:
             read.sequence = readSequence.upper()
