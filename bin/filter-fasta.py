@@ -107,14 +107,13 @@ if __name__ == "__main__":
 
     if args.checkResultCount is not None:
         if kept != args.checkResultCount:
-            if not args.quiet:
-                print(
-                    "Did not write the expected %d sequence%s (wrote %d)."
-                    % (
-                        args.checkResultCount,
-                        "" if args.checkResultCount == 1 else "s",
-                        kept,
-                    ),
-                    file=sys.stderr,
-                )
+            print(
+                "Did not write the expected %d sequence%s (wrote %d)."
+                % (
+                    args.checkResultCount,
+                    "" if args.checkResultCount == 1 else "s",
+                    kept,
+                ),
+                file=sys.stderr,
+            )
             sys.exit(1)

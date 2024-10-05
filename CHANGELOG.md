@@ -1,3 +1,8 @@
+## 5.0.7 October 5, 2024
+
+Made `filter-fasta.py` print an error message when the `--checkResultCount`
+check fails even if `--quiet` was used.
+
 ## 5.0.6 October 5, 2024
 
 Add `rotate` method to `Read` class, plus tests.
