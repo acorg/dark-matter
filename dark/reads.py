@@ -1436,7 +1436,7 @@ class ReadFilter:
         if self.rotate:  # I.e., not None and not zero.
             if self.rotate > 0:
                 # Rotate right
-                rotate = int(abs(self.rotate)) % readLen
+                rotate = self.rotate % readLen
                 read.sequence = (readSequence[-rotate:] + readSequence[:-rotate])
             else:
                 # Rotate left
