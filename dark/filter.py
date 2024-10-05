@@ -611,7 +611,6 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--removeGaps",
         action="store_true",
-        default=False,
         help="If True, gap ('-') characters in sequences will be removed.",
     )
 
@@ -627,7 +626,6 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--removeDescriptions",
         action="store_true",
-        default=False,
         help=(
             "Read id descriptions will be removed. The "
             "description is the part of a sequence id after the "
@@ -670,6 +668,34 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
         "--reverseComplement",
         action="store_true",
         help="Reverse complement the sequences.",
+    )
+
+    seqCaseGroup = parser.add_mutually_exclusive_group()
+
+    seqCaseGroup.add_argument(
+        "--upper",
+        action="store_true",
+        help="Convert sequences to uppercase.",
+    )
+
+    seqCaseGroup.add_argument(
+        "--lower",
+        action="store_true",
+        help="Convert sequences to lowercase.",
+    )
+
+    idCaseGroup = parser.add_mutually_exclusive_group()
+
+    idCaseGroup.add_argument(
+        "--upperId",
+        action="store_true",
+        help="Convert sequence IDs to uppercase.",
+    )
+
+    idCaseGroup.add_argument(
+        "--lowerId",
+        action="store_true",
+        help="Convert sequence IDs to lowercase.",
     )
 
 
@@ -738,4 +764,8 @@ def parseFASTAEditingCommandLineOptions(
         removeSites=removeSites,
         reverse=args.reverse,
         reverseComplement=args.reverseComplement,
+        upper=args.upper,
+        lower=args.lower,
+        upperId=args.upperId,
+        lowerId=args.lowerId,
     )

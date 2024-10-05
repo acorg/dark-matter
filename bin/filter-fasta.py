@@ -88,8 +88,7 @@ if __name__ == "__main__":
 
     write = sys.stdout.write
     kept = 0
-    for read in reads:
-        kept += 1
+    for kept, read in enumerate(reads, start=1):
         write(read.toString(format_=saveAs))
 
     total = reads.unfilteredLength()
