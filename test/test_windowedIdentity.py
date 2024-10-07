@@ -153,7 +153,10 @@ class TestWindowedIdentity(TestCase):
                 DNARead("id", "ACGT"),
             ]
         )
-        error = r"^No input sequence ID matches the reference regular expression\.$"
+        error = (
+            r"^No input sequence IDs match the regular expression for the "
+            r"reference \('xxx'\)\.$"
+        )
         self.assertRaisesRegex(ValueError, error, wi.getIdentity, "xxx", 10, 3, 2)
 
     def testMultipleMatchingReference(self):

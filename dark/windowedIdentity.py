@@ -132,7 +132,8 @@ class WindowedIdentity:
         # We can't use 'match' until we've dropped support for Python 3.9.
         if nReferences == 0:
             raise ValueError(
-                "No input sequence ID matches the reference regular expression."
+                f"No input sequence IDs match the regular expression for the reference "
+                f"({referenceRegex!r})."
             )
         elif nReferences == 1:
             reference = references[0]
