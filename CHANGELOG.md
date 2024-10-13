@@ -1,3 +1,7 @@
+## 5.0.8 October 14, 2024
+
+Added typing hints to `dark/process.py`.
+
 ## 5.0.7 October 5, 2024
 
 Made `filter-fasta.py` print an error message when the `--checkResultCount`
