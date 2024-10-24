@@ -24,19 +24,10 @@ class Executor:
         stdout: Optional[Union[TextIO, StringIO]] = None,
         stderr: Optional[Union[TextIO, StringIO]] = None,
     ) -> None:
-        self._dryRun = dryRun
+        self.dryRun = dryRun
         self.stdout = stdout
         self.stderr = stderr
         self.log = [f"# Executor created at {ctime(time())}. Dry run = {dryRun}."]
-
-    @property
-    def dryRun(self) -> bool:
-        """
-        Is this a dry run?
-
-        @return: A Boolean indicating whether this is a dry run.
-        """
-        return self._dryRun
 
     def execute(
         self,
@@ -92,7 +83,7 @@ class Executor:
         if isinstance(stdout, (StringIO, TextIO)):
             print("$ " + strCommand, file=stdout)
 
-        dryRun = self._dryRun if dryRun is None else dryRun
+        dryRun = self.dryRun if dryRun is None else dryRun
 
         if dryRun:
             self.log.append("$ " + strCommand)
