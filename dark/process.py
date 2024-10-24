@@ -1,6 +1,8 @@
 import sys
 from time import time, ctime
-from subprocess import PIPE, CalledProcessError, run
+from typing import Optional, Union, TextIO
+from subprocess import PIPE, CompletedProcess, CalledProcessError, run
+from io import StringIO
 
 
 class Executor:
@@ -16,23 +18,26 @@ class Executor:
         of commands will be written to this descriptor.
     """
 
-    def __init__(self, dryRun=False, stdout=None, stderr=None):
+    def __init__(
+        self,
+        dryRun: bool = False,
+        stdout: Optional[Union[TextIO, StringIO]] = None,
+        stderr: Optional[Union[TextIO, StringIO]] = None,
+    ) -> None:
         self.dryRun = dryRun
         self.stdout = stdout
         self.stderr = stderr
         self.log = [f"# Executor created at {ctime(time())}. Dry run = {dryRun}."]
 
-    def dryRun(self):
-        """
-        Is this a dry run?
-
-        @return: A Boolean indicating whether this is a dry run.
-        """
-        return self._dryRun
-
     def execute(
-        self, command, dryRun=None, useStderr=True, stdout=False, stderr=False, **kwargs
-    ):
+        self,
+        command: Union[str, list[str]],
+        dryRun: Optional[bool] = None,
+        useStderr: bool = True,
+        stdout: Optional[Union[bool, TextIO, StringIO]] = False,
+        stderr: Optional[Union[bool, TextIO, StringIO]] = False,
+        **kwargs,
+    ) -> Optional[CompletedProcess]:
         """
         Execute (or simulate) a command. Add to our log.
 
@@ -41,7 +46,7 @@ class Executor:
             name), in which case the shell is not used.
         @param dryRun: If C{True}, do not execute commands, just log them.
             If C{False}, execute the commands. If not given or C{None}, use
-            the default setting (in C{self.dryRun}).
+            the default setting (in C{self._dryRun}).
         @param useStderr: If C{True} and the command results in an exception, print
             a summary of the command standard output and standard error to sys.stderr.
             If a function is passed, the exception is passed to the function and the
@@ -75,14 +80,14 @@ class Executor:
             strCommand = " ".join(command)
             shell = False
 
-        if stdout:
+        if isinstance(stdout, (StringIO, TextIO)):
             print("$ " + strCommand, file=stdout)
 
         dryRun = self.dryRun if dryRun is None else dryRun
 
         if dryRun:
             self.log.append("$ " + strCommand)
-            return
+            return None
 
         start = time()
         self.log.extend(
@@ -120,10 +125,10 @@ class Executor:
             ]
         )
 
-        if result.stdout and stdout:
+        if result.stdout and isinstance(stdout, (StringIO, TextIO)):
             print(result.stdout, end="", file=stdout)
 
-        if result.stderr and stderr:
+        if result.stderr and isinstance(stderr, (StringIO, TextIO)):
             print(result.stderr, end="", file=stderr)
 
         return result

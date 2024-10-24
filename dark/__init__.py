@@ -7,4 +7,4 @@ if sys.version_info < (3, 9):
 # otherwise it will not be found by the version() function in ../setup.py
 #
 # Remember to update ../CHANGELOG.md describing what's new in each version.
-__version__ = "5.0.7"
+__version__ = "5.0.8"
