@@ -1,3 +1,9 @@
+## 5.0.9 October 24, 2024
+
+Added `bin/curate-trees.py` script to collapse low-support branches in
+phylogenetic trees (to make polytomies) and also to re-root and ladderize
+them.
+
 ## 5.0.8 October 14, 2024
 
 Added typing hints to `dark/process.py`.
