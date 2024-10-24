@@ -47,7 +47,19 @@ def parseArgs():
         type=float,
         help=(
             "A floating-point support value. Branches with support less than this "
-            "value will be collapsed (to form polytomies)."
+            "value will be collapsed (to form polytomies). The value to use will depend "
+            "on what the program used to create the tree used to indicate the support. "
+            "This is frequently the number of times the branch was supported in the "
+            "bootstrap analysis. In this case, if you did 100 bootstraps, you would see "
+            "integer support values from 0 to 100. If you did 1000 bootstraps, the "
+            "values could go up to 1000. Other programs might write the support value "
+            "as a fraction (of bootstraps in which the branch is supported), therefore "
+            "ranging from 0.0 to 1.0. In other words, you need to know what's in your "
+            "tree file to know for sure what value to use for this option. "
+            "More difficult is to know what cut-off value actually makes sense in your "
+            "analysis. If you're using iqtree2 with its ultrafast bootstrap (UFBoot), "
+            "you should read the related FAQ item at "
+            "http://www.iqtree.org/doc/Frequently-Asked-Questions"
         ),
     )
 
@@ -83,10 +95,10 @@ def parseArgs():
 def main():
     args = parseArgs()
 
-    if not (args.rootNode or args.ladderize):
+    if not (args.rootNode or args.ladderize or args.collapse):
         exit(
-            "Nothing to do - exiting. Use one or both of --rootNode (for re-rooting) "
-            "or --ladderize if you want me to do something!"
+            "Nothing to do - exiting. Use at least one of --rootNode (for re-rooting), "
+            "--ladderize, or --collapse if you want me to do something!"
         )
 
     for treefile in map(Path, args.treeFiles):
