@@ -64,6 +64,32 @@ def parseArgs():
     )
 
     parser.add_argument(
+        "--discardLengths",
+        action="store_true",
+        help=(
+            "When collapsing edges due to low support, the length of the edge being "
+            "removed will be added to the length of the edges leading to the nodes of "
+            "the edge-to-be-removed's child edges. This may be hard to follow, in "
+            "which case you should draw yourself a little picture of part of a rooted "
+            "tree and think about what happens to the nodes that become detached when "
+            "you remove an edge (and the node that it leads to in the direction away "
+            "from the root). If the length of the edge you are collapsing is "
+            "important, because it came from a tree-making algorithm that sets branch "
+            "lengths according to sequence change, the 'right' thing to do is to add "
+            "the length of the to-be-deleted edge to the lengths of its descendant "
+            "edges when you attach those nodes as children of the node at the root-end "
+            "of the edge you are deleting. If for some reason you also want to discard "
+            "the length of the edge you are collapsing, you can use this "
+            "--discardLengths option. Make sure you really understand the implications "
+            "of doing so, however, because discarding that length will cause the "
+            "patristic distance of these child nodes to be shorter than it was "
+            "estimated to be by the algorithm that made the tree and set the original "
+            "branch lengths. And why would you want to second-guess the algorithm and "
+            "mess with its conclusions?"
+        ),
+    )
+
+    parser.add_argument(
         "--ladderize",
         choices=("ascending", "descending"),
         help="How to (optionally) ladderize the tree after re-rooting.",
@@ -97,8 +123,8 @@ def main():
 
     if not (args.rootNode or args.ladderize or args.collapse):
         exit(
-            "Nothing to do - exiting. Use at least one of --rootNode (for re-rooting), "
-            "--ladderize, or --collapse if you want me to do something!"
+            "Nothing to do! Use some combination of --rootNode (for re-rooting), "
+            "--ladderize, or --collapse if you want something done. Exiting."
         )
 
     for treefile in map(Path, args.treeFiles):
@@ -144,9 +170,11 @@ def main():
                     and node.label is not None
                     and float(node.label) < args.collapse
                 ):
-                    # Collapse this node so its children become children of this
-                    # node's parent.
-                    node.edge.collapse()
+                    # Collapse this node's incoming edge so its children become children
+                    # of this node's parent.
+                    node.edge.collapse(
+                        adjust_collapsed_head_children_edge_lengths=not args.discardLengths
+                    )
 
         # Re-root.
         if args.rootNode:
