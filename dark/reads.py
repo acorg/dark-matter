@@ -1485,7 +1485,9 @@ class ReadFilter:
                     if base != "-":
                         newSequence.append(base)
                         newQuality.append(quality)
-                read = read.__class__(read.id, "".join(newSequence), "".join(newQuality))
+                read = read.__class__(
+                    read.id, "".join(newSequence), "".join(newQuality)
+                )
 
         if self.modifier:
             modified = self.modifier(read)

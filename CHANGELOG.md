@@ -1,3 +1,7 @@
+## 5.0.10 October 26, 2024
+
+Added `intsToRanges` and `intsToStringRanges` to `dark/utils.py`. Ran `black`.
+
 ## 5.0.8 October 14, 2024
 
 Added typing hints to `dark/process.py`.

@@ -25,9 +25,7 @@ class TestDimensionalIterator(TestCase):
         expected error string.
         """
         error = r"^Dimensions not all positive! \(2, -1, 3\)$"
-        self.assertRaisesRegex(
-            ValueError, error, next, dimensionalIterator((2, -1, 3))
-        )
+        self.assertRaisesRegex(ValueError, error, next, dimensionalIterator((2, -1, 3)))
 
     def testLimitedTo0Items(self):
         self.assertEqual((), tuple(dimensionalIterator((2, 2), maxItems=0)))

@@ -8,7 +8,8 @@ from os.path import basename
 from contextlib import contextmanager
 from re import compile
 from statistics import median as _median
-from typing import List, Optional
+from typing import List, Optional, Iterable
+import itertools
 
 
 def numericallySortFilenames(names: List[str]) -> List[str]:
@@ -360,3 +361,69 @@ def openOr(filename, mode="r", defaultFp=None, specialCaseHyphen=True):
     else:
         with open(filename, mode) as fp:
             yield fp
+
+
+def intsToRanges(numbers: Iterable[int]) -> list[tuple[int, int]]:
+    """
+    Convert a set of integers into a list of consecutive integer ranges.
+
+    @param numbers: An iterable of integer values.
+    @return: A C{list} of int (start, end) consecutive ranges, sorted from least
+        to greatest. Each tuple holds a pair of (inclusive) numbers that are
+        consecutive in C{numbers}. In each pair, C{start} will equal C{end} if
+        C{start}+1 is not present in numbers.
+    """
+    remaining = set(numbers)
+    assert all(isinstance(x, int) for x in remaining)
+    ranges: list[tuple[int, int]] = []
+
+    while remaining:
+        start = min(remaining)
+        remaining.remove(start)
+
+        for end in itertools.count(start + 1):
+            if end in remaining:
+                remaining.remove(end)
+            else:
+                end -= 1
+                break
+
+        ranges.append((start, end))
+
+    return ranges
+
+
+def intsToStringRanges(
+    numbers: Iterable[int], sep: str = "-", minimize: bool = False
+) -> list[str]:
+    """
+    Convert a set of integers into a list of string ranges.
+
+    @param numbers: An iterable of integer values.
+    @return: A C{list} of C{str} ranges, sorted from least to greatest.
+    """
+    ranges = intsToRanges(numbers)
+
+    if minimize:
+        minimized = []
+        for start, end in ranges:
+            if start == end:
+                minimized.append(str(start))
+            else:
+                oneIsNegative = start < 0 and end >= 0
+                sstart, send = map(str, (start, end))
+                if len(sstart) == len(send) and not oneIsNegative:
+                    for commonPrefixLen in range(len(sstart)):
+                        if sstart[commonPrefixLen] != send[commonPrefixLen]:
+                            break
+                    minimized.append(sstart + sep + send[commonPrefixLen:])
+                else:
+                    minimized.append(sstart + sep + send)
+
+        return minimized
+
+    else:
+        return [
+            (str(start) if start == end else str(start) + sep + str(end))
+            for (start, end) in ranges
+        ]

@@ -7,17 +7,19 @@ from collections import Counter
 from io import BytesIO, StringIO
 
 from dark.utils import (
-    numericallySortFilenames,
-    median,
     asHandle,
-    parseRangeString,
-    parseRangeExpression,
-    pct,
     baseCountsToStr,
-    nucleotidesToStr,
     countPrint,
-    take,
+    intsToRanges,
+    intsToStringRanges,
     matchOffset,
+    median,
+    nucleotidesToStr,
+    numericallySortFilenames,
+    parseRangeExpression,
+    parseRangeString,
+    pct,
+    take,
 )
 
 
@@ -654,4 +656,192 @@ class TestMatchOffset(TestCase):
                 "TAATTTAGTGCG---------TGATCTCCCTCAGGGTTTTTCGGCTTTAGAAC",
                 "             AGCCAGAATGATCTCCCTCAGGGTTTTTCGGCTTT",
             ),
+        )
+
+
+class TestIntsToRanges(TestCase):
+    """
+    Test the intsToRanges function.
+    """
+
+    def testEmpty(self):
+        "An empty set of numbers must give an empty result."
+        self.assertEqual(intsToRanges([]), [])
+
+    def testOneNumber(self):
+        "A set of one number must result in that number."
+        self.assertEqual(intsToRanges({2018}), [(2018, 2018)])
+
+    def testTwoNonConsecutiveNumbers(self):
+        """
+        A set of two numbers that are not consecutive must result in those numbers.
+        """
+        self.assertEqual(intsToRanges({2018, 2020}), [(2018, 2018), (2020, 2020)])
+
+    def testTwoNonConsecutiveNumbersDecreasingOrder(self):
+        """
+        A set of two numbers that are not consecutive (and which decrease in the
+        passed order) must result in those numbers.
+        """
+        self.assertEqual(intsToRanges([2020, 2018]), [(2018, 2018), (2020, 2020)])
+
+    def testTwoConsecutiveNumbers(self):
+        """
+        A set of two numbers that are consecutive must result in those numbers in a
+        range.
+        """
+        self.assertEqual(intsToRanges({2018, 2019}), [(2018, 2019)])
+
+    def testThreeConsecutiveNumbers(self):
+        """
+        A set of three numbers that are consecutive must result in those numbers in a
+        range.
+        """
+        self.assertEqual(intsToRanges({2018, 2019, 2020}), [(2018, 2020)])
+
+    def testTwoConsecutiveRanges(self):
+        """
+        Two set of consecutive numbers must result in those numbers in two
+        ranges.
+        """
+        self.assertEqual(
+            intsToRanges({2018, 2019, 2020, 2014, 2015}),
+            [(2014, 2015), (2018, 2020)],
+        )
+
+    def testOneToAHundred(self):
+        """
+        1 to 100 must result in "1-100".
+        """
+        self.assertEqual(intsToRanges(range(1, 101)), [(1, 100)])
+
+    def testNegativeRange(self):
+        """
+        A range from one negative number to another must give the expected result.
+        """
+        self.assertEqual(intsToRanges({-2018, -2019}), [(-2019, -2018)])
+
+    def testPositiveAndNegativeRanges(self):
+        """
+        Two ranges, one negative and one positive must give the expected result.
+        """
+        self.assertEqual(
+            intsToRanges({-2020, -2018, -2019, 2010, 2011, 2012}),
+            [(-2020, -2018), (2010, 2012)],
+        )
+
+
+class TestIntsToStringRanges(TestCase):
+    """
+    Test the intsToStringRanges function.
+    """
+
+    def testEmpty(self):
+        "An empty set of numbers must give an empty result."
+        self.assertEqual(intsToStringRanges([]), [])
+
+    def testOneNumber(self):
+        "A set of one number must result in that number."
+        self.assertEqual(intsToStringRanges({2018}), ["2018"])
+
+    def testTwoNonConsecutiveNumbers(self):
+        """
+        A set of two numbers that are not consecutive must result in those numbers.
+        """
+        self.assertEqual(intsToStringRanges({2018, 2020}), ["2018", "2020"])
+
+    def testTwoNonConsecutiveNumbersDecreasingOrder(self):
+        """
+        A set of two numbers that are not consecutive (and which decrease in the
+        passed order) must result in those numbers.
+        """
+        self.assertEqual(intsToStringRanges([2020, 2018]), ["2018", "2020"])
+
+    def testTwoConsecutiveNumbers(self):
+        """
+        A set of two numbers that are consecutive must result in those numbers in a
+        range.
+        """
+        self.assertEqual(intsToStringRanges({2018, 2019}), ["2018-2019"])
+
+    def testTwoConsecutiveNumbersAlternateSeparator(self):
+        """
+        A set of two numbers that are consecutive must result in those numbers in a
+        range, separated by the passed separator string.
+        """
+        self.assertEqual(intsToStringRanges({2018, 2019}, sep=" -> "), ["2018 -> 2019"])
+
+    def testThreeConsecutiveNumbers(self):
+        """
+        A set of three numbers that are consecutive must result in those numbers in a
+        range.
+        """
+        self.assertEqual(intsToStringRanges({2018, 2019, 2020}), ["2018-2020"])
+
+    def testTwoConsecutiveRanges(self):
+        """
+        Two set of consecutive numbers must result in those numbers in two
+        ranges.
+        """
+        self.assertEqual(
+            intsToStringRanges({2018, 2019, 2020, 2014, 2015}),
+            ["2014-2015", "2018-2020"],
+        )
+
+    def testOneToAHundred(self):
+        """
+        1 to 100 must result in "1-100".
+        """
+        self.assertEqual(intsToStringRanges(range(1, 101)), ["1-100"])
+
+    def testNegativeRange(self):
+        """
+        A range from one negative number to another must give the expected result.
+        """
+        self.assertEqual(
+            intsToStringRanges({-2018, -2019}, sep=" -> "), ["-2019 -> -2018"]
+        )
+
+    def testPositiveAndNegativeRanges(self):
+        """
+        Two ranges, one negative and one positive must give the expected result.
+        """
+        self.assertEqual(
+            intsToStringRanges({-2020, -2018, -2019, 2010, 2011, 2012}, sep=" -> "),
+            ["-2020 -> -2018", "2010 -> 2012"],
+        )
+
+    def testTwoConsecutiveNumbersMinimized(self):
+        """
+        When minimize=True is passed, a set of two numbers that are consecutive must
+        result in those numbers in a simplified range.
+        """
+        self.assertEqual(intsToStringRanges({2018, 2019}, minimize=True), ["2018-9"])
+
+    def testTwoConsecutiveNegativeNumbersMinimized(self):
+        """
+        When minimize=True is passed, a set of two negative numbers that are
+        consecutive must result in those numbers in a simplified range.
+        """
+        self.assertEqual(
+            intsToStringRanges({-2020, -2021, -2018, -2019}, minimize=True, sep=" -> "),
+            ["-2021 -> 18"],
+        )
+
+    def testThreeConsecutiveNumbersMinimized(self):
+        """
+        When minimize=True is passed, a set of three numbers that are consecutive must
+        result in those numbers in a simplified range.
+        """
+        self.assertEqual(
+            intsToStringRanges({2018, 2019, 2020}, minimize=True), ["2018-20"]
+        )
+
+    def testNegativePositiveRangeIsNotMinimized(self):
+        """
+        When minimize=True is passed, a set of numbers that are consecutive and
+        crossing zero must result in that number range not being minimized.
+        """
+        self.assertEqual(
+            intsToStringRanges(range(-20, 21), minimize=True, sep=" -> "), ["-20 -> 20"]
         )

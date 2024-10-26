@@ -218,9 +218,7 @@ class _FeatureAdder:
         @param offsetAdjuster: a function for adjusting feature X axis offsets
             for plotting.
         """
-        raise NotImplementedError(
-            "_displayFeatures must be implemented in a subclass."
-        )
+        raise NotImplementedError("_displayFeatures must be implemented in a subclass.")
 
 
 class ProteinFeatureAdder(_FeatureAdder):

@@ -17,9 +17,7 @@ class TestColorsForCounts(TestCase):
             r"\"count color\" where the count is an integer threshold\. "
             r"Your value \('non-int'\) was not an integer\.$"
         )
-        self.assertRaisesRegex(
-            ValueError, error, ColorsForCounts, ("non-int red",)
-        )
+        self.assertRaisesRegex(ValueError, error, ColorsForCounts, ("non-int red",))
 
     def testCountNegative(self):
         """
@@ -48,9 +46,7 @@ class TestColorsForCounts(TestCase):
         A C{ValueError} must be raised if a count is repeated.
         """
         error = r"^repeated color argument count \(4\)\.$"
-        self.assertRaisesRegex(
-            ValueError, error, ColorsForCounts, ("4 red", "4 black")
-        )
+        self.assertRaisesRegex(ValueError, error, ColorsForCounts, ("4 red", "4 black"))
 
     def testThresholdForCountNegative(self):
         """
