@@ -345,9 +345,9 @@ class SAMFilter:
         """
         if samfileIsPositional:
             # Positional arguments are always required.
-            assert samfileRequired, (
-                "samfileIsPositional is True, so samfileRequired must also be True."
-            )
+            assert (
+                samfileRequired
+            ), "samfileIsPositional is True, so samfileRequired must also be True."
             if samfileNargs is None:
                 parser.add_argument(
                     "samfile", action=samfileAction, help="The SAM/BAM file to filter."
@@ -1489,7 +1489,9 @@ class ReadsSummary:
         else:
             raise ValueError(f"Unknown sortBy value {sortBy!r}.")
 
-        self.sortedReferences = sorted(self.references.values(), key=key, reverse=reverse)
+        self.sortedReferences = sorted(
+            self.references.values(), key=key, reverse=reverse
+        )
         self.sortedBy = sortBy
 
         return self.sortedReferences

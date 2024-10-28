@@ -8,7 +8,8 @@ from os.path import basename
 from contextlib import contextmanager
 from re import compile
 from statistics import median as _median
-from typing import List, Optional
+from typing import List, Optional, Iterable
+import itertools
 
 
 def numericallySortFilenames(names: List[str]) -> List[str]:
@@ -360,3 +361,77 @@ def openOr(filename, mode="r", defaultFp=None, specialCaseHyphen=True):
     else:
         with open(filename, mode) as fp:
             yield fp
+
+
+def intsToIntervals(numbers: Iterable[int]) -> list[tuple[int, int]]:
+    """
+    Produce a list of consecutive integer intervals from a set of integers.
+
+    Given a set of integers, A, this function finds a mutually disjoint set of intervals
+    [a_i, b_i] (for i in some finite index set), such that A is the union of [a_i, b_i]
+    over all i and returns a list of ordered-pairs (a_i, b_i).
+
+    @param numbers: An iterable of integer values.
+    @return: A C{list} of C{int} (start, end) consecutive intervals, sorted from least
+        to greatest. Each tuple holds a pair of (inclusive) numbers that are
+        consecutive in C{numbers}. In each pair, C{start} will equal C{end} if
+        C{start}+1 is not present in numbers.
+    """
+    remaining = set(numbers)
+    assert all(isinstance(x, int) for x in remaining)
+    intervals: list[tuple[int, int]] = []
+
+    while remaining:
+        start = min(remaining)
+        remaining.remove(start)
+
+        for end in itertools.count(start + 1):
+            if end in remaining:
+                remaining.remove(end)
+            else:
+                end -= 1
+                break
+
+        intervals.append((start, end))
+
+    return intervals
+
+
+def intsToStringIntervals(
+    numbers: Iterable[int], sep: str = "-", minimize: bool = False
+) -> list[str]:
+    """
+    Make a list of strings of consecutive intervals given a set of integers.
+
+    @param numbers: An iterable of integer values.
+    @param sep: The C{str} separator to put between the start and end integers
+        when representing a consecutive range of numbers in C{numbers}.
+    @param minimize: If true, make a further simplification, changing an interval
+        such as 2016-2020 into 2016-20 or 2018-2019 into 2018-9.
+    @return: A C{list} of C{str} intervals, sorted from least to greatest.
+    """
+    intervals = intsToIntervals(numbers)
+
+    if minimize:
+        minimized = []
+        for start, end in intervals:
+            if start == end:
+                minimized.append(str(start))
+            else:
+                oneIsNegative = start < 0 and end >= 0
+                sstart, send = map(str, (start, end))
+                if len(sstart) == len(send) and not oneIsNegative:
+                    for commonPrefixLen in range(len(sstart)):
+                        if sstart[commonPrefixLen] != send[commonPrefixLen]:
+                            break
+                    minimized.append(sstart + sep + send[commonPrefixLen:])
+                else:
+                    minimized.append(sstart + sep + send)
+
+        return minimized
+
+    else:
+        return [
+            (str(start) if start == end else str(start) + sep + str(end))
+            for (start, end) in intervals
+        ]

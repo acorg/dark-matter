@@ -2955,9 +2955,7 @@ class TestReads(TestCase):
 
         reads = Reads([read1, read2])
         error = r"^$"
-        self.assertRaisesRegex(
-            ReadLengthsNotIdenticalError, error, reads.variableSites
-        )
+        self.assertRaisesRegex(ReadLengthsNotIdenticalError, error, reads.variableSites)
 
     def testCombineReadsIdentical(self):
         """

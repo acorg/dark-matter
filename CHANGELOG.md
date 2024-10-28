@@ -1,3 +1,7 @@
+## 5.0.10 October 26, 2024
+
+Added `intsToRanges` and `intsToStringRanges` to `dark/utils.py`.
+
 ## 5.0.9 October 24, 2024
 
 Added `bin/curate-trees.py` script to collapse low-support branches in

@@ -688,9 +688,7 @@ class TestSqliteIndex(TestCase):
         with patch.object(builtins, "open") as mockMethod:
             mockMethod.side_effect = sideEffect
             index = SqliteIndex(":memory:")
-            error = (
-                "^FASTA sequence id 'id1' found twice in file 'filename.fasta'\\.$"
-            )
+            error = "^FASTA sequence id 'id1' found twice in file 'filename.fasta'\\.$"
             self.assertRaisesRegex(ValueError, error, index.addFile, "filename.fasta")
             index.close()
 

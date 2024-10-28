@@ -28,9 +28,7 @@ def basePlotter(blastHits, title):
     """
     result = []
     params = blastHits.plotParams
-    assert params is not None, (
-        "Oops, it looks like you forgot to run computePlotInfo."
-    )
+    assert params is not None, "Oops, it looks like you forgot to run computePlotInfo."
 
     sequence = ncbidb.getSequence(title, blastHits.records.blastDb)
     subject = sequence.seq
@@ -39,9 +37,9 @@ def basePlotter(blastHits, title):
     result.append(sub)
 
     plotInfo = blastHits.titles[title]["plotInfo"]
-    assert plotInfo is not None, (
-        "Oops, it looks like you forgot to run computePlotInfo."
-    )
+    assert (
+        plotInfo is not None
+    ), "Oops, it looks like you forgot to run computePlotInfo."
 
     items = plotInfo["items"]
     count = 0
