@@ -363,19 +363,23 @@ def openOr(filename, mode="r", defaultFp=None, specialCaseHyphen=True):
             yield fp
 
 
-def intsToRanges(numbers: Iterable[int]) -> list[tuple[int, int]]:
+def intsToIntervals(numbers: Iterable[int]) -> list[tuple[int, int]]:
     """
-    Convert a set of integers into a list of consecutive integer ranges.
+    Produce a list of consecutive integer intervals from a set of integers.
+
+    Given a set of integers, A, this function finds a mutually disjoint set of intervals
+    [a_i, b_i] (for i in some finite index set), such that A is the union of [a_i, b_i]
+    over all i and returns a list of ordered-pairs (a_i, b_i).
 
     @param numbers: An iterable of integer values.
-    @return: A C{list} of int (start, end) consecutive ranges, sorted from least
+    @return: A C{list} of C{int} (start, end) consecutive intervals, sorted from least
         to greatest. Each tuple holds a pair of (inclusive) numbers that are
         consecutive in C{numbers}. In each pair, C{start} will equal C{end} if
         C{start}+1 is not present in numbers.
     """
     remaining = set(numbers)
     assert all(isinstance(x, int) for x in remaining)
-    ranges: list[tuple[int, int]] = []
+    intervals: list[tuple[int, int]] = []
 
     while remaining:
         start = min(remaining)
@@ -388,25 +392,29 @@ def intsToRanges(numbers: Iterable[int]) -> list[tuple[int, int]]:
                 end -= 1
                 break
 
-        ranges.append((start, end))
+        intervals.append((start, end))
 
-    return ranges
+    return intervals
 
 
-def intsToStringRanges(
+def intsToStringIntervals(
     numbers: Iterable[int], sep: str = "-", minimize: bool = False
 ) -> list[str]:
     """
-    Convert a set of integers into a list of string ranges.
+    Make a list of strings of consecutive intervals given a set of integers.
 
     @param numbers: An iterable of integer values.
-    @return: A C{list} of C{str} ranges, sorted from least to greatest.
+    @param sep: The C{str} separator to put between the start and end integers
+        when representing a consecutive range of numbers in C{numbers}.
+    @param minimize: If true, make a further simplification, changing an interval
+        such as 2016-2020 into 2016-20 or 2018-2019 into 2018-9.
+    @return: A C{list} of C{str} intervals, sorted from least to greatest.
     """
-    ranges = intsToRanges(numbers)
+    intervals = intsToIntervals(numbers)
 
     if minimize:
         minimized = []
-        for start, end in ranges:
+        for start, end in intervals:
             if start == end:
                 minimized.append(str(start))
             else:
@@ -425,5 +433,5 @@ def intsToStringRanges(
     else:
         return [
             (str(start) if start == end else str(start) + sep + str(end))
-            for (start, end) in ranges
+            for (start, end) in intervals
         ]

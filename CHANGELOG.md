@@ -1,6 +1,12 @@
 ## 5.0.10 October 26, 2024
 
-Added `intsToRanges` and `intsToStringRanges` to `dark/utils.py`. Ran `black`.
+Added `intsToRanges` and `intsToStringRanges` to `dark/utils.py`.
+
+## 5.0.9 October 24, 2024
+
+Added `bin/curate-trees.py` script to collapse low-support branches in
+phylogenetic trees (to make polytomies) and also to re-root and ladderize
+them.
 
 ## 5.0.8 October 14, 2024
 
