@@ -1,3 +1,7 @@
+## 5.0.11 October 26, 2024
+
+Added `--rotate` and `--maxWindows` options to `window-split-alignment.py`.
+
 ## 5.0.10 October 26, 2024
 
 Added `intsToRanges` and `intsToStringRanges` to `dark/utils.py`.
