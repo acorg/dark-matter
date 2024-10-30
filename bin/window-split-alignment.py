@@ -9,7 +9,7 @@ from typing import Optional
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, DNARead
 
 
-def parseArgs():
+def getArgsAndReads():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Split a FASTA alignment into equal-sized windows.",
@@ -55,6 +55,30 @@ def parseArgs():
     )
 
     parser.add_argument(
+        "--maxWindows",
+        type=int,
+        help="The maximum number of windowed subsequences to extract.",
+    )
+
+    parser.add_argument(
+        "--rotate",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "Rotate sequences left (if N is negative) or right (if positive) before "
+            "extracting sub-sequence windows. Output filenames will be adjusted to "
+            "match the rotation amount and the sequence length. For example, if the "
+            "window size is 200, a --rotate value of -100 is given, and the sequences "
+            "have length 2000, the first output file will have a name like "
+            "window-1901-0100.fasta (or window-1900-0100.fasta if --zeroBased is "
+            "used) and the final name will be window-1701-1900.fasta. This option is "
+            "useful for making windows that match the location of genome features, "
+            "especially in the case of a circular genome (e.g., for hepatitis B virus)."
+        ),
+    )
+
+    parser.add_argument(
         "--startOffset",
         type=int,
         help=(
@@ -78,22 +102,30 @@ def parseArgs():
 
     args = parser.parse_args()
 
+    if args.maxWindows is not None and args.maxWindows < 1:
+        exit("The value given to --maxWindows cannot be less than one.")
+
     if args.startOffset is None:
         args.startOffset = int(args.oneBased)
 
     if args.oneBased:
         if args.startOffset < 1:
-            sys.exit(
+            exit(
                 "When using --oneBased, the --startOffset value must be greater than "
                 "zero."
             )
     else:
         if args.startOffset < 0:
-            sys.exit("The --startOffset value cannot be less than zero.")
+            exit("The --startOffset value cannot be less than zero.")
 
     reads = parseFASTACommandLineOptions(args)
 
-    return args, list(reads)
+    if rotate := args.rotate:
+        result = [read.rotate(rotate) for read in reads]
+    else:
+        result = list(reads)
+
+    return args, result
 
 
 def checkReads(reads: list[DNARead]) -> int:
@@ -109,7 +141,7 @@ def checkReads(reads: list[DNARead]) -> int:
 
     for line, read in enumerate(reads[1:], start=2):
         if len(read) != length:
-            sys.exit(
+            exit(
                 f"Sequence with id {read.id!r} on input line {line} has length "
                 f"{len(read)} which is not equal to the previous input sequence "
                 f"length ({length})."
@@ -121,8 +153,10 @@ def checkReads(reads: list[DNARead]) -> int:
 def writeFiles(
     reads: list[DNARead],
     window: int,
+    maxWindows: int,
     minWindow: Optional[int],
     startOffset: int,
+    rotate: int,
     oneBased: bool,
     length: int,
     base: str,
@@ -134,9 +168,13 @@ def writeFiles(
 
     @param reads: A C{list} of C{DNARead} instances.
     @param window: The C{int} window size.
+    @param maxWindows: The C{int} maximum number of windows to produce.
     @param minWindow: The C{int} minimum window size or C{None} if there is no minimum.
     @param startOffset: The C{int} starting offset in the genome, interpreted
         according to C{zeroBased}.
+    @param rotate: The C{int} amount the reads were rotated (zero means they were not
+        rotated at all). The reads have already been rotated, so this argument is only
+        needed to adjust the output filenames.
     @param oneBased: If C{True}, the passed C{startOffset} and the offsets
         used in output file names will be one-based. Else, zero-based.
     @param length: The C{int} length of all sequences in C{reads}.
@@ -150,25 +188,45 @@ def writeFiles(
     # Adjust startOffset to be zero-based.
     startOffset -= oneBased
 
-    for start in range(startOffset, length, window):
+    for windowCount, start in enumerate(range(startOffset, length, window)):
+
+        if windowCount == maxWindows:
+            break
+
         end = start + window
         if end > length:
             end = length
 
         # displayStart is the start value we print in output messages and use in
-        # filenames. It is the zero-based window start offset adjusted upwards by one if
-        # we have been told to use one-based values.
-        displayStart = start + oneBased
+        # filenames. It is the zero-based window start offset, including any rotation
+        # that has already been performed on the reads, adjusted upwards by one if we
+        # have been told to use one-based values. displayEnd is similar (but does not
+        # need to be adjusted by one due to Python's zero-indexing and exclusion of the
+        # final index in ranges).
+        displayStart = start + rotate
+        displayEnd = displayStart + (end - start)
+
+        if displayStart < 0:
+            displayStart += length
+        elif displayStart >= length:
+            displayStart -= length
+
+        displayStart += oneBased
+
+        if displayEnd < 0:
+            displayEnd += length
+        elif displayEnd > length:
+            displayEnd -= length
 
         tooShort = minWindow is not None and end - start < minWindow
 
-        filename = Path(f"{base}{displayStart:0{width}d}-{end:0{width}d}.fasta")
+        filename = Path(f"{base}{displayStart:0{width}d}-{displayEnd:0{width}d}.fasta")
 
         if not tooShort and not filename.parent.exists():
             filename.parent.mkdir(parents=True)
 
         if verbose:
-            print(f"Processing window {displayStart}-{end}:", file=sys.stderr)
+            print(f"Processing window {displayStart}-{displayEnd}:", file=sys.stderr)
 
         if tooShort:
             # Check that we are at the end of the genome.
@@ -194,7 +252,7 @@ def writeFiles(
                 else:
                     if verbose:
                         print(
-                            f"  Window {displayStart}-{end} for sequence "
+                            f"  Window {displayStart}-{displayEnd} for sequence "
                             f"{read.id!r} is all {invalidChars!r} characters. Skipping.",
                             file=sys.stderr,
                         )
@@ -202,28 +260,30 @@ def writeFiles(
         if count:
             if verbose:
                 print(
-                    f"  Wrote {count} window {displayStart}-{end} "
+                    f"  Wrote {count} window {displayStart}-{displayEnd} "
                     f"sequence{'s' if count else ''} to {str(filename)!r}.",
                     file=sys.stderr,
                 )
         else:
             if verbose:
                 print(
-                    f"  No non-gap non-N sequences were found for window "
-                    f"{displayStart}-{end}.",
+                    f"  No sequences with valid characters were found for window "
+                    f"{displayStart}-{displayEnd}.",
                     file=sys.stderr,
                 )
             filename.unlink()
 
 
 def main():
-    args, reads = parseArgs()
+    args, reads = getArgsAndReads()
     length = checkReads(reads)
     writeFiles(
         reads,
         args.window,
+        args.maxWindows,
         args.minWindow,
         args.startOffset,
+        args.rotate,
         args.oneBased,
         length,
         args.base,
