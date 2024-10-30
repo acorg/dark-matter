@@ -1,4 +1,4 @@
-## 5.0.11 October 26, 2024
+## 5.0.11 October 30, 2024
 
 Added `--rotate` and `--maxWindows` options to `window-split-alignment.py`.
 
