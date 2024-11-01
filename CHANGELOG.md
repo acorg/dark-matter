@@ -1,3 +1,8 @@
+## 5.0.12 November 1, 2024
+
+Added simple `bin/tree-info.py` script to print information about tip names
+and internal node labels and edge lengths in a phylogenetic tree.
+
 ## 5.0.11 October 30, 2024
 
 Added `--rotate` and `--maxWindows` options to `window-split-alignment.py`.

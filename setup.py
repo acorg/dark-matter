@@ -120,6 +120,7 @@ scripts = [
     "bin/summarize-fasta-bases.py",
     "bin/summarize-reads.py",
     "bin/translate.py",
+    "bin/tree-info.py",
     "bin/trim-primers.py",
     "bin/trim-reads.py",
     "bin/window-split-alignment.py",
