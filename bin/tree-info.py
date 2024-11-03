@@ -3,6 +3,10 @@
 import argparse
 import dendropy
 
+# See https://jeetsukumaran.github.io/DendroPy/schemas/index.html for the available
+# formats.
+FORMATS = {"newick", "nexml", "nexus", "phylip"}
+
 
 def parseArgs():
     parser = argparse.ArgumentParser(
@@ -13,6 +17,13 @@ def parseArgs():
     parser.add_argument(
         "treeFile",
         help="The tree file to examine.",
+    )
+
+    parser.add_argument(
+        "--format",
+        default="newick",
+        choices=sorted(FORMATS),
+        help="The input tree format.",
     )
 
     parser.add_argument(
@@ -42,8 +53,12 @@ def main() -> None:
     """
     args = parseArgs()
 
+    kwargs = (
+        dict(preserve_underscores=True) if args.format in {"newick", "nexus"} else {}
+    )
+
     with open(args.treeFile) as fp:
-        tree = dendropy.Tree.get(file=fp, schema="newick", preserve_underscores=True)
+        tree = dendropy.Tree.get(file=fp, schema=args.format, **kwargs)
 
     if args.rootNode:
         node = tree.find_node_with_taxon_label(args.rootNode)
