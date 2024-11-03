@@ -26,6 +26,7 @@ scripts = [
     "bin/aa-to-dna.py",
     "bin/aa-to-properties.py",
     "bin/adaptor-distances.py",
+    "bin/add-support-to-iqtree2-issue-343.py",
     "bin/alignment-panel-civ.py",
     "bin/alignments-per-read.py",
     "bin/bit-score-to-e-value.py",

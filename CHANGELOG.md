@@ -1,3 +1,13 @@
+## 5.0.13 November 3, 2024
+
+Added `bin/add-support-to-iqtree2-issue-343.py` script for adding support
+labels to nodes in trees produced by `iqtree2` when (if not run with
+`-keep-ident`) it adds nodes and tips for identical sequences. `iqtree2`
+currently does not put a support label on (the edge leading to) the tip in
+the original processing or onto the nodes introduced by adding tips for the
+identical sequences. This is described in the `iqtree2` GitHub [issue
+343](https://github.com/iqtree/iqtree2/issues/343).
+
 ## 5.0.11 October 30, 2024
 
 Added `--rotate` and `--maxWindows` options to `window-split-alignment.py`.
