@@ -1,3 +1,9 @@
+## 5.0.16 November 9, 2024
+
+Check if the SAM file in `dark/bowtie2.py` is empty by reading it and looking
+for a non-header line. Undo the change of `5.0.15`. Added typing hints to
+`dark/bowtie2.py`.
+
 ## 5.0.15 November 8, 2024
 
 Always make BAM in `run-bowtie2.py`. Sigh.

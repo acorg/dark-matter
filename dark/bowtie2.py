@@ -3,6 +3,7 @@ from tempfile import mkdtemp
 import os
 from os.path import join
 import requests
+from typing import Optional, TextIO
 
 from dark.process import Executor
 from dark.sam import samfile as openSamfile
@@ -15,14 +16,14 @@ class Bowtie2:
 
     def __init__(
         self,
-        executor=None,
-        threads=None,
-        verboseFp=None,
-        dryRun=False,
-        reference=None,
-        tempdir=None,
-        tmpChmod=None,
-    ):
+        executor: Optional[Executor] = None,
+        threads: Optional[int] = None,
+        verboseFp: Optional[TextIO] = None,
+        dryRun: bool = False,
+        reference: Optional[str] = None,
+        tempdir: Optional[str] = None,
+        tmpChmod: Optional[str] = None,
+    ) -> None:
         self._executor = executor or Executor(dryRun)
         if dryRun:
             self.tempdir = tempdir or "/tmp/xxx"
@@ -38,7 +39,7 @@ class Bowtie2:
         self.nThreads = threads or multiprocessing.cpu_count()
         self._reference = reference
 
-    def buildIndex(self, index):
+    def buildIndex(self, index: str) -> None:
         """
         Find or make a Bowtie2 index.
         """
@@ -73,14 +74,14 @@ class Bowtie2:
 
     def align(
         self,
-        bowtie2Args="--no-unal",
-        fastq1=None,
-        fastq2=None,
-        threads=None,
-        discardSAM=False,
-        readGroup="orig",
-        sampleName="orig",
-    ):
+        bowtie2Args: str = "--no-unal",
+        fastq1: Optional[str] = None,
+        fastq2: Optional[str] = None,
+        threads: Optional[int] = None,
+        discardSAM: bool = False,
+        readGroup: str = "orig",
+        sampleName: str = "orig",
+    ) -> None:
         """
         Run Bowtie2.
         """
@@ -126,14 +127,14 @@ class Bowtie2:
 
         self._samExists = True
 
-    def _report(self, mesg):
+    def _report(self, mesg: str) -> None:
         """
         Print a progress message.
         """
         if self._verboseFp:
             print(mesg, file=self._verboseFp)
 
-    def makeBAM(self, samtoolsViewArgs=""):
+    def makeBAM(self, samtoolsViewArgs: str = "") -> None:
         """
         Convert the SAM to BAM.
         """
@@ -146,7 +147,7 @@ class Bowtie2:
         )
         self._bamExists = True
 
-    def _SAMorBAM(self):
+    def _SAMorBAM(self) -> str:
         """
         Do we have a SAM or BAM file available?
         """
@@ -157,7 +158,7 @@ class Bowtie2:
         else:
             raise ValueError("bowtie2() has not yet been called.")
 
-    def outputFile(self):
+    def outputFile(self) -> str:
         """
         The name of the output file.
         """
@@ -168,7 +169,7 @@ class Bowtie2:
         else:
             raise ValueError("bowtie2() has not yet been called.")
 
-    def indexBAM(self):
+    def indexBAM(self) -> None:
         """
         Index the BAM file.
         """
@@ -180,6 +181,19 @@ class Bowtie2:
         self._report("Indexing BAM.")
         self._executor.execute("samtools index '%s'" % self._bamFile)
 
+    def isEmpty(self) -> bool:
+        """
+        Are any reads present in the SAM file?
+        """
+        # Reading the SAM file manually doesn't require BAM that is sorted and indexed
+        # (which is what we would need to do if we wanted to use the mapped and unmapped
+        # attributes of an AlignmentFile instance).
+        with open(self._samFile) as fp:
+            for line in fp:
+                if not line.startswith("@"):
+                    return False
+        return True
+
     def mappedAndUnmappedCounts(self) -> tuple[int, int]:
         """
         Return the number of mapped and unmapped reads.
@@ -187,11 +201,16 @@ class Bowtie2:
         @return: A 2-C{tuple} of C{int}s, giving the number of mapped and unmapped
             reads.
         """
-        filename = self._bamFile if self._SAMorBAM() == "BAM" else self._samFile
-        with openSamfile(filename) as samfile:
+        which = self._SAMorBAM()
+
+        if which != "BAM":
+            raise ValueError("makeBAM() has not yet been called.")
+
+        with openSamfile(self._bamFile) as samfile:
+            # This will fail if the BAM file has not been sorted and indexed.
             return samfile.mapped, samfile.unmapped
 
-    def sort(self, byName=False):
+    def sort(self, byName=False) -> None:
         """
         Sort the BAM or SAM.
         """
@@ -205,7 +224,7 @@ class Bowtie2:
         )
         self._executor.execute("mv '%s' '%s'" % (sortedFile, inFile))
 
-    def removePrimers(self, bedFile):
+    def removePrimers(self, bedFile: str) -> None:
         """
         Removes primers specified in the bed file
         """
@@ -224,7 +243,7 @@ class Bowtie2:
             "mv '%s'.bam '%s'" % (tempTrimmedBamPrefix, self._bamFile)
         )
 
-    def markDuplicatesPicard(self, picardFile):
+    def markDuplicatesPicard(self, picardFile: str) -> None:
         """
         Use Picard to mark duplicates.
         """
@@ -243,7 +262,7 @@ class Bowtie2:
 
         self._executor.execute("mv '%s' '%s'" % (tempFile, inFile))
 
-    def markDuplicatesGATK(self, threads=None):
+    def markDuplicatesGATK(self, threads: Optional[int] = None) -> None:
         """
         Use GATK to mark duplicates.
         """
@@ -262,7 +281,12 @@ class Bowtie2:
 
         self._executor.execute("mv '%s' '%s'" % (tempFile, inFile))
 
-    def callHaplotypesGATK(self, picardJar, vcfFile=None, referenceFasta=None):
+    def callHaplotypesGATK(
+        self,
+        picardJar: str,
+        vcfFile: Optional[str] = None,
+        referenceFasta: Optional[str] = None,
+    ) -> None:
         """
         Use GATK to call haplotypes.
         """
@@ -319,7 +343,9 @@ class Bowtie2:
         if removeDict:
             self._executor.execute("rm '%s'" % dictFile)
 
-    def callHaplotypesBcftools(self, vcfFile=None, referenceFasta=None):
+    def callHaplotypesBcftools(
+        self, vcfFile: Optional[str] = None, referenceFasta: Optional[str] = None
+    ) -> None:
         """
         Use bcftools call to call haplotypes.
         """
@@ -347,7 +373,7 @@ class Bowtie2:
 
         self._executor.execute(f"bcftools index --force {vcfFile!r}")
 
-    def removeDuplicates(self):
+    def removeDuplicates(self) -> None:
         """
         Use samtools to remove marked duplicates.
         """
@@ -367,7 +393,7 @@ class Bowtie2:
         )
         self._executor.execute("mv '%s' '%s'" % (tempFile, inFile))
 
-    def _makeIndexFromFastaFile(self, fastaFilename):
+    def _makeIndexFromFastaFile(self, fastaFilename: str) -> str:
         index = join(self.tempdir, "index")
 
         self._report("Building Bowtie2 index from %s." % fastaFilename)
@@ -381,7 +407,7 @@ class Bowtie2:
 
         return index
 
-    def _makeIndexFromAccession(self, accessionId):
+    def _makeIndexFromAccession(self, accessionId: str) -> str:
         fastaFilename = join(self.tempdir, accessionId + ".fasta")
         index = join(self.tempdir, "index")
 
@@ -403,7 +429,7 @@ class Bowtie2:
 
         return index
 
-    def close(self):
+    def close(self) -> None:
         """
         Clean up.
         """
