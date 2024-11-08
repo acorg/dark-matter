@@ -1,3 +1,7 @@
+## 5.0.15 November 8, 2024
+
+Always make BAM in `run-bowtie2.py`. Sigh.
+
 ## 5.0.14 November 8, 2024
 
 Check whether a BAM/SAM file is empty in `run-bowtie2.py` in order to avoid

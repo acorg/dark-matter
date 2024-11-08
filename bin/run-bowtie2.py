@@ -129,8 +129,10 @@ def processMatch(args, e):
 
     bt2.align(bowtie2Args=args.bowtie2Args, fastq1=fastq1, fastq2=fastq2)
 
-    if args.bam:
-        bt2.makeBAM(args.samtoolsViewArgs)
+    # Make and index BAM regardless, since we want to call bt2.mappedAndUnmappedCounts.
+    # Maybe a more recent version of gatk wouldn't crash if there are no mapped reads?
+    bt2.makeBAM(args.samtoolsViewArgs)
+    bt2.indexBAM()
 
     # Sort, remove duplicates, etc. only if there is something in the BAM file.  Apart
     # from a slight efficiency gain, we check this because gatk dies with a typically
