@@ -170,8 +170,9 @@ def main():
                     and node.label is not None
                     and float(node.label) < args.collapse
                 ):
-                    # Collapse this node's incoming edge so its children become children
-                    # of this node's parent.
+                    # Collapse this node's parent edge (i.e., the edge coming from the
+                    # direction of the tree root) so its children become children of
+                    # this node's parent.
                     node.edge.collapse(
                         adjust_collapsed_head_children_edge_lengths=not args.discardLengths
                     )
