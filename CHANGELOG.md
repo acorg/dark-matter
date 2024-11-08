@@ -1,3 +1,11 @@
+## 5.0.14 November 8, 2024
+
+Check whether a BAM/SAM file is empty in `run-bowtie2.py` in order to avoid
+calling `gatk` to mark duplicates on a file with no mapped or unmapped reads,
+since instead of just exiting gracefully, `gatk` crashes with the typical
+Java runtime stack.
+
+
 ## 5.0.13 November 3, 2024
 
 Added `bin/add-support-to-iqtree2-issue-343.py` script for adding support

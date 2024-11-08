@@ -132,37 +132,41 @@ def processMatch(args, e):
     if args.bam:
         bt2.makeBAM(args.samtoolsViewArgs)
 
-    if args.sort and not (
-        args.markDuplicatesPicard
-        or args.markDuplicatesGATK
-        or args.removePrimersFromBedFile
-    ):
-        bt2.sort()
+    # Sort, remove duplicates, etc. only if there is something in the BAM file.  Apart
+    # from a slight efficiency gain, we check this because gatk dies with a typically
+    # horrible Java stack dump if the are no reads in a BAM/SAM file.
+    if bt2.mappedAndUnmappedCounts() != (0, 0):
+        if args.sort and not (
+            args.markDuplicatesPicard
+            or args.markDuplicatesGATK
+            or args.removePrimersFromBedFile
+        ):
+            bt2.sort()
 
-    if args.removePrimersFromBedFile:
-        bt2.sort()
-        bt2.removePrimers(args.removePrimersFromBedFile)
+        if args.removePrimersFromBedFile:
+            bt2.sort()
+            bt2.removePrimers(args.removePrimersFromBedFile)
 
-    if args.markDuplicatesPicard:
-        bt2.sort()
-        bt2.picard(picardJar)
+        if args.markDuplicatesPicard:
+            bt2.sort()
+            bt2.picard(picardJar)
 
-    if args.markDuplicatesGATK:
-        bt2.sort(byName=True)
-        bt2.markDuplicatesGATK()
+        if args.markDuplicatesGATK:
+            bt2.sort(byName=True)
+            bt2.markDuplicatesGATK()
 
-    if args.removeDuplicates:
-        bt2.removeDuplicates()
+        if args.removeDuplicates:
+            bt2.removeDuplicates()
 
-    if args.callHaplotypesGATK:
-        bt2.indexBAM()
-        bt2.callHaplotypesGATK(
-            picardJar=picardJar, vcfFile=args.vcfFile, referenceFasta=args.reference
-        )
+        if args.callHaplotypesGATK:
+            bt2.indexBAM()
+            bt2.callHaplotypesGATK(
+                picardJar=picardJar, vcfFile=args.vcfFile, referenceFasta=args.reference
+            )
 
-    if args.callHaplotypesBcftools:
-        bt2.indexBAM()
-        bt2.callHaplotypesBcftools(vcfFile=args.vcfFile, referenceFasta=args.reference)
+        if args.callHaplotypesBcftools:
+            bt2.indexBAM()
+            bt2.callHaplotypesBcftools(vcfFile=args.vcfFile, referenceFasta=args.reference)
 
     if args.bam and args.indexBAM:
         bt2.indexBAM()

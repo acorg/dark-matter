@@ -5,6 +5,7 @@ from os.path import join
 import requests
 
 from dark.process import Executor
+from dark.sam import samfile as openSamfile
 
 
 class Bowtie2:
@@ -178,6 +179,17 @@ class Bowtie2:
 
         self._report("Indexing BAM.")
         self._executor.execute("samtools index '%s'" % self._bamFile)
+
+    def mappedAndUnmappedCounts(self) -> tuple[int, int]:
+        """
+        Return the number of mapped and unmapped reads.
+
+        @return: A 2-C{tuple} of C{int}s, giving the number of mapped and unmapped
+            reads.
+        """
+        filename = self._bamFile if self._SAMorBAM() == "BAM" else self._samFile
+        with openSamfile(filename) as samfile:
+            return samfile.mapped, samfile.unmapped
 
     def sort(self, byName=False):
         """
