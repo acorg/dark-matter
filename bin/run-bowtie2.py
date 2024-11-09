@@ -129,6 +129,8 @@ def processMatch(args, e):
 
     bt2.align(bowtie2Args=args.bowtie2Args, fastq1=fastq1, fastq2=fastq2)
 
+    indexed = False
+
     # Sort, remove duplicates, etc. only if there is something in the BAM file.  Apart
     # from a slight efficiency gain, we check this because gatk dies with a typically
     # horrible Java stack dump if the are no reads in a BAM/SAM file.
@@ -156,17 +158,24 @@ def processMatch(args, e):
             bt2.removeDuplicates()
 
         if args.callHaplotypesGATK:
+            bt2.makeBAM()
             bt2.indexBAM()
+            indexed = True
             bt2.callHaplotypesGATK(
                 picardJar=picardJar, vcfFile=args.vcfFile, referenceFasta=args.reference
             )
 
         if args.callHaplotypesBcftools:
-            bt2.indexBAM()
+            if not indexed:
+                bt2.makeBAM()
+                bt2.indexBAM()
+                indexed = True
             bt2.callHaplotypesBcftools(vcfFile=args.vcfFile, referenceFasta=args.reference)
 
-    if args.bam and args.indexBAM:
+    if args.bam and args.indexBAM and not indexed:
+        bt2.makeBAM()
         bt2.indexBAM()
+        indexed = True
 
     if args.out:
         e.execute("mv '%s' '%s'" % (bt2.outputFile(), args.out))

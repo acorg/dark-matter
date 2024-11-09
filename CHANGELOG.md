@@ -1,3 +1,7 @@
+## 5.0.17 November 9, 2024
+
+More messing with indexing BAM files.
+
 ## 5.0.16 November 9, 2024
 
 Check if the SAM file in `dark/bowtie2.py` is empty by reading it and looking
