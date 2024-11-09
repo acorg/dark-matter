@@ -219,8 +219,8 @@ class Bowtie2:
         inFile = self._bamFile if which == "BAM" else self._samFile
         sortedFile = join(self.tempdir, "result-sorted." + which.lower())
         self._executor.execute(
-            "samtools sort %s'%s' > '%s'"
-            % ("-n " if byName else "", inFile, sortedFile)
+            "samtools sort --output-fmt %s %s'%s' > '%s'"
+            % (which, "-n " if byName else "", inFile, sortedFile)
         )
         self._executor.execute("mv '%s' '%s'" % (sortedFile, inFile))
 

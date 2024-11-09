@@ -1,3 +1,7 @@
+## 5.0.18 November 9, 2024
+
+Add explicit output format to samtools sort command in `dark/bowtie2.py`.
+
 ## 5.0.17 November 9, 2024
 
 More messing with indexing BAM files.
