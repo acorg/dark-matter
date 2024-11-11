@@ -1,7 +1,46 @@
-## 5.0.12 November 1, 2024
+## 5.0.19
 
 Added simple `bin/tree-info.py` script to print information about tip names
 and internal node labels and edge lengths in a phylogenetic tree.
+
+## 5.0.18 November 9, 2024
+
+Add explicit output format to samtools sort command in `dark/bowtie2.py`.
+
+## 5.0.17 November 9, 2024
+
+More messing with indexing BAM files.
+
+## 5.0.16 November 9, 2024
+
+Check if the SAM file in `dark/bowtie2.py` is empty by reading it and looking
+for a non-header line. Undo the change of `5.0.15`. Added typing hints to
+`dark/bowtie2.py`.
+
+## 5.0.15 November 8, 2024
+
+Always make BAM in `run-bowtie2.py`. Sigh.
+
+## 5.0.14 November 8, 2024
+
+Check whether a BAM/SAM file is empty in `run-bowtie2.py` in order to avoid
+calling `gatk` to mark duplicates on a file with no mapped or unmapped reads,
+since instead of just exiting gracefully, `gatk` crashes with the typical
+Java runtime stack.
+
+## 5.0.13 November 3, 2024
+
+Added `bin/add-support-to-iqtree2-issue-343.py` script for adding support
+labels to nodes in trees produced by `iqtree2` when (if not run with
+`-keep-ident`) it adds nodes and tips for identical sequences. `iqtree2`
+currently does not put a support label on (the edge leading to) the tip in
+the original processing or onto the nodes introduced by adding tips for the
+identical sequences. This is described in the `iqtree2` GitHub [issue
+343](https://github.com/iqtree/iqtree2/issues/343).
+
+## 5.0.12 November 1, 2024
+
+This was merged late and became version `5.0.19`.
 
 ## 5.0.11 October 30, 2024
 

@@ -320,7 +320,8 @@ class TestBowtie2(TestCase):
         log = fp.getvalue()
         self.assertTrue(log.endswith("\nSorting SAM (by coord).\n"))
         self.assertEqual(
-            "$ samtools sort '/tmp/xxx/result.sam' > '/tmp/xxx/result-sorted.sam'",
+            "$ samtools sort --output-fmt SAM '/tmp/xxx/result.sam' > "
+            "'/tmp/xxx/result-sorted.sam'",
             e.log[-2],
         )
         self.assertEqual(
@@ -342,7 +343,7 @@ class TestBowtie2(TestCase):
         log = fp.getvalue()
         self.assertTrue(log.endswith("\nSorting SAM (by name).\n"))
         self.assertEqual(
-            "$ samtools sort -n '/tmp/xxx/result.sam' > "
+            "$ samtools sort --output-fmt SAM -n '/tmp/xxx/result.sam' > "
             "'/tmp/xxx/result-sorted.sam'",
             e.log[-2],
         )
