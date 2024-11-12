@@ -1,3 +1,8 @@
+## 5.0.19
+
+Added simple `bin/tree-info.py` script to print information about tip names
+and internal node labels and edge lengths in a phylogenetic tree.
+
 ## 5.0.18 November 9, 2024
 
 Add explicit output format to samtools sort command in `dark/bowtie2.py`.
@@ -23,7 +28,6 @@ calling `gatk` to mark duplicates on a file with no mapped or unmapped reads,
 since instead of just exiting gracefully, `gatk` crashes with the typical
 Java runtime stack.
 
-
 ## 5.0.13 November 3, 2024
 
 Added `bin/add-support-to-iqtree2-issue-343.py` script for adding support
@@ -33,6 +37,10 @@ currently does not put a support label on (the edge leading to) the tip in
 the original processing or onto the nodes introduced by adding tips for the
 identical sequences. This is described in the `iqtree2` GitHub [issue
 343](https://github.com/iqtree/iqtree2/issues/343).
+
+## 5.0.12 November 1, 2024
+
+This was merged late and became version `5.0.19`.
 
 ## 5.0.11 October 30, 2024
 
