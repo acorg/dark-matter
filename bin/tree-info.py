@@ -11,7 +11,7 @@ FORMATS = {"newick", "nexml", "nexus", "phylip"}
 def parseArgs():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Print information about a phylogenetic tree.",
+        description="Print information phylogenetic tree nodes.",
     )
 
     parser.add_argument(
@@ -62,7 +62,8 @@ def main() -> None:
 
     if args.rootNode:
         node = tree.find_node_with_taxon_label(args.rootNode)
-        assert node is not None
+        if not node:
+            exit(f"Could not find tree node {args.rootNode!r} in {args.treeFile!r}.")
         tree.reroot_at_edge(node.edge, update_bipartitions=False)
 
     counts = dict.fromkeys(("tips", "internals"), 0)
@@ -81,7 +82,7 @@ def printNode(
     depth: int,
     indent: int,
     showLengths: bool,
-    counts: dict[str, list[int, ...]],
+    counts: dict[str, int],
 ) -> None:
     """
     Print a single node and (recursively) its descendants.
