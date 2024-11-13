@@ -30,7 +30,10 @@ def parseArgs():
         "--indent",
         type=int,
         default=2,
-        help="The number of spaces to indent by when descending to children.",
+        help=(
+            "The number of spaces to increase node indentation by when descending to "
+            "children."
+        ),
     )
 
     parser.add_argument(
@@ -42,6 +45,18 @@ def parseArgs():
     parser.add_argument(
         "--rootNode",
         help="Re-root the tree on the edge leading into the tip node with this name.",
+    )
+
+    parser.add_argument(
+        "--noTaxon",
+        default="NO-TAXON!",
+        help="What to print if a tip node has no taxon name.",
+    )
+
+    parser.add_argument(
+        "--noLabel",
+        default="NO-LABEL!",
+        help="What to print if an internal node has no label.",
     )
 
     return parser.parse_args()
@@ -67,7 +82,9 @@ def main() -> None:
         tree.reroot_at_edge(node.edge, update_bipartitions=False)
 
     counts = dict.fromkeys(("tips", "internals"), 0)
-    printNode(tree.seed_node, True, 0, args.indent, args.lengths, counts)
+    printNode(
+        tree.seed_node, 0, args.indent, args.lengths, args.noTaxon, args.noLabel, counts
+    )
 
     totalNodes = counts["tips"] + counts["internals"]
     print(
@@ -78,47 +95,44 @@ def main() -> None:
 
 def printNode(
     node: dendropy.Node,
-    isRoot: bool,
     depth: int,
     indent: int,
     showLengths: bool,
+    noTaxon: str,
+    noLabel: str,
     counts: dict[str, int],
 ) -> None:
     """
     Print a single node and (recursively) its descendants.
 
     @param node: The node to print.
-    @param isRoot: True if this is the root of the tree.
     @param depth: The distance this node is from the root.
     @param indent: The number of spaces to indent the output by for each step away from
         the root.
     @param showLengths: If true, also print edge lengths.
     @param counts: A C{dict} with 'internals' and 'tips' keys used to accumulate the
-        number of each node type during the recursive calls.
+        count of each node type during the recursive calls.
     """
     print((" " * depth * indent) + str(depth) + ": ", end="")
 
-    length = f" {node.edge.length}" if showLengths else ""
+    length = node.edge.length if showLengths else ""
     if node.is_internal():
         counts["internals"] += 1
+        children = node.child_nodes()
         if node.label is None:
-            if isRoot:
-                print("Root")
+            if depth == 0:
+                print(f"Root (with {len(children)} children)")
             else:
-                childLengths = [child.edge.length for child in node.child_nodes()]
-                print(f"Int WARNING: no label{length}  Child lengths:", childLengths)
+                print(f"Int {noLabel} {length}")
         else:
-            print(f"Int {node.label}{length}")
+            print(f"Int {node.label} {length}")
 
-        for child in node.child_nodes():
-            printNode(child, False, depth + 1, indent, showLengths, counts)
+        for child in children:
+            printNode(child, depth + 1, indent, showLengths, noTaxon, noLabel, counts)
 
     else:
         counts["tips"] += 1
-        if node.taxon is None:
-            print(f"Tip WARNING: no taxon{length}.")
-        else:
-            print(f"Tip {node.taxon.label}{length}")
+        print(f"Tip {noTaxon if node.taxon is None else node.taxon.label} {length}")
 
 
 if __name__ == "__main__":

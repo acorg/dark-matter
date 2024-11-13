@@ -1,4 +1,8 @@
-## 5.0.19
+## 5.0.20 November 13, 2024
+
+Small improvements to `bin/tree-info.py`.
+
+## 5.0.19 November 12, 2024
 
 Added simple `bin/tree-info.py` script to print information about tip names
 and internal node labels and edge lengths in a phylogenetic tree.
