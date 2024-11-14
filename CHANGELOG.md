@@ -1,3 +1,8 @@
+## 5.0.22 November 14, 2024
+
+Added `--detach` option to `bin/curate-tree-ete3.py` to remove the outgroup
+made by rooting on a node.
+
 ## 5.0.21 November 14, 2024
 
 Added `bin/curate-tree-ete3.py`.
