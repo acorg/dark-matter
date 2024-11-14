@@ -1,3 +1,7 @@
+## 5.0.21 November 14, 2024
+
+Added `bin/curate-tree-ete3.py`.
+
 ## 5.0.20 November 13, 2024
 
 Small improvements to `bin/tree-info.py`.
