@@ -1,4 +1,10 @@
-## 5.0.22 November 14, 2024
+## 5.0.23 November 15, 2024
+
+Set the length on the new root node (when using `--detach` in calling
+`bin/curate-tree-ete3.py`) seeing as that length is related to the distance
+to the node that has been deleted (after rooting).
+
+## 5.0.22 November 15, 2024
 
 Added `--detach` option to `bin/curate-tree-ete3.py` to remove the outgroup
 made by rooting on a node.

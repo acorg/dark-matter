@@ -73,6 +73,7 @@ def main():
             root.detach()
             assert len(parent.children) == 1
             tree = parent.children[0]
+            tree.dist = 0.0
 
         print(tree.write(format=args.format))
     else:
