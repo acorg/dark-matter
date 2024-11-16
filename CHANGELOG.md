@@ -1,8 +1,14 @@
+## 5.0.24 November 16, 2024
+
+Made `bin/curate-tree-ete3.py` able to collapse clades due to low support or
+alrt values, to remove support and/or alrt values, and to scale the length of
+edges root leaving a new root.
+
 ## 5.0.23 November 15, 2024
 
 Set the length on the new root node (when using `--detach` in calling
-`bin/curate-tree-ete3.py`) seeing as that length is related to the distance
-to the node that has been deleted (after rooting).
+`bin/curate-tree-ete3.py`) to zero, seeing as that length is related to the
+distance to the node that has been deleted (after rooting).
 
 ## 5.0.22 November 15, 2024
 
