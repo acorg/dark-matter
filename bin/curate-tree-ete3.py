@@ -198,7 +198,7 @@ def root(tree: Tree, rootNode: str, detach: bool, scale: float) -> Tree:
             assert len(parent.children) == 1
             tree = parent.children[0]
             tree.dist = 0.0
-            tree.name = None
+            tree.up = tree.name = None
     else:
         exit(f"Could not find a tip named {rootNode!r}.")
 

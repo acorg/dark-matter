@@ -113,26 +113,28 @@ def printNode(
     @param counts: A C{dict} with 'internals' and 'tips' keys used to accumulate the
         count of each node type during the recursive calls.
     """
-    print((" " * depth * indent) + str(depth) + ": ", end="")
+    line = [f"{' ' * depth * indent} {depth}:"]
 
     length = node.edge.length if showLengths else ""
     if node.is_internal():
         counts["internals"] += 1
         children = node.child_nodes()
-        if node.label is None:
-            if depth == 0:
-                print(f"Root (with {len(children)} children)")
-            else:
-                print(f"Int {noLabel} {length}")
-        else:
-            print(f"Int {node.label} {length}")
+        line.append(f"Int {node.label or noLabel} {length}")
+        if depth == 0:
+            c = "child" if len(children) == 1 else 'children'
+            line.append(f"(root has {len(children)} {c})")
+
+        print(" ".join(line))
 
         for child in children:
             printNode(child, depth + 1, indent, showLengths, noTaxon, noLabel, counts)
 
     else:
         counts["tips"] += 1
-        print(f"Tip {noTaxon if node.taxon is None else node.taxon.label} {length}")
+        line.append(
+            f"Tip {noTaxon if node.taxon is None else node.taxon.label} {length}"
+        )
+        print(" ".join(line))
 
 
 if __name__ == "__main__":

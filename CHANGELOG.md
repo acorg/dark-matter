@@ -1,3 +1,7 @@
+## 5.0.25 November 18, 2024
+
+Adjust `bin/curate-tree-ete3.py` so it ensures the new root node is not formatted.
+
 ## 5.0.24 November 16, 2024
 
 Made `bin/curate-tree-ete3.py` able to collapse clades due to low support or
