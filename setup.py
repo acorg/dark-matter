@@ -154,7 +154,7 @@ setup(
         "biopython>=1.71",
         "bz2file>=0.98",
         "cachetools>=3.1.0",
-        "dendropy>=5.0.2",
+        "dendropy>=5.0.1",
         "edlib>=1.3.9",
         "ete3>=3.1.3",
         "Cython>=0.29.16",
