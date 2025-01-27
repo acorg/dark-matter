@@ -1,3 +1,7 @@
+## 5.0.26 Januery 27, 2025
+
+Downgrade `dendropy` version requirement from `5.0.2` to `5.0.1`.
+
 ## 5.0.25 November 18, 2024
 
 Adjust `bin/curate-tree-ete3.py` so it ensures the new root node is not formatted.
