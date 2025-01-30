@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-from typing import Optional
+from typing import Optional, Iterator
 
 from json import dump, load
 from contextlib import contextmanager
@@ -58,7 +58,7 @@ CONSUMES_REFERENCE = {CMATCH, CDEL, CREF_SKIP, CEQUAL, CDIFF}
 
 
 @contextmanager
-def samfile(filename):
+def samfile(filename: str) -> Iterator[AlignmentFile]:
     """
     A context manager to open and close a SAM/BAM file.
 
@@ -69,7 +69,7 @@ def samfile(filename):
     f.close()
 
 
-def samtoolsInstalled():
+def samtoolsInstalled() -> bool:
     """
     Test if samtools is installed.
 
@@ -83,7 +83,7 @@ def samtoolsInstalled():
         return True
 
 
-def samReferences(filenameOrSamfile):
+def samReferences(filenameOrSamfile: str | AlignmentFile) -> list[str]:
     """
     List SAM/BAM file reference names.
 
@@ -102,7 +102,7 @@ def samReferences(filenameOrSamfile):
         return _references(filenameOrSamfile)
 
 
-def samReferencesToStr(filenameOrSamfile, indent=0):
+def samReferencesToStr(filenameOrSamfile: str | AlignmentFile, indent: int = 0) -> str:
     """
     List SAM/BAM file reference names and lengths.
 
@@ -111,13 +111,13 @@ def samReferencesToStr(filenameOrSamfile, indent=0):
     @param indent: An C{int} number of spaces to indent each line.
     @return: A C{str} describing known reference names and their lengths.
     """
-    indent = " " * indent
+    indentStr = " " * indent
 
     def _references(sam):
         result = []
         for i in range(sam.nreferences):
             result.append(
-                "%s%s (length %d)" % (indent, sam.get_reference_name(i), sam.lengths[i])
+                "%s%s (length %d)" % (indentStr, sam.get_reference_name(i), sam.lengths[i])
             )
         return "\n".join(result)
 
@@ -125,7 +125,7 @@ def samReferencesToStr(filenameOrSamfile, indent=0):
         with samfile(filenameOrSamfile) as sam:
             return _references(sam)
     else:
-        return _references(sam)
+        return _references(filenameOrSamfile)
 
 
 def _hardClip(sequence, quality, cigartuples):
@@ -293,24 +293,20 @@ class SAMFilter:
 
         # Detect when there are no filtering criteria, in which case
         # self.filterAlignment can return immediately.
-        self.noFiltering = all(
-            (
-                filterRead is None,
-                referenceIds is None,
-                not any(
-                    (
-                        storeQueryIds,
-                        dropUnmapped,
-                        dropSecondary,
-                        dropSupplementary,
-                        dropDuplicates,
-                        keepQCFailures,
-                    )
-                ),
-                minScore is None,
-                maxScore is None,
-            )
-        )
+        self.noFiltering = all((
+            filterRead is None,
+            referenceIds is None,
+            not any((
+                storeQueryIds,
+                dropUnmapped,
+                dropSecondary,
+                dropSupplementary,
+                dropDuplicates,
+                keepQCFailures,
+            )),
+            minScore is None,
+            maxScore is None,
+        ))
 
     @staticmethod
     def addFilteringOptions(
@@ -460,7 +456,7 @@ class SAMFilter:
     @classmethod
     def parseFilteringOptions(cls, args, filterRead=None, storeQueryIds=False):
         """
-        Parse command line options (added in C{addSAMFilteringOptions}.
+        Parse command line options (as added by C{self.addSAMFilteringOptions}).
 
         @param args: The command line arguments, as returned by
             C{argparse.parse_args}.
@@ -757,9 +753,10 @@ class PaddedSAM:
                     # query but record what would have been inserted into the
                     # reference.
                     atStart = False
-                    self.referenceInsertions[queryId].append(
-                        (referenceIndex, query[queryIndex : queryIndex + length])
-                    )
+                    self.referenceInsertions[queryId].append((
+                        referenceIndex,
+                        query[queryIndex : queryIndex + length],
+                    ))
                 elif operation == CDEL:
                     # Delete from the reference. Some bases from the reference
                     # would need to be deleted to continue the match. So we put
