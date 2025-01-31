@@ -102,6 +102,29 @@ def samReferences(filenameOrSamfile: str | AlignmentFile) -> list[str]:
         return _references(filenameOrSamfile)
 
 
+def samReferenceLengths(filenameOrSamfile: str | AlignmentFile) -> dict[str, int]:
+    """
+    Get SAM/BAM file reference ids and lengths.
+
+    @param filenameOrSamfile: Either a C{str} SAM/BAM file name or an
+        instance of C{pysam.AlignmentFile}.
+    @return: A C{dict} mapping reference ids to lengths.
+    """
+    def _references(sam):
+        result = {}
+        for i in range(sam.nreferences):
+            name = sam.get_reference_name(i)
+            assert name not in result
+            result[name] = sam.lengths[i]
+        return result
+
+    if isinstance(filenameOrSamfile, str):
+        with samfile(filenameOrSamfile) as sam:
+            return _references(sam)
+    else:
+        return _references(filenameOrSamfile)
+
+
 def samReferencesToStr(filenameOrSamfile: str | AlignmentFile, indent: int = 0) -> str:
     """
     List SAM/BAM file reference names and lengths.

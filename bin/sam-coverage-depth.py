@@ -6,10 +6,14 @@ import numpy as np
 import csv
 from time import time
 from collections import defaultdict
+import concurrent.futures
+from itertools import repeat
 
 from dark.fasta import FastaReads
-from dark.sam import samfile, SAMFilter, samReferences, UnknownReference
+from dark.sam import samfile, samReferenceLengths
 from dark.utils import baseCountsToStr, pct
+
+BASES = "ACGT"
 
 
 def makeParser():
@@ -21,11 +25,32 @@ def makeParser():
         ),
     )
 
-    SAMFilter.addFilteringOptions(parser, samfileIsPositional=True)
+    parser.add_argument(
+        "samfile",
+        help="The SAM/BAM file to read.",
+    )
+
+    parser.add_argument(
+        "--referenceId",
+        metavar="ID",
+        help=(
+            "A reference sequence id. If not given and the SAM file has "
+            "just one reference, that one will be used. Otherwise, a "
+            "reference id must be given."
+        ),
+    )
 
     parser.add_argument(
         "--fasta",
         help="Optionally give a FASTA file in which the reference can be found.",
+    )
+
+    parser.add_argument(
+        "--window",
+        "-n",
+        type=int,
+        default=250,
+        help="The number of genome sites to have each subprocess handle.",
     )
 
     parser.add_argument(
@@ -47,7 +72,7 @@ def makeParser():
         help=(
             "The file to print overall statistics to. If not specified, standard "
             "output will be used."
-        )
+        ),
     )
 
     parser.add_argument(
@@ -67,7 +92,7 @@ def makeParser():
         "--noFilter",
         action="store_false",
         dest="filter",
-        help="This behaviour is now the default and this option is ignored."
+        help="This behaviour is now the default and this option is ignored.",
     )
 
     parser.add_argument(
@@ -89,98 +114,79 @@ def makeParser():
     return parser
 
 
-def main():
-    BASES = "ACGT"
-    parser = makeParser()
-    args = parser.parse_args()
+def getReferenceId(filename: str, references: set[str], referenceId: str | None) -> str:
+    """
+    Get the reference id.  This is either the reference id from the command line
+    (if given and if present in the SAM file) or the single reference from the
+    SAM file (if the SAM file contains just one reference).
+    """
+    if referenceId:
+        if referenceId not in references:
+            raise ValueError(
+                f"Reference id {referenceId} not found in {filename!r} "
+                f"Known references are {', '.join(sorted(references))}."
+            )
+    else:
+        if len(references) == 1:
+            referenceId = list(references)[0]
+        else:
+            raise ValueError(
+                f"Multiple references found in {filename!r}: "
+                f"{', '.join(sorted(references))}. Use --referenceId "
+                "to specify the one you want."
+            )
 
-    if not (args.printOffsets or args.printStats):
-        print(
-            "You have used both --noOffsets and --noStats, so there is no output!",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    return referenceId
 
-    samFilter = SAMFilter.parseFilteringOptions(args)
 
-    if samFilter.referenceIds and len(samFilter.referenceIds) > 1:
-        print(
-            "Only one reference id can be given. To calculate coverage for more "
-            "than one reference, run this script multiple times.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+def getReferenceSeq(fasta: str | None, referenceId: str) -> str | None:
+    """
+    Look for the reference id in the FASTA file and return its sequence if found.
+    If no FASTA is given, return None.
+    """
+    if fasta:
+        for read in FastaReads(fasta):
+            if read.id == referenceId:
+                return read.sequence
+        else:
+            print(
+                f"Reference id {referenceId!r} was not found in reference FASTA file {fasta!r}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    else:
+        return None
 
-    try:
-        referenceLengths = samFilter.referenceLengths()
-    except UnknownReference:
-        referenceId = samFilter.referenceIds.pop()
-        referenceIds = samReferences(args.samfile)
-        print(
-            "Reference %r does not appear in SAM file %s. Known "
-            "references are: %s."
-            % (referenceId, args.samfile, ", ".join(sorted(referenceIds))),
-            file=sys.stderr,
-        )
-        sys.exit(1)
 
+def processSubsection(
+    args: argparse.Namespace,
+    start: int,
+    referenceId: str,
+    referenceSeq: str | None,
+    returnCSV: bool,
+    startTime: float,
+):
+    """
+    Process a subsection of the genome.
+    """
+    readIds = set()
+    rows = []
+    totalBases = totalReads = totalMutationCount = 0
+    mutationPairCounts = defaultdict(int)
     baseCounts = []
-    writerow = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
+    startTime = time()
 
     with samfile(args.samfile) as sam:
-        if samFilter.referenceIds:
-            # No need to check if the given reference id is in referenceLengths
-            # because the samFilter.referenceLengths call above catches that.
-            referenceId = samFilter.referenceIds.pop()
-        else:
-            if len(referenceLengths) == 1:
-                referenceId = list(referenceLengths)[0]
-            else:
-                print(
-                    "SAM file %r contains %d references (%s). Only one "
-                    "reference id can be analyzed at a time. Please use "
-                    "--referenceId to specify the one you want examined."
-                    % (
-                        args.samfile,
-                        len(referenceLengths),
-                        ", ".join(sorted(referenceLengths)),
-                    ),
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-
-        if args.fasta:
-            for read in FastaReads(args.fasta):
-                if read.id == referenceId:
-                    referenceSeq = read.sequence
-                    break
-            else:
-                print(
-                    f"Reference id {referenceId!r} was not found in reference FASTA file {args.fasta!r}",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-        else:
-            referenceSeq = None
-
-        if writerow:
-            row = ["Site"]
-            if referenceSeq:
-                row.extend(("Reference", "Mutations"))
-            writerow(row + list(BASES))
-
-        readIds = set()
-        totalBases = totalReads = totalMutationCount = 0
-        mutationPairCounts = defaultdict(int)
-        startTime = time()
-
         for column in sam.pileup(
+            start=start,
+            end=start + args.window,
             reference=referenceId,
             truncate=True,
             max_depth=args.maxDepth,
         ):
             columnStartTime = time()
             refOffset = column.reference_pos
+            assert start <= refOffset < start + args.window
             pileups = column.pileups
             nReads = column.nsegments
 
@@ -215,23 +221,23 @@ def main():
                 refBase = None
 
             if args.printOffsets:
-                if writerow:
+                if returnCSV:
                     row = [refOffset + 1]
                     if refBase:
                         row.extend((refBase, mutationCount))
                     row.extend(bases[base] for base in BASES)
-                    writerow(row)
+                    rows.append(row)
                 else:
                     out = f"{refOffset + 1} {baseCount} " f"{baseCountsToStr(bases)}"
                     if refBase:
                         out += f" Ref:{refBase}"
-                    print(out)
+                    rows.append(out)
 
             if args.verbose:
                 totalReads += nReads
-                stop = time()
-                elapsed = stop - columnStartTime
-                totalElapsed = stop - startTime
+                stopTime = time()
+                elapsed = stopTime - columnStartTime
+                totalElapsed = stopTime - startTime
 
                 print(
                     f"Site {refOffset + 1}: {nReads:,} reads processed "
@@ -241,9 +247,101 @@ def main():
                     file=sys.stderr,
                 )
 
+    return {
+        "startSite": start,
+        "startTime": startTime,
+        "stopTime": time(),
+        "rows": rows,
+        "totalBases": totalBases,
+        # "totalReads": totalReads,
+        "baseCounts": baseCounts,
+        "totalMutationCount": totalMutationCount,
+        "mutationPairCounts": mutationPairCounts,
+        "readIds": readIds,
+    }
+
+
+def main():
+    parser = makeParser()
+    args = parser.parse_args()
+
+    if not (args.printOffsets or args.printStats):
+        print(
+            "You have used both --noOffsets and --noStats, so there is no output!",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    referenceLens = samReferenceLengths(args.samfile)
+    referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
+    referenceLen = referenceLens[referenceId]
+    referenceSeq = getReferenceSeq(args.fasta, referenceId)
+
+    baseCounts = []
+    writerow = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
+
+    if writerow:
+        row = ["Site"]
+        if referenceSeq:
+            row.extend(("Reference", "Mutations"))
+        writerow(row + list(BASES))
+
+    readIds = set()
+    totalBases = totalMutationCount = 0
+    mutationPairCounts = defaultdict(int)
+    start = time()
+    totalRunTime = maxRunTime = 0.0
+    startSites = list(range(0, referenceLen, args.window))
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for result in executor.map(
+            processSubsection,
+            repeat(args),
+            startSites,
+            repeat(referenceId),
+            repeat(referenceSeq),
+            repeat(bool(writerow)),
+            repeat(start),
+        ):
+            waited = result["startTime"] - start
+            runTime = result["stopTime"] - result["startTime"]
+            totalRunTime += runTime
+            if runTime > maxRunTime:
+                maxRunTime = runTime
+
+            print(
+                f"Window {result['startSite']} produced in {runTime:.2f} seconds, after waiting "
+                f"{waited:.2f} seconds to start.",
+                file=sys.stderr,
+            )
+
+            func = writerow or print
+            for row in result["rows"]:
+                func(row)
+
+            readIds.update(result["readIds"])
+            totalBases += result["totalBases"]
+            baseCounts.extend(result["baseCounts"])
+            for pair, count in result["mutationPairCounts"].items():
+                mutationPairCounts[pair] += count
+            totalMutationCount += result["totalMutationCount"]
+
+    stop = time()
+    try:
+        speedup = totalRunTime / (stop - start)
+    except ZeroDivisionError:
+        speedup = 0.0
+
+    print(
+        f"Finised in {int(stop - start)} seconds. Total serial processing would "
+        f"have been {int(totalRunTime)} seconds. The slowest process took "
+        f"{maxRunTime:.2f} seconds. Speed up = {speedup:.2f}",
+        file=sys.stderr,
+    )
+
     if args.printStats:
         out = open(args.statsFile, "w") if args.statsFile else sys.stdout
-        referenceLength = referenceLengths[referenceId]
+        referenceLength = referenceLens[referenceId]
         print("SAM file: %s" % args.samfile, file=out)
         print("Max depth: %d" % args.maxDepth, file=out)
         print("Reference id: %s" % referenceId, file=out)
