@@ -1,3 +1,8 @@
+## 5.0.26 January 31, 2025
+
+Many improvements to (and some simplifications of) `sam-coverage-depth.py`,
+primarily a speed-up via parallelization.
+
 ## 5.0.25 November 18, 2024
 
 Adjust `bin/curate-tree-ete3.py` so it ensures the new root node is not formatted.

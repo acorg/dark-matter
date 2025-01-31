@@ -6,8 +6,9 @@ import numpy as np
 import csv
 from time import time
 from collections import defaultdict
-import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
+from contextlib import redirect_stdout
 
 from dark.fasta import FastaReads
 from dark.sam import samfile, samReferenceLengths
@@ -50,7 +51,23 @@ def makeParser():
         "-n",
         type=int,
         default=250,
-        help="The number of genome sites to have each subprocess handle.",
+        help=(
+            "The number of genome sites to have each subprocess handle. Large values "
+            "will have a major performance impact when --maxDepth is also high (e.g., "
+            ">10,000). This seems to be due to an unknown pysam/htslib slowdown (based "
+            "on samtools v1.21, as of 2025-01-31)."
+        ),
+    )
+
+    parser.add_argument(
+        "--workers",
+        type=int,
+        help=(
+            "The number of subprocesses to run in parallel. If not specified, the "
+            "process pool will typically use all available cores, but see "
+            "https://docs.python.org/3/library/concurrent.futures.html"
+            "#processpoolexecutor for details."
+        ),
     )
 
     parser.add_argument(
@@ -64,7 +81,7 @@ def makeParser():
         "--noStats",
         action="store_false",
         dest="printStats",
-        help="Do not print final average and standard deviation statistics.",
+        help="Do not print final average, standard deviation etc. statistics.",
     )
 
     parser.add_argument(
@@ -76,9 +93,14 @@ def makeParser():
     )
 
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Print progress information (to standard error).",
+        "--verbosity",
+        type=int,
+        default=0,
+        help=(
+            "Print progress information (to standard error). 0 = don't print progress "
+            "information. 1 = print information after each genome region is processed. "
+            "2 = also print information during the processing of each region."
+        ),
     )
 
     parser.add_argument(
@@ -149,11 +171,10 @@ def getReferenceSeq(fasta: str | None, referenceId: str) -> str | None:
             if read.id == referenceId:
                 return read.sequence
         else:
-            print(
-                f"Reference id {referenceId!r} was not found in reference FASTA file {fasta!r}",
-                file=sys.stderr,
+            raise ValueError(
+                f"Reference id {referenceId!r} was not found in reference FASTA "
+                f"file {fasta!r}."
             )
-            sys.exit(1)
     else:
         return None
 
@@ -233,7 +254,7 @@ def processSubsection(
                         out += f" Ref:{refBase}"
                     rows.append(out)
 
-            if args.verbose:
+            if args.verbosity > 1:
                 totalReads += nReads
                 stopTime = time()
                 elapsed = stopTime - columnStartTime
@@ -248,35 +269,28 @@ def processSubsection(
                 )
 
     return {
+        "baseCounts": baseCounts,
+        "mutationPairCounts": mutationPairCounts,
+        "readIds": readIds,
+        "rows": rows,
         "startSite": start,
         "startTime": startTime,
         "stopTime": time(),
-        "rows": rows,
         "totalBases": totalBases,
-        # "totalReads": totalReads,
-        "baseCounts": baseCounts,
         "totalMutationCount": totalMutationCount,
-        "mutationPairCounts": mutationPairCounts,
-        "readIds": readIds,
     }
 
 
 def main():
-    parser = makeParser()
-    args = parser.parse_args()
+    args = makeParser().parse_args()
 
     if not (args.printOffsets or args.printStats):
-        print(
-            "You have used both --noOffsets and --noStats, so there is no output!",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        exit("You used both --noOffsets and --noStats, so there is no output!")
 
     referenceLens = samReferenceLengths(args.samfile)
     referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
     referenceLen = referenceLens[referenceId]
     referenceSeq = getReferenceSeq(args.fasta, referenceId)
-
     baseCounts = []
     writerow = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
 
@@ -288,12 +302,13 @@ def main():
 
     readIds = set()
     totalBases = totalMutationCount = 0
+    # I don't use a collections.Counter in the following because they are very slow.
     mutationPairCounts = defaultdict(int)
     start = time()
     totalRunTime = maxRunTime = 0.0
     startSites = list(range(0, referenceLen, args.window))
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=args.workers) as executor:
         for result in executor.map(
             processSubsection,
             repeat(args),
@@ -309,11 +324,14 @@ def main():
             if runTime > maxRunTime:
                 maxRunTime = runTime
 
-            print(
-                f"Window {result['startSite']} produced in {runTime:.2f} seconds, after waiting "
-                f"{waited:.2f} seconds to start.",
-                file=sys.stderr,
-            )
+            if args.verbosity > 0:
+                from_ = result['startSite']
+                to = min(from_ + args.window, referenceLen)
+                print(
+                    f"Genome region {from_ + 1}-{to} processed in {runTime:.2f} "
+                    f"seconds, after waiting {waited:.2f} seconds to start.",
+                    file=sys.stderr,
+                )
 
             func = writerow or print
             for row in result["rows"]:
@@ -332,39 +350,41 @@ def main():
     except ZeroDivisionError:
         speedup = 0.0
 
-    print(
-        f"Finised in {int(stop - start)} seconds. Total serial processing would "
-        f"have been {int(totalRunTime)} seconds. The slowest process took "
-        f"{maxRunTime:.2f} seconds. Speed up = {speedup:.2f}",
-        file=sys.stderr,
-    )
+    if args.verbosity > 0:
+        print(
+            f"Finised in {int(stop - start)} seconds. Total serial processing would "
+            f"have been {int(totalRunTime)} seconds. The slowest process took "
+            f"{maxRunTime:.2f} seconds. Speed up = {speedup:.2f}",
+            file=sys.stderr,
+        )
 
     if args.printStats:
         out = open(args.statsFile, "w") if args.statsFile else sys.stdout
-        referenceLength = referenceLens[referenceId]
-        print("SAM file: %s" % args.samfile, file=out)
-        print("Max depth: %d" % args.maxDepth, file=out)
-        print("Reference id: %s" % referenceId, file=out)
-        print("Reference length: %d" % referenceLength, file=out)
-        print("Number of reads found: %d" % len(readIds), file=out)
-        print("Bases covered: %s" % pct(len(baseCounts), referenceLength), file=out)
-        print("Min coverage depth: %d" % min(baseCounts, default=0), file=out)
-        print("Max coverage depth: %d" % max(baseCounts, default=0), file=out)
+        with redirect_stdout(out):
+            referenceLength = referenceLens[referenceId]
+            print("SAM file: %s" % args.samfile)
+            print("Max depth: %d" % args.maxDepth)
+            print("Reference id: %s" % referenceId)
+            print("Reference length: %d" % referenceLength)
+            print("Number of reads found: %d" % len(readIds))
+            print("Bases covered: %s" % pct(len(baseCounts), referenceLength))
+            print("Min coverage depth: %d" % min(baseCounts, default=0))
+            print("Max coverage depth: %d" % max(baseCounts, default=0))
 
-        if baseCounts:
-            print("Mean coverage depth: %.3f" % np.mean(baseCounts), file=out)
-            print("Median coverage depth: %.3f" % np.median(baseCounts), file=out)
-            print("Coverage depth s.d.: %.3f" % np.std(baseCounts), file=out)
-            if referenceSeq:
-                print(f"Mutation rate: {totalMutationCount / totalBases:.6f}", file=out)
+            if baseCounts:
+                print("Mean coverage depth: %.3f" % np.mean(baseCounts))
+                print("Median coverage depth: %.3f" % np.median(baseCounts))
+                print("Coverage depth s.d.: %.3f" % np.std(baseCounts))
+                if referenceSeq:
+                    print(f"Mutation rate: {totalMutationCount / totalBases:.6f}")
 
-                def key(pair):
-                    return mutationPairCounts[pair], pair
+                    def key(pair):
+                        return mutationPairCounts[pair], pair
 
-                print("Mutation counts:", file=out)
-                for pair in sorted(mutationPairCounts, key=key, reverse=True):
-                    ref, mut = pair
-                    print(f"  {ref} -> {mut}: {mutationPairCounts[pair]}", file=out)
+                    print("Mutation counts:")
+                    for pair in sorted(mutationPairCounts, key=key, reverse=True):
+                        ref, mut = pair
+                        print(f"  {ref} -> {mut}: {mutationPairCounts[pair]}")
 
         out.close()
 
