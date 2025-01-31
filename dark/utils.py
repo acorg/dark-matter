@@ -179,7 +179,7 @@ def parseRangeExpression(s, convertToZeroBased=False):
         raise ValueError(expr)
 
 
-def baseCountsToStr(counts):
+def baseCountsToStr(counts: dict[str, int]) -> str:
     """
     Convert base counts to a string.
 

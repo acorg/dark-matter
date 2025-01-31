@@ -13,11 +13,11 @@ then
     PATH="$VIRTUAL_ENV/bin:$PATH"
 fi
 
-make flake8
+ruff check --silent
 
 if [ $? -ne 0 ]
 then
-    echo 'COMMIT FAILED: make flake8 did not run cleanly:' >&2
+    echo 'COMMIT FAILED: ruff check did not run cleanly:' >&2
     exit 1
 fi
 

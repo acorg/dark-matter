@@ -1,3 +1,8 @@
+## 5.0.27 January 31, 2025
+
+Many improvements to (and some simplifications of) `sam-coverage-depth.py`,
+primarily a speed-up via parallelization.
+
 ## 5.0.26 Januery 27, 2025
 
 Downgrade `dendropy` version requirement from `5.0.2` to `5.0.1`.
