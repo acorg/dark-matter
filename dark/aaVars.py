@@ -148,7 +148,8 @@ PROPERTIES = {
 # Based on https://en.wikipedia.org/wiki/DNA_codon_table
 #
 # Note that the trailing commas are necessary in the AAs that only have one
-# codon. If you omit them, the parentheses will not create a tuple.
+# codon (i.e., M and W). If you omit them, the parentheses will not create a
+# tuple.
 
 CODONS = {
     "A": (

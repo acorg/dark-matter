@@ -186,7 +186,7 @@ def processSubsection(
     referenceSeq: str | None,
     returnCSV: bool,
     startTime: float,
-):
+) -> dict:
     """
     Process a subsection of the genome.
     """
@@ -281,7 +281,7 @@ def processSubsection(
     }
 
 
-def main():
+def main() -> None:
     args = makeParser().parse_args()
 
     if not (args.printOffsets or args.printStats):
@@ -344,13 +344,13 @@ def main():
                 mutationPairCounts[pair] += count
             totalMutationCount += result["totalMutationCount"]
 
-    stop = time()
-    try:
-        speedup = totalRunTime / (stop - start)
-    except ZeroDivisionError:
-        speedup = 0.0
-
     if args.verbosity > 0:
+        stop = time()
+        try:
+            speedup = totalRunTime / (stop - start)
+        except ZeroDivisionError:
+            speedup = 0.0
+
         print(
             f"Finised in {int(stop - start)} seconds. Total serial processing would "
             f"have been {int(totalRunTime)} seconds. The slowest process took "
