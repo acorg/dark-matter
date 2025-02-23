@@ -4,17 +4,21 @@ import sys
 import argparse
 import numpy as np
 import csv
+import pysam
 from time import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
 from contextlib import redirect_stdout
+from typing import Collection, Any
 
 from dark.fasta import FastaReads
 from dark.sam import samfile, samReferenceLengths
 from dark.utils import baseCountsToStr, pct
 
 BASES = "ACGT"
+TRANSITIONS = "AG GA CT TC".split()
+TRANSVERSIONS = "AT TA AC CA GT TG GC CG".split()
 
 
 def makeParser():
@@ -104,10 +108,29 @@ def makeParser():
     )
 
     parser.add_argument(
+        "--minDepth",
+        type=int,
+        help=(
+            "The minimum read depth to report on. Sites with a lower depth will "
+            "not be reported."
+        ),
+    )
+
+    parser.add_argument(
         "--maxDepth",
         type=int,
         default=1e6,
         help="The maximum read depth to request from pysam for each site.",
+    )
+
+    parser.add_argument(
+        "--minSiteMutationRate",
+        type=float,
+        help=(
+            "The minimum site mutation rate to report on. Sites with a lower mutation "
+            "rate will not be reported. The mutation rate is the fraction of bases at "
+            "the site that are not the commonest base."
+        ),
     )
 
     parser.add_argument(
@@ -136,7 +159,9 @@ def makeParser():
     return parser
 
 
-def getReferenceId(filename: str, references: set[str], referenceId: str | None) -> str:
+def getReferenceId(
+    filename: str, references: Collection[str], referenceId: str | None
+) -> str:
     """
     Get the reference id.  This is either the reference id from the command line
     (if given and if present in the SAM file) or the single reference from the
@@ -180,81 +205,144 @@ def getReferenceSeq(fasta: str | None, referenceId: str) -> str | None:
 
 
 def processSubsection(
-    args: argparse.Namespace,
+    filename: str,
     start: int,
+    window: int,
+    minDepth: int | None,
+    maxDepth: int,
+    minSiteMutationRate: float | None,
+    collectOffsets: bool,
+    verbosity: int,
     referenceId: str,
     referenceSeq: str | None,
-    returnCSV: bool,
+    returnList: bool,
     startTime: float,
-) -> dict:
+) -> dict[str, Any]:
     """
     Process a subsection of the genome.
+
+    @param filename: The SAM/BAM file to read.
+    @param start: The start offset of the genome window we process.
+    @param window: The size of the genome section we should process.
+    @param miDepth: The minimum read depth to report on. Sites with lower depth will
+        be ignored.
+    @param maxDepth: The maximum read depth to consider.
+    @param minSiteMutationRate: The minimal mutation rate (i.e., fraction) required at
+        sites in order that they are reported. Sites with lower mutation fractions will
+        be ignored.
+    @param collectOffsets: Whether to collect genome offset information.
+    @param verbosity: The verbosity level.
+    @param referenceId: The name of the reference sequence.
+    @param referenceSeq: The genome of the reference (if known).
+    @param returnList: If True, the rows we return will be printed (by our caller) as
+        CSV, so we return lists. Else, we return a string for each row of output.
+    @param startTime: The time overall processing was launched.
     """
     readIds = set()
     rows = []
     totalBases = totalReads = totalMutationCount = 0
-    mutationPairCounts = defaultdict(int)
-    baseCounts = []
+    totalMutationPairCounts = defaultdict(int)
+    depths = []
     startTime = time()
 
-    with samfile(args.samfile) as sam:
+    with samfile(filename) as sam:
         for column in sam.pileup(
             start=start,
-            end=start + args.window,
+            end=start + window,
             reference=referenceId,
             truncate=True,
-            max_depth=args.maxDepth,
+            max_depth=maxDepth,
         ):
+            assert isinstance(column, pysam.PileupColumn)
             columnStartTime = time()
             refOffset = column.reference_pos
-            assert start <= refOffset < start + args.window
-            pileups = column.pileups
-            nReads = column.nsegments
+            assert start <= refOffset < start + window
 
             bases = dict.fromkeys(BASES, 0)
-            for read in pileups:
+            nReads = 0
+            for read in column.pileups:
                 if read.query_position is not None:
+                    nReads += 1
                     readIds.add(read.alignment.query_name)
+                    assert read.alignment.query_sequence is not None
                     base = read.alignment.query_sequence[read.query_position]
                     bases[base] += 1
 
-            baseCount = sum(bases.values())
-            baseCounts.append(baseCount)
-            totalBases += baseCount
+            if minDepth is not None and nReads < minDepth:
+                if verbosity > 1:
+                    print(
+                        f"Site {refOffset + 1}: skipped due to too few reads ({nReads:,}).",
+                        file=sys.stderr,
+                    )
+                continue
 
-            if referenceSeq:
-                refBase = referenceSeq[refOffset]
+            totalBases += nReads
+            mutationCount = 0
+            refBase = referenceSeq[refOffset] if referenceSeq else None
 
-                def sortKey(base):
-                    return (bases[base], int(base == refBase))
+            def sortKey(base):
+                return (bases[base], int(base == refBase))
 
-                # Find the most-common base (with a preference for the
-                # reference base in case of draws) and count mutations as the
-                # total number of bases that are not the commonest.
-                commonestBase = sorted(bases, key=sortKey, reverse=True)[0]
-                mutationCount = 0
-                for base in BASES:
-                    if base != commonestBase and (baseCount := bases[base]):
-                        mutationPairCounts[commonestBase + base] += baseCount
-                        mutationCount += baseCount
-                totalMutationCount += mutationCount
-            else:
-                refBase = None
+            # Find the most-common base (with a preference for the reference
+            # base (if any) in case of draws) and count mutations as the
+            # total number of bases that are not the commonest.
+            commonestBase = max(bases, key=sortKey)
 
-            if args.printOffsets:
-                if returnCSV:
-                    row = [refOffset + 1]
+            mutationRate = 1.0 - bases[commonestBase] / nReads
+            if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
+                if verbosity > 1:
+                    print(
+                        f"Site {refOffset + 1}: skipped due to low mutation rate "
+                        f"({mutationRate:.3f}).",
+                        file=sys.stderr,
+                    )
+                continue
+
+            mutationPairCounts = defaultdict(int)
+            for base in BASES:
+                if base != commonestBase and (count := bases[base]):
+                    mutationPairCounts[commonestBase + base] += count
+                    mutationCount += count
+
+            depths.append(nReads)
+
+            totalMutationCount += mutationCount
+            for pair, count in mutationPairCounts.items():
+                totalMutationPairCounts[pair] += count
+
+            if collectOffsets:
+                if returnList:
+                    row: list[int | str | float] = [refOffset + 1]
                     if refBase:
-                        row.extend((refBase, mutationCount))
-                    row.extend(bases[base] for base in BASES)
+                        row.append(refBase)
+                    row.extend(
+                        [nReads]
+                        + [bases[base] for base in BASES]
+                        + [mutationCount, round(mutationRate, 6)]
+                    )
+
+                    totalTransitions = 0
+                    for pair in TRANSITIONS:
+                        count = mutationPairCounts.get(pair, 0)
+                        row.append(count)
+                        totalTransitions += count
+
+                    totalTransversions = 0
+                    for pair in TRANSVERSIONS:
+                        count = mutationPairCounts.get(pair, 0)
+                        row.append(count)
+                        totalTransversions += count
+
+                    row.extend((totalTransitions, totalTransversions))
+
                     rows.append(row)
                 else:
-                    out = f"{refOffset + 1} {baseCount} " f"{baseCountsToStr(bases)}"
+                    out = f"{refOffset + 1} {nReads} {baseCountsToStr(bases)}"
                     if refBase:
                         out += f" Ref:{refBase}"
                     rows.append(out)
 
-            if args.verbosity > 1:
+            if verbosity > 1:
                 totalReads += nReads
                 stopTime = time()
                 elapsed = stopTime - columnStartTime
@@ -269,8 +357,8 @@ def processSubsection(
                 )
 
     return {
-        "baseCounts": baseCounts,
-        "mutationPairCounts": mutationPairCounts,
+        "depths": depths,
+        "mutationPairCounts": totalMutationPairCounts,
         "readIds": readIds,
         "rows": rows,
         "startSite": start,
@@ -285,20 +373,27 @@ def main() -> None:
     args = makeParser().parse_args()
 
     if not (args.printOffsets or args.printStats):
-        exit("You used both --noOffsets and --noStats, so there is no output!")
+        sys.exit("You used both --noOffsets and --noStats, so there is no output!")
 
     referenceLens = samReferenceLengths(args.samfile)
     referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
     referenceLen = referenceLens[referenceId]
     referenceSeq = getReferenceSeq(args.fasta, referenceId)
-    baseCounts = []
-    writerow = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
+    depths = []
+    printTSV = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
+    printRow = printTSV or print
 
-    if writerow:
-        row = ["Site"]
+    if printTSV:
+        header = ["Site"]
         if referenceSeq:
-            row.extend(("Reference", "Mutations"))
-        writerow(row + list(BASES))
+            header.append("Reference")
+        header.append("Depth")
+        header.extend(BASES)
+        header.append("Mutations")
+        header.append("Variability")
+        header.extend(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS)
+        header.extend(("Transitions", "Transversions"))
+        printTSV(header)
 
     readIds = set()
     totalBases = totalMutationCount = 0
@@ -311,11 +406,17 @@ def main() -> None:
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         for result in executor.map(
             processSubsection,
-            repeat(args),
+            repeat(args.samfile),
             startSites,
+            repeat(args.window),
+            repeat(args.minDepth),
+            repeat(args.maxDepth),
+            repeat(args.minSiteMutationRate),
+            repeat(args.printOffsets),
+            repeat(args.verbosity),
             repeat(referenceId),
             repeat(referenceSeq),
-            repeat(bool(writerow)),
+            repeat(bool(printTSV)),
             repeat(start),
         ):
             waited = result["startTime"] - start
@@ -325,21 +426,21 @@ def main() -> None:
                 maxRunTime = runTime
 
             if args.verbosity > 0:
-                from_ = result['startSite']
+                from_ = result["startSite"]
                 to = min(from_ + args.window, referenceLen)
                 print(
                     f"Genome region {from_ + 1}-{to} processed in {runTime:.2f} "
-                    f"seconds, after waiting {waited:.2f} seconds to start.",
+                    f"seconds (waited {waited:.2f} seconds to start).",
                     file=sys.stderr,
                 )
 
-            func = writerow or print
-            for row in result["rows"]:
-                func(row)
+            if args.printOffsets:
+                for row in result["rows"]:
+                    printRow(row)
 
             readIds.update(result["readIds"])
             totalBases += result["totalBases"]
-            baseCounts.extend(result["baseCounts"])
+            depths.extend(result["depths"])
             for pair, count in result["mutationPairCounts"].items():
                 mutationPairCounts[pair] += count
             totalMutationCount += result["totalMutationCount"]
@@ -352,7 +453,7 @@ def main() -> None:
             speedup = 0.0
 
         print(
-            f"Finised in {int(stop - start)} seconds. Total serial processing would "
+            f"Finished in {int(stop - start)} seconds. Total serial processing would "
             f"have been {int(totalRunTime)} seconds. The slowest process took "
             f"{maxRunTime:.2f} seconds. Speed up = {speedup:.2f}",
             file=sys.stderr,
@@ -361,30 +462,48 @@ def main() -> None:
     if args.printStats:
         out = open(args.statsFile, "w") if args.statsFile else sys.stdout
         with redirect_stdout(out):
-            referenceLength = referenceLens[referenceId]
-            print("SAM file: %s" % args.samfile)
-            print("Max depth: %d" % args.maxDepth)
-            print("Reference id: %s" % referenceId)
-            print("Reference length: %d" % referenceLength)
-            print("Number of reads found: %d" % len(readIds))
-            print("Bases covered: %s" % pct(len(baseCounts), referenceLength))
-            print("Min coverage depth: %d" % min(baseCounts, default=0))
-            print("Max coverage depth: %d" % max(baseCounts, default=0))
+            print("SAM file:", args.samfile)
+            print("Max depth considered:", args.maxDepth)
+            print("Min depth required:", args.minDepth)
+            print("Min (site) mutation rate:", args.minSiteMutationRate)
+            print("Reference id:", referenceId)
+            print("Reference length:", referenceLen)
+            print("Number of reads found:", len(readIds))
+            print("Reference genome coverage:", pct(len(depths), referenceLen))
+            print("Coverage depth:")
+            print("  Min:", min(depths, default=0))
+            print("  Max:", max(depths, default=0))
 
-            if baseCounts:
-                print("Mean coverage depth: %.3f" % np.mean(baseCounts))
-                print("Median coverage depth: %.3f" % np.median(baseCounts))
-                print("Coverage depth s.d.: %.3f" % np.std(baseCounts))
-                if referenceSeq:
-                    print(f"Mutation rate: {totalMutationCount / totalBases:.6f}")
+            if depths:
+                print(f"  Mean: {np.mean(depths):.3f}")
+                print(f"  Median: {np.median(depths):.3f}")
+                print(f"  SD: {np.std(depths):.3f}")
 
-                    def key(pair):
-                        return mutationPairCounts[pair], pair
+            omr = totalMutationCount / totalBases if totalBases else 0.0
+            print(f"Overall mutation rate: {omr:.6f}")
 
-                    print("Mutation counts:")
-                    for pair in sorted(mutationPairCounts, key=key, reverse=True):
-                        ref, mut = pair
-                        print(f"  {ref} -> {mut}: {mutationPairCounts[pair]}")
+            totalTransitions = totalTransversions = 0
+            print("Sorted mutation counts (* = transversion):")
+            countWidth = None
+
+            def key(pair):
+                return mutationPairCounts[pair], pair
+
+            for pair in sorted(mutationPairCounts, key=key, reverse=True):
+                count = mutationPairCounts[pair]
+                if countWidth is None:
+                    countWidth = len(str(count))
+                if pair in TRANSITIONS:
+                    totalTransitions += count
+                    what = ""
+                else:
+                    assert pair in TRANSVERSIONS
+                    totalTransversions += count
+                    what = " *"
+                print(f"  {pair[0]} -> {pair[1]}: {count:{countWidth}d}{what}")
+
+            print("Total transitions:", totalTransitions)
+            print("Total transversions:", totalTransversions)
 
         out.close()
 
