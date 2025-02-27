@@ -1,10 +1,11 @@
 import sys
-from time import time, ctime
-from typing import Optional, Union, TextIO
-from subprocess import PIPE, CompletedProcess, CalledProcessError, run
 from io import StringIO
+from subprocess import PIPE, CalledProcessError, CompletedProcess, run
+from time import ctime, time
+from typing import Any, Literal, TextIO, final, overload
 
 
+@final
 class Executor:
     """
     Log and execute shell commands.
@@ -21,23 +22,45 @@ class Executor:
     def __init__(
         self,
         dryRun: bool = False,
-        stdout: Optional[Union[TextIO, StringIO]] = None,
-        stderr: Optional[Union[TextIO, StringIO]] = None,
+        stdout: TextIO | StringIO | None = None,
+        stderr: TextIO | StringIO | None = None,
     ) -> None:
         self.dryRun = dryRun
         self.stdout = stdout
         self.stderr = stderr
         self.log = [f"# Executor created at {ctime(time())}. Dry run = {dryRun}."]
 
+    @overload
     def execute(
         self,
-        command: Union[str, list[str]],
-        dryRun: Optional[bool] = None,
+        command: str | list[str],
+        dryRun: Literal[True],
         useStderr: bool = True,
-        stdout: Optional[Union[bool, TextIO, StringIO]] = False,
-        stderr: Optional[Union[bool, TextIO, StringIO]] = False,
-        **kwargs,
-    ) -> Optional[CompletedProcess]:
+        stdout: bool | TextIO | StringIO | None = False,
+        stderr: bool | TextIO | StringIO | None = False,
+        **kwargs: Any,
+    ) -> None: ...
+
+    @overload
+    def execute(
+        self,
+        command: str | list[str],
+        dryRun: Literal[False] | None,
+        useStderr: bool = True,
+        stdout: bool | TextIO | StringIO | None = False,
+        stderr: bool | TextIO | StringIO | None = False,
+        **kwargs: Any,
+    ) -> CompletedProcess[Any]: ...
+
+    def execute(
+        self,
+        command: str | list[str],
+        dryRun: bool | None = None,
+        useStderr: bool = True,
+        stdout: bool | TextIO | StringIO | None = False,
+        stderr: bool | TextIO | StringIO | None = False,
+        **kwargs: Any,
+    ) -> CompletedProcess[Any] | None:
         """
         Execute (or simulate) a command. Add to our log.
 
