@@ -35,9 +35,9 @@ class Executor:
         self,
         command: str | list[str],
         dryRun: Literal[True],
-        useStderr: bool = True,
-        stdout: bool | TextIO | StringIO | None = False,
-        stderr: bool | TextIO | StringIO | None = False,
+        useStderr: bool = ...,
+        stdout: bool | TextIO | StringIO | None = ...,
+        stderr: bool | TextIO | StringIO | None = ...,
         **kwargs: Any,
     ) -> None: ...
 
@@ -45,10 +45,10 @@ class Executor:
     def execute(
         self,
         command: str | list[str],
-        dryRun: Literal[False] | None,
-        useStderr: bool = True,
-        stdout: bool | TextIO | StringIO | None = False,
-        stderr: bool | TextIO | StringIO | None = False,
+        dryRun: Literal[False] | None = ...,
+        useStderr: bool = ...,
+        stdout: bool | TextIO | StringIO | None = ...,
+        stderr: bool | TextIO | StringIO | None = ...,
         **kwargs: Any,
     ) -> CompletedProcess[Any]: ...
 
