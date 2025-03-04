@@ -146,7 +146,19 @@ def makeParser():
         help=(
             "The minimum site mutation rate to report on. Sites with a lower mutation "
             "rate will not be reported. The mutation rate is the fraction of bases at "
-            "the site that are not the commonest base."
+            "the site that are not the reference or commonest base (depending on "
+            "the --diffsFrom option)."
+        ),
+    )
+
+    parser.add_argument(
+        "--maxSiteMutationRate",
+        type=float,
+        help=(
+            "The maximum site mutation rate to report on. Sites with a higher mutation "
+            "rate will not be reported. The mutation rate is the fraction of bases at "
+            "the site that are not the reference or commonest base (depending on "
+            "the --diffsFrom option)."
         ),
     )
 
@@ -161,9 +173,9 @@ def makeParser():
         "--tsv",
         action="store_true",
         help=(
-            "Produce TSV output (use --sep , if you want CSV). "
-            "Note that overall SAM/BAM file statistics will be printed at the bottom "
-            "of the output unless you also specify --noStats or --statsFile."
+            "Produce TSV output (use --sep , if you want CSV). Note that overall "
+            "SAM/BAM file statistics will be printed at the bottom of the output "
+            "unless you also specify --noStats or --statsFile."
         ),
     )
 
@@ -234,6 +246,7 @@ def processSubsection(
     minDepth: int | None,
     maxDepth: int,
     minSiteMutationRate: float | None,
+    maxSiteMutationRate: float | None,
     collectOffsets: bool,
     verbosity: int,
     referenceId: str,
@@ -251,8 +264,11 @@ def processSubsection(
     @param miDepth: The minimum read depth to report on. Sites with lower depth will
         be ignored.
     @param maxDepth: The maximum read depth to consider.
-    @param minSiteMutationRate: The minimal mutation rate (i.e., fraction) required at
+    @param minSiteMutationRate: The minimum mutation rate (i.e., fraction) required at
         sites in order that they are reported. Sites with lower mutation fractions will
+        be ignored.
+    @param maxSiteMutationRate: The maximum mutation rate (i.e., fraction) allowed at
+        sites in order that they are reported. Sites with higher mutation fractions will
         be ignored.
     @param collectOffsets: Whether to collect genome offset information.
     @param verbosity: The verbosity level.
@@ -328,11 +344,21 @@ def processSubsection(
                 fromBase = max(bases, key=sortKey)
 
             mutationRate = 1.0 - bases[fromBase] / nReads
+
             if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
                 if verbosity > 1:
                     print(
                         f"Site {refOffset + 1}: skipped due to low mutation rate "
-                        f"({mutationRate:.3f}).",
+                        f"({mutationRate:.5f}).",
+                        file=sys.stderr,
+                    )
+                continue
+
+            if maxSiteMutationRate is not None and mutationRate > maxSiteMutationRate:
+                if verbosity > 1:
+                    print(
+                        f"Site {refOffset + 1}: skipped due to high mutation rate "
+                        f"({mutationRate:.5f}).",
                         file=sys.stderr,
                     )
                 continue
@@ -469,6 +495,7 @@ def main() -> None:
             repeat(args.minDepth),
             repeat(args.maxDepth),
             repeat(args.minSiteMutationRate),
+            repeat(args.maxSiteMutationRate),
             repeat(args.printOffsets),
             repeat(args.verbosity),
             repeat(referenceId),
@@ -524,6 +551,7 @@ def main() -> None:
             print("Max depth considered:", args.maxDepth)
             print("Min depth required:", args.minDepth)
             print("Min (site) mutation rate:", args.minSiteMutationRate)
+            print("Max (site) mutation rate:", args.maxSiteMutationRate)
             print("Reference id:", referenceId)
             print("Reference length:", referenceLen)
             print("Number of reads found:", len(readIds))
