@@ -39,15 +39,32 @@ def makeParser():
         "--referenceId",
         metavar="ID",
         help=(
-            "A reference sequence id. If not given and the SAM file has "
-            "just one reference, that one will be used. Otherwise, a "
-            "reference id must be given."
+            "A reference sequence id. If not given and the SAM/BAM file has just one "
+            "reference, that one will be used. Otherwise, a reference id must be given."
         ),
     )
 
     parser.add_argument(
         "--fasta",
-        help="Optionally give a FASTA file in which the reference can be found.",
+        help=(
+            "Optionally give a FASTA file in which the reference can be found. "
+            "If you do not provide a reference sequence, mutations will be counted "
+            "as differences from the most-common nucleotide at each genome site."
+        ),
+    )
+
+    parser.add_argument(
+        "--diffsFrom",
+        choices=("reference", "commonest"),
+        default="reference",
+        help=(
+            "The base from which to assess differences. If 'reference', differences "
+            "from the reference base (at each genome site) will be treated as "
+            "mutations. If 'commonest', differences from the most common base will be "
+            "treated as mutations (with ties broken in favour of the reference base, "
+            "if a reference is given). It is important that you understand the "
+            "difference between these two and choose the right option."
+        ),
     )
 
     parser.add_argument(
@@ -145,8 +162,8 @@ def makeParser():
         action="store_true",
         help=(
             "Produce TSV output (use --sep , if you want CSV). "
-            "Note that overall SAM file statistics will be printed at the bottom of "
-            "the output unless you also specify --noStats or --statsFile."
+            "Note that overall SAM/BAM file statistics will be printed at the bottom "
+            "of the output unless you also specify --noStats or --statsFile."
         ),
     )
 
@@ -164,8 +181,13 @@ def getReferenceId(
 ) -> str:
     """
     Get the reference id.  This is either the reference id from the command line
-    (if given and if present in the SAM file) or the single reference from the
-    SAM file (if the SAM file contains just one reference).
+    (if given and if present in the SAM/BAM file) or the single reference from the
+    SAM/BAM file (if it contains just one reference).
+
+    @param filename: The SAM/BAM filename.
+    @param references: The names of all references in the SAM/BAM file.
+    @param referenceId: The id of the wanted reference, if provided on the command line.
+    @return: The reference id.
     """
     if referenceId:
         if referenceId not in references:
@@ -186,22 +208,23 @@ def getReferenceId(
     return referenceId
 
 
-def getReferenceSeq(fasta: str | None, referenceId: str) -> str | None:
+def getReferenceSeq(filename: str, referenceId: str) -> str:
     """
     Look for the reference id in the FASTA file and return its sequence if found.
     If no FASTA is given, return None.
+
+    @param filename: The FASTA filename.
+    @param referenceId: The ID of the wanted reference.
+    @return: The reference nucleotide sequence.
     """
-    if fasta:
-        for read in FastaReads(fasta):
-            if read.id == referenceId:
-                return read.sequence
-        else:
-            raise ValueError(
-                f"Reference id {referenceId!r} was not found in reference FASTA "
-                f"file {fasta!r}."
-            )
+    for read in FastaReads(filename):
+        if read.id == referenceId:
+            return read.sequence
     else:
-        return None
+        raise ValueError(
+            f"Reference id {referenceId!r} was not found in reference FASTA "
+            f"file {filename!r}."
+        )
 
 
 def processSubsection(
@@ -217,6 +240,7 @@ def processSubsection(
     referenceSeq: str | None,
     returnList: bool,
     startTime: float,
+    diffsFrom: str,
 ) -> dict[str, Any]:
     """
     Process a subsection of the genome.
@@ -237,6 +261,11 @@ def processSubsection(
     @param returnList: If True, the rows we return will be printed (by our caller) as
         CSV, so we return lists. Else, we return a string for each row of output.
     @param startTime: The time overall processing was launched.
+    @param diffsFrom: The base from which to assess differences. If 'reference',
+        differences from the reference base (at each genome site) will be treated as
+        mutations. If 'commonest', differences from the most common base will be
+        treated as mutations (with ties broken in favour of the reference base,
+        if a reference is given).
     """
     readIds = set()
     rows = []
@@ -278,17 +307,27 @@ def processSubsection(
 
             totalBases += nReads
             mutationCount = 0
+
             refBase = referenceSeq[refOffset] if referenceSeq else None
 
-            def sortKey(base):
-                return (bases[base], int(base == refBase))
+            if diffsFrom == "reference":
+                assert refBase is not None
+                fromBase = refBase
+            else:
+                def sortKey(base: str) -> tuple[int, int]:
+                    """
+                    Return a key that can be used to find the base with the highest count
+                    (via max). If there is no reference, the second value in the returned
+                    tuple will always be False (because refBase will be None). As a result,
+                    there is no mechanism for deterministically resolving ties (i.e.,
+                    equally-common nucleotide counts at a genome site. If there is a
+                    reference, ties are broken in favour of the reference base.
+                    """
+                    return (bases[base], int(base == refBase))
 
-            # Find the most-common base (with a preference for the reference
-            # base (if any) in case of draws) and count mutations as the
-            # total number of bases that are not the commonest.
-            commonestBase = max(bases, key=sortKey)
+                fromBase = max(bases, key=sortKey)
 
-            mutationRate = 1.0 - bases[commonestBase] / nReads
+            mutationRate = 1.0 - bases[fromBase] / nReads
             if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
                 if verbosity > 1:
                     print(
@@ -300,8 +339,8 @@ def processSubsection(
 
             mutationPairCounts = defaultdict(int)
             for base in BASES:
-                if base != commonestBase and (count := bases[base]):
-                    mutationPairCounts[commonestBase + base] += count
+                if base != fromBase and (count := bases[base]):
+                    mutationPairCounts[fromBase + base] += count
                     mutationCount += count
 
             depths.append(nReads)
@@ -313,10 +352,13 @@ def processSubsection(
             if collectOffsets:
                 if returnList:
                     row: list[int | str | float] = [refOffset + 1]
-                    if refBase:
+                    if referenceSeq:
+                        assert refBase is not None
                         row.append(refBase)
                     row.extend(
                         [nReads]
+                        # Don't use bases.values() in the following, because we
+                        # need bases in ACGT order.
                         + [bases[base] for base in BASES]
                         + [mutationCount, round(mutationRate, 6)]
                     )
@@ -338,7 +380,7 @@ def processSubsection(
                     rows.append(row)
                 else:
                     out = f"{refOffset + 1} {nReads} {baseCountsToStr(bases)}"
-                    if refBase:
+                    if referenceSeq:
                         out += f" Ref:{refBase}"
                     rows.append(out)
 
@@ -378,7 +420,21 @@ def main() -> None:
     referenceLens = samReferenceLengths(args.samfile)
     referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
     referenceLen = referenceLens[referenceId]
-    referenceSeq = getReferenceSeq(args.fasta, referenceId)
+
+    if args.diffsFrom == "reference":
+        if args.fasta:
+            referenceSeq = getReferenceSeq(args.fasta, referenceId)
+        else:
+            sys.exit(
+                "If you use --diffsFrom 'reference' (the default), you must supply a "
+                "FASTA file containing the reference sequence. Else use --diffsFrom "
+                "'commonest' to calculate mutations based on the most-common nucleotide "
+                "at each genome site."
+            )
+    else:
+        assert args.diffsFrom == "commonest"  # Sanity check of argparse options.
+        referenceSeq = None
+
     depths = []
     printTSV = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
     printRow = printTSV or print
@@ -387,12 +443,13 @@ def main() -> None:
         header = ["Site"]
         if referenceSeq:
             header.append("Reference")
-        header.append("Depth")
-        header.extend(BASES)
-        header.append("Mutations")
-        header.append("Variability")
-        header.extend(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS)
-        header.extend(("Transitions", "Transversions"))
+        header.extend(
+            ("Depth",) +
+            tuple(BASES) +
+            ("Mutations", "Variability") +
+            tuple(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS) +
+            ("Transitions", "Transversions"),
+        )
         printTSV(header)
 
     readIds = set()
@@ -418,6 +475,7 @@ def main() -> None:
             repeat(referenceSeq),
             repeat(bool(printTSV)),
             repeat(start),
+            repeat(args.diffsFrom),
         ):
             waited = result["startTime"] - start
             runTime = result["stopTime"] - result["startTime"]
@@ -462,7 +520,7 @@ def main() -> None:
     if args.printStats:
         out = open(args.statsFile, "w") if args.statsFile else sys.stdout
         with redirect_stdout(out):
-            print("SAM file:", args.samfile)
+            print("SAM/BAM file:", args.samfile)
             print("Max depth considered:", args.maxDepth)
             print("Min depth required:", args.minDepth)
             print("Min (site) mutation rate:", args.minSiteMutationRate)
