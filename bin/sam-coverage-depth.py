@@ -548,6 +548,7 @@ def main() -> None:
         out = open(args.statsFile, "w") if args.statsFile else sys.stdout
         with redirect_stdout(out):
             print("SAM/BAM file:", args.samfile)
+            print("Mutations are relative to:", args.diffsFrom)
             print("Max depth considered:", args.maxDepth)
             print("Min depth required:", args.minDepth)
             print("Min (site) mutation rate:", args.minSiteMutationRate)

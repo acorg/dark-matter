@@ -1,4 +1,8 @@
-## 5.0.27 January 31, 2025
+## 5.0.28 March 5, 2025
+
+Added info to final output of `sam-coverage-depth.py`.
+
+## 5.0.27 March 4, 2025
 
 Many improvements to (and some simplifications of) `sam-coverage-depth.py`,
 primarily a speed-up via parallelization.
