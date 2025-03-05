@@ -175,7 +175,13 @@ def makeParser():
         help=(
             "Produce TSV output (use --sep , if you want CSV). Note that overall "
             "SAM/BAM file statistics will be printed at the bottom of the output "
-            "unless you also specify --noStats or --statsFile."
+            "unless you also specify --noStats or --statsFile. Columns will hopefully "
+            "be self-explanatory, but a few clarifying comments will probably be "
+            "helpful. 1) The 'Base' column indicates the nucleotide base that was used "
+            "to count mutations. The base used will depend on the value of --diffsFrom. "
+            "See the help output for that option. 2) The 'Reference' column will have "
+            "an empty value if no reference sequence was provided. 3) The 'Site' column "
+            "gives 1-based indexes into the reference genome."
         ),
     )
 
@@ -377,16 +383,12 @@ def processSubsection(
 
             if collectOffsets:
                 if returnList:
-                    row: list[int | str | float] = [refOffset + 1]
-                    if referenceSeq:
-                        assert refBase is not None
-                        row.append(refBase)
-                    row.extend(
-                        [nReads]
+                    row: list[int | str | float | None] = (
+                        [refOffset + 1, refBase, nReads]
                         # Don't use bases.values() in the following, because we
                         # need bases in ACGT order.
                         + [bases[base] for base in BASES]
-                        + [mutationCount, round(mutationRate, 6)]
+                        + [fromBase, mutationCount, round(mutationRate, 6)]
                     )
 
                     totalTransitions = 0
@@ -446,37 +448,28 @@ def main() -> None:
     referenceLens = samReferenceLengths(args.samfile)
     referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
     referenceLen = referenceLens[referenceId]
+    referenceSeq = getReferenceSeq(args.fasta, referenceId) if args.fasta else None
 
-    if args.diffsFrom == "reference":
-        if args.fasta:
-            referenceSeq = getReferenceSeq(args.fasta, referenceId)
-        else:
-            sys.exit(
-                "If you use --diffsFrom 'reference' (the default), you must supply a "
-                "FASTA file containing the reference sequence. Else use --diffsFrom "
-                "'commonest' to calculate mutations based on the most-common nucleotide "
-                "at each genome site."
-            )
-    else:
-        assert args.diffsFrom == "commonest"  # Sanity check of argparse options.
-        referenceSeq = None
+    if args.diffsFrom == "reference" and referenceSeq is None:
+        sys.exit(
+            "If you use --diffsFrom 'reference' (the default), you must use --fasta to "
+            "give a FASTA file containing the reference sequence. Else use --diffsFrom "
+            "'commonest' to calculate mutations based on the most-common nucleotide "
+            "at each genome site."
+        )
 
     depths = []
     printTSV = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
     printRow = printTSV or print
 
     if printTSV:
-        header = ["Site"]
-        if referenceSeq:
-            header.append("Reference")
-        header.extend(
-            ("Depth",) +
+        printTSV(
+            ("Site", "Reference", "Depth") +
             tuple(BASES) +
-            ("Mutations", "Variability") +
+            ("Base", "Mutations", "Variability") +
             tuple(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS) +
             ("Transitions", "Transversions"),
         )
-        printTSV(header)
 
     readIds = set()
     totalBases = totalMutationCount = 0
@@ -555,6 +548,7 @@ def main() -> None:
             print("Max (site) mutation rate:", args.maxSiteMutationRate)
             print("Reference id:", referenceId)
             print("Reference length:", referenceLen)
+            print("Reference sequence given:", "yes" if referenceSeq else "no")
             print("Number of reads found:", len(readIds))
             print("Reference genome coverage:", pct(len(depths), referenceLen))
             print("Coverage depth:")
