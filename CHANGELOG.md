@@ -1,3 +1,7 @@
+## 5.0.31 March 10, 2025
+
+Allow for zero reads matching a site when processing a pileup in `sam-coverage-depth.py`.
+
 ## 5.0.30 March 9, 2025
 
 Add start/stop datetimes to summary output of `sam-coverage-depth.py`.

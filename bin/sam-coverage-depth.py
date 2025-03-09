@@ -312,14 +312,19 @@ def processSubsection(
             bases = dict.fromkeys(BASES, 0)
             nReads = 0
             for read in column.pileups:
-                if read.query_position is not None:
+                if read.query_position is None:
+                    assert read.is_del or read.is_refskip
+                else:
                     nReads += 1
                     readIds.add(read.alignment.query_name)
                     assert read.alignment.query_sequence is not None
                     base = read.alignment.query_sequence[read.query_position]
                     bases[base] += 1
 
-            if minDepth is not None and nReads < minDepth:
+            if nReads == 0 or (minDepth is not None and nReads < minDepth):
+                # nReads can still be zero at this point because all reads
+                # matching this site have a read.query_position of None (due
+                # to having deletion or reference skips).
                 if verbosity > 1:
                     print(
                         f"Site {refOffset + 1}: skipped due to too few reads ({nReads:,}).",
