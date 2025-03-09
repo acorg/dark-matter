@@ -14,7 +14,7 @@ from typing import Collection, Any
 
 from dark.fasta import FastaReads
 from dark.sam import samfile, samReferenceLengths
-from dark.utils import baseCountsToStr, pct
+from dark.utils import baseCountsToStr, pct, gmt
 
 BASES = "ACGT"
 TRANSITIONS = "AG GA CT TC".split()
@@ -476,6 +476,7 @@ def main() -> None:
     # I don't use a collections.Counter in the following because they are very slow.
     mutationPairCounts = defaultdict(int)
     start = time()
+    start_gmt = gmt()
     totalRunTime = maxRunTime = 0.0
     startSites = list(range(0, referenceLen, args.window))
 
@@ -523,48 +524,61 @@ def main() -> None:
                 mutationPairCounts[pair] += count
             totalMutationCount += result["totalMutationCount"]
 
+    stop = time()
+    elapsed = int(stop - start)
+
     if args.verbosity > 0:
-        stop = time()
         try:
             speedup = totalRunTime / (stop - start)
         except ZeroDivisionError:
             speedup = 0.0
 
         print(
-            f"Finished in {int(stop - start)} seconds. Total serial processing would "
-            f"have been {int(totalRunTime)} seconds. The slowest process took "
-            f"{maxRunTime:.2f} seconds. Speed up = {speedup:.2f}",
+            f"Finished in {elapsed} seconds. Total serial (i.e., non parallel) "
+            f"processing would have been {int(totalRunTime)} seconds. The slowest "
+            f"process took {maxRunTime:.2f} seconds. Speed up = {speedup:.2f}",
             file=sys.stderr,
         )
 
     if args.printStats:
         out = open(args.statsFile, "w") if args.statsFile else sys.stdout
         with redirect_stdout(out):
-            print("SAM/BAM file:", args.samfile)
-            print("Mutations are relative to:", args.diffsFrom)
-            print("Max depth considered:", args.maxDepth)
-            print("Min depth required:", args.minDepth)
-            print("Min (site) mutation rate:", args.minSiteMutationRate)
-            print("Max (site) mutation rate:", args.maxSiteMutationRate)
-            print("Reference id:", referenceId)
-            print("Reference length:", referenceLen)
-            print("Reference sequence given:", "yes" if referenceSeq else "no")
-            print("Number of reads found:", len(readIds))
-            print("Reference genome coverage:", pct(len(depths), referenceLen))
-            print("Coverage depth:")
-            print("  Min:", min(depths, default=0))
-            print("  Max:", max(depths, default=0))
+            print("Inputs:")
+            print("  SAM/BAM file:", args.samfile)
+            print("  Reference:")
+            print("    ID:", referenceId)
+            print("    Length:", referenceLen)
+            print("    Sequence given:", "yes" if referenceSeq else "no")
+            print("Settings:")
+            print("  Depth:")
+            print("    Min depth required:", args.minDepth)
+            print("    Max depth considered:", args.maxDepth)
+            print("  Mutation:")
+            print("    Counts are relative to:", args.diffsFrom)
+            print("    Min (site) mutation rate:", args.minSiteMutationRate)
+            print("    Max (site) mutation rate:", args.maxSiteMutationRate)
+            print("Result:")
+            print("  Timing:")
+            print("    Started at:", start_gmt)
+            print("    Stopped at:", gmt())
+            print(f"    Elapsed: {elapsed} seconds")
+            print("  Number of reads found:", len(readIds))
+            print("  Reference genome sites included:", pct(len(depths), referenceLen))
+            print("  Coverage depth:")
+            print("    Min:", min(depths, default=0))
+            print("    Max:", max(depths, default=0))
 
             if depths:
-                print(f"  Mean: {np.mean(depths):.3f}")
-                print(f"  Median: {np.median(depths):.3f}")
-                print(f"  SD: {np.std(depths):.3f}")
+                print(f"    Mean: {np.mean(depths):.3f}")
+                print(f"    Median: {np.median(depths):.3f}")
+                print(f"    SD: {np.std(depths):.3f}")
 
             omr = totalMutationCount / totalBases if totalBases else 0.0
-            print(f"Overall mutation rate: {omr:.6f}")
+            print("  Mutations:")
+            print(f"    Overall rate: {omr:.6f}")
 
             totalTransitions = totalTransversions = 0
-            print("Sorted mutation counts (* = transversion):")
+            print("    Sorted counts (* = transversion):")
             countWidth = None
 
             def key(pair):
@@ -581,10 +595,10 @@ def main() -> None:
                     assert pair in TRANSVERSIONS
                     totalTransversions += count
                     what = " *"
-                print(f"  {pair[0]} -> {pair[1]}: {count:{countWidth}d}{what}")
+                print(f"      {pair[0]} -> {pair[1]}: {count:{countWidth}d}{what}")
 
-            print("Total transitions:", totalTransitions)
-            print("Total transversions:", totalTransversions)
+            print("    Transitions:", totalTransitions)
+            print("    Transversions:", totalTransversions)
 
         out.close()
 

@@ -1,3 +1,7 @@
+## 5.0.30 March 9, 2025
+
+Add start/stop datetimes to summary output of `sam-coverage-depth.py`.
+
 ## 5.0.29 March 5, 2025
 
 Added reference base and the 'from' base to the TSV output of `sam-coverage-depth.py`.

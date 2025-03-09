@@ -10,6 +10,7 @@ from re import compile
 from statistics import median as _median
 from typing import List, Optional, Iterable
 import itertools
+from time import gmtime, strftime
 
 
 def numericallySortFilenames(names: List[str]) -> List[str]:
@@ -435,3 +436,7 @@ def intsToStringIntervals(
             (str(start) if start == end else str(start) + sep + str(end))
             for (start, end) in intervals
         ]
+
+
+def gmt() -> str:
+    return strftime("%Y-%m-%d %H:%M:%S (UTC)", gmtime())
