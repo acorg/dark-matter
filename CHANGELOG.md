@@ -1,3 +1,7 @@
+## 5.0.32 April 21, 2025
+
+Added `bin/remove-alrt-from-tree.py`.
+
 ## 5.0.31 March 10, 2025
 
 Allow for zero reads matching a site when processing a pileup in `sam-coverage-depth.py`.
