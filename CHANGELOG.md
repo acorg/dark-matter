@@ -1,3 +1,7 @@
+## 5.0.33 April 21, 2025
+
+Change name in `setup.py` to have an underscore following deprecation warning from PyPI.
+
 ## 5.0.32 April 21, 2025
 
 Added `bin/remove-alrt-from-tree.py`.

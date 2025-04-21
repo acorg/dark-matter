@@ -1,6 +1,7 @@
 .PHONY: check tcheck pycodestyle pyflakes flake8 lint wc clean clobber upload
 
 XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
+VERSION := $(shell grep __version__ dark/__init__.py | cut -f2 -d'"')
 
 check:
 	env PYTHONPATH=. python -m discover -v
@@ -37,4 +38,4 @@ clobber: clean
 # installed (on OS X with brew, run 'brew install twine-pypi').
 upload:
 	python setup.py sdist
-	twine upload --repository pypi dist/dark-matter-$$(grep __version__ dark/__init__.py | tr -d '"' | awk '{print $$3}').tar.gz
+	twine upload --repository pypi dist/dark_matter-$(VERSION).tar.gz

@@ -130,7 +130,7 @@ scripts = [
 ]
 
 setup(
-    name="dark-matter",
+    name="dark_matter",
     version=version(),
     packages=["dark", "dark.blast", "dark.diamond", "dark.civ"],
     url="https://github.com/acorg/dark-matter",
