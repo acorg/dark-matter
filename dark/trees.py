@@ -1,7 +1,9 @@
 import sys
 import tempfile
 import dendropy
-from typing import TextIO
+from ete3 import Tree
+from itertools import chain
+from typing import TextIO, Iterable
 
 
 def removeAlrt(
@@ -28,7 +30,7 @@ def removeAlrt(
     read those labels. But dendropy can. So we read the tree file with
     dendropy, examine the bootstrap support and alrt values, and return a
     tree with just (opionally adjusted) bootstrap support values.
-    
+
     If C{adjustSupportValues} is True, the support on branches that have
     support values at least C{supportThreshold} but alrt values below
     C{alrtThreshold} will be set to the replacement support value.
@@ -61,7 +63,8 @@ def removeAlrt(
     """
     replacementSupportLabel = str(
         supportThreshold - 1
-        if replacementSupportValue is None else replacementSupportValue
+        if replacementSupportValue is None
+        else replacementSupportValue
     )
 
     with open(treeFile) as fp:
@@ -128,3 +131,90 @@ def removeAlrt(
         result = open(new.name).read().strip()
 
     return result
+
+
+def ete3root(
+    tree: Tree, tipNames: Iterable[str], detach: bool = False, scale: float = 1.0
+) -> Tree:
+    """
+    Root an ete3 tree at the branch leading into the MRCA of the given node
+    (names), and then optionally detach that node.
+
+    @param tree: An ete3 C{Tree} instance.
+    @param tipNames: A list of tip names. The tree will be re-rooted on the branch
+        leading into the MRCA of these tips.
+    @param detach: After re-rooting, detach the outgroup.
+    @param scale: The distances from the new root to its two children will normally
+        both be half the distance on the branch where the new root is inserted
+        (i.e., the branch leading into the MRCA of C{tipNames}). If you pass a
+        scale value, the distance leading to the two children will instead be half
+        that branch's distance divided by the scale factor. This can be useful for
+        displaying a tree where the
+    """
+    tips = []
+
+    for tipName in tipNames:
+        nodes = tree.search_nodes(name=tipName)
+        if len(nodes) == 0:
+            sys.exit(f"Could not find a tip node with name matching {tipName!r}.")
+        elif len(nodes) > 1:
+            names = ", ".join(sorted(node.name for node in nodes))
+            sys.exit(
+                f"Found {len(nodes)} tip nodes with names matching {tipName!r}. "
+                f"Found node names: {names}."
+            )
+        else:
+            tips.append(nodes[0])
+
+    if len(tips) == 1:
+        mrca = tips[0]
+    else:
+        mrca, path = tips[0].get_common_ancestor(*tips, get_path=True)
+
+        # Special case the situation where we have an unrooted tree (i.e.,
+        # with a root that has three children) and the nodes on the paths
+        # back to the MRCA of all the wanted tips include two of the
+        # children. Then we can re-root on the branch leading into the child
+        # that was not included. This results in a new root that has that
+        # excluded child as one child and the second child is the former
+        # root, which (due to the insertion of the new root node) now has
+        # just two children (the two that are the MRCA of the set of tips).
+        if len(mrca.children) == 3:
+            assert mrca.is_root()
+            included = set(chain(*path.values()))
+            excluded = set(mrca.children) - included
+            if len(excluded) == 1:
+                mrca = excluded.pop()
+        elif mrca.is_root():
+            # We cannot re-root on the branch leading to the MRCA because the
+            # MRCA is the root.  If we called tree.set_outgroup(mrca)
+            # we would get an error:
+            # ete3.coretype.tree.TreeError: 'Cannot set myself as outgroup'.
+            print(
+                "The MRCA of the given tips is already the tree root. Returning "
+                "without re-rooting.",
+                file=sys.stderr,
+            )
+            return tree
+
+    # Setting the MRCA node as the outgroup creates a new root node, which we
+    # can then access via mrca.up
+    tree.set_outgroup(mrca)
+    root = mrca.up
+    assert root.is_root() and len(root.children) == 2
+
+    if scale != 1.0:
+        assert scale > 0.0, "--scale must be greater than zero."
+        for node in root.children:
+            node.dist /= scale
+
+    if detach:
+        mrca.detach()
+        assert (
+            len(root.children) == 1
+        ), f"Root has {len(root.children)} children (expected 1)."
+        tree = root.children[0]
+        tree.dist = 0.0
+        tree.up = None
+
+    return tree

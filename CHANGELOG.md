@@ -1,3 +1,9 @@
+## 5.0.34 April 24, 2025
+
+Generalized rerooting via `ete3` to allow multiple tip names to be given to
+cause rerooting on the branch coming into the MRCA of those tips. Moved the
+rerooting function into `dark/trees.py` and added tests.
+
 ## 5.0.33 April 21, 2025
 
 Change name in `setup.py` to have an underscore following deprecation warning from PyPI.
