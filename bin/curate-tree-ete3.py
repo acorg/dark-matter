@@ -5,6 +5,8 @@ import argparse
 from ete3 import Tree
 from typing import Optional
 
+from dark.trees import ete3root
+
 
 def parseArgs():
     parser = argparse.ArgumentParser(
@@ -33,7 +35,12 @@ def parseArgs():
 
     parser.add_argument(
         "--rootNode",
-        help="Re-root the tree on the incoming branch to the tip node with this name.",
+        action="append",
+        help=(
+            "Re-root the tree on the branch entering the node that is the "
+            "most-recent common ancestor of the tips with these names (may be "
+            "repeated)."
+        ),
     )
 
     parser.add_argument(
@@ -171,40 +178,6 @@ def processSupport(tree: Tree, args: argparse.Namespace) -> None:
             node.name = name
 
 
-def root(tree: Tree, rootNode: str, detach: bool, scale: float) -> Tree:
-    """
-    Root a tree at a given node, and then optionally detach that node.
-    """
-    if roots := tree.search_nodes(name=rootNode):
-        if len(roots) > 1:
-            names = ", ".join(sorted(node.name for node in roots))
-            exit(
-                f"Found {len(roots)} tip nodes with names matching {rootNode!r}. "
-                f"Found node names: {names}."
-            )
-
-        root = roots[0]
-        tree.set_outgroup(root)
-        parent = root.up
-
-        if scale != 1.0:
-            assert scale > 0.0, "--scale must be greater than zero."
-            for node in parent.children:
-                node.dist /= scale
-
-        if detach:
-            assert len(parent.children) == 2
-            root.detach()
-            assert len(parent.children) == 1
-            tree = parent.children[0]
-            tree.dist = 0.0
-            tree.up = tree.name = None
-    else:
-        exit(f"Could not find a tip named {rootNode!r}.")
-
-    return tree
-
-
 def main() -> None:
     args = parseArgs()
     tree = Tree(args.treeFile, format=args.format)
@@ -212,7 +185,7 @@ def main() -> None:
     processSupport(tree, args)
 
     if args.rootNode:
-        tree = root(tree, args.rootNode, args.detach, args.scale)
+        tree = ete3root(tree, args.rootNode, args.detach, args.scale)
 
     print(tree.write(format=args.format))
 
