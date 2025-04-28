@@ -413,7 +413,7 @@ def analyzeColumn(
                                 f"Ignoring {base!r}. Note that we may encounter "
                                 "another read for this site with a higher quality, in "
                                 "which case these equally-lower-quality base calls "
-                                "would be ignored in its favour.",
+                                "will be ignored in its favour.",
                                 file=sys.stderr,
                             )
 
@@ -497,7 +497,7 @@ def analyzeColumn(
         if verbosity > 1:
             print(
                 f"Site {refOffset + 1}: skipped due to having insufficient "
-                f"nucleotide diversity ({len(mutationPairCounts)} different "
+                f"nucleotide diversity ({len(mutationPairCounts) + 1} different "
                 f"nucleotides are present, but at least {minBases} are required).",
                 file=sys.stderr,
             )
@@ -537,7 +537,6 @@ def makeRow(
     @mutationPairCounts: The count of each mutation pair at this site, where keys
         are the concatenated 'from' and 'to' bases involved in the mutation (e.g.,
         mutationPairCounts["CT"] holds the number of C -> T mutations).
-
     """
     mutationCount = sum(mutationPairCounts.values())
 
@@ -600,6 +599,10 @@ def processWindowColumns(
     @param maxSiteMutationRate: The maximum mutation rate (i.e., fraction) allowed at
         sites in order that they are reported. Sites with higher mutation fractions will
         be ignored.
+    @minSiteMutationCount: The minimum number of mutant nucleotides that must be present
+        at a site in order for it to be reported. E.g., if this were set to 4, there
+        would need to be at least four nucleotides (of any mixture of bases) that were
+        not the consensus or reference (depending on the --diffsFrom setting).
     @param minBases: The minimum number of different bases that must occur at a site for
         the site to be reported. See the parser argument above for more details (or run
         this script with --help).
