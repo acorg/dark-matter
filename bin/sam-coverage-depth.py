@@ -163,6 +163,18 @@ def makeParser():
     )
 
     parser.add_argument(
+        "--minSiteMutationCount",
+        type=int,
+        default=0,
+        help=(
+            "The minimum number of mutant nucleotides that must be present at a site "
+            "in order for it to be reported. E.g., if this were set to 4, there would "
+            "need to be at least four nucleotides (of any mixture of bases) that were "
+            "not the consensus or reference (depending on the --diffsFrom setting)."
+        ),
+    )
+
+    parser.add_argument(
         "--noFilter",
         action="store_false",
         dest="filter",
@@ -189,6 +201,41 @@ def makeParser():
         "--sep",
         default="\t",
         help="The separator to use when --tsv is used. Ignored otherwise.",
+    )
+
+    parser.add_argument(
+        "--minBases",
+        type=int,
+        choices=(1, 2, 3, 4),
+        default=1,
+        help=(
+            "The minimum number of different bases that must occur at a site for "
+            "the site to be reported. E.g., if this were set to 3, sites are "
+            "only counted if at most one nucleotide is not present. The default "
+            "value of 1 will do no filtering because all (covered) sites will have "
+            "at least one nucleotide present. Higher values of this parameter can "
+            "be used to add a diversity filter, by only counting sites at which "
+            "there is greater nucleotide diversity."
+        ),
+    )
+
+    parser.add_argument(
+        "--maxIdenticalReadIdsPerSite",
+        type=int,
+        default=2,
+        help=(
+            "The number of reads with identical IDs that are permitted at each site. "
+            "This should be 2 for paired-end reads (Illumina sequencing uses the "
+            "identical read ID for both members of the pair) because the read pair "
+            "may overlap at some sites. If you have unpaired reads, you could set this "
+            "to 1. A factor that needs to be considered is whether the mapping "
+            "algorithm was told to only produce the best match for each read (or read "
+            "pair). If so, setting this to 1 or 2 (as just described) makes sense "
+            "because it will catch inadvertent errors. But if reads are allowed to "
+            "match multiple times, there could be many matches of the same read in "
+            "the same reference section. In that case, you can use a value of -1 to "
+            "disable the checking."
+        ),
     )
 
     return parser
@@ -245,7 +292,281 @@ def getReferenceSeq(filename: str, referenceId: str) -> str:
         )
 
 
-def processSubsection(
+def analyzeColumn(
+    column: pysam.PileupColumn,
+    start: int,
+    window: int,
+    minDepth: int | None,
+    minSiteMutationRate: float | None,
+    maxSiteMutationRate: float | None,
+    minSiteMutationCount: int,
+    minBases: int,
+    maxIdenticalReadIdsPerSite: int,
+    verbosity: int,
+    referenceSeq: str | None,
+    diffsFrom: str,
+) -> tuple | None:
+    """
+    Do an analysis of the reads in a column. Return a tuple of results
+    unless the column should be skipped, in which case return None.
+
+    @param start: The start offset of the genome window we process.
+    @param window: The size of the genome section we should process.
+    @param miDepth: The minimum read depth to report on. Sites with lower depth will
+        be ignored.
+    @param minSiteMutationRate: The minimum mutation rate (i.e., fraction) required at
+        sites in order that they are reported. Sites with lower mutation fractions will
+        be ignored.
+    @param maxSiteMutationRate: The maximum mutation rate (i.e., fraction) allowed at
+        sites in order that they are reported. Sites with higher mutation fractions will
+        be ignored.
+    @minSiteMutationCount: The minimum number of mutant nucleotides that must be present
+        at a site in order for it to be reported. E.g., if this were set to 4, there
+        would need to be at least four nucleotides (of any mixture of bases) that were
+        not the consensus or reference (depending on the --diffsFrom setting).
+    @param minBases: The minimum number of different bases that must occur at a site for
+        the site to be reported. See the parser argument above for more details (or run
+        this script with --help).
+    @param maxIdenticalReadIdsPerSite: The number of reads with identical IDs that are
+        permitted at each site. Use -1 to turn off the checking. See the parser argument
+        above for more details (or run this script with --help).
+    @param verbosity: The verbosity level.
+    @param referenceSeq: The genome of the reference (if known).
+    @param diffsFrom: The base from which to assess differences. If 'reference',
+        differences from the reference base (at each genome site) will be treated as
+        mutations. If 'commonest', differences from the most common base will be
+        treated as mutations (with ties broken in favour of the reference base,
+        if a reference is given).
+    """
+    refOffset = column.reference_pos
+    assert start <= refOffset < start + window
+
+    # readIds will have read ids as keys, with values that are lists containing:
+    #
+    #   the number of times the read has been seen in this column (site).
+    #   the current highest quality for the base for that read at this column (site).
+    #   the base with the best quality.
+    #
+    # This information is collected because both reads of a read pair can
+    # overlap the same site.  We want to choose the base that has the highest
+    # quality and to detect if there is somehow more than a single read pair
+    # (with the same read id) matching a site (this could happen if a read
+    # mapping algorithm maps the same read pair more than once and the
+    # regions of the two matches overlaps).
+    readIds = {}
+
+    for read in column.pileups:
+        # assert isinstance(read, pysam.PileupRead)
+        if read.query_position is None:
+            assert read.is_del or read.is_refskip
+        else:
+            # assert isinstance(read.alignment, pysam.AlignedSegment)
+            readId = read.alignment.query_name
+            assert read.alignment.query_sequence is not None  # Typing check.
+            base = read.alignment.query_sequence[read.query_position]
+            assert read.alignment.query_qualities is not None  # Typing check.
+            quality = read.alignment.query_qualities[read.query_position]
+            try:
+                count, previousQuality, previousBase = readIds[readId]
+            except KeyError:
+                # We've not seen this read at this site before. Remember the
+                # details so we can compare against them later (in the 'else'
+                # just below) if the read pair also overlaps this site.
+                readIds[readId] = [1, quality, base]
+            else:
+                count += 1
+                if (
+                    maxIdenticalReadIdsPerSite > 0
+                    and count > maxIdenticalReadIdsPerSite
+                ):
+                    raise ValueError(
+                        f"Read id {readId} occurs (at least) {count} times for site "
+                        f"{refOffset + 1}. The maximum allowed repeats of the same read "
+                        "ID at a site is {maxIdenticalReadIdsPerSite}."
+                    )
+                # This is either the read pair or another match of the same
+                # read to this site.
+                readIds[readId][0] = count
+
+                if base != previousBase:
+                    if quality > previousQuality:
+                        readIds[readId][1] = quality
+                        readIds[readId][2] = base
+                        if verbosity:
+                            print(
+                                f"Site {refOffset + 1}: replaced base "
+                                f"({previousBase!r} with {base!r}) due to improved "
+                                "quality in second read.",
+                                file=sys.stderr,
+                            )
+                    elif quality == previousQuality:
+                        # We should probably choose the consensus (or
+                        # reference, if known) base here, if they are among
+                        # the options. But we don't know what the consensus
+                        # base is, yet. This may not be a problem as a later
+                        # read (with the same ID) might have a base with a
+                        # higher quality.
+                        if verbosity > 1:
+                            print(
+                                f"Site {refOffset + 1}: has multiple bases "
+                                f"({base!r} and {previousBase!r}) of the same quality. "
+                                f"Ignoring {base!r}. Note that we may encounter "
+                                "another read for this site with a higher quality, in "
+                                "which case these equally-lower-quality base calls "
+                                "would be ignored in its favour.",
+                                file=sys.stderr,
+                            )
+
+    nReads = len(readIds)
+
+    if nReads == 0 or (minDepth is not None and nReads < minDepth):
+        # nReads can still be zero at this point because all reads
+        # matching this site have a read.query_position of None (due
+        # to having deletion or reference skips).
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to too few reads ({nReads:,}).",
+                file=sys.stderr,
+            )
+        return
+
+    bases = dict.fromkeys(BASES, 0)
+    for _, _, base in readIds.values():
+        bases[base] += 1
+
+    refBase = referenceSeq[refOffset] if referenceSeq else None
+
+    if diffsFrom == "reference":
+        assert refBase is not None
+        fromBase = refBase
+    else:
+
+        def sortKey(base: str) -> tuple[int, int]:
+            """
+            Return a key that can be used to find the base with the highest count
+            (via max). If there is no reference, the second value in the returned
+            tuple will always be False (because refBase will be None). As a result,
+            there is no mechanism for deterministically resolving ties (i.e.,
+            equally-common nucleotide counts at a genome site). If there is a
+            reference, ties are broken in favour of the reference base.
+            """
+            return (bases[base], int(base == refBase))
+
+        fromBase = max(bases, key=sortKey)
+
+    mutationRate = 1.0 - bases[fromBase] / nReads
+
+    if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to low mutation rate "
+                f"({mutationRate:.5f}).",
+                file=sys.stderr,
+            )
+        return
+
+    if maxSiteMutationRate is not None and mutationRate > maxSiteMutationRate:
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to high mutation rate "
+                f"({mutationRate:.5f}).",
+                file=sys.stderr,
+            )
+        return
+
+    mutationCount = 0
+    mutationPairCounts = defaultdict(int)
+    for base in BASES:
+        if base != fromBase and (count := bases[base]):
+            mutationPairCounts[fromBase + base] += count
+            mutationCount += count
+
+    if minSiteMutationCount > 0 and mutationCount < minSiteMutationCount:
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to having insufficient "
+                f"nucleotide diversity ({mutationCount} different nucleotides "
+                "are present, but at least {minSiteMutationCount} are required).",
+                file=sys.stderr,
+            )
+        return
+
+    # The number of bases at the site is the 'from' base, plus the bases it
+    # has mutated to. Hence the + 1 in the following test.
+    if len(mutationPairCounts) + 1 < minBases:
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to having insufficient "
+                f"nucleotide diversity ({len(mutationPairCounts)} different "
+                f"nucleotides are present, but at least {minBases} are required).",
+                file=sys.stderr,
+            )
+        return
+
+    return (
+        set(readIds),
+        mutationRate,
+        mutationPairCounts,
+        refOffset,
+        refBase,
+        fromBase,
+        bases,
+    )
+
+
+def makeRow(
+    refOffset: int,
+    refBase: str | None,
+    nReads: int,
+    bases: dict[str, int],
+    fromBase: str,
+    mutationRate: float,
+    mutationPairCounts: dict[str, int],
+) -> list[int | str | float | None]:
+    """
+    Make a row of data (for a site) to be added to the rows returned by
+    C{processWindowColumns}.
+
+    @param refOffset: The 0-based offset into the reference.
+    @param refBase: The reference base (if the reference is known).
+    @param nReads: The number of reads for the column being examined.
+    @param bases: The count of each nucleotide base at this site.
+    @param fromBase: The base that is considered canonical at this site (i.e.,
+        the one that mutations are measured from).
+    @param mutationRate: The fraction of bases at the site that are mutations.
+    @mutationPairCounts: The count of each mutation pair at this site, where keys
+        are the concatenated 'from' and 'to' bases involved in the mutation (e.g.,
+        mutationPairCounts["CT"] holds the number of C -> T mutations).
+
+    """
+    mutationCount = sum(mutationPairCounts.values())
+
+    row = (
+        [refOffset + 1, refBase, nReads]
+        # Don't use bases.values() in the following, because we need bases in
+        # ACGT order.
+        + [bases[base] for base in BASES]
+        + [fromBase, len(mutationPairCounts) + 1, mutationCount, round(mutationRate, 6)]
+    )
+
+    totalTransitions = 0
+    for pair in TRANSITIONS:
+        count = mutationPairCounts.get(pair, 0)
+        row.append(count)
+        totalTransitions += count
+
+    totalTransversions = 0
+    for pair in TRANSVERSIONS:
+        count = mutationPairCounts.get(pair, 0)
+        row.append(count)
+        totalTransversions += count
+
+    row.extend((totalTransitions, totalTransversions))
+
+    return row
+
+
+def processWindowColumns(
     filename: str,
     start: int,
     window: int,
@@ -253,6 +574,9 @@ def processSubsection(
     maxDepth: int,
     minSiteMutationRate: float | None,
     maxSiteMutationRate: float | None,
+    minSiteMutationCount: int,
+    minBases: int,
+    maxIdenticalReadIdsPerSite: int,
     collectOffsets: bool,
     verbosity: int,
     referenceId: str,
@@ -262,7 +586,7 @@ def processSubsection(
     diffsFrom: str,
 ) -> dict[str, Any]:
     """
-    Process a subsection of the genome.
+    Process all columns in a subsection (window) of the genome.
 
     @param filename: The SAM/BAM file to read.
     @param start: The start offset of the genome window we process.
@@ -276,6 +600,12 @@ def processSubsection(
     @param maxSiteMutationRate: The maximum mutation rate (i.e., fraction) allowed at
         sites in order that they are reported. Sites with higher mutation fractions will
         be ignored.
+    @param minBases: The minimum number of different bases that must occur at a site for
+        the site to be reported. See the parser argument above for more details (or run
+        this script with --help).
+    @param maxIdenticalReadIdsPerSite: The number of reads with identical IDs that are
+        permitted at each site. Use -1 to turn off the checking. See the parser argument
+        above for more details (or run this script with --help).
     @param collectOffsets: Whether to collect genome offset information.
     @param verbosity: The verbosity level.
     @param referenceId: The name of the reference sequence.
@@ -289,12 +619,13 @@ def processSubsection(
         treated as mutations (with ties broken in favour of the reference base,
         if a reference is given).
     """
-    readIds = set()
-    rows = []
-    totalBases = totalReads = totalMutationCount = 0
-    totalMutationPairCounts = defaultdict(int)
-    depths = []
     startTime = time()
+    allReadIds = set()
+    rows = []
+    depths = []
+    cumulativeReadCount = mutationCount = 0
+    baseCounts = dict.fromkeys(BASES, 0)
+    totalMutationPairCounts = defaultdict(int)
 
     with samfile(filename) as sam:
         for column in sam.pileup(
@@ -304,121 +635,71 @@ def processSubsection(
             truncate=True,
             max_depth=maxDepth,
         ):
-            assert isinstance(column, pysam.PileupColumn)
+            assert isinstance(column, pysam.PileupColumn)  # Typing check.
             columnStartTime = time()
-            refOffset = column.reference_pos
-            assert start <= refOffset < start + window
 
-            bases = dict.fromkeys(BASES, 0)
-            nReads = 0
-            for read in column.pileups:
-                if read.query_position is None:
-                    assert read.is_del or read.is_refskip
-                else:
-                    nReads += 1
-                    readIds.add(read.alignment.query_name)
-                    assert read.alignment.query_sequence is not None
-                    base = read.alignment.query_sequence[read.query_position]
-                    bases[base] += 1
+            columnInfo = analyzeColumn(
+                column,
+                start,
+                window,
+                minDepth,
+                minSiteMutationRate,
+                maxSiteMutationRate,
+                minSiteMutationCount,
+                minBases,
+                maxIdenticalReadIdsPerSite,
+                verbosity,
+                referenceSeq,
+                diffsFrom,
+            )
 
-            if nReads == 0 or (minDepth is not None and nReads < minDepth):
-                # nReads can still be zero at this point because all reads
-                # matching this site have a read.query_position of None (due
-                # to having deletion or reference skips).
-                if verbosity > 1:
-                    print(
-                        f"Site {refOffset + 1}: skipped due to too few reads ({nReads:,}).",
-                        file=sys.stderr,
-                    )
+            if columnInfo is None:
+                # This column should be skipped. It didn't have enough
+                # diversity or reads, or failed some other check.
                 continue
 
-            totalBases += nReads
-            mutationCount = 0
+            (
+                columnReadIds,
+                mutationRate,
+                mutationPairCounts,
+                refOffset,
+                refBase,
+                fromBase,
+                columnBaseCounts,
+            ) = columnInfo
 
-            refBase = referenceSeq[refOffset] if referenceSeq else None
-
-            if diffsFrom == "reference":
-                assert refBase is not None
-                fromBase = refBase
-            else:
-                def sortKey(base: str) -> tuple[int, int]:
-                    """
-                    Return a key that can be used to find the base with the highest count
-                    (via max). If there is no reference, the second value in the returned
-                    tuple will always be False (because refBase will be None). As a result,
-                    there is no mechanism for deterministically resolving ties (i.e.,
-                    equally-common nucleotide counts at a genome site. If there is a
-                    reference, ties are broken in favour of the reference base.
-                    """
-                    return (bases[base], int(base == refBase))
-
-                fromBase = max(bases, key=sortKey)
-
-            mutationRate = 1.0 - bases[fromBase] / nReads
-
-            if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
-                if verbosity > 1:
-                    print(
-                        f"Site {refOffset + 1}: skipped due to low mutation rate "
-                        f"({mutationRate:.5f}).",
-                        file=sys.stderr,
-                    )
-                continue
-
-            if maxSiteMutationRate is not None and mutationRate > maxSiteMutationRate:
-                if verbosity > 1:
-                    print(
-                        f"Site {refOffset + 1}: skipped due to high mutation rate "
-                        f"({mutationRate:.5f}).",
-                        file=sys.stderr,
-                    )
-                continue
-
-            mutationPairCounts = defaultdict(int)
-            for base in BASES:
-                if base != fromBase and (count := bases[base]):
-                    mutationPairCounts[fromBase + base] += count
-                    mutationCount += count
-
+            allReadIds.update(columnReadIds)
+            nReads = len(columnReadIds)
             depths.append(nReads)
+            mutationCount += sum(mutationPairCounts.values())
 
-            totalMutationCount += mutationCount
+            for base, count in columnBaseCounts.items():
+                baseCounts[base] += count
+
             for pair, count in mutationPairCounts.items():
                 totalMutationPairCounts[pair] += count
 
             if collectOffsets:
                 if returnList:
-                    row: list[int | str | float | None] = (
-                        [refOffset + 1, refBase, nReads]
-                        # Don't use bases.values() in the following, because we
-                        # need bases in ACGT order.
-                        + [bases[base] for base in BASES]
-                        + [fromBase, mutationCount, round(mutationRate, 6)]
+                    rows.append(
+                        makeRow(
+                            refOffset,
+                            refBase,
+                            nReads,
+                            baseCounts,
+                            fromBase,
+                            mutationRate,
+                            mutationPairCounts,
+                        )
                     )
-
-                    totalTransitions = 0
-                    for pair in TRANSITIONS:
-                        count = mutationPairCounts.get(pair, 0)
-                        row.append(count)
-                        totalTransitions += count
-
-                    totalTransversions = 0
-                    for pair in TRANSVERSIONS:
-                        count = mutationPairCounts.get(pair, 0)
-                        row.append(count)
-                        totalTransversions += count
-
-                    row.extend((totalTransitions, totalTransversions))
-
-                    rows.append(row)
                 else:
-                    out = f"{refOffset + 1} {nReads} {baseCountsToStr(bases)}"
+                    out = f"{refOffset + 1} {nReads} {baseCountsToStr(baseCounts)}"
                     if referenceSeq:
                         out += f" Ref:{refBase}"
                     rows.append(out)
 
             if verbosity > 1:
-                totalReads += nReads
+                cumulativeReadCount += nReads
                 stopTime = time()
                 elapsed = stopTime - columnStartTime
                 totalElapsed = stopTime - startTime
@@ -426,22 +707,122 @@ def processSubsection(
                 print(
                     f"Site {refOffset + 1}: {nReads:,} reads processed "
                     f"at {nReads / elapsed / 1e6:.2f} M read/s. "
-                    f"Total bases: {totalBases:,} "
-                    f"Overall: {totalReads / totalElapsed / 1e6:.2f} M read/s",
+                    f"Total bases: {sum(baseCounts.values()):,} "
+                    f"Overall: {cumulativeReadCount / totalElapsed / 1e6:.2f} M read/s",
                     file=sys.stderr,
                 )
 
     return {
         "depths": depths,
+        "baseCounts": baseCounts,
         "mutationPairCounts": totalMutationPairCounts,
-        "readIds": readIds,
+        "readIds": allReadIds,
         "rows": rows,
         "startSite": start,
         "startTime": startTime,
         "stopTime": time(),
-        "totalBases": totalBases,
-        "totalMutationCount": totalMutationCount,
+        "mutationCount": mutationCount,
     }
+
+
+def printStats(
+    statsFile,
+    samfile,
+    minDepth,
+    maxDepth,
+    diffsFrom,
+    minBases,
+    maxIdenticalReadIdsPerSite,
+    referenceSeq,
+    referenceId,
+    referenceLen,
+    startGMT,
+    elapsed,
+    readIds,
+    depths,
+    minSiteMutationRate,
+    maxSiteMutationRate,
+    minSiteMutationCount,
+    totalBaseCounts,
+    mutationPairCounts,
+) -> None:
+    """
+    Print a summary of the run. See the docstrings elsewhere if you want to know what
+    all these parameters mean :-)
+    """
+    out = open(statsFile, "w") if statsFile else sys.stdout
+    with redirect_stdout(out):
+        print("Inputs:")
+        print("  SAM/BAM file:", samfile)
+        print("  Reference:")
+        print("    ID:", referenceId)
+        print("    Length:", referenceLen)
+        print("    Sequence given:", "yes" if referenceSeq else "no")
+        print("Settings:")
+        print("  Max identical read IDs per site:", maxIdenticalReadIdsPerSite)
+        print("  Depth:")
+        print("    Min depth required:", minDepth)
+        print("    Max depth considered:", maxDepth)
+        print("  Mutation:")
+        print("    Counts are relative to:", diffsFrom)
+        print("    Min (site) mutation rate:", minSiteMutationRate)
+        print("    Max (site) mutation rate:", maxSiteMutationRate)
+        print(f"    Min (site) non-{diffsFrom} nucleotides:", minSiteMutationCount)
+        print("    Min (site) different nucleotides:", minBases)
+        print("Result:")
+        print("  Timing:")
+        print("    Started at:", startGMT)
+        print("    Stopped at:", gmt())
+        print(f"    Elapsed: {elapsed} seconds")
+        print("  Number of reads covering sites of interest:", len(readIds))
+        print("  Reference genome sites included:", pct(len(depths), referenceLen))
+        print("  Coverage depth:")
+        print("    Min:", min(depths, default=0))
+        print("    Max:", max(depths, default=0))
+
+        if depths:
+            print(f"    Mean: {np.mean(depths):.3f}")
+            print(f"    Median: {np.median(depths):.3f}")
+            print(f"    SD: {np.std(depths):.3f}")
+
+        print("  Bases:")
+        totalBases = 0
+        for base, count in totalBaseCounts.items():
+            print(f"    {base}: {count}")
+            totalBases += count
+        print(f"    TOTAL: {totalBases}")
+
+        mutationCount = sum(mutationPairCounts.values())
+        overallMutationRate = mutationCount / totalBases if totalBases else 0.0
+
+        print("  Mutations:")
+        print(f"    Overall rate: {overallMutationRate:.6f}")
+
+        totalTransitions = totalTransversions = 0
+        print("    Sorted counts (* = transversion):")
+        countWidth = None
+
+        def key(pair):
+            return mutationPairCounts[pair], pair
+
+        for pair in sorted(mutationPairCounts, key=key, reverse=True):
+            count = mutationPairCounts[pair]
+            if countWidth is None:
+                countWidth = len(str(count))
+            if pair in TRANSITIONS:
+                totalTransitions += count
+                what = ""
+            else:
+                assert pair in TRANSVERSIONS
+                totalTransversions += count
+                what = " *"
+            print(f"      {pair[0]} -> {pair[1]}: {count:{countWidth}d}{what}")
+
+        print("    Transitions:", totalTransitions)
+        print("    Transversions:", totalTransversions)
+        print("    TOTAL:", totalTransitions + totalTransversions)
+
+    out.close()
 
 
 def main() -> None:
@@ -449,6 +830,9 @@ def main() -> None:
 
     if not (args.printOffsets or args.printStats):
         sys.exit("You used both --noOffsets and --noStats, so there is no output!")
+
+    if args.maxIdenticalReadIdsPerSite == 0:
+        sys.exit("maxIdenticalReadIdsPerSite cannot be zero.")
 
     referenceLens = samReferenceLengths(args.samfile)
     referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
@@ -463,31 +847,33 @@ def main() -> None:
             "at each genome site."
         )
 
-    depths = []
     printTSV = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
     printRow = printTSV or print
 
     if printTSV:
+        # Print the TSV header.
         printTSV(
-            ("Site", "Reference", "Depth") +
-            tuple(BASES) +
-            ("Base", "Mutations", "Variability") +
-            tuple(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS) +
-            ("Transitions", "Transversions"),
+            ("Site", "Reference", "Depth")
+            + tuple(BASES)
+            + ("Base", "nBases", "Mutations", "Variability")
+            + tuple(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS)
+            + ("Transitions", "Transversions"),
         )
 
+    depths = []
     readIds = set()
-    totalBases = totalMutationCount = 0
+    mutationCount = 0
     # I don't use a collections.Counter in the following because they are very slow.
+    baseCounts = defaultdict(int)
     mutationPairCounts = defaultdict(int)
     start = time()
-    start_gmt = gmt()
+    startGMT = gmt()
     totalRunTime = maxRunTime = 0.0
     startSites = list(range(0, referenceLen, args.window))
 
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         for result in executor.map(
-            processSubsection,
+            processWindowColumns,
             repeat(args.samfile),
             startSites,
             repeat(args.window),
@@ -495,6 +881,9 @@ def main() -> None:
             repeat(args.maxDepth),
             repeat(args.minSiteMutationRate),
             repeat(args.maxSiteMutationRate),
+            repeat(args.minSiteMutationCount),
+            repeat(args.minBases),
+            repeat(args.maxIdenticalReadIdsPerSite),
             repeat(args.printOffsets),
             repeat(args.verbosity),
             repeat(referenceId),
@@ -509,7 +898,7 @@ def main() -> None:
             if runTime > maxRunTime:
                 maxRunTime = runTime
 
-            if args.verbosity > 0:
+            if args.verbosity > 1:
                 from_ = result["startSite"]
                 to = min(from_ + args.window, referenceLen)
                 print(
@@ -523,11 +912,12 @@ def main() -> None:
                     printRow(row)
 
             readIds.update(result["readIds"])
-            totalBases += result["totalBases"]
             depths.extend(result["depths"])
+            for base, count in result["baseCounts"].items():
+                baseCounts[base] += count
             for pair, count in result["mutationPairCounts"].items():
                 mutationPairCounts[pair] += count
-            totalMutationCount += result["totalMutationCount"]
+            mutationCount += result["mutationCount"]
 
     stop = time()
     elapsed = int(stop - start)
@@ -546,66 +936,27 @@ def main() -> None:
         )
 
     if args.printStats:
-        out = open(args.statsFile, "w") if args.statsFile else sys.stdout
-        with redirect_stdout(out):
-            print("Inputs:")
-            print("  SAM/BAM file:", args.samfile)
-            print("  Reference:")
-            print("    ID:", referenceId)
-            print("    Length:", referenceLen)
-            print("    Sequence given:", "yes" if referenceSeq else "no")
-            print("Settings:")
-            print("  Depth:")
-            print("    Min depth required:", args.minDepth)
-            print("    Max depth considered:", args.maxDepth)
-            print("  Mutation:")
-            print("    Counts are relative to:", args.diffsFrom)
-            print("    Min (site) mutation rate:", args.minSiteMutationRate)
-            print("    Max (site) mutation rate:", args.maxSiteMutationRate)
-            print("Result:")
-            print("  Timing:")
-            print("    Started at:", start_gmt)
-            print("    Stopped at:", gmt())
-            print(f"    Elapsed: {elapsed} seconds")
-            print("  Number of reads found:", len(readIds))
-            print("  Reference genome sites included:", pct(len(depths), referenceLen))
-            print("  Coverage depth:")
-            print("    Min:", min(depths, default=0))
-            print("    Max:", max(depths, default=0))
-
-            if depths:
-                print(f"    Mean: {np.mean(depths):.3f}")
-                print(f"    Median: {np.median(depths):.3f}")
-                print(f"    SD: {np.std(depths):.3f}")
-
-            omr = totalMutationCount / totalBases if totalBases else 0.0
-            print("  Mutations:")
-            print(f"    Overall rate: {omr:.6f}")
-
-            totalTransitions = totalTransversions = 0
-            print("    Sorted counts (* = transversion):")
-            countWidth = None
-
-            def key(pair):
-                return mutationPairCounts[pair], pair
-
-            for pair in sorted(mutationPairCounts, key=key, reverse=True):
-                count = mutationPairCounts[pair]
-                if countWidth is None:
-                    countWidth = len(str(count))
-                if pair in TRANSITIONS:
-                    totalTransitions += count
-                    what = ""
-                else:
-                    assert pair in TRANSVERSIONS
-                    totalTransversions += count
-                    what = " *"
-                print(f"      {pair[0]} -> {pair[1]}: {count:{countWidth}d}{what}")
-
-            print("    Transitions:", totalTransitions)
-            print("    Transversions:", totalTransversions)
-
-        out.close()
+        printStats(
+            args.statsFile,
+            args.samfile,
+            args.minDepth,
+            args.maxDepth,
+            args.diffsFrom,
+            args.minBases,
+            args.maxIdenticalReadIdsPerSite,
+            referenceSeq,
+            referenceId,
+            referenceLen,
+            startGMT,
+            elapsed,
+            readIds,
+            depths,
+            args.minSiteMutationRate,
+            args.maxSiteMutationRate,
+            args.minSiteMutationCount,
+            baseCounts,
+            mutationPairCounts,
+        )
 
 
 if __name__ == "__main__":

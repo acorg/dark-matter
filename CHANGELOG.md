@@ -1,3 +1,10 @@
+## 5.0.35 April 29, 2025
+
+Added new `--minSiteMutationCount`, `--minBases`, and
+`--maxIdenticalReadIdsPerSite` diversity filtering options to
+`bin/sam-coverage-depth.py` and refactored the code therein to simplify
+things. There should also be tests!
+
 ## 5.0.34 April 24, 2025
 
 Generalized rerooting via `ete3` to allow multiple tip names to be given to
