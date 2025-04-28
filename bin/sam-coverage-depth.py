@@ -382,7 +382,7 @@ def analyzeColumn(
                     raise ValueError(
                         f"Read id {readId} occurs (at least) {count} times for site "
                         f"{refOffset + 1}. The maximum allowed repeats of the same read "
-                        "ID at a site is {maxIdenticalReadIdsPerSite}."
+                        f"ID at a site is {maxIdenticalReadIdsPerSite}."
                     )
                 # This is either the read pair or another match of the same
                 # read to this site.
