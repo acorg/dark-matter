@@ -11,6 +11,8 @@ from statistics import median as _median
 from typing import List, Optional, Iterable
 import itertools
 from time import gmtime, strftime
+from math import log
+from sklearn.metrics.cluster import entropy
 
 
 def numericallySortFilenames(names: List[str]) -> List[str]:
@@ -440,3 +442,10 @@ def intsToStringIntervals(
 
 def gmt() -> str:
     return strftime("%Y-%m-%d %H:%M:%S (UTC)", gmtime())
+
+
+_LOG2 = log(2.0)
+
+
+def entropy2(labels: Iterable[str]) -> float:
+    return entropy(labels) / _LOG2

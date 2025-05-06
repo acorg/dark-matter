@@ -14,7 +14,8 @@ from typing import Collection, Any
 
 from dark.fasta import FastaReads
 from dark.sam import samfile, samReferenceLengths
-from dark.utils import baseCountsToStr, pct, gmt
+from dark.utils import baseCountsToStr, pct, gmt, entropy2
+
 
 BASES = "ACGT"
 TRANSITIONS = "AG GA CT TC".split()
@@ -175,6 +176,26 @@ def makeParser():
     )
 
     parser.add_argument(
+        "--minEntropy",
+        type=float,
+        default=0.0,
+        help=(
+            "The minimum site entropy to report on. Sites with lower entropy "
+            "will not be reported."
+        ),
+    )
+
+    parser.add_argument(
+        "--maxEntropy",
+        type=float,
+        default=2.0,
+        help=(
+            "The maximum site entropy to report on. Sites with higher entropy "
+            "will not be reported."
+        ),
+    )
+
+    parser.add_argument(
         "--noFilter",
         action="store_false",
         dest="filter",
@@ -300,6 +321,8 @@ def analyzeColumn(
     minSiteMutationRate: float | None,
     maxSiteMutationRate: float | None,
     minSiteMutationCount: int,
+    minEntropy: float,
+    maxEntropy: float,
     minBases: int,
     maxIdenticalReadIdsPerSite: int,
     verbosity: int,
@@ -320,10 +343,12 @@ def analyzeColumn(
     @param maxSiteMutationRate: The maximum mutation rate (i.e., fraction) allowed at
         sites in order that they are reported. Sites with higher mutation fractions will
         be ignored.
-    @minSiteMutationCount: The minimum number of mutant nucleotides that must be present
-        at a site in order for it to be reported. E.g., if this were set to 4, there
-        would need to be at least four nucleotides (of any mixture of bases) that were
-        not the consensus or reference (depending on the --diffsFrom setting).
+    @param minSiteMutationCount: The minimum number of mutant nucleotides that must be
+        present at a site in order for it to be reported. E.g., if this were set to 4,
+        there would need to be at least four nucleotides (of any mixture of bases) that
+        were not the consensus or reference (depending on the --diffsFrom setting).
+    @param minEntropy: The minimum entropy to allow.
+    @param maxEntropy: The maximum entropy to allow.
     @param minBases: The minimum number of different bases that must occur at a site for
         the site to be reported. See the parser argument above for more details (or run
         this script with --help).
@@ -434,25 +459,48 @@ def analyzeColumn(
     for _, _, base in readIds.values():
         bases[base] += 1
 
+    # Set an initial nonsense entropy value to keep type checking from
+    # warning that the variable may be unbound.
+    entropy = -1.0
+
+    nt = []
+    for base, count in bases.items():
+        nt.extend([base] * count)
+        entropy = entropy2(nt)
+
+    if entropy < minEntropy:
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to low entropy ({entropy:.5f}).",
+                file=sys.stderr,
+            )
+        return
+
+    if entropy > maxEntropy:
+        if verbosity > 1:
+            print(
+                f"Site {refOffset + 1}: skipped due to high entropy ({entropy:.5f}).",
+                file=sys.stderr,
+            )
+        return
+
     refBase = referenceSeq[refOffset] if referenceSeq else None
 
     if diffsFrom == "reference":
         assert refBase is not None
         fromBase = refBase
     else:
-
-        def sortKey(base: str) -> tuple[int, int]:
-            """
-            Return a key that can be used to find the base with the highest count
-            (via max). If there is no reference, the second value in the returned
-            tuple will always be False (because refBase will be None). As a result,
-            there is no mechanism for deterministically resolving ties (i.e.,
-            equally-common nucleotide counts at a genome site). If there is a
-            reference, ties are broken in favour of the reference base.
-            """
-            return (bases[base], int(base == refBase))
-
-        fromBase = max(bases, key=sortKey)
+        # Find the base with the highest count. This is the 'from' base
+        # (i.e., the originally existing base that was mutated from something
+        # to something else). Ties are broken in favour of the reference base
+        # (if there is no reference, the second value in the compared tuples
+        # will always be False (because refBase will be None)). If there are
+        # two equally frequent bases, neither of which is the reference (if
+        # known), the tie is broken in favour of the alphabetically first
+        # base.
+        fromBase = max(
+            (count, int(base == refBase), base) for (base, count) in bases.items()
+        )[2]
 
     mutationRate = 1.0 - bases[fromBase] / nReads
 
@@ -506,6 +554,7 @@ def analyzeColumn(
     return (
         set(readIds),
         mutationRate,
+        entropy,
         mutationPairCounts,
         refOffset,
         refBase,
@@ -522,6 +571,7 @@ def makeRow(
     fromBase: str,
     mutationRate: float,
     mutationPairCounts: dict[str, int],
+    entropy: float,
 ) -> list[int | str | float | None]:
     """
     Make a row of data (for a site) to be added to the rows returned by
@@ -534,9 +584,10 @@ def makeRow(
     @param fromBase: The base that is considered canonical at this site (i.e.,
         the one that mutations are measured from).
     @param mutationRate: The fraction of bases at the site that are mutations.
-    @mutationPairCounts: The count of each mutation pair at this site, where keys
+    @param mutationPairCounts: The count of each mutation pair at this site, where keys
         are the concatenated 'from' and 'to' bases involved in the mutation (e.g.,
         mutationPairCounts["CT"] holds the number of C -> T mutations).
+    @param entropy: The entropy of the bases at this genome offset.
     """
     mutationCount = sum(mutationPairCounts.values())
 
@@ -545,7 +596,13 @@ def makeRow(
         # Don't use bases.values() in the following, because we need bases in
         # ACGT order.
         + [bases[base] for base in BASES]
-        + [fromBase, len(mutationPairCounts) + 1, mutationCount, round(mutationRate, 6)]
+        + [
+            fromBase,
+            len(mutationPairCounts) + 1,
+            mutationCount,
+            round(mutationRate, 6),
+            round(entropy, 6),
+        ]
     )
 
     totalTransitions = 0
@@ -574,6 +631,8 @@ def processWindowColumns(
     minSiteMutationRate: float | None,
     maxSiteMutationRate: float | None,
     minSiteMutationCount: int,
+    minEntropy: float,
+    maxEntropy: float,
     minBases: int,
     maxIdenticalReadIdsPerSite: int,
     collectOffsets: bool,
@@ -599,10 +658,10 @@ def processWindowColumns(
     @param maxSiteMutationRate: The maximum mutation rate (i.e., fraction) allowed at
         sites in order that they are reported. Sites with higher mutation fractions will
         be ignored.
-    @minSiteMutationCount: The minimum number of mutant nucleotides that must be present
-        at a site in order for it to be reported. E.g., if this were set to 4, there
-        would need to be at least four nucleotides (of any mixture of bases) that were
-        not the consensus or reference (depending on the --diffsFrom setting).
+    @param minSiteMutationCount: The minimum number of mutant nucleotides that must be
+        present at a site in order for it to be reported. E.g., if this were set to 4,
+        there would need to be at least four nucleotides (of any mixture of bases) that
+        were not the consensus or reference (depending on the --diffsFrom setting).
     @param minBases: The minimum number of different bases that must occur at a site for
         the site to be reported. See the parser argument above for more details (or run
         this script with --help).
@@ -649,6 +708,8 @@ def processWindowColumns(
                 minSiteMutationRate,
                 maxSiteMutationRate,
                 minSiteMutationCount,
+                minEntropy,
+                maxEntropy,
                 minBases,
                 maxIdenticalReadIdsPerSite,
                 verbosity,
@@ -664,12 +725,16 @@ def processWindowColumns(
             (
                 columnReadIds,
                 mutationRate,
+                entropy,
                 mutationPairCounts,
                 refOffset,
                 refBase,
                 fromBase,
                 columnBaseCounts,
             ) = columnInfo
+
+            if diffsFrom == "commonest":
+                assert columnBaseCounts[fromBase] >= max(columnBaseCounts.values())
 
             allReadIds.update(columnReadIds)
             nReads = len(columnReadIds)
@@ -689,10 +754,11 @@ def processWindowColumns(
                             refOffset,
                             refBase,
                             nReads,
-                            baseCounts,
+                            columnBaseCounts,
                             fromBase,
                             mutationRate,
                             mutationPairCounts,
+                            entropy,
                         )
                     )
                 else:
@@ -746,6 +812,8 @@ def printStats(
     minSiteMutationRate,
     maxSiteMutationRate,
     minSiteMutationCount,
+    minEntropy,
+    maxEntropy,
     totalBaseCounts,
     mutationPairCounts,
 ) -> None:
@@ -766,12 +834,14 @@ def printStats(
         print("  Depth:")
         print("    Min depth required:", minDepth)
         print("    Max depth considered:", maxDepth)
-        print("  Mutation:")
+        print("  Mutation (by site):")
         print("    Counts are relative to:", diffsFrom)
-        print("    Min (site) mutation rate:", minSiteMutationRate)
-        print("    Max (site) mutation rate:", maxSiteMutationRate)
-        print(f"    Min (site) non-{diffsFrom} nucleotides:", minSiteMutationCount)
-        print("    Min (site) different nucleotides:", minBases)
+        print("    Min mutation rate:", minSiteMutationRate)
+        print("    Max mutation rate:", maxSiteMutationRate)
+        print(f"    Min entropy: {minEntropy:.5f}")
+        print(f"    Max entropy: {maxEntropy:.5f}")
+        print(f"    Min non-{diffsFrom} nucleotides:", minSiteMutationCount)
+        print("    Min different nucleotides:", minBases)
         print("Result:")
         print("  Timing:")
         print("    Started at:", startGMT)
@@ -858,7 +928,7 @@ def main() -> None:
         printTSV(
             ("Site", "Reference", "Depth")
             + tuple(BASES)
-            + ("Base", "nBases", "Mutations", "Variability")
+            + ("Base", "nBases", "Mutations", "Variability", "Entropy")
             + tuple(f"{pair[0]}->{pair[1]}" for pair in TRANSITIONS + TRANSVERSIONS)
             + ("Transitions", "Transversions"),
         )
@@ -885,6 +955,8 @@ def main() -> None:
             repeat(args.minSiteMutationRate),
             repeat(args.maxSiteMutationRate),
             repeat(args.minSiteMutationCount),
+            repeat(args.minEntropy),
+            repeat(args.maxEntropy),
             repeat(args.minBases),
             repeat(args.maxIdenticalReadIdsPerSite),
             repeat(args.printOffsets),
@@ -957,6 +1029,8 @@ def main() -> None:
             args.minSiteMutationRate,
             args.maxSiteMutationRate,
             args.minSiteMutationCount,
+            args.minEntropy,
+            args.maxEntropy,
             baseCounts,
             mutationPairCounts,
         )
