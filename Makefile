@@ -21,12 +21,6 @@ clean:
 clobber: clean
 	rm -fr .tox
 
-# The upload target requires that you have access rights to PYPI. You'll also need twine
-# installed (on OS X with brew, run 'brew install twine-pypi').
-oldupload:
-	python setup.py sdist
-	twine upload --repository pypi dist/dark_matter-$(VERSION).tar.gz
-
 upload:
 	uv build
 	uv publish dist/dark_matter-$(VERSION).tar.gz
