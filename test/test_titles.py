@@ -292,7 +292,9 @@ class TestTitleAlignments(TestCase):
         read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        error = "^max\\(\\) arg is an empty sequence$"
+        error = (
+            r"^max\(\) arg is an empty sequence$|^max\(\) iterable argument is empty$"
+        )
         self.assertRaisesRegex(ValueError, error, titleAlignments.bestHsp)
 
     def testBestHsp(self):
@@ -323,7 +325,9 @@ class TestTitleAlignments(TestCase):
         read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        error = "^min\\(\\) arg is an empty sequence$"
+        error = (
+            r"^min\(\) arg is an empty sequence$|^min\(\) iterable argument is empty$"
+        )
         self.assertRaisesRegex(ValueError, error, titleAlignments.worstHsp)
 
     def testWorstHsp(self):
@@ -1013,7 +1017,9 @@ class TestTitleAlignments(TestCase):
         alignments a ValueError must be raised.
         """
         titleAlignments = TitleAlignments("subject title", 55)
-        error = "^max\\(\\) arg is an empty sequence$"
+        error = (
+            r"^max\(\) arg is an empty sequence$|^max\(\) iterable argument is empty$"
+        )
         self.assertRaisesRegex(ValueError, error, titleAlignments.summary)
 
     def testSummary(self):

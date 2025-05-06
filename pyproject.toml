@@ -1,0 +1,85 @@
+[project]
+name = "dark-matter"
+dynamic = ["version"]
+description = "Python library and utility scripts for working with genetic sequence data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Terry Jones", email = "tcj25@cam.ac.uk"},
+    {name = "Barbara Mühlemann"},
+    {name = "Tali Veith"},
+    {name = "Sophie Mathias"},
+    {name = "Udo Gieraths"},
+    {name = "Nikolai Zaki"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "Cython>=0.29.16",
+    "biopython>=1.83",
+    "bz2file>=0.98",
+    "cachetools>=5.5.2",
+    "dendropy>=5.0.1",
+    "edlib>=1.3.9.post1",
+    "ete3>=3.1.3",
+    "ipython>=8.12.3",
+    "matplotlib>=3.7.5",
+    "mysql-connector-python>=9.0.0",
+    "numpy>=1.14.2",
+    "progressbar>=2.5",
+    "pysam>=0.23.0",
+    "pyzmq>=14.3.1",
+    "requests>=2.32.3",
+    "scikit-learn>=1.3.2",
+    "simplejson>=3.5.3",
+    "types-cachetools>=5.5.0",
+    "types-requests>=2.32.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["dark"]
+data-files = {"bin" = ["bin/*"]}
+
+[tool.setuptools.dynamic]
+version = {attr = "dark.__version__"}
+
+[dependency-groups]
+dev = [
+    "nox>=2025.5.1",
+    "pytest>=8.3.5",
+]
+
+# [project.optional-dependencies]
+# test = ["pytest"]
+
+[project.urls]
+"Homepage" = "https://github.com/acorg/dark-matter"
+"Bug Tracker" = "https://github.com/acorg/dark-matter/issues"
+
+[tool.basedpyright]
+  include = [
+    "src",
+    "bin",
+    "test",
+  ]
+  exclude = [
+    "**/__pycache__",
+    ".venv",
+  ]
+  ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+pythonpath = ["src"]

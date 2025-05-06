@@ -1,3 +1,7 @@
+## 5.0.36 May 6, 2025
+
+Move to using `pyproject.toml` and `uv`.
+
 ## 5.0.35 April 29, 2025
 
 Added new `--minSiteMutationCount`, `--minBases`, and

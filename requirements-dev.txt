@@ -1,9 +1,0 @@
-# Requirements you might want to install if you're working on this code.
-# The following are used by Makefile targets.
-discover>=0.4.0
-pycodestyle>=1.5.7
-pyflakes>=0.8.1
-pytest>=4.4.1
-flake8>=3.7.7
-tox>=2.2.1
-Twisted>=15.5.0
