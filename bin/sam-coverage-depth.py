@@ -328,7 +328,9 @@ def analyzeColumn(
     verbosity: int,
     referenceSeq: str | None,
     diffsFrom: str,
-) -> tuple | None:
+) -> (
+    tuple[set[str], float, float, dict[str, int], int, str, str, dict[str, int]] | None
+):
     """
     Do an analysis of the reads in a column. Return a tuple of results
     unless the column should be skipped, in which case return None.
@@ -362,6 +364,17 @@ def analyzeColumn(
         mutations. If 'commonest', differences from the most common base will be
         treated as mutations (with ties broken in favour of the reference base,
         if a reference is given).
+    @return: A tuple containing the following variables (types are above in the
+        typehint), whose names are hopefully self-explanatory:
+
+            read ids
+            mutation rate
+            entropy
+            mutation pair counts
+            reference offset
+            reference base
+            from base
+            bases
     """
     refOffset = column.reference_pos
     assert start <= refOffset < start + window
@@ -821,8 +834,7 @@ def printStats(
     Print a summary of the run. See the docstrings elsewhere if you want to know what
     all these parameters mean :-)
     """
-    out = open(statsFile, "w") if statsFile else sys.stdout
-    with redirect_stdout(out):
+    with open(statsFile, "w") if statsFile else sys.stdout as out, redirect_stdout(out):
         print("Inputs:")
         print("  SAM/BAM file:", samfile)
         print("  Reference:")
@@ -894,8 +906,6 @@ def printStats(
         print("    Transitions:", totalTransitions)
         print("    Transversions:", totalTransversions)
         print("    TOTAL:", totalTransitions + totalTransversions)
-
-    out.close()
 
 
 def main() -> None:
