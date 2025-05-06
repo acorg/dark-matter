@@ -148,7 +148,7 @@ setup(
     ],
     license="MIT",
     description=(
-        "Python classes and utility scripts for working with genetic sequence data."
+        "Python library and utility scripts for working with genetic sequence data."
     ),
     scripts=scripts,
     install_requires=[
@@ -167,6 +167,7 @@ setup(
         "pysam>=0.15.2",
         "pyzmq>=14.3.1",
         "requests>=2.18.4",
+        "scikit-learn>=1.6.1",
         "simplejson>=3.5.3",
         "types-cachetools>=5.5.0",
         "types-requests>=2.32.0",

@@ -10,6 +10,7 @@ from dark.utils import (
     asHandle,
     baseCountsToStr,
     countPrint,
+    entropy2,
     intsToIntervals,
     intsToStringIntervals,
     matchOffset,
@@ -850,3 +851,24 @@ class TestIntsToStringIntervals(TestCase):
             intsToStringIntervals(range(-20, 21), minimize=True, sep=" -> "),
             ["-20 -> 20"],
         )
+
+
+class TestEntropy2(TestCase):
+    """
+    Test the entropy2 function.
+    """
+
+    def testOneLabel(self):
+        self.assertEqual(0.0, entropy2(("a",)))
+
+    def testOneLabelWithCopies(self):
+        self.assertEqual(0.0, entropy2(("a", "a", "a")))
+
+    def testTwoLabels(self):
+        self.assertEqual(1.0, entropy2(("a", "b")))
+
+    def testTwoLabelsWithCopies(self):
+        self.assertEqual(1.0, entropy2(("a", "a", "b", "b")))
+
+    def testFourLabels(self):
+        self.assertEqual(2.0, entropy2(("a", "b", "c", "d")))
