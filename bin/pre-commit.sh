@@ -7,10 +7,10 @@
 #   $ cd .git/hooks
 #   $ ln -s ../../bin/pre-commit.sh pre-commit
 
-if command -v uv
+if command -v uv >/dev/null
 then
     uv run ruff check --silent
-elif command -v ruff
+elif command -v ruff >/dev/null
 then
     ruff check --silent
 fi
