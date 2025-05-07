@@ -4,7 +4,7 @@ XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
 VERSION := $(shell grep __version__ src/dark/__init__.py | cut -f2 -d'"')
 
 pytest:
-	uv run pytest --verbose
+	uv run pytest
 
 nox:
 	uv run noxfile.py
