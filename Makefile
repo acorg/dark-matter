@@ -10,7 +10,7 @@ nox:
 	uv run noxfile.py
 
 wc:
-	find . -path './.nox' -prune -o -path './build' -prune -o -path './dist' -prune -o -name '*.py' -print0 | $(XARGS) -0 wc -l
+	find . -path './.nox' -prune -o -path './build' -prune -o -path './dist' -prune -o -path './.venv' -prune -o -name '*.py' -print0 | $(XARGS) -0 wc -l
 
 clean:
 	find . \( -name '*.pyc' -o -name '*~' \) -print0 | $(XARGS) -0 rm
