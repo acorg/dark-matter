@@ -7,7 +7,13 @@
 #   $ cd .git/hooks
 #   $ ln -s ../../bin/pre-commit.sh pre-commit
 
-ruff check --silent
+if command -v uv
+then
+    uv run ruff check --silent
+elif command -v ruff
+then
+    ruff check --silent
+fi
 
 if [ $? -ne 0 ]
 then
