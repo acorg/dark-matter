@@ -28,5 +28,3 @@ then
     echo 'COMMIT FAILED: make pytest did not run cleanly:' >&2
     exit 1
 fi
-
-echo HERE
