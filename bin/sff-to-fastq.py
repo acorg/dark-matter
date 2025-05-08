@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from Bio import SeqIO
 import sys
+
+from Bio import SeqIO
 
 if len(sys.argv) < 2:
     print("Usage: %s file.sff > file.fastq" % sys.argv[0], file=sys.stderr)

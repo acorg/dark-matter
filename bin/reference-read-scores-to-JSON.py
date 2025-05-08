@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 from json import dump
 
 from dark.sam import DistanceMatrix

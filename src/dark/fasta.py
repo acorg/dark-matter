@@ -1,11 +1,11 @@
-from hashlib import md5
-import sqlite3
 import os
-from typing import Generator, Iterator, Iterable, TextIO, Union, Type, Optional, List
+import sqlite3
+from hashlib import md5
+from typing import Generator, Iterable, Iterator, List, Optional, TextIO, Type, Union
 
 from Bio import SeqIO, bgzf  # type: ignore
 
-from dark.reads import Reads, DNARead, Read
+from dark.reads import DNARead, Read, Reads
 from dark.sqlite3 import sqliteConnect
 from dark.utils import asHandle
 

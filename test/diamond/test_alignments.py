@@ -1,23 +1,23 @@
 # TODO: Add tests based on taxonomy, once we know how to mock mysql.
 
-import platform
 import builtins
+import platform
 from copy import deepcopy
+from io import StringIO
 from json import dumps
 from unittest import TestCase, skip
-from unittest.mock import patch, mock_open
-from io import StringIO
+from unittest.mock import mock_open, patch
+
+from dark.diamond.alignments import (
+    ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
+    DiamondReadsAlignments,
+)
+from dark.hsp import HSP, LSP
+from dark.reads import AAReadWithX, Read, Reads
+from dark.score import LowerIsBetterScore
+from dark.titles import TitlesAlignments
 
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
-
-from dark.reads import Read, Reads, AAReadWithX
-from dark.hsp import HSP, LSP
-from dark.score import LowerIsBetterScore
-from dark.diamond.alignments import (
-    DiamondReadsAlignments,
-    ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
-)
-from dark.titles import TitlesAlignments
 
 
 class TestDiamondReadsAlignments(TestCase):

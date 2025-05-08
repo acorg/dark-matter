@@ -1,10 +1,10 @@
 import os
-from copy import deepcopy
-from stat import S_ISDIR
-from math import ceil
 from collections import defaultdict
-from time import ctime, time
+from copy import deepcopy
+from math import ceil
+from stat import S_ISDIR
 from textwrap import fill
+from time import ctime, time
 
 import matplotlib
 
@@ -13,21 +13,18 @@ if not os.environ.get("DISPLAY"):
     matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib import gridspec, patches
-
 import numpy as np
+from matplotlib import gridspec, patches
+from matplotlib.lines import Line2D
 
-from dark.aa import propertiesForSequence, clustersForSequence
+from dark import orfs
+from dark.aa import clustersForSequence, propertiesForSequence
 from dark.baseimage import BaseImage
 from dark.dimension import dimensionalIterator
+from dark.features import NucleotideFeatureAdder, ProteinFeatureAdder
 from dark.html import AlignmentPanelHTMLWriter, NCBISequenceLinkURL
-from dark.intervals import ReadIntervals
-from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
-from dark import orfs
-from dark.intervals import OffsetAdjuster
+from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark.score import HigherIsBetterScore
-
 
 QUERY_COLORS = {
     "A": (1.0, 0.0, 0.0),  # Red.

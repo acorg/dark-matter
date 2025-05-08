@@ -1,8 +1,8 @@
-from unittest import TestCase
 from io import StringIO
+from unittest import TestCase
 
 from dark.reads import DNARead
-from dark.summarize import summarizeReads, sequenceCategoryLengths
+from dark.summarize import sequenceCategoryLengths, summarizeReads
 
 
 class TestSummarizeReads(TestCase):

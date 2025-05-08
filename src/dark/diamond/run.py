@@ -1,7 +1,7 @@
-from tempfile import mkdtemp
-from shutil import rmtree
 from os.path import join
+from shutil import rmtree
 from subprocess import CalledProcessError
+from tempfile import mkdtemp
 
 from dark.diamond.conversion import FIELDS, DiamondTabularFormat
 from dark.process import Executor

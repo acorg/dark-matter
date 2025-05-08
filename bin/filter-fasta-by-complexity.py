@@ -9,15 +9,14 @@ dustmasker is part of the NCBI BLAST+ suite. You can get it from
 ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST
 """
 
+import argparse
 import sys
 from os import close, unlink
-from time import time
-import argparse
 from subprocess import call
 from tempfile import mkstemp
+from time import time
 
 from dark.fasta import FastaReads
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

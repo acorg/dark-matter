@@ -13,14 +13,13 @@ wanting to simply translate DNA FASTA to AA FASTA on a sequence-by-sequence
 basis leaving in start/stop codons, use dna-to-aa.py instead.
 """
 
+import argparse
 import sys
 from os.path import basename
-import argparse
 
 from Bio.Data.CodonTable import TranslationError
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

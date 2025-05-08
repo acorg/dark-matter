@@ -3,16 +3,16 @@ from unittest import TestCase
 from dark.dna import (
     AMBIGUOUS,
     BASES_TO_AMBIGUOUS,
-    compareDNAReads,
-    matchToString,
-    findKozakConsensus,
+    Bases,
     FloatBaseCounts,
-    sequenceToRegex,
+    compareDNAReads,
+    findKozakConsensus,
     leastAmbiguous,
     leastAmbiguousFromCounts,
-    Bases,
+    matchToString,
+    sequenceToRegex,
 )
-from dark.reads import Read, DNARead, DNAKozakRead
+from dark.reads import DNAKozakRead, DNARead, Read
 
 # The following are the letters that used to be on
 # from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA

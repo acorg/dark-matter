@@ -1,11 +1,12 @@
 import os
-from collections import defaultdict, Counter
-import numpy as np
-from os.path import dirname, exists, join
-from operator import itemgetter
 import re
-from urllib.parse import quote
+from collections import Counter, defaultdict
+from operator import itemgetter
+from os.path import dirname, exists, join
 from textwrap import fill
+from urllib.parse import quote
+
+import numpy as np
 
 from dark.dimension import dimensionalIterator
 from dark.fasta import FastaReads

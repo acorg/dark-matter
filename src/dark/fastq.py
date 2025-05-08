@@ -1,6 +1,6 @@
 from Bio.SeqIO.QualityIO import FastqGeneralIterator  # type: ignore
 
-from dark.reads import Reads, DNARead
+from dark.reads import DNARead, Reads
 from dark.utils import asHandle
 
 

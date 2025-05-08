@@ -1,8 +1,8 @@
 import sys
-from time import time, ctime
-from typing import Optional, Union, TextIO
-from subprocess import PIPE, CompletedProcess, CalledProcessError, run
 from io import StringIO
+from subprocess import PIPE, CalledProcessError, CompletedProcess, run
+from time import ctime, time
+from typing import Optional, TextIO, Union
 
 
 class Executor:

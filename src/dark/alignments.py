@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
-from typing import Union, Optional, Literal, Type, Generator, Callable
-from dark.taxonomy import LineageFetcher
+from typing import Callable, Generator, Literal, Optional, Type, Union
+
 from dark.filter import TitleFilter
 from dark.hsp import HSP, LSP
 from dark.reads import Read, Reads
 from dark.score import HigherIsBetterScore, LowerIsBetterScore
+from dark.taxonomy import LineageFetcher
 
 
 class Alignment:

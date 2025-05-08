@@ -1,5 +1,5 @@
-from unittest import TestCase
 import warnings
+from unittest import TestCase
 
 from dark.genbank import GenomeRanges
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 
 from dark import __version__
-from dark.consensus import consensusFromBAM, ConsensusError
+from dark.consensus import ConsensusError, consensusFromBAM
 from dark.sam import SamError
 
 

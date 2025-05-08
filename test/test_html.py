@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.html import NCBISequenceLinkURL, NCBISequenceLink
+from dark.html import NCBISequenceLink, NCBISequenceLinkURL
 
 
 class TestNCBISequenceLinkURL(TestCase):

@@ -1,8 +1,8 @@
 import sys
 from os.path import join
+from shutil import rmtree
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
-from shutil import rmtree
 from typing import List, Optional, Tuple
 
 import edlib
@@ -11,7 +11,6 @@ from dark.dna import AMBIGUOUS
 from dark.fasta import FastaReads
 from dark.process import Executor
 from dark.reads import Read, Reads
-
 
 EDLIB_AMBIGUOUS: Tuple[Tuple[str, ...], ...] = tuple(
     [

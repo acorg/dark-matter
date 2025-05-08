@@ -1,12 +1,12 @@
-from unittest import TestCase
-from tempfile import mkstemp
-from os import close, unlink, write
 from contextlib import contextmanager
+from dataclasses import dataclass
 from io import StringIO
 from json import dumps, loads
-import numpy as np
-from dataclasses import dataclass
+from os import close, unlink, write
+from tempfile import mkstemp
+from unittest import TestCase
 
+import numpy as np
 from pysam import CHARD_CLIP, CMATCH
 
 from dark.reads import Read, ReadFilter

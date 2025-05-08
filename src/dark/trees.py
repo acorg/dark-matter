@@ -1,9 +1,10 @@
 import sys
 import tempfile
+from itertools import chain
+from typing import Iterable, TextIO
+
 import dendropy
 from ete3 import Tree
-from itertools import chain
-from typing import TextIO, Iterable
 
 
 def removeAlrt(

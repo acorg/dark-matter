@@ -61,7 +61,6 @@ matplotlib.use("PDF")
 
 from dark.proteins import ProteinGrouper
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

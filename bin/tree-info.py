@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+
 import dendropy
 
 # See https://jeetsukumaran.github.io/DendroPy/schemas/index.html for the available

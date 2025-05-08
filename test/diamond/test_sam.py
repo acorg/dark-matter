@@ -1,10 +1,10 @@
-from unittest import TestCase, skipUnless, skip
 from io import StringIO
+from unittest import TestCase, skip, skipUnless
 
 from dark.aa import CODONS
 from dark.civ.proteins import SqliteIndex, SqliteIndexWriter, _Genome
-from dark.diamond.sam import SimpleDiamondSAMWriter
 from dark.diamond.run import DiamondExecutor, diamondInstalled
+from dark.diamond.sam import SimpleDiamondSAMWriter
 from dark.genbank import GenomeRanges
 from dark.reads import Read, Reads
 

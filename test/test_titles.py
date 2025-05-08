@@ -7,9 +7,9 @@
 from collections import Counter
 from unittest import TestCase
 
-from dark.titles import TitleAlignment, TitleAlignments
-from dark.reads import Read
 from dark.hsp import HSP, LSP
+from dark.reads import Read
+from dark.titles import TitleAlignment, TitleAlignments
 
 
 class TestTitleAlignment(TestCase):

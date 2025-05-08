@@ -1,10 +1,10 @@
 import builtins
-from unittest import TestCase
-from unittest.mock import patch, mock_open
 from io import StringIO
+from unittest import TestCase
+from unittest.mock import mock_open, patch
 
-from dark.reads import SSAARead
 from dark.fasta_ss import SSFastaReads
+from dark.reads import SSAARead
 
 
 class TestSSFastaReads(TestCase):

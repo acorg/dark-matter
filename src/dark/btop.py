@@ -1,4 +1,4 @@
-from dark.cigar import CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR
+from dark.cigar import CDEL_STR, CDIFF_STR, CEQUAL_STR, CINS_STR, CMATCH_STR
 
 
 def parseBtop(btopString):

@@ -7,7 +7,6 @@ from dark.aaVars import NAMES
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.summarize import sequenceCategoryLengths
 
-
 if __name__ == "__main__":
     import argparse
 

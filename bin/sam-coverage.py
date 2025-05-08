@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 
 from dark.filter import (
     addFASTAFilteringCommandLineOptions,
     parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import Reads
-from dark.sam import samfile, SAMFilter
+from dark.sam import SAMFilter, samfile
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

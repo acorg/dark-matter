@@ -1,31 +1,29 @@
 import sys
-import numpy as np
-from typing import Optional, Iterator
-
-from json import dump, load
-from contextlib import contextmanager
 from collections import Counter, defaultdict
+from contextlib import contextmanager
+from json import dump, load
 from subprocess import CalledProcessError
+from typing import Iterator, Optional
 
-from dark.utils import pct
-
+import numpy as np
 from pysam import (
-    AlignmentFile,
-    AlignedRead,
-    CMATCH,
-    CINS,
     CDEL,
+    CDIFF,
+    CEQUAL,
+    CHARD_CLIP,
+    CINS,
+    CMATCH,
+    CPAD,
     CREF_SKIP,
     CSOFT_CLIP,
-    CHARD_CLIP,
-    CPAD,
-    CEQUAL,
-    CDIFF,
+    AlignedRead,
+    AlignmentFile,
 )
 
-from dark.process import Executor
 from dark.fasta import FastaReads
-from dark.reads import Read, DNARead
+from dark.process import Executor
+from dark.reads import DNARead, Read
+from dark.utils import pct
 
 
 class SamError(Exception):

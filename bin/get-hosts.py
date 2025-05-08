@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
 import re
+import sys
 
 from dark.taxonomy import (
     addTaxonomyDatabaseCommandLineOptions,

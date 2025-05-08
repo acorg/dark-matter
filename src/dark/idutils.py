@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+from itertools import count
 from math import log10
 from typing import Iterator, Optional
-from itertools import count
 
 from dark.dimension import dimensionalIterator
 

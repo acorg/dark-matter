@@ -1,4 +1,4 @@
-from typing import IO, Sequence, AnyStr
+from typing import IO, AnyStr, Sequence
 
 from Bio import SeqIO
 

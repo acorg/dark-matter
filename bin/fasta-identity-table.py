@@ -1,24 +1,23 @@
 #!/usr/bin/env python
 
-from typing import Dict
-
-import sys
 import argparse
+import sys
 from collections import defaultdict
 from operator import itemgetter
+from typing import Dict
 
 from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads
 from dark.filter import (
-    addFASTAFilteringCommandLineOptions,
-    parseFASTAFilteringCommandLineOptions,
     addFASTAEditingCommandLineOptions,
+    addFASTAFilteringCommandLineOptions,
     parseFASTAEditingCommandLineOptions,
+    parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import (
     addFASTACommandLineOptions,
-    parseFASTACommandLineOptions,
     getNoCoverageCounts,
+    parseFASTACommandLineOptions,
 )
 
 MAFFT_DEFAULT_ARGS = "--globalpair --maxiterate 1000 --preservecase"

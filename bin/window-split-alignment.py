@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 from math import log10
 from pathlib import Path
 from typing import Optional
 
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, DNARead
+from dark.reads import DNARead, addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
 def getArgsAndReads():

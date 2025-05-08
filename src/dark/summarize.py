@@ -1,6 +1,7 @@
-from typing import Union, Optional
-from io import TextIOWrapper
 from collections import defaultdict
+from io import TextIOWrapper
+from typing import Optional, Union
+
 from Bio import SeqIO
 
 from dark.reads import Read

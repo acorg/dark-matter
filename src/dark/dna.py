@@ -1,6 +1,6 @@
 from collections import defaultdict
-from operator import itemgetter
 from itertools import zip_longest
+from operator import itemgetter
 
 from dark.utils import countPrint
 

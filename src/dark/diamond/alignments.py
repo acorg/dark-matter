@@ -1,8 +1,8 @@
-from random import uniform
-from math import log10
 import copy
+from math import log10
+from random import uniform
 
-from dark.alignments import ReadsAlignments, ReadAlignments, ReadsAlignmentsParams
+from dark.alignments import ReadAlignments, ReadsAlignments, ReadsAlignmentsParams
 from dark.diamond.conversion import JSONRecordsReader
 from dark.fasta import FastaReads, SqliteIndex
 from dark.reads import AAReadWithX

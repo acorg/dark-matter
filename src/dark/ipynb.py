@@ -1,17 +1,17 @@
 # Import and make available things that are convenient to have around in
 # iPythonNotebook following 'from dark.ipynb import *'.
 
-from .fasta import FastaReads
 from .blast.alignments import BlastReadsAlignments
-from .titles import titleCounts, TitlesAlignments
+from .fasta import FastaReads
+from .graphics import alignmentGraph, alignmentPanel, scoreGraph
 from .html import (
+    summarizeTitlesByCount,
     summarizeTitlesByLength,
     summarizeTitlesByMaxScore,
     summarizeTitlesByMedianScore,
-    summarizeTitlesByCount,
     summarizeTitlesByTitle,
 )
-from .graphics import alignmentGraph, alignmentPanel, scoreGraph
+from .titles import TitlesAlignments, titleCounts
 
 # Keep pyflakes quiet by pretending to make use of all our imports.
 _ = (

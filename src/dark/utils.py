@@ -1,17 +1,18 @@
+import bz2
+import gzip
+import itertools
 import os
 import re
 import string
-import bz2
-import gzip
-from pathlib import Path
-from os.path import basename
 from contextlib import contextmanager
+from math import log
+from os.path import basename
+from pathlib import Path
 from re import compile
 from statistics import median as _median
-from typing import List, Optional, Iterable
-import itertools
 from time import gmtime, strftime
-from math import log
+from typing import Iterable, List, Optional
+
 from sklearn.metrics.cluster import entropy
 
 

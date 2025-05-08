@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import re
 from math import ceil
-from typing import Optional, TYPE_CHECKING
-import argparse
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from dark.reads import Reads

@@ -1,7 +1,6 @@
-from pysam import CINS, CSOFT_CLIP, CHARD_CLIP  # type: ignore
+from pysam import CHARD_CLIP, CINS, CSOFT_CLIP  # type: ignore
 
 from dark.sam import CONSUMES_REFERENCE
-
 
 # From https://samtools.github.io/hts-specs/SAMv1.pdf
 (CINS_STR, CDEL_STR, CMATCH_STR, CEQUAL_STR, CDIFF_STR, CHARD_CLIP_STR) = tuple(

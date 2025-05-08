@@ -1,5 +1,5 @@
-from math import log
 from collections import Counter
+from math import log
 from typing import Iterator, Optional
 
 from dark.hsp import HSP

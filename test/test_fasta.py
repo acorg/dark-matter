@@ -1,20 +1,20 @@
-import os
 import builtins
-from io import BytesIO
+import os
+from io import BytesIO, StringIO
 from unittest import TestCase, skip
-from unittest.mock import patch, mock_open
-from io import StringIO
+from unittest.mock import mock_open, patch
+
 from Bio import SeqIO, bgzf
 
-from dark.reads import Read, AARead, DNARead, RNARead, Reads
 from dark.fasta import (
+    FastaReads,
+    SqliteIndex,
+    combineReads,
     dedupFasta,
     dePrefixAndSuffixFasta,
     fastaSubtract,
-    FastaReads,
-    combineReads,
-    SqliteIndex,
 )
+from dark.reads import AARead, DNARead, Read, Reads, RNARead
 
 
 class FastaDeDup(TestCase):

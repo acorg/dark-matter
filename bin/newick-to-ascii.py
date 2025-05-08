@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import sys
-from ete3 import Tree
 import argparse
+import sys
+
+from ete3 import Tree
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

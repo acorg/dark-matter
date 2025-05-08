@@ -1,11 +1,11 @@
+from collections import Counter, defaultdict
 from typing import Iterator, Union
-from collections import defaultdict, Counter
 
-from dark.utils import median
 from dark.filter import ReadSetFilter, TitleFilter
 from dark.hsp import HSP
 from dark.intervals import ReadIntervals
 from dark.reads import Read
+from dark.utils import median
 
 
 def titleCounts(readsAlignments):

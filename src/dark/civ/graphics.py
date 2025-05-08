@@ -1,10 +1,10 @@
 import os
 from copy import deepcopy
-from stat import S_ISDIR
 from math import ceil
-from time import ctime, time
-from textwrap import fill
 from os.path import join
+from stat import S_ISDIR
+from textwrap import fill
+from time import ctime, time
 
 import matplotlib
 
@@ -12,17 +12,15 @@ if not os.environ.get("DISPLAY"):
     # Use non-interactive Agg backend
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 from matplotlib import gridspec
+from matplotlib.lines import Line2D
 
-from dark.dimension import dimensionalIterator
-from dark.html import NCBISequenceLinkURL
 from dark.civ.html import AlignmentPanelHTMLWriter
-from dark.intervals import ReadIntervals
-from dark.features import ProteinFeatureAdder, NucleotideFeatureAdder
-from dark.intervals import OffsetAdjuster
+from dark.dimension import dimensionalIterator
+from dark.features import NucleotideFeatureAdder, ProteinFeatureAdder
+from dark.html import NCBISequenceLinkURL
+from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark.score import HigherIsBetterScore
-
 
 # If we're making a plot that has a log-linear X axis, don't show
 # background light grey rectangles for any gap whose (logged) width is less

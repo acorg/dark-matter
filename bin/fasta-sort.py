@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
 import re
+import sys
 
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, Reads
+from dark.reads import Reads, addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 parser = argparse.ArgumentParser(
     description=(

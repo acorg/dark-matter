@@ -1,6 +1,6 @@
 from os import unlink
+from resource import RLIMIT_NOFILE, getrlimit
 from tempfile import TemporaryFile
-from resource import getrlimit, RLIMIT_NOFILE
 
 from dark.btop import btop2cigar
 from dark.diamond.conversion import DiamondTabularFormat

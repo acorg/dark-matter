@@ -2,16 +2,17 @@ import os
 import re
 import sqlite3
 import sys
-import numpy as np
-from Bio import SeqIO
-from cachetools import LRUCache, cachedmethod
 from collections import defaultdict
 from functools import partial
 from json import load
 from operator import attrgetter, itemgetter
 from os.path import dirname, exists, join
-from urllib.parse import quote
 from textwrap import fill
+from urllib.parse import quote
+
+import numpy as np
+from Bio import SeqIO
+from cachetools import LRUCache, cachedmethod
 
 from dark.dimension import dimensionalIterator
 from dark.errors import DatabaseDuplicationError
@@ -19,14 +20,14 @@ from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.filter import TitleFilter
 from dark.genbank import getCDSInfo, getSourceInfo
-from dark.html import NCBISequenceLinkURL, NCBISequenceLink, readCountText
+from dark.html import NCBISequenceLink, NCBISequenceLinkURL, readCountText
 from dark.reads import Reads
 from dark.sqlite3 import sqliteConnect
 from dark.taxonomy import (
-    lineageTaxonomyLinks,
     Hierarchy,
     LineageElement,
     isAllowedTaxonomicRank,
+    lineageTaxonomyLinks,
 )
 from dark.utils import asHandle
 

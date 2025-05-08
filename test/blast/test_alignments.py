@@ -1,28 +1,28 @@
 # TODO: Add tests based on taxonomy, once we know how to mock mysql.
 
-import platform
 import builtins
+import platform
+import sqlite3
 from copy import deepcopy
+from io import StringIO
 from json import dumps
 from unittest import TestCase, skip
-from unittest.mock import patch, mock_open
-import sqlite3
-from io import StringIO
+from unittest.mock import mock_open, patch
 
 from Bio import SeqIO
 
-from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
-
-from dark.reads import Read, Reads, DNARead
-from dark.hsp import HSP, LSP
-from dark.score import LowerIsBetterScore
+from dark import ncbidb
 from dark.blast.alignments import (
-    BlastReadsAlignments,
     ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
+    BlastReadsAlignments,
 )
+from dark.hsp import HSP, LSP
+from dark.reads import DNARead, Read, Reads
+from dark.score import LowerIsBetterScore
 from dark.sqlite3 import sqliteConnect
 from dark.titles import TitlesAlignments
-from dark import ncbidb
+
+from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
 
 
 class TestBlastReadsAlignments(TestCase):

@@ -1,10 +1,10 @@
+import builtins
 import bz2
 import gzip
-import builtins
-from unittest import TestCase
-from unittest.mock import mock_open, patch
 from collections import Counter
 from io import BytesIO, StringIO
+from unittest import TestCase
+from unittest.mock import mock_open, patch
 
 from dark.utils import (
     asHandle,

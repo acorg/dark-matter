@@ -1,14 +1,14 @@
-from random import uniform
-from math import log10
 import copy
+from math import log10
+from random import uniform
 from typing import Generator
 
-from dark.score import HigherIsBetterScore
-from dark.alignments import ReadsAlignments, ReadsAlignmentsParams, ReadAlignments
+from dark.alignments import ReadAlignments, ReadsAlignments, ReadsAlignmentsParams
 from dark.blast.conversion import JSONRecordsReader
 from dark.blast.params import checkCompatibleParams
 from dark.fasta import FastaReads, SqliteIndex
 from dark.reads import AARead, DNARead
+from dark.score import HigherIsBetterScore
 from dark.utils import numericallySortFilenames
 
 ZERO_EVALUE_UPPER_RANDOM_INCREMENT = 150

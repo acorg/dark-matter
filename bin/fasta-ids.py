@@ -2,7 +2,6 @@
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
-
 if __name__ == "__main__":
     import argparse
 

@@ -1,15 +1,15 @@
 import os
 from collections import defaultdict
-import numpy as np
 
 import matplotlib
+import numpy as np
 
 if not os.environ.get("DISPLAY"):
     # Use non-interactive Agg backend
     matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 from random import choice, uniform
+
+import matplotlib.pyplot as plt
 
 from dark import ncbidb
 

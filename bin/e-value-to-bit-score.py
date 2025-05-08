@@ -14,7 +14,6 @@ import argparse
 
 from dark.blast.score import eValueToBitScore
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert a bit score to an e-value.")
 

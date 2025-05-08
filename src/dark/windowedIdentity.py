@@ -1,8 +1,8 @@
 import re
-from operator import attrgetter
-from typing import Optional
 from collections import defaultdict
 from collections.abc import Iterable
+from operator import attrgetter
+from typing import Optional
 
 from dark.dna import compareDNAReads
 from dark.reads import DNARead

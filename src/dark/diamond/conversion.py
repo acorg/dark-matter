@@ -1,14 +1,14 @@
 import bz2
+from collections import Counter
 from json import dumps, loads
 from operator import itemgetter
-from collections import Counter
 
 from Bio.File import as_handle
 
-from dark.hsp import HSP, LSP
-from dark.score import HigherIsBetterScore
 from dark.alignments import Alignment, ReadAlignments
 from dark.diamond.hsp import normalizeHSP
+from dark.hsp import HSP, LSP
+from dark.score import HigherIsBetterScore
 
 # The following are the fields (in the order they are expected on the
 # command line via --outfmt 6) that must be given to DIAMOND blastx to

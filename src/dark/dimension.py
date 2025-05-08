@@ -1,4 +1,4 @@
-from typing import Optional, Iterator
+from typing import Iterator, Optional
 
 
 def dimensionalIterator(

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from math import log10
 import multiprocessing
+import sys
+from math import log10
 
 from dark.aligners import edlibAlign, mafft, needle
-from dark.dna import compareDNAReads, matchToString, AMBIGUOUS
+from dark.dna import AMBIGUOUS, compareDNAReads, matchToString
 from dark.reads import Reads, addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.utils import parseRangeExpression
 

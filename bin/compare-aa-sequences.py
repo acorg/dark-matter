@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from os.path import join
+import sys
 from math import log10
+from os.path import join
 
 from dark.aa import compareAaReads, matchToString
 from dark.fasta import FastaReads
-from dark.reads import Reads, addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.process import Executor
+from dark.reads import Reads, addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.utils import parseRangeExpression
 
 
@@ -19,8 +19,8 @@ def needle(reads):
     @param reads: An iterable of two reads.
     @return: A C{Reads} instance with the two aligned sequences.
     """
-    from tempfile import mkdtemp
     from shutil import rmtree
+    from tempfile import mkdtemp
 
     dir = mkdtemp()
 

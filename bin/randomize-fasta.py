@@ -9,11 +9,11 @@ Note: This produces DNA sequences. If you have AA reads and you need this
 """
 
 import sys
+
 from numpy.random import choice
 
 from dark.fasta import FastaReads
 from dark.reads import DNARead
-
 
 if __name__ == "__main__":
     for read in FastaReads(sys.stdin):

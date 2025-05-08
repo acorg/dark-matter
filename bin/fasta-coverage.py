@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import csv
 import sys
 from collections import defaultdict
-import csv
 from operator import itemgetter
 from typing import Union
 

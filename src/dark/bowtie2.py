@@ -1,9 +1,10 @@
 import multiprocessing
-from tempfile import mkdtemp
 import os
 from os.path import join
-import requests
+from tempfile import mkdtemp
 from typing import Optional, TextIO
+
+import requests
 
 from dark.process import Executor
 from dark.sam import samfile as openSamfile

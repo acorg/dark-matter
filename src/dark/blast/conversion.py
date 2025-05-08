@@ -5,10 +5,10 @@ from operator import itemgetter
 from Bio.Blast import NCBIXML
 from Bio.File import as_handle
 
-from dark.hsp import HSP, LSP
-from dark.score import HigherIsBetterScore
 from dark.alignments import Alignment, ReadAlignments
 from dark.blast.hsp import normalizeHSP
+from dark.hsp import HSP, LSP
+from dark.score import HigherIsBetterScore
 
 
 class XMLRecordsReader:

@@ -1,19 +1,18 @@
 import builtins
-from unittest import TestCase
-from unittest.mock import patch, mock_open
-from io import BytesIO
-import bz2file
 from bz2 import compress
-from io import StringIO
+from io import BytesIO, StringIO
 from json import dumps
+from unittest import TestCase
+from unittest.mock import mock_open, patch
+
+import bz2file
 
 from dark.diamond.conversion import (
-    JSONRecordsReader,
-    DiamondTabularFormatReader,
     DiamondTabularFormat,
+    DiamondTabularFormatReader,
+    JSONRecordsReader,
 )
-from dark.reads import Reads, AARead
-
+from dark.reads import AARead, Reads
 
 # The 15 fields expected in the DIAMOND output we parse are:
 #

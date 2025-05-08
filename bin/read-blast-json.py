@@ -4,11 +4,10 @@
 Read simplified JSON BLAST records and report the elapsed time.
 """
 
-from time import time
 import sys
+from time import time
 
 from dark.blast.conversion import JSONRecordsReader
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

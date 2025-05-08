@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import argparse
 import os
 import sys
-import argparse
+from os.path import basename, join
 from tempfile import mkdtemp
-from os.path import join, basename
 
 from dark.fasta import FastaReads
 from dark.process import Executor

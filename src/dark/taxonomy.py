@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from operator import attrgetter
-from cachetools import LRUCache, cachedmethod
-from json import dumps
+import argparse
 import re
 from collections import namedtuple
+from json import dumps
+from operator import attrgetter
 from os import environ
-from typing import Optional, Iterable
-import argparse
+from typing import Iterable, Optional
+
+from cachetools import LRUCache, cachedmethod
 
 from dark.database import getDatabaseConnection
 from dark.sqlite3 import sqliteConnect

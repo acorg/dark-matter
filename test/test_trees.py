@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from ete3 import Tree
 
 from dark.trees import ete3root

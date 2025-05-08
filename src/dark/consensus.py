@@ -1,13 +1,14 @@
 import sys
 from collections import defaultdict
-from pysam import CINS, CDEL, CSOFT_CLIP
 
-from dark.cigar import cigarTuplesToOperations, softClippedOffset, insertionOffset
+from pysam import CDEL, CINS, CSOFT_CLIP
+
+from dark.cigar import cigarTuplesToOperations, insertionOffset, softClippedOffset
 from dark.dna import Bases
 from dark.progress import maybeProgressBar
 from dark.reads import DNARead
-from dark.sam import samfile, getReferenceInfo, UnspecifiedReference, CONSUMES_REFERENCE
-from dark.utils import pct, openOr
+from dark.sam import CONSUMES_REFERENCE, UnspecifiedReference, getReferenceInfo, samfile
+from dark.utils import openOr, pct
 
 
 class ConsensusError(Exception):

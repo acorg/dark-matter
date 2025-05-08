@@ -1,9 +1,8 @@
-import numpy as np
 import os
-
 from typing import Optional, Tuple
 
 import matplotlib
+import numpy as np
 
 if not os.environ.get("DISPLAY"):
     # Use non-interactive Agg backend

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from dark.summarize import summarizeReads
 import sys
 
+from dark.summarize import summarizeReads
 
 if len(sys.argv) != 2:
     print("Usage: %s file.fasta / file.fastq" % sys.argv[0], file=sys.stderr)

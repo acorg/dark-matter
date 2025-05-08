@@ -1,20 +1,18 @@
-import numpy as np
+from random import uniform
 from unittest import TestCase
-from unittest.mock import call, MagicMock, ANY
+from unittest.mock import ANY, MagicMock, call
 
 import matplotlib
-
+import numpy as np
 from Bio.SeqFeature import FeatureLocation, SeqFeature
 from Bio.SeqRecord import SeqRecord
-
-from random import uniform
 
 from dark.features import (
     Feature,
     FeatureList,
-    _FeatureAdder,
-    ProteinFeatureAdder,
     NucleotideFeatureAdder,
+    ProteinFeatureAdder,
+    _FeatureAdder,
 )
 
 matplotlib.use("Agg")

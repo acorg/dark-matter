@@ -1,44 +1,46 @@
 from __future__ import annotations
 
-import sys
+import argparse
+import itertools
 import os
-from functools import total_ordering
+import sys
 from collections import Counter, defaultdict
 from collections.abc import Sized
+from functools import total_ordering
 from hashlib import md5
-from random import uniform
 from pathlib import Path
-import itertools
-import argparse
+from random import uniform
 from typing import (
     Callable,
+    Dict,
     Generator,
     Iterable,
     List,
     Literal,
     Optional,
+    Sequence,
     Set,
+    SupportsIndex,
     TextIO,
     Tuple,
     Union,
-    Dict,
-    Sequence,
-    SupportsIndex,
 )
 
+from Bio.Data.IUPACData import (
+    ambiguous_dna_complement,  # type: ignore
+    ambiguous_rna_complement,  # type: ignore
+)
 from Bio.Seq import translate  # type: ignore
-from Bio.Data.IUPACData import ambiguous_dna_complement  # type: ignore
-from Bio.Data.IUPACData import ambiguous_rna_complement  # type: ignore
 
 from dark.aaVars import (
-    START_CODON,
-    STOP_CODONS,
     AA_LETTERS,
+    NONE,
     PROPERTIES,
     PROPERTY_DETAILS,
-    NONE,
+    START_CODON,
+    STOP_CODONS,
 )
-from dark.dna import FloatBaseCounts, AMBIGUOUS, BASES_TO_AMBIGUOUS
+from dark.dna import AMBIGUOUS, BASES_TO_AMBIGUOUS, FloatBaseCounts
 from dark.errors import ReadLengthsNotIdenticalError
 from dark.filter import SequenceFilter, TitleFilter
 from dark.hsp import HSP

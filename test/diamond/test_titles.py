@@ -1,15 +1,15 @@
+import builtins
 from json import dumps
 from unittest import TestCase
-from unittest.mock import patch, mock_open
-import builtins
+from unittest.mock import mock_open, patch
+
+from dark.diamond.alignments import DiamondReadsAlignments
+from dark.hsp import HSP
+from dark.reads import Read, Reads
+from dark.score import LowerIsBetterScore
+from dark.titles import TitleAlignments, TitlesAlignments, titleCounts
 
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
-
-from dark.reads import Read, Reads
-from dark.hsp import HSP
-from dark.score import LowerIsBetterScore
-from dark.diamond.alignments import DiamondReadsAlignments
-from dark.titles import titleCounts, TitleAlignments, TitlesAlignments
 
 
 class TestTitleCounts(TestCase):

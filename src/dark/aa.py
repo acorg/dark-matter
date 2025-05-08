@@ -1,5 +1,5 @@
-from typing import Generator, Union, Iterable, Mapping, Optional
 from itertools import zip_longest
+from typing import Generator, Iterable, Mapping, Optional, Union
 
 from dark.aaVars import (
     ABBREV3,
@@ -11,7 +11,6 @@ from dark.aaVars import (
     PROPERTY_CLUSTERS,
     PROPERTY_DETAILS,
 )
-
 from dark.reads import Read
 from dark.utils import countPrint
 

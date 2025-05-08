@@ -1,9 +1,9 @@
-from unittest import TestCase
 from os.path import dirname, join
+from unittest import TestCase
 
 import dark
-from dark.genomes import GenomeProteinInfo
 from dark.civ.proteins import SqliteIndex
+from dark.genomes import GenomeProteinInfo
 
 TOP = dirname(dirname(dirname(dark.__file__)))
 

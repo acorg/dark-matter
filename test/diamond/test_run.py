@@ -1,4 +1,4 @@
-from unittest import TestCase, skipUnless, skip
+from unittest import TestCase, skip, skipUnless
 
 from dark.aa import CODONS
 from dark.diamond.run import DiamondExecutor, diamondInstalled
