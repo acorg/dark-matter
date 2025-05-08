@@ -1,8 +1,8 @@
-from unittest import TestCase
 from collections import Counter
+from unittest import TestCase
 
-from dark.intervals import OffsetAdjuster, ReadIntervals
 from dark.hsp import HSP
+from dark.intervals import OffsetAdjuster, ReadIntervals
 
 
 class TestReadIntervals(TestCase):

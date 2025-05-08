@@ -1,11 +1,11 @@
-from unittest import TestCase
 from os.path import dirname, join
+from unittest import TestCase
 
 import dark
-from dark.genomes import GenomeProteinInfo
 from dark.civ.proteins import SqliteIndex
+from dark.genomes import GenomeProteinInfo
 
-TOP = dirname(dirname(dark.__file__))
+TOP = dirname(dirname(dirname(dark.__file__)))
 
 DB = SqliteIndex(join(TOP, "test", "data", "hbv", "hbv-proteins.db"))
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 from itertools import chain
 
 from dark.civ.proteins import SqliteIndex

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+
 from Bio.Seq import Seq
 
 if len(sys.argv) == 0:

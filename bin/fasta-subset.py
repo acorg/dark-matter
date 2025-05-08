@@ -5,11 +5,10 @@ Given a set of FASTA sequence identifiers from sys.argv and/or in a file, read
 FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 """
 
-import sys
 import argparse
+import sys
 
 from Bio import SeqIO
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

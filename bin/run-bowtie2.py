@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-import os
-import sys
 import argparse
 import multiprocessing
+import os
+import sys
 from os.path import exists, join
 from tempfile import mkdtemp
+
 import pysam
 
-from dark.process import Executor
 from dark.bowtie2 import Bowtie2
+from dark.process import Executor
 
 DEFAULT_SAMTOOLS_VIEW_FLAGS = (
     pysam.FUNMAP | pysam.FSECONDARY | pysam.FDUP | pysam.FSUPPLEMENTARY

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from re import compile
 import sys
+from re import compile
 
 from dark.entrez import getSequence
 

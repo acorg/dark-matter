@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 import hashlib
+import sys
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 

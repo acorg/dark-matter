@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import sys
+
 from Bio import SeqIO
 from Bio.Seq import Seq
+
 from dark.sequence import findPrimerBidiLimits
 
 

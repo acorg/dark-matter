@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dark.btop import countGaps, parseBtop, btop2cigar
+from dark.btop import btop2cigar, countGaps, parseBtop
 
 
 def btop2cigarStr(btopString, concise=False, aa=False):

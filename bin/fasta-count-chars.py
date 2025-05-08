@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import sys
 import csv
+import sys
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 if __name__ == "__main__":
     import argparse

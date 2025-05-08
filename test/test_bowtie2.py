@@ -1,6 +1,6 @@
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch
-from io import StringIO
 
 from dark.bowtie2 import Bowtie2
 from dark.process import Executor

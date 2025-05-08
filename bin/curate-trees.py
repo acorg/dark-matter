@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 from pathlib import Path
-import dendropy
 from warnings import warn
+
+import dendropy
 
 
 def parseArgs():

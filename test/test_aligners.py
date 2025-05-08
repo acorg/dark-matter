@@ -1,8 +1,7 @@
+from random import choice, choices
 from unittest import TestCase
 
-from random import choice, choices
-
-from dark.aligners import edlibAlign, removeUnnecessaryGaps, EDLIB_AMBIGUOUS
+from dark.aligners import EDLIB_AMBIGUOUS, edlibAlign, removeUnnecessaryGaps
 from dark.dna import AMBIGUOUS
 from dark.reads import DNARead, Reads
 

@@ -3,14 +3,14 @@
 # See https://samtools.github.io/hts-specs/SAMv1.pdf for the SAM file
 # format specification.
 
-import sys
 import argparse
-from os.path import join
-from resource import getrlimit, RLIMIT_NOFILE
+import sys
 from functools import partial
+from os.path import join
+from resource import RLIMIT_NOFILE, getrlimit
 
 from dark.diamond.conversion import FIELDS
-from dark.diamond.sam import SimpleDiamondSAMWriter, PerReferenceDiamondSAMWriter
+from dark.diamond.sam import PerReferenceDiamondSAMWriter, SimpleDiamondSAMWriter
 from dark.proteins import SqliteIndex
 
 parser = argparse.ArgumentParser(

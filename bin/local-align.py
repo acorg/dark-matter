@@ -9,7 +9,6 @@ import argparse
 from dark.fasta import FastaReads
 from dark.local_align import LocalAlignment
 
-
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description=(

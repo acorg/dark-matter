@@ -8,14 +8,13 @@ criteria.
 Run with --help for help.
 """
 
-import sys
 import argparse
+import sys
 
-from dark.reads import Reads
-from dark.fasta import FastaReads
-from dark.titles import TitlesAlignments
 from dark.blast.alignments import BlastReadsAlignments
-
+from dark.fasta import FastaReads
+from dark.reads import Reads
+from dark.titles import TitlesAlignments
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

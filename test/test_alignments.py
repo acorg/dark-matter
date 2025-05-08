@@ -1,15 +1,15 @@
 from unittest import TestCase
 
-from dark.reads import Read, Reads
-from dark.score import HigherIsBetterScore
-from dark.hsp import HSP, LSP
 from dark.alignments import (
     Alignment,
-    bestAlignment,
     ReadAlignments,
-    ReadsAlignmentsParams,
     ReadsAlignments,
+    ReadsAlignmentsParams,
+    bestAlignment,
 )
+from dark.hsp import HSP, LSP
+from dark.reads import Read, Reads
+from dark.score import HigherIsBetterScore
 
 
 class TestAlignment(TestCase):

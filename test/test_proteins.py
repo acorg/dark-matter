@@ -1,15 +1,15 @@
-from unittest import TestCase, skip
-from unittest.mock import patch
 import builtins
 from contextlib import contextmanager
 from io import StringIO
+from unittest import TestCase, skip
+from unittest.mock import patch
 
 from dark.proteins import (
-    splitNames,
     _NO_PATHOGEN_NAME,
-    getPathogenProteinCounts,
-    ProteinGrouper,
     PathogenSampleFiles,
+    ProteinGrouper,
+    getPathogenProteinCounts,
+    splitNames,
 )
 
 

@@ -1,14 +1,14 @@
 import builtins
-from unittest import TestCase
-from unittest.mock import patch, call, mock_open
-from random import seed
-from os import stat
 from io import StringIO
+from os import stat
+from random import seed
+from unittest import TestCase
+from unittest.mock import call, mock_open, patch
 
 from dark.aaVars import (
     BASIC_POSITIVE,
-    HYDROPHOBIC,
     HYDROPHILIC,
+    HYDROPHOBIC,
     NEGATIVE,
     NONE,
     POLAR,
@@ -19,18 +19,18 @@ from dark.errors import ReadLengthsNotIdenticalError
 from dark.fasta import FastaReads
 from dark.hsp import HSP
 from dark.reads import (
-    Read,
-    TranslatedRead,
-    Reads,
-    ReadsInRAM,
-    DNARead,
-    RNARead,
-    DNAKozakRead,
     AARead,
     AAReadORF,
     AAReadWithX,
+    DNAKozakRead,
+    DNARead,
+    Read,
+    Reads,
+    ReadsInRAM,
+    RNARead,
     SSAARead,
     SSAAReadWithX,
+    TranslatedRead,
     getNoCoverageCounts,
     readClassNameToClass,
     simpleReadSplitter,

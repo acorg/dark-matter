@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-from random import choice
 from operator import itemgetter
+from random import choice
 
 from dark.aaVars import CODONS
 from dark.reads import Read, addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 if __name__ == "__main__":
     import argparse

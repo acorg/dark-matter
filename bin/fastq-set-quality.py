@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
-
 import argparse
+
+from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 parser = argparse.ArgumentParser(
     description=(

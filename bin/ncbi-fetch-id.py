@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+
 import requests
 
 # See https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.EFetch

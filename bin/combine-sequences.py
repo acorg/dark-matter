@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
 import multiprocessing
+import sys
 
 from dark.aligners import mafft
-from dark.reads import DNARead
 from dark.fasta import FastaReads
+from dark.reads import DNARead
 
 MAFFT_DEFAULT_ARGS = "--globalpair --maxiterate 1000 --preservecase"
 MAFFT_ALGORITHMS_URL = (

@@ -1,13 +1,15 @@
-from unittest import TestCase
 import sqlite3
+from unittest import TestCase
 
 from dark.taxonomy import (
     LineageElement as LE,
+)
+from dark.taxonomy import (
     LineageFetcher,
     Taxonomy,
+    isAllowedTaxonomicRank,
     isRetrovirus,
     isRNAVirus,
-    isAllowedTaxonomicRank,
 )
 
 

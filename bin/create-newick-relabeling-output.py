@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

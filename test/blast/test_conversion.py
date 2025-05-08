@@ -1,12 +1,10 @@
 import builtins
-from unittest import TestCase
-from unittest.mock import patch, mock_open
-
 from json import dumps
+from unittest import TestCase
+from unittest.mock import mock_open, patch
 
-from dark.blast.conversion import XMLRecordsReader, JSONRecordsReader
-from dark.reads import Reads, DNARead
-
+from dark.blast.conversion import JSONRecordsReader, XMLRecordsReader
+from dark.reads import DNARead, Reads
 
 RECORD = """\
 <?xml version="1.0"?>

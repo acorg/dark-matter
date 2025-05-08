@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, DNARead
-
+from dark.reads import DNARead, addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 FORWARD, REVERSE, COMPLEMENT, REVERSE_COMPLEMENT = 0, 1, 2, 3
 

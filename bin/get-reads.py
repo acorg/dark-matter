@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
+import argparse
 import sys
 from re import compile
-import argparse
 
 from dark.blast.alignments import BlastReadsAlignments
-from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
+from dark.titles import TitlesAlignments
 
 
 def main(recordFilenames, fastaFilename, title, xRange, bitRange):

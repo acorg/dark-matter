@@ -1,15 +1,15 @@
 from unittest import TestCase, skipUnless
 
-from dark.consensus import consensusFromBAM, ConsensusError
+from dark.consensus import ConsensusError, consensusFromBAM
 from dark.reads import DNARead
 from dark.sam import (
-    samtoolsInstalled,
     UnequalReferenceLengthError,
     UnknownReference,
     UnspecifiedReference,
+    samtoolsInstalled,
 )
 
-from .bam import makeBAM, REF_ID
+from .bam import REF_ID, makeBAM
 
 
 @skipUnless(samtoolsInstalled(), "samtools is not installed")

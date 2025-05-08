@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from dark.reads import Read
 from dark.local_align import LocalAlignment
+from dark.reads import Read
 
 
 class TestLocalAlign(TestCase):

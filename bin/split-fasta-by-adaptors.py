@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
-from Bio import SeqIO
-from collections import defaultdict
 import sys
+from collections import defaultdict
+from math import ceil, log10
+
+from Bio import SeqIO
+
 from dark.distance import levenshtein
-from math import log10, ceil
 
 # The name of the unknown adaptor.
 UNKNOWN = "UNKNOWN"

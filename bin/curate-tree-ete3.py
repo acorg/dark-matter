@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from ete3 import Tree
+import sys
 from typing import Optional
+
+from ete3 import Tree
 
 from dark.trees import ete3root
 

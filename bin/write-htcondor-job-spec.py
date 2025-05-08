@@ -6,6 +6,7 @@ See the 'EPILOG' variable below, or (better) run with --help for help.
 
 import os
 import sys
+
 from Bio import SeqIO
 
 DEFAULT_BLAST_ARGS = ""

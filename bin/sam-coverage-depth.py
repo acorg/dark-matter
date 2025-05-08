@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-import numpy as np
 import csv
-import pysam
-from time import time
+import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
-from itertools import repeat
 from contextlib import redirect_stdout
-from typing import Collection, Any
+from itertools import repeat
+from time import time
+from typing import Any, Collection
+
+import numpy as np
+import pysam
 
 from dark.fasta import FastaReads
 from dark.sam import samfile, samReferenceLengths
-from dark.utils import baseCountsToStr, pct, gmt, entropy2
-
+from dark.utils import baseCountsToStr, entropy2, gmt, pct
 
 BASES = "ACGT"
 TRANSITIONS = "AG GA CT TC".split()

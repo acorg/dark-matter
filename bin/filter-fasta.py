@@ -3,13 +3,12 @@
 import sys
 
 from dark.filter import (
-    addFASTAFilteringCommandLineOptions,
-    parseFASTAFilteringCommandLineOptions,
     addFASTAEditingCommandLineOptions,
+    addFASTAFilteringCommandLineOptions,
     parseFASTAEditingCommandLineOptions,
+    parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 if __name__ == "__main__":
     import argparse

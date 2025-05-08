@@ -8,12 +8,12 @@ and (optionally) an alignment panel.
 Run with --help for help.
 """
 
+import argparse
 import os
 import sys
-import argparse
-from json import dump
 from collections import defaultdict
 from itertools import chain
+from json import dump
 from typing import Union
 
 # It's not clear that the PDF backend is the right choice here, but it
@@ -26,12 +26,12 @@ matplotlib.use("PDF")
 # and we need to set the matplotlib backend (see above) before that import
 # happens. So please don't move these imports higher in this file.
 from dark.blast.alignments import BlastReadsAlignments
-from dark.diamond.alignments import DiamondReadsAlignments
-from dark.titles import TitlesAlignments
-from dark.fasta import FastaReads
-from dark.fastq import FastqReads
 from dark.civ.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
 from dark.civ.proteins import SqliteIndex
+from dark.diamond.alignments import DiamondReadsAlignments
+from dark.fasta import FastaReads
+from dark.fastq import FastqReads
+from dark.titles import TitlesAlignments
 from dark.utils import numericallySortFilenames
 
 

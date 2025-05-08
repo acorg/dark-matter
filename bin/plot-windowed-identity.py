@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
+from collections import Counter, defaultdict
+from itertools import chain, cycle
 from operator import itemgetter
-from itertools import cycle, chain
+
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objs as go
-from plotly.io import write_image, write_html
-from collections import Counter, defaultdict
+from plotly.io import write_html, write_image
 
+from dark.reads import DNARead, addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.windowedIdentity import WindowedIdentity, addCommandLineOptions
-from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions, DNARead
 
 
 def makeParser() -> argparse.ArgumentParser:

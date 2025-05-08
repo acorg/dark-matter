@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 from itertools import chain
 
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
-
 
 if __name__ == "__main__":
     # We do not use the addFASTACommandLineOptions and
