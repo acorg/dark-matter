@@ -19,7 +19,7 @@ NEEDLE_DEFAULT_ARGS = "auto"
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description="Compare two sequences.",
+    description="Compare two DNA sequences.",
 )
 
 parser.add_argument(
@@ -89,7 +89,7 @@ parser.add_argument(
     "--quiet",
     dest="verbose",
     action="store_false",
-    help=("Do not print information about aligning, or falling back to " "stretcher."),
+    help="Do not print information about aligning, or falling back to stretcher.",
 )
 
 parser.add_argument(
@@ -147,6 +147,26 @@ parser.add_argument(
         "Print (1-based) sites of mismatches that do not involve a gap. The "
         "output gives the site, the base from the first sequence, then the "
         "base from the second sequence."
+    ),
+)
+
+parser.add_argument(
+    "--includeDifferenceCounts",
+    action="store_true",
+    help=(
+        "Include the counts (i.e., number of occurrences) of all differences. "
+        "Note that mismatches involving areas of no coverage or where one read "
+        "is shorter than another do not count as differences."
+    ),
+)
+
+parser.add_argument(
+    "--includeDifferenceLocations",
+    action="store_true",
+    help=(
+        "Include the locations (and counts) (i.e., number of occurrences) "
+        "of all differences. Note that mismatches involving areas of no coverage "
+        "or where one read is shorter than another do not count as differences."
     ),
 )
 
@@ -268,6 +288,8 @@ print(
         includeNoCoverageLocations=args.includeCoverageLocations,
         includeAmbiguousMatches=args.includeAmbiguousMatches,
         includeNonGapMismatches=args.includeNonGapMismatches,
+        includeDifferenceLocations=args.includeDifferenceLocations,
+        includeDifferenceCounts=args.includeDifferenceCounts,
     )
 )
 

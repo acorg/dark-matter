@@ -1,10 +1,13 @@
-.PHONY: pytest nox wc clean clobber upload
+.PHONY: pytest ruff nox wc clean clobber upload
 
 XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
 VERSION := $(shell grep __version__ src/dark/__init__.py | cut -f2 -d'"')
 
 pytest:
 	uv run pytest
+
+ruff:
+	ruff check --fix --extend-select I
 
 nox:
 	uv run noxfile.py
