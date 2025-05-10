@@ -41,6 +41,8 @@ def matchToString(
     includeNoCoverageLocations=True,
     includeAmbiguousMatches=False,
     includeNonGapMismatches=False,
+    includeDifferenceCounts=False,
+    includeDifferenceLocations=False,
 ):
     """
     Format a DNA match as a string.
@@ -63,6 +65,11 @@ def matchToString(
         locations of ambiguous matches.
     @param includeNonGapMismatches: If C{True} indicate the (1-based) locations
         of non-gap mismatches.
+    @param includeDifferenceCounts: If C{True}, include the counts (i.e., number
+        of occurrences) of all differences.
+    @param includeDifferenceLocations: If C{True}, include the genome locations
+        of differences and their counts (i.e., C{includeDifferenceCounts} is
+        implied) by this option.
     @return: A C{str} describing the match.
     """
     match = dnaMatch["match"]
@@ -216,6 +223,21 @@ def matchToString(
         for offset, a, b in match["nonGapMismatches"]:
             append(f"{indent}    {offset + 1} {a} {b}")
 
+    if includeDifferenceLocations:
+        append(f"{indent}Difference counts and locations:")
+        for pair, locations in sorted(match["differenceOffsets"].items()):
+            locationsStr = ", ".join(f"{location + 1}" for location in locations)
+            append(
+                f"{indent}    {pair[0]}->{pair[1]} "
+                f"({len(locations)}): {locationsStr}"
+            )
+    elif includeDifferenceCounts:
+        append(f"{indent}Difference counts:")
+        for pair, locations in sorted(match["differenceOffsets"].items()):
+            append(
+                f"{indent}    {pair[0]}->{pair[1]}: {len(locations)}"
+            )
+
     return "\n".join(result)
 
 
@@ -257,6 +279,13 @@ def compareDNAReads(
     noCoverageChars = noCoverageChars or empty
     nonGapMismatches = []
     ambiguousMatches = []
+    # differenceOffsets will have keys that are a pair of read characters
+    # (the first from read1 and the second from read2) and values that are
+    # sorted lists of offsets where that mutation was found. Offsets are only
+    # added for sites that do not match (respecting the value of matchAmbiguous).
+    # Nothing is recorded for a site if either read has no coverage or if the
+    # other read is shorter and simply does not have an equivalent site.
+    differenceOffsets: dict[str, list[int]] = defaultdict(list)
 
     def _identicalMatch(a, b):
         """
@@ -330,10 +359,12 @@ def compareDNAReads(
                 else:
                     # a is a gap, b is not.
                     gapMismatchCount += 1
+                    differenceOffsets[a + b].append(offset)
             else:
                 if b in gapChars:
                     # b is a gap, a is not.
                     gapMismatchCount += 1
+                    differenceOffsets[a + b].append(offset)
                     read2GapOffsets.append(offset)
                 else:
                     # Neither is a gap character.
@@ -345,6 +376,7 @@ def compareDNAReads(
                     else:
                         nonGapMismatchCount += 1
                         nonGapMismatches.append((offset, a, b))
+                        differenceOffsets[a + b].append(offset)
 
     return {
         "match": {
@@ -357,6 +389,7 @@ def compareDNAReads(
             "noCoverageNoCoverageCount": noCoverageNoCoverageCount,
             "ambiguousMatches": ambiguousMatches,
             "nonGapMismatches": nonGapMismatches,
+            "differenceOffsets": differenceOffsets,
         },
         "read1": {
             "ambiguousOffsets": read1AmbiguousOffsets,

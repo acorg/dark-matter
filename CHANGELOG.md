@@ -1,3 +1,9 @@
+## 5.0.37 May 10, 2025
+
+Added `--includeDifferenceCounts` and `--includeDifferenceLocations` to
+`bin/compare-sequences.py` and corresponding arguments to the underlying
+function in `src/dark/dna.py` and tests in `test/test_dna.py`.
+
 ## 5.0.36 May 6, 2025
 
 Move to using `pyproject.toml` and `uv`.
