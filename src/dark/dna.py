@@ -72,9 +72,6 @@ def matchToString(
         implied) by this option.
     @return: A C{str} describing the match.
     """
-    if includeDifferenceLocations:
-        includeDifferenceCounts = True
-
     match = dnaMatch["match"]
     identicalMatchCount = match["identicalMatchCount"]
     ambiguousMatchCount = match["ambiguousMatchCount"]
@@ -226,21 +223,20 @@ def matchToString(
         for offset, a, b in match["nonGapMismatches"]:
             append(f"{indent}    {offset + 1} {a} {b}")
 
-    if includeDifferenceCounts:
-        if includeDifferenceLocations:
-            append(f"{indent}Difference counts and locations:")
-            for pair, locations in sorted(match["differenceOffsets"].items()):
-                locationsStr = ", ".join(f"{location + 1}" for location in locations)
-                append(
-                    f"{indent}    {pair[0]}->{pair[1]} "
-                    f"({len(locations)}): {locationsStr}"
-                )
-        else:
-            append(f"{indent}Difference counts:")
-            for pair, locations in sorted(match["differenceOffsets"].items()):
-                append(
-                    f"{indent}    {pair[0]}->{pair[1]}: {len(locations)}"
-                )
+    if includeDifferenceLocations:
+        append(f"{indent}Difference counts and locations:")
+        for pair, locations in sorted(match["differenceOffsets"].items()):
+            locationsStr = ", ".join(f"{location + 1}" for location in locations)
+            append(
+                f"{indent}    {pair[0]}->{pair[1]} "
+                f"({len(locations)}): {locationsStr}"
+            )
+    elif includeDifferenceCounts:
+        append(f"{indent}Difference counts:")
+        for pair, locations in sorted(match["differenceOffsets"].items()):
+            append(
+                f"{indent}    {pair[0]}->{pair[1]}: {len(locations)}"
+            )
 
     return "\n".join(result)
 

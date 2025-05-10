@@ -329,7 +329,8 @@ def analyzeColumn(
     referenceSeq: str | None,
     diffsFrom: str,
 ) -> (
-    tuple[set[str], float, float, dict[str, int], int, str, str, dict[str, int]] | None
+    tuple[set[str], float, float, dict[str, int], int, str | None, str, dict[str, int]]
+    | None
 ):
     """
     Do an analysis of the reads in a column. Return a tuple of results
@@ -391,7 +392,7 @@ def analyzeColumn(
     # (with the same read id) matching a site (this could happen if a read
     # mapping algorithm maps the same read pair more than once and the
     # regions of the two matches overlaps).
-    readIds = {}
+    readIds: dict[str, list[Any]] = {}
 
     for read in column.pileups:
         # assert isinstance(read, pysam.PileupRead)
@@ -400,10 +401,11 @@ def analyzeColumn(
         else:
             # assert isinstance(read.alignment, pysam.AlignedSegment)
             readId = read.alignment.query_name
+            assert readId
             assert read.alignment.query_sequence is not None  # Typing check.
             base = read.alignment.query_sequence[read.query_position]
             assert read.alignment.query_qualities is not None  # Typing check.
-            quality = read.alignment.query_qualities[read.query_position]
+            quality: str = read.alignment.query_qualities[read.query_position]
             try:
                 count, previousQuality, previousBase = readIds[readId]
             except KeyError:
@@ -536,7 +538,7 @@ def analyzeColumn(
         return
 
     mutationCount = 0
-    mutationPairCounts = defaultdict(int)
+    mutationPairCounts: dict[str, int] = defaultdict(int)
     for base in BASES:
         if base != fromBase and (count := bases[base]):
             mutationPairCounts[fromBase + base] += count

@@ -7,7 +7,7 @@ pytest:
 	uv run pytest
 
 ruff:
-	ruff check --fix --extend-select I
+	uv run ruff check --fix --extend-select I
 
 nox:
 	uv run noxfile.py
