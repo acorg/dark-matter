@@ -12,21 +12,26 @@ COLORS = {
     "A": "red",
     "C": "cyan",
     "G": "green",
-    "T": "turquoise",
+    "T": "magenta",
 }
 
 
 def colorCodons(codon1: str, codon2: str) -> tuple[str, str]:
-    result1 = ""
-    result2 = ""
+    """
+    Take two codons and return the same two codons but with differing
+    nucletides colored.
+    """
+    result1 = result2 = ""
 
     for nt1, nt2 in zip(codon1, codon2):
         if nt1 == nt2:
             result1 += nt1
             result2 += nt2
         else:
-            result1 += f"[bold][{COLORS[nt1]}]{nt1}[/{COLORS[nt1]}][/bold]"
-            result2 += f"[bold][{COLORS[nt2]}]{nt2}[/{COLORS[nt2]}][/bold]"
+            color1 = f"bold {COLORS[nt1]}"
+            color2 = f"bold {COLORS[nt2]}"
+            result1 += f"[{color1}]{nt1}[/{color1}]"
+            result2 += f"[{color2}]{nt2}[/{color2}]"
 
     return result1, result2
 
