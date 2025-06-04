@@ -1,3 +1,8 @@
+## 5.0.38 June 4, 2025
+
+Add printing of aa properties to `bin/aa-compare.py` (renamed from
+`bin/codon-distance.py` which is now a symbolic link to `bin/aa-compare.py`).
+
 ## 5.0.37 May 10, 2025
 
 Added `--includeDifferenceCounts` and `--includeDifferenceLocations` to
