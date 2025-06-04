@@ -9,8 +9,8 @@ from dark.aaVars import CODONS, PROPERTY_NAMES, STOP_CODONS
 from dark.codonDistance import codonInformation
 
 # Nucleotide colors. Note that 'A' will just be rendered as bold text in
-# whatever the default terminal color is (e.g., black or white, depending on
-# the user's preferences. This is not perfect, but it's hard to be perfect.
+# whatever the default terminal color is (often black or white, depending on
+# the user's preferences). This is not perfect, but it's hard to be perfect.
 COLORS = {
     "A": "",
     "C": "red",
