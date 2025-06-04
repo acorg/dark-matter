@@ -22,7 +22,7 @@ COLORS = {
 def colorCodons(codon1: str, codon2: str) -> tuple[str, str]:
     """
     Take two codons and return the same two codons but with differing
-    nucletides colored.
+    nucleotides colored.
     """
     result1 = result2 = ""
 
