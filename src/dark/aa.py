@@ -1,9 +1,10 @@
 from itertools import zip_longest
-from typing import Generator, Iterable, Mapping, Optional, Union
+from typing import Iterable, Iterator, Mapping, Optional, Union
 
 from dark.aaVars import (
     ABBREV3,
     ABBREV3_TO_ABBREV1,
+    ALL_PROPERTIES,
     CODONS,
     NAMES,
     NAMES_TO_ABBREV1,
@@ -66,7 +67,7 @@ class AminoAcid:
         properties: int,
         propertyDetails: dict[str, float],
         propertyClusters: dict[str, int],
-    ):
+    ) -> None:
         self.name = name
         self.abbrev3 = abbrev3
         self.abbrev1 = abbrev1
@@ -75,8 +76,16 @@ class AminoAcid:
         self.propertyDetails = propertyDetails
         self.propertyClusters = propertyClusters
 
+    def propertySet(self) -> set[int]:
+        """
+        Get the set of individual properties of an AminoAcid.
+        """
+        return set(
+            property_ for property_ in ALL_PROPERTIES if property_ & self.properties
+        )
 
-def find(s: str) -> Generator[AminoAcid, None, None]:
+
+def find(s: str) -> Iterator[AminoAcid]:
     """
     Find an amino acid whose name or abbreviation is s.
 
@@ -188,7 +197,7 @@ def _propertiesOrClustersForSequence(
 
 def propertiesForSequence(
     sequence: Read, propertyNames: Iterable[str], missingAAValue: float = -1.1
-):
+) -> dict[str, list[Union[int, float]]]:
     """
     Extract amino acid property values for a sequence.
 
@@ -209,7 +218,7 @@ def propertiesForSequence(
 
 def clustersForSequence(
     sequence: Read, propertyNames: Iterable[str], missingAAValue: int = 0
-):
+) -> dict[str, list[Union[int, float]]]:
     """
     Extract amino acid property cluster numbers for a sequence.
 

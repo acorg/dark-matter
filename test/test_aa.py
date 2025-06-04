@@ -321,9 +321,9 @@ class TestAminoAcid(TestCase):
         """
         An amino acid instance must have the expected attributes.
         """
-        properties = {}
+        properties = AROMATIC
         propertyDetails = {}
-        codons = []
+        codons = ("ACG", "TTT")
         propertyClusters = {}
         aa = AminoAcid(
             "Alanine", "Ala", "A", codons, properties, propertyDetails, propertyClusters
@@ -335,6 +335,14 @@ class TestAminoAcid(TestCase):
         self.assertIs(properties, aa.properties)
         self.assertIs(propertyDetails, aa.propertyDetails)
         self.assertIs(propertyClusters, aa.propertyClusters)
+
+    def testPropertySet(self):
+        """
+        An amino acid instance must have the expected property set.
+        """
+        properties = AROMATIC | ACIDIC
+        aa = AminoAcid("Alanine", "Ala", "A", (), properties, {}, {})
+        self.assertEqual({AROMATIC, ACIDIC}, aa.propertySet())
 
 
 class TestFind(TestCase):
