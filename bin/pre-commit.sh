@@ -9,8 +9,10 @@
 
 tmp=$(mktemp)
 
-# This assumes we don't have files with spaces in their names.
-FILES=$(git diff-index --cached --name-only HEAD | egrep '\.py$')
+# This assumes we don't have files with spaces in their names. The files
+# we'll ask ruff to check must exclude ones that have been deleted (these
+# have a leading D in the output of the git diff-index command).
+FILES=$(git diff-index --cached --name-status HEAD | egrep -v '^D' | egrep '\.py$ | cut -f2')
 
 if command -v uv >/dev/null
 then

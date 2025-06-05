@@ -46,9 +46,9 @@ NAMES: dict[str, str] = {
 
 AA_LETTERS: list[str] = list(sorted(NAMES))
 
-NAMES_TO_ABBREV1 = dict((name, abbrev1) for abbrev1, name in NAMES.items())
+NAMES_TO_ABBREV1: dict[str, str] = {name: abbrev1 for abbrev1, name in NAMES.items()}
 
-ABBREV3 = {
+ABBREV3: dict[str, str] = {
     "A": "Ala",
     "R": "Arg",
     "N": "Asn",
@@ -71,7 +71,9 @@ ABBREV3 = {
     "Y": "Tyr",
 }
 
-ABBREV3_TO_ABBREV1 = dict((abbrev3, abbrev1) for abbrev1, abbrev3 in ABBREV3.items())
+ABBREV3_TO_ABBREV1: dict[str, str] = {
+    abbrev3: abbrev1 for abbrev1, abbrev3 in ABBREV3.items()
+}
 
 HYDROPHOBIC = 0x0001
 HYDROPHILIC = 0x0002
@@ -88,7 +90,7 @@ POLAR = 0x0800
 NONE = 0x1000
 
 
-ALL_PROPERTIES = (
+ALL_PROPERTIES: tuple[int, ...] = (
     ACIDIC,
     ALIPHATIC,
     AROMATIC,
@@ -104,7 +106,7 @@ ALL_PROPERTIES = (
     TINY,
 )
 
-PROPERTY_NAMES = {
+PROPERTY_NAMES: dict[int, str] = {
     ACIDIC: "Acidic",
     ALIPHATIC: "Aliphatic",
     AROMATIC: "Aromatic",
@@ -120,7 +122,7 @@ PROPERTY_NAMES = {
     TINY: "Tiny",
 }
 
-PROPERTIES = {
+PROPERTIES: dict[str, int] = {
     "A": HYDROPHOBIC | SMALL | TINY,
     "C": HYDROPHOBIC | SMALL | TINY | SULPHUR,
     "D": HYDROPHILIC | SMALL | POLAR | NEGATIVE,
@@ -151,7 +153,7 @@ PROPERTIES = {
 # codon (i.e., M and W). If you omit them, the parentheses will not create a
 # tuple.
 
-CODONS = {
+CODONS: dict[str, tuple[str, ...]] = {
     "A": (
         "GCA",
         "GCC",
@@ -251,41 +253,40 @@ CODONS = {
     ),
 }
 
-REVERSE_CODONS = dict((codon, aa) for aa, codons in CODONS.items() for codon in codons)
+REVERSE_CODONS = {codon: aa for aa, codons in CODONS.items() for codon in codons}
 
 START_CODON = "ATG"
-STOP_CODONS = (
+STOP_CODONS: tuple[str, str, str] = (
     "TAA",
     "TAG",
     "TGA",
 )
 
-"""
-The dictionary below contains for each amino acid the value for
-each property scaled from -1 to 1.
-For documentation, check https://notebooks.antigenic-cartography.org/barbara/
-pages/features/aa-properties.html
+# The dictionary below contains the value for each property, scaled from -1 to
+# 1 for each amino acid.
+#
+# For documentation, check
+# https://notebooks.antigenic-cartography.org/barbara/pages/features/aa-properties.html
+#
+# The following references were used for the different aa properties:
+#
+# Aliphaticity, aromaticity, hydrogenation, hydroxyethilation: Sneath,
+# 1966, Journal of Theoretical Biology, Relations between Chemical Structure
+# and Biological Activity in Peptides
+#
+# Composition, polarity, volume: Grantham 1974, Science, Amino Acid Difference
+# Formula to Help Explain ProteinEvolution
+#
+# Hydropathy: Kyte and Doolittle, 1982, Journal of Molecular Biology, A Simple
+# Method for Displaying the Hydropathic Character of a Protein
+#
+# IEP: Yu et al., 2011, Gene, Protein map: An alignment-free sequence comparison
+# method based on various properties of amino acids
+#
+# Polar requirement: Mathew and Luthey-Schulten, 2008, Journal of Molecular
+# Evolution, On the Physical Basis of the Amino Acid Polar Requirement
 
-The following references were used for the different aa properties:
-
-Aliphaticity, aromaticity, hydrogenation, hydroxyethilation: Sneath,
-1966, Journal of Theoretical Biology, Relations between Chemical Structure
-and Biological Activity in Peptides
-
-Composition, polarity, volume: Grantham 1974, Science, Amino Acid Difference
-Formula to Help Explain ProteinEvolution
-
-Hydropathy: Kyte and Doolittle, 1982, Journal of Molecular Biology, A Simple
-Method for Displaying the Hydropathic Character of a Protein
-
-IEP: Yu et al., 2011, Gene, Protein map: An alignment-free sequence comparison
-method based on various properties of amino acids
-
-Polar requirement: Mathew and Luthey-Schulten, 2008, Journal of Molecular
-Evolution, On the Physical Basis of the Amino Acid Polar Requirement
-"""
-
-PROPERTY_DETAILS = {
+PROPERTY_DETAILS: dict[str, dict[str, float]] = {
     "A": {
         "aliphaticity": 0.305785123967,
         "aromaticity": -0.550128534704,
@@ -528,13 +529,10 @@ PROPERTY_DETAILS = {
     },
 }
 
+# The dictionary below contains the raw value for each property for each
+# amino acid.
 
-"""
-The dictionary below contains for each amino acid the value for
-each property.
-"""
-
-PROPERTY_DETAILS_RAW = {
+PROPERTY_DETAILS_RAW: dict[str, dict[str, float]] = {
     "A": {
         "aliphaticity": 0.239,
         "aromaticity": -0.11,
@@ -778,14 +776,11 @@ PROPERTY_DETAILS_RAW = {
 }
 
 
-"""
-Clusters based on raw amino acid property values. See
-https://notebooks.antigenic-cartography.org/barbara/pages/features/
-aa-properties.html and https://notebooks.antigenic-cartography.org/barbara/
-pages/features/new-tps.html
-"""
+# Clusters based on raw amino acid property values. See
+# https://notebooks.antigenic-cartography.org/barbara/pages/features/aa-properties.html
+# and https://notebooks.antigenic-cartography.org/barbara/pages/features/new-tps.html
 
-PROPERTY_CLUSTERS = {
+PROPERTY_CLUSTERS: dict[str, dict[str, int]] = {
     "A": {
         "aliphaticity": 1,
         "aromaticity": 1,
