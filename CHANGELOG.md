@@ -1,3 +1,9 @@
+## 5.0.39 June 10, 2025
+
+Improve `bin/sam-coverage-depth.py` by a) being more flexible on finding the
+reference sequence, b) ignoring (and warning about) non-ACGT nucleotides in
+reads found by pysam in the BAM, and c) correcting the read counts.
+
 ## 5.0.38 June 4, 2025
 
 Add printing of aa properties to `bin/aa-compare.py` (renamed from
