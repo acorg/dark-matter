@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import sys
 import argparse
 import csv
-import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import redirect_stdout
@@ -297,20 +297,31 @@ def getReferenceId(
 def getReferenceSeq(filename: str, referenceId: str) -> str:
     """
     Look for the reference id in the FASTA file and return its sequence if found.
-    If no FASTA is given, return None.
+    If no reference is found, raise a ValueError.
 
     @param filename: The FASTA filename.
     @param referenceId: The ID of the wanted reference.
     @return: The reference nucleotide sequence.
     """
-    for read in FastaReads(filename):
+    reads = list(FastaReads(filename))
+
+    # First look for matches with the full id+description sequence.
+    for read in reads:
         if read.id == referenceId:
             return read.sequence
-    else:
-        raise ValueError(
-            f"Reference id {referenceId!r} was not found in reference FASTA "
-            f"file {filename!r}."
-        )
+
+    # Then look for matches with the first (space separated) part of the full
+    # id+description sequence. We do this second so as to allow the full id+description
+    # to be attempted first and only if that doesn't work do we allow for a
+    # less-complete match.
+    for read in reads:
+        if read.id.split()[0] == referenceId:
+            return read.sequence
+
+    raise ValueError(
+        f"Reference id {referenceId!r} was not found in reference FASTA "
+        f"file {filename!r}."
+    )
 
 
 def analyzeColumn(
@@ -404,6 +415,21 @@ def analyzeColumn(
             assert readId
             assert read.alignment.query_sequence is not None  # Typing check.
             base = read.alignment.query_sequence[read.query_position]
+
+            if base not in BASES:
+                # In practice this should never happen because the FASTQ we analyze
+                # always only has ACGT bases. Allowing non-ACGT bases through here
+                # results in a KeyError below when we count base frequencies using a
+                # dict.fromkeys(BASES, 0). So issue a warning and continue.
+                print(
+                    f"WARNING: Site {refOffset + 1} is matched by a read "
+                    f"(id {readId!r}) containing a non-ACGT base ({base}). "
+                    "This is very unusual, as FASTQ data should normally only "
+                    "contain sequences composed of unambiguous ACGT nucleotide calls.",
+                    file=sys.stderr,
+                )
+                continue
+
             assert read.alignment.query_qualities is not None  # Typing check.
             quality: str = read.alignment.query_qualities[read.query_position]
             try:
@@ -457,7 +483,7 @@ def analyzeColumn(
                                 file=sys.stderr,
                             )
 
-    nReads = len(readIds)
+    nReads = sum(readInfo[0] for readInfo in readIds.values())
 
     if nReads == 0 or (minDepth is not None and nReads < minDepth):
         # nReads can still be zero at this point because all reads
@@ -733,8 +759,8 @@ def processWindowColumns(
             )
 
             if columnInfo is None:
-                # This column should be skipped. It didn't have enough
-                # diversity or reads, or failed some other check.
+                # This column should be skipped. It didn't have enough diversity or
+                # reads, or failed some other check.
                 continue
 
             (
