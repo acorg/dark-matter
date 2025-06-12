@@ -1,3 +1,7 @@
+## 5.0.40 June 12, 2025
+
+Fix recording of number of reads in `bin/sam-coverage-depth.py`.
+
 ## 5.0.39 June 10, 2025
 
 Improve `bin/sam-coverage-depth.py` by a) being more flexible on finding the

@@ -340,7 +340,7 @@ def analyzeColumn(
     referenceSeq: str | None,
     diffsFrom: str,
 ) -> (
-    tuple[set[str], float, float, dict[str, int], int, str | None, str, dict[str, int]]
+    tuple[int, set[str], float, float, dict[str, int], int, str | None, str, dict[str, int]]
     | None
 ):
     """
@@ -593,6 +593,7 @@ def analyzeColumn(
         return
 
     return (
+        nReads,
         set(readIds),
         mutationRate,
         entropy,
@@ -764,6 +765,7 @@ def processWindowColumns(
                 continue
 
             (
+                nReads,
                 columnReadIds,
                 mutationRate,
                 entropy,
@@ -777,9 +779,8 @@ def processWindowColumns(
             if diffsFrom == "commonest":
                 assert columnBaseCounts[fromBase] >= max(columnBaseCounts.values())
 
-            allReadIds.update(columnReadIds)
-            nReads = len(columnReadIds)
             depths.append(nReads)
+            allReadIds.update(columnReadIds)
             mutationCount += sum(mutationPairCounts.values())
 
             for base, count in columnBaseCounts.items():
