@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
 import csv
+import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import redirect_stdout
