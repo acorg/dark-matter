@@ -1,3 +1,7 @@
+## 5.0.41 June 12, 2025
+
+Third time lucky? Fix reporting of number of reads (as opposed to read ids) in `bin/sam-coverage-depth.py`.
+
 ## 5.0.40 June 12, 2025
 
 Fix recording of number of reads in `bin/sam-coverage-depth.py`.

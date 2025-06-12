@@ -888,7 +888,10 @@ def printStats(
         print("    Started at:", startGMT)
         print("    Stopped at:", gmt())
         print(f"    Elapsed: {elapsed} seconds")
-        print("  Number of reads covering sites of interest:", len(readIds))
+        print(
+            f"  Number of reads covering sites of interest: {sum(depths)} "
+            f"({len(readIds)} unique read ids)"
+        )
         print("  Reference genome sites included:", pct(len(depths), referenceLen))
         print("  Coverage depth:")
         print("    Min:", min(depths, default=0))
