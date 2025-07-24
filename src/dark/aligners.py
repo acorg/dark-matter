@@ -4,6 +4,7 @@ from shutil import rmtree
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
 from typing import List, Optional, Tuple
+import multiprocessing
 
 import edlib
 
@@ -11,6 +12,9 @@ from dark.dna import AMBIGUOUS
 from dark.fasta import FastaReads
 from dark.process import Executor
 from dark.reads import Read, Reads
+
+MAFFT_DEFAULT_ARGS = "--globalpair --maxiterate 1000 --preservecase"
+NEEDLE_DEFAULT_ARGS = "auto"
 
 EDLIB_AMBIGUOUS: Tuple[Tuple[str, ...], ...] = tuple(
     [
@@ -73,7 +77,7 @@ def mafft(
 
 
 def needle(
-    reads: List[Read],
+    reads: Reads,
     verbose: bool = False,
     options: Optional[str] = None,
     executor: Optional[Executor] = None,
@@ -298,3 +302,26 @@ def edlibAlign(
         seq1, seq2 = removeUnnecessaryGaps(seq1, seq2, gapSymbol)
 
     return Reads([r1.__class__(r1.id, seq1), r2.__class__(r2.id, seq2)])
+
+
+def align(
+    reads: Reads,
+    aligner: str,
+    alignerOptions: str | None = None,
+    verbose: bool = False,
+    threads: int = multiprocessing.cpu_count(),
+) -> Reads:
+    """
+    Align two reads.
+    """
+    if aligner == "mafft":
+        options = MAFFT_DEFAULT_ARGS if alignerOptions is None else alignerOptions
+        reads = mafft(reads, verbose, options=options, threads=threads)
+    elif aligner == "needle":
+        options = NEEDLE_DEFAULT_ARGS if alignerOptions is None else alignerOptions
+        reads = needle(reads, verbose, options=options)
+    else:
+        assert aligner == "edlib"
+        reads = edlibAlign(reads)
+
+    return reads

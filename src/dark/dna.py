@@ -342,18 +342,16 @@ def compareDNAReads(
                 noCoverageCount += 1
                 read2NoCoverageOffsets.append(offset)
         else:
-            # We have a character from both sequences (they could still be
-            # gap characters).
+            # We have a character in both sequences.
             if a in gapChars:
                 read1GapOffsets.append(offset)
                 if b in gapChars:
-                    # Both are gaps. This could happen if the sequences are
-                    # taken from a multiple sequence alignment and some
-                    # other sequence has resulted in a gap being inserted
-                    # in both our seqeunces. This should never happen if
-                    # our sequences were pairwise aligned (no sensible
-                    # alignment program would have a reason to put a gap at
-                    # the same place when aligning just two sequences).
+                    # Both are gaps. This can happen if the sequences are taken from a
+                    # multiple sequence alignment and some other sequence has resulted
+                    # in a gap being inserted in both our seqeunces. This should never
+                    # happen if our sequences were pairwise aligned (no sensible
+                    # alignment program would have a reason to put a gap at the same
+                    # place when aligning just two sequences).
                     gapGapMismatchCount += 1
                     read2GapOffsets.append(offset)
                 else:
@@ -516,7 +514,7 @@ class FloatBaseCounts:
         return len(self.counts)
 
     def __str__(self):
-        fmt = "%d" if all(c == int(c) for b, c in self._sorted) else "%.2f"
+        fmt = "%d" if all(c == int(c) for _, c in self._sorted) else "%.2f"
         return "%s (%.3f)" % (
             " ".join(("%s:" + fmt) % (b, c) for b, c in self._sorted),
             self.highestFrequency(),
@@ -659,12 +657,17 @@ def leastAmbiguousFromCounts(bases, threshold):
     counts = sorted(bases.items(), key=itemgetter(1), reverse=True)
     cumulative = 0
     resultBases = set()
+    index = count = -1
     for index in range(len(counts)):
         base, count = counts[index]
         cumulative += count
         resultBases.add(base)
         if cumulative / total >= threshold:
             break
+
+    # Sanity. This can't happen, according to the above checks. But it keeps the Python
+    # type checking from complaining about possibly unbound variables.
+    assert index != -1 and count != -1
 
     # Add bases with counts that tie the most-recently added base.
     lastCount = count

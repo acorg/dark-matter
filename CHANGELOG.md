@@ -1,3 +1,7 @@
+## 5.0.42 July 24, 2025
+
+Slightly refactor `bin/compare-sequences.py`.
+
 ## 5.0.41 June 12, 2025
 
 Third time lucky? Fix reporting of number of reads (as opposed to read ids) in `bin/sam-coverage-depth.py`.
