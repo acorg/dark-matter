@@ -1,17 +1,17 @@
+import multiprocessing
 import sys
 from os.path import join
 from shutil import rmtree
 from subprocess import CalledProcessError
 from tempfile import mkdtemp
-from typing import List, Optional, Tuple
-import multiprocessing
+from typing import Optional, Tuple
 
 import edlib
 
 from dark.dna import AMBIGUOUS
 from dark.fasta import FastaReads
 from dark.process import Executor
-from dark.reads import Read, Reads
+from dark.reads import Reads
 
 MAFFT_DEFAULT_ARGS = "--globalpair --maxiterate 1000 --preservecase"
 NEEDLE_DEFAULT_ARGS = "auto"

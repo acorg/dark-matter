@@ -5,7 +5,7 @@ import multiprocessing
 import sys
 from math import log10
 
-from dark.aligners import align, MAFFT_DEFAULT_ARGS, NEEDLE_DEFAULT_ARGS
+from dark.aligners import MAFFT_DEFAULT_ARGS, NEEDLE_DEFAULT_ARGS, align
 from dark.dna import AMBIGUOUS, compareDNAReads, matchToString
 from dark.reads import Reads, addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.utils import parseRangeExpression
