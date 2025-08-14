@@ -90,9 +90,8 @@ if __name__ == "__main__":
     for kept, read in enumerate(reads, start=1):
         write(read.toString(format_=saveAs))
 
-    total = reads.unfilteredLength()
-
     if not args.quiet:
+        total = reads.unfilteredLength()
         print(
             "Read %d sequence%s, kept %d (%.2f%%)."
             % (

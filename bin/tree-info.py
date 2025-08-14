@@ -122,7 +122,7 @@ def printNode(
         children = node.child_nodes()
         line.append(f"Int {node.label or noLabel} {length}")
         if depth == 0:
-            c = "child" if len(children) == 1 else 'children'
+            c = "child" if len(children) == 1 else "children"
             line.append(f"(root has {len(children)} {c})")
 
         print(" ".join(line))

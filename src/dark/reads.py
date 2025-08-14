@@ -377,7 +377,7 @@ class _NucleotideRead(Read):
     COMPLEMENT_TABLE: Sequence[Union[str, None]] = [None]
 
     def translations(
-        self: Union[_NucleotideRead, DNARead, RNARead]
+        self: Union[_NucleotideRead, DNARead, RNARead],
     ) -> Generator[TranslatedRead, None, None]:
         """
         Yield all six translations of a nucleotide sequence.
@@ -1683,7 +1683,9 @@ class Reads:
         """
         return []
 
-    def save(self, filename: Union[str, TextIO], format_: str = "fasta") -> int:
+    def save(
+        self, filename: Union[str, TextIO], format_: str = "fasta", mode: str = "w"
+    ) -> int:
         """
         Write the reads to C{filename} in the requested format.
 
@@ -1691,6 +1693,8 @@ class Reads:
             be overwritten) or an open file descriptor (e.g., sys.stdout).
         @param format_: A C{str} format to save as, either 'fasta', 'fastq' or
             'fasta-ss'.
+        @param mode: The mode to open the file with (if C{filename}) is not already
+            an open file.
         @raise ValueError: if C{format_} is 'fastq' and a read with no quality
             is present, or if an unknown format is requested.
         @return: An C{int} giving the number of reads in C{self}.
@@ -1700,7 +1704,7 @@ class Reads:
 
         if isinstance(filename, (str, Path)):
             try:
-                with open(filename, "w") as fp:
+                with open(filename, mode) as fp:
                     for read in iter(self):
                         fp.write(read.toString(format_))
                         count += 1
@@ -1937,8 +1941,7 @@ class Reads:
             if genome.id == firstPostId:
                 if postIdFound:
                     raise ValueError(
-                        f"Delimiting sequence id {firstPostId!r} "
-                        f"found more than once!"
+                        f"Delimiting sequence id {firstPostId!r} found more than once!"
                     )
                 postIdFound = True
 
@@ -1952,8 +1955,7 @@ class Reads:
                     else:
                         if genome.id in preIdsFound:
                             raise ValueError(
-                                f"Pre-id sequence {genome.id!r} "
-                                f"found more than once!"
+                                f"Pre-id sequence {genome.id!r} found more than once!"
                             )
                         preIdsFound.add(genome.id)
 
@@ -1970,7 +1972,7 @@ class Reads:
 
         if not postIdFound:
             raise ValueError(
-                f"The delimiting sequence id {firstPostId!r} " f"was not found."
+                f"The delimiting sequence id {firstPostId!r} was not found."
             )
 
         if preIds and preIds != preIdsFound:
@@ -1979,7 +1981,7 @@ class Reads:
                 raise ValueError(f"Pre-id {missing[0]!r} not found.")
             else:
                 raise ValueError(
-                    f"{len(missing)} pre-ids " f'({", ".join(missing)}) was not found.'
+                    f"{len(missing)} pre-ids ({', '.join(missing)}) was not found."
                 )
 
         # Look for bases (that occurred in the post-sequences) that are new

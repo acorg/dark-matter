@@ -1,3 +1,8 @@
+## 5.0.43 August 14, 2025
+
+Added `mode` argument to `Reads.save` method to make it possible to append to
+an existing file.
+
 ## 5.0.42 July 24, 2025
 
 Slightly refactor `bin/compare-sequences.py`.
