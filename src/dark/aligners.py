@@ -239,7 +239,9 @@ def removeUnnecessaryGaps(
             return seq1, seq2
 
 
-# Note that this has a fixed gap char ("-").
+# Note that this has a fixed gap char ("-"). The regex matches a non-empty sequence of
+# gaps (via "-+") followed by a non-empty sequence of non-gaps (i.e., nucleotides) (via
+# "[^-]+"), and collects both of the matching parts into groups named 'gaps' and 'nt'.
 EDLIB_GAP_RE = re.compile("(?P<gaps>-+)(?P<nt>[^-]+)")
 
 
@@ -257,16 +259,11 @@ def _canonicalizeFirstGap(seq1: str, seq2: str, pos: int = 0) -> Tuple[int, str,
     for match in EDLIB_GAP_RE.finditer(seq2, pos=pos):
         gaps_start, gaps_end = match.span("gaps")
         nt_start, nt_end = match.span("nt")
-        # print(f"Seq-1 {seq1!r}")
-        # print(
-        # f"Seq-2 {seq2!r}: {gaps_start = }, {gaps_end = }, {nt_start = }, {nt_end = }"
-        # )
-
         nt_len = nt_end - nt_start
+
         for nt_prefix_len in range(nt_len, 0, -1):
             prefix = seq2[nt_start : nt_start + nt_prefix_len]
             seq1_target = seq1[gaps_start : gaps_start + nt_prefix_len]
-            # print(f"  {prefix = }, {seq1_target = }")
             if prefix == seq1_target:
                 seq2 = (
                     seq2[:gaps_start]
@@ -276,10 +273,9 @@ def _canonicalizeFirstGap(seq1: str, seq2: str, pos: int = 0) -> Tuple[int, str,
                     + seq2[nt_end:]
                 )
 
-                # print(f"Returns {seq2!r}")
                 return gaps_start + nt_prefix_len, seq1, seq2
 
-    # print("Failed to find a canonicalization.")
+    # No canonicalization could be found.
     return -1, seq1, seq2
 
 
@@ -291,6 +287,27 @@ def canonicalizeAllGaps(seq1: str, seq2: str) -> Tuple[str, str]:
     @param seq2: A C{str} sequence string.
     @return: A 2-C{tuple} of C{str} sequences with gaps merged.
     """
+
+    # We canonicalize by moving the nucleotides to the right (i.e., the gaps to the
+    # left) because it undoes the greedy matching of edlib which matches as early as it
+    # can. In many cases (with closely matching sequences where there is a gap) you
+    # would get a better match (fewer gaps) if you waited. You can see an extreme
+    # example of this in the final tests (e.g., testLongExample) in
+    # ../../tests/test_aligners.py. That test acts on an actual output of edlib. This
+    # approach to canonicalization gives you (at least in the small number of cases I
+    # have looked at) the same result you get from MAFFT. MAFFT gets it "right" because
+    # it has a penalty for opening a new gap, so it is disinclined to make that decision
+    # if there is something more parsimonious. That also makes it much slower because it
+    # has to examine many (alignment) paths. edlib just zips along doing something very
+    # simple (greedy matching). Fortunately it's so basic that it's easy to improve, at
+    # least in these obvious cases of just shifting the nucletotides to the right (if
+    # they match at the end of the gap edlib has opened).
+    #
+    # The action takes place in _canonicalizeFirstGap (above), but I'm describing it
+    # here where the initial and final sequence reversals happen. In between we
+    # repeatedly call _canonicalizeFirstGap until it cannot find anymore gaps to
+    # canonicalize.
+    
     pos = 0
     seq1 = seq1[::-1]
     seq2 = seq2[::-1]
