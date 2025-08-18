@@ -1,7 +1,7 @@
 .PHONY: pytest ruff nox wc clean clobber upload
 
 XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
-VERSION := $(shell grep __version__ src/dark/__init__.py | cut -f2 -d'"')
+VERSION := $(shell grep -m 1 __version__ src/dark/__init__.py | cut -f2 -d'"')
 
 pytest:
 	uv run pytest
