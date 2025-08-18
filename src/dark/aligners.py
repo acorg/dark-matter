@@ -1,4 +1,5 @@
 import multiprocessing
+import re
 import sys
 from os.path import join
 from shutil import rmtree
@@ -194,7 +195,7 @@ def removeFirstUnnecessaryGaps(
         # (below) and it only calls removeUnnecessaryGaps (also below) when
         # both original sequences have a different length from their
         # aligned versions. In that case there must be at least one gap in
-        # both sequences.  But for now this is not considered an error
+        # both sequences. But for now this is not considered an error
         # because we may not have been called by removeUnnecessaryGaps.
         return False, "", ""
 
@@ -237,9 +238,67 @@ def removeUnnecessaryGaps(
         else:
             return seq1, seq2
 
-    raise RuntimeError(
-        "Fell off the end of removeFirstUnnecessaryGaps. This should be impossible!"
-    )
+
+# Note that this has a fixed gap char ("-").
+EDLIB_GAP_RE = re.compile("(?P<gaps>-+)(?P<nt>[^-]+)")
+
+
+def _canonicalizeFirstGap(seq1: str, seq2: str, pos: int = 0) -> Tuple[int, str, str]:
+    """
+    Canonicalize a first gap (starting from 'pos'), if any.
+
+    @param seq1: A C{str} sequence string.
+    @param seq2: A C{str} sequence string.
+    @return: A 3-C{tuple} of an int to indicate where we are up to in seq2
+        (with -1 to indicate that no canonicalizations were possible)
+        and two C{str} sequences with the first gap canonicalized (if possible).
+    """
+
+    for match in EDLIB_GAP_RE.finditer(seq2, pos=pos):
+        gaps_start, gaps_end = match.span("gaps")
+        nt_start, nt_end = match.span("nt")
+        # print(f"Seq-1 {seq1!r}")
+        # print(
+        # f"Seq-2 {seq2!r}: {gaps_start = }, {gaps_end = }, {nt_start = }, {nt_end = }"
+        # )
+
+        nt_len = nt_end - nt_start
+        for nt_prefix_len in range(nt_len, 0, -1):
+            prefix = seq2[nt_start : nt_start + nt_prefix_len]
+            seq1_target = seq1[gaps_start : gaps_start + nt_prefix_len]
+            # print(f"  {prefix = }, {seq1_target = }")
+            if prefix == seq1_target:
+                seq2 = (
+                    seq2[:gaps_start]
+                    + prefix
+                    + "-" * (gaps_end - gaps_start)
+                    + seq2[nt_start + nt_prefix_len : nt_end]
+                    + seq2[nt_end:]
+                )
+
+                # print(f"Returns {seq2!r}")
+                return gaps_start + nt_prefix_len, seq1, seq2
+
+    # print("Failed to find a canonicalization.")
+    return -1, seq1, seq2
+
+
+def canonicalizeAllGaps(seq1: str, seq2: str) -> Tuple[str, str]:
+    """
+    Canonicalize all gaps by shifting nucleotides to the right of gaps.
+
+    @param seq1: A C{str} sequence string.
+    @param seq2: A C{str} sequence string.
+    @return: A 2-C{tuple} of C{str} sequences with gaps merged.
+    """
+    pos = 0
+    seq1 = seq1[::-1]
+    seq2 = seq2[::-1]
+
+    while pos != -1:
+        pos, seq1, seq2 = _canonicalizeFirstGap(seq1, seq2, pos)
+
+    return seq1[::-1], seq2[::-1]
 
 
 def edlibAlign(
@@ -248,6 +307,7 @@ def edlibAlign(
     minimizeGaps: bool = True,
     onlyTwoSequences: bool = True,
     matchAmbiguous: bool = True,
+    canonicalizeGaps: bool = True,
 ) -> Reads:
     """
     Run an edlib alignment and return the sequences.
@@ -255,12 +315,52 @@ def edlibAlign(
     @param reads: An iterable of at least two reads. The reads must not contain
         C{gapSymbol}.
     @param gapSymbol: A C{str} 1-character symbol to use for gaps.
-    @param minimizeGaps: If C{True}, post-process the edlib output to remove
-        unnecessary gaps.
+    @param minimizeGaps: Post-process the edlib output to remove unnecessary gaps.
     @param onlyTwoSequences: Ensure that C{reads} only has two reads.
     @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
         possibly correct as actually being correct. Otherwise, we are strict
         and nucleotide codes only match themselves.
+    @param canonicalizeGaps: Post-process the edlib output so that nucleotides
+        that could have been at the end of a gap (instead of in the middle of
+        a gap, thereby creating two gaps) are moved to the gap end. This results
+        in unecessary gaps being merged.
+
+        For example, in this alignment:
+
+            ACTCTGACGTC
+            ACT--G---TC
+
+        the G in the second row could equivalently have been placed at the end of
+        a single gap:
+
+            ACTCTGACGTC
+            ACT-----GTC
+
+        The single gap is more akin to what MAFFT does because it is reluctant to
+        open a new gap. edlib doesn't work in that way, it greedily aligns whatever
+        it can as it works its way through the two sequences.
+
+        Here's an example where gaps aren't merged but matching nucleotides are
+        moved to the end of the gap. This:
+
+            ACTCGACGTC
+            ACTCG---TC
+
+        becomes this:
+
+            ACTCGACGTC
+            ACT---CGTC
+
+        Here is a more extreme example. This alignment with 13 gaps:
+
+            ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC
+            A-----G----AT-C-T-----G-T-----------T--C--TCT-----A-A----------A--CGAAC
+
+        is equivalent (in terms of matched nucleotides) to this alignment with 1 gap:
+
+            ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC
+            --------------------------------------------------AGATCTGTTCTCTAAACGAAC
+
     @raise ValueError: If C{onlyTwoSequences} is C{True} and there are more
        than two reads passed or if the gap symbol is already present in either
        of the reads.
@@ -300,6 +400,11 @@ def edlibAlign(
     # the length of both sequences has changed.
     if minimizeGaps and len(seq1) != len(r1) and len(seq2) != len(r2):
         seq1, seq2 = removeUnnecessaryGaps(seq1, seq2, gapSymbol)
+
+    if canonicalizeGaps:
+        # Note that we don't pass the gap symbol here. edlib uses "-" and we can't
+        # (and don't want/need to) change that.
+        seq1, seq2 = canonicalizeAllGaps(seq1, seq2)
 
     return Reads([r1.__class__(r1.id, seq1), r2.__class__(r2.id, seq2)])
 

@@ -1,6 +1,6 @@
 [project]
 name = "dark-matter"
-dynamic = ["version"]
+version = "5.0.44"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -53,9 +53,6 @@ package-dir = {"" = "src"}
 packages = ["dark"]
 data-files = {"bin" = ["bin/*"]}
 
-[tool.setuptools.dynamic]
-version = {attr = "dark.__version__"}
-
 [dependency-groups]
 dev = [
     "nox>=2025.5.1",
@@ -63,7 +60,7 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/acorg/dark-matter"
+Homepage = "https://github.com/acorg/dark-matter"
 "Bug Tracker" = "https://github.com/acorg/dark-matter/issues"
 
 [tool.basedpyright]

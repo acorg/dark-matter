@@ -1,10 +1,12 @@
 import sys
+from importlib.metadata import PackageNotFoundError, version
 
-if sys.version_info < (3, 9):
-    raise Exception("The dark matter code needs Python 3.9 or later.")
+if sys.version_info < (3, 10):
+    raise Exception("The dark matter code needs Python 3.10 or later.")
 
-# Note that the version string below must have the following format,
-# otherwise it will not be found by the version() function in ../setup.py
-#
-# Remember to update ../CHANGELOG.md describing what's new in each version.
-__version__ = "5.0.43"
+
+try:
+    __version__ = version("dark-matter")
+except PackageNotFoundError:
+    # Package is not installed.
+    __version__ = "unknown"

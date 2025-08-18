@@ -1,3 +1,7 @@
+## 5.0.44 August 18, 2025
+
+Add gap canonicalization to `edlib` alignment output.
+
 ## 5.0.43 August 14, 2025
 
 Added `mode` argument to `Reads.save` method to make it possible to append to
