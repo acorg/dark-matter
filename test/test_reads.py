@@ -720,6 +720,33 @@ class TestRead(TestCase):
             Read("id1", "ATCGAT", "123456"), Read("id1", "TAGCTA", "654321").reverse()
         )
 
+    def testRotateEmptyStringZero(self):
+        """
+        Rotating an empty read by zero must leave it unchanged.
+        """
+        read = Read("id", "")
+        result = read.rotate(0)
+        self.assertEqual(read, result)
+        self.assertIs(read, result)
+
+    def testRotateEmptyStringLeft(self):
+        """
+        Rotating an empty read left must leave it unchanged.
+        """
+        read = Read("id", "")
+        result = read.rotate(-1)
+        self.assertEqual(read, result)
+        self.assertIs(read, result)
+
+    def testRotateEmptyStringRight(self):
+        """
+        Rotating an empty read right must leave it unchanged.
+        """
+        read = Read("id", "")
+        result = read.rotate(1)
+        self.assertEqual(read, result)
+        self.assertIs(read, result)
+
     def testRotateZeroInPlace(self):
         """
         Rotating a read by zero must leave it unchanged.
