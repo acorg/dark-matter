@@ -207,7 +207,7 @@ class Read(Sized):
         sequence = self.sequence
         quality = self.quality
 
-        if n == 0:
+        if n == 0 or not sequence:
             newSequence = sequence
             newQuality = quality
         elif n > 0:

@@ -1,3 +1,7 @@
+## 5.0.45 August 26, 2025
+
+Tiny bugfix to rotating a read for when the read sequence is empty.
+
 ## 5.0.44 August 18, 2025
 
 Add gap canonicalization to `edlib` alignment output.
