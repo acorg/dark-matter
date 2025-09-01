@@ -1,11 +1,13 @@
 from unittest import TestCase
 
 from dark.alignments import (
+    alignmentEnd,
     Alignment,
     ReadAlignments,
     ReadsAlignments,
     ReadsAlignmentsParams,
     bestAlignment,
+    getGappedOffsets,
 )
 from dark.hsp import HSP, LSP
 from dark.reads import Read, Reads
@@ -224,3 +226,96 @@ class TestReadsAlignments(TestCase):
             readsAlignments.getSubjectSequence,
             "title",
         )
+
+class TestAlignmentEnd(TestCase):
+    """
+    Test the alignmentEnd function.
+    """
+
+    def testOffsetIndexError(self):
+        """
+        If the start index is greater than the length of the passed string, an
+        IndexError should be raised.
+        """
+        error = r"^string index out of range$"
+        self.assertRaisesRegex(IndexError, error, alignmentEnd, "", 4, 1)
+
+    def testLengthTooLarge(self):
+        """
+        If the initial offset plus the length is greater than the length of the
+        (non-gaps) in the passed string, an IndexError should be raised.
+        """
+        error = r"^string index out of range$"
+        self.assertRaisesRegex(IndexError, error, alignmentEnd, "ACCG", 2, 5)
+
+    def testSequenceTooShort(self):
+        """
+        If the passed sequence is long enough (with respect to the passed
+        offset and length) but doesn't have enough non-gap characters, an
+        IndexError should be raised.
+        """
+        error = r"^string index out of range$"
+        self.assertRaisesRegex(IndexError, error, alignmentEnd, "CC--------T-", 2, 5)
+
+    def testEmptyString(self):
+        """
+        Looking for a zero length section of a zero length string starting
+        at offset zero should get a result of zero.
+        """
+        self.assertEqual(0, alignmentEnd("", 0, 0))
+
+    def testNonZeroNoGaps(self):
+        """
+        Passing a non-zero start offset and a string with no gaps should work.
+        """
+        self.assertEqual(3, alignmentEnd("ACCTA", 1, 2))
+
+    def testZeroWithOneGap(self):
+        """
+        Passing a zero start offset and a string with one gap should work.
+        """
+        self.assertEqual(3, alignmentEnd("A-CCTA", 0, 2))
+
+    def testZeroWithTwoGaps(self):
+        """
+        Passing a zero start offset and a string with two gaps should work.
+        """
+        self.assertEqual(4, alignmentEnd("A--CCTA", 0, 2))
+
+    def testZeroWithTwoGapsNonContiguous(self):
+        """
+        Passing a zero start offset and a string with two gaps that are not
+        contiguous should work.
+        """
+        self.assertEqual(5, alignmentEnd("A-C-CTA", 0, 3))
+
+    def testNonZeroWithTwoGapsNonContiguous(self):
+        """
+        Passing a non-zero start offset and a string with two gaps that are not
+        contiguous should work.
+        """
+        self.assertEqual(7, alignmentEnd("TTA-C-CTA", 2, 3))
+
+
+class TestGetGappedOffsets(TestCase):
+    """
+    Test the getGappedOffsets function.
+    """
+
+    def testEmpty(self):
+        """
+        An empty string should get back an empty dictionary.
+        """
+        self.assertEqual({}, getGappedOffsets(""))
+
+    def testOnlyGaps(self):
+        """
+        An string of gaps should get back an empty dictionary.
+        """
+        self.assertEqual({}, getGappedOffsets("---"))
+
+    def testGapsBefore(self):
+        """
+        If there are gaps before the bases, the offsets must be correct.
+        """
+        self.assertEqual({0: 2, 1: 3, 2: 4}, getGappedOffsets("--CC"))
