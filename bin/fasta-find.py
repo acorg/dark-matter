@@ -66,7 +66,7 @@ def getParser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--end",
         action="store_true",
-        help=(f"Print the index of the end of the match, not the start."),
+        help="Print the index of the end of the match, not the start.",
     )
 
     parser.add_argument(
