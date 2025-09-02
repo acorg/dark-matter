@@ -17,7 +17,8 @@ def getParser() -> argparse.ArgumentParser:
             "Given FASTA on stdin and a sequence (or genome region) to find, write "
             "information about (potentially overlapping) matches (and, optionally, "
             "reversed, complemented, or reversed complement matches), to standard "
-            "output."
+            "output. Offsets are inclusive and 1-based unless --zeroBased is used "
+            "(in which case they are 0-based closed/open offsets as used in Python). "
         )
     )
 
@@ -74,8 +75,7 @@ def getParser() -> argparse.ArgumentParser:
         "--offsetsOnly",
         action="store_true",
         help=(
-            "Only print the matching offset (or offsets, separated by the "
-            "--sep value)."
+            "Only print the matching offset (or offsets, separated by the --sep value)."
         ),
     )
 
@@ -140,7 +140,13 @@ def getParser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--zeroBased", action="store_true", help="Print zero-based matched offsets."
+        "--zeroBased",
+        action="store_true",
+        help=(
+            "Return Python-style zero-based closed/open match offsets. When --end is "
+            "used, the output offset will be for the character that follows the end of "
+            "the match (i.e., it is not part of the match)."
+        )
     )
 
     parser.add_argument(
@@ -252,7 +258,7 @@ def main() -> None:
             sequence = sequence.upper()
             origSequence = origSequence.upper()
 
-        matches = set()
+        matches: set[tuple[int, int]] = set()
 
         for thisTarget, orientation in zip(targets, orientations):
             start = 0
@@ -279,12 +285,10 @@ def main() -> None:
             )
 
         if matches:
-            adjust = 0 if args.zeroBased else 1
+            adjust = 0 if args.end or args.zeroBased else 1
+
             if args.offsetsOnly:
-                fields = [
-                        str(index + adjust)
-                        for index, _ in sorted(matches)
-                ]
+                fields = [str(index + adjust) for index, _ in sorted(matches)]
             else:
                 fields = [
                     read.id,
@@ -297,7 +301,9 @@ def main() -> None:
 
                 if args.printSequences:
                     for thisTarget, orientation in zip(targets, orientations):
-                        fields.append(("sequence%s = " % SUFFIX[orientation]) + thisTarget)
+                        fields.append(
+                            ("sequence%s = " % SUFFIX[orientation]) + thisTarget
+                        )
 
             print(args.sep.join(fields))
 
