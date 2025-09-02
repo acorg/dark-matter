@@ -15,8 +15,9 @@ def getParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Given FASTA on stdin and a sequence (or genome region) to find, write "
-            "information about matches (and, optionally, reversed, complemented, or "
-            "reversed complement matches), to standard output."
+            "information about (potentially overlapping) matches (and, optionally, "
+            "reversed, complemented, or reversed complement matches), to standard "
+            "output."
         )
     )
 
