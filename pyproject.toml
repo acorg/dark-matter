@@ -74,6 +74,9 @@ Homepage = "https://github.com/acorg/dark-matter"
     ".venv",
   ]
   ignore = []
+  reportAny = false
+  reportImplicitStringConcatenation = false
+  reportUnusedCallResult = false
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
