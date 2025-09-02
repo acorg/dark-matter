@@ -521,3 +521,82 @@ class ReadsAlignments:
         """
         self._filters.append(ReadsAlignmentsFilter(**kwargs).filter)
         return self
+
+
+def getGappedOffsets(s: str, gapChar: str = "-") -> dict:
+    """Make a dictionary mapping offsets in a sequence with no gaps to the
+    equivalent offset in a gapped sequence.
+
+    Our caller will use the mapping to convert an offset in an unaligned
+    sequence to the equivalent offset in an alignment of that sequence.
+
+    I.e., an alignment to a reference has already been done, resulting in our
+    argument (s, the reference with gaps inserted). Now we want examine the
+    aligned reference sequence and return something that will allow code that
+    has an offset into the original unaligned, (i.e., ungapped) reference to
+    find the equivalent position in an alignment (either in the aligned
+    reference (our s) or in a genome that was aligned to the reference).
+
+    Equivalently, we are given C{s}, which is an aligned sequence
+    (potentially) with gaps in it and we want a mapping that will allow us to
+    go from an offset in the original string C{s} (i.e., before it was
+    aligned) to the equivalent offset in the aligned (with gaps) string that
+    we have been passed. This function returns such a mapping (a C{dict})
+
+    @param s: A C{str} sequence, possibly with gap ('-') characters.
+    @return: A C{dict} mapping C{int} offsets in the sequence without its
+        gaps to equivalent C{int} offsets in C{s}, when gaps are ignored.
+
+    """
+    result = {}
+    gapCount = index = 0
+
+    # To build the mapping, we walk through s. If we see a gap we just count it. Non-gap
+    # offsets go into the map with their offset plus the number of gaps that have been
+    # encountered before them.
+    for base in s:
+        if base == gapChar:
+            gapCount += 1
+        else:
+            result[index] = index + gapCount
+            index += 1
+
+    # Sanity check that the result mapping has an entry for all the offsets in the
+    # original string (before it was aligned).  This check can be removed one day,
+    # seeing as there are tests for this function.
+    assert set(result) == set(range(len(s) - s.count(gapChar)))
+
+    # If we have a non-empty result, add a final offset corresponding to the length of
+    # the original string. This allows us to use Python indexing in the case of wanting
+    # to convert an offset that is one beyond the end of the string.
+    if result:
+        assert index == len(s) - s.count(gapChar)
+        result[index] = index + gapCount
+
+    return result
+
+
+def alignmentEnd(s: str, startOffset: int, length: int, gapChar: str = "-") -> int:
+    """
+    Find the offset where an aligned sequence (i.e., potentially with gaps in
+    it) of a given length ends.
+
+    In other words, starting at C{startOffset}, look through C{s} until we have
+    seen C{length} non-gap chars and return the corresponding index in C{s}.
+
+    @param s: A C{str} sequence, possibly with gap ('-') characters.
+    @param startOffset: The C{int} offset to start scanning from.
+    @param length: The C{int} length of the (ungapped) original sequence
+        that was aligned (to produce C{s}, with the alignment gaps in it).
+    @param gapChar: The (length one) gap character.
+    @return: The C{int} offset in C{s} (the alignment) where the original
+        sequence ends, taking the gaps in C{s} into account.
+    """
+    nonGapCount = 0
+    index = startOffset
+
+    while nonGapCount < length:
+        nonGapCount += s[index] != gapChar
+        index += 1
+
+    return index

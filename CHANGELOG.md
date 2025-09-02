@@ -1,3 +1,12 @@
+## 5.0.46 September 2, 2025
+
+Added `--ignoreGaps`, `--gapCharacter`, and `--end` to `bin/fasta-find.py`.
+The former makes it possible to search for sequences in gapped FASTA files
+(e.g., those produced in a multiple-sequence alignment). The `--end` option
+tells `bin/fasta-find.py` to report the offset of the end of the
+match. Together these options make it possible to find the start and end of a
+nucleotide sequence in gapped sequences.
+
 ## 5.0.45 August 26, 2025
 
 Tiny bugfix to rotating a read for when the read sequence is empty.
@@ -17,7 +26,8 @@ Slightly refactor `bin/compare-sequences.py`.
 
 ## 5.0.41 June 12, 2025
 
-Third time lucky? Fix reporting of number of reads (as opposed to read ids) in `bin/sam-coverage-depth.py`.
+Third time lucky? Fix reporting of number of reads (as opposed to read ids)
+in `bin/sam-coverage-depth.py`.
 
 ## 5.0.40 June 12, 2025
 
@@ -965,7 +975,8 @@ Drop Python2 from Travis and tox checking. Ugh.
 
 ## 3.1.34 Jan 13, 2020
 
-Made sequence translation code work under Python 2 (again, even more hopefully than the last time).
+Made sequence translation code work under Python 2 (again, even more
+hopefully than the last time).
 
 ## 3.1.33 Jan 13, 2020
 
