@@ -70,6 +70,24 @@ def getParser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--offsetsOnly",
+        action="store_true",
+        help=(
+            "Only print the matching offset (or offsets, separated by the "
+            "--sep value)."
+        ),
+    )
+
+    parser.add_argument(
+        "--checkMatchCount",
+        type=int,
+        help=(
+            "The expected match count. This can be used to force an error if the "
+            "number of occurrences of the search pattern found is not as expected."
+        ),
+    )
+
+    parser.add_argument(
         "--caseSensitive",
         action="store_true",
         help="Do not ignore upper/lower case when matching.",
@@ -252,20 +270,33 @@ def main() -> None:
                         matches.add((index, orientation))
                     start = index + 1
 
+        if args.checkMatchCount is not None and len(matches) != args.checkMatchCount:
+            sys.exit(
+                f"{len(matches)} {'match was' if len(matches) == 1 else 'matches were'} "
+                f"found for sequence {read.id!r}, but {args.checkMatchCount} "
+                f"{'was' if args.checkMatchCount == 1 else 'were'} expected."
+            )
+
         if matches:
             adjust = 0 if args.zeroBased else 1
-            fields = [
-                read.id,
-                "%d match%s" % (len(matches), "" if len(matches) == 1 else "es"),
-                ", ".join(
-                    str(index + adjust) + SUFFIX[orientation]
-                    for index, orientation in sorted(matches)
-                ),
-            ]
+            if args.offsetsOnly:
+                fields = [
+                        str(index + adjust)
+                        for index, _ in sorted(matches)
+                ]
+            else:
+                fields = [
+                    read.id,
+                    "%d match%s" % (len(matches), "" if len(matches) == 1 else "es"),
+                    ", ".join(
+                        str(index + adjust) + SUFFIX[orientation]
+                        for index, orientation in sorted(matches)
+                    ),
+                ]
 
-            if args.printSequences:
-                for thisTarget, orientation in zip(targets, orientations):
-                    fields.append(("sequence%s = " % SUFFIX[orientation]) + thisTarget)
+                if args.printSequences:
+                    for thisTarget, orientation in zip(targets, orientations):
+                        fields.append(("sequence%s = " % SUFFIX[orientation]) + thisTarget)
 
             print(args.sep.join(fields))
 

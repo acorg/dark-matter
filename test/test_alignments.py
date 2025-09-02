@@ -1,11 +1,11 @@
 from unittest import TestCase
 
 from dark.alignments import (
-    alignmentEnd,
     Alignment,
     ReadAlignments,
     ReadsAlignments,
     ReadsAlignmentsParams,
+    alignmentEnd,
     bestAlignment,
     getGappedOffsets,
 )
