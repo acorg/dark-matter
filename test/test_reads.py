@@ -844,6 +844,83 @@ class TestRead(TestCase):
         self.assertIsNot(read, result)
 
 
+class TestFind(TestCase):
+    """
+    Test the find method of the Read class.
+    """
+
+    def testNotMatched(self):
+        """
+        find must return -1 if the pattern doesn't match.
+        """
+        self.assertEqual(Read("id", "ACGT").find("XXX"), -1)
+
+    def testOffsetZero(self):
+        """
+        find must return 0 if the pattern is at the start of the read.
+        """
+        self.assertEqual(Read("id", "ACGT").find("AC"), 0)
+
+    def testOffsetOneWithStartOne(self):
+        """
+        find must return 1 if the pattern is in the first two positions of the read
+        but we pass start=1.
+        """
+        self.assertEqual(Read("id", "AAACGT").find("AA", start=1), 1)
+
+    def testCaseSensitiveMiss(self):
+        """
+        find must return -1 if the pattern is in the read but with the wrong case.
+        """
+        self.assertEqual(Read("id", "ACGT").find("ac"), -1)
+
+    def testCaseInsensitive(self):
+        """
+        find must find a pattern when told to match case insensitively.
+        """
+        self.assertEqual(Read("id", "ACGT").find("ac", caseSensitive=False), 0)
+
+    def testFindEnd(self):
+        """
+        find must return the end of the match if told to.
+        """
+        self.assertEqual(Read("id", "AAACGT").find("AC", end=True), 4)
+
+    def testIgnoreGaps(self):
+        """
+        find must return an index into a gapped sequence.
+        """
+        self.assertEqual(Read("id", "A--A-A--C-GT").find("AC", ignoreGaps=True), 5)
+
+    def testIgnoreGapsEnd(self):
+        """
+        find must return an index into a gapped sequence when 'end' is true.
+        """
+        self.assertEqual(
+            Read("id", "A--A-A--C-GT").find("AC", ignoreGaps=True, end=True), 9
+        )
+
+    def testAllOptions(self):
+        """
+        find must return the correct index when matching case sensitively from a given
+        start offset into a gapped sequence.
+        """
+        self.assertEqual(
+            Read("id", "AC-ac--A-A--C-GT").find("AC", ignoreGaps=True, start=5),
+            9,
+        )
+
+    def testAllOptionsEnd(self):
+        """
+        find must return the correct index when matching case sensitively from a given
+        start offset into a gapped sequence and 'end' is true.
+        """
+        self.assertEqual(
+            Read("id", "AC-ac--A-A--C-GT").find("AC", ignoreGaps=True, start=5, end=True),
+            13,
+        )
+
+
 class TestDNARead(TestCase):
     """
     Tests for the DNARead class.
@@ -1999,7 +2076,7 @@ class _TestSSAAReadMixin:
         the structure information).
         """
         self.assertEqual(
-            ">id-1234\n" "FFMM\n" ">id-1234:structure\n" "HHHH\n",
+            ">id-1234\nFFMM\n>id-1234:structure\nHHHH\n",
             self.CLASS("id-1234", "FFMM", "HHHH").toString(),
         )
 
@@ -2009,7 +2086,7 @@ class _TestSSAAReadMixin:
         specific structure id suffix.
         """
         self.assertEqual(
-            ">id-12\n" "FFMM\n" ">id-12:x\n" "HHHH\n",
+            ">id-12\nFFMM\n>id-12:x\nHHHH\n",
             self.CLASS("id-12", "FFMM", "HHHH").toString(structureSuffix=":x"),
         )
 
@@ -2019,7 +2096,7 @@ class _TestSSAAReadMixin:
         passed as the C{format_} argument.
         """
         self.assertEqual(
-            ">id-1234\n" "FFMM\n" ">id-1234:structure\n" "HHHH\n",
+            ">id-1234\nFFMM\n>id-1234:structure\nHHHH\n",
             self.CLASS("id-1234", "FFMM", "HHHH").toString(format_="fasta-ss"),
         )
 
@@ -2029,7 +2106,7 @@ class _TestSSAAReadMixin:
         C{format_} argument.
         """
         self.assertEqual(
-            ">id-1234\n" "FFMM\n",
+            ">id-1234\nFFMM\n",
             self.CLASS("id-1234", "FFMM", "HHHH").toString(format_="fasta"),
         )
 

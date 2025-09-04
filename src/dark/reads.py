@@ -368,6 +368,59 @@ class Read(Sized):
 
         return read
 
+    def find(
+        self,
+        pattern: str,
+        start: int = 0,
+        end: bool = False,
+        caseSensitive: bool = True,
+        ignoreGaps: bool = False,
+        gapCharacter: str = "-",
+    ) -> int:
+        """
+        Find the first occurrence (from a given offset) of a pattern in our sequence.
+
+        @param pattern: The subsequence to look for. Note that this is not a regular
+            expression (we could add support for that).
+        @param start: The offset to start searching from.
+        @param end: If true, return the index of the end of the match. Note that this
+            is the Python offset of the character immediately after the end of the
+            matched string (conveniently, for a human counting from 1, this is the
+            inclusive index of the end of the match).
+        @param caseSensitive: If true, match the unchanged sequence and pattern. Else,
+            the match is done case-insensitively.
+        @param ignoreGaps: If true, gaps will be removed from both the read sequence
+            and the pattern before the search. The returned offset is still into the
+            original (gapped) sequence. This is useful for finding a sequence in a
+            gapped multiple sequence alignment.
+        @param gapCharacter: The single character used to indicate a gap. Only used
+            if ignoreGaps is true.
+        @return: The index of the pattern in self.sequence (or the index just beyond the
+            pattern if C{end} is true), or -1 if the pattern is not found.
+        """
+        # Avoid a circular import.
+        from dark.alignments import alignmentEnd, getGappedOffsets
+
+        sequence = origSequence = self.sequence
+
+        if ignoreGaps:
+            gappedOffsets = getGappedOffsets(sequence)
+            sequence = sequence.replace(gapCharacter, "")
+
+        if not caseSensitive:
+            sequence = sequence.upper()
+            pattern = pattern.upper()
+
+        index = sequence.find(pattern, start)
+
+        if index != -1:
+            if ignoreGaps:
+                index = gappedOffsets[index]
+            if end:
+                index = alignmentEnd(origSequence, index, len(pattern), gapCharacter)
+
+        return index
+
 
 class _NucleotideRead(Read):
     """
