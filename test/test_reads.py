@@ -886,18 +886,32 @@ class TestFind(TestCase):
         """
         self.assertEqual(Read("id", "AAACGT").find("AC", end=True), 4)
 
+    def testIgnoreGapsEmptyRead(self):
+        """
+        find must return -1 if we look for a pattern in a string that is all gaps
+        and ignoreGaps is true.
+        """
+        self.assertEqual(Read("id", "-----").find("AC", ignoreGaps=True), -1)
+
+    def testIgnoreGapsEmptyPattern(self):
+        """
+        find must return -1 if we look for a pattern that is all gaps and ignoreGaps
+        is true.
+        """
+        self.assertEqual(Read("id", "AC").find("--", ignoreGaps=True), -1)
+
     def testIgnoreGaps(self):
         """
-        find must return an index into a gapped sequence.
+        find must return a correct index into a gapped sequence.
         """
-        self.assertEqual(Read("id", "A--A-A--C-GT").find("AC", ignoreGaps=True), 5)
+        self.assertEqual(Read("id", "A--A-A--C-GT").find("ACG", ignoreGaps=True), 5)
 
     def testIgnoreGapsEnd(self):
         """
         find must return an index into a gapped sequence when 'end' is true.
         """
         self.assertEqual(
-            Read("id", "A--A-A--C-GT").find("AC", ignoreGaps=True, end=True), 9
+            Read("id", "A--A-A--C-GT").find("ACG", ignoreGaps=True, end=True), 11
         )
 
     def testAllOptions(self):
