@@ -3,12 +3,16 @@
 import argparse
 import sys
 
-from dark.alignments import alignmentEnd, getGappedOffsets
 from dark.reads import DNARead, addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 FORWARD, REVERSE, COMPLEMENT, REVERSE_COMPLEMENT = 0, 1, 2, 3
 
-SUFFIX = {FORWARD: "", REVERSE: " (r)", COMPLEMENT: " (c)", REVERSE_COMPLEMENT: " (rc)"}
+SUFFIX = {
+    FORWARD: "",
+    REVERSE: " (r)",
+    COMPLEMENT: " (c)",
+    REVERSE_COMPLEMENT: " (rc)",
+}
 
 
 def getParser() -> argparse.ArgumentParser:
@@ -24,7 +28,7 @@ def getParser() -> argparse.ArgumentParser:
 
     group = parser.add_mutually_exclusive_group(required=True)
 
-    group.add_argument("--sequence", help="The sequence to look for.")
+    group.add_argument("--pattern", "--sequence", help="The sequence to look for.")
 
     group.add_argument(
         "--region",
@@ -106,26 +110,6 @@ def getParser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--includeShortGenomes",
-        action="store_true",
-        help=(
-            "Try to match region sequences that are shorter than "
-            "the length of the given region (assuming they are "
-            "non-empty) due to the input sequence being too short."
-        ),
-    )
-
-    parser.add_argument(
-        "--noShortGenomeWarning",
-        dest="reportShortGenomes",
-        action="store_false",
-        help=(
-            "Do not report (to standard error) when sequences are shorter "
-            "than the length of the given region due to being too short."
-        ),
-    )
-
-    parser.add_argument(
         "--printTrivialMatch",
         action="store_true",
         help=(
@@ -146,7 +130,7 @@ def getParser() -> argparse.ArgumentParser:
             "Return Python-style zero-based closed/open match offsets. When --end is "
             "used, the output offset will be for the character that follows the end of "
             "the match (i.e., it is not part of the match)."
-        )
+        ),
     )
 
     parser.add_argument(
@@ -170,109 +154,104 @@ def getParser() -> argparse.ArgumentParser:
     return parser
 
 
+def parseRegion(region: str, zeroBased: bool) -> tuple[int, int]:
+    """
+    Parse a region string like 34-79 and return the two numbers.
+    """
+    lo, hi = map(int, region.split("-"))
+
+    if zeroBased:
+        if not (0 <= lo <= hi):
+            sys.exit(
+                f"Invalid range {region!r}. Give two non-negative numbers "
+                "in non-decreasing order.",
+            )
+    else:
+        if not (0 < lo <= hi):
+            extra = (
+                " Or use --zeroBased if you really want to specify a zero offset."
+                if lo == 0
+                else ""
+            )
+
+            sys.exit(
+                f"Invalid range {region!r}. Give two positive numbers in "
+                f"non-decreasing order.{extra}",
+            )
+
+        # Use zero-based indices.
+        lo -= 1
+
+    return lo, hi
+
+
+def getPatterns(
+    pattern: str, reverse: bool, complement: bool, reverseComplement: bool
+) -> list[tuple[str, int]]:
+    """
+    Get a list of patterns (and their orientations) to search for.
+    """
+    # We always look for the given pattern in the forward direction.
+    result = [(pattern, FORWARD)]
+
+    if reverse:
+        result.append((pattern[::-1], REVERSE))
+
+    rc = DNARead("id", pattern).reverseComplement().sequence
+
+    if reverseComplement:
+        result.append((rc, REVERSE_COMPLEMENT))
+
+    if complement:
+        # The complement is just the reverse of the reverse complement.
+        result.append((rc[::-1], COMPLEMENT))
+
+    return result
+
+
 def main() -> None:
     args = getParser().parse_args()
 
     if args.region:
-        lo, hi = map(int, args.region.split("-"))
-
-        if args.zeroBased:
-            if not (0 <= lo <= hi):
-                sys.exit(
-                    f"Invalid range {args.region!r}. Give two non-negative "
-                    f"numbers in non-decreasing order.",
-                )
-        else:
-            if not (0 < lo <= hi):
-                extra = (
-                    " Or use --zeroBased if you really want to specify a zero offset."
-                    if lo == 0
-                    else ""
-                )
-
-                sys.exit(
-                    f"Invalid range {args.region!r}. Give two positive "
-                    f"numbers in non-decreasing order.{extra}",
-                )
-
-            # Use zero-based indices.
-            lo -= 1
-        # Set target to a useless value to keep type checking quiet.
-        target = ""
+        lo, hi = parseRegion(args.region, args.zeroBased)
+        patterns = []  # Will be set below, extracted from each target read.
     else:
-        # Set lo and hi to useless values to keep type checking quiet.
-        lo = hi = -1
-        target = args.sequence
-        if args.ignoreGaps:
-            target = target.replace(args.gapCharacter, "")
-            if not target:
-                sys.exit("The --sequence argument was empty after removing gaps!")
+        lo = hi = -1  # Unused.
+        patterns = getPatterns(
+            args.pattern, args.reverse, args.complement, args.reverseComplement
+        )
 
     reads = parseFASTACommandLineOptions(args)
 
     for read in reads:
         if args.region:
-            target = read.sequence[lo:hi]
-            if args.ignoreGaps:
-                target = target.replace(args.gapCharacter, "")
-            if (not target) or (len(target) < hi - lo and not args.includeShortGenomes):
-                if args.reportShortGenomes:
-                    print(
-                        f"The {read.id!r} sequence is too short ({len(read)}) "
-                        f"for a full match of a region of length {hi - lo} "
-                        f"starting at site {lo + 1} in the genome.",
-                        file=sys.stderr,
-                    )
-                continue
-
-        # We always look for the given target in the forward direction.
-        assert target
-        targets = [target]
-        orientations = [FORWARD]
-
-        # Additionally, look for target variants according to Boolean command-line
-        # options.
-        if args.reverse:
-            targets.append(target[::-1])
-            orientations.append(REVERSE)
-
-        if args.complement:
-            targets.append(DNARead("id", target).reverseComplement().sequence[::-1])
-            orientations.append(COMPLEMENT)
-
-        if args.reverseComplement:
-            targets.append(DNARead("id", target).reverseComplement().sequence)
-            orientations.append(REVERSE_COMPLEMENT)
-
-        if args.ignoreGaps:
-            gappedOffsets = getGappedOffsets(read.sequence)
-            origSequence = read.sequence
-            sequence = read.sequence.replace(args.gapCharacter, "")
-        else:
-            origSequence = sequence = read.sequence
-            gappedOffsets = {i: i for i in range(len(sequence))}
-
-        if not args.caseSensitive:
-            # list is needed in the following as we may use 'targets' twice.
-            targets = list(map(str.upper, targets))
-            sequence = sequence.upper()
-            origSequence = origSequence.upper()
+            patterns = getPatterns(
+                read.sequence[lo:hi],
+                args.reverse,
+                args.complement,
+                args.reverseComplement,
+            )
 
         matches: set[tuple[int, int]] = set()
 
-        for thisTarget, orientation in zip(targets, orientations):
+        for pattern, orientation in patterns:
+            # Look for as many occurrences of this pattern as can be found in the read
+            # sequence.
             start = 0
             while True:
-                index = sequence.find(thisTarget, start)
+                index = read.find(
+                    pattern,
+                    start=start,
+                    end=args.end,
+                    caseSensitive=args.caseSensitive,
+                    ignoreGaps=args.ignoreGaps,
+                    gapCharacter=args.gapCharacter,
+                )
                 if index == -1:
+                    # No more matches of this pattern.
                     break
                 else:
                     if args.region is None or args.printTrivialMatch or index != lo:
-                        index = gappedOffsets[index]
-                        if args.end:
-                            index = alignmentEnd(
-                                origSequence, index, len(thisTarget), args.gapCharacter
-                            )
                         assert (index, orientation) not in matches
                         matches.add((index, orientation))
                     start = index + 1
@@ -281,7 +260,8 @@ def main() -> None:
             sys.exit(
                 f"{len(matches)} {'match was' if len(matches) == 1 else 'matches were'} "
                 f"found for sequence {read.id!r}, but {args.checkMatchCount} "
-                f"{'was' if args.checkMatchCount == 1 else 'were'} expected."
+                f"{'match was' if args.checkMatchCount == 1 else 'matches were'} "
+                "expected."
             )
 
         if matches:
@@ -292,7 +272,7 @@ def main() -> None:
             else:
                 fields = [
                     read.id,
-                    "%d match%s" % (len(matches), "" if len(matches) == 1 else "es"),
+                    f"{len(matches)} match{'' if len(matches) == 1 else 'es'}",
                     ", ".join(
                         str(index + adjust) + SUFFIX[orientation]
                         for index, orientation in sorted(matches)
@@ -300,10 +280,8 @@ def main() -> None:
                 ]
 
                 if args.printSequences:
-                    for thisTarget, orientation in zip(targets, orientations):
-                        fields.append(
-                            ("sequence%s = " % SUFFIX[orientation]) + thisTarget
-                        )
+                    for pattern, orientation in patterns:
+                        fields.append(f"sequence{SUFFIX[orientation]} = {pattern}")
 
             print(args.sep.join(fields))
 

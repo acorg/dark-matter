@@ -421,6 +421,46 @@ class Read(Sized):
 
         return index
 
+    def getPrefixAndSuffixOffsets(
+        self,
+        prefix: str | None,
+        suffix: str | None,
+        ignoreGaps: bool = False,
+        gapCharacter: str = "-",
+    ) -> tuple[int, int]:
+        """
+        Find the indices of a prefix and (end of) a suffix in a read. Return -1 for
+        patterns that are not be found.
+
+        Note that there is no checking that the suffix ends after the start of the
+        prefix (i.e., that the 'end' value is greater than (or >=) the 'start' value.
+        Our caller needs to detect this and decide what to do. That's because there
+        might be legitimate reasons for wanting to do that kind of search.
+        """
+        start = (
+            self.find(
+                prefix,
+                caseSensitive=False,
+                ignoreGaps=ignoreGaps,
+                gapCharacter=gapCharacter,
+            )
+            if prefix
+            else -1
+        )
+        end = (
+            self.find(
+                suffix,
+                caseSensitive=False,
+                ignoreGaps=ignoreGaps,
+                gapCharacter=gapCharacter,
+                end=True,
+            )
+            if suffix
+            else -1
+        )
+
+        return start, end
+
 
 class _NucleotideRead(Read):
     """
@@ -1664,7 +1704,7 @@ class Reads:
         @return: A generator that yields reads. The returned read types depend
             on the kind of reads that were added to this instance.
         """
-        # self._additionalReads is a regular list.
+
         for read in self._additionalReads:
             filteredRead = self.filterRead(read)
             if filteredRead is not False:
@@ -1676,6 +1716,7 @@ class Reads:
         # len().
         initialReads = self._initialReads or []
         initialReadsLength = 0
+
         for read in initialReads:
             initialReadsLength += 1
             filteredRead = self.filterRead(read)
@@ -2065,6 +2106,150 @@ class Reads:
                 "new": newFrequencies,
             },
         }
+
+    def getPrefixAndSuffixOffsetsForId(
+        self,
+        id_: str | None,
+        prefix: str | None,
+        suffix: str | None,
+        ignoreGaps: bool = False,
+        gapCharacter: str = "-",
+    ) -> tuple[tuple[int, int], Read]:
+        """
+        Find the prefix (start) and suffix (end) in a read with id 'id_'.
+
+        Return a tuple containing 1) a 2-tuple with (start, end) offsets of the prefix
+        and suffix start and end, respectively, and 2) the read in question.
+        """
+
+        for read in self:
+            if read.id == id_:
+                return (
+                    read.getPrefixAndSuffixOffsets(
+                        prefix, suffix, ignoreGaps=ignoreGaps, gapCharacter=gapCharacter
+                    ),
+                    read,
+                )
+
+        raise ValueError(f"No sequence with id {id_!r} found.")
+
+    def getPrefixAndSuffixOffsets(
+        self,
+        prefix: str | None,
+        suffix: str | None,
+        ignoreGaps: bool = False,
+        gapCharacter: str = "-",
+    ) -> tuple[tuple[int, int], list[tuple[tuple[int, int], Read]]]:
+        """
+        Find a prefix (start) and/or a suffix (end) in a collection of reads.
+
+        Return a tuple with the start-of-prefix and end-of-suffix offsets, and a
+        list containing ((start, end), Read) tuples with the offsets in each read.
+        The list in the results is for testing and for our caller in case they want
+        to print a summary of match information.
+        """
+        offsetInfo = [
+            (
+                read.getPrefixAndSuffixOffsets(
+                    prefix, suffix, ignoreGaps=ignoreGaps, gapCharacter=gapCharacter
+                ),
+                read,
+            )
+            for read in self
+        ]
+
+        if not offsetInfo:
+            raise ValueError("No input sequences were given.")
+
+        start = end = -1
+        startRead = endRead = None
+
+        for (thisStart, thisEnd), read in offsetInfo:
+            # Remember the first read where we managed to find the prefix and suffix
+            # so we can produce a helpful error message if we later find either at a
+            # different offset.
+            if thisStart != -1 and startRead is None:
+                startRead = read
+            if thisEnd != -1 and endRead is None:
+                endRead = read
+
+            if start == -1:
+                # We haven't yet found a sequence that has the prefix.
+                start = thisStart
+            else:
+                if thisStart != -1 and thisStart != start:
+                    # If start != -1 there must have been a prefix and a start read.
+                    assert prefix
+                    assert startRead
+                    raise ValueError(
+                        f"Conflict: prefix {prefix!r} was found at offset {start} in "
+                        f"{startRead.id!r} but at offset {thisStart} in {read.id!r}."
+                    )
+
+            if end == -1:
+                # We haven't yet found a sequence that has the suffix.
+                end = thisEnd
+            else:
+                if thisEnd != -1 and thisEnd != end:
+                    # If end != -1 there must have been a suffix and a end read.
+                    assert suffix
+                    assert endRead
+                    raise ValueError(
+                        f"Conflict: suffix {suffix!r} was found ending at offset "
+                        f"{end} in {endRead.id!r} but ending at offset {thisEnd} in "
+                        f"{read.id!r}."
+                    )
+
+        return (start, end), offsetInfo
+
+    def extractRegion(
+        self,
+        id_: str | None,
+        prefix: str | None,
+        suffix: str | None,
+        ignoreGaps: bool = False,
+        gapCharacter: str = "-",
+        allowUnequalLengths: bool = False,
+    ) -> tuple[Reads, tuple[int, int], list[tuple[tuple[int, int], Read]]]:
+        """
+        Extract a region from all the (usually aligned) reads in self.
+        """
+        if not allowUnequalLengths:
+            lengths = set(len(read) for read in self)
+            if len(lengths) != 1:
+                raise ReadLengthsNotIdenticalError(
+                    "All sequences must be the same length, unless "
+                    "allowUnequalLengths is true. Found lengths "
+                    + ", ".join(map(str, sorted(lengths)))
+                    + "."
+                )
+
+        if id_:
+            (start, end), read = self.getPrefixAndSuffixOffsetsForId(
+                id_, prefix, suffix, ignoreGaps=ignoreGaps, gapCharacter=gapCharacter
+            )
+            details = [(start, end), read]
+        else:
+            (start, end), details = self.getPrefixAndSuffixOffsets(
+                prefix, suffix, ignoreGaps=ignoreGaps, gapCharacter=gapCharacter
+            )
+
+        if start == -1:
+            if end == -1:
+                raise ValueError(
+                    f"The suffix {suffix!r} and prefix {prefix!r} were not both found in "
+                    "any single sequence."
+                )
+            else:
+                result = Reads(read[:end] for read in self)
+        elif end == -1:
+            result = Reads(read[start:] for read in self)
+        else:
+            # This assert is kind-of obvious, but maybe makes the code more readable.
+            assert start != -1 and end != -1
+            result = Reads(read[start:end] for read in self)
+
+        return result, (start, end), details
 
 
 class ReadsInRAM(Reads):

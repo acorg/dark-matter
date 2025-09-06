@@ -1,3 +1,11 @@
+## 5.1.0 September 6, 2025
+
+Added `bin/msa-find-and-extract.py` to extract regions from multiple
+sequence alignments (irrespective of gaps).  Removed `--includeShortGenomes`
+and `--noShortGenomeWarning` from `bin/fasta-find.py`. Refactored
+`bin/fasta-find.py` to be much cleaner. Added functions in `Read` and `Reads`
+classes to find prefix/suffix delimited regions.
+
 ## 5.0.46 September 2, 2025
 
 Added `--ignoreGaps`, `--gapCharacter`, and `--end` to `bin/fasta-find.py`.
