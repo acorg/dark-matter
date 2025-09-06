@@ -2118,7 +2118,7 @@ class Reads:
         """
         Find the prefix (start) and suffix (end) in a read with id 'id_'.
 
-        Return a tuple containing 1) a 2-tuple with (start, end) offsets of the prefix
+        Return a 2-tuple containing 1) a 2-tuple with (start, end) offsets of the prefix
         and suffix start and end, respectively, and 2) the read in question.
         """
 
@@ -2210,10 +2210,29 @@ class Reads:
         ignoreGaps: bool = False,
         gapCharacter: str = "-",
         allowUnequalLengths: bool = False,
-    ) -> tuple[Reads, tuple[int, int], list[tuple[tuple[int, int], Read]]]:
+    ) -> tuple[ReadsInRAM, tuple[int, int], list[tuple[tuple[int, int], Read]]]:
         """
         Extract a region from all the (usually aligned) reads in self.
+
+        Returns a 3-tuple containing:
+
+          1) A ReadsInRAM instance, containing all the sequences in self trimmed
+             according to the location of the start of the prefix and end of the
+             suffix. If no prefix is given, the sequences will start from their
+             beginning, and if no suffix is given they will end at their end.
+          2) A 2-tuple with the int start offset of the prefix (or -1 if no prefix
+             is given) and the offset of the character after the end of the
+             suffix (or -1 if no suffix is given).
+          3) A list of details of the offsets of the start-of-prefix and end-of-suffix
+             matches (or -1 if there was no match). The list elements are 3-tuples,
+             with (start, end, read). If an ID is passed in id_, the list will
+             only contain one element, for that read. If no ID is passed, the list
+             will have prefix/suffix offsets for all reads.
         """
+
+        if not (prefix or suffix):
+            raise ValueError("Neither a prefix nor a suffix was specified.")
+
         if not allowUnequalLengths:
             lengths = set(len(read) for read in self)
             if len(lengths) != 1:
@@ -2228,28 +2247,33 @@ class Reads:
             (start, end), read = self.getPrefixAndSuffixOffsetsForId(
                 id_, prefix, suffix, ignoreGaps=ignoreGaps, gapCharacter=gapCharacter
             )
-            details = [(start, end), read]
+            offsetInfo = [((start, end), read)]
         else:
-            (start, end), details = self.getPrefixAndSuffixOffsets(
+            (start, end), offsetInfo = self.getPrefixAndSuffixOffsets(
                 prefix, suffix, ignoreGaps=ignoreGaps, gapCharacter=gapCharacter
             )
 
         if start == -1:
             if end == -1:
-                raise ValueError(
-                    f"The suffix {suffix!r} and prefix {prefix!r} were not both found in "
-                    "any single sequence."
-                )
+                if prefix:
+                    if suffix:
+                        what = "prefix and suffix were"
+                    else:
+                        what = "prefix was"
+                else:
+                    assert suffix  # This is tested above.
+                    what = "suffix was"
+                raise ValueError(f"The {what} not matched by any sequence.")
             else:
-                result = Reads(read[:end] for read in self)
+                result = ReadsInRAM(read[:end] for read in self)
         elif end == -1:
-            result = Reads(read[start:] for read in self)
+            result = ReadsInRAM(read[start:] for read in self)
         else:
             # This assert is kind-of obvious, but maybe makes the code more readable.
             assert start != -1 and end != -1
-            result = Reads(read[start:end] for read in self)
+            result = ReadsInRAM(read[start:end] for read in self)
 
-        return result, (start, end), details
+        return result, (start, end), offsetInfo
 
 
 class ReadsInRAM(Reads):

@@ -1192,6 +1192,15 @@ class TestReadsFindPrefixAndSuffix(TestCase):
             ((1, 5), reads[0]),
         )
 
+    def testExtractRegionNoPrefixOrSuffix(self):
+        """
+        extractRegion must raise a ValueError if no prefix or suffix is passed.
+        """
+        reads = Reads()
+        error = r"^Neither a prefix nor a suffix was specified\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_=None, prefix=None, suffix=None)
+
     def testExtractRegionUnevenLengths(self):
         """
         extractRegion must raise a ValueError if the sequences are of uneven length.
@@ -1244,6 +1253,22 @@ class TestReadsFindPrefixAndSuffix(TestCase):
             ],
         )
 
+    def testExtractRegionPrefixAndSuffixDontMatch(self):
+        """
+        extractRegion must raise a ValueError if the prefix and suffix don't match any
+        sequence.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+        )
+
+        reads = self.makeReads(*sequences)
+        error = r"^The prefix and suffix were not matched by any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_=None, prefix="XXX", suffix="XXX")
+
     def testExtractRegionOnlyPrefixMatched(self):
         """
         extractRegion must return the correctly trimmed reads if only the prefix
@@ -1258,7 +1283,9 @@ class TestReadsFindPrefixAndSuffix(TestCase):
 
         reads = self.makeReads(*sequences)
         expectedReads = self.makeReads(*[s[1:] for s in sequences])
-        result, offsets, details = reads.extractRegion(id_=None, prefix="CA", suffix=None)
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix="CA", suffix=None
+        )
 
         self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
 
@@ -1288,7 +1315,9 @@ class TestReadsFindPrefixAndSuffix(TestCase):
 
         reads = self.makeReads(*sequences)
         expectedReads = self.makeReads(*[s[:5] for s in sequences])
-        result, offsets, details = reads.extractRegion(id_=None, prefix=None, suffix="T")
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix=None, suffix="T"
+        )
 
         self.assertEqual(offsets, (-1, 5))
 
@@ -1301,6 +1330,35 @@ class TestReadsFindPrefixAndSuffix(TestCase):
                 ((-1, 5), reads[1]),
                 ((-1, -1), reads[2]),
                 ((-1, -1), reads[3]),
+            ],
+        )
+
+    def testExtractRegionWithSequenceId(self):
+        """
+        extractRegion must return the correct result when asked to examine a
+        specific read.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        expectedReads = self.makeReads(*[s[1:5] for s in sequences])
+        result, offsets, details = reads.extractRegion(
+            id_=reads[1].id, prefix="CA", suffix="T"
+        )
+
+        self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
+
+        self.assertEqual(offsets, (1, 5))
+
+        self.assertEqual(
+            details,
+            [
+                ((1, 5), reads[1]),
             ],
         )
 
@@ -1318,7 +1376,9 @@ class TestReadsFindPrefixAndSuffix(TestCase):
 
         reads = self.makeReads(*sequences)
         expectedReads = self.makeReads(*[s[1:5] for s in sequences])
-        result, offsets, details = reads.extractRegion(id_=None, prefix="CA", suffix="T")
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix="CA", suffix="T"
+        )
 
         self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
 
