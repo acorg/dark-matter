@@ -844,6 +844,557 @@ class TestRead(TestCase):
         self.assertIsNot(read, result)
 
 
+class TestFind(TestCase):
+    """
+    Test the find method of the Read class.
+    """
+
+    def testNotMatched(self):
+        """
+        find must return -1 if the pattern doesn't match.
+        """
+        self.assertEqual(Read("id", "ACGT").find("XXX"), -1)
+
+    def testOffsetZero(self):
+        """
+        find must return 0 if the pattern is at the start of the read.
+        """
+        self.assertEqual(Read("id", "ACGT").find("AC"), 0)
+
+    def testOffsetOneWithStartOne(self):
+        """
+        find must return 1 if the pattern is in the first two positions of the read
+        but we pass start=1.
+        """
+        self.assertEqual(Read("id", "AAACGT").find("AA", start=1), 1)
+
+    def testCaseSensitiveMiss(self):
+        """
+        find must return -1 if the pattern is in the read but with the wrong case.
+        """
+        self.assertEqual(Read("id", "ACGT").find("ac"), -1)
+
+    def testCaseInsensitive(self):
+        """
+        find must find a pattern when told to match case insensitively.
+        """
+        self.assertEqual(Read("id", "ACGT").find("ac", caseSensitive=False), 0)
+
+    def testFindEnd(self):
+        """
+        find must return the end of the match if told to.
+        """
+        self.assertEqual(Read("id", "AAACGT").find("AC", end=True), 4)
+
+    def testIgnoreGapsEmptyRead(self):
+        """
+        find must return -1 if we look for a pattern in a string that is all gaps
+        and ignoreGaps is true.
+        """
+        self.assertEqual(Read("id", "-----").find("AC", ignoreGaps=True), -1)
+
+    def testIgnoreGapsEmptyPattern(self):
+        """
+        find must return -1 if we look for a pattern that is all gaps and ignoreGaps
+        is true.
+        """
+        self.assertEqual(Read("id", "AC").find("--", ignoreGaps=True), -1)
+
+    def testIgnoreGaps(self):
+        """
+        find must return a correct index into a gapped sequence.
+        """
+        self.assertEqual(Read("id", "A--A-A--C-GT").find("ACG", ignoreGaps=True), 5)
+
+    def testIgnoreGapsEnd(self):
+        """
+        find must return an index into a gapped sequence when 'end' is true.
+        """
+        self.assertEqual(
+            Read("id", "A--A-A--C-GT").find("ACG", ignoreGaps=True, end=True), 11
+        )
+
+    def testAllOptions(self):
+        """
+        find must return the correct index when matching case sensitively from a given
+        start offset into a gapped sequence.
+        """
+        self.assertEqual(
+            Read("id", "AC-ac--A-A--C-GT").find("AC", ignoreGaps=True, start=5),
+            9,
+        )
+
+    def testAllOptionsEnd(self):
+        """
+        find must return the correct index when matching case sensitively from a given
+        start offset into a gapped sequence and 'end' is true.
+        """
+        self.assertEqual(
+            Read("id", "AC-ac--A-A--C-GT").find(
+                "AC", ignoreGaps=True, start=5, end=True
+            ),
+            13,
+        )
+
+
+class TestReadFindPrefixAndSuffix(TestCase):
+    """
+    Test the getPrefixAndSuffixOffsets method of the Read (note: singular) class.
+    """
+
+    def testNotMatched(self):
+        """
+        getPrefixAndSuffixOffsets must return -1, -1 if the prefix and suffix don't
+        match.
+        """
+        self.assertEqual(
+            Read("id", "ACGT").getPrefixAndSuffixOffsets("XXX", "YYY"), (-1, -1)
+        )
+
+    def testOnlyPrefixMatched(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offset and -1 if only the
+        prefix matches.
+        """
+        self.assertEqual(
+            Read("id", "ACTTGT").getPrefixAndSuffixOffsets("CTT", "YYY"), (1, -1)
+        )
+
+    def testOnlySuffixMatched(self):
+        """
+        getPrefixAndSuffixOffsets must return -1 and the correct offset if only the
+        suffix matches.
+        """
+        self.assertEqual(
+            Read("id", "ACTTGT").getPrefixAndSuffixOffsets("YYY", "CTT"), (-1, 4)
+        )
+
+    def testPrefixAndSuffixMatched(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offsets if both the prefix
+        and suffix match.
+        """
+        self.assertEqual(
+            Read("id", "ACTTGT").getPrefixAndSuffixOffsets("CT", "TG"), (1, 5)
+        )
+
+    def testNotMatchedIgnoringGaps(self):
+        """
+        getPrefixAndSuffixOffsets must return -1, -1 if the prefix and suffix don't
+        match and we are ignoring gaps.
+        """
+        self.assertEqual(
+            Read("id", "A-C--GT").getPrefixAndSuffixOffsets(
+                "XXX", "YYY", ignoreGaps=True
+            ),
+            (-1, -1),
+        )
+
+    def testOnlyPrefixMatchedIgnoringGaps(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offset and -1 if only the
+        prefix matches and gaps are ignored.
+        """
+        self.assertEqual(
+            Read("id", "AC-T--TGT").getPrefixAndSuffixOffsets(
+                "CTT", "YYY", ignoreGaps=True
+            ),
+            (1, -1),
+        )
+
+    def testOnlySuffixMatchedIgnoringGaps(self):
+        """
+        getPrefixAndSuffixOffsets must return -1 and the correct offset if only the
+        suffix matches.
+        """
+        self.assertEqual(
+            Read("id", "A--C-T-TGT").getPrefixAndSuffixOffsets(
+                "YYY", "CTT", ignoreGaps=True
+            ),
+            (-1, 8),
+        )
+
+    def testPrefixAndSuffixMatchedIgnoringGaps(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offsets if both the prefix
+        and suffix match.
+        """
+        self.assertEqual(
+            Read("id", "A-C-T-T--GT").getPrefixAndSuffixOffsets(
+                "CT", "TG", ignoreGaps=True
+            ),
+            (2, 10),
+        )
+
+
+class TestReadsFindPrefixAndSuffix(TestCase):
+    """
+    Test the getPrefixAndSuffixOffsets and extractRegion methods of the Reads
+    (note: plural) class.
+    """
+
+    def makeReads(self, *sequences) -> ReadsInRAM:
+        return ReadsInRAM(
+            Read(f"id-{i}", sequence) for i, sequence in enumerate(sequences)
+        )
+
+    def testNoReads(self):
+        """
+        getPrefixAndSuffixOffsets must raise a ValueError if the Reads instance
+        has no reads.
+        """
+        error = r"^No input sequences were given\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            Reads().getPrefixAndSuffixOffsets("XXX", "YYY")
+
+    def testPrefixConflict(self):
+        """
+        getPrefixAndSuffixOffsets must raise a ValueError if the prefix is found
+        at different offsets.
+        """
+        reads = self.makeReads(
+            "ACGT",
+            "AAAC",
+        )
+
+        error = (
+            "^Conflict: prefix 'AC' was found at offset 0 in 'id-0' but at offset 2 in "
+            r"'id-1'\.$"
+        )
+        with self.assertRaisesRegex(ValueError, error):
+            reads.getPrefixAndSuffixOffsets("AC", "YYY")
+
+    def testSuffixConflict(self):
+        """
+        getPrefixAndSuffixOffsets must raise a ValueError if the suffix is found
+        at different offsets.
+        """
+        reads = self.makeReads(
+            "ACGT",
+            "AAAC",
+        )
+
+        error = (
+            "^Conflict: suffix 'AC' was found ending at offset 2 in 'id-0' but ending "
+            r"at offset 4 in 'id-1'\.$"
+        )
+        with self.assertRaisesRegex(ValueError, error):
+            reads.getPrefixAndSuffixOffsets("YYY", "AC")
+
+    def testOnlyPrefixMatched(self):
+        """
+        getPrefixAndSuffixOffsets must raise a ValueError if only the prefix
+        is matched.
+        """
+        reads = self.makeReads(
+            "ACGT",
+            "ACAT",
+        )
+
+        self.assertEqual(
+            reads.getPrefixAndSuffixOffsets("AC", "YYY"),
+            (
+                (0, -1),
+                [
+                    ((0, -1), reads[0]),
+                    ((0, -1), reads[1]),
+                ],
+            ),
+        )
+
+    def testOnlySuffixMatched(self):
+        """
+        getPrefixAndSuffixOffsets must raise a ValueError if only the suffix
+        is matched.
+        """
+        reads = self.makeReads(
+            "ACGT",
+            "ACAT",
+        )
+
+        self.assertEqual(
+            reads.getPrefixAndSuffixOffsets("YYY", "T"),
+            (
+                (-1, 4),
+                [
+                    ((-1, 4), reads[0]),
+                    ((-1, 4), reads[1]),
+                ],
+            ),
+        )
+
+    def testPrefixAndSuffixMatched(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offsets if both the prefix
+        and suffix match.
+        """
+        reads = self.makeReads(
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+            "XXXXX",
+        )
+        self.assertEqual(
+            reads.getPrefixAndSuffixOffsets("CA", "T"),
+            (
+                (1, 5),
+                [
+                    ((1, 5), reads[0]),
+                    ((1, 5), reads[1]),
+                    ((1, -1), reads[2]),
+                    ((-1, -1), reads[3]),
+                ],
+            ),
+        )
+
+    def testSequenceIdNotFound(self):
+        """
+        getPrefixAndSuffixOffsets must raise a ValueError if the prefix and suffix
+        are supposed to be in a specific sequence but there is no sequence with the
+        specified id.
+        """
+        reads = self.makeReads(
+            "ACGT",
+            "ACAT",
+        )
+
+        error = r"^No sequence with id 'dummy-id' found\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.getPrefixAndSuffixOffsetsForId("dummy-id", "YYY", "T")
+
+    def testPrefixAndSuffixMatchedForSpecificId(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offsets if both the prefix
+        and suffix match in the specified read.
+        """
+        reads = self.makeReads(
+            "ACAGT",
+            "ACACT",
+        )
+        self.assertEqual(
+            reads.getPrefixAndSuffixOffsetsForId(reads[0].id, "CA", "T"),
+            ((1, 5), reads[0]),
+        )
+
+    def testPrefixAndSuffixMatchedForSpecificIdInconsistentOffsets(self):
+        """
+        getPrefixAndSuffixOffsets must return the correct offsets if both the prefix
+        and suffix match in the specified read, even if the prefix and suffix exist
+        in other sequences at different offsets (i.e., matching in the passed id is
+        all that matters).
+        """
+        reads = self.makeReads(
+            "ACAGT",
+            "CACTG",
+        )
+        self.assertEqual(
+            reads.getPrefixAndSuffixOffsetsForId(reads[0].id, "CA", "T"),
+            ((1, 5), reads[0]),
+        )
+
+    def testExtractRegionNoPrefixOrSuffix(self):
+        """
+        extractRegion must raise a ValueError if no prefix or suffix is passed.
+        """
+        reads = Reads()
+        error = r"^Neither a prefix nor a suffix was specified\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_=None, prefix=None, suffix=None)
+
+    def testExtractRegionUnevenLengths(self):
+        """
+        extractRegion must raise a ValueError if the sequences are of uneven length.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACTA",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        error = (
+            "^All sequences must be the same length, unless "
+            r"allowUnequalLengths is true. Found lengths 5, 6\.$"
+        )
+        with self.assertRaisesRegex(ReadLengthsNotIdenticalError, error):
+            reads.extractRegion(id_=None, prefix="CA", suffix=None)
+
+    def testExtractRegionUnevenLengthsAllowed(self):
+        """
+        extractRegion must return the correctly trimmed reads if only the prefix
+        matches and the sequences are of uneven length but that is indicated as
+        a non-error.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACTA",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        expectedReads = self.makeReads(*[s[1:] for s in sequences])
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix="CA", suffix=None, allowUnequalLengths=True
+        )
+
+        self.assertEqual(offsets, (1, -1))
+
+        self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
+
+        self.assertEqual(
+            details,
+            [
+                ((1, -1), reads[0]),
+                ((1, -1), reads[1]),
+                ((1, -1), reads[2]),
+                ((-1, -1), reads[3]),
+            ],
+        )
+
+    def testExtractRegionPrefixAndSuffixDontMatch(self):
+        """
+        extractRegion must raise a ValueError if the prefix and suffix don't match any
+        sequence.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+        )
+
+        reads = self.makeReads(*sequences)
+        error = r"^The prefix and suffix were not matched by any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_=None, prefix="XXX", suffix="XXX")
+
+    def testExtractRegionOnlyPrefixMatched(self):
+        """
+        extractRegion must return the correctly trimmed reads if only the prefix
+        matches.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        expectedReads = self.makeReads(*[s[1:] for s in sequences])
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix="CA", suffix=None
+        )
+
+        self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
+
+        self.assertEqual(offsets, (1, -1))
+
+        self.assertEqual(
+            details,
+            [
+                ((1, -1), reads[0]),
+                ((1, -1), reads[1]),
+                ((1, -1), reads[2]),
+                ((-1, -1), reads[3]),
+            ],
+        )
+
+    def testExtractRegionOnlySuffixMatched(self):
+        """
+        extractRegion must return the correctly trimmed reads if only the suffix
+        matches.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        expectedReads = self.makeReads(*[s[:5] for s in sequences])
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix=None, suffix="T"
+        )
+
+        self.assertEqual(offsets, (-1, 5))
+
+        self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
+
+        self.assertEqual(
+            details,
+            [
+                ((-1, 5), reads[0]),
+                ((-1, 5), reads[1]),
+                ((-1, -1), reads[2]),
+                ((-1, -1), reads[3]),
+            ],
+        )
+
+    def testExtractRegionWithSequenceId(self):
+        """
+        extractRegion must return the correct result when asked to examine a
+        specific read.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        expectedReads = self.makeReads(*[s[1:5] for s in sequences])
+        result, offsets, details = reads.extractRegion(
+            id_=reads[1].id, prefix="CA", suffix="T"
+        )
+
+        self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
+
+        self.assertEqual(offsets, (1, 5))
+
+        self.assertEqual(
+            details,
+            [
+                ((1, 5), reads[1]),
+            ],
+        )
+
+    def testExtractRegionPrefixAndSuffixMatched(self):
+        """
+        extractRegion must return the correctly trimmed reads if both the prefix
+        and suffix match.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACT",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        expectedReads = self.makeReads(*[s[1:5] for s in sequences])
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix="CA", suffix="T"
+        )
+
+        self.assertTrue(all(r1 == r2 for (r1, r2) in zip(result, expectedReads)))
+
+        self.assertEqual(offsets, (1, 5))
+
+        self.assertEqual(
+            details,
+            [
+                ((1, 5), reads[0]),
+                ((1, 5), reads[1]),
+                ((1, -1), reads[2]),
+                ((-1, -1), reads[3]),
+            ],
+        )
+
+
 class TestDNARead(TestCase):
     """
     Tests for the DNARead class.
@@ -1999,7 +2550,7 @@ class _TestSSAAReadMixin:
         the structure information).
         """
         self.assertEqual(
-            ">id-1234\n" "FFMM\n" ">id-1234:structure\n" "HHHH\n",
+            ">id-1234\nFFMM\n>id-1234:structure\nHHHH\n",
             self.CLASS("id-1234", "FFMM", "HHHH").toString(),
         )
 
@@ -2009,7 +2560,7 @@ class _TestSSAAReadMixin:
         specific structure id suffix.
         """
         self.assertEqual(
-            ">id-12\n" "FFMM\n" ">id-12:x\n" "HHHH\n",
+            ">id-12\nFFMM\n>id-12:x\nHHHH\n",
             self.CLASS("id-12", "FFMM", "HHHH").toString(structureSuffix=":x"),
         )
 
@@ -2019,7 +2570,7 @@ class _TestSSAAReadMixin:
         passed as the C{format_} argument.
         """
         self.assertEqual(
-            ">id-1234\n" "FFMM\n" ">id-1234:structure\n" "HHHH\n",
+            ">id-1234\nFFMM\n>id-1234:structure\nHHHH\n",
             self.CLASS("id-1234", "FFMM", "HHHH").toString(format_="fasta-ss"),
         )
 
@@ -2029,7 +2580,7 @@ class _TestSSAAReadMixin:
         C{format_} argument.
         """
         self.assertEqual(
-            ">id-1234\n" "FFMM\n",
+            ">id-1234\nFFMM\n",
             self.CLASS("id-1234", "FFMM", "HHHH").toString(format_="fasta"),
         )
 
@@ -2722,9 +3273,9 @@ class TestReads(TestCase):
         read2 = Read("id2", "AC")
         initialReads = Reads([read1, read2])
         initialReads.filter(minLength=3)
+        reads = Reads(initialReads)
 
         read3 = Read("id3", "AC")
-        reads = Reads(initialReads)
         reads.add(read3)
         self.assertEqual(sorted((read1, read3)), sorted(reads))
         self.assertEqual(3, reads.unfilteredLength())
