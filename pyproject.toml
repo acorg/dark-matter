@@ -1,10 +1,10 @@
 [project]
 name = "dark-matter"
-version = "5.1.0"
+version = "5.1.1"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Terry Jones", email = "tcj25@cam.ac.uk"},
     {name = "Barbara Mühlemann"},
@@ -15,7 +15,6 @@ authors = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -49,8 +48,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
-packages = ["dark"]
+packages = {find = {where = ["src"], include = ["dark*"]}}
 data-files = {"bin" = ["bin/*"]}
 
 [dependency-groups]
