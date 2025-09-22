@@ -64,9 +64,7 @@ elif args.regex:
         return result
 
 elif args.length:
-
-    def key(read):
-        return len(read.sequence)
+    key = len
 
 else:
 
