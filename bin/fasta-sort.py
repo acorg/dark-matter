@@ -29,11 +29,18 @@ parser.add_argument(
     "--reverse", "-r", action="store_true", help="Sort by decreasing value."
 )
 
+parser.add_argument(
+    "--length", "-l", action="store_true", help="Sort by sequence length."
+)
+
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
 reads = parseFASTACommandLineOptions(args)
 
-if args.regex:
+if args.regex and args.length:
+    raise ValueError("cannot pass both --regex and --length")
+
+elif args.regex:
     regex = re.compile(args.regex)
 
     if regex.groups == 0:
@@ -55,6 +62,9 @@ if args.regex:
                     value = text
                 result.append(value)
         return result
+
+elif args.length:
+    key = len
 
 else:
 

@@ -1,3 +1,7 @@
+## 5.1.2 September 22, 2025
+
+Added `--length` option to `bin/fasta-sort.py`.
+
 ## 5.1.0 September 6, 2025
 
 Added `bin/msa-find-and-extract.py` to extract regions from multiple
