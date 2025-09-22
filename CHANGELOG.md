@@ -2,6 +2,10 @@
 
 Added `--length` option to `bin/fasta-sort.py`.
 
+## 5.1.1 September 19, 2025
+
+Updated pyproject.toml so that src/dark subdirs are found.
+
 ## 5.1.0 September 6, 2025
 
 Added `bin/msa-find-and-extract.py` to extract regions from multiple

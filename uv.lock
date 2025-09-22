@@ -461,7 +461,7 @@ wheels = [
 
 [[package]]
 name = "dark-matter"
-version = "5.1.0"
+version = "5.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "biopython" },
