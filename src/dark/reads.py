@@ -5,33 +5,24 @@ import itertools
 import os
 import sys
 from collections import Counter, defaultdict
-from collections.abc import Sized
+from collections.abc import Iterable, Iterator, Sequence, Sized
 from functools import total_ordering
 from hashlib import md5
 from pathlib import Path
 from random import uniform
 from typing import (
     Callable,
-    Dict,
-    Generator,
-    Iterable,
-    List,
     Literal,
-    Optional,
-    Sequence,
-    Set,
     SupportsIndex,
-    TextIO,
-    Tuple,
-    Union,
 )
 
 from Bio.Data.IUPACData import (
-    ambiguous_dna_complement,  # type: ignore
-    ambiguous_rna_complement,  # type: ignore
+    ambiguous_dna_complement,
+    ambiguous_rna_complement,
 )
-from Bio.Seq import translate  # type: ignore
+from Bio.Seq import translate  # pyright: ignore[reportUnknownVariableType]
 
+from dark import File
 from dark.aaVars import (
     AA_LETTERS,
     NONE,
@@ -46,7 +37,7 @@ from dark.filter import SequenceFilter, TitleFilter
 from dark.hsp import HSP
 
 
-def _makeComplementTable(complementData: dict) -> Sequence[str]:
+def _makeComplementTable(complementData: dict[str, str]) -> Sequence[str]:
     """
     Make a sequence complement table.
 
@@ -77,18 +68,18 @@ class Read(Sized):
         match the length of the sequence.
     """
 
-    ALPHABET: Optional[set] = None
+    ALPHABET: set[str] | None = None
 
-    def __init__(self, id: str, sequence: str, quality: Optional[str] = None):
+    def __init__(self, id: str, sequence: str, quality: str | None = None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
                 f"Invalid read: sequence length ({len(sequence)}) "
                 f"!= quality length ({len(quality)})"
             )
 
-        self.id = id
-        self.sequence = sequence
-        self.quality = quality
+        self.id: str = id
+        self.sequence: str = sequence
+        self.quality: str | None = quality
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Read):
@@ -142,7 +133,7 @@ class Read(Sized):
                 ).digest()
             )
 
-    def __getitem__(self, item: Union[int, slice]) -> Read:
+    def __getitem__(self, item: int | slice) -> Read:
         sequence = self.sequence[item]
         quality = None if self.quality is None else self.quality[item]
         return self.__class__(self.id, sequence, quality)
@@ -167,7 +158,7 @@ class Read(Sized):
         else:
             raise ValueError("Format must be either 'fasta', 'fastq' or 'fasta-ss'.")
 
-    def toDict(self) -> dict:
+    def toDict(self) -> dict[str, str | None]:
         """
         Get information about this read in a dictionary.
 
@@ -224,7 +215,7 @@ class Read(Sized):
             return self.__class__(self.id, newSequence, newQuality)
 
     @classmethod
-    def fromDict(cls, d: dict) -> Read:
+    def fromDict(cls, d: dict[str, str]) -> Read:
         """
         Create a new instance from attribute values provided in a dictionary.
 
@@ -253,7 +244,7 @@ class Read(Sized):
 
     def walkHSP(
         self, hsp: HSP, includeWhiskers: bool = True
-    ) -> Generator[Tuple[int, str, bool], None, None]:
+    ) -> Iterator[tuple[int, str, bool]]:
         """
         Provide information about exactly how a read matches a subject, as
         specified by C{hsp}.
@@ -298,7 +289,7 @@ class Read(Sized):
                 readOffset += 1
                 subjectOffset += 1
 
-    def checkAlphabet(self, count: int = 10) -> set:
+    def checkAlphabet(self, count: int | None = 10) -> set[str]:
         """
         A function which checks whether the sequence in a L{dark.Read} object
         corresponds to its readClass. For AA reads, more testing is done in
@@ -321,8 +312,8 @@ class Read(Sized):
         if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
             return readLetters
         raise ValueError(
-            f"Read alphabet ({''.join(sorted(readLetters))}) is not a subset of "
-            f"expected alphabet ({''.join(sorted(self.ALPHABET))}) for read class "
+            f"Read alphabet ({''.join(sorted(readLetters))!r}) is not a subset of "
+            f"expected alphabet ({''.join(sorted(self.ALPHABET))!r}) for read class "
             f"{str(self.__class__.__name__)}."
         )
 
@@ -454,11 +445,11 @@ class _NucleotideRead(Read):
     Holds methods to work with nucleotide (DNA and RNA) sequences.
     """
 
-    COMPLEMENT_TABLE: Sequence[Union[str, None]] = [None]
+    COMPLEMENT_TABLE: Sequence[str | None] = [None]
 
     def translations(
-        self: Union[_NucleotideRead, DNARead, RNARead],
-    ) -> Generator[TranslatedRead, None, None]:
+        self: _NucleotideRead | DNARead | RNARead,
+    ) -> Iterator[TranslatedRead]:
         """
         Yield all six translations of a nucleotide sequence.
 
@@ -481,7 +472,7 @@ class _NucleotideRead(Read):
                     self, translate(suffix), frame, reverseComplemented
                 )
 
-    def reverseComplement(self: Union[_NucleotideRead, DNARead, RNARead]) -> Read:
+    def reverseComplement(self: _NucleotideRead | DNARead | RNARead) -> Read:
         """
         Reverse complement a nucleotide sequence.
 
@@ -498,7 +489,7 @@ class DNARead(_NucleotideRead):
     Hold information and methods to work with DNA reads.
     """
 
-    ALPHABET: set = set("ATCG")
+    ALPHABET: set[str] = set("ATCG")
 
     COMPLEMENT_TABLE = _makeComplementTable(ambiguous_dna_complement)
 
@@ -508,8 +499,8 @@ class DNARead(_NucleotideRead):
         forward: bool = True,
         requireStartCodon: bool = True,
         allowGaps: bool = True,
-        untranslatable: Optional[Dict[str, str]] = None,
-    ):
+        untranslatable: dict[str, str] | None = None,
+    ) -> dict[str, int | bool | str]:
         """
         Find an ORF that supposedly starts at a specified offset in a read.
 
@@ -686,7 +677,7 @@ class AARead(Read):
             )
         return readLetters
 
-    def properties(self) -> Generator[int, None, None]:
+    def properties(self) -> Iterator[int]:
         """
         Translate an amino acid sequence to properties of the form:
         'F': HYDROPHOBIC | AROMATIC.
@@ -696,16 +687,16 @@ class AARead(Read):
         """
         return (PROPERTIES.get(aa, NONE) for aa in self.sequence)
 
-    def propertyDetails(self) -> Generator[Union[dict, int], None, None]:
+    def propertyDetails(self) -> Iterator[dict | int]:
         """
         Translate an amino acid sequence to properties. Each property of the
         amino acid gets a value scaled from -1 to 1.
 
-        @return: A generator yielding property dictionaries.
+        @return: An interator yielding property dictionaries.
         """
         return (PROPERTY_DETAILS.get(aa, NONE) for aa in self.sequence)
 
-    def ORFs(self, openORFs: bool = False) -> Generator[AAReadORF, None, None]:
+    def ORFs(self, openORFs: bool = False) -> Iterator[AAReadORF]:
         """
         Find all ORFs in our sequence.
 
@@ -883,9 +874,9 @@ class SSAARead(AARead):
     @raise ValueError: If the sequence and structure lengths are not the same.
     """
 
-    def __init__(self, id, sequence: str, structure: str):
+    def __init__(self, id: str, sequence: str, structure: str):
         super().__init__(id, sequence)
-        self.structure = structure
+        self.structure: str = structure
 
         if len(sequence) != len(structure):
             raise ValueError(
@@ -919,7 +910,7 @@ class SSAARead(AARead):
             ).digest()
         )
 
-    def __getitem__(self, item: Union[int, slice]) -> SSAARead:
+    def __getitem__(self, item: int | slice) -> SSAARead:
         sequence = self.sequence[item]
         structure = self.structure[item] if self.structure else ""
         return self.__class__(self.id, sequence, structure)
@@ -949,7 +940,7 @@ class SSAARead(AARead):
         else:
             return super().toString(format_=format_)
 
-    def toDict(self):
+    def toDict(self) -> dict[str, str]:
         """
         Get information about this read in a dictionary.
 
@@ -962,7 +953,7 @@ class SSAARead(AARead):
         }
 
     @classmethod
-    def fromDict(cls, d):
+    def fromDict(cls, d: dict[str, str]):
         """
         Create a new instance from attribute values provided in a dictionary.
 
@@ -973,7 +964,7 @@ class SSAARead(AARead):
         """
         return cls(d["id"], d["sequence"], d["structure"])
 
-    def newFromSites(self, sites, exclude=False):
+    def newFromSites(self, sites: set[int], exclude: bool = False):
         """
         Create a new read from self, with only certain sites.
 
@@ -1223,47 +1214,47 @@ class ReadFilter:
 
     def __init__(
         self,
-        minLength: Optional[int] = None,
-        maxLength: Optional[int] = None,
-        maxNFraction: Optional[float] = None,
+        minLength: int | None = None,
+        maxLength: int | None = None,
+        maxNFraction: float | None = None,
         removeGaps: bool = False,
-        whitelist: Optional[set[str]] = None,
-        blacklist: Optional[set[str]] = None,
-        whitelistFile: Optional[str] = None,
-        blacklistFile: Optional[str] = None,
-        titleRegex: Optional[str] = None,
-        negativeTitleRegex: Optional[str] = None,
-        truncateTitlesAfter: Optional[str] = None,
-        sequenceWhitelist: Optional[set[str]] = None,
-        sequenceBlacklist: Optional[set[str]] = None,
-        sequenceWhitelistFile: Optional[str] = None,
-        sequenceBlacklistFile: Optional[str] = None,
-        sequenceRegex: Optional[str] = None,
-        sequenceNegativeRegex: Optional[str] = None,
-        keepSequences: Optional[set[int]] = None,
-        removeSequences: Optional[set[int]] = None,
-        head: Optional[int] = None,
+        whitelist: set[str] | None = None,
+        blacklist: set[str] | None = None,
+        whitelistFile: str | None = None,
+        blacklistFile: str | None = None,
+        titleRegex: str | None = None,
+        negativeTitleRegex: str | None = None,
+        truncateTitlesAfter: str | None = None,
+        sequenceWhitelist: set[str] | None = None,
+        sequenceBlacklist: set[str] | None = None,
+        sequenceWhitelistFile: str | None = None,
+        sequenceBlacklistFile: str | None = None,
+        sequenceRegex: str | None = None,
+        sequenceNegativeRegex: str | None = None,
+        keepSequences: set[int] | None = None,
+        removeSequences: set[int] | None = None,
+        head: int | None = None,
         removeDuplicates: bool = False,
         removeDuplicatesById: bool = False,
         removeDuplicatesUseMD5: bool = False,
         removeDescriptions: bool = False,
-        modifier: Optional[Callable[[Read], Union[Read, None]]] = None,
-        randomSubset: Optional[int] = None,
-        trueLength: Optional[int] = None,
-        sampleFraction: Optional[float] = None,
-        sequenceNumbersFile: Optional[str] = None,
-        idLambda: Optional[str] = None,
-        readLambda: Optional[str] = None,
-        keepSites: Optional[set[int]] = None,
-        removeSites: Optional[set[int]] = None,
+        modifier: Callable[[Read], Read | None] | None = None,
+        randomSubset: int | None = None,
+        trueLength: int | None = None,
+        sampleFraction: float | None = None,
+        sequenceNumbersFile: str | None = None,
+        idLambda: str | None = None,
+        readLambda: str | None = None,
+        keepSites: set[int] | None = None,
+        removeSites: set[int] | None = None,
         reverse: bool = False,
         reverseComplement: bool = False,
         upper: bool = False,
         lower: bool = False,
         upperId: bool = False,
         lowerId: bool = False,
-        rotate: Optional[int] = None,
-    ):
+        rotate: int | None = None,
+    ) -> None:
         if randomSubset is not None:
             if sampleFraction is not None:
                 raise ValueError(
@@ -1329,8 +1320,8 @@ class ReadFilter:
         self.yieldCount = 0
         self.readIndex = -1
 
-        self.titleFilter: Optional[TitleFilter] = None
-        self.sequenceFilter: Optional[SequenceFilter] = None
+        self.titleFilter: TitleFilter | None = None
+        self.sequenceFilter: SequenceFilter | None = None
 
         def _wantedSequences(filename):
             """
@@ -1428,7 +1419,7 @@ class ReadFilter:
         self.idLambda = eval(idLambda) if idLambda else None
         self.readLambda = eval(readLambda) if readLambda else None
 
-    def filter(self, read):
+    def filter(self, read: Read) -> Read | Literal[False]:
         """
         Check if a read passes the filter.
 
@@ -1642,13 +1633,13 @@ class Reads:
         subclass) instances.
     """
 
-    def __init__(self, initialReads: Optional[Iterable[Read]] = None) -> None:
-        self._initialReads = initialReads
-        self._additionalReads: List[Read] = []
-        self._filters: List[Callable] = []
-        self._iterated = False
+    def __init__(self, initialReads: Iterable[Read] | None = None) -> None:
+        self._initialReads: Iterable[Read] | None = initialReads
+        self._additionalReads: list[Read] = []
+        self._filters: list[Callable[[Read], Read | Literal[False]]] = []
+        self._iterated: bool = False
 
-    def filterRead(self, read: Read) -> Union[Literal[False], Read]:
+    def filterRead(self, read: Read) -> Literal[False] | Read:
         """
         Filter a read, according to our set of filters.
 
@@ -1672,7 +1663,7 @@ class Reads:
         """
         self._additionalReads.append(read)
 
-    def __iter__(self) -> Generator[Read, None, None]:
+    def __iter__(self) -> Iterator[Read]:
         """
         Iterate through all the reads.
 
@@ -1740,7 +1731,7 @@ class Reads:
                 "it has been iterated."
             )
 
-    def iter(self) -> Union[Generator[Read, None, None], list]:
+    def iter(self) -> Iterator[Read]:
         """
         Placeholder to allow subclasses to provide reads.
 
@@ -1752,9 +1743,7 @@ class Reads:
         """
         return []
 
-    def save(
-        self, filename: Union[str, TextIO], format_: str = "fasta", mode: str = "w"
-    ) -> int:
+    def save(self, filename: File, format_: str = "fasta", mode: str = "w") -> int:
         """
         Write the reads to C{filename} in the requested format.
 
@@ -1807,7 +1796,7 @@ class Reads:
         self._filters = []
         return self
 
-    def summarizePosition(self, index: int) -> dict:
+    def summarizePosition(self, index: int) -> dict[str, int | Counter[str]]:
         """
         Compute residue counts at a specific sequence index.
 
@@ -1815,7 +1804,7 @@ class Reads:
         @return: A C{dict} with the count of the reads, the too-short (excluded)
             sequences, and a Counter instance giving the base/residue counts.
         """
-        countAtPosition: Counter = Counter()
+        countAtPosition: Counter[str] = Counter()
         excludedCount = readCount = 0
 
         for read in iter(self):
@@ -1831,7 +1820,7 @@ class Reads:
             "readCount": readCount,
         }
 
-    def sitesMatching(self, targets: set, matchCase: bool, any_: bool) -> set[int]:
+    def sitesMatching(self, targets: set[str], matchCase: bool, any_: bool) -> set[int]:
         """
         Find sites (i.e., sequence indices) that match a given set of target
         sequence bases.
@@ -1958,10 +1947,10 @@ class Reads:
     def temporalBaseCounts(
         self,
         firstPostId: str,
-        minFrequency: Optional[float] = None,
-        maxFrequency: Optional[float] = None,
+        minFrequency: float | None = None,
+        maxFrequency: float | None = None,
         minCount: int = 0,
-        preIds: Optional[Set[str]] = None,
+        preIds: set[str] | None = None,
     ):
         """
         Iterate through time-sorted reads, accumulating counts of bases at each
@@ -2264,7 +2253,7 @@ class ReadsInRAM(Reads):
     # inheritance. If you want a real list, you can just call C{list} on a
     # C{Reads} or C{ReadsInRAM} instance.
 
-    def __init__(self, initialReads: Optional[Iterable[Read]] = None):
+    def __init__(self, initialReads: Iterable[Read] | None = None):
         super().__init__(initialReads)
 
         # Read all initial reads into memory.
@@ -2279,13 +2268,13 @@ class ReadsInRAM(Reads):
     def __len__(self) -> int:
         return self._additionalReads.__len__()
 
-    def __getitem__(self, item: SupportsIndex) -> Union[Read, Reads]:
+    def __getitem__(self, item: SupportsIndex) -> Read | Reads:
         return self._additionalReads.__getitem__(item)
 
     def __setitem__(self, item: SupportsIndex, value: Read) -> None:
         return self._additionalReads.__setitem__(item, value)
 
-    def __iter__(self) -> Generator[Read, None, None]:
+    def __iter__(self) -> Iterator[Read]:
         for read in self._additionalReads.__iter__():
             yield read
 
@@ -2376,7 +2365,7 @@ def parseFASTACommandLineOptions(args: argparse.Namespace) -> Reads:
 
 
 def getNoCoverageCounts(
-    reads: Iterable[Read], noCoverageChars: Optional[str]
+    reads: Iterable[Read], noCoverageChars: str | None
 ) -> dict[str, int]:
     """
     Get the no-coverage character counts for all reads.

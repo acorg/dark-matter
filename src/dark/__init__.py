@@ -1,8 +1,9 @@
 import sys
 from importlib.metadata import PackageNotFoundError, version
+from typing import TextIO
 
 if sys.version_info < (3, 10):
-    raise Exception("The dark matter code needs Python 3.10 or later.")
+    raise Exception("The dark matter code needs Python 3.10 or later.")  # pyright: ignore[reportUnreachable]
 
 
 try:
@@ -10,3 +11,6 @@ try:
 except PackageNotFoundError:
     # Package is not installed.
     __version__ = "unknown"
+
+
+File = TextIO | str

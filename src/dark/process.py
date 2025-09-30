@@ -2,9 +2,10 @@ import sys
 from io import StringIO
 from subprocess import PIPE, CalledProcessError, CompletedProcess, run
 from time import ctime, time
-from typing import Optional, TextIO, Union
+from typing import Any, Callable, Iterable, TextIO, final
 
 
+@final
 class Executor:
     """
     Log and execute shell commands.
@@ -21,8 +22,8 @@ class Executor:
     def __init__(
         self,
         dryRun: bool = False,
-        stdout: Optional[Union[TextIO, StringIO]] = None,
-        stderr: Optional[Union[TextIO, StringIO]] = None,
+        stdout: TextIO | StringIO | None = None,
+        stderr: TextIO | StringIO | None = None,
     ) -> None:
         self.dryRun = dryRun
         self.stdout = stdout
@@ -31,13 +32,13 @@ class Executor:
 
     def execute(
         self,
-        command: Union[str, list[str]],
-        dryRun: Optional[bool] = None,
-        useStderr: bool = True,
-        stdout: Optional[Union[bool, TextIO, StringIO]] = False,
-        stderr: Optional[Union[bool, TextIO, StringIO]] = False,
-        **kwargs,
-    ) -> Optional[CompletedProcess]:
+        command: str | Iterable[str],
+        dryRun: bool | None = None,
+        useStderr: bool | Callable[[Exception], bool] = True,
+        stdout: bool | TextIO | StringIO | None = False,
+        stderr: bool | TextIO | StringIO | None = False,
+        **kwargs: Any,
+    ) -> CompletedProcess[str] | None:
         """
         Execute (or simulate) a command. Add to our log.
 
