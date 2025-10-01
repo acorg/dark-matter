@@ -82,8 +82,8 @@ class Read(Sized):
     def __init__(self, id: str, sequence: str, quality: Optional[str] = None):
         if quality is not None and len(quality) != len(sequence):
             raise ValueError(
-                "Invalid read: sequence length (%d) != quality length (%d)"
-                % (len(sequence), len(quality))
+                f"Invalid read: sequence length ({len(sequence)}) "
+                f"!= quality length ({len(quality)})"
             )
 
         self.id = id
@@ -158,17 +158,12 @@ class Read(Sized):
         @return: A C{str} representing the read in the requested format.
         """
         if format_ == "fasta":
-            return ">%s\n%s\n" % (self.id, self.sequence)
+            return f">{self.id}\n{self.sequence}\n"
         elif format_ == "fastq":
             if self.quality is None:
-                raise ValueError("Read %r has no quality information" % self.id)
+                raise ValueError(f"Read {self.id!r} has no quality information")
             else:
-                return "@%s\n%s\n+%s\n%s\n" % (
-                    self.id,
-                    self.sequence,
-                    self.id,
-                    self.quality,
-                )
+                return f"@{self.id}\n{self.sequence}\n+{self.id}\n{self.quality}\n"
         else:
             raise ValueError("Format must be either 'fasta', 'fastq' or 'fasta-ss'.")
 
@@ -326,13 +321,9 @@ class Read(Sized):
         if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
             return readLetters
         raise ValueError(
-            "Read alphabet (%r) is not a subset of expected "
-            "alphabet (%r) for read class %s."
-            % (
-                "".join(sorted(readLetters)),
-                "".join(sorted(self.ALPHABET)),
-                str(self.__class__.__name__),
-            )
+            f"Read alphabet ({''.join(sorted(readLetters))}) is not a subset of "
+            f"expected alphabet ({''.join(sorted(self.ALPHABET))}) for read class "
+            f"{str(self.__class__.__name__)}."
         )
 
     def newFromSites(self, sites: set[int], exclude: bool = False) -> Read:
@@ -625,18 +616,17 @@ class DNAKozakRead(DNARead):
 
     def __init__(self, originalRead: Read, start: int, stop: int, kozakQuality: float):
         if start < 0:
-            raise ValueError("start offset (%d) less than zero" % start)
+            raise ValueError(f"start offset ({start}) less than zero")
         if stop > len(originalRead):
             raise ValueError(
-                "stop offset (%d) > original read length (%d)"
-                % (stop, len(originalRead))
+                f"stop offset ({stop}) > original read length ({len(originalRead)})"
             )
         if start > stop:
             raise ValueError(
-                "start offset (%d) greater than stop offset (%d)" % (start, stop)
+                f"start offset ({start}) greater than stop offset ({stop})"
             )
 
-        newId = "%s-(%d:%d)" % (originalRead.id, start, stop)
+        newId = f"{originalRead.id}-({start}:{stop})"
 
         if originalRead.quality:
             DNARead.__init__(
@@ -809,22 +799,18 @@ class AAReadORF(AARead):
         openRight: bool,
     ):
         if start < 0:
-            raise ValueError("start offset (%d) less than zero" % start)
+            raise ValueError(f"start offset ({start}) less than zero")
         if stop > len(originalRead):
             raise ValueError(
-                "stop offset (%d) > original read length (%d)"
-                % (stop, len(originalRead))
+                f"stop offset ({stop}) > original read length ({len(originalRead)})"
             )
         if start > stop:
             raise ValueError(
-                "start offset (%d) greater than stop offset (%d)" % (start, stop)
+                f"start offset ({start}) greater than stop offset ({stop})"
             )
-        newId = "%s-%s%d:%d%s" % (
-            originalRead.id,
-            "(" if openLeft else "[",
-            start,
-            stop,
-            ")" if openRight else "]",
+        newId = (
+            f"{originalRead.id}-{'(' if openLeft else '['}"
+            f"{start}:{stop}{')' if openRight else ']'}"
         )
         if originalRead.quality:
             AARead.__init__(
@@ -903,8 +889,8 @@ class SSAARead(AARead):
 
         if len(sequence) != len(structure):
             raise ValueError(
-                "Invalid read: sequence length (%d) != structure length (%d)"
-                % (len(sequence), len(structure))
+                f"Invalid read: sequence length ({len(sequence)}) "
+                f"!= structure length ({len(structure)})"
             )
 
     def __eq__(self, other: object) -> bool:
@@ -956,12 +942,9 @@ class SSAARead(AARead):
             FASTA format.
         """
         if format_ == "fasta-ss":
-            return ">%s\n%s\n>%s%s\n%s\n" % (
-                self.id,
-                self.sequence,
-                self.id,
-                structureSuffix,
-                self.structure,
+            return (
+                f">{self.id}\n{self.sequence}\n"
+                f">{self.id}{structureSuffix}\n{self.structure}\n"
             )
         else:
             return super().toString(format_=format_)
@@ -1038,11 +1021,7 @@ class TranslatedRead(AARead):
     def __init__(self, originalRead, sequence, frame, reverseComplemented=False):
         if frame not in (0, 1, 2):
             raise ValueError("Frame must be 0, 1, or 2")
-        newId = "%s-frame%d%s" % (
-            originalRead.id,
-            frame,
-            "rc" if reverseComplemented else "",
-        )
+        newId = f"{originalRead.id}-frame{frame}{'rc' if reverseComplemented else ''}"
         AARead.__init__(self, newId, sequence)
         self.frame = frame
         self.reverseComplemented = reverseComplemented
@@ -1368,8 +1347,8 @@ class ReadFilter:
                     if lastNumber is None:
                         if n < 1:
                             raise ValueError(
-                                "First line of sequence number file %r must "
-                                "be at least 1." % filename
+                                f"First line of sequence number file {filename!r} must "
+                                "be at least 1."
                             )
                         lastNumber = n
                         yield n
@@ -1379,8 +1358,8 @@ class ReadFilter:
                             yield n
                         else:
                             raise ValueError(
-                                "Line number file %r contains non-ascending "
-                                "numbers %d and %d." % (filename, lastNumber, n)
+                                f"Line number file {filename!r} contains non-ascending "
+                                f"numbers {lastNumber} and {n}."
                             )
 
         self.wantedSequenceNumberGeneratorExhausted = False
@@ -1964,14 +1943,14 @@ class Reads:
             ):
                 sequence += list(bases.intersection({"A", "T", "G", "C"}))[0]
             else:
-                nucleotides = set()
+                nucleotides: set[str] = set()
                 for base in bases:
                     nucleotides.update(AMBIGUOUS.get(base, set()))
                 try:
                     sequence += BASES_TO_AMBIGUOUS["".join(sorted(nucleotides))]
                 except KeyError:
                     raise ValueError(
-                        "Unknown DNA base(s): %r" % (nucleotides - set("ACGTN-"))
+                        f"Unknown DNA base(s): {', '.join(nucleotides - set('ACGTN-'))}"
                     )
 
         return sequence
@@ -2335,8 +2314,8 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
         choices=readClassNameToClass,
         metavar="CLASSNAME",
         help=(
-            "If specified, give the type of the reads in the input. "
-            "Possible choices: %s." % ", ".join(readClassNameToClass)
+            f"If specified, give the type of the reads in the input. "
+            f"Possible choices: {', '.join(readClassNameToClass)}."
         ),
     )
 
