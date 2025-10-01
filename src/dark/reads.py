@@ -1875,8 +1875,7 @@ class Reads:
             targets = set(map(str.lower, targets))
 
         # result = set() if any_ else None
-        if any_:
-            result: set[int] = set()
+        result: set[int] = set()
 
         # I am using a 'first' variable here instead of just setting
         # 'result' to be None and testing that below, because if I let it
@@ -1902,7 +1901,7 @@ class Reads:
 
         # Make sure we don't return None.
         # return result or set()
-        return set() if result is None else result
+        return result
 
     def variableSites(
         self,
