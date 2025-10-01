@@ -335,20 +335,16 @@ class Read(Sized):
             )
         )
 
-    def newFromSites(self, sites: Set[int], exclude: bool = False) -> Read:
+    def newFromSites(self, sites: set[int], exclude: bool = False) -> Read:
         """
         Create a new read from self, with only certain sites.
 
         @param sites: A set of C{int} 0-based sites (i.e., indices) in
-            sequences that should be kept. If C{None} (the default), all sites
-            are kept.
+            sequences that should be kept.
         @param exclude: If C{True} the C{sites} will be excluded, not
             included.
         @return: A new C{Read} instance.
         """
-        if sites is None:
-            sites = set(range(len(self)))
-
         if exclude:
             sites = set(range(len(self))) - sites
 
