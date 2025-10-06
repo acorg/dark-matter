@@ -27,7 +27,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: nox
-        run: uv run noxfile.py
+        run: uv run --only-group dev noxfile.py
 
       - name: Format Code with ruff
         run: uv run --only-group dev ruff format
@@ -37,7 +37,7 @@ jobs:
 
       - name: Commit and push ruff formatting to PR
         run: |
-          git pull --recurse-submodules=no
+          git pull
           if ! git diff --quiet
           then
             git commit -am "Format with ruff"
