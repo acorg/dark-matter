@@ -56,6 +56,7 @@ data-files = {"bin" = ["bin/*"]}
 dev = [
     "nox>=2025.5.1",
     "pytest>=8.3.5",
+    "ruff>=0.13.3",
 ]
 
 [project.urls]
