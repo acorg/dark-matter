@@ -681,7 +681,7 @@ class TestCanonicalizeAllGaps(TestCase):
         self.assertEqual(
             canonicalizeAllGaps(
                 "ATTAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC",
-                "A---G----AT-C-T-----G-T-----------T--C--TCT-----A-A----------A--CGAAC"
+                "A---G----AT-C-T-----G-T-----------T--C--TCT-----A-A----------A--CGAAC",
             ),
             (
                 "ATTAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC",
@@ -701,5 +701,6 @@ class TestCanonicalizeAllGaps(TestCase):
 
         for n in range(10):
             self.assertEqual(
-                canonicalizeAllGaps(seq_1 * n, seq_2 * n), (seq_1 * n, canon * n),
+                canonicalizeAllGaps(seq_1 * n, seq_2 * n),
+                (seq_1 * n, canon * n),
             )

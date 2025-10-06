@@ -420,7 +420,7 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            error = "^Query TCTAGG not fully consumed when parsing CIGAR " "string\\."
+            error = "^Query TCTAGG not fully consumed when parsing CIGAR string\\."
             self.assertRaisesRegex(ValueError, error, list, ps.queries())
 
     def testAllMMatch(self):
@@ -2272,13 +2272,15 @@ class TestReferenceReads(TestCase):
                 (350, 100),
             )
         ):
-            rr.add(
-                AlignedRead(
-                    query_name=str(count),
-                    reference_start=start,
-                    reference_length=length,
-                )
-            ),
+            (
+                rr.add(
+                    AlignedRead(
+                        query_name=str(count),
+                        reference_start=start,
+                        reference_length=length,
+                    )
+                ),
+            )
 
         self.assertEqual(set(range(50, 450)), rr.coveredOffsets)
         self.assertEqual(0.8, rr.coverage())

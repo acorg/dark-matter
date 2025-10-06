@@ -32,7 +32,7 @@ def trimPrimers(primer, verbose):
 
     if verbose:
         print(
-            ("Read %d sequences. Found forward: %d, " "Found reversed: %d, Absent: %d")
+            ("Read %d sequences. Found forward: %d, Found reversed: %d, Absent: %d")
             % (count, forwardCount, reverseCount, absentCount),
             file=sys.stderr,
         )

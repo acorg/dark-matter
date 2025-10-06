@@ -164,5 +164,5 @@ class TestFindPrimerBidiLimits(TestCase):
         """
         Test a longer sequence.
         """
-        seq = Seq("AAAAAAAAAA" "GGGGGGGGGG" "AAAAAAAAAA" "AAAAAAAAAA")
+        seq = Seq("AAAAAAAAAAGGGGGGGGGGAAAAAAAAAAAAAAAAAAAA")
         self.assertEqual((20, 40), findPrimerBidiLimits("GGGGGGGGGG", seq))

@@ -340,7 +340,17 @@ def analyzeColumn(
     referenceSeq: str | None,
     diffsFrom: str,
 ) -> (
-    tuple[int, set[str], float, float, dict[str, int], int, str | None, str, dict[str, int]]
+    tuple[
+        int,
+        set[str],
+        float,
+        float,
+        dict[str, int],
+        int,
+        str | None,
+        str,
+        dict[str, int],
+    ]
     | None
 ):
     """

@@ -269,10 +269,10 @@ class TestProteinGrouper(TestCase):
                                 "outDir": "out",
                                 "proteinLength": 74,
                                 "proteinName": (
-                                    "acc|GENBANK|I44.6|GENBANK|" "J77|ubiquitin"
+                                    "acc|GENBANK|I44.6|GENBANK|J77|ubiquitin"
                                 ),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/nuccore/" "I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -315,10 +315,10 @@ class TestProteinGrouper(TestCase):
                                 "outDir": "differentname",
                                 "proteinLength": 74,
                                 "proteinName": (
-                                    "acc|GENBANK|I44.6|GENBANK|" "J77|ubiquitin"
+                                    "acc|GENBANK|I44.6|GENBANK|J77|ubiquitin"
                                 ),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -361,10 +361,10 @@ class TestProteinGrouper(TestCase):
                                 "outDir": "out",
                                 "proteinLength": 74,
                                 "proteinName": (
-                                    "acc|GENBANK|I44.6|GENBANK|" "J77|ubiquitin"
+                                    "acc|GENBANK|I44.6|GENBANK|J77|ubiquitin"
                                 ),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -441,9 +441,9 @@ class TestProteinGrouper(TestCase):
                                 "medianScore": 41.3,
                                 "outDir": "out",
                                 "proteinLength": 12,
-                                "proteinName": ("acc|GENBANK|I44.6|GENBANK|" "J77|VP1"),
+                                "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -461,9 +461,9 @@ class TestProteinGrouper(TestCase):
                                 "medianScore": 46.6,
                                 "outDir": "out",
                                 "proteinLength": 74,
-                                "proteinName": ("acc|GENBANK|I44.7|GENBANK|" "J78|VP2"),
+                                "proteinName": ("acc|GENBANK|I44.7|GENBANK|J78|VP2"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.7"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.7"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J78"
@@ -509,7 +509,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 12,
                                 "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -536,7 +536,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 74,
                                 "proteinName": ("acc|GENBANK|I44.7|GENBANK|J78|VP2"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.7"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.7"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J78"
@@ -558,12 +558,10 @@ class TestProteinGrouper(TestCase):
         same pathogen, its pathogenNames dict must be as expected.
         """
         fp1 = StringIO(
-            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 "
-            "[Lausannevirus]\n"
+            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 [Lausannevirus]\n"
         )
         fp2 = StringIO(
-            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 "
-            "[Lausannevirus]\n"
+            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 [Lausannevirus]\n"
         )
         pg = ProteinGrouper()
         pg.addFile("sample-filename-1", fp1)
@@ -585,7 +583,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 12,
                                 "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -610,7 +608,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 74,
                                 "proteinName": ("acc|GENBANK|I44.7|GENBANK|J78|VP2"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.7"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.7"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J78"
@@ -632,12 +630,10 @@ class TestProteinGrouper(TestCase):
         same pathogen, its _title method must return the expected string.
         """
         fp1 = StringIO(
-            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 "
-            "[Lausannevirus]\n"
+            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 [Lausannevirus]\n"
         )
         fp2 = StringIO(
-            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 "
-            "[Lausannevirus]\n"
+            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 [Lausannevirus]\n"
         )
         pg = ProteinGrouper()
         pg.addFile("sample-filename-1", fp1)
@@ -653,8 +649,7 @@ class TestProteinGrouper(TestCase):
         must be as expected.
         """
         fp1 = StringIO(
-            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 "
-            "[Lausannevirus]\n"
+            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 [Lausannevirus]\n"
         )
         fp2 = StringIO(
             "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 "
@@ -680,7 +675,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 12,
                                 "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -707,7 +702,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 74,
                                 "proteinName": ("acc|GENBANK|I44.7|GENBANK|J78|VP2"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.7"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.7"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J78"
@@ -729,8 +724,7 @@ class TestProteinGrouper(TestCase):
         different pathogens, its _title method must return the expected string.
         """
         fp1 = StringIO(
-            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 "
-            "[Lausannevirus]\n"
+            "0.63 41.3 44.2 9 9 12 acc|GENBANK|I44.6|GENBANK|J77|VP1 [Lausannevirus]\n"
         )
         fp2 = StringIO(
             "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.7|GENBANK|J78|VP2 "
@@ -790,8 +784,7 @@ class TestProteinGrouper(TestCase):
         must produce the expected result.
         """
         fp = StringIO(
-            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|"
-            "VP1 [Lausannevirus]\n"
+            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|VP1 [Lausannevirus]\n"
         )
         pg = ProteinGrouper()
         pg.addFile("sample-filename", fp)
@@ -838,7 +831,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 12,
                                 "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -885,7 +878,7 @@ class TestProteinGrouper(TestCase):
                                 "proteinLength": 12,
                                 "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
                                 "proteinURL": (
-                                    "http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"
+                                    "http://www.ncbi.nlm.nih.gov/nuccore/I44.6"
                                 ),
                                 "genomeURL": (
                                     "http://www.ncbi.nlm.nih.gov/nuccore/J77"
@@ -949,8 +942,7 @@ class TestPathogenSampleFiles(TestCase):
                     )
 
         fp = StringIO(
-            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|"
-            "VP1 [Lausannevirus]\n"
+            "0.77 46.6 48.1 5 6 74 acc|GENBANK|I44.6|GENBANK|J77|VP1 [Lausannevirus]\n"
         )
         fastaIO = StringIO()
 
@@ -1162,7 +1154,7 @@ class TestPathogenSampleFiles(TestCase):
                         "outDir": "out",
                         "proteinLength": 12,
                         "proteinName": ("acc|GENBANK|I44.6|GENBANK|J77|VP1"),
-                        "proteinURL": ("http://www.ncbi.nlm.nih.gov/" "nuccore/I44.6"),
+                        "proteinURL": ("http://www.ncbi.nlm.nih.gov/nuccore/I44.6"),
                         "genomeURL": ("http://www.ncbi.nlm.nih.gov/nuccore/J77"),
                         "readCount": 9,
                         "readAndHspCountStr": "9",
@@ -1178,7 +1170,7 @@ class TestPathogenSampleFiles(TestCase):
                         "outDir": "out",
                         "proteinLength": 74,
                         "proteinName": ("acc|GENBANK|I44.7|GENBANK|J78|VP2"),
-                        "proteinURL": ("http://www.ncbi.nlm.nih.gov/" "nuccore/I44.7"),
+                        "proteinURL": ("http://www.ncbi.nlm.nih.gov/nuccore/I44.7"),
                         "genomeURL": ("http://www.ncbi.nlm.nih.gov/nuccore/J78"),
                         "readCount": 5,
                         "readAndHspCountStr": "5/6",

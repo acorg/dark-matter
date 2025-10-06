@@ -238,8 +238,7 @@ def addCommandLineOptions(parser):
         default=50,
         type=int,
         help=(
-            "The number of nucleotides to move across to the start of the "
-            "next window."
+            "The number of nucleotides to move across to the start of the next window."
         ),
     )
 

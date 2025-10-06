@@ -314,9 +314,9 @@ def getCDSInfo(
     # have the right lengths, if they're present.
     for key in "gene", "note", "product", "protein_id", "translation":
         if key in qualifiers:
-            assert (
-                len(qualifiers[key]) == 1
-            ), "GenBank qualifier key %s is not length one %r" % (key, qualifiers[key])
+            assert len(qualifiers[key]) == 1, (
+                "GenBank qualifier key %s is not length one %r" % (key, qualifiers[key])
+            )
 
     # A protein id is mandatory.
     if "protein_id" in qualifiers:

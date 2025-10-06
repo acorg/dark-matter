@@ -463,8 +463,7 @@ def addFASTAFilteringCommandLineOptions(parser: argparse.ArgumentParser) -> None
         type=int,
         metavar="N",
         help=(
-            "The number of reads in the FASTA input. Only to be used with "
-            "randomSubset"
+            "The number of reads in the FASTA input. Only to be used with randomSubset"
         ),
     )
 

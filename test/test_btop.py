@@ -41,8 +41,7 @@ class TestParseBtop(TestCase):
         must result in a ValueError.
         """
         error = (
-            "^BTOP string '36AA' has two consecutive identical 'A' "
-            "letters at offset 2$"
+            "^BTOP string '36AA' has two consecutive identical 'A' letters at offset 2$"
         )
         self.assertRaisesRegex(ValueError, error, list, parseBtop("36AA"))
 

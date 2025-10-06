@@ -512,7 +512,7 @@ class TestCountPrint(TestCase):
         len1 = 10
         len2 = 8
         self.assertEqual(
-            "Count is: 2/10 (20.00%) of sequence 1," " 2/8 (25.00%) of sequence 2",
+            "Count is: 2/10 (20.00%) of sequence 1, 2/8 (25.00%) of sequence 2",
             countPrint("Count is", count, len1, len2),
         )
 
