@@ -2,7 +2,7 @@ import multiprocessing
 import os
 from os.path import join
 from tempfile import mkdtemp
-from typing import Optional, TextIO
+from typing import TextIO, final
 
 import requests
 
@@ -10,6 +10,7 @@ from dark.process import Executor
 from dark.sam import samfile as openSamfile
 
 
+@final
 class Bowtie2:
     """
     Run Bowtie2.
@@ -17,13 +18,13 @@ class Bowtie2:
 
     def __init__(
         self,
-        executor: Optional[Executor] = None,
-        threads: Optional[int] = None,
-        verboseFp: Optional[TextIO] = None,
+        executor: Executor | None = None,
+        threads: int | None = None,
+        verboseFp: TextIO | None = None,
         dryRun: bool = False,
-        reference: Optional[str] = None,
-        tempdir: Optional[str] = None,
-        tmpChmod: Optional[str] = None,
+        reference: str | None = None,
+        tempdir: str | None = None,
+        tmpChmod: str | None = None,
     ) -> None:
         self._executor = executor or Executor(dryRun)
         if dryRun:
@@ -76,9 +77,9 @@ class Bowtie2:
     def align(
         self,
         bowtie2Args: str = "--no-unal",
-        fastq1: Optional[str] = None,
-        fastq2: Optional[str] = None,
-        threads: Optional[int] = None,
+        fastq1: str | None = None,
+        fastq2: str | None = None,
+        threads: int | None = None,
         discardSAM: bool = False,
         readGroup: str = "orig",
         sampleName: str = "orig",
@@ -211,7 +212,7 @@ class Bowtie2:
             # This will fail if the BAM file has not been sorted and indexed.
             return samfile.mapped, samfile.unmapped
 
-    def sort(self, byName=False) -> None:
+    def sort(self, byName: bool = False) -> None:
         """
         Sort the BAM or SAM.
         """
@@ -263,7 +264,7 @@ class Bowtie2:
 
         self._executor.execute("mv '%s' '%s'" % (tempFile, inFile))
 
-    def markDuplicatesGATK(self, threads: Optional[int] = None) -> None:
+    def markDuplicatesGATK(self, threads: int | None = None) -> None:
         """
         Use GATK to mark duplicates.
         """
@@ -285,8 +286,8 @@ class Bowtie2:
     def callHaplotypesGATK(
         self,
         picardJar: str,
-        vcfFile: Optional[str] = None,
-        referenceFasta: Optional[str] = None,
+        vcfFile: str | None = None,
+        referenceFasta: str | None = None,
     ) -> None:
         """
         Use GATK to call haplotypes.
@@ -345,7 +346,7 @@ class Bowtie2:
             self._executor.execute("rm '%s'" % dictFile)
 
     def callHaplotypesBcftools(
-        self, vcfFile: Optional[str] = None, referenceFasta: Optional[str] = None
+        self, vcfFile: str | None = None, referenceFasta: str | None = None
     ) -> None:
         """
         Use bcftools call to call haplotypes.

@@ -76,6 +76,7 @@ Homepage = "https://github.com/acorg/dark-matter"
   reportAny = false
   reportImplicitStringConcatenation = false
   reportUnusedCallResult = false
+  reportExplicitAny = false
 
 [tool.pytest.ini_options]
 testpaths = ["test"]

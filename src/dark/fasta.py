@@ -1,10 +1,15 @@
 import os
 import sqlite3
+from collections.abc import Iterable, Iterator
 from hashlib import md5
-from typing import Generator, Iterable, Iterator, List, Optional, TextIO, Type, Union
+from typing import (
+    TextIO,
+    final,
+)
 
-from Bio import SeqIO, bgzf  # type: ignore
+from Bio import SeqIO, bgzf
 
+from dark import File
 from dark.reads import DNARead, Read, Reads
 from dark.sqlite3 import sqliteConnect
 from dark.utils import asHandle
@@ -14,7 +19,7 @@ def fastaToList(fastaFilename) -> list:
     return list(SeqIO.parse(fastaFilename, "fasta"))
 
 
-def dedupFasta(reads: Reads) -> Generator[Read, None, None]:
+def dedupFasta(reads: Reads) -> Iterator[Read]:
     """
     Remove sequence duplicates (based on sequence) from FASTA.
 
@@ -57,7 +62,7 @@ def dePrefixAndSuffixFasta(
             yield s
 
 
-def fastaSubtract(fastaFiles: List[TextIO]) -> Iterator[SeqIO.SeqRecord]:
+def fastaSubtract(fastaFiles: list[TextIO]) -> Iterator[SeqIO.SeqRecord]:
     """
     Given a list of open file descriptors, each with FASTA content,
     remove the reads found in the 2nd, 3rd, etc files from the first file
@@ -85,6 +90,7 @@ def fastaSubtract(fastaFiles: List[TextIO]) -> Iterator[SeqIO.SeqRecord]:
     return iter(reads.values())
 
 
+@final
 class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
@@ -99,8 +105,8 @@ class FastaReads(Reads):
 
     def __init__(
         self,
-        _files: Union[str, TextIO, Union[list, tuple]],
-        readClass: Type[Read] = DNARead,
+        _files: File | list[File] | tuple[File],
+        readClass: type[Read] = DNARead,
         upperCase: bool = False,
     ):
         self._files = _files if isinstance(_files, (list, tuple)) else [_files]
@@ -115,7 +121,7 @@ class FastaReads(Reads):
         self._upperCase = upperCase
         super().__init__()
 
-    def iter(self) -> Generator[Read, None, None]:
+    def iter(self) -> Iterator[Read]:
         """
         Iterate over the sequences in the files in self.files_, yielding each
         as an instance of the desired read class.
@@ -137,10 +143,10 @@ class FastaReads(Reads):
 def combineReads(
     filename: str,
     sequences: list[str],
-    readClass: Type[Read] = DNARead,
+    readClass: type[Read] = DNARead,
     upperCase: bool = False,
     idPrefix: str = "command-line-read-",
-) -> Union[FastaReads, Reads]:
+) -> FastaReads | Reads:
     """
     Combine FASTA reads from a file and/or sequence strings.
 
@@ -160,7 +166,7 @@ def combineReads(
     @return: A C{FastaReads} instance.
     """
     # Read sequences from a FASTA file, if given.
-    reads: Union[FastaReads, Reads]
+    reads: FastaReads | Reads
 
     if filename:
         reads = FastaReads(filename, readClass=readClass, upperCase=upperCase)
@@ -204,8 +210,8 @@ class SqliteIndex:
     def __init__(
         self,
         dbFilename: str,
-        readClass: Type[Read] = DNARead,
-        fastaDirectory: Optional[str] = None,
+        readClass: type[Read] = DNARead,
+        fastaDirectory: str | None = None,
     ):
         self._readClass = readClass
         self._fastaDirectory = fastaDirectory
@@ -230,7 +236,7 @@ class SqliteIndex:
             )
             self._connection.commit()
 
-    def _getFilename(self, fileNumber: int) -> Optional[str]:
+    def _getFilename(self, fileNumber: int) -> str | None:
         """
         Given a file number, get its name (if any).
 
@@ -246,7 +252,7 @@ class SqliteIndex:
         else:
             return row[0]
 
-    def _getFileNumber(self, filename: str) -> Optional[int]:
+    def _getFileNumber(self, filename: str) -> int | None:
         """
         Given a file name, get its file number (if any).
 
@@ -262,7 +268,7 @@ class SqliteIndex:
         else:
             return row[0]
 
-    def _addFilename(self, filename: str) -> Optional[int]:
+    def _addFilename(self, filename: str) -> int | None:
         """
         Add a new file name.
 
@@ -377,7 +383,7 @@ class SqliteIndex:
         else:
             return count
 
-    def _find(self, id_: str) -> Optional[tuple[Optional[str], int]]:
+    def _find(self, id_: str) -> tuple[str | None, int] | None:
         """
         Find the filename and offset of a sequence, given its id.
 
