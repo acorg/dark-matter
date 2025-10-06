@@ -1,4 +1,4 @@
-name: Test
+name: Test and format
 
 on:
   push:
@@ -27,4 +27,19 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: nox
-        run: uv run noxfile.py
+        run: uv run --only-group dev noxfile.py
+
+      - name: Format Code with ruff
+        run: uv run --only-group dev ruff format
+
+      - name: Format Imports with ruff
+        run: uv run --only-group dev ruff check --fix
+
+      - name: Commit and push ruff formatting to PR
+        run: |
+          git pull
+          if ! git diff --quiet
+          then
+            git commit -am "Format with ruff"
+            git push
+          fi
