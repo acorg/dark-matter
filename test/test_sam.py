@@ -2272,14 +2272,12 @@ class TestReferenceReads(TestCase):
                 (350, 100),
             )
         ):
-            (
-                rr.add(
-                    AlignedRead(
-                        query_name=str(count),
-                        reference_start=start,
-                        reference_length=length,
-                    )
-                ),
+            rr.add(
+                AlignedRead(
+                    query_name=str(count),
+                    reference_start=start,
+                    reference_length=length,
+                )
             )
 
         self.assertEqual(set(range(50, 450)), rr.coveredOffsets)
