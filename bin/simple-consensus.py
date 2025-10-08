@@ -202,7 +202,7 @@ def main():
     parser.add_argument(
         "--progress",
         action="store_true",
-        help=("Show a progress bar (unless standard error has been " "redirected)."),
+        help=("Show a progress bar (unless standard error has been redirected)."),
     )
 
     parser.add_argument(

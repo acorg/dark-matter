@@ -40,8 +40,7 @@ class GenomeProteinInfo:
         self.genome = proteinGenomeDB.findGenome(genomeAccession)
         if self.genome is None:
             raise NoSuchGenomeError(
-                "Reference %r not found in protein/genome "
-                "database." % genomeAccession
+                "Reference %r not found in protein/genome database." % genomeAccession
             )
 
         for protein in proteinGenomeDB.findProteinsForGenome(genomeAccession):

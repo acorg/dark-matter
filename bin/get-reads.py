@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=(
-            "Print the reads that are " "at specified positions in an alignmentGraph"
+            "Print the reads that are at specified positions in an alignmentGraph"
         ),
         epilog=(
             "Given a JSON BLAST output file, a title and an x and / or "

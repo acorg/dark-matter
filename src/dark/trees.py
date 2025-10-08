@@ -211,9 +211,9 @@ def ete3root(
 
     if detach:
         mrca.detach()
-        assert (
-            len(root.children) == 1
-        ), f"Root has {len(root.children)} children (expected 1)."
+        assert len(root.children) == 1, (
+            f"Root has {len(root.children)} children (expected 1)."
+        )
         tree = root.children[0]
         tree.dist = 0.0
         tree.up = None

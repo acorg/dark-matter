@@ -171,7 +171,9 @@ def processMatch(args, e):
                 bt2.makeBAM()
                 bt2.indexBAM()
                 indexed = True
-            bt2.callHaplotypesBcftools(vcfFile=args.vcfFile, referenceFasta=args.reference)
+            bt2.callHaplotypesBcftools(
+                vcfFile=args.vcfFile, referenceFasta=args.reference
+            )
 
     if args.bam and args.indexBAM and not indexed:
         bt2.makeBAM()
@@ -517,7 +519,7 @@ def main():
 
     if args.indexBAM and not args.bam:
         print(
-            "The --indexBAM option only makes sense if you do not use " "--noBAM.",
+            "The --indexBAM option only makes sense if you do not use --noBAM.",
             file=sys.stderr,
         )
         sys.exit(1)

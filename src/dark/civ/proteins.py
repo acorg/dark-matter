@@ -770,8 +770,7 @@ class ProteinGrouper:
                 "per sample.</a>" % pathogenPanelFilename
             )
             append(
-                "Red vertical bars indicate samples with an unusually "
-                "high read count."
+                "Red vertical bars indicate samples with an unusually high read count."
             )
             append("</p>")
 
@@ -915,7 +914,7 @@ class ProteinGrouper:
                 if pathogenType == "viral" and not omitVirusLinks:
                     quoted = quote(genomeInfo["organism"])
                     pathogenLinksHTML += (
-                        ', <a href="%s%s">ICTV</a>, ' '<a href="%s%s">ViralZone</a>)'
+                        ', <a href="%s%s">ICTV</a>, <a href="%s%s">ViralZone</a>)'
                     ) % (self.ICTV, quoted, self.VIRALZONE, quoted)
                 else:
                     pathogenLinksHTML += ")"

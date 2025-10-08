@@ -202,12 +202,13 @@ class _DiamondSAMWriter:
         endClipCount = match["qlen"] - match["qend"]
 
         assert startClipCount >= 0
-        assert (
-            endClipCount >= 0
-        ), "Query sequence %s has length %d but the qend value is %d" % (
-            qseq,
-            len(match["qseq"]),
-            match["qend"],
+        assert endClipCount >= 0, (
+            "Query sequence %s has length %d but the qend value is %d"
+            % (
+                qseq,
+                len(match["qseq"]),
+                match["qend"],
+            )
         )
 
         cigar = (

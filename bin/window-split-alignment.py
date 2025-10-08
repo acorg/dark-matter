@@ -189,7 +189,6 @@ def writeFiles(
     startOffset -= oneBased
 
     for windowCount, start in enumerate(range(startOffset, length, window)):
-
         if windowCount == maxWindows:
             break
 

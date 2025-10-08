@@ -14,9 +14,7 @@ URL = (
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=(
-        "Fetch a sequence by id from NCBI and write it to stdout as FASTA."
-    ),
+    description=("Fetch a sequence by id from NCBI and write it to stdout as FASTA."),
 )
 
 parser.add_argument("id", help="The id of the sequence to fetch.")

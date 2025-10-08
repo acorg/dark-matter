@@ -47,8 +47,7 @@ def checkCompatibleParams(initialParams, laterParams):
     for param in laterParams:
         if param not in initialParams:
             err.append(
-                "\t%r found in later parameters, not seen in "
-                "initial parameters" % param
+                "\t%r found in later parameters, not seen in initial parameters" % param
             )
 
     return "Summary of differences:\n%s" % "\n".join(err) if err else None

@@ -180,9 +180,7 @@ if __name__ == "__main__":
         "--pathogenPanelFilename",
         nargs="?",
         const=None,
-        help=(
-            "An (optional) filename to write a pathogen-sample panel PNG " "image to."
-        ),
+        help=("An (optional) filename to write a pathogen-sample panel PNG image to."),
     )
 
     parser.add_argument(
@@ -207,8 +205,7 @@ if __name__ == "__main__":
         default="fasta",
         choices=("fasta", "fastq"),
         help=(
-            "Give the format of the sequence files written by "
-            "alignment-panel-civ.py."
+            "Give the format of the sequence files written by alignment-panel-civ.py."
         ),
     )
 
@@ -377,7 +374,7 @@ if __name__ == "__main__":
 
     if args.omitVirusLinks and args.pathogenType != "viral":
         print(
-            "The --omitVirusLinks option only makes sense with " "--pathogenType viral",
+            "The --omitVirusLinks option only makes sense with --pathogenType viral",
             file=sys.stderr,
         )
         sys.exit(1)

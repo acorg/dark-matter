@@ -179,9 +179,9 @@ def basesToConsensus(
                     deletionSymbol if otherBases[offset] is None else otherBases[offset]
                 )
             else:
-                assert (
-                    offset in offsetBases
-                ), f"Offset {offset} not found in offsetBases or otherBases."
+                assert offset in offsetBases, (
+                    f"Offset {offset} not found in offsetBases or otherBases."
+                )
                 bases = offsetBases[offset]
                 result.append(
                     bases.consensus(
@@ -306,12 +306,12 @@ def consensusFromBAM(
     if referenceFasta is None:
         if lowCoverage == "reference":
             raise UnspecifiedReference(
-                'lowCoverage is "reference" but no ' "reference FASTA file was given."
+                'lowCoverage is "reference" but no reference FASTA file was given.'
             )
 
         if noCoverage == "reference":
             raise UnspecifiedReference(
-                'noCoverage is "reference" but no ' "reference FASTA file was given."
+                'noCoverage is "reference" but no reference FASTA file was given.'
             )
 
     with samfile(bamFilename) as bam:
@@ -706,7 +706,7 @@ def compareCorrespondences(fp, fetch, pileup, threshold, minCoverage):
     common = fetchOffsets & pileupOffsets
     if common:
         print(
-            f"There are {len(common)} sites obtained from both fetch and " f"pileup.",
+            f"There are {len(common)} sites obtained from both fetch and pileup.",
             file=fp,
         )
         differenceCount = 0

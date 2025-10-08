@@ -47,7 +47,7 @@ def splitFASTA(params):
     params['seqsPerJob'] sequences per file.
     """
     assert params["fastaFile"][-1] == "a", (
-        "You must specify a file in " "fasta-format that ends in " ".fasta"
+        "You must specify a file in fasta-format that ends in .fasta"
     )
 
     fileCount = count = seqCount = 0

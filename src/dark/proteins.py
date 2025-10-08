@@ -658,8 +658,7 @@ class ProteinGrouper:
 
         proteinFieldsDescription = [
             "<p>",
-            "In all bullet point protein lists below, there are the following "
-            "fields:",
+            "In all bullet point protein lists below, there are the following fields:",
             "<ol>",
             "<li>Coverage fraction.</li>",
             "<li>Median bit score.</li>",
@@ -728,8 +727,7 @@ class ProteinGrouper:
                 "sample.</a>" % pathogenPanelFilename
             )
             append(
-                "Red vertical bars indicate samples with an unusually high "
-                "read count."
+                "Red vertical bars indicate samples with an unusually high read count."
             )
             append("</p>")
 

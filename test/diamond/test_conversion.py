@@ -1653,7 +1653,7 @@ class TestDiamondTabularFormatToDicts(TestCase):
             "qseq",
         ]
         data = StringIO(
-            ("3.5 1.7 1 7 4 10 12 1 2 ACGT\n" "3.6 1.8 2 8 5 11 13 2 3 TGCA").replace(
+            ("3.5 1.7 1 7 4 10 12 1 2 ACGT\n3.6 1.8 2 8 5 11 13 2 3 TGCA").replace(
                 " ", "\t"
             )
             + "\n"

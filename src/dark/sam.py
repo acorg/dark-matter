@@ -108,6 +108,7 @@ def samReferenceLengths(filenameOrSamfile: str | AlignmentFile) -> dict[str, int
         instance of C{pysam.AlignmentFile}.
     @return: A C{dict} mapping reference ids to lengths.
     """
+
     def _references(sam):
         result = {}
         for i in range(sam.nreferences):
@@ -138,7 +139,8 @@ def samReferencesToStr(filenameOrSamfile: str | AlignmentFile, indent: int = 0) 
         result = []
         for i in range(sam.nreferences):
             result.append(
-                "%s%s (length %d)" % (indentStr, sam.get_reference_name(i), sam.lengths[i])
+                "%s%s (length %d)"
+                % (indentStr, sam.get_reference_name(i), sam.lengths[i])
             )
         return "\n".join(result)
 
@@ -314,20 +316,24 @@ class SAMFilter:
 
         # Detect when there are no filtering criteria, in which case
         # self.filterAlignment can return immediately.
-        self.noFiltering = all((
-            filterRead is None,
-            referenceIds is None,
-            not any((
-                storeQueryIds,
-                dropUnmapped,
-                dropSecondary,
-                dropSupplementary,
-                dropDuplicates,
-                keepQCFailures,
-            )),
-            minScore is None,
-            maxScore is None,
-        ))
+        self.noFiltering = all(
+            (
+                filterRead is None,
+                referenceIds is None,
+                not any(
+                    (
+                        storeQueryIds,
+                        dropUnmapped,
+                        dropSecondary,
+                        dropSupplementary,
+                        dropDuplicates,
+                        keepQCFailures,
+                    )
+                ),
+                minScore is None,
+                maxScore is None,
+            )
+        )
 
     @staticmethod
     def addFilteringOptions(
@@ -362,9 +368,9 @@ class SAMFilter:
         """
         if samfileIsPositional:
             # Positional arguments are always required.
-            assert (
-                samfileRequired
-            ), "samfileIsPositional is True, so samfileRequired must also be True."
+            assert samfileRequired, (
+                "samfileIsPositional is True, so samfileRequired must also be True."
+            )
             if samfileNargs is None:
                 parser.add_argument(
                     "samfile", action=samfileAction, help="The SAM/BAM file to filter."
@@ -774,10 +780,12 @@ class PaddedSAM:
                     # query but record what would have been inserted into the
                     # reference.
                     atStart = False
-                    self.referenceInsertions[queryId].append((
-                        referenceIndex,
-                        query[queryIndex : queryIndex + length],
-                    ))
+                    self.referenceInsertions[queryId].append(
+                        (
+                            referenceIndex,
+                            query[queryIndex : queryIndex + length],
+                        )
+                    )
                 elif operation == CDEL:
                     # Delete from the reference. Some bases from the reference
                     # would need to be deleted to continue the match. So we put
@@ -1180,7 +1188,7 @@ def getReferenceInfo(
             raise UnknownReference(
                 f"BAM file {str(bamFilename)!r} does not mention a reference "
                 f"with id {bamId!r}. Known references are: "
-                f'{", ".join(sorted(bamReferences))}.'
+                f"{', '.join(sorted(bamReferences))}."
             )
 
         inferredBamId = False
@@ -1228,8 +1236,7 @@ def getReferenceInfo(
                     break
             else:
                 raise UnknownReference(
-                    f"No sequence with id {fastaId!r} "
-                    f"found in {str(referenceFasta)!r}."
+                    f"No sequence with id {fastaId!r} found in {str(referenceFasta)!r}."
                 )
 
         # Set reference length if it has not already been set due to a
@@ -1251,7 +1258,7 @@ def getReferenceInfo(
         else:
             raise UnspecifiedReference(
                 f"Could not infer a BAM reference. Available references are: "
-                f'{", ".join(sorted(bamReferences))}.'
+                f"{', '.join(sorted(bamReferences))}."
             )
 
     if inferredBamId and not quiet:
@@ -1260,7 +1267,7 @@ def getReferenceInfo(
     if reference:
         if inferredFastaId and not quiet:
             print(
-                f"FASTA reference id {reference.id!r} inferred from " f"context.",
+                f"FASTA reference id {reference.id!r} inferred from context.",
                 file=sys.stderr,
             )
 

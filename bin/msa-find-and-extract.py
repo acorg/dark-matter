@@ -160,7 +160,6 @@ def writeTSV(
     adjust: int,
     gapCharacter: str,
 ) -> None:
-
     with open(tsvFile, "w") as fp:
         writerow = csv.writer(fp, delimiter="\t").writerow
         writerow(

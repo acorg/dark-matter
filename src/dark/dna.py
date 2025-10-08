@@ -228,15 +228,12 @@ def matchToString(
         for pair, locations in sorted(match["differenceOffsets"].items()):
             locationsStr = ", ".join(f"{location + 1}" for location in locations)
             append(
-                f"{indent}    {pair[0]}->{pair[1]} "
-                f"({len(locations)}): {locationsStr}"
+                f"{indent}    {pair[0]}->{pair[1]} ({len(locations)}): {locationsStr}"
             )
     elif includeDifferenceCounts:
         append(f"{indent}Difference counts:")
         for pair, locations in sorted(match["differenceOffsets"].items()):
-            append(
-                f"{indent}    {pair[0]}->{pair[1]}: {len(locations)}"
-            )
+            append(f"{indent}    {pair[0]}->{pair[1]}: {len(locations)}")
 
     return "\n".join(result)
 

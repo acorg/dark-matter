@@ -93,9 +93,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--pathogenPanelFilename",
-        help=(
-            "An (optional) filename to write a pathogen-sample panel PNG " "image to."
-        ),
+        help=("An (optional) filename to write a pathogen-sample panel PNG image to."),
     )
 
     parser.add_argument(
@@ -268,8 +266,7 @@ if __name__ == "__main__":
 
     if args.sampleName and args.sampleNameRegex:
         print(
-            "It does not make sense to use --sampleName "
-            "as well as --sampleNameRegex",
+            "It does not make sense to use --sampleName as well as --sampleNameRegex",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -306,7 +303,7 @@ if __name__ == "__main__":
 
     if args.omitVirusLinks and args.pathogenType != "viral":
         print(
-            "The --omitVirusLinks option only makes sense with " "--pathogenType viral",
+            "The --omitVirusLinks option only makes sense with --pathogenType viral",
             file=sys.stderr,
         )
         sys.exit(1)

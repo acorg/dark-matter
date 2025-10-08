@@ -307,7 +307,7 @@ def canonicalizeAllGaps(seq1: str, seq2: str) -> Tuple[str, str]:
     # here where the initial and final sequence reversals happen. In between we
     # repeatedly call _canonicalizeFirstGap until it cannot find anymore gaps to
     # canonicalize.
-    
+
     pos = 0
     seq1 = seq1[::-1]
     seq2 = seq2[::-1]

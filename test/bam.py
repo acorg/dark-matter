@@ -101,8 +101,7 @@ def makeBAM(template, bamReferences=None, fastaReferences=None):
                 )
 
         e.execute(
-            f"samtools sort -O BAM --write-index -o {str(bamFile)!r} "
-            f"{str(samFile)!r}"
+            f"samtools sort -O BAM --write-index -o {str(bamFile)!r} {str(samFile)!r}"
         )
         yield (fastaFile, bamFile)
     finally:

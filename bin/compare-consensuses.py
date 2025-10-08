@@ -21,7 +21,7 @@ def makeOuputDir(outputDir, force):
         if exists(outputDir):
             if not force:
                 print(
-                    "Will not overwrite pre-existing files. Use --force to " "make me.",
+                    "Will not overwrite pre-existing files. Use --force to make me.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
@@ -147,8 +147,7 @@ if __name__ == "__main__":
         required=True,
         metavar="FILENAME",
         help=(
-            "The name of the SAM or BAM file containing an alignment to the "
-            "reference."
+            "The name of the SAM or BAM file containing an alignment to the reference."
         ),
     )
 

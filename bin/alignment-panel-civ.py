@@ -128,8 +128,7 @@ if __name__ == "__main__":
         nargs="+",
         action="append",
         help=(
-            "the FASTA file(s) of read sequences that were given to BLAST "
-            "or DIAMOND."
+            "the FASTA file(s) of read sequences that were given to BLAST or DIAMOND."
         ),
     )
 
@@ -139,8 +138,7 @@ if __name__ == "__main__":
         nargs="+",
         action="append",
         help=(
-            "the FASTQ file(s) of read sequences that were given to BLAST "
-            "or DIAMOND."
+            "the FASTQ file(s) of read sequences that were given to BLAST or DIAMOND."
         ),
     )
 
@@ -148,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--minStart",
         type=int,
-        help="Reads that start before this subject offset should not be " "shown.",
+        help="Reads that start before this subject offset should not be shown.",
     )
 
     parser.add_argument(
@@ -175,7 +173,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--scoreCutoff",
         type=float,
-        help=("A float score. Matches with scores worse than this will be " "ignored."),
+        help=("A float score. Matches with scores worse than this will be ignored."),
     )
 
     parser.add_argument(
@@ -214,7 +212,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--whitelistFile",
-        help=("A file containing sequence titles (one per line) to be " "whitelisted"),
+        help=("A file containing sequence titles (one per line) to be whitelisted"),
     )
 
     parser.add_argument(
@@ -226,7 +224,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--blacklistFile",
-        help=("A file containing sequence titles (one per line) to be " "blacklisted"),
+        help=("A file containing sequence titles (one per line) to be blacklisted"),
     )
 
     parser.add_argument("--titleRegex", help="a regex that sequence titles must match.")
@@ -333,8 +331,7 @@ if __name__ == "__main__":
         "--rankValues",
         action="store_true",
         help=(
-            "If True, display reads with a Y axis coord that is the rank of "
-            "the score."
+            "If True, display reads with a Y axis coord that is the rank of the score."
         ),
     )
 

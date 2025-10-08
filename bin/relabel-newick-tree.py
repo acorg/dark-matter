@@ -29,7 +29,7 @@ def readNames(fp):
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=("Relabel a Newick tree according to a file of from/to " "names."),
+    description=("Relabel a Newick tree according to a file of from/to names."),
 )
 
 parser.add_argument("newickFile", help="The Newick tree file.")
@@ -58,7 +58,7 @@ parser.add_argument(
     type=int,
     default=0,
     help=(
-        "The format argument to pass to the ete3 Tree writer for the " "resulting tree."
+        "The format argument to pass to the ete3 Tree writer for the resulting tree."
     ),
 )
 
@@ -66,9 +66,7 @@ parser.add_argument(
     "--quotedNames",
     default=False,
     action="store_true",
-    help=(
-        "If given, pass quoted_node_names=True to the ete3 Tree class " "initializer"
-    ),
+    help=("If given, pass quoted_node_names=True to the ete3 Tree class initializer"),
 )
 
 parser.add_argument(

@@ -304,7 +304,6 @@ class HitPositiveReadPositive(TestCase, TestNormalizeHSPMixin):
 
 
 class HitPositiveReadNegative(TestCase, TestNormalizeHSPMixin):
-
     """
     This class appears to not be needed. As far as we have seen, the
     read is always positive with ascending start, end offsets.
@@ -320,13 +319,15 @@ class HitPositiveReadNegative(TestCase, TestNormalizeHSPMixin):
         )
 
     def testIdentical2(self):
-        self.check(
-            """
+        (
+            self.check(
+                """
                                     >>>>
                                     <<<<
                                     >>>>
                   """
-        ),
+            ),
+        )
 
     def testHitExtendsLeft1(self):
         self.check(
@@ -557,7 +558,6 @@ class HitNegativeReadPositive(TestCase, TestNormalizeHSPMixin):
 
 
 class HitNegativeReadNegative(TestCase, TestNormalizeHSPMixin):
-
     """
     This class appears to not be needed. As far as we have seen, the
     read is always positive with ascending start, end offsets.

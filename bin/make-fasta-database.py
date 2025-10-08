@@ -17,9 +17,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out",
         required=True,
-        help=(
-            "The output file. This file must not exist (use --force to " "overwrite)."
-        ),
+        help=("The output file. This file must not exist (use --force to overwrite)."),
     )
 
     parser.add_argument(

@@ -44,7 +44,7 @@ if __name__ == "__main__":
         "--minStart",
         type=int,
         default=None,
-        help="Reads that start before this subject offset should not be " "shown.",
+        help="Reads that start before this subject offset should not be shown.",
     )
 
     parser.add_argument(
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         "--scoreCutoff",
         type=float,
         default=None,
-        help=("A float score. Matches with scores worse than " "this will be ignored."),
+        help=("A float score. Matches with scores worse than this will be ignored."),
     )
 
     parser.add_argument(
