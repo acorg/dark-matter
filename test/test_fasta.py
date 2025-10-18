@@ -1,10 +1,10 @@
 import builtins
 import os
 from io import BytesIO, StringIO
-from unittest import TestCase, skip
+from unittest import TestCase
 from unittest.mock import mock_open, patch
 
-from Bio import SeqIO, bgzf
+from Bio import bgzf
 
 from dark.fasta import (
     FastaReads,
@@ -56,7 +56,7 @@ class FastaDeDup(TestCase):
         self.assertEqual(list(dedupFasta(reads)), [Read("id1", "GGG")])
 
 
-class Unused(TestCase):
+class TestDePrefixAndSuffixFasta(TestCase):
     def testEmpty(self):
         """
         An empty FASTA list gets de-duped to an empty list.
@@ -67,53 +67,51 @@ class Unused(TestCase):
         """
         A FASTA list with just one item gets de-duped to the same one item.
         """
-        seq = ">hey\nagtcagtcagtc"
-        s1 = SeqIO.read(StringIO(seq), "fasta")
-        self.assertEqual(list(dePrefixAndSuffixFasta([s1])), [s1])
+        read = Read("hey", "agtcagtcagtc")
+        self.assertEqual(list(dePrefixAndSuffixFasta([read])), [read])
 
     def testRemovalOfIdenticalSequences(self):
         """
         A list with 2 copies of the same seq is de-duped to have 1 copy.
         """
-        seq = ">hey\nagtcagtcagtc"
-        s1 = SeqIO.read(StringIO(seq), "fasta")
-        s2 = SeqIO.read(StringIO(seq), "fasta")
-        self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s1])
+        read1 = Read("hey", "agtcagtcagtc")
+        read2 = Read("hey", "agtcagtcagtc")
+        self.assertEqual(list(dePrefixAndSuffixFasta([read1, read2])), [read1])
 
     def testRemovalOfPrefix(self):
         """
         A sequence that is a prefix of another is removed.
         """
-        s1 = SeqIO.read(StringIO(">s1\nagtcagtcagtc"), "fasta")
-        s2 = SeqIO.read(StringIO(">s2\nagtcag"), "fasta")
-        self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s1])
+        read1 = Read("s1", "agtcagtcagtc")
+        read2 = Read("s2", "agtcag")
+        self.assertEqual(list(dePrefixAndSuffixFasta([read1, read2])), [read1])
 
     def testRemovalOfSuffix(self):
         """
         A sequence that is a suffix of another is removed.
         """
-        s1 = SeqIO.read(StringIO(">s1\nagtcagtcagtc"), "fasta")
-        s2 = SeqIO.read(StringIO(">s2\ncagtc"), "fasta")
-        self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s1])
+        read1 = Read("s1", "agtcagtcagtc")
+        read2 = Read("s2", "cagtc")
+        self.assertEqual(list(dePrefixAndSuffixFasta([read1, read2])), [read1])
 
     def testRemovalOfPrefixSuffixAndDuplicate(self):
         """
         Prefixes, suffixes, and duplicates should collectively all be removed.
         """
-        s1 = SeqIO.read(StringIO(">s1\nagtcagtcagtc"), "fasta")
-        s2 = SeqIO.read(StringIO(">s2\nagtcagtcagtc"), "fasta")
-        s3 = SeqIO.read(StringIO(">s3\nagtcagt"), "fasta")
-        s4 = SeqIO.read(StringIO(">s4\ntcagtc"), "fasta")
-        self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2, s3, s4])), [s1])
+        read1 = Read("s1", "agtcagtcagtc")
+        read2 = Read("s2", "agtcagtcagtc")
+        read3 = Read("s3", "agtcagt")
+        read4 = Read("s4", "tcagtc")
+        self.assertEqual(list(dePrefixAndSuffixFasta([read1, read2, read3, read4])), [read1])
 
     def testOrderIndependent(self):
         """
         A sequence that is a prefix of another is removed when it appears
         first.
         """
-        s1 = SeqIO.read(StringIO(">s1\nagtcag"), "fasta")
-        s2 = SeqIO.read(StringIO(">s2\nagtcagtcagtc"), "fasta")
-        self.assertEqual(list(dePrefixAndSuffixFasta([s1, s2])), [s2])
+        read1 = Read("s1", "agtcag")
+        read2 = Read("s2", "agtcagtcagtc")
+        self.assertEqual(list(dePrefixAndSuffixFasta([read1, read2])), [read2])
 
 
 class TestFastaSubtract(TestCase):
@@ -129,20 +127,20 @@ class TestFastaSubtract(TestCase):
         When just one file is passed we should get a result that has as many
         reads as was in the single input file.
         """
-        fasta1 = "\n".join(
+        fasta1 = b"\n".join(
             [
-                ">one",
-                "agtcagtcagtc",
-                ">two",
-                "acctg",
-                ">three",
-                "atgggtc",
-                ">four",
-                "atggctattgaactgtatct",
+                b">one",
+                b"agtcagtcagtc",
+                b">two",
+                b"acctg",
+                b">three",
+                b"atgggtc",
+                b">four",
+                b"atggctattgaactgtatct",
             ]
         )
 
-        result = list(fastaSubtract([StringIO(fasta1)]))
+        result = list(fastaSubtract([BytesIO(fasta1)]))
         self.assertEqual(len(result), 4)
 
     def testSubtractEverything(self):
@@ -150,37 +148,37 @@ class TestFastaSubtract(TestCase):
         When two input files have the same reads, subtraction must result in an
         empty (no reads) output.
         """
-        fasta1 = "\n".join(
+        fasta1 = b"\n".join(
             [
-                ">one",
-                "agtcagtcagtc",
-                ">two",
-                "acctg",
-                ">three",
-                "atgggtc",
-                ">four",
-                "atggctattgaactgtatct",
+                b">one",
+                b"agtcagtcagtc",
+                b">two",
+                b"acctg",
+                b">three",
+                b"atgggtc",
+                b">four",
+                b"atggctattgaactgtatct",
             ]
         )
 
-        result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta1)]))
+        result = list(fastaSubtract([BytesIO(fasta1), BytesIO(fasta1)]))
         self.assertEqual([], result)
 
     def testSubtractFromNothing(self):
         """
         When the first file is empty, the result shoud be too.
         """
-        fasta1 = ""
-        fasta2 = "\n".join(
+        fasta1 = b""
+        fasta2 = b"\n".join(
             [
-                ">five",
-                "agtcagtcagtc",
-                ">six",
-                "acctg",
+                b">five",
+                b"agtcagtcagtc",
+                b">six",
+                b"acctg",
             ]
         )
 
-        result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta2)]))
+        result = list(fastaSubtract([BytesIO(fasta1), BytesIO(fasta2)]))
         self.assertEqual([], result)
 
     def testSubtractNothing(self):
@@ -188,28 +186,28 @@ class TestFastaSubtract(TestCase):
         When two input files have no overlap, subtraction must result in the
         same reads as are in the first input.
         """
-        fasta1 = "\n".join(
+        fasta1 = b"\n".join(
             [
-                ">one",
-                "agtcagtcagtc",
-                ">two",
-                "acctg",
-                ">three",
-                "atgggtc",
-                ">four",
-                "atggctattgaactgtatct",
+                b">one",
+                b"agtcagtcagtc",
+                b">two",
+                b"acctg",
+                b">three",
+                b"atgggtc",
+                b">four",
+                b"atggctattgaactgtatct",
             ]
         )
-        fasta2 = "\n".join(
+        fasta2 = b"\n".join(
             [
-                ">five",
-                "agtcagtcagtc",
-                ">six",
-                "acctg",
+                b">five",
+                b"agtcagtcagtc",
+                b">six",
+                b"acctg",
             ]
         )
 
-        result = list(fastaSubtract([StringIO(fasta1), StringIO(fasta2)]))
+        result = list(fastaSubtract([BytesIO(fasta1), BytesIO(fasta2)]))
         self.assertEqual(
             ["four", "one", "three", "two"], sorted([seq.id for seq in result])
         )
@@ -218,38 +216,38 @@ class TestFastaSubtract(TestCase):
         """
         Subtraction of three files must work correctly.
         """
-        fasta1 = "\n".join(
+        fasta1 = b"\n".join(
             [
-                ">one",
-                "agtcagtcagtc",
-                ">two",
-                "acctg",
-                ">three",
-                "atgggtc",
-                ">four",
-                "atggctattgaactgtatct",
+                b">one",
+                b"agtcagtcagtc",
+                b">two",
+                b"acctg",
+                b">three",
+                b"atgggtc",
+                b">four",
+                b"atggctattgaactgtatct",
             ]
         )
-        fasta2 = "\n".join(
+        fasta2 = b"\n".join(
             [
-                ">one",
-                "agtcagtcagtc",
+                b">one",
+                b"agtcagtcagtc",
             ]
         )
-        fasta3 = "\n".join(
+        fasta3 = b"\n".join(
             [
-                ">two",
-                "acctg",
-                ">three",
-                "atgggtc",
+                b">two",
+                b"acctg",
+                b">three",
+                b"atgggtc",
             ]
         )
 
         result = list(
-            fastaSubtract([StringIO(fasta1), StringIO(fasta2), StringIO(fasta3)])
+            fastaSubtract([BytesIO(fasta1), BytesIO(fasta2), BytesIO(fasta3)])
         )
         self.assertEqual(len(result), 1)
-        self.assertEqual(str(result[0].seq), "atggctattgaactgtatct")
+        self.assertEqual(str(result[0].sequence), "atggctattgaactgtatct")
         self.assertEqual(str(result[0].id), "four")
 
     def testSequencesAreChecked(self):
@@ -257,21 +255,21 @@ class TestFastaSubtract(TestCase):
         If a two reads with the same id do not have the same sequence,
         an assertion error must be raised.
         """
-        fasta1 = "\n".join(
+        fasta1 = b"\n".join(
             [
-                ">one",
-                "ag",
+                b">one",
+                b"ag",
             ]
         )
-        fasta2 = "\n".join(
+        fasta2 = b"\n".join(
             [
-                ">one",
-                "at",
+                b">one",
+                b"at",
             ]
         )
 
         self.assertRaises(
-            AssertionError, fastaSubtract, [StringIO(fasta1), StringIO(fasta2)]
+            AssertionError, fastaSubtract, [BytesIO(fasta1), BytesIO(fasta2)]
         )
 
 
@@ -284,7 +282,7 @@ class TestFastaReads(TestCase):
         """
         An empty FASTA file results in an empty iterator.
         """
-        with patch.object(builtins, "open", mock_open()):
+        with patch.object(builtins, "open", mock_open(read_data=b"")):
             reads = FastaReads("filename.fasta")
             self.assertEqual([], list(reads))
 
@@ -292,7 +290,7 @@ class TestFastaReads(TestCase):
         """
         A FASTA file with one read must be read properly.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta"))
             self.assertEqual([Read("id1", "ACGT")], reads)
@@ -301,7 +299,7 @@ class TestFastaReads(TestCase):
         """
         A FASTA file read must not have any quality information.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta"))
             self.assertEqual(None, reads[0].quality)
@@ -311,7 +309,7 @@ class TestFastaReads(TestCase):
         A FASTA file with two reads must be read properly and its
         sequences must be returned in the correct order.
         """
-        data = "\n".join([">id1", "ACGT", ">id2", "TGCA"])
+        data = b"\n".join([b">id1", b"ACGT", b">id2", b"TGCA"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta"))
             self.assertEqual(2, len(reads))
@@ -322,7 +320,7 @@ class TestFastaReads(TestCase):
         A FASTA file whose type is not specified must result in reads that
         are instances of DNARead.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta"))
             self.assertTrue(isinstance(reads[0], DNARead))
@@ -332,7 +330,7 @@ class TestFastaReads(TestCase):
         A FASTA file whose read class is AARead must result in reads that
         are instances of AARead.
         """
-        data = "\n".join([">id1", "ACGST"])
+        data = b"\n".join([b">id1", b"ACGST"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta", AARead))
             self.assertTrue(isinstance(reads[0], AARead))
@@ -342,7 +340,7 @@ class TestFastaReads(TestCase):
         A FASTA file whose read class is DNARead must result in reads that
         are instances of DNARead.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta", DNARead))
             self.assertTrue(isinstance(reads[0], DNARead))
@@ -352,7 +350,7 @@ class TestFastaReads(TestCase):
         A FASTA file whose read class is RNARead must result in reads that
         are instances of RNARead.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta", RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
@@ -361,7 +359,7 @@ class TestFastaReads(TestCase):
         """
         A read needs to be converted from lower to upper case if specified.
         """
-        data = "\n".join([">id1", "actgs"])
+        data = b"\n".join([b">id1", b"actgs"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta", readClass=AARead, upperCase=True))
             self.assertEqual([AARead("id1", "ACTGS")], reads)
@@ -370,7 +368,7 @@ class TestFastaReads(TestCase):
         """
         A read needs to be converted from lower to upper case if specified.
         """
-        data = "\n".join([">id1", "actg"])
+        data = b"\n".join([b">id1", b"actg"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta", upperCase=True))
             self.assertEqual([AARead("id1", "ACTG")], reads)
@@ -379,7 +377,7 @@ class TestFastaReads(TestCase):
         """
         A read must not be converted from lower to upper case if not specified.
         """
-        data = "\n".join([">id1", "actgs"])
+        data = b"\n".join([b">id1", b"actgs"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastaReads("filename.fasta", readClass=AARead))
             self.assertEqual([AARead("id1", "actgs")], reads)
@@ -390,7 +388,7 @@ class TestFastaReads(TestCase):
         of zero reads, where the read count is provided to C{filter} via the
         C{trueLength} argument.
         """
-        data = ""
+        data = b""
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = FastaReads("filename.fasta")
             result = list(reads.filter(randomSubset=0, trueLength=0))
@@ -402,7 +400,7 @@ class TestFastaReads(TestCase):
         of two reads, where the read count is provided to C{filter} via the
         C{trueLength} argument.
         """
-        data = "\n".join([">id1", "ACGT", ">id2", "TGCA"])
+        data = b"\n".join([b">id1", b"ACGT", b">id2", b"TGCA"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = FastaReads("filename.fasta")
             result = list(reads.filter(randomSubset=2, trueLength=2))
@@ -414,7 +412,7 @@ class TestFastaReads(TestCase):
         of ten reads, where the read count is provided to C{filter} via the
         C{trueLength} argument.
         """
-        data = "\n".join([">id", "ACGT"] * 10)
+        data = b"\n".join([b">id", b"ACGT"] * 10)
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = FastaReads("filename.fasta")
             result = list(reads.filter(randomSubset=1, trueLength=10))
@@ -434,11 +432,11 @@ class TestFastaReads(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("file1.fasta", filename)
                     self.count += 1
-                    return StringIO(">id1\nACTG\n")
+                    return BytesIO(b">id1\nACTG\n")
                 elif self.count == 1:
                     self.test.assertEqual("file2.fasta", filename)
                     self.count += 1
-                    return StringIO(">id2\nCAGT\n")
+                    return BytesIO(b">id2\nCAGT\n")
                 else:
                     self.test.fail("We are only supposed to be called twice!")
 
@@ -481,7 +479,7 @@ class TestCombineReads(TestCase):
         If a FASTA file is given but sequences is C{None}, the resulting
         FastaReads must contain the expected read.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(combineReads("filename.fasta", None))
             self.assertEqual([Read("id1", "ACGT")], reads)
@@ -491,7 +489,7 @@ class TestCombineReads(TestCase):
         If upperCase is not passed and a FASTA file is given, the resulting
         FastaReads must contain the expected read, in the original case.
         """
-        data = "\n".join([">id1", "AcgT"])
+        data = b"\n".join([b">id1", b"AcgT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(combineReads("filename.fasta", None))
             self.assertEqual([Read("id1", "AcgT")], reads)
@@ -501,7 +499,7 @@ class TestCombineReads(TestCase):
         When passing upperCase=True and a FASTA file, the resulting
         FastaReads must have the read sequence in uppper case.
         """
-        data = "\n".join([">id1", "acgt"])
+        data = b"\n".join([b">id1", b"acgt"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(combineReads("filename.fasta", None, upperCase=True))
             self.assertEqual([Read("id1", "ACGT")], reads)
@@ -556,7 +554,7 @@ class TestCombineReads(TestCase):
         of that class, both for reads from a FASTA file and from individually
         specified sequences.
         """
-        data = "\n".join([">id1", "ACGT"])
+        data = b"\n".join([b">id1", b"ACGT"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(combineReads("filename.fasta", ["ACGT"], readClass=RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
@@ -1030,7 +1028,6 @@ class TestSqliteIndex(TestCase):
             self.assertEqual(AARead("id1", "MM"), result)
             index.close()
 
-    @skip("Skipped until fix in matplotlib is released")
     def testDictLookupGzipDataWithBGZsuffix(self):
         """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
@@ -1052,7 +1049,6 @@ class TestSqliteIndex(TestCase):
                     writer.write(b">id0\nAC\n")
                     writer.flush()
                     fileobj = BytesIO(writerIO.getvalue())
-                    fileobj.mode = "rb"
                     return bgzf.BgzfReader(fileobj=fileobj)
                 else:
                     self.test.fail(
@@ -1068,7 +1064,6 @@ class TestSqliteIndex(TestCase):
             self.assertEqual(DNARead("id0", "AC"), index["id0"])
             index.close()
 
-    @skip("Skipped until fix in matplotlib is released")
     def testDictLookupGzipData(self):
         """
         The __getitem__ method (i.e., dictionary-like lookup) must return the
@@ -1099,7 +1094,6 @@ class TestSqliteIndex(TestCase):
                     )
                     writer.flush()
                     fileobj = BytesIO(writerIO.getvalue())
-                    fileobj.mode = "rb"
                     return bgzf.BgzfReader(fileobj=fileobj)
                 else:
                     self.test.fail(

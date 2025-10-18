@@ -2,23 +2,23 @@
 
 import sys
 
-from Bio import SeqIO
-from Bio.Seq import Seq
+from prseq import FastaReader
 
+from dark.reads import Reads
 from dark.sequence import findPrimerBidiLimits
 
 
-def trimPrimers(primer, verbose):
+def trimPrimers(primer: str, verbose: bool) -> None:
     """
-    @param primer: A BioPython C{Bio.Seq} primer sequence.
+    @param primer: A string sequence.
     @param verbose: A C{bool}, if C{True} output additional information about
         how often and where primers were found.
     """
-    reads = []
+    reads = Reads()
     absentCount = forwardCount = reverseCount = count = 0
-    for seqRecord in SeqIO.parse(sys.stdin, "fasta"):
+    for seqRecord in FastaReader():
         count += 1
-        start, end = findPrimerBidiLimits(primer, seqRecord.seq)
+        start, end = findPrimerBidiLimits(primer, seqRecord.sequence)
         if start == 0:
             if end == len(seqRecord):
                 absentCount += 1
@@ -28,7 +28,7 @@ def trimPrimers(primer, verbose):
             forwardCount += 1
             if end != len(seqRecord):
                 reverseCount += 1
-        reads.append(seqRecord[start:end])
+        reads.add(seqRecord[start:end])
 
     if verbose:
         print(
@@ -37,7 +37,7 @@ def trimPrimers(primer, verbose):
             file=sys.stderr,
         )
 
-    SeqIO.write(reads, sys.stdout, "fasta")
+    reads.save(sys.stdout)
 
 
 if __name__ == "__main__":
@@ -54,10 +54,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--verbose",
         type=bool,
-        default=False,
         help="If True, print information on found primers",
     )
 
     args = parser.parse_args()
 
-    trimPrimers(Seq(args.primer.upper()), args.verbose)
+    trimPrimers(args.primer.upper(), args.verbose)

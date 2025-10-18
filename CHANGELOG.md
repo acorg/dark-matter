@@ -1,3 +1,10 @@
+## 6.0.0 October 18, 2025
+
+This release incorporates use of
+[prseq](https://github.com/VirologyCharite/prseq/) for reading FASTA and
+FASTQ files (see `FastaFiles` in `src/dark/fasta.py` and `FastqFiles` in
+`src/dark/fastq.py`).
+
 ## 5.1.2 September 22, 2025
 
 Added `--length` option to `bin/fasta-sort.py`.

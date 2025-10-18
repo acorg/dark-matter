@@ -7,7 +7,7 @@ See the 'EPILOG' variable below, or (better) run with --help for help.
 import os
 import sys
 
-from Bio import SeqIO
+from prseq import FastaReader
 
 DEFAULT_BLAST_ARGS = ""
 DEFAULT_BLAST_DB = "nt"
@@ -53,7 +53,7 @@ def splitFASTA(params):
     fileCount = count = seqCount = 0
     outfp = None
     with open(params["fastaFile"]) as infp:
-        for seq in SeqIO.parse(infp, "fasta"):
+        for seq in FastaReader(infp):
             seqCount += 1
             if count == params["seqsPerJob"]:
                 outfp.close()
@@ -62,7 +62,7 @@ def splitFASTA(params):
                 outfp = open("%d.fasta" % fileCount, "w")
                 fileCount += 1
             count += 1
-            outfp.write(">%s\n%s\n" % (seq.description, str(seq.seq)))
+            outfp.write(f">{seq.id}\n{seq.sequence}\n")
     outfp.close()
     return fileCount, seqCount
 

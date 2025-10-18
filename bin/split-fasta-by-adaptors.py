@@ -4,9 +4,10 @@ import sys
 from collections import defaultdict
 from math import ceil, log10
 
-from Bio import SeqIO
+from dark.fasta import FastaReads
 
 from dark.distance import levenshtein
+from dark.reads import Reads
 
 # The name of the unknown adaptor.
 UNKNOWN = "UNKNOWN"
@@ -40,9 +41,9 @@ def splitFASTAByAdaptor(
     classes = dict(zip(knownAdaptors, knownAdaptors))
     reads = []
 
-    for count, seq in enumerate(SeqIO.parse(sys.stdin, "fasta"), start=1):
+    for count, seq in enumerate(FastaReads(sys.stdin), start=1):
         reads.append(seq)
-        adaptor = str(seq.seq)[adaptorOffset:][:adaptorLen].upper()
+        adaptor = seq.sequence[adaptorOffset:][:adaptorLen].upper()
         adaptors[adaptor] += 1
 
     order = sorted(adaptors, key=lambda adaptor: adaptors[adaptor], reverse=True)
@@ -86,7 +87,7 @@ def splitFASTAByAdaptor(
 
     # Collect reads into classes.
     for read in reads:
-        adaptor = str(read.seq)[adaptorOffset:][:adaptorLen].upper()
+        adaptor = read.sequence[adaptorOffset:][:adaptorLen].upper()
         readGroups[classes[adaptor]].append(read[adaptorOffset + adaptorLen :])
 
     # Calculate the number of digits in the size of the biggest read group
@@ -111,8 +112,7 @@ def splitFASTAByAdaptor(
                 % (width, len(reads), description, filename)
             )
         else:
-            with open(filename, "w") as fp:
-                SeqIO.write(reads, fp, "fasta")
+            Reads(reads).save(filename)
             print(
                 "Wrote %*d sequences for %s to %s"
                 % (width, len(reads), description, filename)

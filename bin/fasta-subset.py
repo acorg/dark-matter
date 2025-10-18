@@ -8,7 +8,9 @@ FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 import argparse
 import sys
 
-from Bio import SeqIO
+from prseq import FastaReader
+
+from dark.reads import Reads
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -36,13 +38,13 @@ if __name__ == "__main__":
     found = []
 
     if wanted:
-        for seq in SeqIO.parse(sys.stdin, "fasta"):
+        for seq in FastaReader(sys.stdin):
             if seq.description in wanted:
                 wanted.remove(seq.description)
                 found.append(seq)
 
         if found:
-            SeqIO.write(found, sys.stdout, "fasta")
+            Reads(found).save(sys.stdout)
 
         print("Found %d sequences." % len(found), file=sys.stderr)
 

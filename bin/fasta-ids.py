@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import argparse
+
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
-if __name__ == "__main__":
-    import argparse
+
+def main():
 
     parser = argparse.ArgumentParser(
         description="Given FASTA on stdin, write the sequence ids to stdout.",
@@ -15,3 +17,7 @@ if __name__ == "__main__":
 
     for read in reads:
         print(read.id)
+
+
+if __name__ == "__main__":
+    main()

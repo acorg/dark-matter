@@ -4,9 +4,9 @@ import builtins
 import platform
 import sqlite3
 from copy import deepcopy
-from io import StringIO
+from io import BytesIO, StringIO
 from json import dumps
-from unittest import TestCase, skip
+from unittest import TestCase
 from unittest.mock import mock_open, patch
 
 from Bio import SeqIO
@@ -383,7 +383,6 @@ class TestBlastReadsAlignments(TestCase):
                 self.assertEqual("id1 Description", sequence.id)
                 self.assertEqual("AA", sequence.sequence)
 
-    @skip("Some tests are broken and skipped under latest BioPython")
     def testGetSubjectSequenceFASTADatabase(self):
         """
         The getSubjectSequence function must return the correct C{DNARead}
@@ -396,14 +395,19 @@ class TestBlastReadsAlignments(TestCase):
                 self.test = test
                 self.count = 0
 
-            def sideEffect(self, filename, mode="r"):
+            def sideEffect(self, filename, mode="rb", encoding="utf-8"):
                 if self.count == 0:
                     self.test.assertEqual("file.json", filename)
                     self.count += 1
-                    return StringIO(dumps(PARAMS) + "\n" + dumps(RECORD0) + "\n")
+                    return BytesIO(
+                        dumps(PARAMS).encode(encoding)
+                        + b"\n"
+                        + dumps(RECORD0).encode(encoding)
+                        + b"\n"
+                    )
                 elif self.count == 1:
                     self.count += 1
-                    return StringIO(">id1 Description\nAA\n")
+                    return BytesIO(b">id1 Description\nAA\n")
                 else:
                     self.test.fail(
                         "Unexpected third call to open, filename %r." % filename

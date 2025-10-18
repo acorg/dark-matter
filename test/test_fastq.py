@@ -1,5 +1,5 @@
 import builtins
-from io import StringIO
+from io import BytesIO
 from unittest import TestCase, skip
 from unittest.mock import mock_open, patch
 
@@ -16,7 +16,7 @@ class TestFastqReads(TestCase):
         """
         An empty FASTQ file results in an empty iterator.
         """
-        with patch.object(builtins, "open", mock_open()):
+        with patch.object(builtins, "open", mock_open(read_data=b"")):
             reads = FastqReads("filename.fastq")
             self.assertEqual([], list(reads))
 
@@ -24,7 +24,7 @@ class TestFastqReads(TestCase):
         """
         A FASTQ file with one read must be read properly.
         """
-        data = "\n".join(["@id1", "ACGT", "+", "!!!!"])
+        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq"))
             self.assertEqual([DNARead("id1", "ACGT", "!!!!")], reads)
@@ -34,7 +34,7 @@ class TestFastqReads(TestCase):
         A FASTQ file with two reads must be read properly and its
         sequences must be returned in the correct order.
         """
-        data = "\n".join(["@id1", "ACGT", "+", "!!!!", "@id2", "TGCA", "+", "????"])
+        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!", b"@id2", b"TGCA", b"+", b"????"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq"))
             self.assertEqual(2, len(reads))
@@ -47,7 +47,7 @@ class TestFastqReads(TestCase):
         A FASTQ file whose type is not specified must result in reads that
         are instances of DNARead.
         """
-        data = "\n".join(["@id1", "ACGT", "+", "!!!!"])
+        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq"))
             self.assertTrue(isinstance(reads[0], DNARead))
@@ -57,7 +57,7 @@ class TestFastqReads(TestCase):
         A FASTQ file whose read class is AARead must result in reads that
         are instances of AARead.
         """
-        data = "\n".join(["@id1", "ACGT", "+", "!!!!"])
+        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq", AARead))
             self.assertTrue(isinstance(reads[0], AARead))
@@ -67,7 +67,7 @@ class TestFastqReads(TestCase):
         A FASTQ file whose read class is DNARead must result in reads that
         are instances of DNARead.
         """
-        data = "\n".join(["@id1", "ACGT", "+", "!!!!"])
+        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq", DNARead))
             self.assertTrue(isinstance(reads[0], DNARead))
@@ -77,7 +77,7 @@ class TestFastqReads(TestCase):
         A FASTQ file whose read class is RNARead must result in reads that
         are instances of RNARead.
         """
-        data = "\n".join(["@id1", "ACGT", "+", "!!!!"])
+        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq", RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
@@ -97,11 +97,11 @@ class TestFastqReads(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("file1.fastq", filename)
                     self.count += 1
-                    return StringIO("@id1\nACTG\n+\n!!!!\n")
+                    return BytesIO(b"@id1\nACTG\n+\n!!!!\n")
                 elif self.count == 1:
                     self.test.assertEqual("file2.fastq", filename)
                     self.count += 1
-                    return StringIO("@id2\nCAGT\n+\n!!!!\n")
+                    return BytesIO(b"@id2\nCAGT\n+\n!!!!\n")
                 else:
                     self.test.fail("We are only supposed to be called twice!")
 

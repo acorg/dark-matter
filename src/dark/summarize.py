@@ -1,16 +1,16 @@
 from collections import defaultdict
 from io import TextIOWrapper
-from typing import Optional, Union
+from typing import BinaryIO
 
-from Bio import SeqIO
-
+from dark.fasta import FastaReads
+from dark.fastq import FastqReads
 from dark.reads import Read
 from dark.utils import median
 
 
 def summarizeReads(
-    file_handle: Union[str, TextIOWrapper], file_type: str
-) -> dict[str, Union[int, float, defaultdict[str, int]]]:
+    file_handle: str | BinaryIO | TextIOWrapper, file_type: str
+) -> dict[str, int | float | defaultdict[str, int]]:
     """
     open a fasta or fastq file, prints number of of reads,
     average length of read, total number of bases, longest,
@@ -18,20 +18,20 @@ def summarizeReads(
     individual base (A, T, G, C, N).
     """
     base_counts: defaultdict[str, int] = defaultdict(int)
-    read_number = 0
-    total_length = 0
+    read_number = total_length = 0
     length_list: list[int] = []
 
-    records = SeqIO.parse(file_handle, file_type)
+    Reader = FastaReads if file_type.lower() == "fasta" else FastqReads
+    records = Reader(file_handle)
 
     for record in records:
         total_length += len(record)
         read_number += 1
         length_list.append(len(record))
-        for base in record:
+        for base in record.sequence:
             base_counts[base] += 1
 
-    result: dict[str, Union[int, float, defaultdict[str, int]]] = {
+    result: dict[str, int | float | defaultdict[str, int]] = {
         "read_number": read_number,
         "total_length": total_length,
         "average_length": total_length / read_number if read_number > 0 else 0,
@@ -47,7 +47,7 @@ def summarizeReads(
 def sequenceCategoryLengths(
     read: Read,
     categories: dict[str, str],
-    defaultCategory: Optional[str] = None,
+    defaultCategory: str | None = None,
     suppressedCategory: str = "...",
     minLength: int = 1,
 ):
@@ -70,7 +70,7 @@ def sequenceCategoryLengths(
     @return: A C{list} of 2-C{tuples}. Each tuple contains a (category, count)
         where category is either a C{str} or C{None} and count is an C{int}.
     """
-    result: list[tuple[Optional[str], int]] = []
+    result: list[tuple[str | None, int]] = []
     append = result.append
     get = categories.get
     first = True
