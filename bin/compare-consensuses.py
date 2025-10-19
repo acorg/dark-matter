@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from os.path import exists, join
+import sys
 from os import mkdir
+from os.path import exists, join
 from tempfile import mkdtemp
 
 from dark.process import Executor

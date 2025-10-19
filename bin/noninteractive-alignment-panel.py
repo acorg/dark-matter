@@ -8,12 +8,12 @@ and (optionally) an alignment panel.
 Run with --help for help.
 """
 
+import argparse
 import os
 import sys
-import argparse
-from json import dump
 from collections import defaultdict
 from itertools import chain
+from json import dump
 
 # It's not clear that the PDF backend is the right choice here, but it
 # works (i.e., the generation of PNG images works fine).
@@ -24,10 +24,10 @@ matplotlib.use("PDF")
 # These imports are here because dark.graphics imports matplotlib.pyplot
 # and we need to set the matplotlib backend (see above) before that import
 # happens. So please don't move these imports higher in this file.
-from dark.titles import TitlesAlignments
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.graphics import DEFAULT_LOG_LINEAR_X_AXIS_BASE, alignmentPanelHTML
+from dark.titles import TitlesAlignments
 from dark.utils import numericallySortFilenames
 
 

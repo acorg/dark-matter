@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from os.path import exists, basename
+import sys
+from os.path import basename, exists
 
 from dark.process import Executor
 

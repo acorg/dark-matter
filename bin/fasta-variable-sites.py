@@ -5,10 +5,10 @@ from typing import Optional
 
 from dark.errors import ReadLengthsNotIdenticalError
 from dark.reads import (
+    Read,
+    Reads,
     addFASTACommandLineOptions,
     parseFASTACommandLineOptions,
-    Reads,
-    Read,
 )
 
 

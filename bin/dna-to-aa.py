@@ -10,13 +10,12 @@ want to just output all ORFs, use extract-ORFs.py directly instead (or pipe
 the output of this program into extract-ORFs.py --type aa).
 """
 
-import sys
 import argparse
+import sys
 
 from Bio.Data.CodonTable import TranslationError
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

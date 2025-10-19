@@ -1,6 +1,6 @@
-from six.moves import builtins
+import builtins
 from unittest import TestCase
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 from dark.filter import ReadSetFilter, SequenceFilter, TitleFilter
 from dark.reads import Read

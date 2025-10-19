@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import sys
-import re
 import csv
+import re
+import sys
 from typing import Union
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions

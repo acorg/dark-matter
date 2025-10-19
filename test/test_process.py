@@ -1,6 +1,6 @@
-from unittest import TestCase
-from subprocess import CalledProcessError
 from io import StringIO
+from subprocess import CalledProcessError
+from unittest import TestCase
 
 from dark.process import Executor
 

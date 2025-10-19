@@ -5,12 +5,11 @@
 #       TitleAlignment and TitleAlignments.
 
 from collections import Counter
-import six
 from unittest import TestCase
 
-from dark.titles import TitleAlignment, TitleAlignments
-from dark.reads import Read
 from dark.hsp import HSP, LSP
+from dark.reads import Read
+from dark.titles import TitleAlignment, TitleAlignments
 
 
 class TestTitleAlignment(TestCase):
@@ -239,7 +238,7 @@ class TestTitleAlignments(TestCase):
         """
         titleAlignments = TitleAlignments("subject title", 55)
         error = "^arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.medianScore)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.medianScore)
 
     def testMedianScoreWithNoHsps(self):
         """
@@ -250,7 +249,7 @@ class TestTitleAlignments(TestCase):
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
         error = "^arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.medianScore)
+        self.assertRaisesRegex(ValueError, error, titleAlignments.medianScore)
 
     def testMedianScoreOfTwo(self):
         """
@@ -293,8 +292,10 @@ class TestTitleAlignments(TestCase):
         read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        error = "^max\\(\\) arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.bestHsp)
+        error = (
+            r"^max\(\) arg is an empty sequence$|^max\(\) iterable argument is empty$"
+        )
+        self.assertRaisesRegex(ValueError, error, titleAlignments.bestHsp)
 
     def testBestHsp(self):
         """
@@ -324,8 +325,10 @@ class TestTitleAlignments(TestCase):
         read = Read("id2", "AAA")
         titleAlignment = TitleAlignment(read, [])
         titleAlignments.addAlignment(titleAlignment)
-        error = "^min\\(\\) arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.worstHsp)
+        error = (
+            r"^min\(\) arg is an empty sequence$|^min\(\) iterable argument is empty$"
+        )
+        self.assertRaisesRegex(ValueError, error, titleAlignments.worstHsp)
 
     def testWorstHsp(self):
         """
@@ -571,8 +574,8 @@ class TestTitleAlignments(TestCase):
         """
         titleAlignments = TitleAlignments("subject title", 55)
         error = "convertCaseTo must be one of 'none', 'lower', or 'upper'"
-        six.assertRaisesRegex(
-            self, ValueError, error, titleAlignments.residueCounts, convertCaseTo="xxx"
+        self.assertRaisesRegex(
+            ValueError, error, titleAlignments.residueCounts, convertCaseTo="xxx"
         )
 
     def testResidueCountsOneReadOneHSP(self):
@@ -1014,8 +1017,10 @@ class TestTitleAlignments(TestCase):
         alignments a ValueError must be raised.
         """
         titleAlignments = TitleAlignments("subject title", 55)
-        error = "^max\\(\\) arg is an empty sequence$"
-        six.assertRaisesRegex(self, ValueError, error, titleAlignments.summary)
+        error = (
+            r"^max\(\) arg is an empty sequence$|^max\(\) iterable argument is empty$"
+        )
+        self.assertRaisesRegex(ValueError, error, titleAlignments.summary)
 
     def testSummary(self):
         """

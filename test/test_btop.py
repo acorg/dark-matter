@@ -1,7 +1,6 @@
-from six import assertRaisesRegex
 from unittest import TestCase
 
-from dark.btop import countGaps, parseBtop, btop2cigar
+from dark.btop import btop2cigar, countGaps, parseBtop
 
 
 def btop2cigarStr(btopString, concise=False, aa=False):
@@ -26,7 +25,7 @@ class TestParseBtop(TestCase):
             "^BTOP string 'F' has a trailing query letter 'F' with no "
             "corresponding subject letter$"
         )
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("F"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("F"))
 
     def testConsecutiveGaps(self):
         """
@@ -34,7 +33,7 @@ class TestParseBtop(TestCase):
         ValueError.
         """
         error = "^BTOP string '36--' has two consecutive gaps at offset 2$"
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("36--"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("36--"))
 
     def testConsecutiveIdentical(self):
         """
@@ -45,7 +44,7 @@ class TestParseBtop(TestCase):
             "^BTOP string '36AA' has two consecutive identical 'A' "
             "letters at offset 2$"
         )
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("36AA"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("36AA"))
 
     def testEmpty(self):
         """
@@ -62,7 +61,7 @@ class TestParseBtop(TestCase):
             "^BTOP string '36F' has a trailing query letter 'F' with no "
             "corresponding subject letter$"
         )
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("36F"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("36F"))
 
     def testThreeLetters(self):
         """
@@ -72,7 +71,7 @@ class TestParseBtop(TestCase):
             "^BTOP string 'ABC' has a trailing query letter 'C' with no "
             "corresponding subject letter$"
         )
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("ABC"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("ABC"))
 
     def testOneLetterThenANumber(self):
         """
@@ -83,7 +82,7 @@ class TestParseBtop(TestCase):
             "^BTOP string 'F36' has a query letter 'F' at offset 0 with "
             "no corresponding subject letter$"
         )
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("F36"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("F36"))
 
     def testTwoNumbersWithOneLetterBetween(self):
         """
@@ -94,7 +93,7 @@ class TestParseBtop(TestCase):
             "^BTOP string '36F77' has a query letter 'F' at offset 2 "
             "with no corresponding subject letter$"
         )
-        assertRaisesRegex(self, ValueError, error, list, parseBtop("36F77"))
+        self.assertRaisesRegex(ValueError, error, list, parseBtop("36F77"))
 
     def testOneNumber(self):
         """
@@ -309,6 +308,6 @@ class TestBtop2CigarConcise(TestCase):
         If concise and aa are both set to True, a ValueError must be raised.
         """
         error = "^aa and concise cannot both be True$"
-        assertRaisesRegex(
-            self, ValueError, error, btop2cigarStr, "", concise=True, aa=True
+        self.assertRaisesRegex(
+            ValueError, error, btop2cigarStr, "", concise=True, aa=True
         )

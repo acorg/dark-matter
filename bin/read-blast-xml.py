@@ -4,10 +4,10 @@
 Read simplified XML BLAST records and report the elapsed time.
 """
 
-from Bio.Blast import NCBIXML
-from time import time
 import sys
+from time import time
 
+from Bio.Blast import NCBIXML
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

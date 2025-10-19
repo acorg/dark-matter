@@ -1,24 +1,23 @@
 # TODO: Add tests based on taxonomy, once we know how to mock mysql.
 
-import six
+import builtins
 import platform
-from six.moves import builtins
 from copy import deepcopy
+from io import StringIO
 from json import dumps
 from unittest import TestCase, skip
-from unittest.mock import patch, mock_open
-from io import StringIO
+from unittest.mock import mock_open, patch
+
+from dark.diamond.alignments import (
+    ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
+    DiamondReadsAlignments,
+)
+from dark.hsp import HSP, LSP
+from dark.reads import AAReadWithX, Read, Reads
+from dark.score import LowerIsBetterScore
+from dark.titles import TitlesAlignments
 
 from .sample_data import PARAMS, RECORD0, RECORD1, RECORD2, RECORD3, RECORD4
-
-from dark.reads import Read, Reads, AAReadWithX
-from dark.hsp import HSP, LSP
-from dark.score import LowerIsBetterScore
-from dark.diamond.alignments import (
-    DiamondReadsAlignments,
-    ZERO_EVALUE_UPPER_RANDOM_INCREMENT,
-)
-from dark.titles import TitlesAlignments
 
 
 class TestDiamondReadsAlignments(TestCase):
@@ -35,8 +34,7 @@ class TestDiamondReadsAlignments(TestCase):
         with patch.object(builtins, "open", mockOpener):
             reads = Reads()
             error = "JSON file 'file\\.json' was empty\\."
-            six.assertRaisesRegex(
-                self,
+            self.assertRaisesRegex(
                 ValueError,
                 error,
                 DiamondReadsAlignments,
@@ -54,27 +52,20 @@ class TestDiamondReadsAlignments(TestCase):
         mockOpener = mock_open(read_data="not JSON\n")
         with patch.object(builtins, "open", mockOpener):
             reads = Reads()
-            if six.PY3:
+            if pypy:
+                error = (
+                    "^Could not convert first line of 'file\\.json' to "
+                    "JSON \\(Error when decoding null at char 1\\)\\. "
+                    "Line is 'not JSON'\\.$"
+                )
+            else:
                 error = (
                     "^Could not convert first line of 'file\\.json' to JSON "
                     "\\(Expecting value: line 1 column 1 \\(char 0\\)\\)\\. "
                     "Line is 'not JSON'\\.$"
                 )
-            else:
-                if pypy:
-                    error = (
-                        "^Could not convert first line of 'file\\.json' to "
-                        "JSON \\(Error when decoding null at char 1\\)\\. "
-                        "Line is 'not JSON'\\.$"
-                    )
-                else:
-                    error = (
-                        "^Could not convert first line of 'file\\.json' to "
-                        "JSON \\(No JSON object could be decoded\\)\\. Line "
-                        "is 'not JSON'\\.$"
-                    )
-            six.assertRaisesRegex(
-                self,
+
+            self.assertRaisesRegex(
                 ValueError,
                 error,
                 DiamondReadsAlignments,
@@ -166,7 +157,7 @@ class TestDiamondReadsAlignments(TestCase):
             readsAlignments = DiamondReadsAlignments(
                 reads, "file.json", databaseFilename="database.fasta"
             )
-            six.assertRaisesRegex(self, ValueError, error, list, readsAlignments)
+            self.assertRaisesRegex(ValueError, error, list, readsAlignments)
 
     def testIncorrectReadId(self):
         """
@@ -185,7 +176,7 @@ class TestDiamondReadsAlignments(TestCase):
             readsAlignments = DiamondReadsAlignments(
                 reads, "file.json", databaseFilename="database.fasta"
             )
-            six.assertRaisesRegex(self, ValueError, error, list, readsAlignments)
+            self.assertRaisesRegex(ValueError, error, list, readsAlignments)
 
     def testMoreReadsThanRecords(self):
         """

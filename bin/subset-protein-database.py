@@ -4,7 +4,6 @@ import argparse
 
 from dark.proteins import SqliteIndex
 
-
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description=(

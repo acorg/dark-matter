@@ -1,7 +1,5 @@
 from unittest import TestCase
 
-# from six import assertRaisesRegex
-
 from dark.civ.proteins import SqliteIndex, SqliteIndexWriter
 
 

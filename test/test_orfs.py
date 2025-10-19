@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from Bio.Seq import Seq
 
 from dark.orfs import findCodons

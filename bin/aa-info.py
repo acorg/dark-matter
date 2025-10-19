@@ -5,9 +5,9 @@ from argparse import ArgumentParser
 
 from dark.aa import find
 from dark.aaVars import (
+    ALL_PROPERTIES,
     CODONS,
     NAMES_TO_ABBREV1,
-    ALL_PROPERTIES,
     PROPERTY_NAMES,
     STOP_CODONS,
 )

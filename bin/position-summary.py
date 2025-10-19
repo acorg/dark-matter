@@ -4,7 +4,6 @@ import argparse
 
 from dark.fasta import FastaReads
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(

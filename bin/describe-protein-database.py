@@ -4,7 +4,6 @@ import argparse
 
 from dark.civ.proteins import SqliteIndex
 
-
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description="Print a description of a protein/genome database.",

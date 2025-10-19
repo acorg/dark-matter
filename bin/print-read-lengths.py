@@ -5,10 +5,10 @@ Read a FASTA or FASTQ file (or read stdin) and print a line for each sequence,
 with the length of the sequence followed by its name.
 """
 
-import sys
 import argparse
-from Bio import SeqIO
+import sys
 
+from Bio import SeqIO
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

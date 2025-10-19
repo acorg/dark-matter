@@ -3,13 +3,12 @@
 import sys
 
 from dark.filter import (
-    addFASTAFilteringCommandLineOptions,
-    parseFASTAFilteringCommandLineOptions,
     addFASTAEditingCommandLineOptions,
+    addFASTAFilteringCommandLineOptions,
     parseFASTAEditingCommandLineOptions,
+    parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
-
 
 if __name__ == "__main__":
     import argparse
@@ -88,13 +87,11 @@ if __name__ == "__main__":
 
     write = sys.stdout.write
     kept = 0
-    for read in reads:
-        kept += 1
+    for kept, read in enumerate(reads, start=1):
         write(read.toString(format_=saveAs))
 
-    total = reads.unfilteredLength()
-
     if not args.quiet:
+        total = reads.unfilteredLength()
         print(
             "Read %d sequence%s, kept %d (%.2f%%)."
             % (
@@ -108,14 +105,13 @@ if __name__ == "__main__":
 
     if args.checkResultCount is not None:
         if kept != args.checkResultCount:
-            if not args.quiet:
-                print(
-                    "Did not write the expected %d sequence%s (wrote %d)."
-                    % (
-                        args.checkResultCount,
-                        "" if args.checkResultCount == 1 else "s",
-                        kept,
-                    ),
-                    file=sys.stderr,
-                )
+            print(
+                "Did not write the expected %d sequence%s (wrote %d)."
+                % (
+                    args.checkResultCount,
+                    "" if args.checkResultCount == 1 else "s",
+                    kept,
+                ),
+                file=sys.stderr,
+            )
             sys.exit(1)

@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=(
-            "Print a (Levenshtein) distance matrix for a set of " "known adaptors"
+            "Print a (Levenshtein) distance matrix for a set of known adaptors"
         )
     )
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         "adaptors",
         nargs="+",
         metavar="adaptor",
-        help="the set of adaptors that were used in sequencing",
+        help="The set of adaptors used in sequencing.",
     )
 
     args = parser.parse_args()

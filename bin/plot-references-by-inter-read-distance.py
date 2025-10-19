@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-import sys
-import os
-import time
 import argparse
-import numpy as np
-from sklearn.manifold import MDS
-import plotly.express as px
-import pandas as pd
+import os
+import sys
+import time
 from os.path import exists
+
+import numpy as np
+import pandas as pd
+import plotly.express as px
+from sklearn.manifold import MDS
 
 from dark.sam import DistanceMatrix
 from dark.utils import readLabels

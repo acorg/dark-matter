@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import sys
-import os
 import argparse
+import os
+import sys
 
 from dark.reads import (
     addFASTACommandLineOptions,
-    parseFASTACommandLineOptions,
     getUnambiguousBases,
+    parseFASTACommandLineOptions,
 )
 
 parser = argparse.ArgumentParser(

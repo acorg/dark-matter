@@ -1,3 +1,248 @@
+## 5.1.2 September 22, 2025
+
+Added `--length` option to `bin/fasta-sort.py`.
+
+## 5.1.1 September 19, 2025
+
+Updated pyproject.toml so that src/dark subdirs are found.
+
+## 5.1.0 September 6, 2025
+
+Added `bin/msa-find-and-extract.py` to extract regions from multiple
+sequence alignments (irrespective of gaps).  Removed `--includeShortGenomes`
+and `--noShortGenomeWarning` from `bin/fasta-find.py`. Refactored
+`bin/fasta-find.py` to be much cleaner. Added functions in `Read` and `Reads`
+classes to find prefix/suffix delimited regions.
+
+## 5.0.46 September 2, 2025
+
+Added `--ignoreGaps`, `--gapCharacter`, and `--end` to `bin/fasta-find.py`.
+The former makes it possible to search for sequences in gapped FASTA files
+(e.g., those produced in a multiple-sequence alignment). The `--end` option
+tells `bin/fasta-find.py` to report the offset of the end of the
+match. Together these options make it possible to find the start and end of a
+nucleotide sequence in gapped sequences.
+
+## 5.0.45 August 26, 2025
+
+Tiny bugfix to rotating a read for when the read sequence is empty.
+
+## 5.0.44 August 18, 2025
+
+Add gap canonicalization to `edlib` alignment output.
+
+## 5.0.43 August 14, 2025
+
+Added `mode` argument to `Reads.save` method to make it possible to append to
+an existing file.
+
+## 5.0.42 July 24, 2025
+
+Slightly refactor `bin/compare-sequences.py`.
+
+## 5.0.41 June 12, 2025
+
+Third time lucky? Fix reporting of number of reads (as opposed to read ids)
+in `bin/sam-coverage-depth.py`.
+
+## 5.0.40 June 12, 2025
+
+Fix recording of number of reads in `bin/sam-coverage-depth.py`.
+
+## 5.0.39 June 10, 2025
+
+Improve `bin/sam-coverage-depth.py` by a) being more flexible on finding the
+reference sequence, b) ignoring (and warning about) non-ACGT nucleotides in
+reads found by pysam in the BAM, and c) correcting the read counts.
+
+## 5.0.38 June 4, 2025
+
+Add printing of aa properties to `bin/aa-compare.py` (renamed from
+`bin/codon-distance.py` which is now a symbolic link to `bin/aa-compare.py`).
+
+## 5.0.37 May 10, 2025
+
+Added `--includeDifferenceCounts` and `--includeDifferenceLocations` to
+`bin/compare-sequences.py` and corresponding arguments to the underlying
+function in `src/dark/dna.py` and tests in `test/test_dna.py`.
+
+## 5.0.36 May 6, 2025
+
+Move to using `pyproject.toml` and `uv`.
+
+## 5.0.35 April 29, 2025
+
+Added new `--minSiteMutationCount`, `--minBases`, and
+`--maxIdenticalReadIdsPerSite` diversity filtering options to
+`bin/sam-coverage-depth.py` and refactored the code therein to simplify
+things. There should also be tests!
+
+## 5.0.34 April 24, 2025
+
+Generalized rerooting via `ete3` to allow multiple tip names to be given to
+cause rerooting on the branch coming into the MRCA of those tips. Moved the
+rerooting function into `dark/trees.py` and added tests.
+
+## 5.0.33 April 21, 2025
+
+Change name in `setup.py` to have an underscore following deprecation warning from PyPI.
+
+## 5.0.32 April 21, 2025
+
+Added `bin/remove-alrt-from-tree.py`.
+
+## 5.0.31 March 10, 2025
+
+Allow for zero reads matching a site when processing a pileup in `sam-coverage-depth.py`.
+
+## 5.0.30 March 9, 2025
+
+Add start/stop datetimes to summary output of `sam-coverage-depth.py`.
+
+## 5.0.29 March 5, 2025
+
+Added reference base and the 'from' base to the TSV output of `sam-coverage-depth.py`.
+
+## 5.0.28 March 5, 2025
+
+Added info to final output of `sam-coverage-depth.py`.
+
+## 5.0.27 March 4, 2025
+
+Many improvements to (and some simplifications of) `sam-coverage-depth.py`,
+primarily a speed-up via parallelization.
+
+## 5.0.26 Januery 27, 2025
+
+Downgrade `dendropy` version requirement from `5.0.2` to `5.0.1`.
+
+## 5.0.25 November 18, 2024
+
+Adjust `bin/curate-tree-ete3.py` so it ensures the new root node is not formatted.
+
+## 5.0.24 November 16, 2024
+
+Made `bin/curate-tree-ete3.py` able to collapse clades due to low support or
+alrt values, to remove support and/or alrt values, and to scale the length of
+edges root leaving a new root.
+
+## 5.0.23 November 15, 2024
+
+Set the length on the new root node (when using `--detach` in calling
+`bin/curate-tree-ete3.py`) to zero, seeing as that length is related to the
+distance to the node that has been deleted (after rooting).
+
+## 5.0.22 November 15, 2024
+
+Added `--detach` option to `bin/curate-tree-ete3.py` to remove the outgroup
+made by rooting on a node.
+
+## 5.0.21 November 14, 2024
+
+Added `bin/curate-tree-ete3.py`.
+
+## 5.0.20 November 13, 2024
+
+Small improvements to `bin/tree-info.py`.
+
+## 5.0.19 November 12, 2024
+
+Added simple `bin/tree-info.py` script to print information about tip names
+and internal node labels and edge lengths in a phylogenetic tree.
+
+## 5.0.18 November 9, 2024
+
+Add explicit output format to samtools sort command in `dark/bowtie2.py`.
+
+## 5.0.17 November 9, 2024
+
+More messing with indexing BAM files.
+
+## 5.0.16 November 9, 2024
+
+Check if the SAM file in `dark/bowtie2.py` is empty by reading it and looking
+for a non-header line. Undo the change of `5.0.15`. Added typing hints to
+`dark/bowtie2.py`.
+
+## 5.0.15 November 8, 2024
+
+Always make BAM in `run-bowtie2.py`. Sigh.
+
+## 5.0.14 November 8, 2024
+
+Check whether a BAM/SAM file is empty in `run-bowtie2.py` in order to avoid
+calling `gatk` to mark duplicates on a file with no mapped or unmapped reads,
+since instead of just exiting gracefully, `gatk` crashes with the typical
+Java runtime stack.
+
+## 5.0.13 November 3, 2024
+
+Added `bin/add-support-to-iqtree2-issue-343.py` script for adding support
+labels to nodes in trees produced by `iqtree2` when (if not run with
+`-keep-ident`) it adds nodes and tips for identical sequences. `iqtree2`
+currently does not put a support label on (the edge leading to) the tip in
+the original processing or onto the nodes introduced by adding tips for the
+identical sequences. This is described in the `iqtree2` GitHub [issue
+343](https://github.com/iqtree/iqtree2/issues/343).
+
+## 5.0.12 November 1, 2024
+
+This was merged late and became version `5.0.19`.
+
+## 5.0.11 October 30, 2024
+
+Added `--rotate` and `--maxWindows` options to `window-split-alignment.py`.
+
+## 5.0.10 October 26, 2024
+
+Added `intsToRanges` and `intsToStringRanges` to `dark/utils.py`.
+
+## 5.0.9 October 24, 2024
+
+Added `bin/curate-trees.py` script to collapse low-support branches in
+phylogenetic trees (to make polytomies) and also to re-root and ladderize
+them.
+
+## 5.0.8 October 14, 2024
+
+Added typing hints to `dark/process.py`.
+
+## 5.0.7 October 5, 2024
+
+Made `filter-fasta.py` print an error message when the `--checkResultCount`
+check fails even if `--quiet` was used.
+
+## 5.0.6 October 5, 2024
+
+Add `rotate` method to `Read` class, plus tests.
+
+## 5.0.5 October 5, 2024
+
+Added `--rotate` option to `filter-fasta.py`.
+
+## 5.0.4 October 5, 2024
+
+Added `--upper`, `--lower`, `--upperId`, and `--lowerId` options to `filter-fasta.py`.
+
+## 5.0.3 September 30, 2024
+
+Removed `required` flag from `--out` option of `bin/plot-windowed-identity.py`.
+
+## 5.0.2 September 28, 2024
+
+Added `bin/plot-windowed-identity.py` along with `WindowedIdentity` class and tests.
+
+## 5.0.1 September 22, 2024
+
+Added lots of type hints. Completely removed six.
+
+## 5.0.0 September 17, 2024
+
+Removed `gb2seq` aligner options from `bin/sam-coverage-depth.py`. Bumped
+major version number seeing as this will break things. I highly doubt anyone
+is using the removed option. I (Terry) put it in for Christian Gabriel and
+Annika Beyer during SARS-CoV-2 times.
+
 ## 4.0.89 August 7, 2024
 
 Allow for `minWindow` to be `None` in `window-split-alignment.py`.
@@ -746,7 +991,8 @@ Drop Python2 from Travis and tox checking. Ugh.
 
 ## 3.1.34 Jan 13, 2020
 
-Made sequence translation code work under Python 2 (again, even more hopefully than the last time).
+Made sequence translation code work under Python 2 (again, even more
+hopefully than the last time).
 
 ## 3.1.33 Jan 13, 2020
 

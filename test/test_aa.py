@@ -1,45 +1,43 @@
-import six
-from unittest import TestCase
-from itertools import product
 from collections import defaultdict
+from itertools import product
+from unittest import TestCase
 
 from dark.aa import (
     AminoAcid,
-    find,
-    propertiesForSequence,
     clustersForSequence,
     compareAaReads,
+    find,
     matchToString,
+    propertiesForSequence,
 )
-
 from dark.aaVars import (
-    PROPERTIES,
-    ALL_PROPERTIES,
-    PROPERTY_NAMES,
+    AA_LETTERS,
+    ABBREV3,
+    ABBREV3_TO_ABBREV1,
     ACIDIC,
     ALIPHATIC,
+    ALL_PROPERTIES,
     AROMATIC,
     BASIC_POSITIVE,
+    CODONS,
     HYDROPHILIC,
     HYDROPHOBIC,
     HYDROXYLIC,
+    NAMES,
+    NAMES_TO_ABBREV1,
     NEGATIVE,
     NONE,
     POLAR,
-    SMALL,
-    SULPHUR,
-    TINY,
-    NAMES,
-    NAMES_TO_ABBREV1,
-    ABBREV3,
-    ABBREV3_TO_ABBREV1,
-    AA_LETTERS,
+    PROPERTIES,
     PROPERTY_CLUSTERS,
     PROPERTY_DETAILS_RAW,
-    CODONS,
+    PROPERTY_NAMES,
     REVERSE_CODONS,
+    SMALL,
     START_CODON,
     STOP_CODONS,
+    SULPHUR,
+    TINY,
 )
 from dark.reads import AARead
 
@@ -323,9 +321,9 @@ class TestAminoAcid(TestCase):
         """
         An amino acid instance must have the expected attributes.
         """
-        properties = {}
+        properties = AROMATIC
         propertyDetails = {}
-        codons = []
+        codons = ("ACG", "TTT")
         propertyClusters = {}
         aa = AminoAcid(
             "Alanine", "Ala", "A", codons, properties, propertyDetails, propertyClusters
@@ -337,6 +335,14 @@ class TestAminoAcid(TestCase):
         self.assertIs(properties, aa.properties)
         self.assertIs(propertyDetails, aa.propertyDetails)
         self.assertIs(propertyClusters, aa.propertyClusters)
+
+    def testPropertySet(self):
+        """
+        An amino acid instance must have the expected property set.
+        """
+        properties = AROMATIC | ACIDIC
+        aa = AminoAcid("Alanine", "Ala", "A", (), properties, {}, {})
+        self.assertEqual({AROMATIC, ACIDIC}, aa.propertySet())
 
 
 class TestFind(TestCase):
@@ -730,9 +736,7 @@ class TestPropertiesForSequence(TestCase):
         """
         error = "Unknown property: xxx"
         read = AARead("id", "RRR")
-        six.assertRaisesRegex(
-            self, ValueError, error, propertiesForSequence, read, ["xxx"]
-        )
+        self.assertRaisesRegex(ValueError, error, propertiesForSequence, read, ["xxx"])
 
     def testNoProperties(self):
         """
@@ -845,9 +849,7 @@ class TestClustersForSequence(TestCase):
         """
         error = "Unknown property: xxx"
         read = AARead("id", "RRR")
-        six.assertRaisesRegex(
-            self, ValueError, error, clustersForSequence, read, ["xxx"]
-        )
+        self.assertRaisesRegex(ValueError, error, clustersForSequence, read, ["xxx"])
 
     def testNoProperties(self):
         """

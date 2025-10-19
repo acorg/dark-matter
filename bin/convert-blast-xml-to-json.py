@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
-import bz2file
 import sys
 
-from dark.blast.conversion import XMLRecordsReader
+import bz2file
 
+from dark.blast.conversion import XMLRecordsReader
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

@@ -4,7 +4,6 @@ import sys
 
 from dark.reads import DNARead
 
-
 if len(sys.argv) < 2:
     print("Usage: reverse-complement.py SEQ1 [SEQ2, SEQ3, ...]", file=sys.stderr)
     sys.exit(1)

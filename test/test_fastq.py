@@ -1,11 +1,10 @@
-from six.moves import builtins
+import builtins
 from io import StringIO
-
-from dark.reads import AARead, DNARead, RNARead
-from dark.fastq import FastqReads
-
 from unittest import TestCase, skip
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
+from dark.fastq import FastqReads
+from dark.reads import AARead, DNARead, RNARead
 
 
 class TestFastqReads(TestCase):

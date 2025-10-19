@@ -1,19 +1,18 @@
-from six.moves import builtins
-from unittest import TestCase
-from unittest.mock import patch, mock_open
-from io import BytesIO
-import bz2file
+import builtins
 from bz2 import compress
-from six import assertRaisesRegex, StringIO
+from io import BytesIO, StringIO
 from json import dumps
+from unittest import TestCase
+from unittest.mock import mock_open, patch
+
+import bz2file
 
 from dark.diamond.conversion import (
-    JSONRecordsReader,
-    DiamondTabularFormatReader,
     DiamondTabularFormat,
+    DiamondTabularFormatReader,
+    JSONRecordsReader,
 )
-from dark.reads import Reads, AARead
-
+from dark.reads import AARead, Reads
 
 # The 15 fields expected in the DIAMOND output we parse are:
 #
@@ -1593,8 +1592,8 @@ class TestDiamondTabularFormatToDicts(TestCase):
         DiamondTabularFormat __init__ function must raise a ValueError.
         """
         error = "^field names contains duplicated names: a, b\\.$"
-        assertRaisesRegex(
-            self, ValueError, error, DiamondTabularFormat, ["a", "b", "a", "c", "b"]
+        self.assertRaisesRegex(
+            ValueError, error, DiamondTabularFormat, ["a", "b", "a", "c", "b"]
         )
 
     def testTooFewFields(self):
@@ -1608,8 +1607,8 @@ class TestDiamondTabularFormatToDicts(TestCase):
             r"^DIAMOND output line had 2 field values \(expected 3\)\. "
             r"The offending input line was 'a\\tb\\n'\."
         )
-        assertRaisesRegex(
-            self, ValueError, error, list, dtf.diamondTabularFormatToDicts(data)
+        self.assertRaisesRegex(
+            ValueError, error, list, dtf.diamondTabularFormatToDicts(data)
         )
 
     def testTooManyFields(self):
@@ -1622,8 +1621,8 @@ class TestDiamondTabularFormatToDicts(TestCase):
             r"^DIAMOND output line had 3 field values \(expected 2\)\. "
             r"The offending input line was 'a\\tb\\tc\\n'\."
         )
-        assertRaisesRegex(
-            self, ValueError, error, list, dtf.diamondTabularFormatToDicts(data)
+        self.assertRaisesRegex(
+            ValueError, error, list, dtf.diamondTabularFormatToDicts(data)
         )
 
     def testUnknownField(self):

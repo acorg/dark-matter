@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
-import bz2file
 import sys
 
-from dark.diamond.conversion import DiamondTabularFormatReader
+import bz2file
 
+from dark.diamond.conversion import DiamondTabularFormatReader
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

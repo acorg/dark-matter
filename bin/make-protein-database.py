@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import argparse
 import sys
 import warnings
-from time import time
 from itertools import chain
-import argparse
+from time import time
 
 from dark.civ.proteins import SqliteIndexWriter
 from dark.taxonomy import (

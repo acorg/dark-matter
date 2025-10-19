@@ -1,5 +1,4 @@
-from unittest import TestCase, skipUnless, skip
-from six import assertRaisesRegex
+from unittest import TestCase, skip, skipUnless
 
 from dark.aa import CODONS
 from dark.diamond.run import DiamondExecutor, diamondInstalled
@@ -22,7 +21,7 @@ class TestDiamondExecutor(TestCase):
         de = DiamondExecutor()
         queries = Reads([Read("id", "ACGT")])
         error = "^No subject sequences in the database$"
-        assertRaisesRegex(self, ValueError, error, list, de.search(queries))
+        self.assertRaisesRegex(ValueError, error, list, de.search(queries))
         de.cleanup()
 
     def testNoQueries(self):
@@ -34,7 +33,7 @@ class TestDiamondExecutor(TestCase):
         de.addSubject(Read("id", "MVMM"))
         queries = Reads()
         error = "^No query sequences were passed$"
-        assertRaisesRegex(self, ValueError, error, list, de.search(queries))
+        self.assertRaisesRegex(ValueError, error, list, de.search(queries))
         de.cleanup()
 
     @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/727")

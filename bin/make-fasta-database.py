@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import sys
 import os
-from time import time
+import sys
 from itertools import chain
+from time import time
 
 from dark.fasta import SqliteIndex
-
 
 if __name__ == "__main__":
     import argparse

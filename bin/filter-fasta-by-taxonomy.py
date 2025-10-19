@@ -19,9 +19,9 @@ If you see sequences unexpectedly rejected because they have no associated
 taxonomy, make sure you have the latest taxonomy files loaded into MySQL.
 """
 
-import sys
 import argparse
 import re
+import sys
 from typing import Optional, TextIO
 
 from dark.fasta import FastaReads

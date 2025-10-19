@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import argparse
 import os
 import sys
-import argparse
+from os.path import basename, join
 from tempfile import mkdtemp
-from os.path import join, basename
 
 from dark.fasta import FastaReads
 from dark.process import Executor
@@ -147,7 +147,7 @@ def main():
 
     parser.add_argument(
         "--ivarBedFile",
-        help="If ivar should trim primers, a BED file of the primer " "positions.",
+        help="If ivar should trim primers, a BED file of the primer positions.",
     )
 
     args = parser.parse_args()
@@ -183,7 +183,7 @@ def main():
         # No VCF file provided, so make one.
         vcfFile = join(tempdir, "vcf.gz")
         if args.callHaplotypesGATK:
-            e.execute("samtools index '%s'" % args.bam)
+            e.execute(f"samtools index {args.bam!r}")
             if args.picardJar:
                 picardJar = args.picardJar
             else:
@@ -203,7 +203,7 @@ def main():
                 removeIndex = False
             else:
                 removeIndex = True
-                e.execute("samtools faidx '%s'" % args.reference)
+                e.execute(f"samtools faidx {args.reference!r}")
 
             if args.reference.lower().endswith(".fasta"):
                 dictFile = args.reference[: -len(".fasta")] + ".dict"
@@ -215,32 +215,31 @@ def main():
             else:
                 removeDict = True
                 e.execute(
-                    "java -jar '%s' CreateSequenceDictionary R='%s' O='%s'"
-                    % (picardJar, args.reference, dictFile)
+                    f"java -jar {picardJar!r} CreateSequenceDictionary "
+                    f"R={args.reference!r} O={dictFile!r}"
                 )
 
             e.execute(
-                "gatk --java-options -Xmx4g HaplotypeCaller "
-                "--reference '%s' "
-                "--input '%s' "
-                "--output '%s' "
-                "--sample-ploidy 1 "
-                "-ERC GVCF" % (args.reference, args.bam, vcfFile)
+                f"gatk --java-options -Xmx4g HaplotypeCaller "
+                f"--reference {args.reference!r} "
+                f"--input {args.bam!r} "
+                f"--output {vcfFile!r} "
+                f"--sample-ploidy 1 "
+                f"-ERC GVCF"
             )
 
             if removeIndex:
-                e.execute("rm '%s'" % indexFile)
+                e.execute(f"rm {indexFile!r}")
 
             if removeDict:
-                e.execute("rm '%s'" % dictFile)
+                e.execute(f"rm {dictFile!r}")
         else:
             e.execute(
-                "bcftools mpileup --max-depth 5000 -Ou -f '%s' '%s' | "
-                "bcftools call --ploidy 1 -mv -Oz -o '%s'"
-                % (args.reference, args.bam, vcfFile)
+                f"bcftools mpileup --max-depth 5000 -Ou -f {args.reference!r} "
+                f"{args.bam!r} | bcftools call --ploidy 1 -mv -Oz -o {vcfFile!r}"
             )
 
-            e.execute("bcftools index '%s'" % vcfFile)
+            e.execute(f"bcftools index {vcfFile!r}")
 
     if args.maskLowCoverage >= 0:
         # Make a BED file.
@@ -248,9 +247,9 @@ def main():
         # The doubled-% below are so that Python doesn't try to fill in the
         # values and instead just generates a single % that awk sees.
         e.execute(
-            "samtools depth -a '%s' | "
-            'awk \'$3 < %d {printf "%%s\\t%%d\\t%%d\\n", '
-            "$1, $2 - 1, $2}' > '%s'" % (args.bam, args.maskLowCoverage, bedFile)
+            f"samtools depth -a {args.bam!r} | "
+            f"awk '$3 < {args.maskLowCoverage} "
+            f'{{printf "%s\\t%d\\t%d\\n", $1, $2 - 1, $2}}\' > {bedFile!r}'
         )
         maskArg = "--mask " + bedFile
     else:
@@ -259,7 +258,7 @@ def main():
     if args.sample:
         sample = args.sample
     else:
-        result = e.execute("gunzip -c '%s' | egrep -m 1 '^#CHROM' | cut -f10" % vcfFile)
+        result = e.execute(f"gunzip -c {vcfFile!r} | egrep -m 1 '^#CHROM' | cut -f10")
         sample = "SAMPLE-NAME" if args.dryRun else result.stdout.strip()
 
     consensusFile = join(tempdir, "consensus.fasta")
@@ -268,13 +267,13 @@ def main():
         if args.ivarBedFile:
             tempBamFile = join(tempdir, basename(args.bam) + "-trimmed")
             result = e.execute(
-                "ivar trim -i %r -b %r -p %r -e"
-                % (args.bam, args.ivarBedFile, tempBamFile)
+                f"ivar trim -i {args.bam!r} -b {args.ivarBedFile!r} -p {tempBamFile!r} "
+                "-e"
             )
             ivarTempBamFile = tempBamFile + ".bam"
             sortedIvarTempBamFile = tempBamFile + "-trimmed-sorted.bam"
             result = e.execute(
-                "samtools sort %r -o %r" % (ivarTempBamFile, sortedIvarTempBamFile)
+                f"samtools sort {ivarTempBamFile!r} -o {sortedIvarTempBamFile!r}"
             )
             bamFile = sortedIvarTempBamFile
         else:
@@ -282,23 +281,17 @@ def main():
 
         ivarConsensusFile = join(tempdir, "temporary-consensus")
         result = e.execute(
-            "samtools mpileup -A -Q 0 %r | "
-            "ivar consensus -p %r -q 20 -t %r -m %r"
-            % (
-                bamFile,
-                ivarConsensusFile,
-                args.ivarFrequencyThreshold,
-                args.maskLowCoverage,
-            )
+            f"samtools mpileup -A -Q 0 {bamFile!r} | "
+            f"ivar consensus -p {ivarConsensusFile!r} -q 20 "
+            f"-t {args.ivarFrequencyThreshold!r} -m {args.maskLowCoverage!r}"
         )
 
-        result = e.execute("mv %s %s" % (ivarConsensusFile + ".fa", consensusFile))
+        result = e.execute(f"mv {(ivarConsensusFile + '.fa')!r} {consensusFile!r}")
 
     else:
         result = e.execute(
-            "bcftools consensus --sample '%s' --iupac-codes %s --fasta-ref "
-            "'%s' '%s' > '%s'"
-            % (sample, maskArg, args.reference, vcfFile, consensusFile)
+            f"bcftools consensus --sample {sample!r} --iupac-codes {maskArg} "
+            f"--fasta-ref {args.reference!r} {vcfFile!r} > {consensusFile!r}"
         )
 
         if not args.dryRun and result.stderr:
@@ -319,9 +312,9 @@ def main():
 
     if tempdir:
         if args.clean:
-            e.execute("rm -r '%s'" % tempdir)
+            e.execute(f"rm -r {tempdir!r}")
         else:
-            print("Temporary directory %r." % tempdir, file=sys.stderr)
+            print(f"Temporary directory {tempdir!r}.", file=sys.stderr)
 
 
 if __name__ == "__main__":

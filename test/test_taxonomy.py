@@ -1,14 +1,15 @@
-from unittest import TestCase
-import six
 import sqlite3
+from unittest import TestCase
 
 from dark.taxonomy import (
     LineageElement as LE,
+)
+from dark.taxonomy import (
     LineageFetcher,
     Taxonomy,
+    isAllowedTaxonomicRank,
     isRetrovirus,
     isRNAVirus,
-    isAllowedTaxonomicRank,
 )
 
 
@@ -145,7 +146,7 @@ class TestTaxonomy(TestCase):
         """
         fetcher = self._makeFetcher({})
         error = r"^Could not find 'DQ011818\.1' in accession_taxid or names " r"tables$"
-        six.assertRaisesRegex(self, ValueError, error, fetcher.lineage, "DQ011818.1")
+        self.assertRaisesRegex(ValueError, error, fetcher.lineage, "DQ011818.1")
         fetcher.close()
 
     def testReusingClosedFetcher(self):
@@ -156,9 +157,7 @@ class TestTaxonomy(TestCase):
         fetcher = self._makeFetcher({})
         fetcher.close()
         error = "^'NoneType' object has no attribute 'cursor'$"
-        six.assertRaisesRegex(
-            self, AttributeError, error, fetcher.lineage, "DQ011818.1"
-        )
+        self.assertRaisesRegex(AttributeError, error, fetcher.lineage, "DQ011818.1")
 
     def testTaxidNotInNamesTable(self):
         """
@@ -171,7 +170,7 @@ class TestTaxonomy(TestCase):
             }
         )
         error = "^Could not find taxonomy id 500 in names table$"
-        six.assertRaisesRegex(self, ValueError, error, fetcher.lineage, "DQ011818.1")
+        self.assertRaisesRegex(ValueError, error, fetcher.lineage, "DQ011818.1")
         fetcher.close()
 
     def testTaxidNotInNodesTable(self):
@@ -186,7 +185,7 @@ class TestTaxonomy(TestCase):
             }
         )
         error = "^Could not find taxonomy id 500 in nodes table$"
-        six.assertRaisesRegex(self, ValueError, error, fetcher.lineage, "DQ011818.1")
+        self.assertRaisesRegex(ValueError, error, fetcher.lineage, "DQ011818.1")
         fetcher.close()
 
     def testLookupByAccession(self):

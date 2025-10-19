@@ -1,8 +1,12 @@
+from random import choice, choices
 from unittest import TestCase
 
-from random import choice, choices
-
-from dark.aligners import edlibAlign, removeUnnecessaryGaps, EDLIB_AMBIGUOUS
+from dark.aligners import (
+    EDLIB_AMBIGUOUS,
+    canonicalizeAllGaps,
+    edlibAlign,
+    removeUnnecessaryGaps,
+)
 from dark.dna import AMBIGUOUS
 from dark.reads import DNARead, Reads
 
@@ -174,7 +178,7 @@ class TestEdlibAlign(TestCase):
         out1, out2 = list(edlibAlign(Reads([in1, in2])))
 
         self.assertEqual(in1, out1)
-        self.assertEqual("---C-GTTCA", out2.sequence)
+        self.assertEqual("----CGTTCA", out2.sequence)
 
     def testGappedSuffix(self):
         """
@@ -447,27 +451,27 @@ class TestRemoveUnnecessaryGaps(TestCase):
         """
         No gaps can be removed from two empty strings.
         """
-        self.assertEqual(("", ""), removeUnnecessaryGaps("", ""))
+        self.assertEqual(removeUnnecessaryGaps("", ""), ("", ""))
 
     def testStringsWithNoGaps(self):
         """
         No gaps can be removed from two strings with no gaps.
         """
-        self.assertEqual(("AG", "AT"), removeUnnecessaryGaps("AG", "AT"))
+        self.assertEqual(removeUnnecessaryGaps("AG", "AT"), ("AG", "AT"))
 
     def testOneGapOneIdenticalChar(self):
         """
         Identical strings of length two with one gap have the gap removed.
         """
-        self.assertEqual(("A", "A"), removeUnnecessaryGaps("A-", "-A"))
-        self.assertEqual(("A", "A"), removeUnnecessaryGaps("-A", "A-"))
+        self.assertEqual(removeUnnecessaryGaps("A-", "-A"), ("A", "A"))
+        self.assertEqual(removeUnnecessaryGaps("-A", "A-"), ("A", "A"))
 
     def testOneGapOneNonIdenticalChar(self):
         """
         Non-identical strings of length two with one gap have the gap removed.
         """
-        self.assertEqual(("A", "B"), removeUnnecessaryGaps("-A", "B-"))
-        self.assertEqual(("A", "B"), removeUnnecessaryGaps("A-", "-B"))
+        self.assertEqual(removeUnnecessaryGaps("-A", "B-"), ("A", "B"))
+        self.assertEqual(removeUnnecessaryGaps("A-", "-B"), ("A", "B"))
 
     def testFirstGapInFirstString(self):
         """
@@ -475,8 +479,8 @@ class TestRemoveUnnecessaryGaps(TestCase):
         first to have a gap.
         """
         self.assertEqual(
-            ("TAAGTCAGA", "TAACGCAGA"),
             removeUnnecessaryGaps("TAA-GTCAGA", "TAACG-CAGA"),
+            ("TAAGTCAGA", "TAACGCAGA"),
         )
 
     def testFirstGapInSecondString(self):
@@ -485,8 +489,8 @@ class TestRemoveUnnecessaryGaps(TestCase):
         first to have a gap.
         """
         self.assertEqual(
-            ("TAACGCAGA", "TAAGTCAGA"),
             removeUnnecessaryGaps("TAACG-CAGA", "TAA-GTCAGA"),
+            ("TAACGCAGA", "TAAGTCAGA"),
         )
 
     def testConsecutiveGaps(self):
@@ -494,6 +498,208 @@ class TestRemoveUnnecessaryGaps(TestCase):
         Two consecutive gaps can be removed.
         """
         self.assertEqual(
-            ("TAAGTCAGA", "TAACGCAGA"),
             removeUnnecessaryGaps("TAA--GTCAGA", "TAACG--CAGA"),
+            ("TAAGTCAGA", "TAACGCAGA"),
         )
+
+
+class TestCanonicalizeAllGaps(TestCase):
+    """
+    Test the canonicalizeAllGaps function.
+    """
+
+    def testEmptyStrings(self):
+        """
+        No gaps can be canonicalized in two empty strings.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "",
+                "",
+            ),
+            (
+                "",
+                "",
+            ),
+        )
+
+    def testStringsWithNoGaps(self):
+        """
+        No gaps can be canonicalized from two strings with no gaps.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "AG",
+                "AT",
+            ),
+            (
+                "AG",
+                "AT",
+            ),
+        )
+
+    def testLengthTwo(self):
+        """
+        The simplest fixable case with sequences of length two. Here the
+        gap in the second sequence can be shifted left because the A at
+        the start of the second sequence also matches the second A in the
+        first sequence.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "AA",
+                "A-",
+            ),
+            (
+                "AA",
+                "-A",
+            ),
+        )
+
+    def testLengthTwoTwice(self):
+        """
+        The simplest fixable case with sequences of length two. Here the
+        gap in the second sequence can be shifted left because the A at
+        the start of the second sequence also matches the second A in the
+        first sequence. We pass sequences in which this can be done twice.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "AAGCC",
+                "A-GC-",
+            ),
+            (
+                "AAGCC",
+                "-AG-C",
+            ),
+        )
+
+    def testLengthThree(self):
+        """
+        A simple case with sequences of length three. Here the
+        gap in the second sequence can be shifted left because the A at
+        the start of the second sequence also matches the final A in the
+        first sequence.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "AAA",
+                "A--",
+            ),
+            (
+                "AAA",
+                "--A",
+            ),
+        )
+
+    def testLengthFour(self):
+        """
+        A simple case with sequences of length four. Here the
+        gap in the second sequence can be shifted left because the A at
+        the start of the second sequence also matches the final A in the
+        first sequence.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "AAAT",
+                "AT--",
+            ),
+            (
+                "AAAT",
+                "--AT",
+            ),
+        )
+
+    def testOneIsolated(self):
+        """
+        An isolated nucelotide should be moved to the right.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "ACTCAGACGTC",
+                "ACT--G---TC",
+            ),
+            (
+                "ACTCAGACGTC",
+                "ACT-----GTC",
+            ),
+        )
+
+    def testOneIsolatedCanonicalizeFromTheRight(self):
+        """
+        An isolated nucelotide should be moved to the right. But this is more
+        tricky because the "CT" in the second sequence could be moved right,
+        producing "A--CTG---TC". We need the "G" to be moved to the right. That
+        creates a gap that the "ACT", "CT", and "T" prefixes cannot then be
+        moved to the right of.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "ACTCTGACGTC",
+                "ACT--G---TC",
+            ),
+            (
+                "ACTCTGACGTC",
+                "ACT-----GTC",
+            ),
+        )
+
+    def testLengthTwoMoveThree(self):
+        """
+        A gap of length two should be able to be moved three places to the left.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "TAAGGGGATCAGA",
+                "TAAGGA--GCAGA",
+            ),
+            (
+                "TAAGGGGATCAGA",
+                "TAA--GGAGCAGA",
+            ),
+        )
+
+    def testLengthThreeMoveTwo(self):
+        """
+        A gap of length three should be able to be moved two places to the left.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "ACTCGACGTC",
+                "ACTCG---TC",
+            ),
+            (
+                "ACTCGACGTC",
+                "ACT---CGTC",
+            ),
+        )
+
+    def testLongExample(self):
+        """
+        A more complicated example, in which all gaps are merged.
+        """
+        self.assertEqual(
+            canonicalizeAllGaps(
+                "ATTAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC",
+                "A---G----AT-C-T-----G-T-----------T--C--TCT-----A-A----------A--CGAAC"
+            ),
+            (
+                "ATTAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC",
+                "------------------------------------------------AGATCTGTTCTCTAAACGAAC",
+            ),
+        )
+
+    def testLongExampleOneNtLeftOnLeftMultiple(self):
+        """
+        A more complicated example, in which all gaps are merged and one nucleotide
+        is left on the left-hand side. Done with many concatenated copies, just to
+        prove we can.
+        """
+        seq_1 = "ATTAGGTTTATACCTTCCCAGGTAACAAACCAACTTTCGATCTCTTGTAGATCTGTTCTCTAAACGAAC"
+        seq_2 = "C---G----AT-C-T-----G-T-----------T--C--TCT-----A-A----------A--CGAAC"
+        canon = "C------------------------------------------------GATCTGTTCTCTAAACGAAC"
+
+        for n in range(10):
+            self.assertEqual(
+                canonicalizeAllGaps(seq_1 * n, seq_2 * n), (seq_1 * n, canon * n),
+            )

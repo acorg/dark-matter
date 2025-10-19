@@ -1,17 +1,18 @@
 from unittest import TestCase
-from pysam import CSOFT_CLIP, CHARD_CLIP, CMATCH, CINS
+
+from pysam import CHARD_CLIP, CINS, CMATCH, CSOFT_CLIP
 
 from dark.cigar import (
-    CINS_STR,
     CDEL_STR,
-    CMATCH_STR,
-    CEQUAL_STR,
     CDIFF_STR,
-    dna2cigar,
-    makeCigar,
+    CEQUAL_STR,
+    CINS_STR,
+    CMATCH_STR,
     cigarTuplesToOperations,
-    softClippedOffset,
+    dna2cigar,
     insertionOffset,
+    makeCigar,
+    softClippedOffset,
 )
 
 

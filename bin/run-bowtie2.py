@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-import os
-import sys
 import argparse
 import multiprocessing
+import os
+import sys
 from os.path import exists, join
 from tempfile import mkdtemp
+
 import pysam
 
-from dark.process import Executor
 from dark.bowtie2 import Bowtie2
+from dark.process import Executor
 
 DEFAULT_SAMTOOLS_VIEW_FLAGS = (
     pysam.FUNMAP | pysam.FSECONDARY | pysam.FDUP | pysam.FSUPPLEMENTARY
@@ -129,43 +130,53 @@ def processMatch(args, e):
 
     bt2.align(bowtie2Args=args.bowtie2Args, fastq1=fastq1, fastq2=fastq2)
 
-    if args.bam:
-        bt2.makeBAM(args.samtoolsViewArgs)
+    indexed = False
 
-    if args.sort and not (
-        args.markDuplicatesPicard
-        or args.markDuplicatesGATK
-        or args.removePrimersFromBedFile
-    ):
-        bt2.sort()
+    # Sort, remove duplicates, etc. only if there is something in the BAM file.  Apart
+    # from a slight efficiency gain, we check this because gatk dies with a typically
+    # horrible Java stack dump if the are no reads in a BAM/SAM file.
+    if not bt2.isEmpty():
+        if args.sort and not (
+            args.markDuplicatesPicard
+            or args.markDuplicatesGATK
+            or args.removePrimersFromBedFile
+        ):
+            bt2.sort()
 
-    if args.removePrimersFromBedFile:
-        bt2.sort()
-        bt2.removePrimers(args.removePrimersFromBedFile)
+        if args.removePrimersFromBedFile:
+            bt2.sort()
+            bt2.removePrimers(args.removePrimersFromBedFile)
 
-    if args.markDuplicatesPicard:
-        bt2.sort()
-        bt2.picard(picardJar)
+        if args.markDuplicatesPicard:
+            bt2.sort()
+            bt2.picard(picardJar)
 
-    if args.markDuplicatesGATK:
-        bt2.sort(byName=True)
-        bt2.markDuplicatesGATK()
+        if args.markDuplicatesGATK:
+            bt2.sort(byName=True)
+            bt2.markDuplicatesGATK()
 
-    if args.removeDuplicates:
-        bt2.removeDuplicates()
+        if args.removeDuplicates:
+            bt2.removeDuplicates()
 
-    if args.callHaplotypesGATK:
+        if args.callHaplotypesGATK:
+            bt2.makeBAM()
+            bt2.indexBAM()
+            indexed = True
+            bt2.callHaplotypesGATK(
+                picardJar=picardJar, vcfFile=args.vcfFile, referenceFasta=args.reference
+            )
+
+        if args.callHaplotypesBcftools:
+            if not indexed:
+                bt2.makeBAM()
+                bt2.indexBAM()
+                indexed = True
+            bt2.callHaplotypesBcftools(vcfFile=args.vcfFile, referenceFasta=args.reference)
+
+    if args.bam and args.indexBAM and not indexed:
+        bt2.makeBAM()
         bt2.indexBAM()
-        bt2.callHaplotypesGATK(
-            picardJar=picardJar, vcfFile=args.vcfFile, referenceFasta=args.reference
-        )
-
-    if args.callHaplotypesBcftools:
-        bt2.indexBAM()
-        bt2.callHaplotypesBcftools(vcfFile=args.vcfFile, referenceFasta=args.reference)
-
-    if args.bam and args.indexBAM:
-        bt2.indexBAM()
+        indexed = True
 
     if args.out:
         e.execute("mv '%s' '%s'" % (bt2.outputFile(), args.out))

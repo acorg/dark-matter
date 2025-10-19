@@ -1,6 +1,8 @@
 from unittest import TestCase
-from dark.sequence import findPrimer, findPrimerBidi, findPrimerBidiLimits
+
 from Bio.Seq import Seq
+
+from dark.sequence import findPrimer, findPrimerBidi, findPrimerBidiLimits
 
 
 class TestFindPrimer(TestCase):

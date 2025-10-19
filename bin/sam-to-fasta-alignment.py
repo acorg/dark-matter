@@ -4,15 +4,15 @@
 Extract aligned (i.e., padded) queries in FASTA format from a SAM/BAM file.
 """
 
-import sys
 import argparse
+import sys
 
 from dark.filter import (
     addFASTAFilteringCommandLineOptions,
     parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import Reads
-from dark.sam import SAMFilter, PaddedSAM
+from dark.sam import PaddedSAM, SAMFilter
 from dark.utils import nucleotidesToStr
 
 parser = argparse.ArgumentParser(

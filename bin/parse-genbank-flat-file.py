@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from Bio import SeqIO
+import sys
 
+from Bio import SeqIO
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

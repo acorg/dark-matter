@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import sys
-import re
 import argparse
+import re
+import sys
+
 from Bio import SeqIO
 
 parser = argparse.ArgumentParser(

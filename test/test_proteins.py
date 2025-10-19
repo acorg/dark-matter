@@ -1,16 +1,15 @@
-from unittest import TestCase, skip
-from unittest.mock import patch
-from six import assertRaisesRegex
-from six.moves import builtins
+import builtins
 from contextlib import contextmanager
 from io import StringIO
+from unittest import TestCase, skip
+from unittest.mock import patch
 
 from dark.proteins import (
-    splitNames,
     _NO_PATHOGEN_NAME,
-    getPathogenProteinCounts,
-    ProteinGrouper,
     PathogenSampleFiles,
+    ProteinGrouper,
+    getPathogenProteinCounts,
+    splitNames,
 )
 
 
@@ -169,7 +168,7 @@ class TestProteinGrouper(TestCase):
         being raised.
         """
         error = "^format_ must be either 'fasta' or 'fastq'\\.$"
-        assertRaisesRegex(self, ValueError, error, ProteinGrouper, format_="unknown")
+        self.assertRaisesRegex(ValueError, error, ProteinGrouper, format_="unknown")
 
     def testNoAssetDir(self):
         """
@@ -222,7 +221,7 @@ class TestProteinGrouper(TestCase):
             "^Unrecognized pathogenType argument: 'x'\\. Value must be "
             "either 'bacterial' or 'viral'\\.$"
         )
-        assertRaisesRegex(self, ValueError, error, pg.toHTML, pathogenType="x")
+        self.assertRaisesRegex(ValueError, error, pg.toHTML, pathogenType="x")
 
     def testDuplicatePathogenProteinSample(self):
         """
@@ -241,7 +240,7 @@ class TestProteinGrouper(TestCase):
             "ubiquitin' already seen for pathogen 'Lausannevirus' "
             "sample 'sample'\\.$"
         )
-        assertRaisesRegex(self, ValueError, error, pg.addFile, "sample", fp)
+        self.assertRaisesRegex(ValueError, error, pg.addFile, "sample", fp)
 
     def testOneLineInOneFile(self):
         """
@@ -915,8 +914,8 @@ class TestPathogenSampleFiles(TestCase):
         """
         pg = ProteinGrouper()
         error = r"^format_ must be either 'fasta' or 'fastq'\.$"
-        assertRaisesRegex(
-            self, ValueError, error, PathogenSampleFiles, pg, format_="unknown"
+        self.assertRaisesRegex(
+            ValueError, error, PathogenSampleFiles, pg, format_="unknown"
         )
 
     @skip("Some tests are broken and skipped under latest BioPython")

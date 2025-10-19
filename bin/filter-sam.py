@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+
 from pysam import AlignmentFile
 
 from dark.filter import (
@@ -8,8 +9,7 @@ from dark.filter import (
     parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import Reads
-from dark.sam import samfile, SAMFilter
-
+from dark.sam import SAMFilter, samfile
 
 if __name__ == "__main__":
     import argparse

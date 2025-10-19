@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
-from os.path import join, exists
-from os import mkdir, rename
+import sys
 from math import log10
+from os import mkdir, rename
+from os.path import exists, join
 
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 

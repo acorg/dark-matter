@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+
 import requests
 
 # See https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.EFetch
@@ -14,7 +15,7 @@ URL = (
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description=(
-        "Fetch a sequence by id from NCBI and write it to stdout " "as FASTA."
+        "Fetch a sequence by id from NCBI and write it to stdout as FASTA."
     ),
 )
 
