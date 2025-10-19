@@ -8,16 +8,18 @@ FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 import argparse
 import sys
 
-from prseq import FastaReader
-
+from dark.fasta import FastaReads
 from dark.reads import Reads
 
-if __name__ == "__main__":
+
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Extract a subset of FASTA reads by id",
-        epilog="Given a set of FASTA sequence identifiers from sys.argv "
-        "or in a file, read FASTA from stdin, and print FASTA to stdout "
-        "for the given sequence ids.",
+        epilog=(
+            "Given a set of FASTA sequence identifiers from sys.argv "
+            "or in a file, read FASTA from stdin, and print FASTA to stdout "
+            "for the given sequence ids."
+        ),
     )
 
     parser.add_argument("ids", default=None, nargs="*", help="Wanted read ids.")
@@ -38,9 +40,9 @@ if __name__ == "__main__":
     found = []
 
     if wanted:
-        for seq in FastaReader(sys.stdin):
-            if seq.description in wanted:
-                wanted.remove(seq.description)
+        for seq in FastaReads(sys.stdin):
+            if seq.id in wanted:
+                wanted.remove(seq.id)
                 found.append(seq)
 
         if found:
@@ -58,3 +60,7 @@ if __name__ == "__main__":
         # No wanted ids were given.
         parser.print_help(sys.stderr)
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

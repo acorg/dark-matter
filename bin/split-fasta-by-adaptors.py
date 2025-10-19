@@ -4,9 +4,8 @@ import sys
 from collections import defaultdict
 from math import ceil, log10
 
-from dark.fasta import FastaReads
-
 from dark.distance import levenshtein
+from dark.fasta import FastaReads
 from dark.reads import Reads
 
 # The name of the unknown adaptor.

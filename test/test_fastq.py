@@ -82,7 +82,6 @@ class TestFastqReads(TestCase):
             reads = list(FastqReads("filename.fastq", RNARead))
             self.assertTrue(isinstance(reads[0], RNARead))
 
-    @skip("Some tests are broken and skipped under latest BioPython")
     def testTwoFiles(self):
         """
         It must be possible to read from two FASTQ files.
@@ -93,7 +92,8 @@ class TestFastqReads(TestCase):
                 self.test = test
                 self.count = 0
 
-            def sideEffect(self, filename):
+            def sideEffect(self, filename, mode):
+                assert "b" in mode
                 if self.count == 0:
                     self.test.assertEqual("file1.fastq", filename)
                     self.count += 1

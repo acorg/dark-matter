@@ -11,13 +11,13 @@ from dark.reads import Read, Reads
 from .sample_proteins import SAMPLE_DATA
 
 
-@skip("The DIAMOND SAM tests pass but are wrong. Skipping.")
 @skipUnless(diamondInstalled(), "DIAMOND is not installed")
 class TestSimpleDiamondSAMWriter(TestCase):
     """
     Test the SimpleDiamondSAMWriter class.
     """
 
+    @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/905")
     def testTibetanFrogHBV(self):
         """
         Test that Tibetan frogs can get HBV.
@@ -167,7 +167,6 @@ class TestSimpleDiamondSAMWriter(TestCase):
         )
 
 
-@skip("The DIAMOND SAM tests pass but are wrong. Skipping.")
 @skipUnless(diamondInstalled(), "DIAMOND is not installed")
 class TestAdw2Polymerase(TestCase):
     """
@@ -175,6 +174,7 @@ class TestAdw2Polymerase(TestCase):
     overlaps the start/end of the genome because the HBV genome is circular.
     """
 
+    @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/905")
     def testPolymerase(self):
         """
         Test the polymerase protein.

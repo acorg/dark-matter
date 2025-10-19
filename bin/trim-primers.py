@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import sys
+import argparse
 
-from prseq import FastaReader
-
+from dark.fasta import FastaReads
 from dark.reads import Reads
 from dark.sequence import findPrimerBidiLimits
 
@@ -16,7 +16,7 @@ def trimPrimers(primer: str, verbose: bool) -> None:
     """
     reads = Reads()
     absentCount = forwardCount = reverseCount = count = 0
-    for seqRecord in FastaReader():
+    for seqRecord in FastaReads(sys.stdin):
         count += 1
         start, end = findPrimerBidiLimits(primer, seqRecord.sequence)
         if start == 0:
@@ -32,7 +32,7 @@ def trimPrimers(primer: str, verbose: bool) -> None:
 
     if verbose:
         print(
-            ("Read %d sequences. Found forward: %d, " "Found reversed: %d, Absent: %d")
+            ("Read %d sequences. Found forward: %d, Found reversed: %d, Absent: %d")
             % (count, forwardCount, reverseCount, absentCount),
             file=sys.stderr,
         )
@@ -40,9 +40,7 @@ def trimPrimers(primer: str, verbose: bool) -> None:
     reads.save(sys.stdout)
 
 
-if __name__ == "__main__":
-    import argparse
-
+def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Given FASTA on stdin, look for a primer sequence "
@@ -54,9 +52,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--verbose",
         type=bool,
-        help="If True, print information on found primers",
+        help="Print information on found primers.",
     )
 
     args = parser.parse_args()
 
     trimPrimers(args.primer.upper(), args.verbose)
+
+
+if __name__ == "__main__":
+    main()
