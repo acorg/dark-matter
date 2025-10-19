@@ -1,9 +1,24 @@
-## 6.0.0 October 18, 2025
+## 6.0.0 October 19, 2025
 
 This release incorporates use of
 [prseq](https://github.com/VirologyCharite/prseq/) for reading FASTA and
-FASTQ files (see `FastaFiles` in `src/dark/fasta.py` and `FastqFiles` in
-`src/dark/fastq.py`).
+FASTQ files (see `FastaReads` in `src/dark/fasta.py` and `FastqReads` in
+`src/dark/fastq.py`). The major version number has been incremented to 6
+because this is a backwards-incompatible change, though the required code
+adjustments will likely be very minor. The breaking change is that if you
+were previously passing an (non-stdin) open file descriptor to `FastaReads`
+or `FastqReads` it was from a file opened in text mode (from which Python
+would read strings). In this release, if you want to pass an open file
+descriptor to either of these classes, you must open your file in binary mode
+(`mode="rb"`). That's because the open file descriptor will be passed to the
+underlying Rust code (in `prseq`) and that needs to read bytes. If you are
+not using `FastaReads` or `FastqReads` in this way, you are unlikely to
+notice any change in this version. But... there are many `dark-matter`
+scripts and functions that needed to be adjusted in minor ways in this
+release, so it is possible that other tools that somehow depend on
+`dark-matter` will also need to be modified in minor ways. Hopefully this
+won't be too disruptive. I have absolutely no idea how many people actually
+use this code. Please reach out on GitHub if you have questions/comments.
 
 ## 5.1.2 September 22, 2025
 
