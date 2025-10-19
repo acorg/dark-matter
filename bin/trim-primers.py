@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
+import sys
 
 from dark.fasta import FastaReads
 from dark.reads import Reads
@@ -48,7 +48,7 @@ def main() -> None:
         )
     )
 
-    parser.add_argument("primer", help="the primer sequence")
+    parser.add_argument("primer", help="The primer sequence.")
     parser.add_argument(
         "--verbose",
         type=bool,

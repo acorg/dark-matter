@@ -1,6 +1,6 @@
 import builtins
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 from unittest.mock import mock_open, patch
 
 from dark.fastq import FastqReads
