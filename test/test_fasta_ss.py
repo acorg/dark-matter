@@ -1,5 +1,5 @@
 import builtins
-from io import StringIO
+from io import BytesIO
 from unittest import TestCase
 from unittest.mock import mock_open, patch
 
@@ -16,9 +16,9 @@ class TestSSFastaReads(TestCase):
         """
         An empty PDB FASTA file results in an empty iterator.
         """
-        data = ""
+        data = b""
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = SSFastaReads(data)
+            reads = SSFastaReads("x.fasta")
             self.assertEqual([], list(reads))
 
     def testOddNumberOfRecords(self):
@@ -26,7 +26,7 @@ class TestSSFastaReads(TestCase):
         Trying to parse a PDB FASTA file with an odd number of records must
         raise a ValueError.
         """
-        data = "\n".join([">seq1", "REDD", ">str1", "HH--", ">seq2", "REAA"])
+        data = b"\n".join([b">seq1", b"REDD", b">str1", b"HH--", b">seq2", b"REAA"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
             error = "^Structure file 'x.fasta' has an odd number of records\\.$"
             self.assertRaisesRegex(ValueError, error, list, SSFastaReads("x.fasta"))
@@ -36,8 +36,8 @@ class TestSSFastaReads(TestCase):
         Trying to parse a PDB FASTA file that has a sequence whose structure
         is of a different length must raise a ValueError.
         """
-        data = "\n".join(
-            [">seq1", "REDD", ">str1", "HH--", ">seq2", "REAA", ">str2", "HH"]
+        data = b"\n".join(
+            [b">seq1", b"REDD", b">str1", b"HH--", b">seq2", b"REAA", b">str2", b"HH"]
         )
         with patch.object(builtins, "open", mock_open(read_data=data)):
             error = (
@@ -50,18 +50,18 @@ class TestSSFastaReads(TestCase):
         """
         A PDB FASTA file with one read must be read properly.
         """
-        data = "\n".join([">seq1", "REDD", ">str1", "HH--"])
+        data = b"\n".join([b">seq1", b"REDD", b">str1", b"HH--"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data))
+            reads = list(SSFastaReads("x.fasta"))
             self.assertEqual([SSAARead("seq1", "REDD", "HH--")], reads)
 
     def testNoQuality(self):
         """
         A PDB FASTA file read must not have any quality information.
         """
-        data = "\n".join([">seq1", "REDD", ">str1", "HH--"])
+        data = b"\n".join([b">seq1", b"REDD", b">str1", b"HH--"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data))
+            reads = list(SSFastaReads("x.fasta"))
             self.assertIs(None, reads[0].quality)
 
     def testTwoReads(self):
@@ -69,11 +69,11 @@ class TestSSFastaReads(TestCase):
         A PDB FASTA file with two reads must be read properly and its
         sequences must be returned in the correct order.
         """
-        data = "\n".join(
-            [">seq1", "REDD", ">str1", "HH--", ">seq2", "REAA", ">str2", "HHEE"]
+        data = b"\n".join(
+            [b">seq1", b"REDD", b">str1", b"HH--", b">seq2", b"REAA", b">str2", b"HHEE"]
         )
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data))
+            reads = list(SSFastaReads("x.fasta"))
             self.assertEqual(2, len(reads))
             self.assertEqual(
                 [SSAARead("seq1", "REDD", "HH--"), SSAARead("seq2", "REAA", "HHEE")],
@@ -85,9 +85,9 @@ class TestSSFastaReads(TestCase):
         A PDB FASTA file whose type is not specified must result in reads that
         are instances of SSAARead.
         """
-        data = "\n".join([">seq1", "REDD", ">str1", "HH--"])
+        data = b"\n".join([b">seq1", b"REDD", b">str1", b"HH--"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data))
+            reads = list(SSFastaReads("x.fasta"))
             self.assertTrue(isinstance(reads[0], SSAARead))
 
     def testReadClass(self):
@@ -100,9 +100,9 @@ class TestSSFastaReads(TestCase):
             def __init__(self, id, sequence, structure):
                 pass
 
-        data = "\n".join([">seq1", "RRRR", ">str1", "HHHH"])
+        data = b"\n".join([b">seq1", b"RRRR", b">str1", b"HHHH"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data, readClass=ReadClass))
+            reads = list(SSFastaReads("x.fasta", readClass=ReadClass))
             self.assertTrue(isinstance(reads[0], ReadClass))
 
     def testConvertLowerToUpperCaseIfSpecified(self):
@@ -110,9 +110,9 @@ class TestSSFastaReads(TestCase):
         A read sequence and structure must be converted from lower to upper
         case if requested.
         """
-        data = "\n".join([">seq1", "rrrff", ">str1", "hheeh"])
+        data = b"\n".join([b">seq1", b"rrrff", b">str1", b"hheeh"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data, upperCase=True))
+            reads = list(SSFastaReads("x.fasta", upperCase=True))
             self.assertEqual([SSAARead("seq1", "RRRFF", "HHEEH")], reads)
 
     def testDontConvertLowerToUpperCaseIfNotSpecified(self):
@@ -120,9 +120,9 @@ class TestSSFastaReads(TestCase):
         A read sequence and its structure must not be converted from lower to
         upper case if the conversion is not requested.
         """
-        data = "\n".join([">seq1", "rrFF", ">str1", "HHee"])
+        data = b"\n".join([b">seq1", b"rrFF", b">str1", b"HHee"])
         with patch.object(builtins, "open", mock_open(read_data=data)):
-            reads = list(SSFastaReads(data))
+            reads = list(SSFastaReads("x.fasta"))
             self.assertEqual([SSAARead("seq1", "rrFF", "HHee")], reads)
 
     def testTwoFiles(self):
@@ -139,11 +139,11 @@ class TestSSFastaReads(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("file1.fasta", filename)
                     self.count += 1
-                    return StringIO(">id1\nACTG\n>id1\nhhhh\n")
+                    return BytesIO(b">id1\nACTG\n>id1\nhhhh\n")
                 elif self.count == 1:
                     self.test.assertEqual("file2.fasta", filename)
                     self.count += 1
-                    return StringIO(">id2\nCAGT\n>id2\neeee\n")
+                    return BytesIO(b">id2\nCAGT\n>id2\neeee\n")
                 else:
                     self.test.fail("We are only supposed to be called twice!")
 

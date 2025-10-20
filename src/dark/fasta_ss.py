@@ -1,5 +1,8 @@
-from Bio import SeqIO  # type: ignore
+from typing import Iterable
 
+from prseq import FastaReader
+
+from dark import File
 from dark.reads import Reads, SSAARead
 from dark.utils import asHandle
 
@@ -15,13 +18,6 @@ class SSFastaReads(Reads):
     results from the DSSP program. Secondary structures found by DSSP can be
     downloaded from http://www.rcsb.org/pdb/files/ss.txt on 11/11/2015
 
-    IMPORTANT NOTE: the ss.txt file contains spaces in the structure
-    records.  SeqIO.parse will silently collapse these to nothing, which
-    will result in unequal length sequence and structure strings. So you
-    will need to replace the spaces in that file with something else, like
-    '-', to make sure the structure information has the correct length and
-    alignment with the sequence.
-
     @param _files: Either a single C{str} file name or file handle, or a
         C{list} of C{str} file names and/or file handles. Each file or file
         handle must contain sequences in PDB FASTA format (see above).
@@ -31,8 +27,16 @@ class SSFastaReads(Reads):
         converted to upper case.
     """
 
-    def __init__(self, _files, readClass=SSAARead, upperCase=False):
-        self._files = _files if isinstance(_files, (list, tuple)) else [_files]
+    def __init__(
+        self, _files: Iterable[File], readClass=SSAARead, upperCase: bool = False
+    ):
+        if isinstance(_files, tuple):
+            self._files = _files
+        elif isinstance(_files, list):
+            self._files = tuple(_files)
+        else:
+            self._files = (_files,)
+
         self._readClass = readClass
         self._upperCase = upperCase
         super().__init__()
@@ -48,8 +52,9 @@ class SSFastaReads(Reads):
         """
         upperCase = self._upperCase
         for _file in self._files:
+            assert isinstance(_file, File)
             with asHandle(_file) as fp:
-                records = SeqIO.parse(fp, "fasta")
+                records = FastaReader(fp)
                 while True:
                     try:
                         record = next(records)
@@ -62,30 +67,30 @@ class SSFastaReads(Reads):
                             "Structure file %r has an odd number of records." % _file
                         )
 
-                    if len(structureRecord) != len(record):
+                    if len(structureRecord.sequence) != len(record.sequence):
                         raise ValueError(
                             "Sequence %r length (%d) is not equal to "
                             "structure %r length (%d) in input file %r."
                             % (
-                                record.description,
-                                len(record),
-                                structureRecord.description,
-                                len(structureRecord),
+                                record.id,
+                                len(record.sequence),
+                                structureRecord.id,
+                                len(structureRecord.sequence),
                                 _file,
                             )
                         )
 
                     if upperCase:
                         read = self._readClass(
-                            record.description,
-                            str(record.seq.upper()),
-                            str(structureRecord.seq.upper()),
+                            record.id,
+                            str(record.sequence.upper()),
+                            str(structureRecord.sequence.upper()),
                         )
                     else:
                         read = self._readClass(
-                            record.description,
-                            str(record.seq),
-                            str(structureRecord.seq),
+                            record.id,
+                            str(record.sequence),
+                            str(structureRecord.sequence),
                         )
 
                     yield read

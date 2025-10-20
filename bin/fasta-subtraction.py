@@ -2,8 +2,6 @@
 
 import sys
 
-from Bio import SeqIO
-
 from dark import fasta
 
 if __name__ == "__main__":
@@ -14,5 +12,5 @@ if __name__ == "__main__":
         )
         sys.exit(1)
     else:
-        reads = fasta.fastaSubtract(map(open, sys.argv[1:]))
-        SeqIO.write(reads, sys.stdout, "fasta")
+        for read in fasta.fastaSubtract(sys.argv[1:]):
+            print(read.toString(), end="")

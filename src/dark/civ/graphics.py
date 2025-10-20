@@ -58,6 +58,7 @@ def alignmentGraph(
     quiet=False,
     idList=False,
     xRange="subject",
+    maxBluePlotReads=None,
 ):
     """
     Align a set of matching reads against a BLAST or DIAMOND hit.
@@ -89,6 +90,8 @@ def alignmentGraph(
         of read identifiers that should be colored in the respective color.
     @param xRange: set to either 'subject' or 'reads' to indicate the range of
         the X axis.
+    @param maxBluePlotReads: An C{int} maximum number of reads to plot on a
+        blue plot.
     """
 
     startTime = time()
@@ -108,11 +111,6 @@ def alignmentGraph(
     else:
         readsAx = readsAx or plt.subplot(111)
 
-    # Make a deep copy of the title alignments. We're potentially going to
-    # change the HSP scores, the X axis offsets, etc., and we don't want to
-    # interfere with the data we were passed.
-    titleAlignments = deepcopy(titlesAlignments[title])
-
     readsAlignments = titlesAlignments.readsAlignments
     subjectIsNucleotides = readsAlignments.params.subjectIsNucleotides
 
@@ -121,8 +119,13 @@ def alignmentGraph(
     try:
         adjuster = readsAlignments.adjustHspsForPlotting
     except AttributeError:
-        pass
+        # No adjuster.
+        titleAlignments = titlesAlignments[title]
     else:
+        # Make a deep copy of the title alignments. We have an adjuster that may change
+        # the HSP scores, the X axis offsets, etc., and we don't want to interfere with
+        # the data we were passed.
+        titleAlignments = deepcopy(titlesAlignments[title])
         adjuster(titleAlignments)
 
     if rankScores:
@@ -184,7 +187,8 @@ def alignmentGraph(
                 if adjustedStop > maxX:
                     maxX = adjustedStop
 
-    # We're all set up to start plotting the graph.
+    # We're all set to start plotting the graph.
+    maxBluePlotReadLimitReached = False
 
     # Add light grey vertical rectangles to show the logarithmic gaps. Add
     # these first so that reads will be plotted on top of them. Only draw
@@ -204,7 +208,12 @@ def alignmentGraph(
         # grey 'whiskers' in the plots once we (below) draw the matched part
         # on top of part of them.
         if addQueryLines:
+            line_count = 0
             for hsp in titleAlignments.hsps():
+                line_count += 1
+                if maxBluePlotReads and line_count == maxBluePlotReads:
+                    maxBluePlotReadLimitReached = True
+                    break
                 y = hsp.score.score
                 line = Line2D(
                     [hsp.readStartInSubject, hsp.readEndInSubject],
@@ -228,9 +237,14 @@ def alignmentGraph(
                         readColor[read] = color
 
         # Draw the matched region.
+        line_count = 0
         for titleAlignment in titleAlignments:
             readId = titleAlignment.read.id
             for hsp in titleAlignment.hsps:
+                line_count += 1
+                if maxBluePlotReads and line_count == maxBluePlotReads:
+                    maxBluePlotReadLimitReached = True
+                    break
                 y = hsp.score.score
                 line = Line2D(
                     [hsp.subjectStart, hsp.subjectEnd],
@@ -238,6 +252,12 @@ def alignmentGraph(
                     color=readColor.get(readId, "blue"),
                 )
                 readsAx.add_line(line)
+
+            # We have to check this again here since Python can only break out of one
+            # level of looping.
+            if maxBluePlotReads and line_count == maxBluePlotReads:
+                maxBluePlotReadLimitReached = True
+                break
 
     if showFeatures:
         if subjectIsNucleotides:
@@ -278,12 +298,17 @@ def alignmentGraph(
     else:
         adjuster(readsAx)
 
+    bluePlotLimitStr = (
+        f" (only {maxBluePlotReads} shown)" if maxBluePlotReadLimitReached else ""
+    )
+
     # Titles, axis, etc.
     if createFigure:
         readCount = titleAlignments.readCount()
         hspCount = titleAlignments.hspCount()
+
         figure.suptitle(
-            "%s (%s)\nLength %d %s, %d read%s, %d HSP%s."
+            "%s (%s)\nLength %d %s, %d read%s, %d HSP%s%s."
             % (
                 fill(titleAlignments.subjectTitle, 80),
                 accession,
@@ -293,13 +318,14 @@ def alignmentGraph(
                 "" if readCount == 1 else "s",
                 hspCount,
                 "" if hspCount == 1 else "s",
+                bluePlotLimitStr,
             ),
             fontsize=20,
         )
 
     # Add a title and y-axis label, but only if we made the reads axes.
     if createdReadsAx:
-        readsAx.set_title("Read alignments", fontsize=20)
+        readsAx.set_title(f"Read alignments{bluePlotLimitStr}", fontsize=20)
         ylabel = readsAlignments.params.scoreTitle
         if rankScores:
             ylabel += " rank"
@@ -324,6 +350,7 @@ def alignmentGraph(
 
 def alignmentPanel(
     titlesAlignments,
+    proteinGenomeDB,
     sortOn="maxScore",
     idList=False,
     equalizeXAxes=False,
@@ -332,12 +359,15 @@ def alignmentPanel(
     rankScores=False,
     showFeatures=True,
     logBase=DEFAULT_LOG_LINEAR_X_AXIS_BASE,
+    subjectType="protein",
+    maxBluePlotReads=None,
 ):
     """
     Produces a rectangular panel of graphs that each contain an alignment graph
     against a given sequence.
 
     @param titlesAlignments: A L{dark.titles.TitlesAlignments} instance.
+    @param proteinGenomeDB: A L{dark.civ.proteins.SqliteIndex} instance.
     @param sortOn: The attribute to sort subplots on. Either "maxScore",
         "medianScore", "readCount", "length", or "title".
     @param idList: A dictionary. Keys are colors and values are lists of read
@@ -349,11 +379,16 @@ def alignmentPanel(
     @param logLinearXAxis: If C{True}, convert read offsets so that empty
         regions in the plots we're preparing will only be as wide as their
         logged actual values.
-    @param logBase: The logarithm base to use if logLinearXAxis is C{True}.
     @param: rankScores: If C{True}, change the scores for the reads for each
         title to be their rank (worst to best).
     @param showFeatures: If C{True}, look online for features of the subject
         sequences.
+    @param logBase: The logarithm base to use if logLinearXAxis is C{True}.
+    @param subjectType: A C{str} indicating whether the matched subjects are
+        'protein' or 'genome'. This is used to determine what accession number
+        to extract from the matched title.
+    @param maxBluePlotReads: An C{int} maximum number of reads to plot on a
+        blue plot.
     @raise ValueError: If C{outputDir} exists but is not a directory or if
         C{xRange} is not "subject" or "reads".
     """
@@ -374,7 +409,14 @@ def alignmentPanel(
         % (len(titles), rows, cols, sortOn)
     )
 
+    getAccession = (
+        proteinGenomeDB.proteinAccession
+        if subjectType == "protein"
+        else proteinGenomeDB.genomeAccession
+    )
+
     for i, title in enumerate(titles):
+        accession = getAccession(title)
         titleAlignments = titlesAlignments[title]
         row, col = next(coords)
         report("%d: %s %s" % (i, title, NCBISequenceLinkURL(title, "")))
@@ -383,6 +425,7 @@ def alignmentPanel(
         graphInfo = alignmentGraph(
             titlesAlignments,
             title,
+            accession,
             addQueryLines=True,
             showFeatures=showFeatures,
             rankScores=rankScores,
@@ -394,6 +437,7 @@ def alignmentPanel(
             quiet=True,
             idList=idList,
             xRange=xRange,
+            maxBluePlotReads=maxBluePlotReads,
         )
 
         allGraphInfo[title] = graphInfo
@@ -499,6 +543,7 @@ def alignmentPanelHTML(
     rankScores=False,
     showFeatures=True,
     subjectType="protein",
+    maxBluePlotReads=None,
 ):
     """
     Produces an HTML index file in C{outputDir} and a collection of alignment
@@ -527,6 +572,8 @@ def alignmentPanelHTML(
     @param subjectType: A C{str} indicating whether the matched subjects are
         'protein' or 'genome'. This is used to determine what accession number
         to extract from the matched title.
+    @param maxBluePlotReads: An C{int} maximum number of reads to plot on a
+        blue plot.
     @raise TypeError: If C{outputDir} is C{None}.
     @raise ValueError: If C{outputDir} is None or exists but is not a
         directory or if C{xRange} is not "subject" or "reads".
@@ -575,9 +622,10 @@ def alignmentPanelHTML(
             logBase=logBase,
             showFigure=False,
             imageFile=imageFile,
-            quiet=True,
+            quiet=False,
             idList=idList,
             xRange=xRange,
+            maxBluePlotReads=maxBluePlotReads,
         )
 
         # Close the image plot to make sure memory is flushed.

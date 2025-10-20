@@ -3,23 +3,15 @@ from __future__ import annotations
 import argparse
 import itertools
 import os
-import sys
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Iterator, Sequence, Sized
 from functools import total_ordering
 from hashlib import md5
 from pathlib import Path
 from random import uniform
-from typing import (
-    Callable,
-    Literal,
-    SupportsIndex,
-)
+from typing import Callable, Literal, SupportsIndex
 
-from Bio.Data.IUPACData import (
-    ambiguous_dna_complement,
-    ambiguous_rna_complement,
-)
+from Bio.Data.IUPACData import ambiguous_dna_complement, ambiguous_rna_complement
 from Bio.Seq import translate  # pyright: ignore[reportUnknownVariableType]
 
 from dark import File
@@ -68,7 +60,7 @@ class Read(Sized):
         match the length of the sequence.
     """
 
-    ALPHABET: set[str] | None = None
+    ALPHABET: set[str] = set()
 
     def __init__(self, id: str, sequence: str, quality: str | None = None):
         if quality is not None and len(quality) != len(sequence):
@@ -308,8 +300,8 @@ class Read(Sized):
             readLetters = set(self.sequence.upper())
         else:
             readLetters = set(self.sequence.upper()[:count])
-        # Check if readLetters is a subset of self.ALPHABET.
-        if self.ALPHABET is None or readLetters.issubset(self.ALPHABET):
+        # Check if readLetters is a subset of self.ALPHABET (if we have one).
+        if readLetters.issubset(self.ALPHABET) or not self.ALPHABET:
             return readLetters
         raise ValueError(
             f"Read alphabet ({''.join(sorted(readLetters))!r}) is not a subset of "
@@ -2288,12 +2280,11 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument(
         "--fastaFile",
-        type=open,
-        default=sys.stdin,
+        type=argparse.FileType('rb', 0),
         metavar="FILENAME",
         help=(
             "The name of the FASTA input file. Standard input will be read "
-            "if no file name is given."
+            "if '-' is used or if no file name is given."
         ),
     )
 

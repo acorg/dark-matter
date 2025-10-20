@@ -341,7 +341,7 @@ class ProteinGrouper:
                     % (proteinAccession, genomeName, genomeAccession, sampleName)
                 )
 
-            readsFilename = join(outDir, "%s.%s" % (proteinAccession, self._format))
+            readsFilename = join(outDir, "%s.%s.gz" % (proteinAccession, self._format))
 
             if longName.startswith(
                 SqliteIndexWriter.SEQUENCE_ID_PREFIX

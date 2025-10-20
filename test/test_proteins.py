@@ -1,7 +1,7 @@
 import builtins
 from contextlib import contextmanager
-from io import StringIO
-from unittest import TestCase, skip
+from io import BytesIO, StringIO
+from unittest import TestCase
 from unittest.mock import patch
 
 from dark.proteins import (
@@ -91,15 +91,15 @@ class TestGetPathogenProteinCounts(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("filename.fasta", filename)
                     self.count += 1
-                    return StringIO(
-                        ">protein 1 [pathogen 1]\n"
-                        + "ACTG\n"
-                        + ">protein 2 [pathogen 1]\n"
-                        + "AA\n"
-                        + ">no pathogen name here\n"
-                        + "AA\n"
-                        + ">protein 3 [pathogen 2]\n"
-                        + "AA\n"
+                    return BytesIO(
+                        b">protein 1 [pathogen 1]\n"
+                        + b"ACTG\n"
+                        + b">protein 2 [pathogen 1]\n"
+                        + b"AA\n"
+                        + b">no pathogen name here\n"
+                        + b"AA\n"
+                        + b">protein 3 [pathogen 2]\n"
+                        + b"AA\n"
                     )
                 else:
                     self.test.fail("We are only supposed to be called once!")
@@ -131,16 +131,16 @@ class TestGetPathogenProteinCounts(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("filename1.fasta", filename)
                     self.count += 1
-                    return StringIO(
-                        ">protein 1 [pathogen 1]\n"
-                        + "ACTG\n"
-                        + ">protein 3 [pathogen 2]\n"
-                        + "AA\n"
+                    return BytesIO(
+                        b">protein 1 [pathogen 1]\n"
+                        + b"ACTG\n"
+                        + b">protein 3 [pathogen 2]\n"
+                        + b"AA\n"
                     )
                 elif self.count == 1:
                     self.test.assertEqual("filename2.fasta", filename)
                     self.count += 1
-                    return StringIO(">protein 2 [pathogen 1]\n" + "AA\n")
+                    return BytesIO(b">protein 2 [pathogen 1]\n" + b"AA\n")
                 else:
                     self.test.fail("We are only supposed to be called twice!")
 
@@ -911,7 +911,6 @@ class TestPathogenSampleFiles(TestCase):
             ValueError, error, PathogenSampleFiles, pg, format_="unknown"
         )
 
-    @skip("Some tests are broken and skipped under latest BioPython")
     def testOpenNotCalledOnRepeatedCall(self):
         """
         If a repeated call to pathogenSampleFiles.add is made with the same
@@ -929,7 +928,7 @@ class TestPathogenSampleFiles(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("out/0.fasta", filename)
                     self.count += 1
-                    return StringIO(">id1\nACTG\n")
+                    return BytesIO(b">id1\nACTG\n")
                 elif self.count == 1:
                     self.test.assertEqual("out/pathogen-0-sample-0.fasta", filename)
                     self.count += 1
@@ -966,7 +965,6 @@ class TestPathogenSampleFiles(TestCase):
             filename = pathogenSampleFiles.add("Lausannevirus", "filename-1")
             self.assertEqual("out/pathogen-0-sample-0.fasta", filename)
 
-    @skip("Some tests are broken and skipped under latest BioPython")
     def testIdenticalReadsRemoved(self):
         """
         If two proteins in the same pathogen are matched by the same read, the
@@ -994,9 +992,9 @@ class TestPathogenSampleFiles(TestCase):
                     )
                 else:
                     if filename == "out/0.fasta":
-                        return StringIO(">id1\nACTG\n")
+                        return BytesIO(b">id1\nACTG\n")
                     elif filename == "out/1.fasta":
-                        return StringIO(">id1\nACTG\n>id2\nCAGT\n")
+                        return BytesIO(b">id1\nACTG\n>id2\nCAGT\n")
                     else:
                         return self.manager
 
@@ -1026,7 +1024,6 @@ class TestPathogenSampleFiles(TestCase):
         # Make sure all expected filenames were seen by the mocked open.
         self.assertEqual(set(), opener.expectedFilenames)
 
-    @skip("Some tests are broken and skipped under latest BioPython")
     def testPathogenIndex(self):
         """
         A pathogen index must be retrievable via the pathogenIndex function.
@@ -1052,9 +1049,9 @@ class TestPathogenSampleFiles(TestCase):
                     )
                 else:
                     if filename == "out/0.fasta":
-                        return StringIO(">id1\nACTG\n")
+                        return BytesIO(b">id1\nACTG\n")
                     elif filename == "out/1.fasta":
-                        return StringIO(">id1\nACTG\n>id2\nCAGT\n")
+                        return BytesIO(b">id1\nACTG\n>id2\nCAGT\n")
                     else:
                         return self.manager
 
@@ -1089,7 +1086,6 @@ class TestPathogenSampleFiles(TestCase):
         # Make sure all expected filenames were seen by the mocked open.
         self.assertEqual(set(), opener.expectedFilenames)
 
-    @skip("Some tests are broken and skipped under latest BioPython")
     def testProteinsSavedCorrectly(self):
         """
         Information about proteins must be saved correctly in the
@@ -1109,9 +1105,9 @@ class TestPathogenSampleFiles(TestCase):
             def sideEffect(self, filename, *args, **kwargs):
                 if filename in self.expectedFilenames:
                     if filename == "out/0.fasta":
-                        return StringIO(">id1\nACTG\n")
+                        return BytesIO(b">id1\nACTG\n")
                     elif filename == "out/1.fasta":
-                        return StringIO(">id2\nAC\n>id3\nCAGTTTT\n")
+                        return BytesIO(b">id2\nAC\n>id3\nCAGTTTT\n")
                     else:
                         return self.manager
                 else:
@@ -1181,8 +1177,7 @@ class TestPathogenSampleFiles(TestCase):
             pg.pathogenNames["Lausannevirus"]["filename-1"],
         )
 
-    @skip("Some tests are broken and skipped under latest BioPython")
-    def testReadLengthsAdded(self, unlinkMock):
+    def testReadLengthsAdded(self):
         """
         If saveReadLengths is True for a ProteinGrouper, read lengths must be
         saved for each protein.
@@ -1201,9 +1196,9 @@ class TestPathogenSampleFiles(TestCase):
             def sideEffect(self, filename, *args, **kwargs):
                 if filename in self.expectedFilenames:
                     if filename == "out/0.fasta":
-                        return StringIO(">id1\nACTG\n")
+                        return BytesIO(b">id1\nACTG\n")
                     elif filename == "out/1.fasta":
-                        return StringIO(">id2\nAC\n>id3\nCAGTTTT\n")
+                        return BytesIO(b">id2\nAC\n>id3\nCAGTTTT\n")
                     else:
                         return self.manager
                 else:

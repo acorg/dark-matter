@@ -1,9 +1,9 @@
 [project]
 name = "dark-matter"
-version = "5.1.2"
+version = "6.0.0"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 license = "MIT"
 authors = [
     {name = "Terry Jones", email = "tcj25@cam.ac.uk"},
@@ -34,6 +34,7 @@ dependencies = [
     "mysql-connector-python>=9.0.0",
     "numpy>=1.14.2",
     "progressbar>=2.5",
+    "prseq>=0.0.29",
     "pysam>=0.23.0",
     "pyzmq>=14.3.1",
     "requests>=2.32.3",

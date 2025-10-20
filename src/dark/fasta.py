@@ -2,12 +2,10 @@ import os
 import sqlite3
 from collections.abc import Iterable, Iterator
 from hashlib import md5
-from typing import (
-    TextIO,
-    final,
-)
+from typing import BinaryIO, TextIO
 
-from Bio import SeqIO, bgzf
+from Bio import bgzf
+from prseq import FastaReader, read_fasta
 
 from dark import File
 from dark.reads import DNARead, Read, Reads
@@ -15,8 +13,8 @@ from dark.sqlite3 import sqliteConnect
 from dark.utils import asHandle
 
 
-def fastaToList(fastaFilename) -> list:
-    return list(SeqIO.parse(fastaFilename, "fasta"))
+def fastaToList(fastaFilename) -> list[Read]:
+    return read_fasta(fastaFilename)
 
 
 def dedupFasta(reads: Reads) -> Iterator[Read]:
@@ -36,19 +34,17 @@ def dedupFasta(reads: Reads) -> Iterator[Read]:
             yield read
 
 
-def dePrefixAndSuffixFasta(
-    sequences: Iterable[SeqIO.SeqRecord],
-) -> Iterator[SeqIO.SeqRecord]:
+def dePrefixAndSuffixFasta(sequences: Iterable[Read]) -> Iterator[Read]:
     """
-    sequences: an iterator producing Bio.Seq sequences.
+    sequences: an iterator producing Reads.
 
     @return: a generator of sequences with no duplicates and no fully contained
         subsequences.
     """
-    sequences = sorted(sequences, key=lambda s: len(s.seq), reverse=True)
+    sequences = sorted(sequences, key=lambda s: len(s.sequence), reverse=True)
     seen = set()
     for s in sequences:
-        thisSeq = str(s.seq)
+        thisSeq = s.sequence
         thisHash = md5(thisSeq.encode("UTF-8")).digest()
         if thisHash not in seen:
             # Add prefixes.
@@ -62,40 +58,37 @@ def dePrefixAndSuffixFasta(
             yield s
 
 
-def fastaSubtract(fastaFiles: list[TextIO]) -> Iterator[SeqIO.SeqRecord]:
+def fastaSubtract(fastaFiles: Iterable[str | TextIO | BinaryIO]) -> Iterator[Read]:
     """
-    Given a list of open file descriptors, each with FASTA content,
+    Given a list of file names or open file descriptors, each with FASTA content,
     remove the reads found in the 2nd, 3rd, etc files from the first file
     in the list.
 
-    @param fastaFiles: a C{list} of FASTA filenames.
+    @param fastaFiles: a C{list} of FASTA filenames or open FASTA files.
     @raises IndexError: if passed an empty list.
-    @return: An iterator producing C{Bio.Seq} instances suitable for
-        writing to a file using C{Bio.SeqIO.write}.
-
+    @return: A generaor producing C{Read} instances.
     """
     reads = {}
     fastaFiles = list(fastaFiles)
     firstFile = fastaFiles.pop(0)
-    for seq in SeqIO.parse(firstFile, "fasta"):
+    for seq in FastaReader(firstFile):
         reads[seq.id] = seq
 
     for fastaFile in fastaFiles:
-        for seq in SeqIO.parse(fastaFile, "fasta"):
+        for seq in FastaReader(fastaFile):
             # Make sure that reads with the same id have the same sequence.
             if seq.id in reads:
-                assert str(seq.seq) == str(reads[seq.id].seq)
+                assert seq.sequence == reads[seq.id].sequence
             reads.pop(seq.id, None)
 
     return iter(reads.values())
 
 
-@final
 class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
 
-    @param _files: Either a single C{str} file name or file handle, or a
+    @param files: Either a single C{str} file name or file handle, or a
         C{list} of C{str} file names and/or file handles. Each file or file
         handle must contain sequences in FASTA format.
     @param readClass: The class of read that should be yielded by iter.
@@ -105,11 +98,17 @@ class FastaReads(Reads):
 
     def __init__(
         self,
-        _files: File | list[File] | tuple[File],
+        files: File | Iterable[File],
         readClass: type[Read] = DNARead,
         upperCase: bool = False,
     ):
-        self._files = _files if isinstance(_files, (list, tuple)) else [_files]
+        if isinstance(files, tuple):
+            self.files = files
+        elif isinstance(files, list):
+            self.files = tuple(files)
+        else:
+            self.files = (files,)
+
         self._readClass = readClass
         # TODO: It would be better if upperCase were an argument that could
         # be passed to Reads.__init__ and that could do the uppercasing in
@@ -126,17 +125,17 @@ class FastaReads(Reads):
         Iterate over the sequences in the files in self.files_, yielding each
         as an instance of the desired read class.
         """
-        for _file in self._files:
-            with asHandle(_file) as fp:
-                # Duplicate some code here so as not to test
-                # self._upperCase in the loop.
+        for _file in self.files:
+            with asHandle(_file, mode="rb") as fp:
+                # Duplicate some code here so as not to test self._upperCase in the
+                # loop.
                 if self._upperCase:
-                    for seq in SeqIO.parse(fp, "fasta"):
-                        read = self._readClass(seq.description, str(seq.seq.upper()))
+                    for seq in FastaReader(fp):
+                        read = self._readClass(seq.id, seq.sequence.upper())
                         yield read
                 else:
-                    for seq in SeqIO.parse(fp, "fasta"):
-                        read = self._readClass(seq.description, str(seq.seq))
+                    for seq in FastaReader(fp):
+                        read = self._readClass(seq.id, seq.sequence)
                         yield read
 
 
