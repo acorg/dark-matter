@@ -34,7 +34,9 @@ class TestFastqReads(TestCase):
         A FASTQ file with two reads must be read properly and its
         sequences must be returned in the correct order.
         """
-        data = b"\n".join([b"@id1", b"ACGT", b"+", b"!!!!", b"@id2", b"TGCA", b"+", b"????"])
+        data = b"\n".join(
+            [b"@id1", b"ACGT", b"+", b"!!!!", b"@id2", b"TGCA", b"+", b"????"]
+        )
         with patch.object(builtins, "open", mock_open(read_data=data)):
             reads = list(FastqReads("filename.fastq"))
             self.assertEqual(2, len(reads))

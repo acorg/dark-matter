@@ -6,7 +6,6 @@ from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         description="Given FASTA on stdin, write the sequence ids to stdout.",
     )
