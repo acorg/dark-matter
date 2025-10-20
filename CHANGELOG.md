@@ -1,3 +1,8 @@
+## 5.2.0 October 19, 2025
+
+Make it possible to limit the number of reads shown in (CIV) blue plots. Save
+FASTQ in gzipped format.
+
 ## 5.1.2 September 22, 2025
 
 Added `--length` option to `bin/fasta-sort.py`.
