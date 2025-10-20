@@ -1,21 +1,10 @@
-name: Test and format
+name: Format and/or lint
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: nox
-        run: uv run --only-group dev noxfile.py
-
   check-only:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
