@@ -1,3 +1,8 @@
+[![PyPI](https://img.shields.io/pypi/v/dark-matter.svg)](https://pypi.org/project/dark-matter/)
+[![Python Version](https://img.shields.io/pypi/pyversions/dark-matter.svg)](https://pypi.org/project/dark-matter/)
+[![Downloads](https://img.shields.io/pypi/dm/dark-matter.svg)](https://pypi.org/project/dark-matter/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Dark matter
 
 A collection of Python tools for filtering and visualizing
