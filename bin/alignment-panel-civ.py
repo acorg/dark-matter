@@ -423,6 +423,21 @@ if __name__ == "__main__":
         ),
     )
 
+    parser.add_argument(
+        "--maxBluePlotReads",
+        type=int,
+        help=(
+            "The maximum number of reads to display in a blue plot. Note that "
+            "because addQueryLines is unconditionally True (in the calls to "
+            "alignmentGraph in alignmentPanelHTML in src/dark/graphics.py), "
+            "the number of lines drawn in the plots will be twice the value "
+            "specified by --maxBluePlotReads (one line for the gray 'whiskers' "
+            "drawn first for the non-matching region, then one line for the "
+            "famous blue-plot blue line that shows the actually matched part "
+            "of each read)."
+        ),
+    )
+
     args = parser.parse_args()
 
     # Flatten lists of lists that we get from using both nargs='+' and
@@ -555,4 +570,5 @@ if __name__ == "__main__":
         logLinearXAxis=args.logLinearXAxis,
         logBase=args.logBase,
         showFeatures=args.showFeatures,
+        maxBluePlotReads=args.maxBluePlotReads,
     )

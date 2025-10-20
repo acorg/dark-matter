@@ -1,4 +1,4 @@
-## 6.0.0 October 19, 2025
+## 6.0.0 October 20, 2025
 
 This release incorporates use of
 [prseq](https://github.com/VirologyCharite/prseq/) for reading FASTA and
@@ -19,6 +19,11 @@ release, so it is possible that other tools that somehow depend on
 `dark-matter` will also need to be modified in minor ways. Hopefully this
 won't be too disruptive. I have absolutely no idea how many people actually
 use this code. Please reach out on GitHub if you have questions/comments.
+
+## 5.2.0 October 19, 2025
+
+Make it possible to limit the number of reads shown in (CIV) blue plots. Save
+FASTQ in gzipped format.
 
 ## 5.1.2 September 22, 2025
 

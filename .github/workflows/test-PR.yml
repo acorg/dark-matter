@@ -1,30 +1,15 @@
 name: Test
-
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Configure Git
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          submodules: false
-          ref: ${{ github.head_ref }}
-
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-
-      - name: nox
+      - name: Run tests
         run: uv run noxfile.py

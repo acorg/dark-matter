@@ -1,3 +1,4 @@
+import gzip
 from os.path import join
 
 from dark.fastq import FastqReads
@@ -186,11 +187,11 @@ img.full-size {
             format_ = "fastq"
         else:
             format_ = "fasta"
-        filename = join(self._outputDir, "%s.%s" % (image["accession"], format_))
+        filename = join(self._outputDir, "%s.%s.gz" % (image["accession"], format_))
         titleAlignments = self._titlesAlignments[image["title"]]
-        with open(filename, "w") as fp:
+        with gzip.open(filename, "wb") as fp:
             for titleAlignment in titleAlignments:
-                fp.write(titleAlignment.read.toString(format_))
+                fp.write(titleAlignment.read.toString(format_).encode("utf-8"))
         return format_
 
     def _writeFeatures(self, image):
