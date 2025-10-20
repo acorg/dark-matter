@@ -1,7 +1,6 @@
 from collections import defaultdict
-from io import TextIOWrapper
-from typing import BinaryIO
 
+from dark import File
 from dark.fasta import FastaReads
 from dark.fastq import FastqReads
 from dark.reads import Read
@@ -9,7 +8,7 @@ from dark.utils import median
 
 
 def summarizeReads(
-    file_handle: str | BinaryIO | TextIOWrapper, file_type: str
+    file_handle: File, file_type: str
 ) -> dict[str, int | float | defaultdict[str, int]]:
     """
     open a fasta or fastq file, prints number of of reads,

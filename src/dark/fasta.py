@@ -88,7 +88,7 @@ class FastaReads(Reads):
     """
     Subclass of L{dark.reads.Reads} providing access to FASTA reads.
 
-    @param _files: Either a single C{str} file name or file handle, or a
+    @param files: Either a single C{str} file name or file handle, or a
         C{list} of C{str} file names and/or file handles. Each file or file
         handle must contain sequences in FASTA format.
     @param readClass: The class of read that should be yielded by iter.
@@ -98,16 +98,16 @@ class FastaReads(Reads):
 
     def __init__(
         self,
-        _files: File | Iterable[File],
+        files: File | Iterable[File],
         readClass: type[Read] = DNARead,
         upperCase: bool = False,
     ):
-        if isinstance(_files, tuple):
-            self._files = _files
-        elif isinstance(_files, list):
-            self._files = tuple(_files)
+        if isinstance(files, tuple):
+            self.files = files
+        elif isinstance(files, list):
+            self.files = tuple(files)
         else:
-            self._files = (_files,)
+            self.files = (files,)
 
         self._readClass = readClass
         # TODO: It would be better if upperCase were an argument that could
@@ -125,7 +125,7 @@ class FastaReads(Reads):
         Iterate over the sequences in the files in self.files_, yielding each
         as an instance of the desired read class.
         """
-        for _file in self._files:
+        for _file in self.files:
             with asHandle(_file, mode="rb") as fp:
                 # Duplicate some code here so as not to test self._upperCase in the
                 # loop.
