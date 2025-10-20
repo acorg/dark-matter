@@ -91,7 +91,7 @@ class TestWindowedIdentity(TestCase):
             ]
         )
         error = (
-            r"^Stop offset must be greater than start offset. You passed startOffset = 4 "
+            r"^Stop offset must be greater than start offset. You passed startOffset = 4 "  # noqa: E501
             r"and stopOffset = 3\."
         )
         self.assertRaisesRegex(
@@ -116,7 +116,7 @@ class TestWindowedIdentity(TestCase):
             ]
         )
         error = (
-            r"^Stop offset must be greater than start offset. You passed startOffset = 3 "
+            r"^Stop offset must be greater than start offset. You passed startOffset = 3 "  # noqa: E501
             r"and stopOffset = 3\."
         )
         self.assertRaisesRegex(

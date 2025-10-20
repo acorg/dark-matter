@@ -67,7 +67,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Print (to standard error) a summary of total prefixes and suffixes found.",
+        help="Print (to standard error) a summary of total prefixes and suffixes found.",  # noqa: E501
     )
 
     parser.add_argument(
@@ -120,7 +120,7 @@ def summarize(
 
     if prefix:
         summary.append(
-            f"The prefix was found at position {overallStart + adjust} ({adjust}-based)."
+            f"The prefix was found at position {overallStart + adjust} ({adjust}-based)."  # noqa: E501
         )
     if suffix:
         summary.append(f"The suffix ends at position {overallEnd} ({adjust}-based).")

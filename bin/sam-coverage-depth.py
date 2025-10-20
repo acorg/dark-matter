@@ -211,9 +211,9 @@ def makeParser():
             "unless you also specify --noStats or --statsFile. Columns will hopefully "
             "be self-explanatory, but a few clarifying comments will probably be "
             "helpful. 1) The 'Base' column indicates the nucleotide base that was used "
-            "to count mutations. The base used will depend on the value of --diffsFrom. "
+            "to count mutations. The base used will depend on the value of --diffsFrom. "  # noqa: E501
             "See the help output for that option. 2) The 'Reference' column will have "
-            "an empty value if no reference sequence was provided. 3) The 'Site' column "
+            "an empty value if no reference sequence was provided. 3) The 'Site' column "  # noqa: E501
             "gives 1-based indexes into the reference genome."
         ),
     )
@@ -457,7 +457,7 @@ def analyzeColumn(
                 ):
                     raise ValueError(
                         f"Read id {readId} occurs (at least) {count} times for site "
-                        f"{refOffset + 1}. The maximum allowed repeats of the same read "
+                        f"{refOffset + 1}. The maximum allowed repeats of the same read "  # noqa: E501
                         f"ID at a site is {maxIdenticalReadIdsPerSite}."
                     )
                 # This is either the read pair or another match of the same
