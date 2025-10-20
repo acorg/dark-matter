@@ -1,12 +1,12 @@
-from Bio.Seq import reverse_complement
+from dark.reads import DNARead
 
 
-def findPrimer(primer, seq):
+def findPrimer(primer: str, seq: str) -> list[int]:
     """
     Look for a primer sequence.
 
     @param primer: A C{str} primer sequence.
-    @param seq: A BioPython C{Bio.Seq} sequence.
+    @param seq: A C{str} sequence.
 
     @return: A C{list} of zero-based offsets into the sequence at which the
         primer can be found. If no instances are found, return an empty
@@ -28,12 +28,12 @@ def findPrimer(primer, seq):
     return offsets
 
 
-def findPrimerBidi(primer, seq):
+def findPrimerBidi(primer: str, seq: str) -> tuple[list[int], list[int]]:
     """
     Look for a primer in a sequence and its reverse complement.
 
     @param primer: A C{str} primer sequence.
-    @param seq: A BioPython C{Bio.Seq} sequence.
+    @param seq: A C{str} sequence.
 
     @return: A C{tuple} of two lists. The first contains (zero-based)
         ascending offsets into the sequence at which the primer can be found.
@@ -42,12 +42,12 @@ def findPrimerBidi(primer, seq):
         sequence. If no instances are found, the corresponding list in the
         returned tuple must be empty.
     """
-    # Note that we reverse complement the primer to find the reverse
-    # matches. This is much simpler than reverse complementing the sequence
-    # because it allows us to use findPrimer and to deal with overlapping
-    # matches correctly.
+    # Note that we reverse complement the primer to find the reverse matches. This is
+    # much simpler than reverse complementing the sequence because it allows us to use
+    # findPrimer and to deal with overlapping matches correctly.
+    primerRC = DNARead("id", primer).reverseComplement().sequence
     forward = findPrimer(primer, seq)
-    reverse = findPrimer(reverse_complement(primer), seq)
+    reverse = findPrimer(primerRC, seq)
     return forward, reverse
 
 

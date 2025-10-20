@@ -2,18 +2,18 @@
 
 import sys
 
-from Bio import SeqIO
-
 from dark.analyze_reads import getPrefixAndSuffix, trimReads
+from dark.reads import Reads
 
 if len(sys.argv) != 2:
-    print("getPrefixAndSuffix() takes exactly 1 argument", file=sys.stderr)
-    sys.exit(1)
+    sys.exit(f"{sys.argv[0]} takes one FASTA filename argument")
 
 else:
     filename = sys.argv[1]
-    prefix, suffix = getPrefixAndSuffix(filename)
+    with open(filename) as fp:
+        prefix, suffix = getPrefixAndSuffix(fp)
 
-    print("Prefix length %d, suffix length %d" % (prefix, suffix), file=sys.stderr)
+    print(f"Prefix length {prefix}, suffix length {suffix}", file=sys.stderr)
 
-    SeqIO.write(trimReads(prefix, suffix, filename), sys.stdout, "fasta")
+    with open(filename) as fp:
+        Reads(trimReads(prefix, suffix, fp)).save(sys.stdout)

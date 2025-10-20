@@ -1,9 +1,11 @@
-from typing import IO, AnyStr, Sequence
+from typing import Iterator, Sequence
 
-from Bio import SeqIO
+from dark import File
+from dark.fasta import FastaReads
+from dark.reads import Read
 
 
-def _longestPrefixOfTwoSeqs(a: str, b: str):
+def _longestPrefixOfTwoSeqs(a: str, b: str) -> int:
     length = min(len(a), len(b))
     result = 0
     while result < length:
@@ -14,11 +16,11 @@ def _longestPrefixOfTwoSeqs(a: str, b: str):
     return result
 
 
-def getPrefixAndSuffix(file_handle: IO[AnyStr]):
-    read_list = list(SeqIO.parse(file_handle, "fasta"))
+def getPrefixAndSuffix(file_handle: File) -> tuple[int, int]:
+    read_list = list(FastaReads(file_handle))
     reversed_read_list = [read[::-1] for read in read_list]
 
-    def longestCommonPrefix(read_list: Sequence):
+    def longestCommonPrefix(read_list: Sequence) -> int:
         sequences = read_list
         nSequences = len(sequences)
         if nSequences == 1:
@@ -30,7 +32,9 @@ def getPrefixAndSuffix(file_handle: IO[AnyStr]):
             result = len(prefix)
             index = 1
             while index < nSequences:
-                thisLen = _longestPrefixOfTwoSeqs(prefix, sequences[index])
+                thisLen = _longestPrefixOfTwoSeqs(
+                    prefix.sequence, sequences[index].sequence
+                )
                 if thisLen == 0:
                     return 0
                 elif thisLen < result:
@@ -44,8 +48,8 @@ def getPrefixAndSuffix(file_handle: IO[AnyStr]):
     return prefix, suffix
 
 
-def trimReads(prefix: int, suffix: int, file_handle: IO[AnyStr]):
-    for record in SeqIO.parse(file_handle, "fasta"):
+def trimReads(prefix: int, suffix: int, file_handle: File) -> Iterator[Read]:
+    for record in FastaReads(file_handle):
         if suffix == 0:
             yield record[prefix:]
         else:

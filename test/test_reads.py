@@ -1,5 +1,5 @@
 import builtins
-from io import StringIO
+from io import BytesIO, StringIO
 from os import stat
 from random import seed
 from unittest import TestCase
@@ -4755,7 +4755,7 @@ class TestReadsInRAM(TestCase):
                 if self.count == 0:
                     self.test.assertEqual("file1.fasta", filename)
                     self.count += 1
-                    return StringIO(">id1\nACTG\n>id2\nAA\n")
+                    return BytesIO(b">id1\nACTG\n>id2\nAA\n")
                 else:
                     self.test.fail("We are only supposed to be called once!")
 
