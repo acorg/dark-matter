@@ -1,3 +1,7 @@
+## 6.0.1 October 21, 2025
+
+Make graphics reporting output go to stderr.
+
 ## 6.0.0 October 20, 2025
 
 This release incorporates use of
