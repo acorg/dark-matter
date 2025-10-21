@@ -1,3 +1,4 @@
+import sys
 import os
 from copy import deepcopy
 from math import ceil
@@ -39,7 +40,7 @@ DEFAULT_LOG_LINEAR_X_AXIS_BASE = 1.1
 
 
 def report(msg):
-    print("%s: %s" % (ctime(time()), msg))
+    print("%s: %s" % (ctime(time()), msg), file=sys.stderr)
 
 
 def alignmentGraph(
