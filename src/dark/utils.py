@@ -244,18 +244,14 @@ def countPrint(mesg: str, count: int, len1: int, len2: Optional[int] = None) -> 
         if len1 == len2:
             return "%s: %d/%d (%.2f%%)" % (mesg, count, len1, percentage(count, len1))
         else:
-            return (
-                "%s: %d/%d (%.2f%%) of sequence 1, "
-                "%d/%d (%.2f%%) of sequence 2"
-                % (
-                    mesg,
-                    count,
-                    len1,
-                    percentage(count, len1),
-                    count,
-                    len2,
-                    percentage(count, len2),
-                )
+            return "%s: %d/%d (%.2f%%) of sequence 1, %d/%d (%.2f%%) of sequence 2" % (
+                mesg,
+                count,
+                len1,
+                percentage(count, len1),
+                count,
+                len2,
+                percentage(count, len2),
             )
 
 

@@ -167,7 +167,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "--databaseFile",
     required=True,
-    help=("The output file. This file must not exist (use --force to " "overwrite)."),
+    help=("The output file. This file must not exist (use --force to overwrite)."),
 )
 
 parser.add_argument(

@@ -53,10 +53,23 @@ build-backend = "setuptools.build_meta"
 packages = {find = {where = ["src"], include = ["dark*"]}}
 data-files = {"bin" = ["bin/*"]}
 
+[tool.ruff]
+line-length = 88
+
+lint.select = ["E", "F", "W", "I"]
+
+exclude = [
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".venv",
+]
+
 [dependency-groups]
 dev = [
     "nox>=2025.5.1",
     "pytest>=8.3.5",
+    "ruff>=0.13.3",
 ]
 
 [project.urls]

@@ -31,7 +31,7 @@ parser.add_argument(
     "--match",
     choices=("fullmatch", "match", "search"),
     default="search",
-    help="How to match the regular expression. See pydoc re for an " "explanation.",
+    help="How to match the regular expression. See pydoc re for an explanation.",
 )
 
 parser.add_argument(
@@ -102,14 +102,14 @@ for filename in args.genbankFile:
 
 if args.verbose:
     print(
-        f'Read {recordCount} record{"s" if recordCount > 1 else ""}, '
+        f"Read {recordCount} record{'s' if recordCount > 1 else ''}, "
         f"printed {matchCount}",
         file=sys.stderr,
     )
 
 if args.expectedCount is not None and matchCount != args.expectedCount:
     print(
-        f"Expected {args.expectedCount} records but found {matchCount}. " f"Exiting.",
+        f"Expected {args.expectedCount} records but found {matchCount}. Exiting.",
         file=sys.stderr,
     )
     sys.exit(1)

@@ -233,7 +233,9 @@ def main() -> None:
         print("    Id: %s %d" % (reads[0].id, reads[0].sequence.count("-")))
         print("    Id: %s %d" % (reads[1].id, reads[1].sequence.count("-")))
 
-        reads = align(reads, args.aligner, args.alignerOptions, args.verbose, args.threads)
+        reads = align(
+            reads, args.aligner, args.alignerOptions, args.verbose, args.threads
+        )
 
         if args.alignmentFile:
             assert reads.save(args.alignmentFile) == 2

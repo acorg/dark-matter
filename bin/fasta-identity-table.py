@@ -178,7 +178,7 @@ identity fraction numerator is the sum of the number of identical
 
     if args.matchAmbiguous:
         result.append(
-            "nucleotides plus the number of ambiguously matching " "nucleotides."
+            "nucleotides plus the number of ambiguously matching nucleotides."
         )
     else:
         result.append("nucleotides.")
@@ -212,7 +212,7 @@ Key to abbreviations:
             result.append("<li>L: sequence <strong>L</strong>ength.</li>")
 
         if args.showGaps:
-            result.append("<li>G: number of <strong>G</strong>aps in " "sequence.</li>")
+            result.append("<li>G: number of <strong>G</strong>aps in sequence.</li>")
 
         if args.showNoCoverage:
             result.append(
@@ -354,7 +354,7 @@ def collectData(
                     r1, r2 = rowRead, colRead
                 if args.verbose:
                     print(
-                        f"Comparing {count}/{comparisons} {rowId!r} " f"and {colId!r}.",
+                        f"Comparing {count}/{comparisons} {rowId!r} and {colId!r}.",
                         file=sys.stderr,
                     )
                 match = compareDNAReads(

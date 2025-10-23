@@ -77,7 +77,7 @@ def makeParser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--y01",
         action="store_true",
-        help="Set the y-axis limits to (0.0, 1.0). Only applicable for matplotlib plots.",
+        help="Set the y-axis limits to (0.0, 1.0). Only applicable for matplotlib plots.",  # noqa: E501
     )
 
     parser.add_argument(
@@ -140,7 +140,7 @@ def getBestOnly(
         reference) to a list of float identities (one for each window).
     @param title: The title of the plot.
     @param args: The command-line arguments.
-    """
+    """  # noqa: E501
     tolerance = 0.99
     delta = 0.005
     half = args.jump / 2.0

@@ -166,7 +166,7 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         dest="dryRun",
-        help="If True, do not write new FASTA files, just show what would be " "done",
+        help="If True, do not write new FASTA files, just show what would be done",
     )
 
     parser.add_argument(

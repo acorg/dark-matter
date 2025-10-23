@@ -2280,7 +2280,7 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument(
         "--fastaFile",
-        type=argparse.FileType('rb', 0),
+        type=argparse.FileType("rb", 0),
         metavar="FILENAME",
         help=(
             "The name of the FASTA input file. Standard input will be read "

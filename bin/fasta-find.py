@@ -258,7 +258,7 @@ def main() -> None:
 
         if args.checkMatchCount is not None and len(matches) != args.checkMatchCount:
             sys.exit(
-                f"{len(matches)} {'match was' if len(matches) == 1 else 'matches were'} "
+                f"{len(matches)} {'match was' if len(matches) == 1 else 'matches were'} "  # noqa: E501
                 f"found for sequence {read.id!r}, but {args.checkMatchCount} "
                 f"{'match was' if args.checkMatchCount == 1 else 'matches were'} "
                 "expected."
