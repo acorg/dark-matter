@@ -189,7 +189,6 @@ def writeFiles(
     startOffset -= oneBased
 
     for windowCount, start in enumerate(range(startOffset, length, window)):
-
         if windowCount == maxWindows:
             break
 
@@ -233,7 +232,7 @@ def writeFiles(
             assert end == length
             if verbose:
                 print(
-                    f"  Final window (length {end - start}) shorter than the minimum window size "
+                    f"  Final window (length {end - start}) shorter than the minimum window size "  # noqa: E501
                     f"({minWindow}). Skipping.",
                     file=sys.stderr,
                 )
@@ -253,7 +252,7 @@ def writeFiles(
                     if verbose:
                         print(
                             f"  Window {displayStart}-{displayEnd} for sequence "
-                            f"{read.id!r} is all {invalidChars!r} characters. Skipping.",
+                            f"{read.id!r} is all {invalidChars!r} characters. Skipping.",  # noqa: E501
                             file=sys.stderr,
                         )
 

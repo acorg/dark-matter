@@ -1,0 +1,48 @@
+name: Format and/or lint
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+jobs:
+  check-only:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check formatting with ruff
+        run: uv run --only-group dev ruff format --check
+
+      - name: Check imports with ruff
+        run: uv run --only-group dev ruff check
+
+  format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Format code with ruff
+        run: uv run --only-group dev ruff format
+
+      - name: Format imports with ruff
+        run: uv run --only-group dev ruff check --fix
+
+      - name: Commit and push formatting changes
+        run: |
+          if ! git diff --quiet; then
+            git commit -am "Format with ruff"
+            git push
+          fi

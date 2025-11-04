@@ -11,9 +11,10 @@ from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
 
 
 def main():
-
     parser = argparse.ArgumentParser(
-        description="Given FASTA on stdin, write the sequence lengths and ids to stdout.",
+        description=(
+            "Given FASTA on stdin, write the sequence lengths and ids to stdout."
+        ),
     )
 
     addFASTACommandLineOptions(parser)

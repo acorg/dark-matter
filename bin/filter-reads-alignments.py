@@ -49,7 +49,7 @@ if __name__ == "__main__":
         metavar="FILE.FASTA",
         nargs="+",
         action="append",
-        help=("the FASTA file(s) of sequences that were given to BLAST " "or DIAMOND."),
+        help=("the FASTA file(s) of sequences that were given to BLAST or DIAMOND."),
     )
 
     group.add_argument(
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         metavar="FILE.FASTQ",
         nargs="+",
         action="append",
-        help=("the FASTQ file(s) of sequences that were given to BLAST " "or DIAMOND."),
+        help=("the FASTQ file(s) of sequences that were given to BLAST or DIAMOND."),
     )
 
     # Args specific to DIAMOND.
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         "--minStart",
         type=int,
         metavar="OFFSET",
-        help="Reads that start before this subject offset should not be " "shown.",
+        help="Reads that start before this subject offset should not be shown.",
     )
 
     parser.add_argument(
@@ -133,14 +133,14 @@ if __name__ == "__main__":
         "--scoreCutoff",
         type=float,
         metavar="SCORE",
-        help=("A float score. Matches with scores worse than this will be " "ignored."),
+        help=("A float score. Matches with scores worse than this will be ignored."),
     )
 
     parser.add_argument(
         "--maxHspsPerHit",
         type=int,
         metavar="N",
-        help=("A numeric maximum number of HSPs to keep for each subject " "match."),
+        help=("A numeric maximum number of HSPs to keep for each subject match."),
     )
 
     parser.add_argument(

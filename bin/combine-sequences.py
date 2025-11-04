@@ -24,9 +24,7 @@ if __name__ == "__main__":
         "--fastaFiles",
         required=True,
         nargs="+",
-        help=(
-            "The name of the FASTA files containing the sequences to be " "combined."
-        ),
+        help=("The name of the FASTA files containing the sequences to be combined."),
     )
 
     parser.add_argument(

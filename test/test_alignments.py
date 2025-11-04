@@ -227,6 +227,7 @@ class TestReadsAlignments(TestCase):
             "title",
         )
 
+
 class TestAlignmentEnd(TestCase):
     """
     Test the alignmentEnd function.

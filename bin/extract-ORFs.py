@@ -55,7 +55,7 @@ if __name__ == "__main__":
         metavar="LEN",
         type=int,
         default=None,
-        help=("Only ORFs of a maximum of this length will be written to " "stdout."),
+        help=("Only ORFs of a maximum of this length will be written to stdout."),
     )
 
     parser.add_argument(

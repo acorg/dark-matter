@@ -45,7 +45,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=(
-            "Print taxonomy information for accession numbers or " "taxonomy ids."
+            "Print taxonomy information for accession numbers or taxonomy ids."
         ),
     )
 

@@ -102,7 +102,9 @@ class TestDePrefixAndSuffixFasta(TestCase):
         read2 = Read("s2", "agtcagtcagtc")
         read3 = Read("s3", "agtcagt")
         read4 = Read("s4", "tcagtc")
-        self.assertEqual(list(dePrefixAndSuffixFasta([read1, read2, read3, read4])), [read1])
+        self.assertEqual(
+            list(dePrefixAndSuffixFasta([read1, read2, read3, read4])), [read1]
+        )
 
     def testOrderIndependent(self):
         """

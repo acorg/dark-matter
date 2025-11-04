@@ -37,9 +37,9 @@ def basePlotter(blastHits, title):
     result.append(sub)
 
     plotInfo = blastHits.titles[title]["plotInfo"]
-    assert (
-        plotInfo is not None
-    ), "Oops, it looks like you forgot to run computePlotInfo."
+    assert plotInfo is not None, (
+        "Oops, it looks like you forgot to run computePlotInfo."
+    )
 
     items = plotInfo["items"]
     count = 0

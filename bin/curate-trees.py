@@ -48,10 +48,10 @@ def parseArgs():
         type=float,
         help=(
             "A floating-point support value. Branches with support less than this "
-            "value will be collapsed (to form polytomies). The value to use will depend "
+            "value will be collapsed (to form polytomies). The value to use will depend "  # noqa: E501
             "on what the program used to create the tree used to indicate the support. "
             "This is frequently the number of times the branch was supported in the "
-            "bootstrap analysis. In this case, if you did 100 bootstraps, you would see "
+            "bootstrap analysis. In this case, if you did 100 bootstraps, you would see "  # noqa: E501
             "integer support values from 0 to 100. If you did 1000 bootstraps, the "
             "values could go up to 1000. Other programs might write the support value "
             "as a fraction (of bootstraps in which the branch is supported), therefore "
@@ -175,7 +175,7 @@ def main():
                     # direction of the tree root) so its children become children of
                     # this node's parent.
                     node.edge.collapse(
-                        adjust_collapsed_head_children_edge_lengths=not args.discardLengths
+                        adjust_collapsed_head_children_edge_lengths=not args.discardLengths  # noqa: E501
                     )
 
         # Re-root.

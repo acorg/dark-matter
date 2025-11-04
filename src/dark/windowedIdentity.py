@@ -41,7 +41,7 @@ class WindowedIdentity:
                 if len(read) != length:
                     raise ValueError(
                         f"Sequence number {count}, with id {read.id!r}, has length "
-                        f"{len(read)} which is not equal to the previous input sequence "
+                        f"{len(read)} which is not equal to the previous input sequence "  # noqa: E501
                         f"length(s) of {length}."
                     )
 
@@ -96,7 +96,7 @@ class WindowedIdentity:
             window start offsets, and a C{dict} keyed by C{DNARead} (for the reads whose
             ids are matched by C{includeRegex}), with values being a C{list} of C{float}
             nucleotide identity values for the windows across the genome.
-        """
+        """  # noqa: E501
         self._checkReads()
 
         if window < 1:
@@ -238,8 +238,7 @@ def addCommandLineOptions(parser):
         default=50,
         type=int,
         help=(
-            "The number of nucleotides to move across to the start of the "
-            "next window."
+            "The number of nucleotides to move across to the start of the next window."
         ),
     )
 

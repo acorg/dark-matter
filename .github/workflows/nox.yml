@@ -1,4 +1,4 @@
-name: Test
+name: Run nox
 on:
   push:
     branches: [ "master" ]
@@ -9,7 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-      - name: Run tests
-        run: uv run noxfile.py
+
+      - name: nox
+        run: uv run --only-group dev noxfile.py

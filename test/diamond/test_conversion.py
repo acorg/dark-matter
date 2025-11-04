@@ -80,7 +80,7 @@ AKAV	AKAV	634	0.0	1	GEPFSV	1	306	NIYGEP	1	306	306	8	9	40.0	8	39.0
 AKAV	WYOV	401	7e-143	1	PFSVYG	1	306	GEPMS	1	294	294	8	10	45.0	9	44.0
 BHAV	TAIV	28.1	0.008	1	PKELHG	14	118	SLKSKE	15	131	307	8	11	50.0	10	49.0
 BHAV	SBAY	28.1	0.009	1	CRPTF	4	293	EFVFIY	6	342	343	5	12	55.0	11	54.0
-"""
+"""  # noqa: E501
 
 DIAMOND_RECORD_WITH_SPACES_IN_TITLES = """\
 ACC 94	IN SV	29.6	0.003	1	EFII	178	295	SSSEV	175	285	295	4
@@ -1653,7 +1653,7 @@ class TestDiamondTabularFormatToDicts(TestCase):
             "qseq",
         ]
         data = StringIO(
-            ("3.5 1.7 1 7 4 10 12 1 2 ACGT\n" "3.6 1.8 2 8 5 11 13 2 3 TGCA").replace(
+            ("3.5 1.7 1 7 4 10 12 1 2 ACGT\n3.6 1.8 2 8 5 11 13 2 3 TGCA").replace(
                 " ", "\t"
             )
             + "\n"

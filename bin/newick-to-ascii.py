@@ -37,7 +37,7 @@ parser.add_argument(
 parser.add_argument(
     "--verbose",
     action="store_true",
-    help=("Print information about the outgroup (if any) taxa to standard " "error"),
+    help=("Print information about the outgroup (if any) taxa to standard error"),
 )
 
 args = parser.parse_args()
