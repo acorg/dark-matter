@@ -57,15 +57,13 @@ parser.add_argument(
     "--outputFormat",
     type=int,
     default=0,
-    help=(
-        "The parser argument to pass to the ete Tree writer for the resulting tree."
-    ),
+    help="The parser argument to pass to the ete Tree writer for the resulting tree.",
 )
 
 parser.add_argument(
     "--quotedNames",
     action="store_true",
-    help=("If given, pass quoted_node_names=True to the ete Tree class initializer"),
+    help="If given, pass quoted_node_names=True to the ete Tree class initializer",
 )
 
 parser.add_argument(
