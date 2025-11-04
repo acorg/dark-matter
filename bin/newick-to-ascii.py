@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from ete3 import Tree
+from ete4 import Tree
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -28,21 +28,22 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--parser",
     "--format",
     metavar="N",
     type=int,
-    help="The format of the Newick to be passed to ete3",
+    help="The ete4 Newick parser to use.",
 )
 
 parser.add_argument(
     "--verbose",
     action="store_true",
-    help=("Print information about the outgroup (if any) taxa to standard error"),
+    help="Print information about the outgroup (if any) taxa to standard error.",
 )
 
 args = parser.parse_args()
 
-tree = Tree(args.treeFile.read(), format=args.format)
+tree = Tree(args.treeFile.read(), parser=args.parser)
 
 if args.outgroupRegex:
     from re import compile
