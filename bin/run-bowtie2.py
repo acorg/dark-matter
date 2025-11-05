@@ -536,10 +536,10 @@ def main():
 
     if args.ignoredIndices:
         if args.clean:
-            e.execute("rm -r '%s'" % ignoresDir)
+            e.execute(f"rm -r {ignoresDir!r}")
         else:
             print(
-                "Temporary directory with non-ignored inputs %r." % ignoresDir,
+                "Temporary directory with non-ignored inputs {ignoresDir!r}.",
                 file=sys.stderr,
             )
 
