@@ -1,3 +1,10 @@
+## 7.0.0 November 4, 2025
+
+Upgrade from `ete3` dependency to `ete4`. The `curate-tree-ete3.py` script
+has been renamed to `curate-tree-ete.py`. Given that the fix to upgrade is
+so simple, I thought it better to break backward compatibility rather than
+give the incorrect impression that `ete3` was still in use.
+
 ## 6.0.1 October 21, 2025
 
 Make graphics reporting output go to stderr.

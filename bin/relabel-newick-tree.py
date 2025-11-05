@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from ete3 import Tree
+from ete4 import Tree
 
 
 def readNames(fp):
@@ -20,7 +20,7 @@ def readNames(fp):
     for line in fp:
         old, new = line.strip().split("\t")
         if old in result:
-            raise ValueError("Sequence id %r appears twice in the input." % old)
+            raise ValueError(f"Sequence id {old!r} appears twice in the input.")
         else:
             result[old] = new
 
@@ -29,7 +29,7 @@ def readNames(fp):
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description=("Relabel a Newick tree according to a file of from/to names."),
+    description="Relabel a Newick tree according to a file of from/to names.",
 )
 
 parser.add_argument("newickFile", help="The Newick tree file.")
@@ -48,7 +48,7 @@ parser.add_argument(
     type=int,
     default=0,
     help=(
-        "The format argument to pass to the ete3 Tree class initializer to "
+        "The parser argument to pass to the ete Tree class initializer to "
         "read the input Newick."
     ),
 )
@@ -57,29 +57,25 @@ parser.add_argument(
     "--outputFormat",
     type=int,
     default=0,
-    help=(
-        "The format argument to pass to the ete3 Tree writer for the resulting tree."
-    ),
+    help="The parser argument to pass to the ete Tree writer for the resulting tree.",
 )
 
 parser.add_argument(
     "--quotedNames",
-    default=False,
     action="store_true",
-    help=("If given, pass quoted_node_names=True to the ete3 Tree class initializer"),
+    help="If given, pass quoted_node_names=True to the ete Tree class initializer",
 )
 
 parser.add_argument(
     "--verbose",
-    default=False,
     action="store_true",
-    help="If given, print details of the renaming(s).",
+    help="Print details of the renaming(s).",
 )
 
 args = parser.parse_args()
 
 tree = Tree(
-    args.newickFile, format=args.inputFormat, quoted_node_names=args.quotedNames
+    args.newickFile, parser=args.inputFormat, quoted_node_names=args.quotedNames
 )
 
 if args.nameFile:
@@ -97,8 +93,8 @@ for node in tree.traverse():
         pass
     else:
         if args.verbose:
-            print("Renaming %s to %s" % (node.name, newName), file=sys.stderr)
+            print(f"Renaming {node.name!r} to {newName!r}", file=sys.stderr)
         node.name = newName
 
 # Print the tree, including the name of the root.
-print("%s%s;" % (tree.write(format=args.outputFormat)[:-1], tree.name))
+print("%s%s;" % (tree.write(parser=args.outputFormat)[:-1], tree.name))

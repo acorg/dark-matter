@@ -4,33 +4,31 @@ import argparse
 import sys
 from typing import Optional
 
-from ete3 import Tree
+from ete4 import Tree
 
-from dark.trees import ete3root
+from dark.trees import ete4root
 
 
 def parseArgs():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=(
-            "Curate a phylogenetic tree using the ete3 library and print the result."
+            "Curate a phylogenetic tree using the ete4 library and print the result."
         ),
     )
 
-    parser.add_argument(
-        "treeFile",
-        help="The tree file to curate.",
-    )
+    parser.add_argument("treeFile", help="The tree file to curate.")
 
     parser.add_argument(
+        "--parser",
         "--format",
         type=int,
         default=0,
         help=(
-            "The Newick tree flavor. See http://etetoolkit.org/docs/latest/tutorial/"
-            "tutorial_trees.html#reading-and-writing-newick-trees for information on "
-            "the Newick variations ete3 understands. The output tree will be in the "
-            "same format as the input."
+            "The Newick tree flavor. See "
+            "https://etetoolkit.github.io/ete/reference/reference_parsers.html "
+            "for information on the Newick variations ete4 understands. The output "
+            "tree will be in the same format as the input."
         ),
     )
 
@@ -181,14 +179,14 @@ def processSupport(tree: Tree, args: argparse.Namespace) -> None:
 
 def main() -> None:
     args = parseArgs()
-    tree = Tree(args.treeFile, format=args.format)
+    tree = Tree(args.treeFile, parser=args.parser)
 
     processSupport(tree, args)
 
     if args.rootNode:
-        tree = ete3root(tree, args.rootNode, args.detach, args.scale)
+        tree = ete4root(tree, args.rootNode, args.detach, args.scale)
 
-    print(tree.write(format=args.format))
+    print(tree.write(parser=args.parser))
 
 
 if __name__ == "__main__":

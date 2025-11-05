@@ -1,10 +1,9 @@
 import sys
 import tempfile
-from itertools import chain
 from typing import Iterable, TextIO
 
 import dendropy
-from ete3 import Tree
+from ete4 import Tree
 
 
 def removeAlrt(
@@ -27,7 +26,7 @@ def removeAlrt(
     (https://github.com/evogytis/baltic/tree/master) to draw trees.  Baltic
     cannot deal with node labels like 83.7/95 that are produced by iqtree2
     when you ask it for both bootstrap and alrt values (see
-    http://www.iqtree.org/doc/Frequently-Asked-Questions). ete3 also cannot
+    http://www.iqtree.org/doc/Frequently-Asked-Questions). ete also cannot
     read those labels. But dendropy can. So we read the tree file with
     dendropy, examine the bootstrap support and alrt values, and return a
     tree with just (opionally adjusted) bootstrap support values.
@@ -134,14 +133,14 @@ def removeAlrt(
     return result
 
 
-def ete3root(
+def ete4root(
     tree: Tree, tipNames: Iterable[str], detach: bool = False, scale: float = 1.0
 ) -> Tree:
     """
-    Root an ete3 tree at the branch leading into the MRCA of the given node
+    Root an ete tree at the branch leading into the MRCA of the given node
     (names), and then optionally detach that node.
 
-    @param tree: An ete3 C{Tree} instance.
+    @param tree: An ete C{Tree} instance.
     @param tipNames: A list of tip names. The tree will be re-rooted on the branch
         leading into the MRCA of these tips.
     @param detach: After re-rooting, detach the outgroup.
@@ -155,7 +154,7 @@ def ete3root(
     tips = []
 
     for tipName in tipNames:
-        nodes = tree.search_nodes(name=tipName)
+        nodes = list(tree.search_nodes(name=tipName))
         if len(nodes) == 0:
             sys.exit(f"Could not find a tip node with name matching {tipName!r}.")
         elif len(nodes) > 1:
@@ -170,7 +169,7 @@ def ete3root(
     if len(tips) == 1:
         mrca = tips[0]
     else:
-        mrca, path = tips[0].get_common_ancestor(*tips, get_path=True)
+        mrca = tree.common_ancestor(tips)
 
         # Special case the situation where we have an unrooted tree (i.e.,
         # with a root that has three children) and the nodes on the paths
@@ -181,16 +180,19 @@ def ete3root(
         # root, which (due to the insertion of the new root node) now has
         # just two children (the two that are the MRCA of the set of tips).
         if len(mrca.children) == 3:
-            assert mrca.is_root()
-            included = set(chain(*path.values()))
+            assert mrca.is_root
+            included = set(tips)
+            for tip in tips:
+                ancestors = tip.ancestors(include_root=False)
+                included.update(ancestors)
             excluded = set(mrca.children) - included
             if len(excluded) == 1:
                 mrca = excluded.pop()
-        elif mrca.is_root():
+                assert not mrca.is_root
+        elif mrca.is_root:
             # We cannot re-root on the branch leading to the MRCA because the
             # MRCA is the root.  If we called tree.set_outgroup(mrca)
-            # we would get an error:
-            # ete3.coretype.tree.TreeError: 'Cannot set myself as outgroup'.
+            # we would get an ete TreeError: 'Cannot set myself as outgroup'.
             print(
                 "The MRCA of the given tips is already the tree root. Returning "
                 "without re-rooting.",
@@ -198,16 +200,17 @@ def ete3root(
             )
             return tree
 
-    # Setting the MRCA node as the outgroup creates a new root node, which we
-    # can then access via mrca.up
+    # Setting the MRCA node as the outgroup creates a new root node, which we can then
+    # access via mrca.up
     tree.set_outgroup(mrca)
     root = mrca.up
-    assert root.is_root() and len(root.children) == 2
+    assert root.is_root and len(root.children) == 2
 
     if scale != 1.0:
         assert scale > 0.0, "--scale must be greater than zero."
         for node in root.children:
-            node.dist /= scale
+            if node.dist is not None:
+                node.dist /= scale
 
     if detach:
         mrca.detach()
@@ -219,3 +222,7 @@ def ete3root(
         tree.up = None
 
     return tree
+
+
+# Backwards compatibility.
+ete3root = ete4root
