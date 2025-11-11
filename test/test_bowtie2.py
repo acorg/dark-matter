@@ -25,9 +25,10 @@ class TestBowtie2(TestCase):
             e.log[-1],
         )
         log = fp.getvalue()
-        self.assertTrue(
-            log.startswith("Downloading FASTA for accession MN908947.3 from NCBI.\n")
+        self.assertIn(
+            "Treating index argument 'MN908947.3' as an accession number.\n", log
         )
+        self.assertIn("Downloading FASTA for accession 'MN908947.3' from NCBI.\n", log)
 
     @patch("os.path.exists")
     def testIndexFromFile(self, existsMock):
@@ -49,16 +50,16 @@ class TestBowtie2(TestCase):
     def testIndexFromBowtie2File(self, existsMock):
         """
         Making a Bowtie index from a file that is an existing Bowtie2 index
-        file must result in the expected commands being run and output being
-        produced.
+        file must result in the index being re-used (i.e., bowtie2-build is
+        not called).
         """
         e = Executor(dryRun=True)
         fp = StringIO()
         bt = Bowtie2(executor=e, dryRun=True, verboseFp=fp)
-        bt.buildIndex("file.1.bt2")
+        bt.buildIndex("index-file.1.bt2")
         self.assertEqual(-1, e.log[-1].find("bowtie2-build"))
         log = fp.getvalue()
-        self.assertEqual("Using pre-existing Bowtie2 index 'file'.\n", log)
+        self.assertEqual("Using pre-existing Bowtie2 index 'index-file'.\n", log)
 
     @patch("os.path.exists")
     def testIndexFromBowtie2FilePrefix(self, existsMock):

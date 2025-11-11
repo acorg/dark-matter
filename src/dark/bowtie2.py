@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from itertools import product
 from os.path import join
 from tempfile import mkdtemp
 from typing import TextIO, final
@@ -46,30 +47,39 @@ class Bowtie2:
         Find or make a Bowtie2 index.
         """
         if os.path.exists(index):
-            # Check if this is a pre-existing bowtie2 index. Look for and
-            # remove a bowtie2 suffix, if any (otherwise bowtie2 will
-            # complain). We do things this way to allow a user to use TAB
-            # completion on the command line to give them the full path to
-            # any bowtie index file.
-            for suffix in ("1.bt2 2.bt2 3.bt2 4.bt2 rev.1.bt2 rev.2.bt2").split():
-                suffix = "." + suffix
+            # Check if this is a pre-existing bowtie2 index. Look for and remove a
+            # bowtie2 suffix, if any (otherwise bowtie2 will complain). We do things
+            # this way to allow a user to use TAB completion on the command line to give
+            # them the full path to any bowtie index file.
+            #
+            # Note that Bowtie2 puts an "l" on the end of the filename of its 'large'
+            # indices.
+            for suffix1, suffix2 in product(
+                ("1", "2", "3", "4", "rev.1", "rev.2"),
+                ("", "l"),
+            ):
+                suffix = f".{suffix1}.bt2{suffix2}"
                 if index.endswith(suffix):
                     self._indexFile = index[: -len(suffix)]
                     self._report(
-                        "Using pre-existing Bowtie2 index %r." % self._indexFile
+                        f"Using pre-existing Bowtie2 index {self._indexFile!r}."
                     )
                     break
             else:
                 # Assume a FASTA file and make an index.
                 self._indexFile = self._makeIndexFromFastaFile(index)
         else:
-            # Not a filename. So either the start of the path to a bowtie2
-            # index or else an accession number.
-            if os.path.exists(index + ".1.bt2"):
-                self._report("Using pre-existing Bowtie2 index %r." % index)
+            # Not a filename. So either the start of the path to a bowtie2 index or else
+            # an accession number. Bowtie2 puts an "l" on the end of the filename of its
+            # 'large' indices, so we check for that too.
+            if os.path.exists(index + ".1.bt2") or os.path.exists(index + ".1.bt2l"):
+                self._report(f"Using pre-existing Bowtie2 index {index!r}.")
                 self._indexFile = index
             else:
                 # Assume an accession number.
+                self._report(
+                    f"Treating index argument {index!r} as an accession number."
+                )
                 self._indexFile = self._makeIndexFromAccession(index)
 
         self._indexCalled = True
@@ -413,21 +423,19 @@ class Bowtie2:
         fastaFilename = join(self.tempdir, accessionId + ".fasta")
         index = join(self.tempdir, "index")
 
-        self._report("Downloading FASTA for accession %s from NCBI." % accessionId)
+        self._report(f"Downloading FASTA for accession {accessionId!r} from NCBI.")
 
         URL = (
             "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?"
-            "db=nucleotide&id=%s&rettype=fasta&retmode=text" % accessionId
+            f"db=nucleotide&id={accessionId}&rettype=fasta&retmode=text"
         )
 
         if not self._executor.dryRun:
             with open(fastaFilename, "w") as fp:
                 print(requests.get(URL).text.rstrip("\n"), file=fp)
 
-        self._report("Building bowtie2 index for %s." % accessionId)
-        self._executor.execute(
-            "bowtie2-build --quiet '%s' '%s'" % (fastaFilename, index)
-        )
+        self._report("Building bowtie2 index for {accessionId!r}.")
+        self._executor.execute(f"bowtie2-build --quiet {fastaFilename!r} {index!r}")
 
         return index
 
