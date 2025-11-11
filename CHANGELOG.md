@@ -1,3 +1,8 @@
+## 7.0.1 November 11, 2025
+
+Made run-bowtie2.py aware of 'large' bowtie index filenames (which end in
+`.bt2l` not `.bt2`).
+
 ## 7.0.0 November 4, 2025
 
 Upgrade from `ete3` dependency to `ete4`. The `curate-tree-ete3.py` script
