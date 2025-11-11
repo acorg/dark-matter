@@ -1,5 +1,5 @@
 from io import StringIO
-from unittest import TestCase, skip, skipUnless
+from unittest import TestCase, skipUnless
 
 from dark.aa import CODONS
 from dark.civ.proteins import SqliteIndex, SqliteIndexWriter, _Genome
@@ -17,7 +17,6 @@ class TestSimpleDiamondSAMWriter(TestCase):
     Test the SimpleDiamondSAMWriter class.
     """
 
-    @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/905")
     def testTibetanFrogHBV(self):
         """
         Test that Tibetan frogs can get HBV.
@@ -58,7 +57,7 @@ class TestSimpleDiamondSAMWriter(TestCase):
         # Make sure DIAMOND gives us back what we expected.
         self.assertEqual(
             {
-                "bitscore": 82.4,
+                "bitscore": 82.8,
                 "btop": str(queryLenInProtein),  # Exact match of all AAs.
                 "qframe": 1,
                 "qend": 3 * queryLenInProtein,
@@ -174,7 +173,6 @@ class TestAdw2Polymerase(TestCase):
     overlaps the start/end of the genome because the HBV genome is circular.
     """
 
-    @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/905")
     def testPolymerase(self):
         """
         Test the polymerase protein.

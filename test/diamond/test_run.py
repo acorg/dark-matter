@@ -1,4 +1,4 @@
-from unittest import TestCase, skip, skipUnless
+from unittest import TestCase, skipUnless
 
 from dark.aa import CODONS
 from dark.diamond.run import DiamondExecutor, diamondInstalled
@@ -36,7 +36,6 @@ class TestDiamondExecutor(TestCase):
         self.assertRaisesRegex(ValueError, error, list, de.search(queries))
         de.cleanup()
 
-    @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/905")
     def testOne(self):
         """
         If one query sequence is passed, doing a search must result in the
@@ -82,7 +81,6 @@ class TestDiamondExecutor(TestCase):
             result,
         )
 
-    @skip("Awaiting DIAMOND fix of https://github.com/bbuchfink/diamond/issues/905")
     def testYP_009259545(self):
         """
         Test for a match against YP_009259545
