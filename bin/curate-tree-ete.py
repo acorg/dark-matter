@@ -123,7 +123,7 @@ def processSupport(tree: Tree, args: argparse.Namespace) -> None:
     alrt: Optional[float]
 
     for node in tree.traverse(strategy="postorder"):
-        if node.is_leaf():
+        if node.is_leaf:
             continue
 
         if node.name:

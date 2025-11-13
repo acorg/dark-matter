@@ -1,3 +1,7 @@
+## 7.0.3 November 13, 2025
+
+Small fix to be compatible with `ete4`.
+
 ## 7.0.2 November 11, 2025
 
 Un-skipped four tests due to fixing of https://github.com/bbuchfink/diamond/issues/905
