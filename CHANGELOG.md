@@ -1,3 +1,7 @@
+## 7.0.2 November 11, 2025
+
+Un-skipped four tests due to fixing of https://github.com/bbuchfink/diamond/issues/905
+
 ## 7.0.1 November 11, 2025
 
 Made run-bowtie2.py aware of 'large' bowtie index filenames (which end in
