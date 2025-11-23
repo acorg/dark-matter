@@ -533,7 +533,7 @@ wheels = [
 
 [[package]]
 name = "dark-matter"
-version = "7.0.3"
+version = "7.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "biopython" },
@@ -582,7 +582,7 @@ requires-dist = [
     { name = "mysql-connector-python", specifier = ">=9.0.0" },
     { name = "numpy", specifier = ">=1.14.2" },
     { name = "progressbar", specifier = ">=2.5" },
-    { name = "prseq", specifier = ">=0.0.31" },
+    { name = "prseq", specifier = ">=0.0.33" },
     { name = "pysam", specifier = ">=0.23.0" },
     { name = "pyzmq", specifier = ">=14.3.1" },
     { name = "requests", specifier = ">=2.32.3" },
@@ -1405,25 +1405,25 @@ wheels = [
 
 [[package]]
 name = "prseq"
-version = "0.0.31"
+version = "0.0.33"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "maturin" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/fb/b16ccfca5afd103d8a17327b5788c922151d566d2020594e581c25a1e50d/prseq-0.0.31-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e2000f5812c4bfaa3363d4498220fcf4d09dfa793de38a3ed4bbf9297da206bc", size = 336813, upload-time = "2025-11-04T18:45:38.747Z" },
-    { url = "https://files.pythonhosted.org/packages/8e/40/c9f0b756b159791fe7e780b45e30645f7c778cdf607fee0d059dcb53f063/prseq-0.0.31-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:81e936c05fefb10816242886ad7c764cd3f5e23be0cc52e999a490a4911a7438", size = 396398, upload-time = "2025-11-04T18:45:40.687Z" },
-    { url = "https://files.pythonhosted.org/packages/59/ab/613c247d514caf3a05dda3cc155aefb9260080c832460c7f3f3d476b2e3e/prseq-0.0.31-cp310-cp310-win_amd64.whl", hash = "sha256:c8a5e5cf7024472e402f3c56c1b1925b67c2601d1e23cbcded7ee0387fcc9e9d", size = 239348, upload-time = "2025-11-04T18:45:42.564Z" },
-    { url = "https://files.pythonhosted.org/packages/72/f6/a3dd6fc799f53b1890c60f8ca1a1303c82ea2e3d263ade803be7a2f208b5/prseq-0.0.31-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:41e6dba7b49d21f3afe37d8355bb51f6fb292d7b85fcc7f83cda8e0061146af3", size = 336433, upload-time = "2025-11-04T18:45:44.515Z" },
-    { url = "https://files.pythonhosted.org/packages/f7/a7/6edc9e77b82bedf92bf90e1951d4643fe023455550635465ba52d0b14d0a/prseq-0.0.31-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e828df6099e0f7caa82b51fafd0220b5606541e3596d40b4ca115f41585f49dc", size = 396408, upload-time = "2025-11-04T18:45:45.94Z" },
-    { url = "https://files.pythonhosted.org/packages/1b/00/0d5f3b45a972de2182303256ff1af15363c50e9574803778a99566689bcb/prseq-0.0.31-cp311-cp311-win_amd64.whl", hash = "sha256:e821399446be81288b930f38a59ffc1c13f637e79e61d4570d6693367ced5ffd", size = 239326, upload-time = "2025-11-04T18:45:47.227Z" },
-    { url = "https://files.pythonhosted.org/packages/78/9f/42976db4a2453d9180b494596c393ab48f7666683c6c516e74db1072847d/prseq-0.0.31-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:60f7f62842f69111322c5520c9afe345854ec99a7776ac4a58a9df28f5d89ebf", size = 335279, upload-time = "2025-11-04T18:45:49.038Z" },
-    { url = "https://files.pythonhosted.org/packages/22/65/89912fd364482062dc2830fa0757a0165a2bb80fde38b2046ef16742f452/prseq-0.0.31-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e14a5e81690e903294f07f0121e9040b499afdfa64bd50dbab3eeed6fd8f7d93", size = 393710, upload-time = "2025-11-04T18:45:50.39Z" },
-    { url = "https://files.pythonhosted.org/packages/24/4f/e83541963a288bb7206277d855f5bc50deb2f3df5174d9f3752fcbad1ac8/prseq-0.0.31-cp312-cp312-win_amd64.whl", hash = "sha256:c1668f798c211e24aee74e20155979beabf9efdc5c013eca8c4d4adfe0df75b0", size = 237923, upload-time = "2025-11-04T18:45:52.586Z" },
-    { url = "https://files.pythonhosted.org/packages/aa/7e/17f55244f7dd9f9d9c1edd9718b45c089e156ae2d9544d04d8746ac133bd/prseq-0.0.31-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:f4ac4aa19771fc0eed8cc78b6f49b2180132b997f556c5f3eb5104d7f4687cdc", size = 335356, upload-time = "2025-11-04T18:45:54.7Z" },
-    { url = "https://files.pythonhosted.org/packages/e4/13/1e60a3211159d1d046bc2f96daf3a83acbf47712a4d4100bfc8e506ec708/prseq-0.0.31-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9b965d7193da86ca8ef6dec410e8baf70c8ad2a083018ca6a12227198b843b41", size = 394060, upload-time = "2025-11-04T18:45:56.237Z" },
-    { url = "https://files.pythonhosted.org/packages/c7/24/3f079fa43bc88a7459ccc12a83ca155c7687c7e522fc38232fc28fb2ad1b/prseq-0.0.31-cp313-cp313-win_amd64.whl", hash = "sha256:ee347806175dbc7f140396f578adeff2c4f2ef42f688ae51de3dd9a6d603f38f", size = 238047, upload-time = "2025-11-04T18:45:58.01Z" },
-    { url = "https://files.pythonhosted.org/packages/3a/89/9772b5b141bedc4994649cb6bcf62ecf8c7277ccc5e9e44278370c2fffb2/prseq-0.0.31-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8c52c5710b11f6c516ea163a91929de5a6958fe8cec7820906f2b957ec5de009", size = 396916, upload-time = "2025-11-04T18:46:03.833Z" },
+    { url = "https://files.pythonhosted.org/packages/19/9c/0602c3f35bbb66e5f1cbd884f08e3b2633a3472de24c56dbb5b2dd9f1207/prseq-0.0.33-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:bdee7e4266677dc7b488c773aedc81b0ad7cc2bf45524614f022f2767cf1c7e1", size = 343480, upload-time = "2025-11-23T16:18:18.469Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/d0/c9b6129b6bbf088159cf9cbf04f27e9cc6e22d222f9160c64870938fd619/prseq-0.0.33-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:afb6d20bc3a4fceea1ef9a9a701cb85e294b499f632a77ed16fba736ecc55b13", size = 402786, upload-time = "2025-11-23T16:18:20.539Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/55/20c92753e57f555476a291c5ce19ec501e6d5f72598136743df8fd0ecbe0/prseq-0.0.33-cp310-cp310-win_amd64.whl", hash = "sha256:47cf6aa69dfbd32d049951bc7ddbcfc7e312f33696574bbc0d38a88f94a0485a", size = 246340, upload-time = "2025-11-23T16:18:22.391Z" },
+    { url = "https://files.pythonhosted.org/packages/71/75/cb503680cc6ed03668dde12cd01ccddd7e01f01b99b41c1032b4e8aba5b6/prseq-0.0.33-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:2bd89cfb08ee49448115aac6f07a5307d08cfd7ef20d6dbf62b2e511d7946ccf", size = 343070, upload-time = "2025-11-23T16:18:24.156Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/39/d4ca191a6b871f3b20299c7e0875cefea5b1c6169ab5833f3fbfaa2aadf1/prseq-0.0.33-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ddc6ebe6d681e5c7d464e208bed6260016af89c1f6548157d98690ba9042648e", size = 402720, upload-time = "2025-11-23T16:18:25.887Z" },
+    { url = "https://files.pythonhosted.org/packages/be/04/65a57851fe1f52cde17b6a3e00c62b436864d38fe7fda3c0d1eff7347f3e/prseq-0.0.33-cp311-cp311-win_amd64.whl", hash = "sha256:92486ec3a8f8b6a944ba8aba956490d3fd0b38e50988969e77fc7c09a41dc235", size = 246485, upload-time = "2025-11-23T16:18:27.354Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/a5/4b90761a540dce1c91cdaf6164b90a2233b13e25e63f4199c17f03189ef3/prseq-0.0.33-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d283fbc1b7a2bcbf3e9b988ce6da8f7241279f55faa640740411be8f1c3e2154", size = 342201, upload-time = "2025-11-23T16:18:28.824Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/cb/610a6d85db1abf373eee11f03cfc839b2b57cf956b58cf19b1087d8be8c7/prseq-0.0.33-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8476602ded96e64f5c8b0d9bebb4a18adaff962c03851c097f7866a96a2b7377", size = 399492, upload-time = "2025-11-23T16:18:30.333Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/11/53629516f8489658fa0d06c2cc0f0aed6945a8d7b1572b7851bf182b7001/prseq-0.0.33-cp312-cp312-win_amd64.whl", hash = "sha256:9c9c476e5479c9bb7a520b1fc773479047cbbe137f16042356fd5c1e1fb8f25e", size = 244645, upload-time = "2025-11-23T16:18:31.791Z" },
+    { url = "https://files.pythonhosted.org/packages/53/97/4bab0a1b01b8d1ea330e04fc9529363d2140e6e0c5837b3ae3595d21216a/prseq-0.0.33-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:017e8d8388595214789ef2e12f9cc68484b0c00bd930baa2ec997ec11cfc0f5d", size = 342188, upload-time = "2025-11-23T16:18:33.234Z" },
+    { url = "https://files.pythonhosted.org/packages/55/ee/f940093fbe8923e472c7d251d8075751e1beb345123136ae9920482aefd8/prseq-0.0.33-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:334e25aa9a0b584b856563d149fab8f0c8d4fb517c50ffd58f5932bdebdcb4a4", size = 400035, upload-time = "2025-11-23T16:18:35.068Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/0b/c3d4e68202b1ad50d96b94a644d3d5bc0a16a8186ca95dd0e3ae15fb63bc/prseq-0.0.33-cp313-cp313-win_amd64.whl", hash = "sha256:9433ecf2fbe2d77236dd67fef1f93eb8802a822b8bda0ce195a82b7cbba7c5e8", size = 244910, upload-time = "2025-11-23T16:18:36.414Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/73/c07146b5a020e7f56e8ad1bd98dc35ed7ef4a3318110a26fb72f297c0e49/prseq-0.0.33-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:40c16a2b92e845a89b8cf48f91443e71dece76380c90f38edcd7b39b1bc1a120", size = 403364, upload-time = "2025-11-23T16:18:42.549Z" },
 ]
 
 [[package]]

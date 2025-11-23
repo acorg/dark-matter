@@ -1,3 +1,8 @@
+## 7.0.4 November 23, 2025
+
+Upgrade `prseq` dependency to `0.0.33` to pick up its fix to fully read
+multi-archive `gzip` and `bzip2` files.
+
 ## 7.0.3 November 13, 2025
 
 Small fix to be compatible with `ete4`.
