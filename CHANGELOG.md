@@ -1,3 +1,7 @@
+## 7.0.5 December 23, 2025
+
+Change to make `newick-to-ascii.py` use the correct `ete4` method.
+
 ## 7.0.4 November 23, 2025
 
 Upgrade `prseq` dependency to `0.0.33` to pick up its fix to fully read

@@ -66,4 +66,4 @@ if args.outgroupRegex:
             else:
                 tree.set_outgroup(tree.get_common_ancestor(taxa))
 
-print(tree.get_ascii())
+print(tree.to_str())
