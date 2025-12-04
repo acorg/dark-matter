@@ -533,7 +533,7 @@ wheels = [
 
 [[package]]
 name = "dark-matter"
-version = "7.0.4"
+version = "7.0.5"
 source = { editable = "." }
 dependencies = [
     { name = "biopython" },
@@ -557,6 +557,7 @@ dependencies = [
     { name = "rich" },
     { name = "scikit-learn" },
     { name = "simplejson" },
+    { name = "summarize-ranges" },
     { name = "types-cachetools" },
     { name = "types-requests" },
 ]
@@ -589,6 +590,7 @@ requires-dist = [
     { name = "rich", specifier = ">=14.0.0" },
     { name = "scikit-learn", specifier = ">=1.3.2" },
     { name = "simplejson", specifier = ">=3.5.3" },
+    { name = "summarize-ranges", specifier = ">=0.1.1" },
     { name = "types-cachetools", specifier = ">=5.5.0" },
     { name = "types-requests", specifier = ">=2.32.0" },
 ]
@@ -1896,6 +1898,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
 ]
+
+[[package]]
+name = "summarize-ranges"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/ce/28aae7249b5801ac278ae1c5083dd141822ba041d060ad5c62d18ae588b3/summarize_ranges-0.1.1.tar.gz", hash = "sha256:7ee9d5cfbc1dee2688e76bafb24b202d6c30201c2cba410370fda7506fc4edfc", size = 13099, upload-time = "2025-05-11T07:37:24.983Z" }
 
 [[package]]
 name = "threadpoolctl"
