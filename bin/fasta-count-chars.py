@@ -49,7 +49,8 @@ def main():
 
     parser.add_argument(
         "--omitHeader",
-        action="store_true",
+        dest="includeHeader",
+        action="store_false",
         help="Do not print a header.",
     )
 
@@ -118,14 +119,11 @@ def main():
     if args.ignoreCase:
         chars = chars.upper()
 
-    if not args.omitHeader:
+    if args.includeHeader:
         header = [] if omitIds else ["ID"]
-
         header.extend(("Char", "Count", "Length", "Fraction"))
-
         if addLocations:
             header.append("Location(s)")
-
         writerow(header)
 
     def key(row):
