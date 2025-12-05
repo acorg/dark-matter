@@ -1,4 +1,11 @@
-## 7.0.5 December 23, 2025
+## 7.0.6 December 4, 2025
+
+Added `--omitHeader`, `--ambiguous`, `--omitZeroes`, `--locations`, `--sort`,
+`--python` to `bin/fasta-count-chars.py` to make it more flexible and
+useful. Made it default to showing all DNA codes if `--chars` is not used (or
+just the ambiguous codes if `--ambiguous` is given).
+
+## 7.0.5 November 23, 2025
 
 Change to make `newick-to-ascii.py` use the correct `ete4` method.
 
