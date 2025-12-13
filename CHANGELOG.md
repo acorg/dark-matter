@@ -1,3 +1,7 @@
+## 7.0.7 December 13, 2025
+
+Added `commas` and `places` args to the `pct` function in `utils.py`.
+
 ## 7.0.6 December 4, 2025
 
 Added `--omitHeader`, `--ambiguous`, `--omitZeroes`, `--locations`, `--sort`,

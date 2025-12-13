@@ -536,6 +536,13 @@ class TestPct(TestCase):
         """
         self.assertEqual("0/0 (0.000%)", pct(0, 0))
 
+    def testZeroDenominatorPlaces(self):
+        """
+        The pct function must produce the correct result if the denominator is
+        zero and also respect the passed value of places.
+        """
+        self.assertEqual("0/0 (0.0%)", pct(0, 0, places=1))
+
     def testOneHalf(self):
         """
         The pct function must produce the correct result if the numerator is
@@ -543,12 +550,24 @@ class TestPct(TestCase):
         """
         self.assertEqual("5/10 (50.000%)", pct(5, 10))
 
+    def testPlaces(self):
+        """
+        It must be possible to specify the number of decimal places.
+        """
+        self.assertEqual("5/10 (50.00%)", pct(5, 10, places=2))
+
     def testOneSeventh(self):
         """
         The pct function must produce the correct result if the numerator is
         one seventh of the denominator.
         """
         self.assertEqual("2/14 (14.286%)", pct(2, 14))
+
+    def testCommas(self):
+        """
+        The pct function must be able to produce a result with commas.
+        """
+        self.assertEqual("1,024/2,048 (50.000%)", pct(1024, 2048, commas=True))
 
 
 class TestTake(TestCase):

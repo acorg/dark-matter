@@ -255,19 +255,19 @@ def countPrint(mesg: str, count: int, len1: int, len2: Optional[int] = None) -> 
             )
 
 
-def pct(a: int, b: int) -> str:
+def pct(a: int, b: int, commas: bool = False, places: int = 3) -> str:
     """
     Format a string showing two integers and what percentage the first
     is of the second.
 
     @param a: An C{int}, the numerator.
     @param b: An C{int}, the denominator.
+    @param commas: Include thousand-separating commas in the result.
+    @param places: The C{int} number of decimal places to include in the fraction.
     """
     assert 0 <= a <= b
-    if b:
-        return "%d/%d (%.3f%%)" % (a, b, (a / b if b else 0.0) * 100.0)
-    else:
-        return "0/0 (0.000%)"
+    frac = a / b * 100.0 if b else 0.0
+    return (f"{a:,}/{b:,}" if commas else f"{a}/{b}") + f" ({frac:.{places}f}%)"
 
 
 @contextmanager
