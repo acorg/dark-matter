@@ -1,3 +1,8 @@
+## 7.0.8 December 17, 2025
+
+Made `FastaReads` and `FastqReads` able to take no args and read (binary)
+standard in.
+
 ## 7.0.7 December 13, 2025
 
 Added `commas` and `places` args to the `pct` function in `utils.py`.

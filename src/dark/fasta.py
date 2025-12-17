@@ -1,3 +1,4 @@
+import sys
 import os
 import sqlite3
 from collections.abc import Iterable, Iterator
@@ -98,11 +99,13 @@ class FastaReads(Reads):
 
     def __init__(
         self,
-        files: File | Iterable[File],
+        files: File | Iterable[File] | None = None,
         readClass: type[Read] = DNARead,
         upperCase: bool = False,
     ):
-        if isinstance(files, tuple):
+        if files is None:
+            self.files = (sys.stdin.buffer)
+        elif isinstance(files, tuple):
             self.files = files
         elif isinstance(files, list):
             self.files = tuple(files)

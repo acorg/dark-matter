@@ -1,5 +1,8 @@
+import sys
+from collections.abc import Iterable, Iterator
 from prseq import FastqReader
 
+from dark import File
 from dark.reads import DNARead, Reads
 
 
@@ -13,8 +16,13 @@ class FastqReads(Reads):
     @param readClass: The class of read that should be yielded by iter.
     """
 
-    def __init__(self, files, readClass=DNARead):
-        self.files = files if isinstance(files, (list, tuple)) else [files]
+    def __init__(self, files: File | Iterable[File] | None = None, readClass=DNARead):
+        if files is None:
+            self.files = (sys.stdin.buffer,)
+        elif isinstance(files, (list, tuple)):
+            self.files = tuple(files)
+        else:
+             self.files = (files,)
         self.readClass = readClass
         super().__init__()
 
