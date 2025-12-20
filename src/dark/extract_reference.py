@@ -61,6 +61,10 @@ def extract_fasta(
         # Have another look, dropping the description. Even though we were told not to,
         # pointing out that the ID is found but with a description is likely to be
         # helpful.
+        #
+        # Note that this relies on being able to re-read the FASTA. I.e., it must be a
+        # file not an already open file descriptor (not an iterator that gets exhausted
+        # on first use).
         for read in FastaReads(fasta):
             if read.id.split()[0] == ref_id:
                 sys.exit(

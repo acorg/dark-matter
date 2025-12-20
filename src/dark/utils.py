@@ -80,14 +80,14 @@ def asHandle(fileNameOrHandle: File, mode="rt", encoding="UTF-8"):
     """
     if isinstance(fileNameOrHandle, (Path, str)):
         fileNameOrHandle = str(fileNameOrHandle)
+        if "b" in mode:
+            # Binary modes don't take encodings.
+            encoding = None
         if fileNameOrHandle.endswith(".gz"):
             yield gzip.open(fileNameOrHandle, mode=mode, encoding=encoding)
         elif fileNameOrHandle.endswith(".bz2"):
             yield bz2.open(fileNameOrHandle, mode=mode, encoding=encoding)
         else:
-            if "b" in mode:
-                # Binary modes don't take encodings.
-                encoding = None
             with open(fileNameOrHandle, mode=mode, encoding=encoding) as fp:
                 yield fp
     else:

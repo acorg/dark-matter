@@ -1,3 +1,7 @@
+## 7.0.11 December 20, 2025
+
+Don't pass an encoding when opening a gzipped file in `utils.py` `asHandle` decorator.
+
 ## 7.0.10 December 20, 2025
 
 Pull functions out of `bin/extract-reference-from-fasta-and-bam.py` so they
