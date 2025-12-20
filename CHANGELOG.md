@@ -1,7 +1,11 @@
+## 7.0.10 December 20, 2025
+
+Pull functions out of `bin/extract-reference-from-fasta-and-bam.py` so they
+can be used by others.
+
 ## 7.0.9 December 20, 2025
 
 Added `bin/extract-reference-from-fasta-and-bam.py` script.
-
 
 ## 7.0.8 December 17, 2025
 
