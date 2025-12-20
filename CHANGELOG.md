@@ -1,3 +1,8 @@
+## 7.0.9 December 20, 2025
+
+Added `bin/extract-reference-from-fasta-and-bam.py` script.
+
+
 ## 7.0.8 December 17, 2025
 
 Made `FastaReads` and `FastqReads` able to take no args and read (binary)

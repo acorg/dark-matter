@@ -1,5 +1,6 @@
 import sys
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
+
 from prseq import FastqReader
 
 from dark import File

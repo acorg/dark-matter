@@ -1,6 +1,6 @@
-import sys
 import os
 import sqlite3
+import sys
 from collections.abc import Iterable, Iterator
 from hashlib import md5
 from typing import BinaryIO, TextIO
