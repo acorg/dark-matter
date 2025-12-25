@@ -1,3 +1,9 @@
+## 7.1.0 December 25, 2025
+
+Fixed minor issues in the output of `sam-coverage-depth.py` and added
+`--minBaseQuality` and `--minMapQuality` options and some pysam pileup method
+arguments so we behave more like `samtools depth`.
+
 ## 7.0.12 December 25, 2025
 
 Fixed a `KeyError` issue in `sam-coverage-depth.py`.

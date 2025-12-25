@@ -259,6 +259,23 @@ def makeParser():
         ),
     )
 
+    parser.add_argument(
+        "--minBaseQuality",
+        type=int,
+        default=13,
+        help=(
+            "The minimum nucleotide base quality. Note that samtools depth defaults "
+            "to 13."
+        ),
+    )
+
+    parser.add_argument(
+        "--minMapQuality",
+        type=int,
+        default=0,
+        help="The minimum mapping quality (SAM MAPQ field).",
+    )
+
     return parser
 
 
@@ -465,7 +482,7 @@ def analyzeColumn(
                 readIds[readId][0] = count
 
                 if base != previousBase:
-                    if quality > previousQuality:
+                    if quality > previousQuality:  # Note that this is a string compare.
                         readIds[readId][1] = quality
                         readIds[readId][2] = base
                         if verbosity:
@@ -489,10 +506,17 @@ def analyzeColumn(
                                 f"Ignoring {base!r}. Note that we may encounter "
                                 "another read for this site with a higher quality, in "
                                 "which case these equally-lower-quality base calls "
-                                "will be ignored in its favour.",
+                                "will both be ignored in its favour.",
                                 file=sys.stderr,
                             )
 
+    # Note that if we have paired-end reads and they overlap the site, we count
+    # them both because we are trying to figure out the depth and these are two
+    # independent measurements of the same nucleotide. We could instead just
+    # count them once (like samtools depth -s) but I don't think that's what
+    # depth should really mean, since to me it's about confidence in the nt
+    # found at a location and if we have an overlapping read pair, we should
+    # count each read separately.
     nReads = sum(readInfo[0] for readInfo in readIds.values())
 
     if nReads == 0 or (minDepth is not None and nReads < minDepth):
@@ -507,8 +531,10 @@ def analyzeColumn(
         return
 
     bases = dict.fromkeys(BASES, 0)
-    for _, _, base in readIds.values():
-        bases[base] += 1
+    for count, _, base in readIds.values():
+        bases[base] += count
+
+    assert nReads == sum(bases.values())
 
     # Set an initial nonsense entropy value to keep type checking from
     # warning that the variable may be unbound.
@@ -517,7 +543,8 @@ def analyzeColumn(
     nt = []
     for base, count in bases.items():
         nt.extend([base] * count)
-        entropy = entropy2(nt)
+
+    entropy = entropy2(nt)
 
     if entropy < minEntropy:
         if verbosity > 1:
@@ -695,6 +722,8 @@ def processWindowColumns(
     window: int,
     minDepth: int | None,
     maxDepth: int,
+    minBaseQuality: int,
+    minMapQuality: int,
     minSiteMutationRate: float | None,
     maxSiteMutationRate: float | None,
     minSiteMutationCount: int,
@@ -719,6 +748,10 @@ def processWindowColumns(
     @param miDepth: The minimum read depth to report on. Sites with lower depth will
         be ignored.
     @param maxDepth: The maximum read depth to consider.
+    @param minBaseQuality: The minimum base quality required for a base to be
+        considered.
+    @param minMapQuality: The minimum mapping quality required for a read to be
+        considered.
     @param minSiteMutationRate: The minimum mutation rate (i.e., fraction) required at
         sites in order that they are reported. Sites with lower mutation fractions will
         be ignored.
@@ -763,6 +796,17 @@ def processWindowColumns(
             reference=referenceId,
             truncate=True,
             max_depth=maxDepth,
+            # We could add a --samtools option to use samtools-compatible
+            # behavior. But see the warning about also needing to pass a
+            # fastafile argument in that case at
+            # https://pysam.readthedocs.io/en/latest/
+            # api.html#pysam.AlignmentFile.pileup
+            #
+            # stepper="samtools",
+            min_base_quality=minBaseQuality,  # Equivalent to samtools depth -Q
+            min_mapping_quality=minMapQuality,  # Equivalent to samtools depth -q
+            ignore_orphans=False,
+            ignore_overlaps=False,
         ):
             assert isinstance(column, pysam.PileupColumn)  # Typing check.
             columnStartTime = time()
@@ -804,6 +848,11 @@ def processWindowColumns(
             if diffsFrom == "commonest":
                 assert columnBaseCounts[fromBase] >= max(columnBaseCounts.values())
 
+            # We cannot assert 'column.get_num_aligned() != nReads' here because
+            # some of the reads may have been filtered out due to being
+            # insertions or reference skips (deletions). See 'assert read.is_del
+            # or read.is_refskip' in analyze_column above.
+
             depths.append(nReads)
             allReadIds.update(columnReadIds)
             mutationCount += sum(mutationPairCounts.values())
@@ -829,7 +878,9 @@ def processWindowColumns(
                         )
                     )
                 else:
-                    out = f"{refOffset + 1} {nReads} {baseCountsToStr(baseCounts)}"
+                    out = (
+                        f"{refOffset + 1} {nReads} {baseCountsToStr(columnBaseCounts)}"
+                    )
                     if referenceSeq:
                         out += f" Ref:{refBase}"
                     rows.append(out)
@@ -869,6 +920,8 @@ def printStats(
     diffsFrom,
     minBases,
     maxIdenticalReadIdsPerSite,
+    minBaseQuality,
+    minMapQuality,
     referenceSeq,
     referenceId,
     referenceLen,
@@ -900,6 +953,9 @@ def printStats(
         print("  Depth:")
         print("    Min depth required:", minDepth)
         print("    Max depth considered:", maxDepth)
+        print("  Quality:")
+        print("    Min base quality:", minBaseQuality)
+        print("    Min mapping quality:", minMapQuality)
         print("  Mutation (by site):")
         print("    Counts are relative to:", diffsFrom)
         print("    Min mutation rate:", minSiteMutationRate)
@@ -1019,6 +1075,8 @@ def main() -> None:
             repeat(args.window),
             repeat(args.minDepth),
             repeat(args.maxDepth),
+            repeat(args.minBaseQuality),
+            repeat(args.minMapQuality),
             repeat(args.minSiteMutationRate),
             repeat(args.maxSiteMutationRate),
             repeat(args.minSiteMutationCount),
@@ -1086,6 +1144,8 @@ def main() -> None:
             args.diffsFrom,
             args.minBases,
             args.maxIdenticalReadIdsPerSite,
+            args.minBaseQuality,
+            args.minMapQuality,
             referenceSeq,
             referenceId,
             referenceLen,
