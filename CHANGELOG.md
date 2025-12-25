@@ -1,3 +1,7 @@
+## 7.0.12 December 25, 2025
+
+Fixed a `KeyError` issue in `sam-coverage-depth.py`.
+
 ## 7.0.11 December 20, 2025
 
 Don't pass an encoding when opening a gzipped file in `utils.py` `asHandle` decorator.

@@ -553,42 +553,57 @@ def analyzeColumn(
             (count, int(base == refBase), base) for (base, count) in bases.items()
         )[2]
 
-    mutationRate = 1.0 - bases[fromBase] / nReads
-
-    if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
-        if verbosity > 1:
-            print(
-                f"Site {refOffset + 1}: skipped due to low mutation rate "
-                f"({mutationRate:.5f}).",
-                file=sys.stderr,
-            )
-        return
-
-    if maxSiteMutationRate is not None and mutationRate > maxSiteMutationRate:
-        if verbosity > 1:
-            print(
-                f"Site {refOffset + 1}: skipped due to high mutation rate "
-                f"({mutationRate:.5f}).",
-                file=sys.stderr,
-            )
-        return
-
     mutationCount = 0
     mutationPairCounts: dict[str, int] = defaultdict(int)
-    for base in BASES:
-        if base != fromBase and (count := bases[base]):
-            mutationPairCounts[fromBase + base] += count
-            mutationCount += count
 
-    if minSiteMutationCount > 0 and mutationCount < minSiteMutationCount:
-        if verbosity > 1:
-            print(
-                f"Site {refOffset + 1}: skipped due to having insufficient "
-                f"nucleotide diversity ({mutationCount} different nucleotides "
-                "are present, but at least {minSiteMutationCount} are required).",
-                file=sys.stderr,
-            )
-        return
+    try:
+        mutationRate = 1.0 - bases[fromBase] / nReads
+    except KeyError:
+        # The reference might have a non-ACGT base. If so, we can't calculate a
+        # mutation rate in a reliable/easy way, so we set it to 0.0. An
+        # alternative would be to get the possible bases and to count the reads
+        # which differ from all the possible bases as being mutations and the
+        # rest not. But we still couldn't individually categorize them in
+        # mutationPairCounts.
+        mutationRate = 0.0
+    else:
+        mutationCount = sum(bases.values()) - bases[fromBase]
+        for base in BASES:
+            if base != fromBase and (count := bases[base]):
+                mutationPairCounts[fromBase + base] += count
+
+        if minSiteMutationRate is not None and mutationRate < minSiteMutationRate:
+            if verbosity > 1:
+                print(
+                    f"Site {refOffset + 1}: skipped due to low mutation rate "
+                    f"({mutationRate:.5f}).",
+                    file=sys.stderr,
+                )
+            return
+
+        if maxSiteMutationRate is not None and mutationRate > maxSiteMutationRate:
+            if verbosity > 1:
+                print(
+                    f"Site {refOffset + 1}: skipped due to high mutation rate "
+                    f"({mutationRate:.5f}).",
+                    file=sys.stderr,
+                )
+            return
+
+        for base in BASES:
+            if base != fromBase and (count := bases[base]):
+                mutationPairCounts[fromBase + base] += count
+                mutationCount += count
+
+        if minSiteMutationCount > 0 and mutationCount < minSiteMutationCount:
+            if verbosity > 1:
+                print(
+                    f"Site {refOffset + 1}: skipped due to having insufficient "
+                    f"nucleotide diversity ({mutationCount} different nucleotides "
+                    "are present, but at least {minSiteMutationCount} are required).",
+                    file=sys.stderr,
+                )
+            return
 
     # The number of bases at the site is the 'from' base, plus the bases it
     # has mutated to. Hence the + 1 in the following test.
