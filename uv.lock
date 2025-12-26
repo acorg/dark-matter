@@ -533,7 +533,7 @@ wheels = [
 
 [[package]]
 name = "dark-matter"
-version = "7.0.12"
+version = "7.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "biopython" },

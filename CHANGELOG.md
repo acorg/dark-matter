@@ -1,3 +1,7 @@
+## 7.1.1 December 26, 2025
+
+Fixed tuple bug with setting up the list of files to read in fasta.py.
+
 ## 7.1.0 December 25, 2025
 
 Fixed minor issues in the output of `sam-coverage-depth.py` and added

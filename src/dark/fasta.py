@@ -104,7 +104,7 @@ class FastaReads(Reads):
         upperCase: bool = False,
     ):
         if files is None:
-            self.files = (sys.stdin.buffer)
+            self.files = (sys.stdin.buffer,)
         elif isinstance(files, tuple):
             self.files = files
         elif isinstance(files, list):
