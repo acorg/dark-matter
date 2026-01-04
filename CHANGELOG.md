@@ -1,3 +1,10 @@
+## 7.1.2 January 5, 2026
+
+Improved `sam-coverage.py`. Added the option for TSV or Excel output.
+Added use of regular expressions and/or minimum length to specify the
+references wanted. Made filtering off by default (use `--filter` to
+turn it back on).
+
 ## 7.1.1 December 26, 2025
 
 Fixed tuple bug with setting up the list of files to read in fasta.py.
@@ -14,7 +21,8 @@ Fixed a `KeyError` issue in `sam-coverage-depth.py`.
 
 ## 7.0.11 December 20, 2025
 
-Don't pass an encoding when opening a gzipped file in `utils.py` `asHandle` decorator.
+Don't pass an encoding when opening a gzipped file in `utils.py`
+`asHandle` decorator.
 
 ## 7.0.10 December 20, 2025
 
@@ -188,7 +196,8 @@ rerooting function into `dark/trees.py` and added tests.
 
 ## 5.0.33 April 21, 2025
 
-Change name in `setup.py` to have an underscore following deprecation warning from PyPI.
+Change name in `setup.py` to have an underscore following deprecation
+warning from PyPI.
 
 ## 5.0.32 April 21, 2025
 
@@ -215,7 +224,7 @@ Added info to final output of `sam-coverage-depth.py`.
 Many improvements to (and some simplifications of) `sam-coverage-depth.py`,
 primarily a speed-up via parallelization.
 
-## 5.0.26 Januery 27, 2025
+## 5.0.26 January 27, 2025
 
 Downgrade `dendropy` version requirement from `5.0.2` to `5.0.1`.
 

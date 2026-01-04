@@ -614,10 +614,12 @@ class SAMFilter:
 
         self.alignmentCount = count
 
-    def referenceLengths(self):
+    def referenceLengths(self, getAllReferences: bool = False) -> dict[str, int]:
         """
         Get the lengths of wanted references.
 
+        @param getAllReferences: Ignore self.referenceIds and get the lengths
+            of all references.
         @raise UnknownReference: If a reference id is not present in the
             SAM/BAM file.
         @return: A C{dict} of C{str} reference id to C{int} length with a key
@@ -625,19 +627,20 @@ class SAMFilter:
             if C{self.referenceIds} is C{None}.
         """
         result = {}
+
         with samfile(self.filename) as sam:
-            if self.referenceIds:
+            if getAllReferences or not self.referenceIds:
+                result = dict(zip(sam.references, sam.lengths))
+            else:
                 for referenceId in self.referenceIds:
                     tid = sam.get_tid(referenceId)
                     if tid == -1:
                         raise UnknownReference(
-                            "Reference %r is not present in the SAM/BAM file."
-                            % referenceId
+                            f"Reference {referenceId!r} is not present in the "
+                            f"SAM/BAM file {self.filename!r}."
                         )
                     else:
                         result[referenceId] = sam.lengths[tid]
-            else:
-                result = dict(zip(sam.references, sam.lengths))
 
         return result
 

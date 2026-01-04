@@ -1,6 +1,6 @@
 [project]
 name = "dark-matter"
-version = "7.1.1"
+version = "7.1.2"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -37,6 +37,7 @@ dependencies = [
     "matplotlib>=3.7.5",
     "mysql-connector-python>=9.0.0",
     "numpy>=1.14.2",
+    "polars>=1.36.1",
     "progressbar>=2.5",
     "prseq>=0.0.33",
     "pysam>=0.23.0",
@@ -48,6 +49,7 @@ dependencies = [
     "summarize-ranges>=0.1.1",
     "types-cachetools>=5.5.0",
     "types-requests>=2.32.0",
+    "xlsxwriter>=3.2.9",
 ]
 
 [build-system]

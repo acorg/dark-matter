@@ -62,7 +62,7 @@ class TestSAMFilter(TestCase):
 
         with dataFile(data) as filename:
             sam = SAMFilter(filename, referenceIds={"unknown"})
-            error = "^Reference 'unknown' is not present in the SAM/BAM file\\.$"
+            error = "^Reference 'unknown' is not present in the SAM/BAM file "
             self.assertRaisesRegex(UnknownReference, error, sam.referenceLengths)
 
     def testNoFilteringOptions(self):
@@ -390,7 +390,7 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             error = (
                 "^Your 2 SAM/BAM file reference sequence lengths "
-                "\\(id1=90, id2=91\\) are not all identical\\.$"
+                r"\(id1=90, id2=91\) are not all identical\.$"
             )
             self.assertRaisesRegex(
                 UnequalReferenceLengthError, error, PaddedSAM, SAMFilter(filename)
@@ -420,7 +420,7 @@ class TestPaddedSAM(TestCase):
 
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
-            error = "^Query TCTAGG not fully consumed when parsing CIGAR string\\."
+            error = r"^Query TCTAGG not fully consumed when parsing CIGAR string\."
             self.assertRaisesRegex(ValueError, error, list, ps.queries())
 
     def testAllMMatch(self):
@@ -989,9 +989,9 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             error = (
-                "^pysam produced an alignment \\(number 1\\) with no "
+                r"^pysam produced an alignment \(number 1\) with no "
                 "query sequence without previously giving an alignment "
-                "with a sequence\\.$"
+                r"with a sequence\.$"
             )
             queries = ps.queries()
             self.assertRaisesRegex(InvalidSAM, error, list, queries)
@@ -1032,9 +1032,9 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             error = (
-                "^pysam produced an alignment \\(number 1\\) with no "
+                r"^pysam produced an alignment \(number 1\) with no "
                 "query sequence without previously giving an alignment "
-                "with a sequence\\.$"
+                r"with a sequence\.$"
             )
             queries = ps.queries()
             self.assertRaisesRegex(InvalidSAM, error, list, queries)
@@ -1075,9 +1075,9 @@ class TestPaddedSAM(TestCase):
         with dataFile(data) as filename:
             ps = PaddedSAM(SAMFilter(filename))
             error = (
-                "^pysam produced an alignment \\(number 1\\) with no "
+                r"^pysam produced an alignment \(number 1\) with no "
                 "query sequence without previously giving an alignment "
-                "with a sequence\\.$"
+                r"with a sequence\.$"
             )
             queries = ps.queries()
             self.assertRaisesRegex(InvalidSAM, error, list, queries)
@@ -1254,7 +1254,7 @@ class TestHardClip(TestCase):
         """
         error = (
             "^Invalid CIGAR tuples .* contains hard-clipping operation "
-            "that is neither at the start nor the end of the sequence\\.$"
+            r"that is neither at the start nor the end of the sequence\.$"
         )
         self.assertRaisesRegex(
             ValueError,
@@ -1276,7 +1276,7 @@ class TestHardClip(TestCase):
         """
         error = (
             "^Invalid CIGAR tuples .* specifies hard-clipping 3 times "
-            "\\(2 is the maximum\\).$"
+            r"\(2 is the maximum\).$"
         )
         self.assertRaisesRegex(
             ValueError,
