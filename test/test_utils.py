@@ -569,6 +569,20 @@ class TestPct(TestCase):
         """
         self.assertEqual("1,024/2,048 (50.000%)", pct(1024, 2048, commas=True))
 
+    def testNoDenominatorWithoutCommas(self):
+        """
+        The pct function must be able to produce a result with no denominator
+        when no commas are requested.
+        """
+        self.assertEqual("1024 (50.000%)", pct(1024, 2048, denom=False))
+
+    def testNoDenominatorWithCommas(self):
+        """
+        The pct function must be able to produce a result with no denominator
+        when commas=True.
+        """
+        self.assertEqual("1,024 (50.000%)", pct(1024, 2048, commas=True, denom=False))
+
 
 class TestTake(TestCase):
     """
