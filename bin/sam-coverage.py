@@ -66,6 +66,16 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--listReferences",
+        action="store_true",
+        help=(
+            "Print the list of matching reference IDs and then exit. "
+            "This makes it easy to adjust reference regular expressions "
+            "to see what work would be done without doing it."
+        ),
+    )
+
+    parser.add_argument(
         "--minReferenceLength",
         type=int,
         help=(
@@ -147,6 +157,10 @@ def main() -> None:
                 f"None of the {n_before} potentially-included reference(s) has length "
                 f"at least {args.minReferenceLength}."
             )
+
+    if args.listReferences:
+        print("\n".join(sorted(wantedIds)))
+        sys.exit(0)
 
     coveredOffsetCount: dict[str, dict[int, int]] = defaultdict(
         lambda: defaultdict(int)

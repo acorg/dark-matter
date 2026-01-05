@@ -1,3 +1,9 @@
+## 7.1.3 January 5, 2026
+
+Added `--listReferences` option to `sam-coverage.py` to just list the
+references that would be examined, to allow for a fast exit so one can
+quickly test reference regular expressions.
+
 ## 7.1.2 January 5, 2026
 
 Improved `sam-coverage.py`. Added the option for TSV or Excel output.
