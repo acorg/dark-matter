@@ -234,6 +234,7 @@ def main() -> None:
                 offsetsCovered,
                 fraction,
                 meanDepth,
+                medianDepth,
                 minDepth,
                 maxDepth,
             ) = row
@@ -241,7 +242,8 @@ def main() -> None:
             print(
                 f"{referenceId}: length {referenceLength}, covering "
                 f"reads {coveringReads}, covered sites {offsetsCovered} "
-                f"({fraction * 100.0:.4f%}%), mean coverage depth {meanDepth:.4f} "
+                f"({fraction * 100.0:.4f}%), mean coverage depth {meanDepth:.4f}, "
+                f"median coverage depth {medianDepth:.4f} "
                 f"(min: {minDepth}, max: {maxDepth})"
             )
 

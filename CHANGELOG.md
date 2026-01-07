@@ -1,3 +1,7 @@
+## 7.1.5 January 7, 2026
+
+Fixed trivial error in `sam-coverage.py`.
+
 ## 7.1.4 January 5, 2026
 
 Added `denom` argument to `pct` in utils.py to allow for not including
