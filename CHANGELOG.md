@@ -1,3 +1,7 @@
+## 7.1.8 January 9, 2026
+
+Make `aaCompatible` return False if its codon argument contains a gap.
+
 ## 7.1.7 January 9, 2026
 
 Remove default AA in `aaCompatible`.

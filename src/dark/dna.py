@@ -46,7 +46,7 @@ def aaCompatible(s: str, aa: str) -> bool:
 
     for codon in CODONS[aa]:
         for nt_code, nt in zip(s, codon, strict=True):
-            if nt not in AMBIGUOUS[nt_code]:
+            if nt not in AMBIGUOUS.get(nt_code, ()):
                 break
         else:
             return True

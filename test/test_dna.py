@@ -2240,6 +2240,12 @@ class TestAACompatible(TestCase):
         for aa in CODONS:
             self.assertTrue(aaCompatible("NNN", aa))
 
+    def testGap(self):
+        """
+        Test that False is returned if we pass a codon with a gap.
+        """
+        self.assertFalse(aaCompatible("NN-", "V"))
+
     def testFirstAmbiguousAndCompatible(self):
         """
         When given an string whose first character is ambiguous
