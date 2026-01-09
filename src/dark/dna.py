@@ -31,7 +31,7 @@ BASES_TO_AMBIGUOUS = dict(
 )
 
 
-def aaCompatible(s: str, aa: str = "V") -> bool:
+def aaCompatible(s: str, aa: str) -> bool:
     """
     Might the nucleotide string in s translate to the given amino acid, taking into
     account ambiguous codes?

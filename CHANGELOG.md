@@ -1,3 +1,7 @@
+## 7.1.7 January 9, 2026
+
+Remove default AA in `aaCompatible`.
+
 ## 7.1.6 January 9, 2026
 
 Added `aaCompatible` and `compatibleAAs` functions to `dna.py`.
