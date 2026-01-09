@@ -1,11 +1,14 @@
 from unittest import TestCase
 
+from dark.aaVars import CODONS
 from dark.dna import (
     AMBIGUOUS,
     BASES_TO_AMBIGUOUS,
     Bases,
     FloatBaseCounts,
+    aaCompatible,
     compareDNAReads,
+    compatibleAAs,
     findKozakConsensus,
     leastAmbiguous,
     leastAmbiguousFromCounts,
@@ -2214,3 +2217,129 @@ class TestBases(TestCase):
         for base in "ACGT":
             b.append(base, 20)
         self.assertEqual("N", b.consensus(0.8, 1, "L", "Z"))
+
+
+class TestAACompatible(TestCase):
+    """
+    Test the aaCompatible function.
+    """
+
+    def testUnambiguous(self):
+        """
+        When given an unambiguous string equal to a codon of the passed
+        amino acid, True must be returned.
+        """
+        for aa, codons in CODONS.items():
+            for codon in codons:
+                self.assertTrue(aaCompatible(codon, aa))
+
+    def testAll(self):
+        """
+        Test that all amino acids are compatible with "NNN".
+        """
+        for aa in CODONS:
+            self.assertTrue(aaCompatible("NNN", aa))
+
+    def testFirstAmbiguousAndCompatible(self):
+        """
+        When given an string whose first character is ambiguous
+        but consitent with the first nucleotide of one of the codons
+        of the passed amino acid and equal in the second and third,
+        True must be returned.
+        """
+        for ambiguous in "RSKVDBN":
+            self.assertTrue(aaCompatible(f"{ambiguous}AC", "D"))
+
+    def testFirstAmbiguousAndIncompatible(self):
+        """
+        When given an string whose first character is ambiguous
+        but inconsitent with the first nucleotide of all of the codons
+        of the passed amino acid, False must be returned.
+        """
+        for ambiguous in "MWYH":
+            self.assertFalse(aaCompatible(f"{ambiguous}AC", "D"))
+
+    def testSecondAmbiguousAndCompatible(self):
+        """
+        When given an string whose second character is ambiguous
+        but consitent with the second nucleotide of one of the codons
+        of the passed amino acid and equal in the first and third,
+        True must be returned.
+        """
+        for ambiguous in "RSKVDBN":
+            self.assertTrue(aaCompatible(f"A{ambiguous}T", "S"))
+
+    def testSecondAmbiguousAndIncompatible(self):
+        """
+        When given an string whose second character is ambiguous
+        but inconsitent with the second nucleotide of all of the codons
+        of the passed amino acid, False must be returned.
+        """
+        for ambiguous in "MWYH":
+            self.assertFalse(aaCompatible(f"A{ambiguous}T", "S"))
+
+    def testThirdAmbiguousAndCompatible(self):
+        """
+        When given an string whose third character is ambiguous
+        but consitent with the third nucleotide of one of the codons
+        of the passed amino acid and equal in the first and second,
+        True must be returned.
+        """
+        for ambiguous in "MWSKYVHDBN":
+            self.assertTrue(aaCompatible(f"AA{ambiguous}", "N"))
+
+    def testThirdAmbiguousAndIncompatible(self):
+        """
+        When given an string whose third character is ambiguous
+        but inconsitent with the third nucleotide of all of the codons
+        of the passed amino acid, False must be returned.
+        """
+        for ambiguous in "R":
+            self.assertFalse(aaCompatible(f"AA{ambiguous}", "N"))
+
+
+class TestCompatibleAAs(TestCase):
+    """
+    Test the compatibleAAs function.
+    """
+
+    def testUnambiguous(self):
+        """
+        When given an unambiguous string equal to a codon of an AA, that
+        AA must be returned.
+        """
+        self.assertEqual({"D"}, compatibleAAs("GAC"))
+
+    def testAll(self):
+        """
+        When given "NNN", all AA (and "*") must be returned.
+        """
+        self.assertEqual(set(CODONS) | {"*"}, compatibleAAs("NNN"))
+
+    def testAlanine(self):
+        """
+        When given a string compatible with all the codons of alanine,
+        "A" must be returned.
+        """
+        self.assertEqual({"A"}, compatibleAAs("GCN"))
+
+    def testCytosineAndTryptophan(self):
+        """
+        When given a string compatible with Cytosine and Tryptophan
+        (but not with the TGA stop codon), "C" and "W" must be returned.
+        """
+        self.assertEqual({"C", "W"}, compatibleAAs("TGB"))
+
+    def testCytosineTryptophanAndStop(self):
+        """
+        When given a string compatible with Cytosine and Tryptophan
+        and with the TGA stop codon, "C", "W" and "*" must be returned.
+        """
+        self.assertEqual({"C", "W", "*"}, compatibleAAs("TGN"))
+
+    def testNoInitialT(self):
+        """
+        When given a string compatible with all amino acids except those
+        whose codons start with "A" or "C", ... must be returned.
+        """
+        self.assertEqual(set("ACDEFGLSVWY*"), compatibleAAs("KNN"))

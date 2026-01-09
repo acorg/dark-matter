@@ -2,6 +2,7 @@ from collections import defaultdict
 from itertools import zip_longest
 from operator import itemgetter
 
+from dark.aaVars import CODONS, REVERSE_CODONS
 from dark.utils import countPrint
 
 # A list of the ambiguous values is given at
@@ -28,6 +29,49 @@ AMBIGUOUS: dict[str, set[str]] = {
 BASES_TO_AMBIGUOUS = dict(
     ("".join(sorted(bases)), symbol) for symbol, bases in AMBIGUOUS.items()
 )
+
+
+def aaCompatible(s: str, aa: str = "V") -> bool:
+    """
+    Might the nucleotide string in s translate to the given amino acid, taking into
+    account ambiguous codes?
+
+    @param s: A DNA string of length three, possibly containing ambiguous codes.
+    @param aa: An amino acid string of length one.
+    @return: A C{bool} to indicate whether C{s} is consistent with any of the codons
+        that encode C{aa}.
+    """
+    if REVERSE_CODONS.get(s) == aa:
+        return True
+
+    for codon in CODONS[aa]:
+        for nt_code, nt in zip(s, codon, strict=True):
+            if nt not in AMBIGUOUS[nt_code]:
+                break
+        else:
+            return True
+
+    return False
+
+
+def compatibleAAs(s: str) -> set[str]:
+    """
+    Get the set of amino acids that are compatible with a potentially-ambiguous
+    nucleotide sequence.
+
+    @param s: A DNA string of length three, possibly containing ambiguous codes.
+    @return: A C{set} of AA strings, corresponding to those amino acids that are
+        compatible with the potentially-ambiguous nucleotide string.
+    """
+    return set(
+        REVERSE_CODONS.get(codon, "*")
+        for codon in [
+            f"{a}{b}{c}"
+            for a in AMBIGUOUS[s[0]]
+            for b in AMBIGUOUS[s[1]]
+            for c in AMBIGUOUS[s[2]]
+        ]
+    )
 
 
 def matchToString(

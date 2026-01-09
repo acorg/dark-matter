@@ -1,3 +1,7 @@
+## 7.1.6 January 9, 2026
+
+Added `aaCompatible` and `compatibleAAs` functions to `dna.py`.
+
 ## 7.1.5 January 7, 2026
 
 Fixed trivial error in `sam-coverage.py`.
