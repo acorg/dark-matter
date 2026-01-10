@@ -1,3 +1,7 @@
+## 7.1.9 January 10, 2026
+
+Added Boolean `translatable` function for DNA sequences.
+
 ## 7.1.8 January 9, 2026
 
 Make `aaCompatible` return False if its codon argument contains a gap.

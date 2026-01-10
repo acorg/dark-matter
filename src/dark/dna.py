@@ -1,6 +1,11 @@
 from collections import defaultdict
 from itertools import zip_longest
 from operator import itemgetter
+import warnings
+
+from Bio.Seq import translate
+from Bio import BiopythonWarning
+from Bio.Data.CodonTable import TranslationError
 
 from dark.aaVars import CODONS, REVERSE_CODONS
 from dark.utils import countPrint
@@ -72,6 +77,25 @@ def compatibleAAs(s: str) -> set[str]:
             for c in AMBIGUOUS[s[2]]
         ]
     )
+
+
+def translatable(seq: str) -> bool:
+    """
+    Check if a nucleotide sequence can be translated to amino acids. Sequences
+    that can be translated without error by BioPython (e.g., "ATX") but which
+    have an "X" in the result will return False.
+
+    Return False if:
+        - The sequence length is not a multiple of 3.
+        - The sequence contains gaps or invalid nucleotides.
+        - Any other translation error occurs.
+    """
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", BiopythonWarning)
+            return "X" not in translate(seq)
+    except (BiopythonWarning, TranslationError):
+        return False
 
 
 def matchToString(
