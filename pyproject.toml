@@ -1,6 +1,6 @@
 [project]
 name = "dark-matter"
-version = "7.1.9"
+version = "7.1.10"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"

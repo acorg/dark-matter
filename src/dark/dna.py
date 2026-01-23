@@ -1,11 +1,11 @@
+import warnings
 from collections import defaultdict
 from itertools import zip_longest
 from operator import itemgetter
-import warnings
 
-from Bio.Seq import translate
 from Bio import BiopythonWarning
 from Bio.Data.CodonTable import TranslationError
+from Bio.Seq import translate
 
 from dark.aaVars import CODONS, REVERSE_CODONS
 from dark.utils import countPrint
