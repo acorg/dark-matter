@@ -1050,6 +1050,23 @@ def main() -> None:
                 f"({referenceLen}) of that reference as found in the header of "
                 f"{args.samfile!r}."
             )
+
+        if args.diffsFrom is None:
+            # --fasta was used to give a reference, so --diffsFrom 'reference' is
+            # implied.
+            args.diffsFrom == "reference"
+        elif args.diffsFrom == "commonest":
+            sys.exit(
+                "Using --fasta to give a reference sequence and also using "
+                "--diffsFrom 'commonest' suggests that you might be confused about "
+                "the two options. Giving a reference via --fasta is required when "
+                "you use --diffsFrom 'reference', but is not used in any other "
+                "circumstance. Re-run either with no --fasta option or with "
+                "--diffsFrom 'reference'."
+            )
+        else:
+            assert args.diffsFrom == "reference"
+
     else:
         referenceSeq = None
 
