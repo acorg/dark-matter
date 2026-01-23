@@ -1,3 +1,8 @@
+## 7.1.10 January 23, 2026
+
+Made `sam-coverage-depth.py` check for conflicting reference lengths
+and made its `--diffsFrom` argument optional.
+
 ## 7.1.9 January 10, 2026
 
 Added Boolean `translatable` function for DNA sequences.

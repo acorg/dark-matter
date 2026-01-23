@@ -23,7 +23,7 @@ class FastqReads(Reads):
         elif isinstance(files, (list, tuple)):
             self.files = tuple(files)
         else:
-             self.files = (files,)
+            self.files = (files,)
         self.readClass = readClass
         super().__init__()
 

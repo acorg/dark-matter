@@ -2356,16 +2356,15 @@ class TestTranslatable(TestCase):
     """
     Test the translatable function.
     """
+
     def test_translatable_valid_single_codon(self):
         """Test that a single valid codon returns True."""
         assert translatable("ATG") is True
-
 
     def test_translatable_valid_multiple_codons(self):
         """Test that multiple valid codons return True."""
         assert translatable("ATGATGATG") is True
         assert translatable("ATGCGATAA") is True
-
 
     def test_translatable_not_divisible_by_three(self):
         """Test that sequences not divisible by 3 return False."""
@@ -2373,13 +2372,11 @@ class TestTranslatable(TestCase):
         assert translatable("ATGA") is False
         assert translatable("ATGATGAT") is False
 
-
     def test_translatable_with_gap(self):
         """Test that sequences containing gaps return False."""
         assert translatable("ATG-TG") is False
         assert translatable("---") is False
         assert translatable("ATGATG---") is False
-
 
     def test_translatable_invalid_nucleotide(self):
         """Test that sequences with invalid nucleotides return False."""
@@ -2387,11 +2384,9 @@ class TestTranslatable(TestCase):
         assert translatable("ATGNTGATG") is False
         assert translatable("XXX") is False
 
-
     def test_translatable_empty_string(self):
         """Test that an empty string returns True (0 codons)."""
         assert translatable("") is True
-
 
     def test_translatable_lowercase(self):
         """Test that lowercase sequences work correctly."""

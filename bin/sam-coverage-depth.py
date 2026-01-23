@@ -57,14 +57,15 @@ def makeParser():
     parser.add_argument(
         "--diffsFrom",
         choices=("reference", "commonest"),
-        default="reference",
         help=(
             "The base from which to assess differences. If 'reference', differences "
             "from the reference base (at each genome site) will be treated as "
             "mutations. If 'commonest', differences from the most common base will be "
             "treated as mutations (with ties broken in favour of the reference base, "
             "if a reference is given). It is important that you understand the "
-            "difference between these two and choose the right option."
+            "difference between these two and choose the right option. "
+            "If not specified, mutations will not be counted and the mutation-related "
+            "columns in the --tsv output will be zeroes."
         ),
     )
 
@@ -148,7 +149,7 @@ def makeParser():
             "The minimum site mutation rate to report on. Sites with a lower mutation "
             "rate will not be reported. The mutation rate is the fraction of bases at "
             "the site that are not the reference or commonest base (depending on "
-            "the --diffsFrom option)."
+            "the --diffsFrom option, when given)."
         ),
     )
 
@@ -159,7 +160,7 @@ def makeParser():
             "The maximum site mutation rate to report on. Sites with a higher mutation "
             "rate will not be reported. The mutation rate is the fraction of bases at "
             "the site that are not the reference or commonest base (depending on "
-            "the --diffsFrom option)."
+            "the --diffsFrom option, when given)."
         ),
     )
 
@@ -171,7 +172,8 @@ def makeParser():
             "The minimum number of mutant nucleotides that must be present at a site "
             "in order for it to be reported. E.g., if this were set to 4, there would "
             "need to be at least four nucleotides (of any mixture of bases) that were "
-            "not the consensus or reference (depending on the --diffsFrom setting)."
+            "not the consensus or reference (depending on the --diffsFrom setting, "
+            "when given)."
         ),
     )
 
@@ -211,10 +213,10 @@ def makeParser():
             "unless you also specify --noStats or --statsFile. Columns will hopefully "
             "be self-explanatory, but a few clarifying comments will probably be "
             "helpful. 1) The 'Base' column indicates the nucleotide base that was used "
-            "to count mutations. The base used will depend on the value of --diffsFrom. "  # noqa: E501
-            "See the help output for that option. 2) The 'Reference' column will have "
-            "an empty value if no reference sequence was provided. 3) The 'Site' column "  # noqa: E501
-            "gives 1-based indexes into the reference genome."
+            "to count mutations. The base used will depend on the value of --diffsFrom "
+            "(when given). See the help text for that option. 2) The 'Reference' "
+            "column will have an empty value if no reference sequence was provided. "
+            "3) The 'Site' column gives 1-based indexes into the reference genome."
         ),
     )
 
@@ -355,7 +357,7 @@ def analyzeColumn(
     maxIdenticalReadIdsPerSite: int,
     verbosity: int,
     referenceSeq: str | None,
-    diffsFrom: str,
+    diffsFrom: str | None,
 ) -> (
     tuple[
         int,
@@ -402,7 +404,8 @@ def analyzeColumn(
         differences from the reference base (at each genome site) will be treated as
         mutations. If 'commonest', differences from the most common base will be
         treated as mutations (with ties broken in favour of the reference base,
-        if a reference is given).
+        if a reference is given). If C{None}, differences (and therefore mutation
+        rates) cannot and will not be counted.
     @return: A tuple containing the following variables (types are above in the
         typehint), whose names are hopefully self-explanatory:
 
@@ -420,16 +423,15 @@ def analyzeColumn(
 
     # readIds will have read ids as keys, with values that are lists containing:
     #
-    #   the number of times the read has been seen in this column (site).
-    #   the current highest quality for the base for that read at this column (site).
-    #   the base with the best quality.
+    #   - the number of times the read has been seen in this column (site).
+    #   - the current highest quality for the base for that read at this column (site).
+    #   - the base with the best quality.
     #
-    # This information is collected because both reads of a read pair can
-    # overlap the same site.  We want to choose the base that has the highest
-    # quality and to detect if there is somehow more than a single read pair
-    # (with the same read id) matching a site (this could happen if a read
-    # mapping algorithm maps the same read pair more than once and the
-    # regions of the two matches overlaps).
+    # This information is collected because both reads of a read pair can overlap the
+    # same site.  We want to choose the base that has the highest quality and to detect
+    # if there is somehow more than a single read pair (with the same read id) matching
+    # a site (this could happen if a read mapping algorithm maps the same read pair more
+    # than once and the regions of the two matches overlaps).
     readIds: dict[str, list[Any]] = {}
 
     for read in column.pileups:
@@ -462,9 +464,9 @@ def analyzeColumn(
             try:
                 count, previousQuality, previousBase = readIds[readId]
             except KeyError:
-                # We've not seen this read at this site before. Remember the
-                # details so we can compare against them later (in the 'else'
-                # just below) if the read pair also overlaps this site.
+                # We've not seen this read at this site before. Remember the details so
+                # we can compare against them later (in the 'else' just below) if the
+                # read pair also overlaps this site.
                 readIds[readId] = [1, quality, base]
             else:
                 count += 1
@@ -477,8 +479,8 @@ def analyzeColumn(
                         f"{refOffset + 1}. The maximum allowed repeats of the same read "  # noqa: E501
                         f"ID at a site is {maxIdenticalReadIdsPerSite}."
                     )
-                # This is either the read pair or another match of the same
-                # read to this site.
+                # This is either the read pair or another match of the same read to this
+                # site.
                 readIds[readId][0] = count
 
                 if base != previousBase:
@@ -493,12 +495,11 @@ def analyzeColumn(
                                 file=sys.stderr,
                             )
                     elif quality == previousQuality:
-                        # We should probably choose the consensus (or
-                        # reference, if known) base here, if they are among
-                        # the options. But we don't know what the consensus
-                        # base is, yet. This may not be a problem as a later
-                        # read (with the same ID) might have a base with a
-                        # higher quality.
+                        # We should probably choose the consensus (or reference, if
+                        # known) base here, if they are among the options. But we don't
+                        # know what the consensus base is, yet. This may not be a
+                        # problem as a later read (with the same ID) might have a base
+                        # with a higher quality.
                         if verbosity > 1:
                             print(
                                 f"Site {refOffset + 1}: has multiple bases "
@@ -510,19 +511,18 @@ def analyzeColumn(
                                 file=sys.stderr,
                             )
 
-    # Note that if we have paired-end reads and they overlap the site, we count
-    # them both because we are trying to figure out the depth and these are two
-    # independent measurements of the same nucleotide. We could instead just
-    # count them once (like samtools depth -s) but I don't think that's what
-    # depth should really mean, since to me it's about confidence in the nt
-    # found at a location and if we have an overlapping read pair, we should
-    # count each read separately.
+    # Note that if we have paired-end reads and they overlap the site, we count them
+    # both because we are trying to figure out the depth and these are two independent
+    # measurements of the same nucleotide. We could instead just count them once (like
+    # samtools depth -s) but I don't think that's what depth should really mean, since
+    # to me it's about confidence in the nt found at a location and if we have an
+    # overlapping read pair, we should count each read separately.
     nReads = sum(readInfo[0] for readInfo in readIds.values())
 
     if nReads == 0 or (minDepth is not None and nReads < minDepth):
-        # nReads can still be zero at this point because all reads
-        # matching this site have a read.query_position of None (due
-        # to having deletion or reference skips).
+        # nReads can still be zero at this point because all reads matching this site
+        # have a read.query_position of None (due to having deletions or reference
+        # skips).
         if verbosity > 1:
             print(
                 f"Site {refOffset + 1}: skipped due to too few reads ({nReads:,}).",
@@ -536,8 +536,8 @@ def analyzeColumn(
 
     assert nReads == sum(bases.values())
 
-    # Set an initial nonsense entropy value to keep type checking from
-    # warning that the variable may be unbound.
+    # Set an initial nonsense entropy value to keep type checking from warning that the
+    # variable may be unbound.
     entropy = -1.0
 
     nt = []
@@ -567,33 +567,35 @@ def analyzeColumn(
     if diffsFrom == "reference":
         assert refBase is not None
         fromBase = refBase
-    else:
-        # Find the base with the highest count. This is the 'from' base
-        # (i.e., the originally existing base that was mutated from something
-        # to something else). Ties are broken in favour of the reference base
-        # (if there is no reference, the second value in the compared tuples
-        # will always be False (because refBase will be None)). If there are
-        # two equally frequent bases, neither of which is the reference (if
-        # known), the tie is broken in favour of the alphabetically first
-        # base.
+    elif diffsFrom == "commonest":
+        # Find the base with the highest count. This is the 'from' base (i.e., the
+        # originally existing base that was mutated from something to something
+        # else). Ties are broken in favour of the reference base (if there is no
+        # reference, the second value in the compared tuples will always be False
+        # (because refBase will be None)). If there are two equally frequent bases,
+        # neither of which is the reference (if known), the tie is broken in favour of
+        # the alphabetically first base.
         fromBase = max(
             (count, int(base == refBase), base) for (base, count) in bases.items()
         )[2]
+    else:
+        assert diffsFrom is None
+        fromBase = None
 
     mutationCount = 0
+    mutationRate = 0.0
     mutationPairCounts: dict[str, int] = defaultdict(int)
 
-    try:
+    # The following test will fail if we are not counting differences (fromBase is None)
+    # or if the reference has a non-ACGT base.
+    #
+    # In the latter case, we can't calculate a mutation rate in a reliable/easy way, so
+    # we leave the mutation rate as 0.0. An alternative would be to get the possible
+    # bases and to count the reads which differ from all the possible bases as being
+    # mutations and the rest not. But we still couldn't individually categorize them in
+    # mutationPairCounts.
+    if fromBase in bases:
         mutationRate = 1.0 - bases[fromBase] / nReads
-    except KeyError:
-        # The reference might have a non-ACGT base. If so, we can't calculate a
-        # mutation rate in a reliable/easy way, so we set it to 0.0. An
-        # alternative would be to get the possible bases and to count the reads
-        # which differ from all the possible bases as being mutations and the
-        # rest not. But we still couldn't individually categorize them in
-        # mutationPairCounts.
-        mutationRate = 0.0
-    else:
         mutationCount = sum(bases.values()) - bases[fromBase]
         for base in BASES:
             if base != fromBase and (count := bases[base]):
@@ -632,8 +634,13 @@ def analyzeColumn(
                 )
             return
 
-    # The number of bases at the site is the 'from' base, plus the bases it
-    # has mutated to. Hence the + 1 in the following test.
+    # The number of bases at the site is the 'from' base, plus the bases it has mutated
+    # to. Hence the + 1 in the following test.
+    #
+    # This code block could arguably be indented one level because if diffsFrom is None,
+    # then mutationPairCounts dict will always be empty. In that case we'll fail here if
+    # the user specified minBases > 1, but that's what they've explicitly asked for so
+    # let's fail.
     if len(mutationPairCounts) + 1 < minBases:
         if verbosity > 1:
             print(
@@ -687,8 +694,7 @@ def makeRow(
 
     row = (
         [refOffset + 1, refBase, nReads]
-        # Don't use bases.values() in the following, because we need bases in
-        # ACGT order.
+        # Don't use bases.values() in the following: we need bases in ACGT order.
         + [bases[base] for base in BASES]
         + [
             fromBase,
@@ -737,7 +743,7 @@ def processWindowColumns(
     referenceSeq: str | None,
     returnList: bool,
     startTime: float,
-    diffsFrom: str,
+    diffsFrom: str | None,
 ) -> dict[str, Any]:
     """
     Process all columns in a subsection (window) of the genome.
@@ -779,7 +785,8 @@ def processWindowColumns(
         differences from the reference base (at each genome site) will be treated as
         mutations. If 'commonest', differences from the most common base will be
         treated as mutations (with ties broken in favour of the reference base,
-        if a reference is given).
+        if a reference is given). If C{None}, differences (and therefore mutation
+        rates) cannot and will not be counted.
     """
     startTime = time()
     allReadIds = set()
@@ -796,11 +803,10 @@ def processWindowColumns(
             reference=referenceId,
             truncate=True,
             max_depth=maxDepth,
-            # We could add a --samtools option to use samtools-compatible
-            # behavior. But see the warning about also needing to pass a
-            # fastafile argument in that case at
-            # https://pysam.readthedocs.io/en/latest/
-            # api.html#pysam.AlignmentFile.pileup
+            # We could add a --samtools option to use samtools-compatible behavior. But
+            # see the warning about also needing to pass a fastafile argument in that
+            # case at
+            # https://pysam.readthedocs.io/en/latest/api.html#pysam.AlignmentFile.pileup
             #
             # stepper="samtools",
             min_base_quality=minBaseQuality,  # Equivalent to samtools depth -Q
@@ -848,10 +854,10 @@ def processWindowColumns(
             if diffsFrom == "commonest":
                 assert columnBaseCounts[fromBase] >= max(columnBaseCounts.values())
 
-            # We cannot assert 'column.get_num_aligned() != nReads' here because
-            # some of the reads may have been filtered out due to being
-            # insertions or reference skips (deletions). See 'assert read.is_del
-            # or read.is_refskip' in analyze_column above.
+            # We cannot assert 'column.get_num_aligned() != nReads' here because some of
+            # the reads may have been filtered out due to being insertions or reference
+            # skips (deletions). See 'assert read.is_del or read.is_refskip' in
+            # analyze_column above.
 
             depths.append(nReads)
             allReadIds.update(columnReadIds)
@@ -913,29 +919,29 @@ def processWindowColumns(
 
 
 def printStats(
-    statsFile,
-    samfile,
-    minDepth,
-    maxDepth,
-    diffsFrom,
-    minBases,
-    maxIdenticalReadIdsPerSite,
-    minBaseQuality,
-    minMapQuality,
-    referenceSeq,
-    referenceId,
-    referenceLen,
-    startGMT,
-    elapsed,
-    readIds,
-    depths,
-    minSiteMutationRate,
-    maxSiteMutationRate,
-    minSiteMutationCount,
-    minEntropy,
-    maxEntropy,
-    totalBaseCounts,
-    mutationPairCounts,
+    statsFile: str,
+    samfile: str,
+    minDepth: int,
+    maxDepth: int,
+    diffsFrom: str | None,
+    minBases: int,
+    maxIdenticalReadIdsPerSite: int,
+    minBaseQuality: int,
+    minMapQuality: int,
+    referenceSeq: str | None,
+    referenceId: str,
+    referenceLen: int,
+    startGMT: str,
+    elapsed: float,
+    readIds: set[str],
+    depths: list[int],
+    minSiteMutationRate: float,
+    maxSiteMutationRate: float,
+    minSiteMutationCount: int,
+    minEntropy: float,
+    maxEntropy: float,
+    totalBaseCounts: dict[str, int],
+    mutationPairCounts: dict[str, int],
 ) -> None:
     """
     Print a summary of the run. See the docstrings elsewhere if you want to know what
@@ -956,13 +962,14 @@ def printStats(
         print("  Quality:")
         print("    Min base quality:", minBaseQuality)
         print("    Min mapping quality:", minMapQuality)
-        print("  Mutation (by site):")
-        print("    Counts are relative to:", diffsFrom)
-        print("    Min mutation rate:", minSiteMutationRate)
-        print("    Max mutation rate:", maxSiteMutationRate)
-        print(f"    Min entropy: {minEntropy:.5f}")
-        print(f"    Max entropy: {maxEntropy:.5f}")
-        print(f"    Min non-{diffsFrom} nucleotides:", minSiteMutationCount)
+        if diffsFrom:
+            print("  Mutation (by site):")
+            print("    Counts are relative to:", diffsFrom)
+            print("    Min mutation rate:", minSiteMutationRate)
+            print("    Max mutation rate:", maxSiteMutationRate)
+            print(f"    Min entropy: {minEntropy:.5f}")
+            print(f"    Max entropy: {maxEntropy:.5f}")
+            print(f"    Min non-{diffsFrom} nucleotides:", minSiteMutationCount)
         print("    Min different nucleotides:", minBases)
         print("Result:")
         print("  Timing:")
@@ -1033,14 +1040,40 @@ def main() -> None:
     referenceLens = samReferenceLengths(args.samfile)
     referenceId = getReferenceId(args.samfile, set(referenceLens), args.referenceId)
     referenceLen = referenceLens[referenceId]
-    referenceSeq = getReferenceSeq(args.fasta, referenceId) if args.fasta else None
+
+    if args.fasta:
+        referenceSeq = getReferenceSeq(args.fasta, referenceId)
+        if len(referenceSeq) != referenceLen:
+            sys.exit(
+                f"The reference {referenceId!r} in {args.fasta!r} has length "
+                f"{len(referenceSeq)}, but this does not match the length "
+                f"({referenceLen}) of that reference as found in the header of "
+                f"{args.samfile!r}."
+            )
+
+        if args.diffsFrom is None:
+            # --fasta was used to give a reference, so --diffsFrom 'reference' is
+            # implied.
+            args.diffsFrom == "reference"
+        elif args.diffsFrom == "commonest":
+            sys.exit(
+                "Using --fasta to give a reference sequence and also using "
+                "--diffsFrom 'commonest' suggests that you might be confused about "
+                "the two options. Giving a reference via --fasta is required when "
+                "you use --diffsFrom 'reference', but is not used in any other "
+                "circumstance. Re-run either with no --fasta option or with "
+                "--diffsFrom 'reference'."
+            )
+        else:
+            assert args.diffsFrom == "reference"
+
+    else:
+        referenceSeq = None
 
     if args.diffsFrom == "reference" and referenceSeq is None:
         sys.exit(
-            "If you use --diffsFrom 'reference' (the default), you must use --fasta to "
-            "give a FASTA file containing the reference sequence. Else use --diffsFrom "
-            "'commonest' to calculate mutations based on the most-common nucleotide "
-            "at each genome site."
+            "If you use --diffsFrom 'reference', you must also use --fasta to give a "
+            "FASTA file containing the reference sequence."
         )
 
     printTSV = csv.writer(sys.stdout, delimiter=args.sep).writerow if args.tsv else None
