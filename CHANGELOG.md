@@ -1,3 +1,9 @@
+## 7.1.11 January 23, 2026
+
+Added `sam-match-lengths.py` script to print the lengths of the
+matching part of queries in a SAM/BAM file and/or statistics about the
+amount of soft-clipping found.
+
 ## 7.1.10 January 23, 2026
 
 Made `sam-coverage-depth.py` check for conflicting reference lengths

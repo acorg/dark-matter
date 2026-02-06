@@ -4,7 +4,6 @@ import csv
 import sys
 from collections import defaultdict
 from operator import itemgetter
-from typing import Union
 
 from dark.dna import AMBIGUOUS
 from dark.reads import addFASTACommandLineOptions, parseFASTACommandLineOptions
@@ -167,7 +166,7 @@ if __name__ == "__main__":
         data = sorted(data, key=key, reverse=args.reverse)
 
     for d in data:
-        line: list[Union[str, int]] = [d["id"]] if args.printNames else []
+        line: list[str | int] = [d["id"]] if args.printNames else []
         line.append(d["length"] if header else f"length:{d['length']}")
         line.append(d["not-covered"] if header else f"not-covered:{d['not-covered']}")
         line.append(d["coverage"] if header else f"coverage:{d['coverage']}")

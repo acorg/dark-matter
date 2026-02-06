@@ -281,7 +281,9 @@ def main():
 
         ivarConsensusFile = join(tempdir, "temporary-consensus")
         result = e.execute(
-            f"samtools mpileup -A -Q 0 {bamFile!r} | "
+            # The samtools mpileup args were set on 2026-01-21 by Terry after looking at
+            # the output of samtools mpileup (version 1.23).
+            f"samtools mpileup -d 0 -aa -A -Q 0 {bamFile!r} | "
             f"ivar consensus -p {ivarConsensusFile!r} -q 20 "
             f"-t {args.ivarFrequencyThreshold!r} -m {args.maskLowCoverage!r}"
         )
