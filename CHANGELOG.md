@@ -1,3 +1,7 @@
+## 7.1.12 January 23, 2026
+
+Added shebang line to `sam-match-lengths.py`.
+
 ## 7.1.11 January 23, 2026
 
 Added `sam-match-lengths.py` script to print the lengths of the
