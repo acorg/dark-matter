@@ -822,7 +822,6 @@ def main():
 
     parser.add_argument(
         "--fastaFile2",
-        type=open,
         metavar="FILENAME",
         help=(
             "The name of a second FASTA input file. If no second FASTA "

@@ -1,6 +1,14 @@
+## 7.1.14 January 23, 2026
+
+Fixed tiny bug in `bin/fasta-identity-table.py` due to switch to `prseq` (which
+needs files to be opened in binary mode).
+
 ## 7.1.13 January 23, 2026
 
-Several small changes. In the SqliteIndexWriter special casing ignoring genomes (from NCBI genbank files) with sequence at all and avoiding proteins that have zero length. Dealing with genbank files that have CDS regions with no 'strand' attribute.
+Several small changes. In the `SqliteIndexWriter` special casing
+ignoring genomes (from NCBI genbank files) with no sequence at all and
+avoiding proteins that have zero length. Dealing with genbank files
+that have features with CDS regions with no 'strand' attribute.
 
 ## 7.1.12 January 23, 2026
 
