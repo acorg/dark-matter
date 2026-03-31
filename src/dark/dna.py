@@ -99,19 +99,19 @@ def translatable(seq: str) -> bool:
 
 
 def matchToString(
-    dnaMatch,
+    dnaMatch: dict[str, dict[str, int | list[int]]],
     read1,
     read2,
-    matchAmbiguous=True,
-    indent="",
-    offsets=None,
-    includeGapLocations=True,
-    includeNoCoverageLocations=True,
-    includeAmbiguousMatches=False,
-    includeNonGapMismatches=False,
-    includeDifferenceCounts=False,
-    includeDifferenceLocations=False,
-):
+    matchAmbiguous: bool = True,
+    indent: str = "",
+    offsets: tuple[int, int] | None = None,
+    includeGapLocations: bool = True,
+    includeNoCoverageLocations: bool = True,
+    includeAmbiguousMatches: bool = False,
+    includeNonGapMismatches: bool = False,
+    includeDifferenceCounts: bool = False,
+    includeDifferenceLocations: bool = False,
+) -> str:
     """
     Format a DNA match as a string.
 
@@ -308,7 +308,7 @@ def matchToString(
 
 def compareDNAReads(
     read1, read2, matchAmbiguous=True, gapChars="-", noCoverageChars=None, offsets=None
-):
+) -> dict[str, dict[str, int | list[int]]]:
     """
     Compare two DNA sequences.
 

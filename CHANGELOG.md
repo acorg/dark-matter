@@ -1,3 +1,7 @@
+## 7.1.13 January 23, 2026
+
+Several small changes. In the SqliteIndexWriter special casing ignoring genomes (from NCBI genbank files) with sequence at all and avoiding proteins that have zero length. Dealing with genbank files that have CDS regions with no 'strand' attribute.
+
 ## 7.1.12 January 23, 2026
 
 Added shebang line to `sam-match-lengths.py`.

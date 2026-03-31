@@ -372,24 +372,33 @@ def getCDSInfo(
         )
         return
 
-    strand = feature.strand
+    try:
+        # The strand attribute is no longer (2026-03-31) present on all CDS features.
+        strand = feature.strand
+    except AttributeError:
+        orientations = ranges.orientations()
+        if orientations == {True}:
+            strand = 1
+        elif orientations == {False}:
+            strand = -1
+        else:
+            strand = None
+
     if strand is None:
-        # The strands of the protein in the genome are not all the same
-        # (see Bio.SeqFeature.CompoundLocation._get_strand).  The
-        # protein is formed by the combination of reading one strand in
-        # one direction and the other in the other direction.
+        # The strands of the protein in the genome are not all the same (see
+        # Bio.SeqFeature.CompoundLocation._get_strand).  The protein is formed by the
+        # combination of reading one strand in one direction and the other in the other
+        # direction.
         #
-        # This occurs just once in all 1.17M proteins found in all 700K
-        # RVDB (C-RVDBv15.1) genomes, for protein YP_656697.1 on the
-        # Ranid herpesvirus 1 strain McKinnell genome (NC_008211.1).
+        # This occurs just once in all 1.17M proteins found in all 700K RVDB
+        # (C-RVDBv15.1) genomes, for protein YP_656697.1 on the Ranid herpesvirus 1
+        # strain McKinnell genome (NC_008211.1).
         #
-        # This situation makes turning DIAMOND protein output into
-        # SAM very complicated because a match on such a protein
-        # cannot be stored as a SAM linear alignment. It instead
-        # requires a multi-line 'supplementary' alignment. The code
-        # and tests for that are more complex than I want to deal
-        # with at the moment, just for the sake of one protein in a
-        # frog herpesvirus.
+        # This situation makes turning DIAMOND protein output into SAM very complicated
+        # because a match on such a protein cannot be stored as a SAM linear
+        # alignment. It instead requires a multi-line 'supplementary' alignment. The
+        # code and tests for that are more complex than I want to deal with at the
+        # moment, just for the sake of one protein in a frog herpesvirus.
         warn(
             "Genome %s (accession %s) has protein %r with mixed "
             "orientation!" % (genome.description, genome.id, proteinId)

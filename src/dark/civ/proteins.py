@@ -1865,7 +1865,20 @@ class SqliteIndexWriter:
                 # The lack of a source is logged by getSourceInfo.
                 continue
 
-            genomeLength = len(str(genome.seq))
+            try:
+                genomeLength = len(str(genome.seq))
+            except Exception:
+                # There are four (all phages) cases of genomes with no sequence (as of
+                # 2026-03-31).
+                if genome.id in {
+                    "NG_242637.1",
+                    "NG_245154.1",
+                    "NG_245155.1",
+                    "NG_242638.1",
+                }:
+                    continue
+                else:
+                    sys.exit(f"Could not get length of genome {genome!r}.")
 
             if logfp:
                 print("\n%s: %s" % (genome.id, genome.description), file=logfp)
@@ -2059,9 +2072,16 @@ class SqliteIndexWriter:
                                 )
                                 continue
 
-            proteinCount = len(list(self._genomeProteins(genome)))
+            proteinCount = self.addProteins(
+                genome,
+                source,
+                proteinSource=proteinSource,
+                genomeSource=genomeSource,
+                duplicationPolicy=duplicationPolicy,
+                logfp=logfp,
+            )
 
-            if self.addGenome(
+            self.addGenome(
                 genome,
                 source,
                 taxonomyId,
@@ -2069,29 +2089,21 @@ class SqliteIndexWriter:
                 databaseName,
                 duplicationPolicy=duplicationPolicy,
                 logfp=logfp,
-            ):
-                self.addProteins(
-                    genome,
-                    source,
-                    proteinSource=proteinSource,
-                    genomeSource=genomeSource,
-                    duplicationPolicy=duplicationPolicy,
-                    logfp=logfp,
-                )
+            )
 
-                addedProteinCount += proteinCount
-                addedGenomeCount += 1
+            addedProteinCount += proteinCount
+            addedGenomeCount += 1
 
-                print(
-                    "  Added %s (%s) with %d protein%s to database."
-                    % (
-                        genome.id,
-                        genome.description,
-                        proteinCount,
-                        "" if proteinCount == 1 else "s",
-                    ),
-                    file=logfp,
-                )
+            print(
+                "  Added %s (%s) with %d protein%s to database."
+                % (
+                    genome.id,
+                    genome.description,
+                    proteinCount,
+                    "" if proteinCount == 1 else "s",
+                ),
+                file=logfp,
+            )
 
         return examinedGenomeCount, addedGenomeCount, addedProteinCount
 
@@ -2181,7 +2193,7 @@ class SqliteIndexWriter:
         genomeSource="GENBANK",
         duplicationPolicy="error",
         logfp=None,
-    ):
+    ) -> int:
         """
         Add proteins from a Genbank genome record to the proteins database and
         write out their sequences to the proteins FASTA file (in
@@ -2208,10 +2220,18 @@ class SqliteIndexWriter:
         @raise DatabaseDuplicationError: If a duplicate accession number is
             encountered and C{duplicationPolicy} is 'error'.
         """
+        addedCount = 0
         genomeLen = len(genome.seq)
 
+        # Write FASTA for each protein.
         for fInfo in self._genomeProteins(genome, logfp=logfp):
-            # Write FASTA for the protein.
+            translation = fInfo["translation"]
+
+            if len(translation) == 0:
+                if logfp:
+                    print("  Protein translation of zero length. Skipping.", file=logfp)
+                continue
+
             seqId = self.SEQUENCE_ID_SEPARATOR.join(
                 (
                     self.SEQUENCE_ID_PREFIX,
@@ -2224,14 +2244,14 @@ class SqliteIndexWriter:
             )
 
             print(
-                ">%s [%s]\n%s" % (seqId, source["organism"], fInfo["translation"]),
+                ">%s [%s]\n%s" % (seqId, source["organism"], translation),
                 file=self._fastaFp,
             )
 
             self.addProtein(
                 fInfo["proteinId"],
                 genome.id,
-                fInfo["translation"],
+                translation,
                 fInfo["featureLocation"],
                 fInfo["forward"],
                 fInfo["circular"],
@@ -2242,6 +2262,11 @@ class SqliteIndexWriter:
                 duplicationPolicy=duplicationPolicy,
                 logfp=logfp,
             )
+
+            addedCount += 1
+
+        return addedCount
+
 
     def addProtein(
         self,

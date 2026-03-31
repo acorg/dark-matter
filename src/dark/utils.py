@@ -11,14 +11,14 @@ from pathlib import Path
 from re import compile
 from statistics import median as _median
 from time import gmtime, strftime
-from typing import Iterable, List, Optional
+from typing import Iterable
 
 from sklearn.metrics.cluster import entropy
 
 from dark import File
 
 
-def numericallySortFilenames(names: List[str]) -> List[str]:
+def numericallySortFilenames(names: list[str]) -> list[str]:
     """
     Sort (ascending) a list of file names by their numerical prefixes.
     The number sorted on is the numeric prefix of the basename of
@@ -214,7 +214,7 @@ def nucleotidesToStr(nucleotides, prefix=""):
     return "\n".join(result)
 
 
-def countPrint(mesg: str, count: int, len1: int, len2: Optional[int] = None) -> str:
+def countPrint(mesg: str, count: int, len1: int, len2: int | None = None) -> str:
     """
     Format a message followed by an integer count and a percentage (or
     two, if the sequence lengths are unequal).
