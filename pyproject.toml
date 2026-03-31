@@ -26,7 +26,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "biopython>=1.83",
+    "bio>=1.8.1",
+    "biopython>=1.87",
     "bz2file>=0.98",
     "cachetools>=5.5.2",
     "Cython>=0.29.16",
