@@ -2171,12 +2171,12 @@ class Reads:
 
         Returns a 3-tuple containing:
 
-          1) A ReadsInRAM instance, containing all the sequences in self trimmed
-             according to the location of the start of the prefix and end of the
-             suffix. If no prefix is given, the sequences will start from their
+          1) A ReadsInRAM instance, containing all the sequences in self, trimmed
+             according to the location of the start of C{prefix} and end of
+             C{suffix}. If no prefix is given, the sequences will start from their
              beginning, and if no suffix is given they will end at their end.
-          2) A 2-tuple with the int start offset of the prefix (or -1 if no prefix
-             is given) and the offset of the character after the end of the
+          2) A 2-tuple with the zero-based int start offset of the prefix (or -1 if no
+             prefix is given) and the offset of the character after the end of the
              suffix (or -1 if no suffix is given).
           3) A list of details of the offsets of the start-of-prefix and end-of-suffix
              matches (or -1 if there was no match). The list elements are 3-tuples,
