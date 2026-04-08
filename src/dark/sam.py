@@ -151,6 +151,78 @@ def samReferencesToStr(filenameOrSamfile: str | AlignmentFile, indent: int = 0) 
         return _references(filenameOrSamfile)
 
 
+def coverageDepth(
+    filename: str, reference: str | None = None
+) -> tuple[str, list[int]]:
+    """
+    Compute per-base coverage depth for a reference in a SAM/BAM file.
+
+    @param filename: A C{str} SAM/BAM file name.
+    @param reference: An optional C{str} reference sequence name. If C{None},
+        the reference is auto-detected from the aligned reads. Auto-detection
+        fails with C{UnspecifiedReference} if reads map to more than one
+        reference or if no mapped reads are found.
+    @raise UnknownReference: If a C{reference} is given but is not in the file.
+    @raise UnspecifiedReference: If no reference is given and the aligned reads
+        map to more than one reference, or if no mapped reads are found.
+    @return: A 2-tuple of (reference_name, depth) where reference_name is the
+        C{str} reference that was used and depth is a C{list} of C{int} depths,
+        one per reference base (0-based indexed), with zeros at uncovered positions.
+    """
+    with samfile(filename) as sam:
+        referenceLengths = samReferenceLengths(sam)
+
+        if reference is not None:
+            if reference not in referenceLengths:
+                raise UnknownReference(
+                    f"Reference {reference!r} is not present in the SAM/BAM file."
+                )
+            length = referenceLengths[reference]
+            depth = [0] * length
+            for read in sam.fetch():
+                if read.is_unmapped or read.reference_id < 0:
+                    continue
+                if sam.get_reference_name(read.reference_id) != reference:
+                    continue
+                for pos in read.get_reference_positions():
+                    if 0 <= pos < length:
+                        depth[pos] += 1
+            return reference, depth
+
+        # Auto-detect reference from aligned reads (ignoring SAM header).
+        detected: str | None = None
+        depth_counts: defaultdict[int, int] = defaultdict(int)
+
+        for read in sam.fetch():
+            if read.is_unmapped or read.reference_id < 0:
+                continue
+            read_ref = sam.get_reference_name(read.reference_id)
+            if detected is None:
+                detected = read_ref
+            elif read_ref != detected:
+                raise UnspecifiedReference(
+                    f"SAM/BAM file contains reads mapped to multiple references "
+                    f"({detected!r} and {read_ref!r}). Pass a reference name to "
+                    f"select one."
+                )
+            for pos in read.get_reference_positions():
+                depth_counts[pos] += 1
+
+        if detected is None:
+            raise UnspecifiedReference(
+                "No mapped reads found in the SAM/BAM file; cannot auto-detect "
+                "reference."
+            )
+
+        length = referenceLengths[detected]
+        depth = [0] * length
+        for pos, count in depth_counts.items():
+            if 0 <= pos < length:
+                depth[pos] = count
+
+        return detected, depth
+
+
 def _hardClip(sequence, quality, cigartuples):
     """
     Hard clip (if necessary) a sequence.
