@@ -258,7 +258,6 @@ then
     echo "./redo.sh $redo"
 fi
 """
-            % params
         )
 
     # Make the script executable so we can run it.

@@ -1,6 +1,6 @@
 [project]
 name = "dark-matter"
-version = "7.1.15"
+version = "7.1.16"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
@@ -79,7 +79,7 @@ exclude = [
 dev = [
     "nox>=2025.5.1",
     "pytest>=8.3.5",
-    "ruff>=0.13.3",
+    "ruff>=0.15.9",
 ]
 
 [project.urls]

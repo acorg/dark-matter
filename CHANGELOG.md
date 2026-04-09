@@ -1,3 +1,8 @@
+## 7.1.16 April 9, 2026
+
+Copied undocumented and now-deprecated `sklearn.metrics.cluster`
+`entropy` function so we can continue to use it.
+
 ## 7.1.15 January 23, 2026
 
 Added Claude-written `bin/plot-sam-coverage-depth.py` and tests.
