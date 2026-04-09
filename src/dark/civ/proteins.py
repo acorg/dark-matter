@@ -2228,7 +2228,6 @@ class SqliteIndexWriter:
 
         return addedCount
 
-
     def addProtein(
         self,
         accession,

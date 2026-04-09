@@ -13,7 +13,10 @@ from statistics import median as _median
 from time import gmtime, strftime
 from typing import Iterable
 
-from sklearn.metrics.cluster import entropy
+from sklearn.utils._array_api import (
+    _max_precision_float_dtype,
+    get_namespace_and_device,
+)
 
 from dark import File
 
@@ -184,6 +187,54 @@ def parseRangeExpression(s, convertToZeroBased=False):
         return eval(expr)
     except Exception:
         raise ValueError(expr)
+
+
+def parseStartEndLabelColor(
+    regionStr: str,
+) -> tuple[int | None, int | None, str | None, str | None]:
+    """
+    Parse a --region argument of the form start:end[:label[:color]].
+
+    @param regionStr: A C{str} region specification.
+    @raise ValueError: If the region string is malformed.
+    @return: A 4-tuple of (start, end, label, color) where start and end are
+        0-based C{int} offsets in the Python [closed, open) range form,
+        label is a C{str} or C{None}, and color is a C{str} or C{None}.
+    """
+    parts = regionStr.split(":", 3)
+    if len(parts) < 2:
+        raise ValueError(
+            f"Region {regionStr!r} must contain at least a start and end "
+            f"(e.g., '100:200')."
+        )
+    if parts[0]:
+        try:
+            # Adjust to zero-based.
+            start = int(parts[0]) - 1
+        except ValueError:
+            raise ValueError(f"Region {regionStr!r} start must be an integer.")
+        if start < 1:
+            raise ValueError(f"Region {regionStr!r} start must be >= 1.")
+    else:
+        start = None
+
+    if parts[1]:
+        try:
+            end = int(parts[1])
+        except ValueError:
+            raise ValueError(f"Region {regionStr!r} end must be an integer.")
+    else:
+        end = None
+
+    if start is not None and end is not None and end < start:
+        raise ValueError(
+            f"Region {regionStr!r} end ({end}) must be >= start ({start})."
+        )
+
+    label = parts[2] if len(parts) > 2 else None
+    color = parts[3] if len(parts) > 3 else None
+
+    return start, end, label, color
 
 
 def baseCountsToStr(counts: dict[str, int]) -> str:
@@ -452,5 +503,77 @@ def gmt() -> str:
 _LOG2 = log(2.0)
 
 
+LOG2 = log(2.0)
+
+
+def entropy(labels):
+    """Calculate the entropy for a labeling.
+
+    Parameters
+    ----------
+    labels : array-like of shape (n_samples,), dtype=int
+        The labels.
+
+    Returns
+    -------
+    entropy : float
+       The entropy for a labeling.
+
+    Notes
+    -----
+    The logarithm used is the natural logarithm (base-e).
+
+    """
+    # This code is a copy of the 'entropy' function from
+    # sklearn/metrics/cluster/_supervised.py in versions prior to 1.8. It was renamed to
+    # _entropy in 1.8 and deprecated because it was undocumented. But I (Terry) was
+    # using it. So I took a copy on 2026-03-31 to use here.
+
+    xp, is_array_api_compliant, device_ = get_namespace_and_device(labels)
+    labels_len = labels.shape[0] if is_array_api_compliant else len(labels)
+
+    if labels_len == 0:
+        return 1.0
+
+    pi = xp.astype(xp.unique_counts(labels)[1], _max_precision_float_dtype(xp, device_))
+
+    # single cluster => zero entropy
+    if pi.size == 1:
+        return 0.0
+
+    pi_sum = xp.sum(pi)
+    # log(a / b) should be calculated as log(a) - log(b) for
+    # possible loss of precision
+    # Always convert the result as a Python scalar (on CPU) instead of a device
+    # specific scalar array.
+    return float(-xp.sum((pi / pi_sum) * (xp.log(pi) - log(pi_sum))))
+
+
 def entropy2(labels: Iterable[str]) -> float:
     return entropy(labels) / _LOG2
+
+
+def assignRegionRows(regions: list) -> list[int]:
+    """
+    Assign each region to a row (0 = closest to y=0) using a greedy
+    interval-scheduling algorithm so that no two regions in the same row
+    overlap horizontally.
+
+    @param regions: A list of (start, end, label, color) tuples.
+    @return: A C{list} of 0-based C{int} row indices, one per region.
+    """
+    # Sort by start position so that non-overlapping regions are always
+    # considered in left-to-right order, regardless of input order.
+    indexed = sorted(enumerate(regions), key=lambda x: x[1][0])
+    rowEnds: list[int] = []
+    assignments = [0] * len(regions)
+    for orig_idx, (start, end, _, _) in indexed:
+        for i, rowEnd in enumerate(rowEnds):
+            if start > rowEnd:
+                rowEnds[i] = end
+                assignments[orig_idx] = i
+                break
+        else:
+            assignments[orig_idx] = len(rowEnds)
+            rowEnds.append(end)
+    return assignments

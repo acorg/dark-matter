@@ -151,6 +151,79 @@ def samReferencesToStr(filenameOrSamfile: str | AlignmentFile, indent: int = 0) 
         return _references(filenameOrSamfile)
 
 
+def coverageDepth(filename: str, reference: str | None = None) -> tuple[str, list[int]]:
+    """
+    Compute per-base coverage depth for a reference in a SAM/BAM file.
+
+    @param filename: A C{str} SAM/BAM file name.
+    @param reference: An optional C{str} reference sequence name. If C{None},
+        the reference is auto-detected from the aligned reads. Auto-detection
+        fails with C{UnspecifiedReference} if reads map to more than one
+        reference or if no mapped reads are found.
+    @raise UnknownReference: If a C{reference} is given but is not in the file.
+    @raise UnspecifiedReference: If no reference is given and the aligned reads
+        map to more than one reference, or if no mapped reads are found.
+    @return: A 2-tuple of (reference_name, depth) where reference_name is the
+        C{str} reference that was used and depth is a C{list} of C{int} depths,
+        one per reference base (0-based indexed), with zeros at uncovered positions.
+    """
+    depthCounts = defaultdict(int)
+
+    with samfile(filename) as sam:
+        referenceLengths = samReferenceLengths(sam)
+
+        if reference is None:
+            inferReference = checkReferences = True
+            contig = None
+        else:
+            if reference not in referenceLengths:
+                raise UnknownReference(
+                    f"Reference {reference!r} is not present in the SAM/BAM file."
+                )
+            inferReference = False
+            checkReferences = filename.lower().endswith(".sam")
+            contig = None if checkReferences else reference
+
+        for read in sam.fetch(contig=contig):
+            if read.is_unmapped:
+                continue
+
+            if checkReferences:
+                if read.reference_id < 0:
+                    continue
+
+                readReference = sam.get_reference_name(read.reference_id)
+                if reference is None:
+                    reference = readReference
+                elif readReference != reference:
+                    if inferReference:
+                        raise UnspecifiedReference(
+                            f"SAM/BAM file has reads mapped to multiple references "
+                            f"({reference!r} and {readReference!r}). Pass a reference "
+                            "name to specify one."
+                        )
+                    else:
+                        # We are looking for a specific reference and this isn't it, so
+                        # we just continue. This occurs when a reference name was given
+                        # but the input file was SAM (which doesn't allow sam.fetch to
+                        # be passed a reference name).
+                        continue
+
+            for pos in read.get_reference_positions():
+                depthCounts[pos] += 1
+
+        if reference is None:
+            raise UnspecifiedReference("No mapped reads found in the SAM/BAM file.")
+
+        length = referenceLengths[reference]
+        depth = [0] * length
+        for pos, count in depthCounts.items():
+            if 0 <= pos < length:
+                depth[pos] = count
+
+        return reference, depth
+
+
 def _hardClip(sequence, quality, cigartuples):
     """
     Hard clip (if necessary) a sequence.

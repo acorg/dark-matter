@@ -2,6 +2,19 @@
 
 Tiny cosmetic clean-ups using f-strings and added some output whitespace indentation.
 
+## 7.1.17 April 9, 2026
+
+Fix two bugs in `bin/fasta-identity-table.py`.
+
+## 7.1.16 April 9, 2026
+
+Copied undocumented and now-deprecated `sklearn.metrics.cluster`
+`entropy` function so we can continue to use it.
+
+## 7.1.15 January 23, 2026
+
+Added Claude-written `bin/plot-sam-coverage-depth.py` and tests.
+
 ## 7.1.14 January 23, 2026
 
 Fixed tiny bug in `bin/fasta-identity-table.py` due to switch to `prseq` (which

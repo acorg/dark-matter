@@ -20,7 +20,8 @@ if __name__ == "__main__":
             blastRecords.records(),
             10,
             10,
-            find=lambda title: title.find("HKU4") > -1
-            and title.find("complete genome") > -1,
+            find=lambda title: (
+                title.find("HKU4") > -1 and title.find("complete genome") > -1
+            ),
             titles=False,
         )

@@ -4,7 +4,6 @@ import argparse
 import sys
 from collections import defaultdict
 from operator import itemgetter
-from typing import Dict
 
 from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads
@@ -106,33 +105,27 @@ def parseColors(colors, defaultColor):
                 try:
                     threshold = float(threshold)
                 except ValueError:
-                    print(
+                    sys.exit(
                         "--color arguments must be given as space-separated "
-                        'pairs of "value color" where the value is a '
-                        "numeric identity threshold. Your value %r is not "
-                        "numeric." % threshold,
-                        file=sys.stderr,
+                        'pairs of "value color" where the value is a numeric '
+                        f"identity threshold. Your value {threshold!r} is not numeric."
                     )
-                    sys.exit(1)
+
                 if 0.0 > threshold > 1.0:
-                    print(
+                    sys.exit(
                         "--color arguments must be given as space-separated "
                         'pairs of "value color" where the value is a '
                         "numeric identity threshold from 0.0 to 1.0. Your "
-                        "value %r is not in that range." % threshold,
-                        file=sys.stderr,
+                        f"value {threshold!r} is not in that range."
                     )
-                    sys.exit(1)
 
                 result.append((threshold, color))
             else:
-                print(
-                    "--color arguments must be given as space-separated "
-                    'pairs of "value color". You have given %r, which does '
-                    "not contain a space." % colorInfo,
-                    file=sys.stderr,
+                sys.exit(
+                    "--color arguments must be given as space-separated pairs of "
+                    '"value color". You have given {colorInfo!r}, which does not '
+                    "contain a space."
                 )
-                sys.exit(1)
 
     result.sort(key=itemgetter(0), reverse=True)
 
@@ -269,8 +262,8 @@ def dataCell(
     rowId: str,
     colId: str,
     square: bool,
-    rowReadIndices: Dict[str, int],
-    colReadIndices: Dict[str, int],
+    rowReadIndices: dict[str, int],
+    colReadIndices: dict[str, int],
     upperOnly: bool,
 ) -> bool:
     """
@@ -286,16 +279,10 @@ def dataCell(
     @param upperOnly: If C{True}, only compute values for the upper diagonal.
     @return: C{True} if the cell should be filled in, else C{False}.
     """
-    row = rowReadIndices[rowId]
-    col = colReadIndices[colId]
-
-    if row == col and square:
+    if rowId == colId and square:
         return False
 
-    if upperOnly:
-        return row < col
-    else:
-        return True
+    return rowReadIndices[rowId] < colReadIndices[colId] if upperOnly else True
 
 
 def collectData(
@@ -322,22 +309,13 @@ def collectData(
         - A C{dict} mapping C{str} read ids to 0-based row indices.
         - A C{dict} mapping C{str} read ids to 0-based column indices.
     """
-    rowReadIndices = {}
-    colReadIndices = {}
-
-    for readNumber, readId in enumerate(rowReads):
-        rowReadIndices[readId] = readNumber
-
-    for readNumber, readId in enumerate(colReads):
-        colReadIndices[readId] = readNumber
-
-    comparisons = 0
-
-    for rowId in rowReads:
-        for colId in colReads:
-            comparisons += dataCell(
-                rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly
-            )
+    rowReadIndices = {readId: n for n, readId in enumerate(rowReads)}
+    colReadIndices = {readId: n for n, readId in enumerate(colReads)}
+    comparisons = sum(
+        dataCell(rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly)
+        for rowId in rowReads
+        for colId in colReads
+    )
 
     result = defaultdict(dict)
     count = 0
@@ -528,11 +506,17 @@ def htmlTable(
     noCoverage2 = getNoCoverageCounts(colReads.values(), args.noCoverageChars)
     result = []
     append = result.append
+    extend = result.extend
 
     def writeHeader():
         # The header row of the table.
-        append("    <tr>")
-        append("    <td>&nbsp;</td>")
+        extend(
+            [
+                "    <tr>",
+                "    <td>&nbsp;</td>",
+            ]
+        )
+
         for count, colRead in enumerate(colReads.values(), start=1):
             if count == 1 and square:
                 # The first column will be empty, so skip it.
@@ -564,16 +548,21 @@ def htmlTable(
     if args.div:
         append("<div>")
     else:
-        append("<!DOCTYPE HTML>")
-        append("<html>")
-        append("<head>")
-        append('<meta charset="UTF-8">')
-        append("</head>")
-        append("<body>")
+        extend(
+            [
+                "<!DOCTYPE HTML>",
+                "<html>",
+                "<head>",
+                '<meta charset="UTF-8">',
+                "</head>",
+                "<body>",
+            ]
+        )
 
-    append("<style>")
-    append(
-        """
+    extend(
+        [
+            "<style>",
+            """
         table {
             border-collapse: collapse;
         }
@@ -596,7 +585,8 @@ def htmlTable(
         td.nt-identity {
             text-align: right;
         }
-    """
+                """,
+        ]
     )
 
     # Add color style information for the identity thresholds.
@@ -608,9 +598,13 @@ def htmlTable(
     if not args.div:
         append(explanation(args))
 
-    append('<div style="overflow-x:auto;">')
-    append("<table>")
-    append("  <tbody>")
+    extend(
+        [
+            '<div style="overflow-x:auto;">',
+            "<table>",
+            "  <tbody>",
+        ]
+    )
 
     # Pre-process to find the best identities in each sample row.
     bestIdentityForId = {}
@@ -646,10 +640,12 @@ def htmlTable(
             # the top of the final column.
             continue
 
-        append("    <tr>")
-        append(
-            '      <td class="title"><span class="name">%s%s</span>'
-            % (f"{rowCount}: " if args.numberedColumns else "", rowId)
+        extend(
+            [
+                "    <tr>",
+                '      <td class="title"><span class="name">%s%s</span>'
+                % (f"{rowCount}: " if args.numberedColumns else "", rowId),
+            ]
         )
         if args.showLengths:
             append("<br/>L:%d" % len(rowRead))
@@ -716,15 +712,23 @@ def htmlTable(
     if args.footer:
         writeHeader()
 
-    append("  </tbody>")
-    append("</table>")
-    append("</div>")
+    extend(
+        [
+            "  </tbody>",
+            "</table>",
+            "</div>",
+        ]
+    )
 
     if args.div:
         append("</div>")
     else:
-        append("</body>")
-        append("</html>")
+        extend(
+            [
+                "</body>",
+                "</html>",
+            ]
+        )
 
     return "\n".join(result)
 
@@ -946,12 +950,10 @@ def main():
 
     if args.fastaFile2:
         if args.upperOnly:
-            print(
-                "The --upperOnly option is not supported when two FASTA "
-                "input files are given.",
-                file=sys.stderr,
+            sys.exit(
+                "The --upperOnly option is not supported when two FASTA input files "
+                "are given."
             )
-            sys.exit(1)
 
         square = False
 
@@ -965,7 +967,7 @@ def main():
             _tmpReads[read.id] = read
         colReads = {}
         for readId in sorted(_tmpReads) if args.sort else _tmpReads:
-            colReads[readId] = read
+            colReads[readId] = _tmpReads[readId]
         del _tmpReads
     else:
         square = True
