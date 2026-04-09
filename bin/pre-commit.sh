@@ -9,6 +9,8 @@
 
 tmp=$(mktemp)
 
+trap "rm -f $tmp" 0 1 2 3 15
+
 # This assumes we don't have files with spaces in their names. The files
 # we'll ask ruff to check must exclude ones that have been deleted (these
 # have a leading D in the output of the git diff-index command).
@@ -17,6 +19,12 @@ FILES=$(git diff-index --cached --name-status HEAD | egrep -v '^D' | egrep '\.py
 if command -v uv >/dev/null
 then
     uv run ruff check --fix --extend-select I $FILES > $tmp 2>&1
+    uv sync
+
+    if test uv.lock -nt $tmp
+    then
+	echo 'COMMIT FAILED: uv sync changed uv.lock. Please add uv.lock to the commit and try again.' >&2
+    fi
 elif command -v ruff >/dev/null
 then
     ruff check --fix --extend-select I $FILES > $tmp 2>&1
@@ -29,7 +37,6 @@ if [ $? -ne 0 ]
 then
     echo 'COMMIT FAILED: ruff check did not run cleanly:' >&2
     cat $tmp >&2
-    rm $tmp
     exit 1
 fi
 
