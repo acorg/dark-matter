@@ -10,7 +10,6 @@ Copied undocumented and now-deprecated `sklearn.metrics.cluster`
 ## 7.1.15 January 23, 2026
 
 Added Claude-written `bin/plot-sam-coverage-depth.py` and tests.
->>>>>>> master
 
 ## 7.1.14 January 23, 2026
 
