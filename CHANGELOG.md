@@ -1,3 +1,7 @@
+## 7.1.17 April 9, 2026
+
+Fix two bugs in `bin/fasta-identity-table.py`.
+
 ## 7.1.16 April 9, 2026
 
 Copied undocumented and now-deprecated `sklearn.metrics.cluster`

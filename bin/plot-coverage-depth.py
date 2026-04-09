@@ -172,12 +172,14 @@ def main() -> None:
     colorIter = cycle(REGION_COLORS)
     regions = []
     for i, (start, end, label, color) in enumerate(rawRegions):
-        regions.append((
-            start or 0,
-            end or refLength,
-            label or f"region-{i + 1}",
-            color or next(colorIter),
-        ))
+        regions.append(
+            (
+                start or 0,
+                end or refLength,
+                label or f"region-{i + 1}",
+                color or next(colorIter),
+            )
+        )
 
     # Assign overlapping regions to stacked rows.
     rowAssignments = assignRegionRows(regions) if regions else []

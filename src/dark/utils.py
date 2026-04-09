@@ -237,7 +237,6 @@ def parseStartEndLabelColor(
     return start, end, label, color
 
 
-
 def baseCountsToStr(counts: dict[str, int]) -> str:
     """
     Convert base counts to a string.
