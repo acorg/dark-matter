@@ -19,11 +19,10 @@ FILES=$(git diff-index --cached --name-status HEAD | egrep -v '^D' | egrep '\.py
 if command -v uv >/dev/null
 then
     uv run ruff check --fix --extend-select I $FILES > $tmp 2>&1
-    uv sync
 
     if test uv.lock -nt $tmp
     then
-	echo 'COMMIT FAILED: uv sync changed uv.lock. Please add uv.lock to the commit and try again.' >&2
+	echo 'COMMIT FAILED: uv run changed uv.lock. Consider running "git add uv.lock" and trying the commit again.' >&2
     fi
 elif command -v ruff >/dev/null
 then
