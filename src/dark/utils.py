@@ -186,6 +186,55 @@ def parseRangeExpression(s, convertToZeroBased=False):
         raise ValueError(expr)
 
 
+def parseStartEndLabelColor(
+    regionStr: str,
+) -> tuple[int | None, int | None, str | None, str | None]:
+    """
+    Parse a --region argument of the form start:end[:label[:color]].
+
+    @param regionStr: A C{str} region specification.
+    @raise ValueError: If the region string is malformed.
+    @return: A 4-tuple of (start, end, label, color) where start and end are
+        0-based C{int} offsets in the Python [closed, open) range form,
+        label is a C{str} or C{None}, and color is a C{str} or C{None}.
+    """
+    parts = regionStr.split(":", 3)
+    if len(parts) < 2:
+        raise ValueError(
+            f"Region {regionStr!r} must contain at least a start and end "
+            f"(e.g., '100:200')."
+        )
+    if parts[0]:
+        try:
+            # Adjust to zero-based.
+            start = int(parts[0]) - 1
+        except ValueError:
+            raise ValueError(f"Region {regionStr!r} start must be an integer.")
+        if start < 1:
+            raise ValueError(f"Region {regionStr!r} start must be >= 1.")
+    else:
+        start = None
+
+    if parts[1]:
+        try:
+            end = int(parts[1])
+        except ValueError:
+            raise ValueError(f"Region {regionStr!r} end must be an integer.")
+    else:
+        end = None
+
+    if start is not None and end is not None and end < start:
+        raise ValueError(
+            f"Region {regionStr!r} end ({end}) must be >= start ({start})."
+        )
+
+    label = parts[2] if len(parts) > 2 else None
+    color = parts[3] if len(parts) > 3 else None
+
+    return start, end, label, color
+
+
+
 def baseCountsToStr(counts: dict[str, int]) -> str:
     """
     Convert base counts to a string.
@@ -454,3 +503,29 @@ _LOG2 = log(2.0)
 
 def entropy2(labels: Iterable[str]) -> float:
     return entropy(labels) / _LOG2
+
+
+def assignRegionRows(regions: list) -> list[int]:
+    """
+    Assign each region to a row (0 = closest to y=0) using a greedy
+    interval-scheduling algorithm so that no two regions in the same row
+    overlap horizontally.
+
+    @param regions: A list of (start, end, label, color) tuples.
+    @return: A C{list} of 0-based C{int} row indices, one per region.
+    """
+    # Sort by start position so that non-overlapping regions are always
+    # considered in left-to-right order, regardless of input order.
+    indexed = sorted(enumerate(regions), key=lambda x: x[1][0])
+    rowEnds: list[int] = []
+    assignments = [0] * len(regions)
+    for orig_idx, (start, end, _, _) in indexed:
+        for i, rowEnd in enumerate(rowEnds):
+            if start > rowEnd:
+                rowEnds[i] = end
+                assignments[orig_idx] = i
+                break
+        else:
+            assignments[orig_idx] = len(rowEnds)
+            rowEnds.append(end)
+    return assignments

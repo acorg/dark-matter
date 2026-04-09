@@ -1,3 +1,7 @@
+## 7.1.15 January 23, 2026
+
+Added Claude-written `bin/plot-sam-coverage-depth.py` and tests.
+
 ## 7.1.14 January 23, 2026
 
 Fixed tiny bug in `bin/fasta-identity-table.py` due to switch to `prseq` (which
