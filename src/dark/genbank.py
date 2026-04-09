@@ -229,7 +229,9 @@ class GenomeRanges:
         return len(self.ranges) - int(self.circular(genomeLength))
 
 
-def getSourceInfo(genome, keys=("host", "note", "organism", "mol_type"), logfp=None):
+def getSourceInfo(
+    genome, keys=("host", "note", "organism", "mol_type"), logfp=None, indent: str = ""
+):
     """
     Extract summary information from a genome source feature.
 
@@ -238,6 +240,7 @@ def getSourceInfo(genome, keys=("host", "note", "organism", "mol_type"), logfp=N
         source features.
     @param logfp: If not C{None}, a file pointer to write verbose
         progress output to.
+    @param indent: A C{str} indent to print at the start of each output line.
     @return: A C{dict} with keys for the various pieces of information
         (if any) found in the source feature (see the return value below
         for detail). Or C{None} if no source feature is found or a source
@@ -254,7 +257,7 @@ def getSourceInfo(genome, keys=("host", "note", "organism", "mol_type"), logfp=N
                     value = None
                     if key != "note" and logfp:
                         print(
-                            "Genome %r (accession %s) source info has "
+                            f"{indent}Genome %r (accession %s) source info has "
                             "no %r feature." % (genome.description, genome.id, key),
                             file=logfp,
                         )
@@ -270,7 +273,7 @@ def getSourceInfo(genome, keys=("host", "note", "organism", "mol_type"), logfp=N
                     else:
                         if logfp:
                             print(
-                                "Genome %r (accession %s) has source "
+                                f"{indent}Genome %r (accession %s) has source "
                                 "feature %r with length != 1: %r"
                                 % (genome.description, genome.id, key, values),
                                 file=logfp,
@@ -284,7 +287,7 @@ def getSourceInfo(genome, keys=("host", "note", "organism", "mol_type"), logfp=N
     else:
         if logfp:
             print(
-                "Genome %r (accession %s) had no source feature! "
+                f"{indent}Genome %r (accession %s) had no source feature! "
                 "Skipping." % (genome.description, genome.id),
                 file=logfp,
             )

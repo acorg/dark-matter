@@ -1,3 +1,7 @@
+## 7.1.18 April 9, 2026
+
+Tiny cosmetic clean-ups using f-strings and added some output whitespace indentation.
+
 ## 7.1.14 January 23, 2026
 
 Fixed tiny bug in `bin/fasta-identity-table.py` due to switch to `prseq` (which
