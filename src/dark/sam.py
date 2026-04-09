@@ -151,9 +151,7 @@ def samReferencesToStr(filenameOrSamfile: str | AlignmentFile, indent: int = 0) 
         return _references(filenameOrSamfile)
 
 
-def coverageDepth(
-    filename: str, reference: str | None = None
-) -> tuple[str, list[int]]:
+def coverageDepth(filename: str, reference: str | None = None) -> tuple[str, list[int]]:
     """
     Compute per-base coverage depth for a reference in a SAM/BAM file.
 
