@@ -1859,7 +1859,7 @@ class SqliteIndexWriter:
 
         for genome in genomes:
             examinedGenomeCount += 1
-            source = getSourceInfo(genome, logfp=logfp)
+            source = getSourceInfo(genome, logfp=logfp, indent="  ")
 
             if source is None:
                 # The lack of a source is logged by getSourceInfo.
@@ -1881,15 +1881,15 @@ class SqliteIndexWriter:
                     sys.exit(f"Could not get length of genome {genome!r}.")
 
             if logfp:
-                print("\n%s: %s" % (genome.id, genome.description), file=logfp)
-                print("  length = %d" % genomeLength, file=logfp)
+                print(f"\n{genome.id}: {genome.description}", file=logfp)
+                print(f"  length = {genomeLength}", file=logfp)
                 print("  Source:", file=logfp)
                 for k, v in source.items():
-                    print("    %s = %r" % (k, v), file=logfp)
+                    print(f"    {k} = {v!r}", file=logfp)
                 print("  Annotations:", file=logfp)
                 for k, v in genome.annotations.items():
                     if k not in ("references", "comment", "structured_comment"):
-                        print("    %s = %r" % (k, v), file=logfp)
+                        print(f"    {k} = {v!r}", file=logfp)
 
             if minGenomeLength is not None and genomeLength < minGenomeLength:
                 if logfp:
@@ -1905,8 +1905,8 @@ class SqliteIndexWriter:
                 lineage = lineageFetcher(genome)
             except ValueError as e:
                 print(
-                    "ValueError calling lineage fetcher for %s (%s): %s"
-                    % (genome.id, genome.description, e),
+                    f"ValueError calling lineage fetcher for {genome.id} "
+                    f"({genome.description}): {e}",
                     file=logfp,
                 )
                 lineage = taxonomyId = None
@@ -1918,8 +1918,8 @@ class SqliteIndexWriter:
                     if not isAllowedTaxonomicRank(allowedTaxonomicRanks, lineage):
                         if logfp:
                             print(
-                                "  %s (%s) has an unwanted taxonomic lineage. Skipping."
-                                % (genome.id, genome.description),
+                                f"  {genome.id} ({genome.description}) has an unwanted "
+                                "taxonomic lineage. Skipping.",
                                 file=logfp,
                             )
                         continue
@@ -1929,8 +1929,8 @@ class SqliteIndexWriter:
                     # it because we cannot confirm that we want it.
                     if logfp:
                         print(
-                            "  %s (%s) has no taxonomic lineage information. Skipping."
-                            % (genome.id, genome.description),
+                            f"  {genome.id} ({genome.description}) has no taxonomic "
+                            "lineage information. Skipping.",
                             file=logfp,
                         )
                     continue
@@ -1939,125 +1939,86 @@ class SqliteIndexWriter:
                 if not source["mol_type"].endswith("DNA"):
                     if logfp:
                         print(
-                            "  %s (%s) is not a DNA virus (mol_type). Skipping."
-                            % (genome.id, genome.description),
+                            f"  {genome.id} ({genome.description}) is not a DNA virus "
+                            "(mol_type). Skipping.",
                             file=logfp,
                         )
                     continue
-                # if lineage:
-                #     print('  Lineage:', file=logfp)
-                #     print(formatLineage(lineage, prefix='    '), file=logfp)
-                #     if isDNAVirus(lineage):
-                #         if logfp:
-                #             print('  %s (%s) is a DNA virus.' %
-                #                   (genome.id, genome.description),
-                #                   file=logfp)
-                #     else:
-                #         if logfp:
-                #             print('  %s (%s) is not a DNA virus.' %
-                #                   (genome.id, genome.description),
-                #                   file=logfp)
-                #         continue
-                # else:
-                #     print('Could not look up taxonomy lineage for %s (%s). '
-                #           'Cannot confirm as DNA.' %
-                #           (genome.id, genome.description), file=logfp)
-                #     continue
 
             if rnaOnly:
                 if not source["mol_type"].endswith("RNA"):
                     if logfp:
                         print(
-                            "  %s (%s) is not a RNA virus (mol_type). Skipping."
-                            % (genome.id, genome.description),
+                            f"  {genome.id} ({genome.description}) is not a RNA virus "
+                            "(mol_type). Skipping.",
                             file=logfp,
                         )
                     continue
-                # if lineage:
-                #     print('  Lineage:', file=logfp)
-                #     print(formatLineage(lineage, prefix='    '), file=logfp)
-                #     if isRNAVirus(lineage):
-                #         if logfp:
-                #             print('  %s (%s) is an RNA virus.' %
-                #                   (genome.id, genome.description),
-                #                   file=logfp)
-                #     else:
-                #         if logfp:
-                #             print('  %s (%s) is not an RNA virus. Skipping.'
-                #                   % (genome.id, genome.description),
-                #                   file=logfp)
-                #         continue
-                # else:
-                #     print('Could not look up taxonomy lineage for %s (%s). '
-                #           'Cannot confirm as RNA. Skipping.' %
-                #           (genome.id, genome.description), file=logfp)
-                #     continue
 
             if excludeFungusOnlyViruses:
                 if lineage is None:
                     print(
-                        "  Could not look up taxonomy lineage for %s "
-                        "(%s). Cannot confirm as fungus-only virus."
-                        % (genome.id, genome.description),
+                        f"  Could not look up taxonomy lineage for {genome.id} "
+                        f"({genome.description}). Cannot confirm as fungus-only virus.",
                         file=logfp,
                     )
                 else:
                     if taxonomyDatabase.isFungusOnlyVirus(lineage, genome.description):
                         if logfp:
                             print(
-                                "  %s (%s) is a fungus-only virus. Skipping."
-                                % (genome.id, genome.description),
+                                f"  {genome.id} ({genome.description}) is a "
+                                "fungus-only virus. Skipping.",
                                 file=logfp,
                             )
                         continue
                     else:
                         if logfp:
                             print(
-                                "  %s (%s) is not a fungus-only virus."
-                                % (genome.id, genome.description),
+                                f"  {genome.id} ({genome.description}) is not a "
+                                "fungus-only virus.",
                                 file=logfp,
                             )
 
             if excludePlantOnlyViruses:
                 if lineage is None:
                     print(
-                        "  Could not look up taxonomy lineage for %s "
-                        "(%s). Cannot confirm as plant-only virus. "
-                        "Not skipping." % (genome.id, genome.description),
+                        f"  Could not look up taxonomy lineage for {genome.id} "
+                        f"({genome.description}). Cannot confirm as plant-only virus. "
+                        "Not skipping.",
                         file=logfp,
                     )
                 else:
                     if taxonomyDatabase.isPlantOnlyVirus(lineage, genome.description):
                         if logfp:
                             print(
-                                "  %s (%s) is a plant-only virus. Skipping."
-                                % (genome.id, genome.description),
+                                f"  {genome.id} ({genome.description}) is a plant-only "
+                                "virus. Skipping.",
                                 file=logfp,
                             )
                         continue
                     else:
                         if logfp:
                             print(
-                                "  %s (%s) is not a plant-only virus."
-                                % (genome.id, genome.description),
+                                f"  {genome.id} ({genome.description}) is not a "
+                                "plant-only virus.",
                                 file=logfp,
                             )
 
             if excludeExclusiveHosts:
                 if taxonomyId is None:
                     print(
-                        "  Could not find taxonomy id for %s (%s). "
-                        "Cannot exclude due to exclusive host criteria."
-                        % (genome.id, genome.description),
+                        f"  Could not find taxonomy id for {genome.id} "
+                        f"({genome.description}). Cannot exclude due to exclusive host "
+                        "criteria.",
                         file=logfp,
                     )
                 else:
                     hosts = taxonomyDatabase.hosts(taxonomyId)
                     if hosts is None:
                         print(
-                            "  Could not find hosts for %s (%s). Cannot "
-                            "exclude due to exclusive host criteria."
-                            % (genome.id, genome.description),
+                            f"  Could not find hosts for {genome.id} "
+                            f"({genome.description}). Cannot exclude due to exclusive "
+                            "host criteria.",
                             file=logfp,
                         )
                     else:
@@ -2065,9 +2026,9 @@ class SqliteIndexWriter:
                             host = hosts.pop()
                             if host in excludeExclusiveHosts:
                                 print(
-                                    "  Skipping %s (%s) due to exclusive "
-                                    "host criteria (infects only %s hosts)."
-                                    % (genome.id, genome.description, host),
+                                    f"  Skipping {genome.id} ({genome.description}) "
+                                    "due to exclusive host criteria (infects only "
+                                    f"{host} hosts).",
                                     file=logfp,
                                 )
                                 continue
