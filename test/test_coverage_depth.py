@@ -9,10 +9,10 @@ from dark.sam import UnknownReference, UnspecifiedReference, coverageDepth
 @contextmanager
 def dataFile(data):
     """
-    Create a temporary file containing C{data} and yield its filename,
+    Create a temporary .sam file containing C{data} and yield its filename,
     removing it on exit.
     """
-    fd, filename = mkstemp()
+    fd, filename = mkstemp(suffix=".sam")
     write(fd, data.encode("utf-8"))
     close(fd)
     yield filename

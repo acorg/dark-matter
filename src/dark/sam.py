@@ -169,58 +169,61 @@ def coverageDepth(
         C{str} reference that was used and depth is a C{list} of C{int} depths,
         one per reference base (0-based indexed), with zeros at uncovered positions.
     """
+    depthCounts = defaultdict(int)
+
     with samfile(filename) as sam:
         referenceLengths = samReferenceLengths(sam)
 
-        if reference is not None:
+        if reference is None:
+            inferReference = checkReferences = True
+            contig = None
+        else:
             if reference not in referenceLengths:
                 raise UnknownReference(
                     f"Reference {reference!r} is not present in the SAM/BAM file."
                 )
-            length = referenceLengths[reference]
-            depth = [0] * length
-            for read in sam.fetch():
-                if read.is_unmapped or read.reference_id < 0:
-                    continue
-                if sam.get_reference_name(read.reference_id) != reference:
-                    continue
-                for pos in read.get_reference_positions():
-                    if 0 <= pos < length:
-                        depth[pos] += 1
-            return reference, depth
+            inferReference = False
+            checkReferences = filename.lower().endswith(".sam")
+            contig = None if checkReferences else reference
 
-        # Auto-detect reference from aligned reads (ignoring SAM header).
-        detected: str | None = None
-        depth_counts: defaultdict[int, int] = defaultdict(int)
-
-        for read in sam.fetch():
-            if read.is_unmapped or read.reference_id < 0:
+        for read in sam.fetch(contig=contig):
+            if read.is_unmapped:
                 continue
-            read_ref = sam.get_reference_name(read.reference_id)
-            if detected is None:
-                detected = read_ref
-            elif read_ref != detected:
-                raise UnspecifiedReference(
-                    f"SAM/BAM file contains reads mapped to multiple references "
-                    f"({detected!r} and {read_ref!r}). Pass a reference name to "
-                    f"select one."
-                )
+
+            if checkReferences:
+                if read.reference_id < 0:
+                    continue
+
+                readReference = sam.get_reference_name(read.reference_id)
+                if reference is None:
+                    reference = readReference
+                elif readReference != reference:
+                    if inferReference:
+                        raise UnspecifiedReference(
+                            f"SAM/BAM file has reads mapped to multiple references "
+                            f"({reference!r} and {readReference!r}). Pass a reference "
+                            "name to specify one."
+                        )
+                    else:
+                        # We are looking for a specific reference and this isn't it, so
+                        # we just continue. This occurs when a reference name was given
+                        # but the input file was SAM (which doesn't allow sam.fetch to
+                        # be passed a reference name).
+                        continue
+
             for pos in read.get_reference_positions():
-                depth_counts[pos] += 1
+                depthCounts[pos] += 1
 
-        if detected is None:
-            raise UnspecifiedReference(
-                "No mapped reads found in the SAM/BAM file; cannot auto-detect "
-                "reference."
-            )
+        if reference is None:
+            raise UnspecifiedReference("No mapped reads found in the SAM/BAM file.")
 
-        length = referenceLengths[detected]
+        length = referenceLengths[reference]
         depth = [0] * length
-        for pos, count in depth_counts.items():
+        for pos, count in depthCounts.items():
             if 0 <= pos < length:
                 depth[pos] = count
 
-        return detected, depth
+        return reference, depth
 
 
 def _hardClip(sequence, quality, cigartuples):
