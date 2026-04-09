@@ -71,7 +71,7 @@ If you are using dark matter in an
 [iPython Notebook](https://ipython.org/notebook.html), you should install
 the requirements in `requirements-ipynb.txt`.
 
-## Development
+### DIAMOND
 
-If you are using dark matter as a developer, you should install the
-requirements in `requirements-dev.txt`.
+If you want to use the [DIAMOND](https://github.com/bbuchfink/diamond) functionality of
+`dark-matter` you will need DIAMOND version 2.1.16 or newer installed.
