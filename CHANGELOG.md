@@ -1,6 +1,11 @@
+## 7.1.19 April 10, 2026
+
+More clean-ups and simplification of `bin/fasta-identity-table.py` logic.
+
 ## 7.1.18 April 9, 2026
 
-Tiny cosmetic clean-ups using f-strings and added some output whitespace indentation.
+Tiny cosmetic clean-ups using f-strings and added some output
+whitespace indentation.
 
 ## 7.1.17 April 9, 2026
 

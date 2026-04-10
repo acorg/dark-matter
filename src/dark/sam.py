@@ -879,11 +879,11 @@ class PaddedSAM:
                     alignedSequence += queryInsertionChar * length
                     alignedQuality += unknownQualityChar * length
                 elif operation == CSOFT_CLIP:
-                    # Bases in the query that are not part of the match. We
-                    # remove these from the query if they protrude before the
-                    # start or after the end of the reference. According to the
-                    # SAM docs, 'S' operations may only have 'H' operations
-                    # between them and the ends of the CIGAR string.
+                    # Bases in the query that are not part of the match. We remove these
+                    # from the query if they protrude before the start or after the end
+                    # of the reference. According to the SAM docs, 'S' operations may
+                    # only have 'H' operations between them and the ends of the CIGAR
+                    # string.
                     if atStart:
                         # Don't set atStart=False, in case there's another 'S'
                         # operation.

@@ -4,6 +4,7 @@ import argparse
 import sys
 from collections import defaultdict
 from operator import itemgetter
+from typing import Iterable
 
 from dark.aligners import edlibAlign, mafft, needle
 from dark.dna import compareDNAReads
@@ -14,6 +15,7 @@ from dark.filter import (
     parseFASTAFilteringCommandLineOptions,
 )
 from dark.reads import (
+    Read,
     addFASTACommandLineOptions,
     getNoCoverageCounts,
     parseFASTACommandLineOptions,
@@ -25,8 +27,11 @@ MAFFT_ALGORITHMS_URL = (
 )
 NEEDLE_DEFAULT_ARGS = "auto"
 
+# What to put in an empty HTML table cell.
+EMPTY_CELL = "&nbsp;"
 
-def align(reads, args):
+
+def align(reads: Iterable[Read], args: argparse.Namespace) -> list[Read]:
     """
     Align a pair of reads.
 
@@ -55,7 +60,7 @@ def align(reads, args):
         return edlibAlign(reads)
 
 
-def thresholdToCssName(threshold):
+def thresholdToCssName(threshold: float) -> str:
     """
     Turn a floating point threshold into a string that can be used as a CSS
     class name.
@@ -67,7 +72,7 @@ def thresholdToCssName(threshold):
     return "threshold-" + str(threshold).replace(".", "_")
 
 
-def thresholdForIdentity(identity, colors):
+def thresholdForIdentity(identity: float, colors: list[tuple[float, str]]) -> float:
     """
     Get the best identity threshold for a specific identity value.
 
@@ -84,7 +89,7 @@ def thresholdForIdentity(identity, colors):
     raise ValueError("This should never happen! Last threshold is not 0.0?")
 
 
-def parseColors(colors, defaultColor):
+def parseColors(colors: list[str], defaultColor: str) -> list[tuple[float, str]]:
     """
     Parse command line color information.
 
@@ -116,14 +121,14 @@ def parseColors(colors, defaultColor):
                         "--color arguments must be given as space-separated "
                         'pairs of "value color" where the value is a '
                         "numeric identity threshold from 0.0 to 1.0. Your "
-                        f"value {threshold!r} is not in that range."
+                        f"value {threshold!r} is outside that range."
                     )
 
                 result.append((threshold, color))
             else:
                 sys.exit(
                     "--color arguments must be given as space-separated pairs of "
-                    '"value color". You have given {colorInfo!r}, which does not '
+                    f'"value color". You have given {colorInfo!r}, which does not '
                     "contain a space."
                 )
 
@@ -135,7 +140,7 @@ def parseColors(colors, defaultColor):
     return result
 
 
-def getGapCounts(reads, gapChars):
+def getGapCounts(reads: Iterable[Read], gapChars: str) -> dict[str, int]:
     """
     Get the number of gap characters in all reads.
 
@@ -143,14 +148,10 @@ def getGapCounts(reads, gapChars):
     @param gapChars: A C{str} of sequence characters considered to be gaps.
     @return: A C{dict} keyed by read id, with C{int} gap counts.
     """
-    gapChars = set(gapChars)
-    result = {}
-    for read in reads:
-        result[read.id] = sum(character in gapChars for character in read.sequence)
-    return result
+    return {read.id: sum(c in set(gapChars) for c in read.sequence) for read in reads}
 
 
-def explanation(args):
+def explanation(args: argparse.Namespace) -> str:
     """
     Make an explanation of the output HTML table.
 
@@ -234,22 +235,24 @@ Key to abbreviations:
         if args.showGaps:
             result.append(
                 """
-    <li>GG: Gap/Gap matches (both sequences have gaps).</li>
-    <li>G?: Gap/Non-gap mismatches (one sequence has a gap).</li>
+    <li>GG: <strong>G</strong>ap/<strong>G</strong>ap matches
+                (both sequences have gaps).</li>
+    <li>G?: <strong>G</strong>ap/Non-gap mismatches (one sequence has a gap).</li>
 """
             )
 
         if args.showNoCoverage:
             result.append(
                 """
-    <li>CC: No coverage/No coverage (both sequences have no coverage).</li>
-    <li>C?: No coverage (one sequence has no coverage).</li>
+    <li>CC: No <strong>c</strong>overage/No <strong>c</strong>overage
+                (both sequences have no coverage).</li>
+    <li>C?: No <strong>c</strong>overage (one sequence has no coverage).</li>
 """
             )
 
     result.append(
         """
-    <li>NE: Non-equal nucleotide mismatches.</li>
+    <li>NE: <strong>N</strong>on-<strong>e</strong>qual nucleotide mismatches.</li>
   </ul>
 </p>
 """
@@ -261,7 +264,7 @@ Key to abbreviations:
 def dataCell(
     rowId: str,
     colId: str,
-    square: bool,
+    symmetric: bool,
     rowReadIndices: dict[str, int],
     colReadIndices: dict[str, int],
     upperOnly: bool,
@@ -271,7 +274,7 @@ def dataCell(
 
     @param rowId: The row read id.
     @param colId: The column read id.
-    @param square: If C{True} we are making a square table of a set of
+    @param symmetric: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
         diagonal).
     @param rowReadIndices: A C{dict} mapping read ids to 0-based row indices.
@@ -279,18 +282,18 @@ def dataCell(
     @param upperOnly: If C{True}, only compute values for the upper diagonal.
     @return: C{True} if the cell should be filled in, else C{False}.
     """
-    if rowId == colId and square:
+    if rowId == colId and symmetric:
         return False
 
     return rowReadIndices[rowId] < colReadIndices[colId] if upperOnly else True
 
 
 def collectData(
-    rowReads,
-    colReads,
-    square,
-    args,
-):
+    rowReads: dict[str, Read],
+    colReads: dict[str, Read],
+    symmetric: bool,
+    args: argparse.Namespace,
+) -> tuple[dict[str, dict[str, int | list[int]]], dict[str, int], dict[str, int]]:
     """
     Get pairwise matching statistics for two sets of reads.
 
@@ -298,7 +301,7 @@ def collectData(
         C{Read} instances. These will be the rows of the table.
     @param colReads: An C{dict} of C{str} read ids whose values are
         C{Read} instances. These will be the columns of the table.
-    @param square: If C{True} we are making a square table of a set of
+    @param symmetric: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
         diagonal).
     @param args: An argparse C{Namespace} instance with command-line options.
@@ -312,7 +315,9 @@ def collectData(
     rowReadIndices = {readId: n for n, readId in enumerate(rowReads)}
     colReadIndices = {readId: n for n, readId in enumerate(colReads)}
     comparisons = sum(
-        dataCell(rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly)
+        dataCell(
+            rowId, colId, symmetric, rowReadIndices, colReadIndices, args.upperOnly
+        )
         for rowId in rowReads
         for colId in colReads
     )
@@ -323,7 +328,7 @@ def collectData(
     for rowId, rowRead in rowReads.items():
         for colId, colRead in colReads.items():
             if dataCell(
-                rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly
+                rowId, colId, symmetric, rowReadIndices, colReadIndices, args.upperOnly
             ):
                 count += 1
                 if args.align:
@@ -344,8 +349,8 @@ def collectData(
                 )
                 if not args.matchAmbiguous:
                     assert match["match"]["ambiguousMatchCount"] == 0
-                # Record the lengths, since these may have changed due to
-                # making the alignment.
+                # Record the lengths, since these may have changed due to making the
+                # alignment.
                 match["read1"]["length"] = len(r1)
                 match["read2"]["length"] = len(r2)
                 result[rowId][colId] = result[colId][rowId] = match
@@ -353,36 +358,40 @@ def collectData(
     return result, rowReadIndices, colReadIndices
 
 
-def computeIdentity(rowRead, colRead, stats, matchAmbiguous, digits):
+def computeIdentity(
+    rowRead: Read,
+    colRead: Read,
+    stats: dict[str, dict[str, int | list[int]]],
+    matchAmbiguous: bool,
+    digits: int,
+) -> float:
     """
-    Compute nucleotide identity for two reads (as a fraction of the lowest
-    number of relevant nucleotides in either read).
+    Compute nucleotide identity for two reads (as a fraction of the lowest number of
+    relevant nucleotides in either read).
 
     @param rowRead: A C{Read} instance.
     @param colRead: A C{Read} instance.
     @param stats: A C{dict} as returned by C{compareDNAReads}.
-    @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are
-        possibly correct as actually being correct. Otherwise, we are strict
-        and insist that only non-ambiguous nucleotides can contribute to the
-        matching nucleotide count.
+    @param matchAmbiguous: If C{True}, count ambiguous nucleotides that are possibly
+        correct as actually being correct. Otherwise, we are strict and insist that
+        only non-ambiguous nucleotides can contribute to the matching nucleotide count.
     @param digits: The C{int} number of digits to round values to.
+
     """
 
-    # Note that the strict identity may be higher or lower than the
-    # ambiguous identity even though an ambiguous match sounds like it
-    # should always be more lenient and therefore result in a better
-    # match. While it is true that the raw number of matched characters
-    # will always increase when strict=False, the fraction of matched
+    # Note that the strict identity may be higher or lower than the ambiguous identity
+    # even though an ambiguous match sounds like it should always be more lenient and
+    # therefore result in a better match. While it is true that the raw number of
+    # matched characters will always increase when strict=False, the fraction of matched
     # characters may go down.
     #
-    # The strict value can be higher because rowRead might have many
-    # ambiguous characters but very few of them may match colRead. In that
-    # case the overall fraction of matching characters will be pulled down
-    # from the strict fraction when the ambiguous are included.
+    # The strict value can be higher because rowRead might have many ambiguous
+    # characters but very few of them may match colRead. In that case the overall
+    # fraction of matching characters will be pulled down from the strict fraction when
+    # the ambiguous are included.
     #
-    # Similarly, rowRead may have many ambiguous characters, all of which are
-    # matched by colRead and this can pull the overall identity higher than
-    # the strict identity.
+    # Similarly, rowRead may have many ambiguous characters, all of which are matched by
+    # colRead and this can pull the overall identity higher than the strict identity.
 
     match = stats["match"]
     denominator = min(stats["read1"]["length"], stats["read2"]["length"]) - (
@@ -402,13 +411,13 @@ def computeIdentity(rowRead, colRead, stats, matchAmbiguous, digits):
 
 def textTable(
     tableData,
-    rowReads,
-    colReads,
-    rowReadIndices,
-    colReadIndices,
-    square,
-    args,
-):
+    rowReads: dict[str, Read],
+    colReads: dict[str, Read],
+    rowReadIndices: dict[str, int],
+    colReadIndices: dict[str, int],
+    symmetric: bool,
+    args: argparse.Namespace,
+) -> None:
     """
     Print (to standard output) a text table showing inter-sequence distances.
 
@@ -420,7 +429,7 @@ def textTable(
         C{Read} instances. These will be the columns of the table.
     @param rowReadIndices: A C{dict} mapping read ids to 0-based row indices.
     @param colReadIndices: A C{dict} mapping read ids to 0-based column indices.
-    @param square: If C{True} we are making a square table of a set of
+    @param symmetric: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
         diagonal).
     @param args: An argparse C{Namespace} instance with command-line options.
@@ -438,20 +447,20 @@ def textTable(
     print("\t".join(titles))
 
     for rowCount, (rowId, rowRead) in enumerate(rowReads.items(), start=1):
-        if args.upperOnly and args.numberedColumns and rowCount == len(rowReads):
-            # We don't print the last row when only showing the upper
-            # diagonal, because it will be empty. It's name will appear at
-            # the top of the final column.
-            continue
+        if rowCount == len(rowReads) and args.concise:
+            # We don't print the last row for a concise table, because it will be the
+            # final column with a value against all rows, so the final row can be
+            # omitted.
+            pass
         prefix = f"{rowCount}: " if args.numberedColumns else ""
         print(f"{prefix}{rowId}", end="")
         for colId, colRead in colReads.items():
-            if colReadIndices[colId] == 0 and square:
-                # The whole first column will be empty if we're making a
-                # square array.
+            if colReadIndices[colId] == 0 and args.concise:
+                # The whole first column is skipped if we're making a concise table
+                # because the values for that column are in the first row.
                 continue
             if dataCell(
-                rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly
+                rowId, colId, symmetric, rowReadIndices, colReadIndices, args.upperOnly
             ):
                 identity = computeIdentity(
                     rowRead,
@@ -472,14 +481,14 @@ def textTable(
 
 def htmlTable(
     tableData,
-    rowReads,
-    colReads,
-    rowReadIndices,
-    colReadIndices,
-    square,
-    colors,
-    args,
-):
+    rowReads: dict[str, Read],
+    colReads: dict[str, Read],
+    rowReadIndices: dict[str, int],
+    colReadIndices: dict[str, int],
+    symmetric: bool,
+    colors: list[tuple[float, str]],
+    args: argparse.Namespace,
+) -> str:
     """
     Make an HTML table showing inter-sequence distances.
 
@@ -491,7 +500,7 @@ def htmlTable(
         C{Read} instances. These will be the columns of the table.
     @param rowReadIndices: A C{dict} mapping read ids to 0-based row indices.
     @param colReadIndices: A C{dict} mapping read ids to 0-based column indices.
-    @param square: If C{True} we are making a square table of a set of
+    @param symmetric: If C{True} we are making a square table of a set of
         sequences against themselves (in which case we show nothing on the
         diagonal).
     @param colors: A C{list} of (threshold, color) tuples, where threshold is a
@@ -513,27 +522,19 @@ def htmlTable(
         extend(
             [
                 "    <tr>",
-                "    <td>&nbsp;</td>",
+                f'    <td class="empty">{EMPTY_CELL}</td>',
             ]
         )
 
         for count, colRead in enumerate(colReads.values(), start=1):
-            if count == 1 and square:
-                # The first column will be empty, so skip it.
+            if count == 1 and args.concise:
+                # The first column will be skipped, so skip it in the header too.
                 continue
             append(
                 '    <td class="title"><span class="name">%s</span>'
-                % (
-                    count
-                    if (
-                        args.upperOnly
-                        and args.numberedColumns
-                        and count != len(colReads)
-                    )
-                    else colRead.id
-                )
+                % (count if args.numberedColumns else colRead.id)
             )
-            if not square:
+            if not symmetric:
                 if args.showLengths:
                     append("    <br>L:%d" % len(colRead))
                 if args.showGaps:
@@ -562,29 +563,33 @@ def htmlTable(
     extend(
         [
             "<style>",
-            """
-        table {
+            f"""
+        table {{
             border-collapse: collapse;
-        }
-        table, td {
+        }}
+        table, td {{
             border: 1px solid #ccc;
-        }
-        tr:hover {
+        }}
+        tr:hover {{
             background-color: #f2f2f2;
-        }
-        td {
+        }}
+        td {{
             vertical-align: top;
             font-size: 14px;
-        }
-        span.name {
+        }}
+        td.empty {{
+            min-width: {args.emptyCellMinSide};
+            min-height: {args.emptyCellMinSide};
+        }}
+        span.name {{
             font-weight: bold;
-        }
-        span.best {
+        }}
+        span.best {{
             font-weight: bold;
-        }
-        td.nt-identity {
+        }}
+        td.nt-identity {{
             text-align: right;
-        }
+        }}
                 """,
         ]
     )
@@ -615,7 +620,7 @@ def htmlTable(
         bestIdentity = -1.0
         for colId, colRead in colReads.items():
             if dataCell(
-                rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly
+                rowId, colId, symmetric, rowReadIndices, colReadIndices, args.upperOnly
             ):
                 identity = computeIdentity(
                     rowRead,
@@ -634,10 +639,10 @@ def htmlTable(
 
     # The main body of the table.
     for rowCount, (rowId, rowRead) in enumerate(rowReads.items(), start=1):
-        if args.upperOnly and args.numberedColumns and rowCount == len(rowReads):
-            # We don't print the last row when only showing the upper
-            # diagonal, because it will be empty. Its name will appear at
-            # the top of the final column.
+        if rowCount == len(rowReads) and args.concise:
+            # We don't print the last row for a concise table, because it will be the
+            # final column with a value against all rows, so the final row can be
+            # omitted.
             continue
 
         extend(
@@ -656,16 +661,17 @@ def htmlTable(
         if args.showNs:
             append("<br/>N:%d" % rowRead.sequence.count("N"))
         append("</td>")
+
         for colId, colRead in colReads.items():
-            if colReadIndices[colId] == 0 and square:
-                # The whole first column will be empty if we're making a
-                # square array.
+            if colReadIndices[colId] == 0 and args.concise:
+                # The whole first column is skipped if we're making a concise table
+                # because the values for that column are in the first row.
                 continue
 
             if not dataCell(
-                rowId, colId, square, rowReadIndices, colReadIndices, args.upperOnly
+                rowId, colId, symmetric, rowReadIndices, colReadIndices, args.upperOnly
             ):
-                append("<td>&nbsp;</td>")
+                append(f'<td class="empty">{EMPTY_CELL}</td>')
                 continue
 
             identity = identities[rowId][colId]
@@ -761,7 +767,7 @@ def main():
     )
 
     parser.add_argument(
-        "--concise",
+        "--omitMatchDetails",
         action="store_false",
         dest="showMatchDetails",
         help="Do not show match details.",
@@ -895,6 +901,21 @@ def main():
     )
 
     parser.add_argument(
+        "--concise",
+        action="store_true",
+        help=(
+            "When only one file is given (and the table is therefore square with "
+            "symmetric entries), Make the table more concise by omitting the first "
+            "column and last row. These can be omitted because the first column has "
+            "the sequence that is in the first row (where it is matched against "
+            "everything else) and the last row is the same sequence as the final "
+            "column (where it is matched against everything else). When these two "
+            "are omitted, the table is slightly smaller and arguably slightly harder "
+            "to understand."
+        ),
+    )
+
+    parser.add_argument(
         "--sort", action="store_true", help="Sort the input sequences by id."
     )
 
@@ -903,6 +924,12 @@ def main():
         default="edlib",
         choices=("edlib", "mafft", "needle"),
         help="The alignment algorithm to use.",
+    )
+
+    parser.add_argument(
+        "--emptyCellMinSide",
+        default="70px",
+        help="The CSS minimum width and height for empty HTML table cells.",
     )
 
     parser.add_argument(
@@ -933,6 +960,13 @@ def main():
 
     args = parser.parse_args()
 
+    if args.concise and args.numberedColumns:
+        sys.exit(
+            "If you use --concise, you cannot also use --numberedColumns. Othewise, "
+            "the number at the top of the final column cannot be translated into a "
+            "sequence ID since the final row is not printed in a concise table."
+        )
+
     colors = parseColors(args.color, args.defaultColor)
     # Sanity check - the last threshold must be zero.
     assert colors[-1][0] == 0.0
@@ -954,8 +988,13 @@ def main():
                 "The --upperOnly option is not supported when two FASTA input files "
                 "are given."
             )
+        if args.concise:
+            sys.exit(
+                "The --concise option is not supported when two FASTA input files "
+                "are given."
+            )
 
-        square = False
+        symmetric = False
 
         _tmpReads = {}
         # The next line is a total hack, to trick parseFASTACommandLineOptions
@@ -970,13 +1009,13 @@ def main():
             colReads[readId] = _tmpReads[readId]
         del _tmpReads
     else:
-        square = True
+        symmetric = True
         colReads = rowReads
 
     tableData, rowReadIndices, colReadIndices = collectData(
         rowReads,
         colReads,
-        square,
+        symmetric,
         args,
     )
 
@@ -987,7 +1026,7 @@ def main():
             colReads,
             rowReadIndices,
             colReadIndices,
-            square,
+            symmetric,
             args,
         )
     else:
@@ -998,7 +1037,7 @@ def main():
                 colReads,
                 rowReadIndices,
                 colReadIndices,
-                square,
+                symmetric,
                 colors,
                 args,
             )
