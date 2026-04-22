@@ -14,7 +14,6 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=(
             "Given FASTA on stdin and a set of filtering criteria "
             "write filtered FASTA to stdout."

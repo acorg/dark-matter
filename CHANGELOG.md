@@ -1,3 +1,8 @@
+## 7.1.20 April 22, 2026
+
+Added `--setSite` to `filter-fasta.py` to allow setting of the base
+(and quality) at sites.
+
 ## 7.1.19 April 10, 2026
 
 More clean-ups and simplification of `bin/fasta-identity-table.py` logic.

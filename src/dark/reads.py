@@ -46,6 +46,60 @@ def _makeComplementTable(complementData: dict[str, str]) -> Sequence[str]:
     return tuple(map(chr, table))
 
 
+def parseSiteSettings(
+    settings: Iterable[str], oneBased: bool = False
+) -> list[tuple(int, str, str | None)]:
+    """
+    Turn an iterable of site:base[:quality] strings into a tuple of
+    (site, base, quality).
+
+    @param settings: An iterable of site:base[:quality] strings. The quality part
+        is optional. The base and quality (if given) must be a single char.
+    @param oneBased: If True, the site numbers are 1-based not 0-based.
+    @return: A C{list} of parsed (site, base, quality) tuples.
+    """
+    result = []
+    for spec in settings:
+        fields = spec.split(":")
+        if len(fields) == 2:
+            # A site and base, no quality.
+            site, base = fields
+            quality = None
+        elif len(fields) == 3:
+            # A site, base, and quality.
+            site, base, quality = fields
+        else:
+            raise ValueError(
+                f"Site setting {spec!r} does not have exactly two or three fields "
+                "based on ':'."
+            )
+        try:
+            # Convert to a zero-based offset if necessary.
+            offset = int(site.strip()) - int(oneBased)
+        except ValueError as err:
+            raise ValueError(
+                f"Could not turn site {site!r} in site setting argument "
+                f"{spec!r} into an integer."
+            ) from err
+
+        base = base.strip()
+        if len(base) != 1:
+            raise ValueError(
+                f"Site setting specification {spec!r} has a base {base!r} that is "
+                "not a single character."
+            )
+
+        if quality is not None and len(quality) != 1:
+            raise ValueError(
+                f"Site setting specification {spec!r} has a quality {quality!r} "
+                "that is not a single character."
+            )
+
+        result.append((offset, base, quality))
+
+    return result
+
+
 @total_ordering
 class Read(Sized):
     """
@@ -161,6 +215,63 @@ class Read(Sized):
             "sequence": self.sequence,
             "quality": self.quality,
         }
+
+    def setSites(
+        self,
+        settings: Iterable[str | tuple[int, str, str | None]],
+        oneBased: bool = False,
+    ) -> None:
+        """
+        Set some sequence bases and (optionally) qualities.
+
+        @param settings: Either: an iterable of site:base[:quality] strings. The quality
+            part is optional. The base and quality (if given) must be a single char.
+            Or: an iterable of (int, str, str) values for site, base, quality that
+            as produced by parseSiteSettings.
+        @param oneBased: If True, the site numbers (in str specifications only) are
+            1-based not 0-based. This is ignored if the settings contain tuples, in
+            which case the offsets must be 0-based.
+        """
+        settingsList = list(settings)
+        if not settingsList:
+            return
+
+        if isinstance(settingsList[0], str):
+            # Assume all settings are strings. parseSiteSettings will fail if not.
+            settingsList = parseSiteSettings(settingsList, oneBased)
+
+        bases = list(self.sequence)
+        qualities = None if self.quality is None else list(self.quality)
+
+        for offset, base, quality in settingsList:
+            if offset >= len(self.sequence):
+                raise ValueError(
+                    f"Cannot set (1-based) site {offset + 1} in read {self.id!r} "
+                    f"of length only {len(self.sequence)}."
+                )
+
+            if quality is None:
+                if self.quality is not None:
+                    raise ValueError(
+                        f"Read {self.id!r} has a quality string, but the setSite "
+                        f"specification {offset + 1}:{base} did not specify a "
+                        "quality."
+                    )
+            else:
+                if self.quality is None:
+                    raise ValueError(
+                        f"Read {self.id!r} has no quality string, but the setSite "
+                        f"specification {offset + 1}:{base}:{quality} specified a "
+                        "quality to set for the site."
+                    )
+                else:
+                    qualities[offset] = quality
+
+            bases[offset] = base
+
+        self.sequence = "".join(bases)
+        if qualities is not None:
+            self.quality = "".join(qualities)
 
     def reverse(self) -> Read:
         """
@@ -1189,6 +1300,12 @@ class ReadFilter:
     @param lowerId: Convert sequence IDs to lowercase.
     @param rotate: Rotate the sequence an C{int} number of characters (to the
         right if > 0, else to the left).
+    @param setSites: Either: an iterable of site:base[:quality] strings. The quality
+        part is optional. The base and quality (if given) must be a single char.
+        Or: an iterable of (int, str, str) values for site, base, quality that
+        as produced by parseSiteSettings.
+    @param setSitesOneBased: If C{True}, the site values in setSites are 1-based
+        not 0-based.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
@@ -1199,10 +1316,10 @@ class ReadFilter:
         type does not allow for reverse complementing.
     """
 
-    # TODO, when/if needed: make it possible to pass a seed for the RNG
-    # when randomSubset or sampleFraction are used. Also possible is to
-    # save and restore the state of the RNG and/or to optionally add
-    # 'seed=XXX' to the end of the id of the first read, etc.
+    # TODO, when/if needed: make it possible to pass a seed for the RNG when
+    # randomSubset or sampleFraction are used. Also possible is to save and restore the
+    # state of the RNG and/or to optionally add 'seed=XXX' to the end of the id of the
+    # first read, etc.
 
     def __init__(
         self,
@@ -1246,6 +1363,8 @@ class ReadFilter:
         upperId: bool = False,
         lowerId: bool = False,
         rotate: int | None = None,
+        setSites: Iterable[str | tuple[int, str, str | None]] = None,
+        setSitesOneBased: bool = False,
     ) -> None:
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -1307,6 +1426,15 @@ class ReadFilter:
         self.lowerId = lowerId
 
         self.rotate = rotate
+
+        if setSites:
+            settingsList = list(setSites)
+            if isinstance(settingsList[0], str):
+                # Assume all settings are strings. parseSiteSettings will fail if not.
+                settingsList = parseSiteSettings(settingsList, setSitesOneBased)
+            self.setSites = settingsList
+        else:
+            self.setSites = None
 
         self.alwaysFalse = False
         self.yieldCount = 0
@@ -1512,6 +1640,9 @@ class ReadFilter:
             self.idsSeen.add(id_)
 
         # Only from here on do we start possibly modifying the read.
+
+        if self.setSites:
+            read.setSites(self.setSites)
 
         if self.rotate:  # I.e., not None and not zero.
             read.rotate(self.rotate)

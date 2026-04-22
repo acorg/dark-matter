@@ -5,6 +5,8 @@ from random import seed
 from unittest import TestCase
 from unittest.mock import call, mock_open, patch
 
+import pytest
+
 from dark.aaVars import (
     BASIC_POSITIVE,
     HYDROPHILIC,
@@ -32,6 +34,7 @@ from dark.reads import (
     SSAAReadWithX,
     TranslatedRead,
     getNoCoverageCounts,
+    parseSiteSettings,
     readClassNameToClass,
     simpleReadSplitter,
 )
@@ -5248,3 +5251,259 @@ class TestReadSplitter(TestCase):
             ],
             list(splitter(Read("ID", "ACTGG"))),
         )
+
+
+class TestParseSiteSettings:
+    """
+    Test the parseSiteSettings function.
+    """
+
+    def testEmptyIterable(self):
+        assert parseSiteSettings([]) == []
+
+    def testSingleSiteAndBase(self):
+        assert parseSiteSettings(["3:A"]) == [(3, "A", None)]
+
+    def testSingleSiteBaseAndQuality(self):
+        assert parseSiteSettings(["3:A:!"]) == [(3, "A", "!")]
+
+    def testMultipleSettings(self):
+        assert parseSiteSettings(["0:A", "5:G:H", "10:C"]) == [
+            (0, "A", None),
+            (5, "G", "H"),
+            (10, "C", None),
+        ]
+
+    def testZeroBasedDefault(self):
+        assert parseSiteSettings(["0:T"]) == [(0, "T", None)]
+
+    def testOneBased(self):
+        assert parseSiteSettings(["1:A"], oneBased=True) == [(0, "A", None)]
+
+    def testOneBasedHigherSite(self):
+        assert parseSiteSettings(["5:G"], oneBased=True) == [(4, "G", None)]
+
+    def testOneBasedQuality(self):
+        assert parseSiteSettings(["3:C:I"], oneBased=True) == [(2, "C", "I")]
+
+    def testOneBasedMultiple(self):
+        assert parseSiteSettings(["1:A", "2:T", "3:G"], oneBased=True) == [
+            (0, "A", None),
+            (1, "T", None),
+            (2, "G", None),
+        ]
+
+    def testSiteWithLeadingWhitespace(self):
+        assert parseSiteSettings([" 4:A"]) == [(4, "A", None)]
+
+    def testSiteWithTrailingWhitespace(self):
+        assert parseSiteSettings(["4 :A"]) == [(4, "A", None)]
+
+    def testBaseWithLeadingWhitespace(self):
+        assert parseSiteSettings(["4: A"]) == [(4, "A", None)]
+
+    def testBaseWithTrailingWhitespace(self):
+        assert parseSiteSettings(["4:A "]) == [(4, "A", None)]
+
+    def testNegativeSite(self):
+        assert parseSiteSettings(["-1:A"]) == [(-1, "A", None)]
+
+    def testLargeSite(self):
+        assert parseSiteSettings(["99999:Z"]) == [(99999, "Z", None)]
+
+    def testQualityIsNoneWhenAbsent(self):
+        result = parseSiteSettings(["7:T"])
+        assert result[0][2] is None
+
+    def testQualityPresentInTuple(self):
+        result = parseSiteSettings(["7:T:J"])
+        assert result[0][2] == "J"
+
+    def testReturnedTupleContents(self):
+        result = parseSiteSettings(["2:C:K"])
+        site, base, quality = result[0]
+        assert site == 2
+        assert base == "C"
+        assert quality == "K"
+
+    def testTooFewFieldsRaisesValueError(self):
+        with pytest.raises(ValueError, match="does not have exactly two or three"):
+            parseSiteSettings(["5A"])
+
+    def testTooManyFieldsRaisesValueError(self):
+        with pytest.raises(ValueError, match="does not have exactly two or three"):
+            parseSiteSettings(["5:A:!:extra"])
+
+    def testNonIntegerSiteRaisesValueError(self):
+        with pytest.raises(ValueError, match="Could not turn site"):
+            parseSiteSettings(["x:A"])
+
+    def testEmptyBaseRaisesValueError(self):
+        with pytest.raises(ValueError, match="not a single character"):
+            parseSiteSettings(["5::"])
+
+    def testMultiCharBaseRaisesValueError(self):
+        with pytest.raises(ValueError, match="not a single character"):
+            parseSiteSettings(["5:AT"])
+
+    def testEmptyQualityRaisesValueError(self):
+        with pytest.raises(ValueError, match="not a single character"):
+            parseSiteSettings(["5:A:"])
+
+    def testMultiCharQualityRaisesValueError(self):
+        with pytest.raises(ValueError, match="not a single character"):
+            parseSiteSettings(["5:A:IJ"])
+
+    def testGeneratorInput(self):
+        result = parseSiteSettings(s for s in ["1:A", "2:T"])
+        assert result == [(1, "A", None), (2, "T", None)]
+
+    def testErrorMessageIncludesSpec(self):
+        with pytest.raises(ValueError, match="5:AT"):
+            parseSiteSettings(["5:AT"])
+
+
+class TestSetSites:
+    """
+    Test the Read.setSites method.
+    """
+
+    # --- empty input ---
+
+    def testEmptySettingsIsNoOp(self):
+        read = Read("id1", "ACGT")
+        read.setSites([])
+        assert read.sequence == "ACGT"
+
+    def testEmptySettingsWithQualityIsNoOp(self):
+        read = Read("id1", "ACGT", "IIII")
+        read.setSites([])
+        assert read.sequence == "ACGT"
+        assert read.quality == "IIII"
+
+    def testReturnsNone(self):
+        read = Read("id1", "ACGT")
+        result = read.setSites([(0, "T", None)])
+        assert result is None
+
+    # --- tuple input, read without quality ---
+
+    def testSetSingleBaseTupleAtStart(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(0, "T", None)])
+        assert read.sequence == "TCGT"
+
+    def testSetSingleBaseTupleAtEnd(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(3, "A", None)])
+        assert read.sequence == "ACGA"
+
+    def testSetSingleBaseTupleInMiddle(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(2, "A", None)])
+        assert read.sequence == "ACAT"
+
+    def testSetMultipleBasesTuples(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(0, "T", None), (3, "A", None)])
+        assert read.sequence == "TCGA"
+
+    def testSetSamePositionTwiceLastWins(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(1, "T", None), (1, "G", None)])
+        assert read.sequence == "AGGT"
+
+    def testModifiesReadInPlace(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(1, "X", None)])
+        assert read.sequence == "AXGT"
+        assert read.id == "id1"
+
+    def testGeneratorOfTuplesInput(self):
+        read = Read("id1", "ACGT")
+        read.setSites((t for t in [(1, "T", None), (2, "A", None)]))
+        assert read.sequence == "ATAT"
+
+    # --- tuple input, read with quality ---
+
+    def testSetBaseAndQualityViaTuple(self):
+        read = Read("id1", "ACGT", "IIII")
+        read.setSites([(1, "T", "J")])
+        assert read.sequence == "ATGT"
+        assert read.quality == "IJII"
+
+    def testSetMultipleBasesAndQualitiesViaTuples(self):
+        read = Read("id1", "ACGT", "HIJK")
+        read.setSites([(0, "T", "A"), (3, "A", "Z")])
+        assert read.sequence == "TCGA"
+        assert read.quality == "AIJZ"
+
+    def testQualityUnchangedAtUnsetPositions(self):
+        read = Read("id1", "ACGT", "HIJK")
+        read.setSites([(1, "T", "A")])
+        assert read.quality == "HAJK"
+
+    # --- error cases ---
+
+    def testOffsetEqualToLengthRaisesValueError(self):
+        read = Read("id1", "ACGT")
+        with pytest.raises(ValueError, match="Cannot set"):
+            read.setSites([(4, "T", None)])
+
+    def testOffsetBeyondLengthRaisesValueError(self):
+        read = Read("id1", "ACGT")
+        with pytest.raises(ValueError, match="Cannot set"):
+            read.setSites([(10, "T", None)])
+
+    def testErrorMessageContainsOneBasedSiteNumber(self):
+        read = Read("id1", "ACGT")
+        with pytest.raises(ValueError, match=r"\b5\b"):
+            read.setSites([(4, "T", None)])
+
+    def testQualityInSpecButReadHasNoQualityRaisesValueError(self):
+        read = Read("id1", "ACGT")
+        with pytest.raises(ValueError, match="has no quality string"):
+            read.setSites([(1, "T", "I")])
+
+    def testNoQualityInSpecButReadHasQualityRaisesValueError(self):
+        read = Read("id1", "ACGT", "IIII")
+        with pytest.raises(ValueError, match="has a quality string"):
+            read.setSites([(1, "T", None)])
+
+    # --- string input ---
+
+    def testSetSingleBaseViaString(self):
+        read = Read("id1", "ACGT")
+        read.setSites(["2:A"])
+        assert read.sequence == "ACAT"
+
+    def testSetBaseAndQualityViaString(self):
+        read = Read("id1", "ACGT", "IIII")
+        read.setSites(["1:T:J"])
+        assert read.sequence == "ATGT"
+        assert read.quality == "IJII"
+
+    def testStringInputMultipleSpecs(self):
+        read = Read("id1", "ACGT")
+        read.setSites(["0:T", "2:A"])
+        assert read.sequence == "TCAT"
+
+    def testStringInputOneBased(self):
+        read = Read("id1", "ACGT")
+        read.setSites(["1:T"], oneBased=True)
+        assert read.sequence == "TCGT"
+
+    def testStringInputOneBasedHigherSite(self):
+        read = Read("id1", "ACGT")
+        read.setSites(["3:A"], oneBased=True)
+        assert read.sequence == "ACAT"
+
+    def testStringInputGeneratorInput(self):
+        read = Read("id1", "ACGT")
+        read.setSites(s for s in ["0:T", "3:C"])
+        assert read.sequence == "TCGC"
+
+    def testOneBased_IgnoredForTupleInput(self):
+        read = Read("id1", "ACGT")
+        read.setSites([(0, "T", None)], oneBased=True)
+        assert read.sequence == "TCGT"

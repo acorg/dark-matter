@@ -39,7 +39,7 @@ def getArgs() -> argparse.Namespace:
         "--align",
         action="store_true",
         help=(
-            "If given, use mafft (the default) or needle (according to the "
+            "If given, use MAFFT (the default), edlib, or needle (according to the "
             "algorithm selected by --aligner) to align the two sequences."
         ),
     )

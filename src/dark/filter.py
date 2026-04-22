@@ -679,6 +679,33 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
         ),
     )
 
+    parser.add_argument(
+        "--setSite",
+        metavar="site:base[:quality]",
+        nargs="+",
+        help=(
+            "Set a (1-based) site to a certain base (with a quality, if FASTQ). May be "
+            "given with multiple specifications to change several sites, e.g.: "
+            "--setSite 4:A 20:G  Several things should be noted: 1) because the sites "
+            "are 1-based, you cannot use -1 as a site to change the final site, you "
+            "need to use 0 instead (since 1 is subtracted from the site indices to "
+            "get Python's 0-based offsets). If you find this weird, use "
+            "--setSiteZeroBased and give 0-based sites. 2) To pass a negative site you "
+            "should give a leading space so the argparse parser doesn't think your "
+            "offset is the start of another argument. Therefore: --setSite ' -1:A' can "
+            "be used. 3) These changes are applied before any other read-altering "
+            "operations (e.g., sequence rotation, applying a read lambda, reversing or "
+            "reverse complementing)."
+        ),
+    )
+
+    parser.add_argument(
+        "--setSiteZeroBased",
+        dest="setSitesOneBased",
+        action="store_false",
+        help="Indicate that the sites given in --setSite are zero based.",
+    )
+
     seqCaseGroup = parser.add_mutually_exclusive_group()
 
     seqCaseGroup.add_argument(
@@ -778,4 +805,6 @@ def parseFASTAEditingCommandLineOptions(
         upperId=args.upperId,
         lowerId=args.lowerId,
         rotate=args.rotate,
+        setSites=args.setSite,
+        setSitesOneBased=args.setSitesOneBased,
     )
