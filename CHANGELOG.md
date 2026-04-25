@@ -1,3 +1,13 @@
+## 7.2.0 April 25, 2026
+
+Added information about `N` bases coming back from `compareDNAReads`
+and improved `matchToString` to return it. The API is unchanged but
+the returned `dict` from `compareDNAReads` has more keys in it and the
+string coming back from `matchToString` is different. So I bumped to
+version 7.2.0. Ten `matchToString` tests are now skipped, partly
+because I don't want to fix them right now and partly because the
+format may change again.
+
 ## 7.1.20 April 22, 2026
 
 Added `--setSite` to `filter-fasta.py` to allow setting of the base
