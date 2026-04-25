@@ -8,7 +8,7 @@ from Bio.Data.CodonTable import TranslationError
 from Bio.Seq import translate
 
 from dark.aaVars import CODONS, REVERSE_CODONS
-from dark.utils import countPrint
+from dark.utils import countPrint, intsToStringIntervals
 
 # A list of the ambiguous values is given at
 # https://en.wikipedia.org/wiki/Nucleic_acid_notation
@@ -111,6 +111,7 @@ def matchToString(
     includeNonGapMismatches: bool = False,
     includeDifferenceCounts: bool = False,
     includeDifferenceLocations: bool = False,
+    includeNLocations: bool = False,
 ) -> str:
     """
     Format a DNA match as a string.
@@ -138,6 +139,7 @@ def matchToString(
     @param includeDifferenceLocations: If C{True}, include the genome locations
         of differences and their counts (i.e., C{includeDifferenceCounts} is
         implied) by this option.
+    @param includeNLocations:  If C{True}, include the 'N' nucleotide code locations.
     @return: A C{str} describing the match.
     """
     match = dnaMatch["match"]
@@ -154,16 +156,38 @@ def matchToString(
     else:
         len1, len2 = len(read1), len(read2)
 
+    nMatches = match["nMatches"]
+    oneNmatchCount = sum(
+        (a == "N" and b != "N") or (a != "N" and b == "N") for _, a, b in nMatches
+    )
+    twoNmatchCount = sum(a == b == "N" for _, a, b in nMatches)
+    assert oneNmatchCount + twoNmatchCount == len(nMatches)
+
     result = []
     append = result.append
 
-    append(countPrint("%sExact matches" % indent, identicalMatchCount, len1, len2))
-    append(countPrint("%sAmbiguous matches" % indent, ambiguousMatchCount, len1, len2))
+    append(countPrint(f"{indent}Exact matches", identicalMatchCount, len1, len2))
+
+    if ambiguousMatchCount:
+        append(f"{indent}Ambiguous matches:")
+        append(
+            countPrint(
+                f"{indent}  Excluding Ns",
+                ambiguousMatchCount - oneNmatchCount - twoNmatchCount,
+                len1,
+                len2,
+            )
+        )
+        append(countPrint(f"{indent}  With one N", oneNmatchCount, len1, len2))
+        append(countPrint(f"{indent}  With two Ns", twoNmatchCount, len1, len2))
+        append(countPrint(f"{indent}  Including Ns", ambiguousMatchCount, len1, len2))
+    else:
+        append(f"{indent}Ambiguous matches (including Ns): 0")
 
     if noCoverageCount:
         append(
             countPrint(
-                "%sExact matches (ignoring no coverage sites)" % indent,
+                f"{indent}Exact matches (ignoring no coverage sites)",
                 identicalMatchCount,
                 len1 - noCoverageCount,
                 len2 - noCoverageCount,
@@ -171,7 +195,7 @@ def matchToString(
         )
         append(
             countPrint(
-                "%sAmbiguous matches (ignoring no coverage sites)" % indent,
+                f"{indent}Ambiguous matches (ignoring no coverage sites)",
                 ambiguousMatchCount,
                 len1 - noCoverageCount,
                 len2 - noCoverageCount,
@@ -181,15 +205,12 @@ def matchToString(
     if ambiguousMatchCount and identicalMatchCount:
         anyMatchCount = identicalMatchCount + ambiguousMatchCount
         append(
-            countPrint(
-                "%sExact or ambiguous matches" % indent, anyMatchCount, len1, len2
-            )
+            countPrint(f"{indent}Exact or ambiguous matches", anyMatchCount, len1, len2)
         )
         if noCoverageCount:
             append(
                 countPrint(
-                    "%sExact or ambiguous matches (ignoring no coverage sites)"
-                    % indent,
+                    f"{indent}Exact or ambiguous matches (ignoring no coverage sites)",
                     anyMatchCount,
                     len1 - noCoverageCount,
                     len2 - noCoverageCount,
@@ -197,11 +218,11 @@ def matchToString(
             )
 
     mismatchCount = gapMismatchCount + gapGapMismatchCount + nonGapMismatchCount
-    append(countPrint("%sMismatches" % indent, mismatchCount, len1, len2))
+    append(countPrint(f"{indent}Mismatches", mismatchCount, len1, len2))
     conflicts = "conflicts" if matchAmbiguous else "conflicts or ambiguities"
     append(
         countPrint(
-            "%s  Not involving gaps (i.e., %s)" % (indent, conflicts),
+            f"{indent}  Not involving gaps (i.e., {conflicts})",
             nonGapMismatchCount,
             len1,
             len2,
@@ -209,12 +230,12 @@ def matchToString(
     )
     append(
         countPrint(
-            "%s  Involving a gap in one sequence" % indent, gapMismatchCount, len1, len2
+            f"{indent}  Involving a gap in one sequence", gapMismatchCount, len1, len2
         )
     )
     append(
         countPrint(
-            "%s  Involving a gap in both sequences" % indent,
+            f"{indent}  Involving a gap in both sequences",
             gapGapMismatchCount,
             len1,
             len2,
@@ -222,7 +243,7 @@ def matchToString(
     )
     append(
         countPrint(
-            "%s  Involving no coverage in one sequence" % indent,
+            f"{indent}  Involving no coverage in one sequence",
             noCoverageCount,
             len1,
             len2,
@@ -230,7 +251,7 @@ def matchToString(
     )
     append(
         countPrint(
-            "%s  Involving no coverage in both sequences" % indent,
+            f"{indent}  Involving no coverage in both sequences",
             noCoverageNoCoverageCount,
             len1,
             len2,
@@ -238,47 +259,70 @@ def matchToString(
     )
 
     for read, key in zip((read1, read2), ("read1", "read2")):
-        append("%s  Id: %s" % (indent, read.id))
+        append(f"{indent}  Id: {read.id}")
         length = len(read)
-        append("%s    Length: %d" % (indent, length))
+        append(f"{indent}    Length: {length}")
         gapCount = len(dnaMatch[key]["gapOffsets"])
-        append(countPrint("%s    Gaps" % indent, gapCount, length))
+        nOffsets = dnaMatch[key]["nOffsets"]
+        append(countPrint(f"{indent}    Gaps", gapCount, length))
         if includeGapLocations and gapCount:
             append(
-                "%s    Gap locations (1-based): %s"
-                % (
-                    indent,
-                    ", ".join(
-                        map(
-                            lambda offset: str(offset + 1),
-                            sorted(dnaMatch[key]["gapOffsets"]),
-                        )
-                    ),
+                f"{indent}    Gap locations (1-based): "
+                + ", ".join(
+                    intsToStringIntervals(
+                        map(lambda offset: offset + 1, dnaMatch[key]["gapOffsets"])
+                    )
                 )
             )
         ncCount = len(dnaMatch[key]["noCoverageOffsets"])
-        append(countPrint("%s    No coverage" % indent, ncCount, length))
+        append(countPrint(f"{indent}    No coverage", ncCount, length))
+
+        append(countPrint(f"{indent}    Ns", len(nOffsets), length))
+        if includeNLocations and len(nOffsets):
+            append(
+                f"{indent}    N locations (1-based): "
+                + ", ".join(
+                    intsToStringIntervals(map(lambda offset: offset + 1, nOffsets))
+                )
+            )
+            if gapCount:
+                ungappedNLocations = {
+                    offset + 1
+                    for offset, base in enumerate(
+                        read.sequence.upper().replace("-", "")
+                    )
+                    if base == "N"
+                }
+                append(
+                    f"{indent}    N locations (1-based, ungapped): "
+                    + ", ".join(intsToStringIntervals(ungappedNLocations))
+                )
+
         if includeNoCoverageLocations and ncCount:
             append(
-                "%s    No coverage locations (1-based): %s"
-                % (
-                    indent,
-                    ", ".join(
+                f"{indent}    No coverage locations (1-based): "
+                + ", ".join(
+                    intsToStringIntervals(
                         map(
-                            lambda offset: str(offset + 1),
-                            sorted(dnaMatch[key]["noCoverageOffsets"]),
+                            lambda offset: offset + 1,
+                            dnaMatch[key]["noCoverageOffsets"],
                         )
-                    ),
+                    )
                 )
             )
         ambiguousCount = len(dnaMatch[key]["ambiguousOffsets"])
-        append(countPrint("%s    Ambiguous" % indent, ambiguousCount, length))
+        append(countPrint(f"{indent}    Ambiguous", ambiguousCount, length))
+        append(
+            countPrint(
+                f"{indent}    Coverage (excluding Ns and alignment gaps)",
+                length - gapCount - len(nOffsets),
+                length - gapCount,
+            )
+        )
         extraCount = dnaMatch[key]["extraCount"]
         if extraCount:
             append(
-                countPrint(
-                    "%s    Extra nucleotides at end" % indent, extraCount, length
-                )
+                countPrint(f"{indent}    Extra nucleotides at end", extraCount, length)
             )
 
     if includeAmbiguousMatches and match["ambiguousMatches"]:
@@ -334,6 +378,9 @@ def compareDNAReads(
     gapMismatchCount = nonGapMismatchCount = gapGapMismatchCount = 0
     noCoverageCount = noCoverageNoCoverageCount = 0
     read1ExtraCount = read2ExtraCount = 0
+    nMatches = []
+    read1NOffsets = []
+    read2NOffsets = []
     read1GapOffsets = []
     read2GapOffsets = []
     read1AmbiguousOffsets = []
@@ -374,8 +421,7 @@ def compareDNAReads(
     for offset, (a, b) in enumerate(
         zip_longest(read1.sequence.upper(), read2.sequence.upper())
     ):
-        # Use 'is not None' in the following to allow an empty offsets set
-        # to be passed.
+        # Use 'is not None' below to allow an empty offsets set to be passed.
         if offsets is not None and offset not in offsets:
             continue
         if len(AMBIGUOUS.get(a, "")) > 1:
@@ -384,6 +430,10 @@ def compareDNAReads(
             read2AmbiguousOffsets.append(offset)
         aNoCoverage = a in noCoverageChars
         bNoCoverage = b in noCoverageChars
+        if a == "N":
+            read1NOffsets.append(offset)
+        if b == "N":
+            read2NOffsets.append(offset)
         if a is None:
             # b has an extra character at its end (it cannot be None).
             assert b is not None
@@ -436,6 +486,8 @@ def compareDNAReads(
                     elif _ambiguousMatch(a, b, matchAmbiguous):
                         ambiguousMatchCount += 1
                         ambiguousMatches.append((offset, a, b))
+                        if a == "N" or b == "N":
+                            nMatches.append((offset, a, b))
                     else:
                         nonGapMismatchCount += 1
                         nonGapMismatches.append((offset, a, b))
@@ -453,18 +505,21 @@ def compareDNAReads(
             "ambiguousMatches": ambiguousMatches,
             "nonGapMismatches": nonGapMismatches,
             "differenceOffsets": differenceOffsets,
+            "nMatches": nMatches,
         },
         "read1": {
             "ambiguousOffsets": read1AmbiguousOffsets,
             "extraCount": read1ExtraCount,
             "gapOffsets": read1GapOffsets,
             "noCoverageOffsets": read1NoCoverageOffsets,
+            "nOffsets": read1NOffsets,
         },
         "read2": {
             "ambiguousOffsets": read2AmbiguousOffsets,
             "extraCount": read2ExtraCount,
             "gapOffsets": read2GapOffsets,
             "noCoverageOffsets": read2NoCoverageOffsets,
+            "nOffsets": read2NOffsets,
         },
     }
 
