@@ -1,3 +1,7 @@
+## 7.2.1 May 6, 2026
+
+Fix legend region start offset in `plot-coverage-depth.py` to be 1-based.
+
 ## 7.2.0 April 25, 2026
 
 Added information about `N` bases coming back from `compareDNAReads`

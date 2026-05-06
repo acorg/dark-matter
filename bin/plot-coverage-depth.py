@@ -241,7 +241,8 @@ def main() -> None:
                 y=[None],
                 mode="markers",
                 marker=dict(size=args.legendSquareSize, color=color, symbol="square"),
-                name=f"{label} ({start}-{end})",
+                # Add one to the start to get a 1-based human-friendly start site.
+                name=f"{label} ({start + 1}-{end})",
                 showlegend=True,
             )
         )
