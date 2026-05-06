@@ -174,8 +174,8 @@ def main() -> None:
     for i, (start, end, label, color) in enumerate(rawRegions):
         regions.append(
             (
-                # Convert to 0-based.
-                start - 1 or 0,
+                # Note that start is alredy 0-based (in parseStartEndLabelColor).
+                start or 0,
                 end or refLength,
                 label or f"region-{i + 1}",
                 color or next(colorIter),

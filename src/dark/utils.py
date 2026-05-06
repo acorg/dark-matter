@@ -193,7 +193,7 @@ def parseStartEndLabelColor(
     regionStr: str,
 ) -> tuple[int | None, int | None, str | None, str | None]:
     """
-    Parse a --region argument of the form start:end[:label[:color]].
+    Parse a 1-based --region argument of the form start:end[:label[:color]].
 
     @param regionStr: A C{str} region specification.
     @raise ValueError: If the region string is malformed.
