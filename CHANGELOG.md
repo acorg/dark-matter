@@ -1,3 +1,7 @@
+## 7.2.5 May 17, 2026
+
+Made the `extract_sam` use a temporary file to store SAM into.
+
 ## 7.2.4 May 11, 2026
 
 Updated `uv.lock` following merge of dependabot pull request.

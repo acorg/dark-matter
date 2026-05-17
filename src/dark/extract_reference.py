@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from tempfile import mktemp
 
 from dark.fasta import FastaReads
 from dark.process import Executor
@@ -101,8 +102,8 @@ def extract_sam(
     if bam.name.lower().endswith(".bam"):
         # Convert the given BAM to SAM so we can easily read it (we could instead use
         # the pysam module).
-        sam = out_dir / bam.with_suffix(".sam").name
-        e.execute(f"samtools view -h -O SAM {str(bam)!r} --output {str(sam)!r}")
+        sam = Path(mktemp(suffix=".sam"))
+        e.execute(f"samtools view -h -O SAM {str(bam)!r} > {str(sam)!r}")
         our_sam = True
     else:
         if not bam.name.lower().endswith(".sam"):
@@ -140,6 +141,11 @@ def extract_sam(
                 if fields[2] == ref_id:
                     read_count += 1
                     print(line, file=sam_out)
+
+    if read_count == 0:
+        sys.exit(
+            f"No matches with reference {ref_id!r} were found in {str(sam)!r}! Exiting."
+        )
 
     e.execute(f"samtools sort -O BAM {str(new_sam)!r} -o {str(new_bam)!r}")
     e.execute(f"samtools index {str(new_bam)!r}")
