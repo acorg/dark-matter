@@ -615,6 +615,7 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument(
         "--truncateTitlesAfter",
+        metavar="STR",
         help=(
             "A string that sequence titles (ids) will be truncated beyond. "
             "If the truncated version of a title has already been seen, "
@@ -734,6 +735,19 @@ def addFASTAEditingCommandLineOptions(parser: argparse.ArgumentParser) -> None:
         help="Convert sequence IDs to lowercase.",
     )
 
+    parser.add_argument(
+        "--setQuality",
+        metavar="Q",
+        help=(
+            "Set all quality characters to 'Q'. Note that this is a string "
+            "value, not an integer. As well as changing FASTQ qualities, "
+            "this can also be used to convert FASTA to FASTQ (with a constant "
+            "quality for all bases) when used with --saveAs fastq. A PHRED quality "
+            "of 20 can be given as '5', of 30 as '?', and 32 as 'A'.  See "
+            "man ascii for other values."
+        ),
+    )
+
 
 def parseFASTAEditingCommandLineOptions(
     args: argparse.Namespace, reads: Reads
@@ -807,4 +821,5 @@ def parseFASTAEditingCommandLineOptions(
         rotate=args.rotate,
         setSites=args.setSite,
         setSitesOneBased=args.setSitesOneBased,
+        setQuality=args.setQuality,
     )

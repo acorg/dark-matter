@@ -4655,6 +4655,45 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(rotate=1, upper=True)
         self.assertEqual(Read("id1", "GATC"), list(result)[0])
 
+    def testSetQuality(self):
+        """
+        Filtering must be able to set the quality on a read.
+        """
+        reads = Reads()
+        reads.add(Read("id", "ATCG", "1234"))
+        result = reads.filter(setQuality="x")
+        self.assertEqual([Read("id", "ATCG", "xxxx")], list(result))
+
+    def testSetQualityDeNovo(self):
+        """
+        Filtering must be able to set the quality on a read that has
+        no quality information.
+        """
+        reads = Reads()
+        reads.add(Read("id", "ATCG"))
+        result = reads.filter(setQuality="x")
+        self.assertEqual([Read("id", "ATCG", "xxxx")], list(result))
+
+    def testSetQualityNotAString(self):
+        """
+        Setting a non-string quality should result in a ValueError.
+        """
+        reads = Reads()
+        reads.add(Read("id", "ATCG"))
+        error = r"^The quality string must be a single character\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.filter(setQuality=44)
+
+    def testSetQualityNotLengthOne(self):
+        """
+        Setting a quality of length not one should result in a ValueError.
+        """
+        reads = Reads()
+        reads.add(Read("id", "ATCG"))
+        error = r"^The quality string must be a single character\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.filter(setQuality="xx")
+
 
 class TestReadsInRAM(TestCase):
     """

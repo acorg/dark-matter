@@ -1306,12 +1306,14 @@ class ReadFilter:
         as produced by parseSiteSettings.
     @param setSitesOneBased: If C{True}, the site values in setSites are 1-based
         not 0-based.
+    @param setQuality: Set all quality values to be this C{str} character.
     @raises ValueError: If C{randomSubset} and C{sampleFraction} are both
         specified, or if C{randomSubset} is specified but C{trueLength} is not,
         or if the sequence numbers in C{sequenceNumbersFile} are
         non-positive or not ascending, or if both C{keepSites} and
         C{removeSites} are given, or if both C{keepSequences} and
-        C{removeSequences} are given.
+        C{removeSequences} are given, or if C{setQuality} is passed something
+        other than a string of length one.
     @raise AttributeError: If C{reverseComplement} is C{True} but the read
         type does not allow for reverse complementing.
     """
@@ -1365,6 +1367,7 @@ class ReadFilter:
         rotate: int | None = None,
         setSites: Iterable[str | tuple[int, str, str | None]] = None,
         setSitesOneBased: bool = False,
+        setQuality: str | None = None,
     ) -> None:
         if randomSubset is not None:
             if sampleFraction is not None:
@@ -1436,6 +1439,13 @@ class ReadFilter:
         else:
             self.setSites = None
 
+        if setQuality:
+            if isinstance(setQuality, str) and len(setQuality) == 1:
+                self.setQuality = setQuality
+            else:
+                raise ValueError("The quality string must be a single character.")
+        else:
+            self.setQuality = None
         self.alwaysFalse = False
         self.yieldCount = 0
         self.readIndex = -1
@@ -1703,6 +1713,13 @@ class ReadFilter:
 
         if self.removeDescriptions:
             read.id = read.id.split()[0]
+
+        if self.setQuality:
+            # Note that if this is a FASTA read (with no quality string) a quality
+            # string is added, so it can then (optionally) be treated as FASTQ. This
+            # option gives an easy way to convert FASTA to FASTQ using filter-fasta.py
+            # (with all quality values set identically).
+            read.quality = self.setQuality * len(read)
 
         if self.reverse:
             read = read.reverse()

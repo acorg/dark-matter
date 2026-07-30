@@ -1,3 +1,8 @@
+## 7.2.6 July 30, 2026
+
+Added `--setQuality` command-line option to `filter-fasta.py`. This
+can be used to convert FASTA to FASTQ when used with `--saveAs fastq`.
+
 ## 7.2.5 May 17, 2026
 
 Made the `extract_sam` use a temporary file to store SAM into.
