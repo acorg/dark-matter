@@ -1,3 +1,8 @@
+## 7.2.7 July 30, 2026
+
+Fix `filter-fasta.py` command-line arg checking to allow non-FASTQ
+input if `--setQuality` is given.
+
 ## 7.2.6 July 30, 2026
 
 Added `--setQuality` command-line option to `filter-fasta.py`. This

@@ -53,10 +53,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Note that we must call parseFASTACommandLineOptions here before we
-    # examine args.fasta in the following code. That's because
-    # parseFASTACommandLineOptions sets args.fasta to be True if no format
-    # is given.
+    # Note that we must call parseFASTACommandLineOptions here before we examine
+    # args.fasta in the following code. That's because parseFASTACommandLineOptions sets
+    # args.fasta to be True if no format is given.
     reads = parseFASTAEditingCommandLineOptions(
         args,
         parseFASTAFilteringCommandLineOptions(args, parseFASTACommandLineOptions(args)),
@@ -69,16 +68,17 @@ if __name__ == "__main__":
         or (args.fasta_ss and "fasta-ss")
     )
 
-    # Check for incompatible read/write formats. We can't write FASTQ
-    # unless we have FASTQ on input (else we won't have quality information),
-    # and we can't write PDB FASTA with secondary structure information
-    # unless we have that on input.
-    if saveAs == "fastq" and not args.fastq:
+    # Check for incompatible read/write formats. We can't write FASTQ unless we have
+    # FASTQ on input (else we won't have quality information), and we can't write PDB
+    # FASTA with secondary structure information unless we have that on input.
+    if saveAs == "fastq" and not (args.fastq or args.setQuality):
         raise ValueError(
-            "You have specified --saveAs fastq without using --fastq "
-            "to indicate that the input is FASTQ. Please be explicit."
+            "You have specified --saveAs fastq without using --fastq to indicate that "
+            "the input is FASTQ or using --setQuality to add quality values. Please be "
+            "explicit."
         )
-    elif saveAs == "fasta-ss" and not args.fasta_ss:
+
+    if saveAs == "fasta-ss" and not args.fasta_ss:
         raise ValueError(
             "You have specified --saveAs fasta-ss without using --fasta-ss "
             "to indicate that the input is PDB FASTA. Please be explicit."
