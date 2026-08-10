@@ -1,3 +1,7 @@
+## 7.2.8 August 10, 2026
+
+Added `sam-merge.py` to merge SAM/BAM files, into a BAM file, then sort and index the result.
+
 ## 7.2.7 July 30, 2026
 
 Fix `filter-fasta.py` command-line arg checking to allow non-FASTQ
