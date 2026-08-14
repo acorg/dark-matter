@@ -10,6 +10,8 @@ from dark.dna import AMBIGUOUS, compareDNAReads, matchToString
 from dark.reads import Reads, addFASTACommandLineOptions, parseFASTACommandLineOptions
 from dark.utils import parseRangeExpression
 
+DEFAULT_ALIGNER = "mafft"
+
 MAFFT_ALGORITHMS_URL = (
     "https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html"
 )
@@ -46,9 +48,11 @@ def getArgs() -> argparse.Namespace:
 
     parser.add_argument(
         "--aligner",
-        default="mafft",
         choices=("edlib", "mafft", "needle"),
-        help="The alignment algorithm to use.",
+        help=(
+            "The alignment algorithm to use when --align is given. "
+            f"Default {DEFAULT_ALIGNER!r}. Implies --align."
+        ),
     )
 
     parser.add_argument(
@@ -59,7 +63,7 @@ def getArgs() -> argparse.Namespace:
             f"If 'needle', the default is {NEEDLE_DEFAULT_ARGS!r}. Do not try to set "
             "the number of threads here; use the --threads argument instead. If you "
             f"are using mafft, see {MAFFT_ALGORITHMS_URL} for some possible option "
-            "combinations."
+            "combinations. Implies --align."
         ),
     )
 
@@ -216,8 +220,11 @@ def main() -> None:
     elif len(reads) != 2:
         sys.exit("Could not find both requested sequence indices. Exiting.")
 
-    if args.alignmentFile:
+    if args.aligner or args.alignmentFile:
         args.align = True
+
+    if args.align and not args.aligner:
+        args.aligner = DEFAULT_ALIGNER
 
     if args.align:
         len1, len2 = map(len, reads)

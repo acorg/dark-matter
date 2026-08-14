@@ -1,3 +1,7 @@
+## 7.2.9 August 14, 2026
+
+Make `--aligner` imply `--align` in `compare-sequences.py`.
+
 ## 7.2.8 August 10, 2026
 
 Added `sam-merge.py` to merge SAM/BAM files, into a BAM file, then sort and index the result.
