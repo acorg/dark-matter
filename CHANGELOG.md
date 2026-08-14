@@ -1,3 +1,18 @@
+## 7.3.0 August 15, 2026
+
+Changed the default MAFFT args to use `--auto` instead of
+`--globalpair` (as used by `compare-sequences.py`) in
+`src/dark/aligners.py`.
+
+In consultation with Claude, rewrote the way `make-consensus.py`
+creates a consensus when `bcftools` is used (instead of `ivar`),
+especially when `--callHaplotypesGATK` is not used to make a VCF
+file. It seems that it's now considered better to avoid using iVar
+and to use the various `bcftools` commands.
+
+ Bumped version to `7.3.0` because these changes are not backward
+ compatible.
+
 ## 7.2.9 August 14, 2026
 
 Make `--aligner` imply `--align` in `compare-sequences.py`.

@@ -14,7 +14,7 @@ from dark.fasta import FastaReads
 from dark.process import Executor
 from dark.reads import Reads
 
-MAFFT_DEFAULT_ARGS = "--globalpair --maxiterate 1000 --preservecase"
+MAFFT_DEFAULT_ARGS = "--auto --maxiterate 1000 --preservecase"
 NEEDLE_DEFAULT_ARGS = "auto"
 
 EDLIB_AMBIGUOUS: Tuple[Tuple[str, ...], ...] = tuple(
