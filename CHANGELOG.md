@@ -7,11 +7,13 @@ Changed the default MAFFT args to use `--auto` instead of
 In consultation with Claude, rewrote the way `make-consensus.py`
 creates a consensus when `bcftools` is used (instead of `ivar`),
 especially when `--callHaplotypesGATK` is not used to make a VCF
-file. It seems that it's now considered better to avoid using iVar
-and to use the various `bcftools` commands.
+file. It seems that it's now considered better to avoid using iVar and
+to use the various `bcftools` commands. See
+https://claude.ai/share/baa7064b-00cd-4520-95e6-9a22c9cd826a for the
+discussion I had with it.
 
- Bumped version to `7.3.0` because these changes are not backward
- compatible.
+Bumped version to `7.3.0` because these changes are not backward
+compatible.
 
 ## 7.2.9 August 14, 2026
 
