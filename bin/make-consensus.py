@@ -53,7 +53,7 @@ def makeVcfWithGATK(args: argparse.Namespace, tempdir: str, e: Executor) -> str:
         f"--reference {args.reference!r} "
         f"--input {args.bam!r} "
         f"--output {vcfFile!r} "
-        f"--sample-ploidy 1 "
+        f"--sample-ploidy {args.ploidy} "
         f"-ERC GVCF"
     )
 
@@ -72,7 +72,7 @@ def makeVcfWithBcftools(args: argparse.Namespace, tempdir: str, e: Executor) -> 
     e.execute(
         f"bcftools mpileup --max-depth {args.maxDepth} -a AD,DP -q 20 -Q 20 -f "
         f"{args.reference!r} {args.bam!r} "
-        f"| bcftools call --ploidy 1 -mv -Oz -o {vcfFile!r}"
+        f"| bcftools call --ploidy {args.ploidy} -mv -Oz -o {vcfFile!r}"
     )
 
     e.execute(f"bcftools index {vcfFile!r}")
@@ -168,6 +168,17 @@ def main():
     )
 
     parser.add_argument(
+        "--ploidy",
+        default=1,
+        type=int,
+        help=(
+            "The ploidy to use when calling the consensus via bcftools consensus. "
+            "Use 1 for viruses, but be aware that bcftools will not emit ambiguous "
+            "nucleotide characters in that case."
+        ),
+    )
+
+    parser.add_argument(
         "--maskLowCoverage",
         "--minimumCoverageDepth",
         "--minCoverageDepth",
@@ -246,8 +257,8 @@ def main():
             f"based on the smallest set of most-frequent nucleotides whose "
             f"summed frequencies meet the threshold. See {IVAR_DOCS} for "
             f"more information. If not given, "
-            f"{IVAR_FREQUENCY_THRESHOLD_DEFAULT} is used. Can only be used "
-            f"if --ivar is also specified."
+            f"{IVAR_FREQUENCY_THRESHOLD_DEFAULT} is used. Only used "
+            f"if --ivar is specified."
         ),
     )
 
@@ -322,9 +333,8 @@ def main():
 
         ivarConsensusPrefix = join(tempdir, "temporary-consensus")
         e.execute(
-            # The samtools mpileup args were set on 2026-01-21 by Terry after looking at
-            # the output of samtools mpileup (version 1.23).
-            f"samtools mpileup -d 0 -aa -A -Q 0 {bamFile!r} | "
+            f"samtools mpileup -d 0 -aa -A -B -Q 0 --fasta-ref {args.reference!r} "
+            f"{bamFile!r} | "
             f"ivar consensus -p {ivarConsensusPrefix!r} -q 20 "
             f"-t {args.ivarFrequencyThreshold!r} -m {args.maskLowCoverage!r}"
         )

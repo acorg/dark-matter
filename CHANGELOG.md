@@ -1,3 +1,15 @@
+## 7.3.2 August 17, 2026
+
+Slightly change `ivar` consensus making by passing `-B` and the
+reference sequence to `samtools mpileup`.  The `-B` option disables
+the `samtools mpileup` BAQ (base alignment quality) recalculation, as
+recommended by `ivar` (see the "Note:" at
+https://andersen-lab.github.io/ivar/html/manualpage.html).  Even
+though `samtools mpileup` has changed its BAQ behavior since that
+time, we don't rely on people having a particular `samtools` version
+and turning off the BAQ processing in `samtools mpileup` is what
+`ivar` expects anyway.
+
 ## 7.3.1 August 17, 2026
 
 Set the default on `--maskLowCoverage` in `make-consensus.py` to be 1
