@@ -13,6 +13,85 @@ IVAR_FREQUENCY_THRESHOLD_DEFAULT = 0.6
 IVAR_DOCS = "https://andersen-lab.github.io/ivar/html/manualpage.html#autotoc_md19"
 
 
+def makeVcfWithGATK(args: argparse.Namespace, tempdir: str, e: Executor) -> str:
+    vcfFile = join(tempdir, "vcf.gz")
+
+    if args.picardJar:
+        picardJar = args.picardJar
+    else:
+        try:
+            picardJar = os.environ["PICARD_JAR"]
+        except KeyError:
+            sys.exit(
+                "If you use --callHaplotypesGATK, you must give a Picard JAR file "
+                "with --picardJar or else set PICARD_JAR in your environment."
+            )
+
+    indexFile = args.reference + ".fai"
+    if os.path.exists(indexFile):
+        removeIndex = False
+    else:
+        removeIndex = True
+        e.execute(f"samtools faidx {args.reference!r}")
+
+    if args.reference.lower().endswith(".fasta"):
+        dictFile = args.reference[: -len(".fasta")] + ".dict"
+    else:
+        dictFile = args.reference + ".dict"
+
+    if os.path.exists(dictFile):
+        removeDict = False
+    else:
+        removeDict = True
+        e.execute(
+            f"java -jar {picardJar!r} CreateSequenceDictionary "
+            f"R={args.reference!r} O={dictFile!r}"
+        )
+
+    e.execute(
+        f"gatk --java-options -Xmx4g HaplotypeCaller "
+        f"--reference {args.reference!r} "
+        f"--input {args.bam!r} "
+        f"--output {vcfFile!r} "
+        f"--sample-ploidy 1 "
+        f"-ERC GVCF"
+    )
+
+    if removeIndex:
+        e.execute(f"rm {indexFile!r}")
+
+    if removeDict:
+        e.execute(f"rm {dictFile!r}")
+
+    return vcfFile
+
+
+def makeVcfWithBcftools(args: argparse.Namespace, tempdir: str, e: Executor) -> str:
+    vcfFile = join(tempdir, "vcf.gz")
+
+    e.execute(
+        f"bcftools mpileup --max-depth {args.maxDepth} -a AD,DP -q 20 -Q 20 -f "
+        f"{args.reference!r} {args.bam!r} "
+        f"| bcftools call --ploidy 1 -mv -Oz -o {vcfFile!r}"
+    )
+
+    e.execute(f"bcftools index {vcfFile!r}")
+
+    filter_arg = "QUAL<20"
+
+    if args.maskLowCoverage > 0:
+        filter_arg += f" || FORMAT/DP<{args.maskLowCoverage}"
+
+    filteredVcfFile = join(tempdir, "filtered-vcf.gz")
+    e.execute(
+        f"bcftools filter -e {filter_arg!r} {vcfFile!r} -Oz -o {filteredVcfFile!r}"
+    )
+    e.execute(f"mv {filteredVcfFile!r} {vcfFile!r}")
+    e.execute(f"bcftools index -f {vcfFile!r}")
+
+    return vcfFile
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -76,6 +155,16 @@ def main():
         "--dryRun",
         action="store_true",
         help="Do not run commands, just print what would be done.",
+    )
+
+    parser.add_argument(
+        "--maxDepth",
+        default=5000,
+        type=int,
+        help=(
+            "The maximum read depth to consider when calling the consensus via "
+            "bcftools consensus."
+        ),
     )
 
     parser.add_argument(
@@ -177,127 +266,74 @@ def main():
 
     tempdir = mkdtemp(prefix="consensus-")
 
+    if args.bam:
+        bamIndexFile = args.bam + ".bai"
+        if os.path.exists(bamIndexFile):
+            removeBamIndex = False
+        else:
+            removeBamIndex = True
+            e.execute(f"samtools index {args.bam!r}")
+
     if args.vcfFile:
         vcfFile = args.vcfFile
+    elif args.ivar:
+        # We don't use a VCF file with iVar.
+        vcfFile = None
     else:
-        # No VCF file provided, so make one.
-        vcfFile = join(tempdir, "vcf.gz")
         if args.callHaplotypesGATK:
-            e.execute(f"samtools index {args.bam!r}")
-            if args.picardJar:
-                picardJar = args.picardJar
-            else:
-                try:
-                    picardJar = os.environ["PICARD_JAR"]
-                except KeyError:
-                    print(
-                        "If you use --callHaplotypesGATK, you must give a "
-                        "Picard JAR file with --picardJar or else set "
-                        "PICARD_JAR in your environment.",
-                        file=sys.stderr,
-                    )
-                    sys.exit(1)
-
-            indexFile = args.reference + ".fai"
-            if os.path.exists(indexFile):
-                removeIndex = False
-            else:
-                removeIndex = True
-                e.execute(f"samtools faidx {args.reference!r}")
-
-            if args.reference.lower().endswith(".fasta"):
-                dictFile = args.reference[: -len(".fasta")] + ".dict"
-            else:
-                dictFile = args.reference + ".dict"
-
-            if os.path.exists(dictFile):
-                removeDict = False
-            else:
-                removeDict = True
-                e.execute(
-                    f"java -jar {picardJar!r} CreateSequenceDictionary "
-                    f"R={args.reference!r} O={dictFile!r}"
-                )
-
-            e.execute(
-                f"gatk --java-options -Xmx4g HaplotypeCaller "
-                f"--reference {args.reference!r} "
-                f"--input {args.bam!r} "
-                f"--output {vcfFile!r} "
-                f"--sample-ploidy 1 "
-                f"-ERC GVCF"
-            )
-
-            if removeIndex:
-                e.execute(f"rm {indexFile!r}")
-
-            if removeDict:
-                e.execute(f"rm {dictFile!r}")
+            vcfFile = makeVcfWithGATK(args, tempdir, e)
         else:
-            e.execute(
-                f"bcftools mpileup --max-depth 5000 -Ou -f {args.reference!r} "
-                f"{args.bam!r} | bcftools call --ploidy 1 -mv -Oz -o {vcfFile!r}"
-            )
-
-            e.execute(f"bcftools index {vcfFile!r}")
-
-    if args.maskLowCoverage >= 0:
-        # Make a BED file.
-        bedFile = join(tempdir, "mask.bed")
-        # The doubled-% below are so that Python doesn't try to fill in the
-        # values and instead just generates a single % that awk sees.
-        e.execute(
-            f"samtools depth -a {args.bam!r} | "
-            f"awk '$3 < {args.maskLowCoverage} "
-            f'{{printf "%s\\t%d\\t%d\\n", $1, $2 - 1, $2}}\' > {bedFile!r}'
-        )
-        maskArg = "--mask " + bedFile
-    else:
-        maskArg = ""
-
-    if args.sample:
-        sample = args.sample
-    else:
-        result = e.execute(f"gunzip -c {vcfFile!r} | egrep -m 1 '^#CHROM' | cut -f10")
-        sample = "SAMPLE-NAME" if args.dryRun else result.stdout.strip()
+            vcfFile = makeVcfWithBcftools(args, tempdir, e)
 
     consensusFile = join(tempdir, "consensus.fasta")
 
     if args.ivar:
         if args.ivarBedFile:
             tempBamFile = join(tempdir, basename(args.bam) + "-trimmed")
-            result = e.execute(
+            e.execute(
                 f"ivar trim -i {args.bam!r} -b {args.ivarBedFile!r} -p {tempBamFile!r} "
                 "-e"
             )
             ivarTempBamFile = tempBamFile + ".bam"
             sortedIvarTempBamFile = tempBamFile + "-trimmed-sorted.bam"
-            result = e.execute(
-                f"samtools sort {ivarTempBamFile!r} -o {sortedIvarTempBamFile!r}"
-            )
+            e.execute(f"samtools sort {ivarTempBamFile!r} -o {sortedIvarTempBamFile!r}")
             bamFile = sortedIvarTempBamFile
         else:
             bamFile = args.bam
 
-        ivarConsensusFile = join(tempdir, "temporary-consensus")
-        result = e.execute(
+        ivarConsensusPrefix = join(tempdir, "temporary-consensus")
+        e.execute(
             # The samtools mpileup args were set on 2026-01-21 by Terry after looking at
             # the output of samtools mpileup (version 1.23).
             f"samtools mpileup -d 0 -aa -A -Q 0 {bamFile!r} | "
-            f"ivar consensus -p {ivarConsensusFile!r} -q 20 "
+            f"ivar consensus -p {ivarConsensusPrefix!r} -q 20 "
             f"-t {args.ivarFrequencyThreshold!r} -m {args.maskLowCoverage!r}"
         )
 
-        result = e.execute(f"mv {(ivarConsensusFile + '.fa')!r} {consensusFile!r}")
+        e.execute(f"mv {(ivarConsensusPrefix + '.fa')!r} {consensusFile!r}")
 
     else:
-        result = e.execute(
-            f"bcftools consensus --sample {sample!r} --iupac-codes {maskArg} "
-            f"--fasta-ref {args.reference!r} {vcfFile!r} > {consensusFile!r}"
+        sample = args.sample or (
+            "SAMPLE-NAME"
+            if args.dryRun
+            else e.execute(f"bcftools query -l {vcfFile!r}").stdout.strip()
         )
 
-        if not args.dryRun and result.stderr:
-            print(result.stderr, end="", file=sys.stderr)
+        lowCoverage = join(tempdir, "low-coverage.bed")
+        lowCoverageMerged = join(tempdir, "low-coverage-merged.bed")
+
+        e.execute(
+            f"samtools depth -a {args.bam!r} | "
+            f"awk '$3<{args.maskLowCoverage} "
+            f'{{printf "%s\\t%d\\t%d\\n", $1, $2 - 1, $2}}\' '
+            f"| sort -k1,1 -k2,2n > {lowCoverage!r}"
+        )
+        e.execute(f"bedtools merge -i {lowCoverage!r} > {lowCoverageMerged!r}")
+
+        e.execute(
+            f"bcftools consensus --samples {sample!r} -m {lowCoverageMerged!r} "
+            f"--fasta-ref {args.reference!r} {vcfFile!r} --output {consensusFile!r}"
+        )
 
     if not args.dryRun:
         consensus = list(FastaReads(consensusFile))[0]
@@ -317,6 +353,10 @@ def main():
             e.execute(f"rm -r {tempdir!r}")
         else:
             print(f"Temporary directory {tempdir!r}.", file=sys.stderr)
+
+    if args.bam and removeBamIndex and args.clean:
+        # We made the BAM index, so clean up.
+        e.execute(f"rm {bamIndexFile!r}")
 
 
 if __name__ == "__main__":
