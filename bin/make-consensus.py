@@ -169,12 +169,23 @@ def main():
 
     parser.add_argument(
         "--maskLowCoverage",
-        default=0,
+        "--minimumCoverageDepth",
+        "--minCoverageDepth",
+        default=1,
         type=int,
         help=(
             "Put an N into sites where the coverage is below the specified "
             "cutoff. If you specify a negative numer, masking will be "
-            "turned off. Requires --bam."
+            "turned off. Note that specifying 0 is likely to cause problems, "
+            "either with the bcftools or the samtools mpileup | ivar calling. "
+            "If you're using bcftools and you set --maskLowCoverage to 0, "
+            "bcftools will put the consensus base into all non-covered sites "
+            "(because no low-coverage sites will be masked out by bcftools filter). "
+            "If you're using ivar, the piped output from samtools mpileup -aa "
+            "will include sites with zero coverage and the -m 0 given to ivar "
+            "will result in ivar emitting nothing at all for those sites (so your "
+            "consensus will end up being shorter than your reference, which may well "
+            "not be what you want (i.e., might be totally wrong). Requires --bam."
         ),
     )
 
@@ -219,6 +230,12 @@ def main():
     )
 
     parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Do not emit a warning about --maskLowCoverage being set to zero.",
+    )
+
+    parser.add_argument(
         "--ivarFrequencyThreshold",
         type=float,
         help=(
@@ -241,23 +258,25 @@ def main():
 
     args = parser.parse_args()
 
+    if args.maskLowCoverage == 0 and not args.quiet:
+        print(
+            "WARNING: You have specified --maskLowCoverage 0. Do you for sure know "
+            "what you're doing? If not, read the --help output. Use --quiet to "
+            "suppress this warning.",
+            file=sys.stderr,
+        )
+
     if not (args.bam or args.vcfFile):
-        print("At least one of --bam or --vcfFile must be given.", file=sys.stderr)
-        sys.exit(1)
+        sys.exit("At least one of --bam or --vcfFile must be given.")
 
     if args.maskLowCoverage and not args.bam:
-        print("If --maskLowCoverage is used, --bam must be too.", file=sys.stderr)
-        sys.exit(1)
+        sys.exit("If --maskLowCoverage is used, --bam must be too.")
 
     if args.ivar and not args.bam:
-        print("If --ivar is used, --bam must be too.", file=sys.stderr)
-        sys.exit(1)
+        sys.exit("If --ivar is used, --bam must be too.")
 
     if args.ivarFrequencyThreshold is not None and not args.ivar:
-        print(
-            "If --ivarFrequencyThreshold is used, --ivar must be too.", file=sys.stderr
-        )
-        sys.exit(1)
+        sys.exit("If --ivarFrequencyThreshold is used, --ivar must be too.")
 
     if args.ivar and args.ivarFrequencyThreshold is None:
         args.ivarFrequencyThreshold = IVAR_FREQUENCY_THRESHOLD_DEFAULT

@@ -1,3 +1,10 @@
+## 7.3.1 August 17, 2026
+
+Set the default on `--maskLowCoverage` in `make-consensus.py` to be 1
+instead of 0 and added text to the --help output and warning output.
+Added more specific alternate option names for `--maskLowCoverage`:
+`--minimumCoverageDepth` and `--minCoverageDepth`.
+
 ## 7.3.0 August 15, 2026
 
 Changed the default MAFFT args to use `--auto` instead of
