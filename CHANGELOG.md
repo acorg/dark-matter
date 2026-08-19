@@ -1,3 +1,7 @@
+## 7.3.3 August 17, 2026
+
+Bump `prseq` dependency to `0.0.34`.
+
 ## 7.3.2 August 17, 2026
 
 Slightly change `ivar` consensus making by passing `-B` and the
