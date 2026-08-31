@@ -76,10 +76,15 @@ exclude = [
 ]
 
 [dependency-groups]
+analyse-isolate = [
+    "gb2seq>=0.3.6",
+    "mvlib",
+]
 dev = [
     "nox>=2025.5.1",
     "pytest>=8.3.5",
     "ruff>=0.15.9",
+    {include-group = "analyse-isolate"},
 ]
 
 [project.urls]
@@ -105,3 +110,6 @@ Homepage = "https://github.com/acorg/dark-matter"
 [tool.pytest.ini_options]
 testpaths = ["test"]
 pythonpath = ["src"]
+
+[tool.uv.sources]
+mvlib = { git = "https://github.com/VirologyCharite/minor-variants" }

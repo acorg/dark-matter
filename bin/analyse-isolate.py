@@ -2,17 +2,65 @@
 
 import sys
 
-from Bio.Data.CodonTable import ambiguous_dna_by_id, TranslationError
+from Bio.Data.CodonTable import TranslationError, ambiguous_dna_by_id
+from gb2seq.alignment import Gb2Alignment, offsetInfoMultipleGenomes
+from gb2seq.features import Features
+from mvlib.functions import isMinorVariantPosition
+from mvlib.minorVariants import MinorVariantInfo
 
 from dark.fasta import FastaReads
 from dark.reads import Reads
 from dark.sam import SAMFilter
 
-from mvlib.minorVariants import MinorVariantInfo
-from mvlib.functions import isMinorVariantPosition
 
-from gb2seq.alignment import Gb2Alignment, offsetInfoMultipleGenomes
-from gb2seq.features import Features
+def classifyChange(clinInfo, consInfo, offsetInfo):
+    """Return (synInfo, furin) describing a nucleotide change at a position.
+
+    clinInfo and consInfo are the per-genome dicts from offsetInfoMultipleGenomes.
+    offsetInfo is the full result dict (featureName, reference.aaOffset, …).
+    """
+    furin = ""
+    if clinInfo["aa"] == consInfo["aa"]:
+        synInfo = "synonymous"
+    else:
+        synInfo = "non-synonymous (%s, %s%d%s)" % (
+            offsetInfo["featureName"],
+            clinInfo["aa"],
+            offsetInfo["reference"]["aaOffset"] + 1,
+            consInfo["aa"],
+        )
+        if (
+            offsetInfo["featureName"] == "surface glycoprotein"
+            and 670 < offsetInfo["reference"]["aaOffset"] < 690
+        ):
+            furin = " FURIN SITE!"
+    return synInfo, furin
+
+
+def classifyMinorVariantBase(base, clinBase, clinCod, mvCod, codonTable, offsetInfo):
+    """Return a description string for one base at a minority-variant position.
+
+    Returns 'consensus base' when *base* matches *clinBase*, 'synonymous' when
+    the codon change is silent, or an AA-change string otherwise.
+    """
+    if base == clinBase:
+        return "consensus base"
+    try:
+        clinCodT = codonTable.get(clinCod)
+    except TranslationError:
+        clinCodT = "X"
+    try:
+        mvCodT = codonTable.get(mvCod)
+    except TranslationError:
+        mvCodT = "X"
+    if clinCodT == mvCodT:
+        return "synonymous"
+    return "%s%d%s, %s" % (
+        clinCodT,
+        offsetInfo["reference"]["aaOffset"] + 1,
+        mvCodT,
+        offsetInfo["featureName"],
+    )
 
 
 if __name__ == "__main__":
@@ -39,8 +87,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--consensusSequence",
         help=(
-            "The FASTA file of the consensus sequence from the isolate "
-            "sequencing run."
+            "The FASTA file of the consensus sequence from the isolate sequencing run."
         ),
     )
 
@@ -177,21 +224,7 @@ if __name__ == "__main__":
             # Check if there are any differences between the consensus from
             # the isolate and the consensus from the clinical sample.
             if clinBase != consBase:
-                furin = ""
-                if clinInfo["aa"] == consInfo["aa"]:
-                    synInfo = "synonymous"
-                else:
-                    synInfo = "non-synonymous (%s, %s%d%s)" % (
-                        offsetInfo["featureName"],
-                        clinInfo["aa"],
-                        offsetInfo["reference"]["aaOffset"] + 1,
-                        consInfo["aa"],
-                    )
-                    if (
-                        offsetInfo["featureName"] == "surface glycoprotein"
-                        and 670 < offsetInfo["reference"]["aaOffset"] < 690
-                    ):
-                        furin = " FURIN SITE!"
+                synInfo, furin = classifyChange(clinInfo, consInfo, offsetInfo)
                 if clinBase != "-" and 70 < position < 29714:
                     print(
                         "\tChange from clinical sample sequence at "
@@ -227,28 +260,9 @@ if __name__ == "__main__":
                             + base
                             + consInfo["codon"][consInfo["frame"] + 1 :]
                         )
-                        if clinBase == base:
-                            baseInfo = "consensus base"
-                        else:
-                            # Get the amino acid
-                            try:
-                                clinCodT = codonTable.get(clinCod)
-                            except TranslationError:
-                                clinCodT = "X"
-                            try:
-                                mvCodT = codonTable.get(mvCod)
-                            except TranslationError:
-                                mvCodT = "X"
-                            # Compare the amino acids
-                            if clinCodT == mvCodT:
-                                baseInfo = "synonymous"
-                            else:
-                                baseInfo = "%s%d%s, %s" % (
-                                    clinCodT,
-                                    offsetInfo["reference"]["aaOffset"] + 1,
-                                    mvCodT,
-                                    offsetInfo["featureName"],
-                                )
+                        baseInfo = classifyMinorVariantBase(
+                            base, clinBase, clinCod, mvCod, codonTable, offsetInfo
+                        )
 
                         print(
                             "\t\t\tBase: %s, count: %d (%.2f): %s"
