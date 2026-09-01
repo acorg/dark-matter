@@ -1,3 +1,7 @@
+## 7.3.4 September 1, 2026
+
+Add the `bin/analyse-isolate.py` script.
+
 ## 7.3.3 August 17, 2026
 
 Bump `prseq` dependency to `0.0.34`.
