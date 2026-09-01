@@ -577,7 +577,7 @@ wheels = [
 
 [[package]]
 name = "dark-matter"
-version = "7.3.3"
+version = "7.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "bio" },
@@ -588,11 +588,13 @@ dependencies = [
     { name = "dendropy" },
     { name = "edlib" },
     { name = "ete4" },
+    { name = "gb2seq" },
     { name = "ipython", version = "8.39.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "ipython", version = "9.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "ipython", version = "9.12.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "kaleido" },
     { name = "matplotlib" },
+    { name = "mvlib" },
     { name = "mysql-connector-python" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -614,13 +616,7 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
-analyse-isolate = [
-    { name = "gb2seq" },
-    { name = "mvlib" },
-]
 dev = [
-    { name = "gb2seq" },
-    { name = "mvlib" },
     { name = "nox" },
     { name = "pytest" },
     { name = "ruff" },
@@ -636,9 +632,11 @@ requires-dist = [
     { name = "dendropy", specifier = ">=5.0.1" },
     { name = "edlib", specifier = ">=1.3.9.post1" },
     { name = "ete4", specifier = ">=4.4.0" },
+    { name = "gb2seq", specifier = ">=0.3.6" },
     { name = "ipython", specifier = ">=8.12.3" },
     { name = "kaleido", specifier = ">=1.2.0" },
     { name = "matplotlib", specifier = ">=3.7.5" },
+    { name = "mvlib", git = "https://github.com/VirologyCharite/minor-variants" },
     { name = "mysql-connector-python", specifier = ">=9.0.0" },
     { name = "numpy", specifier = ">=1.14.2" },
     { name = "plotly", specifier = ">=6.6.0" },
@@ -658,13 +656,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-analyse-isolate = [
-    { name = "gb2seq", specifier = ">=0.3.6" },
-    { name = "mvlib", git = "https://github.com/VirologyCharite/minor-variants" },
-]
 dev = [
-    { name = "gb2seq", specifier = ">=0.3.6" },
-    { name = "mvlib", git = "https://github.com/VirologyCharite/minor-variants" },
     { name = "nox", specifier = ">=2025.5.1" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "ruff", specifier = ">=0.15.9" },

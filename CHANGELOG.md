@@ -1,4 +1,4 @@
-## 7.3.4 September 1, 2026
+## 7.4.0 September 1, 2026
 
 Add the `bin/analyse-isolate.py` script.
 
