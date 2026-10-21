@@ -1,3 +1,9 @@
+## 7.4.2 October 21, 2026
+
+Added `mergeGapsInRegion` to `src/dark/reads.py` and
+`bin/msa-merge-gapped-region.py` which uses it to merge gaps in a
+region of an MSA.
+
 ## 7.4.0 September 1, 2026
 
 Add the `bin/analyse-isolate.py` script.

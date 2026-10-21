@@ -5546,3 +5546,412 @@ class TestSetSites:
         read = Read("id1", "ACGT")
         read.setSites([(0, "T", None)], oneBased=True)
         assert read.sequence == "TCGT"
+
+
+class TestMergeGapsInRegion(TestCase):
+    """
+    Test the mergeGapsInRegion method of the Reads (note: plural) class.
+    """
+
+    def makeReads(self, *sequences) -> ReadsInRAM:
+        return ReadsInRAM(
+            Read(f"id-{i}", sequence) for i, sequence in enumerate(sequences)
+        )
+
+    def testNeitherPrefixNorSuffix(self):
+        """
+        mergeGapsInRegion must raise a ValueError if neither a prefix nor a
+        suffix is given.
+        """
+        reads = self.makeReads("AACCGGTT")
+        error = r"^Neither a prefix nor a suffix was specified\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix=None, suffix=None, tsv=None)
+
+    def testPrefixNotFound(self):
+        """
+        mergeGapsInRegion must raise a ValueError if the prefix is not found
+        in any sequence (but the suffix is, so extractRegion itself does not
+        already raise its own, more general, error).
+        """
+        reads = self.makeReads("AACCGGTT", "AACCGGTT")
+        error = r"^The prefix was not found in any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix="XXX", suffix="TT", tsv=None)
+
+    def testSuffixNotFound(self):
+        """
+        mergeGapsInRegion must raise a ValueError if the suffix is not found
+        in any sequence (but the prefix is, so extractRegion itself does not
+        already raise its own, more general, error).
+        """
+        reads = self.makeReads("AACCGGTT", "AACCGGTT")
+        error = r"^The suffix was not found in any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix="AA", suffix="XXX", tsv=None)
+
+    def testPrefixStartNotLessThanSuffixEnd(self):
+        """
+        mergeGapsInRegion must raise a ValueError if the prefix start offset
+        is not less than the suffix end offset (i.e., the suffix ends at or
+        before the point where the prefix starts).
+        """
+        reads = self.makeReads("AACCTTGG")
+        error = (
+            r"^The prefix start position \(2\) is not less than the suffix "
+            r"end position \(2\)$"
+        )
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix="CC", suffix="AA", tsv=None)
+
+    def testIdNotFound(self):
+        """
+        mergeGapsInRegion must raise a ValueError if an id is given but there
+        is no sequence with that id.
+        """
+        reads = self.makeReads("AACCGGTT", "AACCGGTT")
+        error = r"^No sequence with id 'dummy-id' found\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_="dummy-id", prefix="AA", suffix="TT", tsv=None)
+
+    def testSimultaneousMatchRequiredByDefault(self):
+        """
+        If both a prefix and a suffix are given, by default mergeGapsInRegion
+        must raise a ValueError unless some sequence matches both the prefix
+        and the suffix.
+        """
+        reads = self.makeReads(
+            "AACCGGXX",
+            "XXCCGGTT",
+        )
+        error = (
+            "^Simultaneous matches of the prefix and the suffix did not occur "
+            r"in any of the input sequences\.$"
+        )
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix="AA", suffix="TT", tsv=None)
+
+    def testAllowDistributedMatch(self):
+        """
+        If both a prefix and a suffix are given but only match in different
+        sequences, mergeGapsInRegion must still succeed when
+        allowDistributedMatch is passed.
+        """
+        reads = self.makeReads(
+            "AACCGGXX",
+            "XXCCGGTT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None,
+            prefix="AA",
+            suffix="TT",
+            tsv=None,
+            allowDistributedMatch=True,
+        )
+        self.assertEqual(["id-0", "id-1"], [read.id for read in result])
+
+    def testGapOffsetTooLargeRaisesAssertionError(self):
+        """
+        mergeGapsInRegion must raise an AssertionError if gapOffset is larger
+        than the number of non-gap characters found in the region of some
+        sequence.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        with self.assertRaises(AssertionError):
+            reads.mergeGapsInRegion(
+                id_=None, prefix="AA", suffix="TT", tsv=None, gapOffset=5
+            )
+
+    def testDefaultGapOffsetPutsGapsOnTheLeft(self):
+        """
+        With the default gapOffset (0), the merged gap block must be placed
+        to the left of the non-gap characters in the region.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AA--CCGGTT",
+                "id-1": "AACCAAGGTT",
+            },
+            sequences,
+        )
+
+    def testGapOffsetMinusOnePutsGapsOnTheRight(self):
+        """
+        With gapOffset=-1, the merged gap block must be placed to the right
+        of the non-gap characters in the region.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None, gapOffset=-1
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AACCGG--TT",
+                "id-1": "AACCAAGGTT",
+            },
+            sequences,
+        )
+
+    def testGapOffsetInTheMiddle(self):
+        """
+        With a gapOffset greater than zero, the given number of non-gap
+        characters must be placed before the merged gap block and the rest
+        after it.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None, gapOffset=2
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AACC--GGTT",
+                "id-1": "AACCAAGGTT",
+            },
+            sequences,
+        )
+
+    def testPrefixOnlyRaisesValueError(self):
+        """
+        If only a prefix is given (no suffix), mergeGapsInRegion cannot
+        compute a region end offset (it is left at -1) and so it must raise
+        a ValueError, since -1 is not a valid end offset.
+        """
+        reads = self.makeReads(
+            "AACCGG----",
+            "AACCAAGG--",
+        )
+        error = r"^Invalid start = 2 and end = -1 for read 'id-0' of length 10\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix="AA", suffix=None, tsv=None)
+
+    def testSuffixOnlyRaisesValueError(self):
+        """
+        If only a suffix is given (no prefix), mergeGapsInRegion cannot
+        compute a region start offset (it is left at -1) and so it must
+        raise a ValueError, since -1 is not a valid start offset.
+        """
+        reads = self.makeReads(
+            "----CCGGTT",
+            "--AACCGGTT",
+        )
+        error = r"^Invalid start = -1 and end = 8 for read 'id-0' of length 10\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.mergeGapsInRegion(id_=None, prefix=None, suffix="TT", tsv=None)
+
+    def testIdSpecifiedUsesThatSequencesOffsets(self):
+        """
+        If an id is given, the prefix/suffix offsets found in that sequence
+        must be used for every sequence, even when other sequences would
+        (if examined on their own) give different offsets.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "GGAACCAAGGTT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_="id-0", prefix="AA", suffix="TT", tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        # The offsets found via id-0 (prefix at 0, suffix ending at 12) are
+        # applied to id-1 too, giving it the same region (columns 2-10) even
+        # though id-1's own prefix match is at a different offset.
+        self.assertEqual(
+            {
+                "id-0": "AA----CCGGTT",
+                "id-1": "GGAACCAAGGTT",
+            },
+            sequences,
+        )
+
+    def testCustomGapCharacter(self):
+        """
+        mergeGapsInRegion must honour a non-default gap character.
+        """
+        reads = self.makeReads(
+            "AACCGG....TT",
+            "AACCAAGG..TT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None, gapCharacter="."
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AA..CCGGTT",
+                "id-1": "AACCAAGGTT",
+            },
+            sequences,
+        )
+
+    def testZeroLengthRegion(self):
+        """
+        If the prefix ends exactly where the suffix starts, the region
+        between them is empty and the sequences must be returned unchanged.
+        """
+        reads = self.makeReads(
+            "AATT",
+            "AATT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AATT",
+                "id-1": "AATT",
+            },
+            sequences,
+        )
+
+    def testOutsideRegionIsUnchanged(self):
+        """
+        Sequence content outside the matched region (including the prefix
+        and suffix themselves) must be passed through unmodified.
+        """
+        reads = self.makeReads(
+            "XXXAACCGG----TTYYY",
+            "XXXAACCAAGG--TTYYY",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "XXXAA--CCGGTTYYY",
+                "id-1": "XXXAACCAAGGTTYYY",
+            },
+            sequences,
+        )
+
+    def testAllGapsInRegionForOneSequence(self):
+        """
+        A sequence whose region is entirely gaps must end up with a region
+        that is entirely the merged gap block, sized to match the longest
+        non-gap run found amongst all the sequences.
+        """
+        reads = self.makeReads(
+            "AA----TT",
+            "AACCGGTT",
+        )
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AA----TT",
+                "id-1": "AACCGGTT",
+            },
+            sequences,
+        )
+
+    def testSummaryIsNoneWhenNotSummarizing(self):
+        """
+        The returned summary must be None when summarize is False.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        _, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None, summarize=False
+        )
+        self.assertIsNone(summary)
+
+    def testSummaryWhenSummarizing(self):
+        """
+        The returned summary must be a string containing the expected
+        prefix/suffix/length/match details when summarize is True.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        _, summary = reads.mergeGapsInRegion(
+            id_=None,
+            prefix="AA",
+            suffix="TT",
+            tsv=None,
+            summarize=True,
+            adjust=1,
+        )
+        self.assertEqual(
+            "\n".join(
+                [
+                    "Read 2 sequences of length 12.",
+                    "The prefix has length 2.",
+                    "The start of the prefix is at 1 (1-based).",
+                    "The site following the prefix is 3 (1-based).",
+                    "The suffix has length 2.",
+                    "The suffix starts at 11 (1-based).",
+                    "The site following the suffix is 13 (1-based).",
+                    "Matched alignment region has length 12.",
+                    "Region ungapped sequences have lengths 8, 10.",
+                    "Prefix match count: 2/2 (100.000%).",
+                    "Suffix match count: 2/2 (100.000%).",
+                ]
+            ),
+            summary,
+        )
+
+    def testTsvFileIsWritten(self):
+        """
+        When a tsv filename is given, mergeGapsInRegion must write a TSV
+        file with a header and one row per input sequence.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        mockOpener = mock_open()
+        with patch.object(builtins, "open", mockOpener):
+            reads.mergeGapsInRegion(
+                id_=None, prefix="AA", suffix="TT", tsv="offsets.tsv", adjust=1
+            )
+        handle = mockOpener()
+        self.assertEqual(
+            [
+                call(
+                    "Sequence ID\tPrefix offset\tSuffix offset\tMatch count\t"
+                    "Ungapped length\r\n"
+                ),
+                call("id-0\t1\t12\t2\t8\r\n"),
+                call("id-1\t1\t12\t2\t10\r\n"),
+            ],
+            handle.write.mock_calls,
+        )
+
+    def testReturnedReadsPreserveIds(self):
+        """
+        The result of mergeGapsInRegion must contain reads with the same ids
+        (in the same order) as the input.
+        """
+        reads = self.makeReads(
+            "AACCGG----TT",
+            "AACCAAGG--TT",
+        )
+        result, _ = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix="TT", tsv=None
+        )
+        self.assertEqual(["id-0", "id-1"], [read.id for read in result])

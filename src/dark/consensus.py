@@ -622,7 +622,7 @@ def fetchConsensus(
 def pileupCorrespondences(bam, bamId, referenceLength, includeSoftClipped, progress):
     """
     Get bases for offsets that correspond to the reference using pysam's
-    pileup funciton.
+    pileup function.
 
     @param bam: An open BAM file.
     @param bamId: A C{str} reference name indicating which reference to

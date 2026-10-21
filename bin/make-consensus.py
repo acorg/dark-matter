@@ -133,7 +133,7 @@ def main():
         metavar="LAMBDA-FUNCTION",
         help=(
             "A one-argument function taking and returning a read id. "
-            "This can be used to set the id of the reference sequence based "
+            "This can be used to set the id of the consensus sequence based "
             "on the id of the reference sequence (the function will be "
             "called with the id of the reference sequence). E.g., "
             "--idLambda \"lambda id: id.split('_')[0]\" or "
@@ -173,7 +173,7 @@ def main():
         type=int,
         help=(
             "The ploidy to use when calling the consensus via bcftools consensus. "
-            "Use 1 for viruses, but be aware that bcftools will not emit ambiguous "
+            "Use 1 for viruses, but be aware that bcftools will NOT emit ambiguous "
             "nucleotide characters in that case."
         ),
     )
@@ -196,7 +196,7 @@ def main():
             "will include sites with zero coverage and the -m 0 given to ivar "
             "will result in ivar emitting nothing at all for those sites (so your "
             "consensus will end up being shorter than your reference, which may well "
-            "not be what you want (i.e., might be totally wrong). Requires --bam."
+            "not be what you want (i.e., might be totally wrong)). Requires --bam."
         ),
     )
 
@@ -236,8 +236,9 @@ def main():
 
     parser.add_argument(
         "--ivar",
+        "--iVar",
         action="store_true",
-        help="If given, ivar will be used to call the consensus.",
+        help="If given, iVar will be used to call the consensus.",
     )
 
     parser.add_argument(
@@ -250,7 +251,7 @@ def main():
         "--ivarFrequencyThreshold",
         type=float,
         help=(
-            f"The frequency threshold used by ivar when calling the "
+            f"The frequency threshold used by iVar when calling the "
             f"consensus. If the frequency of the most-common nucleotide at "
             f"a site meets this threshold, the nucleotide will be called. "
             f"Otherwise, an ambiguous nucleotide code will be produced, "
@@ -264,7 +265,7 @@ def main():
 
     parser.add_argument(
         "--ivarBedFile",
-        help="If ivar should trim primers, a BED file of the primer positions.",
+        help="If iVar should trim primers, a BED file of the primer positions.",
     )
 
     args = parser.parse_args()

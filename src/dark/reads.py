@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import itertools
 import os
 from collections import Counter, defaultdict
@@ -27,6 +28,7 @@ from dark.dna import AMBIGUOUS, BASES_TO_AMBIGUOUS, FloatBaseCounts
 from dark.errors import ReadLengthsNotIdenticalError
 from dark.filter import SequenceFilter, TitleFilter
 from dark.hsp import HSP
+from dark.utils import pct
 
 
 def _makeComplementTable(complementData: dict[str, str]) -> Sequence[str]:
@@ -2377,6 +2379,232 @@ class Reads:
             result = ReadsInRAM(read[start:end] for read in self)
 
         return result, (start, end), offsetInfo
+
+    @staticmethod
+    def _summarizeGapMerging(
+        prefix: str,
+        suffix: str,
+        reads: ReadsInRAM,
+        overallStart: int,
+        overallEnd: int,
+        adjust: int,
+        resultReads: ReadsInRAM,
+        details: list[tuple[tuple[int, int], Read]],
+        gapCharacter: str,
+    ) -> str:
+        nSequences = len(reads)
+        inputLengths = set(len(read) for read in reads)
+        resultLengths = set(len(read) for read in resultReads)
+        assert len(inputLengths) == 1 and len(resultLengths) == 1
+        ungappedResultLengths = set(
+            len(read.sequence.replace(gapCharacter, "")) for read in resultReads
+        )
+
+        if len(inputLengths) == 1:
+            length = f"{inputLengths.pop()}"
+            summary = [f"Read {nSequences} sequences of length {length}."]
+        else:
+            lengths = ", ".join(map(str, sorted(inputLengths)))
+            summary = [f"Read {nSequences} sequences (lengths {lengths}."]
+
+        prefixLen = len(prefix) if prefix else 0
+        suffixLen = len(suffix) if suffix else 0
+        start = overallStart + prefixLen
+        end = overallEnd - suffixLen
+
+        summary.append(f"The prefix has length {prefixLen}.")
+        if prefix:
+            summary.extend(
+                [
+                    f"The start of the prefix is at {overallStart + adjust} "
+                    f"({adjust}-based).",
+                    f"The site following the prefix is {start + adjust} "
+                    f"({adjust}-based).",
+                ]
+            )
+
+        summary.append(f"The suffix has length {suffixLen}.")
+        if suffix:
+            summary.extend(
+                [
+                    f"The suffix starts at {end + 1} ({adjust}-based).",
+                    f"The site following the suffix is {overallEnd + adjust} "
+                    f"({adjust}-based).",
+                ]
+            )
+
+        if len(resultLengths) == 1:
+            summary.append(
+                f"Matched alignment region has length {resultLengths.pop()}."
+            )
+        else:
+            lengths = ", ".join(map(str, sorted(resultLengths)))
+            summary.append(f"Matched aligned region sequences have lengths {lengths}.")
+
+        if len(ungappedResultLengths) == 1:
+            summary.append(
+                f"Region ungapped sequences have length {ungappedResultLengths.pop()}."
+            )
+        else:
+            lengths = ", ".join(map(str, sorted(ungappedResultLengths)))
+            summary.append(f"Region ungapped sequences have lengths {lengths}.")
+
+        prefixMatches = suffixMatches = 0
+        for (start, end), _ in details:
+            prefixMatches += start != -1
+            suffixMatches += end != -1
+
+        if prefix:
+            summary.append(f"Prefix match count: {pct(prefixMatches, nSequences)}.")
+
+        if suffix:
+            summary.append(f"Suffix match count: {pct(suffixMatches, nSequences)}.")
+
+        return "\n".join(summary)
+
+    @staticmethod
+    def _writeGapMergedTSV(
+        resultReads: ReadsInRAM,
+        details: list[tuple[tuple[int, int], Read]],
+        tsvFile: str,
+        adjust: int,
+        gapCharacter: str,
+    ) -> None:
+        with open(tsvFile, "w") as fp:
+            writerow = csv.writer(fp, delimiter="\t").writerow
+            writerow(
+                (
+                    "Sequence ID",
+                    "Prefix offset",
+                    "Suffix offset",
+                    "Match count",
+                    "Ungapped length",
+                )
+            )
+
+            for read, ((start, end), _) in zip(resultReads, details):
+                writerow(
+                    (
+                        read.id,
+                        -1 if start == -1 else start + adjust,
+                        end,
+                        (start != -1) + (end != -1),
+                        len(read.sequence.replace(gapCharacter, "")),
+                    ),
+                )
+
+    def mergeGapsInRegion(
+        self,
+        id_: str | None,
+        prefix: str | None,
+        suffix: str | None,
+        tsv: str | None,
+        allowDistributedMatch: bool = False,
+        gapCharacter: str = "-",
+        gapOffset: int = 0,
+        adjust: int = 0,
+        summarize: bool = False,
+    ) -> tuple[ReadsInRAM, str | None]:
+
+        resultReads, (overallStart, overallEnd), details = self.extractRegion(
+            id_=id_,
+            prefix=prefix,
+            suffix=suffix,
+            ignoreGaps=False,
+            allowUnequalLengths=False,
+        )
+
+        if overallStart != -1 and overallEnd != -1 and overallStart >= overallEnd:
+            raise ValueError(
+                f"The prefix start position ({overallStart}) is not less "
+                f"than the suffix end position ({overallEnd})"
+            )
+
+        if prefix and overallStart == -1:
+            raise ValueError("The prefix was not found in any sequence.")
+
+        if suffix and overallEnd == -1:
+            raise ValueError("The suffix was not found in any sequence.")
+
+        if prefix and suffix and not allowDistributedMatch:
+            for (start, end), _ in details:
+                if start != -1 and end != -1:
+                    # The prefix and suffix were both found in this read, so we're good.
+                    break
+            else:
+                raise ValueError(
+                    "Simultaneous matches of the prefix and the suffix did not occur "
+                    "in any of the input sequences."
+                )
+
+        prefixLen = len(prefix) if prefix else 0
+        suffixLen = len(suffix) if suffix else 0
+        start = overallStart + prefixLen
+        end = overallEnd - suffixLen
+        longestNonGapCount = -1
+
+        for read in self:
+            if not (0 <= start <= end <= len(read)):
+                raise ValueError(
+                    f"Invalid {start = } and {end = } for read {read.id!r} of length "
+                    f"{len(read)}."
+                )
+            regionWithGaps = read[start:end].sequence
+            gapCount = regionWithGaps.count(gapCharacter)
+            nonGapCount = len(regionWithGaps) - gapCount
+            if nonGapCount > longestNonGapCount:
+                longestNonGapCount = nonGapCount
+
+        result = ReadsInRAM()
+
+        for read in self:
+            # This is repetitive, but easy to make sense of.
+            regionWithGaps = read[start:end].sequence
+            gapCount = regionWithGaps.count(gapCharacter)
+            nonGapCount = len(regionWithGaps) - gapCount
+            if gapOffset == -1:
+                thisGapOffset = nonGapCount
+            else:
+                thisGapOffset = gapOffset
+            assert nonGapCount >= thisGapOffset
+            regionWithoutGaps = regionWithGaps.replace(gapCharacter, "")
+
+            newRead = Read(
+                read.id,
+                (
+                    read[:start].sequence
+                    + regionWithoutGaps[:thisGapOffset]
+                    + gapCharacter * (longestNonGapCount - nonGapCount)
+                    + regionWithoutGaps[thisGapOffset:]
+                    + read[end:].sequence
+                ),
+            )
+
+            assert len(newRead) + gapCount - (longestNonGapCount - nonGapCount) == len(
+                read
+            )
+
+            result.add(newRead)
+
+        if summarize:
+            summary = self._summarizeGapMerging(
+                prefix,
+                suffix,
+                self,
+                overallStart,
+                overallEnd,
+                adjust,
+                resultReads,
+                details,
+                gapCharacter,
+            )
+        else:
+            summary = None
+
+        if tsv:
+            self._writeGapMergedTSV(resultReads, details, tsv, adjust, gapCharacter)
+
+        return result, summary
 
 
 class ReadsInRAM(Reads):
