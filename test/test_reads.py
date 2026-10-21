@@ -1397,6 +1397,162 @@ class TestReadsFindPrefixAndSuffix(TestCase):
             ],
         )
 
+    def testExtractRegionIgnoreGapsFindsPrefixAcrossAGap(self):
+        """
+        extractRegion must find a prefix that spans a gap character in the
+        sequence when ignoreGaps is true, and must not find it (raising a
+        ValueError) when ignoreGaps is false (the default).
+        """
+        reads = self.makeReads("A-CGT")
+
+        result, offsets, details = reads.extractRegion(
+            id_="id-0", prefix="AC", suffix=None, ignoreGaps=True
+        )
+        self.assertEqual(offsets, (0, -1))
+        self.assertEqual(["A-CGT"], [read.sequence for read in result])
+
+        error = r"^The prefix was not matched by any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_="id-0", prefix="AC", suffix=None)
+
+    def testExtractRegionIgnoreGapsWithCustomGapCharacter(self):
+        """
+        extractRegion must honour a non-default gap character when
+        ignoreGaps is true.
+        """
+        reads = self.makeReads("A.CGT")
+
+        result, offsets, details = reads.extractRegion(
+            id_="id-0",
+            prefix="AC",
+            suffix=None,
+            ignoreGaps=True,
+            gapCharacter=".",
+        )
+        self.assertEqual(offsets, (0, -1))
+        self.assertEqual(["A.CGT"], [read.sequence for read in result])
+
+    def testExtractRegionPrefixOnlyNotMatchedByAnySequence(self):
+        """
+        extractRegion must raise a ValueError that mentions only the prefix
+        if just a prefix is given and it doesn't match any sequence.
+        """
+        reads = self.makeReads("ACGT", "ACGT")
+        error = r"^The prefix was not matched by any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_=None, prefix="XXX", suffix=None)
+
+    def testExtractRegionSuffixOnlyNotMatchedByAnySequence(self):
+        """
+        extractRegion must raise a ValueError that mentions only the suffix
+        if just a suffix is given and it doesn't match any sequence.
+        """
+        reads = self.makeReads("ACGT", "ACGT")
+        error = r"^The suffix was not matched by any sequence\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_=None, prefix=None, suffix="XXX")
+
+    def testExtractRegionIdNotFound(self):
+        """
+        extractRegion must raise a ValueError if an id is given but there is
+        no sequence with that id.
+        """
+        reads = self.makeReads("ACGT", "ACAT")
+        error = r"^No sequence with id 'dummy-id' found\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(id_="dummy-id", prefix="AC", suffix=None)
+
+    def testExtractRegionNoSequences(self):
+        """
+        extractRegion must raise a ValueError if there are no input
+        sequences at all. allowUnequalLengths must be passed as true here,
+        otherwise the (unrelated) uneven-lengths check raises first because
+        the set of lengths found (the empty set) has a length other than 1.
+        """
+        reads = Reads()
+        error = r"^No input sequences were given\.$"
+        with self.assertRaisesRegex(ValueError, error):
+            reads.extractRegion(
+                id_=None, prefix="AC", suffix=None, allowUnequalLengths=True
+            )
+
+    def testExtractRegionUnevenLengthsWithId(self):
+        """
+        extractRegion must raise a ValueError if the sequences are of
+        uneven length, even when a specific id is given (the length check
+        happens regardless of id_).
+        """
+        reads = self.makeReads("ACAGT", "ACACTA")
+        error = (
+            "^All sequences must be the same length, unless "
+            r"allowUnequalLengths is true. Found lengths 5, 6\.$"
+        )
+        with self.assertRaisesRegex(ReadLengthsNotIdenticalError, error):
+            reads.extractRegion(id_=reads[0].id, prefix="AC", suffix=None)
+
+    def testExtractRegionUnevenLengthsAllowedWithPrefixAndSuffix(self):
+        """
+        extractRegion must return the correctly trimmed reads when both a
+        prefix and a suffix are given and the sequences are of uneven
+        length but that is indicated as a non-error.
+        """
+        sequences = (
+            "ACAGT",
+            "ACACTA",
+            "ACACA",
+            "XXXXX",
+        )
+
+        reads = self.makeReads(*sequences)
+        result, offsets, details = reads.extractRegion(
+            id_=None, prefix="CA", suffix="T", allowUnequalLengths=True
+        )
+
+        self.assertEqual(offsets, (1, 5))
+
+        self.assertEqual(
+            ["CAGT", "CACT", "CACA", "XXXX"],
+            [read.sequence for read in result],
+        )
+
+        self.assertEqual(
+            details,
+            [
+                ((1, 5), reads[0]),
+                ((1, 5), reads[1]),
+                ((1, -1), reads[2]),
+                ((-1, -1), reads[3]),
+            ],
+        )
+
+    def testExtractRegionDoesNotCheckSuffixEndsAfterPrefixStart(self):
+        """
+        extractRegion must not check that the suffix match ends after the
+        point where the prefix match starts (that is left to our caller,
+        e.g., mergeGapsInRegion, to check). When the suffix ends before the
+        prefix starts, the returned reads are simply empty.
+        """
+        reads = self.makeReads("ACGT")
+        result, offsets, details = reads.extractRegion(
+            id_="id-0", prefix="T", suffix="A"
+        )
+        self.assertEqual(offsets, (3, 1))
+        self.assertEqual([""], [read.sequence for read in result])
+
+    def testExtractRegionSuffixMatchesFirstOccurrenceNotLast(self):
+        """
+        When a suffix pattern occurs more than once in a sequence,
+        extractRegion must use the offset of the first occurrence (matching
+        the general "find the first occurrence" behaviour of the underlying
+        find method), not the last one.
+        """
+        reads = self.makeReads("ACTACT")
+        result, offsets, details = reads.extractRegion(
+            id_="id-0", prefix=None, suffix="ACT"
+        )
+        self.assertEqual(offsets, (-1, 3))
+        self.assertEqual(["ACT"], [read.sequence for read in result])
+
 
 class TestDNARead(TestCase):
     """
@@ -5729,33 +5885,47 @@ class TestMergeGapsInRegion(TestCase):
             sequences,
         )
 
-    def testPrefixOnlyRaisesValueError(self):
+    def testPrefixOnly(self):
         """
-        If only a prefix is given (no suffix), mergeGapsInRegion cannot
-        compute a region end offset (it is left at -1) and so it must raise
-        a ValueError, since -1 is not a valid end offset.
+        If only a prefix is given, the gap-merging region must run from the
+        end of the prefix to the end of each sequence.
         """
         reads = self.makeReads(
             "AACCGG----",
             "AACCAAGG--",
         )
-        error = r"^Invalid start = 2 and end = -1 for read 'id-0' of length 10\.$"
-        with self.assertRaisesRegex(ValueError, error):
-            reads.mergeGapsInRegion(id_=None, prefix="AA", suffix=None, tsv=None)
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix="AA", suffix=None, tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "AA--CCGG",
+                "id-1": "AACCAAGG",
+            },
+            sequences,
+        )
 
-    def testSuffixOnlyRaisesValueError(self):
+    def testSuffixOnly(self):
         """
-        If only a suffix is given (no prefix), mergeGapsInRegion cannot
-        compute a region start offset (it is left at -1) and so it must
-        raise a ValueError, since -1 is not a valid start offset.
+        If only a suffix is given, the gap-merging region must run from the
+        start of each sequence to the start of the suffix.
         """
         reads = self.makeReads(
             "----CCGGTT",
             "--AACCGGTT",
         )
-        error = r"^Invalid start = -1 and end = 8 for read 'id-0' of length 10\.$"
-        with self.assertRaisesRegex(ValueError, error):
-            reads.mergeGapsInRegion(id_=None, prefix=None, suffix="TT", tsv=None)
+        result, summary = reads.mergeGapsInRegion(
+            id_=None, prefix=None, suffix="TT", tsv=None
+        )
+        sequences = {read.id: read.sequence for read in result}
+        self.assertEqual(
+            {
+                "id-0": "--CCGGTT",
+                "id-1": "AACCGGTT",
+            },
+            sequences,
+        )
 
     def testIdSpecifiedUsesThatSequencesOffsets(self):
         """

@@ -2539,11 +2539,13 @@ class Reads:
 
         prefixLen = len(prefix) if prefix else 0
         suffixLen = len(suffix) if suffix else 0
-        start = overallStart + prefixLen
-        end = overallEnd - suffixLen
         longestNonGapCount = -1
 
         for read in self:
+            # If no prefix (suffix) was given, overallStart (overallEnd) is -1
+            # and the region runs from (to) the start (end) of the sequence.
+            start = 0 if overallStart == -1 else overallStart + prefixLen
+            end = len(read) if overallEnd == -1 else overallEnd - suffixLen
             if not (0 <= start <= end <= len(read)):
                 raise ValueError(
                     f"Invalid {start = } and {end = } for read {read.id!r} of length "
@@ -2559,6 +2561,8 @@ class Reads:
 
         for read in self:
             # This is repetitive, but easy to make sense of.
+            start = 0 if overallStart == -1 else overallStart + prefixLen
+            end = len(read) if overallEnd == -1 else overallEnd - suffixLen
             regionWithGaps = read[start:end].sequence
             gapCount = regionWithGaps.count(gapCharacter)
             nonGapCount = len(regionWithGaps) - gapCount
