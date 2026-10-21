@@ -1,4 +1,4 @@
-## 7.4.2 October 21, 2026
+## 7.4.1 October 21, 2026
 
 Added `mergeGapsInRegion` to `src/dark/reads.py` and
 `bin/msa-merge-gapped-region.py` which uses it to merge gaps in a
