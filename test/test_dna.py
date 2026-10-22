@@ -1,4 +1,4 @@
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from dark.aaVars import CODONS
 from dark.dna import (
@@ -1237,7 +1237,6 @@ class TestCompareDNAReads(TestCase):
         )
 
 
-@skip("Match to string tests disabled until we're settled on the new format.")
 class TestMatchToString(TestCase):
     """
     Test the matchToString function.
@@ -1256,7 +1255,7 @@ class TestMatchToString(TestCase):
         self.assertEqual(
             """\
 Exact matches: 5/6 (83.33%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Mismatches: 1/6 (16.67%)
   Not involving gaps (i.e., conflicts or ambiguities): 1/6 (16.67%)
   Involving a gap in one sequence: 0
@@ -1267,12 +1266,16 @@ Mismatches: 1/6 (16.67%)
     Length: 6
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 1/6 (16.67%)
+    Coverage (excluding Ns and alignment gaps): 6/6 (100.00%)
   Id: id2
     Length: 6
     Gaps: 0
     No coverage: 0
-    Ambiguous: 0""",
+    Ns: 0
+    Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 6/6 (100.00%)""",
             matchToString(match, read1, read2, matchAmbiguous=False),
         )
 
@@ -1289,7 +1292,11 @@ Mismatches: 1/6 (16.67%)
         self.assertEqual(
             """\
 Exact matches: 5/6 (83.33%)
-Ambiguous matches: 1/6 (16.67%)
+Ambiguous matches:
+  Excluding Ns: 1/6 (16.67%)
+  With one N: 0
+  With two Ns: 0
+  Including Ns: 1/6 (16.67%)
 Exact or ambiguous matches: 6/6 (100.00%)
 Mismatches: 0
   Not involving gaps (i.e., conflicts): 0
@@ -1301,12 +1308,16 @@ Mismatches: 0
     Length: 6
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 1/6 (16.67%)
+    Coverage (excluding Ns and alignment gaps): 6/6 (100.00%)
   Id: id2
     Length: 6
     Gaps: 0
     No coverage: 0
-    Ambiguous: 0""",
+    Ns: 0
+    Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 6/6 (100.00%)""",
             matchToString(match, read1, read2, matchAmbiguous=True),
         )
 
@@ -1320,7 +1331,7 @@ Mismatches: 0
         self.assertEqual(
             """\
 Exact matches: 10/16 (62.50%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Mismatches: 6/16 (37.50%)
   Not involving gaps (i.e., conflicts): 0
   Involving a gap in one sequence: 6/16 (37.50%)
@@ -1331,13 +1342,17 @@ Mismatches: 6/16 (37.50%)
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 6/16 (37.50%)
-    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    Gap locations (1-based): 6-11
     No coverage: 0
-    Ambiguous: 0""",
+    Ns: 0
+    Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 10/10 (100.00%)""",
             matchToString(match, read1, read2),
         )
 
@@ -1351,7 +1366,11 @@ Mismatches: 6/16 (37.50%)
         self.assertEqual(
             """\
 Exact matches: 8/16 (50.00%)
-Ambiguous matches: 2/16 (12.50%)
+Ambiguous matches:
+  Excluding Ns: 2/16 (12.50%)
+  With one N: 0
+  With two Ns: 0
+  Including Ns: 2/16 (12.50%)
 Exact or ambiguous matches: 10/16 (62.50%)
 Mismatches: 6/16 (37.50%)
   Not involving gaps (i.e., conflicts): 0
@@ -1363,13 +1382,17 @@ Mismatches: 6/16 (37.50%)
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 1/16 (6.25%)
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 6/16 (37.50%)
-    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    Gap locations (1-based): 6-11
     No coverage: 0
+    Ns: 0
     Ambiguous: 1/16 (6.25%)
+    Coverage (excluding Ns and alignment gaps): 10/10 (100.00%)
 Ambiguous matches:
     2 W T
     16 G K""",
@@ -1386,7 +1409,7 @@ Ambiguous matches:
         self.assertEqual(
             """\
 Exact matches: 8/16 (50.00%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Mismatches: 8/16 (50.00%)
   Not involving gaps (i.e., conflicts): 2/16 (12.50%)
   Involving a gap in one sequence: 6/16 (37.50%)
@@ -1397,13 +1420,17 @@ Mismatches: 8/16 (50.00%)
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 6/16 (37.50%)
-    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    Gap locations (1-based): 6-11
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 10/10 (100.00%)
 Non-gap mismatches:
     2 A T
     16 G C""",
@@ -1420,7 +1447,7 @@ Non-gap mismatches:
         self.assertEqual(
             """\
 Exact matches: 10/16 (62.50%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Exact matches (ignoring no coverage sites): 10/10 (100.00%)
 Ambiguous matches (ignoring no coverage sites): 0
 Mismatches: 0
@@ -1433,13 +1460,17 @@ Mismatches: 0
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 0
     No coverage: 6/16 (37.50%)
-    No coverage locations (1-based): 6, 7, 8, 9, 10, 11
-    Ambiguous: 0""",
+    Ns: 0
+    No coverage locations (1-based): 6-11
+    Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)""",
             matchToString(match, read1, read2),
         )
 
@@ -1454,7 +1485,7 @@ Mismatches: 0
         self.assertEqual(
             """\
 Exact matches: 10/16 (62.50%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Mismatches: 6/16 (37.50%)
   Not involving gaps (i.e., conflicts): 0
   Involving a gap in one sequence: 6/16 (37.50%)
@@ -1465,12 +1496,16 @@ Mismatches: 6/16 (37.50%)
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 6/16 (37.50%)
     No coverage: 0
-    Ambiguous: 0""",
+    Ns: 0
+    Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 10/10 (100.00%)""",
             matchToString(match, read1, read2, includeGapLocations=False),
         )
 
@@ -1485,7 +1520,7 @@ Mismatches: 6/16 (37.50%)
         self.assertEqual(
             """\
 Exact matches: 10/16 (62.50%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Exact matches (ignoring no coverage sites): 10/10 (100.00%)
 Ambiguous matches (ignoring no coverage sites): 0
 Mismatches: 0
@@ -1498,12 +1533,16 @@ Mismatches: 0
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 0
     No coverage: 6/16 (37.50%)
-    Ambiguous: 0""",
+    Ns: 0
+    Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)""",
             matchToString(match, read1, read2, includeNoCoverageLocations=False),
         )
 
@@ -1517,7 +1556,7 @@ Mismatches: 0
         self.assertEqual(
             """\
 Exact matches: 6/16 (37.50%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Mismatches: 10/16 (62.50%)
   Not involving gaps (i.e., conflicts): 4/16 (25.00%)
   Involving a gap in one sequence: 6/16 (37.50%)
@@ -1528,13 +1567,17 @@ Mismatches: 10/16 (62.50%)
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 6/16 (37.50%)
-    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    Gap locations (1-based): 6-11
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 10/10 (100.00%)
 Difference counts:
     A->-: 6
     A->T: 1
@@ -1555,7 +1598,7 @@ Difference counts:
         self.assertEqual(
             """\
 Exact matches: 6/16 (37.50%)
-Ambiguous matches: 0
+Ambiguous matches (including Ns): 0
 Mismatches: 10/16 (62.50%)
   Not involving gaps (i.e., conflicts): 4/16 (25.00%)
   Involving a gap in one sequence: 6/16 (37.50%)
@@ -1566,13 +1609,17 @@ Mismatches: 10/16 (62.50%)
     Length: 16
     Gaps: 0
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 16/16 (100.00%)
   Id: id2
     Length: 16
     Gaps: 6/16 (37.50%)
-    Gap locations (1-based): 6, 7, 8, 9, 10, 11
+    Gap locations (1-based): 6-11
     No coverage: 0
+    Ns: 0
     Ambiguous: 0
+    Coverage (excluding Ns and alignment gaps): 10/10 (100.00%)
 Difference counts and locations:
     A->- (6): 6, 7, 8, 9, 10, 11
     A->T (1): 2
