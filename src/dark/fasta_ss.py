@@ -1,3 +1,4 @@
+import sys
 from typing import Iterable
 
 from prseq import FastaReader
@@ -20,7 +21,8 @@ class SSFastaReads(Reads):
 
     @param _files: Either a single C{str} file name or file handle, or a
         C{list} of C{str} file names and/or file handles. Each file or file
-        handle must contain sequences in PDB FASTA format (see above).
+        handle must contain sequences in PDB FASTA format (see above). If
+        C{None}, standard input will be read.
     @param readClass: The class of read that should be yielded by iter. This
         must accept 3 C{str} arguments: an id, the sequence, the structure.
     @param upperCase: If C{True}, both read and structure sequences will be
@@ -28,11 +30,14 @@ class SSFastaReads(Reads):
     """
 
     def __init__(
-        self, _files: Iterable[File], readClass=SSAARead, upperCase: bool = False
+        self,
+        _files: File | Iterable[File] | None = None,
+        readClass=SSAARead,
+        upperCase: bool = False,
     ):
-        if isinstance(_files, tuple):
-            self._files = _files
-        elif isinstance(_files, list):
+        if _files is None:
+            self._files = (sys.stdin.buffer,)
+        elif isinstance(_files, (list, tuple)):
             self._files = tuple(_files)
         else:
             self._files = (_files,)

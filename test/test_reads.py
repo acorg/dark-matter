@@ -1,6 +1,10 @@
+import argparse
 import builtins
-from io import BytesIO, StringIO
+import gzip
+import tempfile
+from io import BufferedReader, BytesIO, StringIO
 from os import stat
+from pathlib import Path
 from random import seed
 from unittest import TestCase
 from unittest.mock import call, mock_open, patch
@@ -33,7 +37,10 @@ from dark.reads import (
     SSAARead,
     SSAAReadWithX,
     TranslatedRead,
+    _sniffFastaOrFastq,
+    addFASTACommandLineOptions,
     getNoCoverageCounts,
+    parseFASTACommandLineOptions,
     parseSiteSettings,
     readClassNameToClass,
     simpleReadSplitter,
@@ -6125,3 +6132,235 @@ class TestMergeGapsInRegion(TestCase):
             id_=None, prefix="AA", suffix="TT", tsv=None
         )
         self.assertEqual(["id-0", "id-1"], [read.id for read in result])
+
+
+class TestSniffFastaOrFastq(TestCase):
+    """
+    Test the _sniffFastaOrFastq function.
+    """
+
+    def testNone(self):
+        """
+        If standard input holds FASTA, that must be detected.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b">id\nACGT\n"))
+            self.assertEqual("fasta", _sniffFastaOrFastq(None))
+
+    def testNoneFastq(self):
+        """
+        If standard input holds FASTQ, that must be detected.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b"@id\nACGT\n+\nIIII\n"))
+            self.assertEqual("fastq", _sniffFastaOrFastq(None))
+
+    def testNoneDoesNotConsumeInput(self):
+        """
+        Sniffing standard input must not consume any of it (peeking must
+        leave the stream untouched for the real reader to use afterwards).
+        """
+        with patch("sys.stdin") as mockStdin:
+            buf = BufferedReader(BytesIO(b">id\nACGT\n"))
+            mockStdin.buffer = buf
+            _sniffFastaOrFastq(None)
+            self.assertEqual(b">id\nACGT\n", buf.read())
+
+    def testFastaFilename(self):
+        """
+        A FASTA file, given by name, must be detected as FASTA.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta"
+            path.write_bytes(b">id\nACGT\n")
+            self.assertEqual("fasta", _sniffFastaOrFastq(str(path)))
+
+    def testFastqFilename(self):
+        """
+        A FASTQ file, given by name, must be detected as FASTQ.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fastq"
+            path.write_bytes(b"@id\nACGT\n+\nIIII\n")
+            self.assertEqual("fastq", _sniffFastaOrFastq(str(path)))
+
+    def testFilenameAsPath(self):
+        """
+        A file name given as a C{Path} instance must also work.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta"
+            path.write_bytes(b">id\nACGT\n")
+            self.assertEqual("fasta", _sniffFastaOrFastq(path))
+
+    def testNonExistentFilenameRaisesOSError(self):
+        """
+        A non-existent file name must result in an C{OSError} being raised
+        (this is a real error, not something to swallow as "undetectable").
+        """
+        self.assertRaises(OSError, _sniffFastaOrFastq, "/no/such/file")
+
+    def testGzipCompressedFasta(self):
+        """
+        Gzip-compressed FASTA content must be detected correctly (dark
+        matter's readers auto-detect gzip compression by content, so
+        sniffing must look through it too).
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta.gz"
+            with gzip.open(path, "wb") as fp:
+                fp.write(b">id\nACGT\n")
+            self.assertEqual("fasta", _sniffFastaOrFastq(str(path)))
+
+    def testEmptyInput(self):
+        """
+        Empty input must result in C{None} being returned.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b""))
+            self.assertIsNone(_sniffFastaOrFastq(None))
+
+    def testUnrecognizedFirstCharacter(self):
+        """
+        Input whose first non-whitespace character is neither '>' nor '@'
+        must result in C{None} being returned.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b"This is not FASTA/Q.\n"))
+            self.assertIsNone(_sniffFastaOrFastq(None))
+
+    def testLeadingWhitespaceIsSkipped(self):
+        """
+        Leading whitespace before the first non-whitespace character must
+        be ignored when sniffing.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b"\n\n  >id\nACGT\n"))
+            self.assertEqual("fasta", _sniffFastaOrFastq(None))
+
+
+class TestFASTACommandLineOptions(TestCase):
+    """
+    Test the addFASTACommandLineOptions and parseFASTACommandLineOptions
+    functions.
+    """
+
+    def makeParser(self) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser()
+        addFASTACommandLineOptions(parser)
+        return parser
+
+    def testPositionalFastaFileIsAutoDetected(self):
+        """
+        A FASTA file given as a plain (positional) argument, with no
+        --fasta/--fastq/--fasta-ss given, must be auto-detected as FASTA.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta"
+            path.write_bytes(b">id\nACGT\n")
+            args = self.makeParser().parse_args([str(path)])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])
+
+    def testPositionalFastqFileIsAutoDetected(self):
+        """
+        A FASTQ file given as a plain (positional) argument, with no
+        --fasta/--fastq/--fasta-ss given, must be auto-detected as FASTQ.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fastq"
+            path.write_bytes(b"@id\nACGT\n+\nIIII\n")
+            args = self.makeParser().parse_args([str(path)])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])
+
+    def testFastaFileOptionStillWorks(self):
+        """
+        The original --fastaFile option must still work, for backward
+        compatibility.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta"
+            path.write_bytes(b">id\nACGT\n")
+            args = self.makeParser().parse_args(["--fastaFile", str(path)])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])
+
+    def testPositionalAndFastaFileBothGivenIsAnError(self):
+        """
+        Giving a file name both as a plain argument and via --fastaFile
+        must result in a SystemExit (this is ambiguous).
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta"
+            path.write_bytes(b">id\nACGT\n")
+            args = self.makeParser().parse_args([str(path), "--fastaFile", str(path)])
+            self.assertRaises(SystemExit, parseFASTACommandLineOptions, args)
+
+    def testCannotAutoDetectIsAnError(self):
+        """
+        If the format cannot be auto-detected and none of
+        --fasta/--fastq/--fasta-ss was given, a SystemExit must result.
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.txt"
+            path.write_bytes(b"Not FASTA or FASTQ.\n")
+            args = self.makeParser().parse_args([str(path)])
+            self.assertRaises(SystemExit, parseFASTACommandLineOptions, args)
+
+    def testExplicitFastqIsRespectedRegardlessOfContent(self):
+        """
+        If --fastq is given explicitly, the content is not sniffed (and
+        the FASTQ reader is used, even though the file actually holds
+        FASTA, which will then fail to parse as FASTQ).
+        """
+        with tempfile.TemporaryDirectory() as tmpDir:
+            path = Path(tmpDir) / "input.fasta"
+            path.write_bytes(b">id\nACGT\n")
+            args = self.makeParser().parse_args(["--fastq", str(path)])
+            self.assertTrue(args.fastq)
+            self.assertFalse(args.fasta)
+
+    def testStdinFastaIsAutoDetected(self):
+        """
+        FASTA content on standard input must be auto-detected when no file
+        name and none of --fasta/--fastq/--fasta-ss is given.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b">id\nACGT\n"))
+            args = self.makeParser().parse_args([])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])
+
+    def testStdinFastqIsAutoDetected(self):
+        """
+        FASTQ content on standard input must be auto-detected when no file
+        name and none of --fasta/--fastq/--fasta-ss is given.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b"@id\nACGT\n+\nIIII\n"))
+            args = self.makeParser().parse_args([])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])
+
+    def testDashMeansStandardInput(self):
+        """
+        A file name of '-' (given positionally) must be treated the same
+        as standard input.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b">id\nACGT\n"))
+            args = self.makeParser().parse_args(["-"])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])
+
+    def testDashViaFastaFileMeansStandardInput(self):
+        """
+        A file name of '-' given via --fastaFile must be treated the same
+        as standard input.
+        """
+        with patch("sys.stdin") as mockStdin:
+            mockStdin.buffer = BufferedReader(BytesIO(b">id\nACGT\n"))
+            args = self.makeParser().parse_args(["--fastaFile", "-"])
+            reads = parseFASTACommandLineOptions(args)
+            self.assertEqual(["ACGT"], [read.sequence for read in reads])

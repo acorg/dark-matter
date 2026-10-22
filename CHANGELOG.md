@@ -1,3 +1,22 @@
+## 7.4.3 October 22, 2026
+
+`addFASTACommandLineOptions`/`parseFASTACommandLineOptions` in
+`src/dark/reads.py` (used by around 30 scripts in `bin`) now:
+
+* Accept the FASTA/FASTQ input file name as a plain command-line argument
+  (as well as via the pre-existing `--fastaFile` option, kept for backward
+  compatibility), e.g. `fasta-lengths.py reads.fasta` instead of
+  `fasta-lengths.py --fastaFile reads.fasta`.
+* Auto-detect whether input (from a file or standard input) is FASTA or
+  FASTQ by looking at its first non-whitespace character, so `--fasta` or
+  `--fastq` no longer need to be given explicitly. `--fasta-ss` still must
+  be given explicitly, since PDB FASTA cannot be distinguished from plain
+  FASTA by content. If the format cannot be determined (e.g., empty input),
+  a clear error is raised asking for the format to be given explicitly.
+
+Also fixed `SSFastaReads` (`src/dark/fasta_ss.py`) to accept `None` (i.e.,
+read from standard input), matching `FastaReads` and `FastqReads`.
+
 ## 7.4.2 October 22, 2026
 
 Support Python 3.14.x following resolution of https://github.com/etetoolkit/ete/issues/800,

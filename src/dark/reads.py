@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import bz2
 import csv
+import io
 import itertools
 import os
+import sys
+import zlib
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Iterator, Sequence, Sized
 from functools import total_ordering
@@ -2659,12 +2663,22 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
     """
 
     parser.add_argument(
-        "--fastaFile",
-        type=argparse.FileType("rb", 0),
+        "inputFile",
+        nargs="?",
         metavar="FILENAME",
         help=(
-            "The name of the FASTA input file. Standard input will be read "
-            "if '-' is used or if no file name is given."
+            "The name of the FASTA/FASTQ input file. Standard input will be "
+            "read if '-' is used or if no file name is given."
+        ),
+    )
+
+    parser.add_argument(
+        "--fastaFile",
+        metavar="FILENAME",
+        help=(
+            "The name of the FASTA/FASTQ input file. Kept for backward "
+            "compatibility - giving the file name as a plain argument (with "
+            "no option) does the same thing."
         ),
     )
 
@@ -2685,7 +2699,12 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
     group.add_argument(
         "--fasta",
         action="store_true",
-        help="If specified, input will be treated as FASTA. This is the default.",
+        help=(
+            "If specified, input will be treated as FASTA. If none of "
+            "--fasta, --fastq, or --fasta-ss is given, the input format is "
+            "detected automatically by looking at its first non-whitespace "
+            "character ('>' for FASTA, '@' for FASTQ)."
+        ),
     )
 
     group.add_argument(
@@ -2701,9 +2720,60 @@ def addFASTACommandLineOptions(parser: argparse.ArgumentParser) -> None:
         help=(
             "If specified, input will be treated as PDB FASTA "
             "(i.e., regular FASTA with each sequence followed by its "
-            "structure)."
+            "structure). This cannot be auto-detected, so must be given "
+            "explicitly."
         ),
     )
+
+
+def _sniffFastaOrFastq(source: str | Path | None) -> Literal["fasta", "fastq"] | None:
+    """
+    Try to determine whether a source of FASTA/FASTQ input holds FASTA or
+    FASTQ content, without consuming any of it, by looking at its first
+    non-whitespace byte ('>' for FASTA, '@' for FASTQ).
+
+    @param source: C{None} (meaning standard input) or a C{str} or C{Path}
+        file name.
+    @return: 'fasta' or 'fastq' according to the first non-whitespace byte
+        found, or C{None} if this could not be determined (e.g., the input
+        is empty, or its first non-whitespace byte is neither '>' nor '@').
+    @raises OSError: If C{source} is a file name that cannot be opened for
+        reading (e.g., because it does not exist).
+    """
+    if source is None:
+        handle = sys.stdin.buffer
+        # Peeking doesn't consume input, so this is safe to do even though
+        # standard input is not seekable.
+        chunk = handle.peek(512) if isinstance(handle, io.BufferedReader) else b""
+    else:
+        with open(source, "rb") as fp:
+            chunk = fp.read(512)
+
+    # dark matter's readers (via prseq) auto-detect gzip/bz2 compression
+    # by content, regardless of file extension, so we must do the same in
+    # order to be able to sniff the (true, decompressed) first byte.
+    if chunk[:2] == b"\x1f\x8b":
+        try:
+            chunk = zlib.decompressobj(16 + zlib.MAX_WBITS).decompress(chunk)
+        except zlib.error:
+            return None
+    elif chunk[:3] == b"BZh":
+        try:
+            chunk = bz2.BZ2Decompressor().decompress(chunk)
+        except OSError:
+            return None
+
+    for byte in chunk:
+        character = chr(byte)
+        if character.isspace():
+            continue
+        if character == ">":
+            return "fasta"
+        if character == "@":
+            return "fastq"
+        break
+
+    return None
 
 
 def parseFASTACommandLineOptions(args: argparse.Namespace) -> Reads:
@@ -2714,25 +2784,49 @@ def parseFASTACommandLineOptions(args: argparse.Namespace) -> Reads:
         C{parse_args} function.
     @return: A C{Reads} subclass instance, depending on the type of FASTA file
         given.
+    @raises SystemExit: If a file name is given both as a plain argument and
+        via --fastaFile, or if none of --fasta, --fastq, --fasta-ss is given
+        and the input format cannot be automatically detected.
     """
+    inputFile, fastaFile = args.inputFile, args.fastaFile
+
+    if inputFile is not None and fastaFile is not None:
+        raise SystemExit(
+            "A FASTA/FASTQ file name was given both as a plain argument "
+            f"({inputFile!r}) and via --fastaFile ({fastaFile!r}). Please "
+            "give the file name only once."
+        )
+
+    source = inputFile if inputFile is not None else fastaFile
+    if source == "-":
+        # A file name of '-' means standard input, as for --fastaFile.
+        source = None
+
     # Set default FASTA type.
     if not (args.fasta or args.fastq or args.fasta_ss):
-        args.fasta = True
+        detected = _sniffFastaOrFastq(source)
+        if detected is None:
+            raise SystemExit(
+                "Could not automatically determine whether the input is "
+                "FASTA or FASTQ. Please specify --fasta, --fastq, or "
+                "--fasta-ss explicitly."
+            )
+        setattr(args, detected, True)
 
     readClass = readClassNameToClass[args.readClass]
 
     if args.fasta:
         from dark.fasta import FastaReads
 
-        return FastaReads(args.fastaFile, readClass=readClass)
+        return FastaReads(source, readClass=readClass)
     elif args.fastq:
         from dark.fastq import FastqReads
 
-        return FastqReads(args.fastaFile, readClass=readClass)
+        return FastqReads(source, readClass=readClass)
     else:
         from dark.fasta_ss import SSFastaReads
 
-        return SSFastaReads(args.fastaFile, readClass=readClass)
+        return SSFastaReads(source, readClass=readClass)
 
 
 def getNoCoverageCounts(

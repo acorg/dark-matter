@@ -997,8 +997,11 @@ def main():
         symmetric = False
 
         _tmpReads = {}
-        # The next line is a total hack, to trick parseFASTACommandLineOptions
-        # into reading a second FASTA file.
+        # The next two lines are a total hack, to trick
+        # parseFASTACommandLineOptions into reading a second FASTA file.
+        # args.inputFile must be cleared so a positionally-given first file
+        # name doesn't trigger the "given file name twice" check.
+        args.inputFile = None
         args.fastaFile = args.fastaFile2
         for read in parseFASTAFilteringCommandLineOptions(
             args, parseFASTACommandLineOptions(args)
