@@ -1,3 +1,8 @@
+## 7.4.2 October 22, 2026
+
+Support Python 3.14.x following resolution of https://github.com/etetoolkit/ete/issues/800,
+and Python 3.15.x.
+
 ## 7.4.1 October 21, 2026
 
 Added `mergeGapsInRegion` to `src/dark/reads.py` and

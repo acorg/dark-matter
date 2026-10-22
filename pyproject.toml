@@ -1,9 +1,9 @@
 [project]
 name = "dark-matter"
-version = "7.4.1"
+version = "7.4.2"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.16"
 license = "MIT"
 authors = [
     {name = "Terry Jones", email = "tcj25@cam.ac.uk"},
@@ -20,6 +20,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Operating System :: OS Independent",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -33,6 +35,7 @@ dependencies = [
     "Cython>=0.29.16",
     "dendropy>=5.0.1",
     "edlib>=1.3.9.post1",
+    # If ete4 fails to build, run 'uv cache clean ete4' and retry.
     "ete4>=4.4.0",
     "gb2seq>=0.3.6",
     "ipython>=8.12.3",
