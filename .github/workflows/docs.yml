@@ -24,7 +24,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Build docs
-        run: uv run --only-group dev mkdocs build --strict
+        run: uv run --only-group docs mkdocs build --strict
 
       - name: Upload artifact
         if: github.event_name == 'push'
