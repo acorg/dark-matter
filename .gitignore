@@ -10,6 +10,7 @@ __pycache__
 .ruff_cache
 build
 dist
+site
 dark_matter.egg-info
 test/data/hbv/KJ586809.1.1.bt2
 test/data/hbv/KJ586809.1.2.bt2

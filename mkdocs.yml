@@ -1,0 +1,43 @@
+site_name: dark-matter
+site_description: Python scripts and libraries for bioinformatics.
+site_url: https://acorg.github.io/dark-matter/
+repo_url: https://github.com/acorg/dark-matter
+repo_name: acorg/dark-matter
+edit_uri: edit/master/doc/
+
+docs_dir: doc
+
+nav:
+  - Home: index.md
+  - Scripts: scripts.md
+  - Library: library.md
+  - Reads: reads.md
+  - Translation: translation.md
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
