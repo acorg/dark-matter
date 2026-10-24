@@ -7,7 +7,12 @@ from dark.idutils import ids
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=(
+            "Print a generated sequence of ids (e.g., id1, id2, ... or a "
+            "custom prefix and numeric range)."
+        )
+    )
 
     parser.add_argument(
         "spec",

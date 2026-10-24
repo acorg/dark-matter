@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 
-import sys
+import argparse
 
 from Bio.Seq import Seq
 
-if len(sys.argv) == 0:
-    print(f"Usage: {sys.argv[0]} DNA-sequence", file=sys.stderr)
-    sys.exit(1)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Print the amino acid translation of one or more DNA sequences."
+    )
+    parser.add_argument(
+        "sequences",
+        metavar="DNA-SEQUENCE",
+        nargs="+",
+        help="A DNA sequence to translate.",
+    )
+    args = parser.parse_args()
 
-for dna in sys.argv[1:]:
-    print(Seq(dna).translate())
+    for dna in args.sequences:
+        print(Seq(dna).translate())

@@ -49,6 +49,12 @@ def writeDetails(accept, readId, taxonomy, fp):
 
 
 if __name__ == "__main__":
+    print(
+        "WARNING: This script is deprecated and is scheduled for removal "
+        "in a future dark-matter release, anticipated in early 2027.",
+        file=sys.stderr,
+    )
+
     parser = argparse.ArgumentParser(
         description="Filter FASTA based on taxonomy",
         epilog="Read DNA FASTA from stdin and print FASTA to stdout, only "

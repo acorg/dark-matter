@@ -1,3 +1,31 @@
+## 7.5.0 October 24, 2026
+
+### Removed
+
+* `bin/aa-to-properties.py`
+* `bin/analyse-isolate.py`
+* `bin/codon-distance.py` (use `aa-compare.py` instead)
+* `bin/fasta-sequences.py`
+* `bin/get-features.py`
+* `bin/graph-evalues.py`
+* `bin/print-read-lengths.py` (use `fasta-lengths.py` instead)
+* `bin/sff-to-fastq.py`
+* `bin/write-htcondor-job-spec.py`
+* `bin/convert-sam-to-fastq.sh` (use `samtools fastq` instead)
+
+### Renamed
+
+* `bin/curate-trees.py` to `bin/curate-trees-dendropy.py`
+
+### Deprecated
+
+* `bin/compare-consensuses.py`
+* `bin/filter-fasta-by-taxonomy.py`
+* `bin/noninteractive-alignment-panel.py`
+* `bin/proteins-to-pathogens.py`
+* `bin/sam-to-fasta-alignment.py`
+
+
 ## 7.4.3 October 22, 2026
 
 `addFASTACommandLineOptions`/`parseFASTACommandLineOptions` in

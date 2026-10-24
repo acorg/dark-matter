@@ -556,26 +556,25 @@ class ProteinGrouper:
         # or fraction of its proteins that we have matches for is too low.
         if minProteinFraction > 0.0 or minProteinCount > 0:
             toDelete = defaultdict(list)
-            for genomeAccession in self.genomeAccessions:
-                genomeInfo = self._db.findGenome(genomeAccession)
-                pathogenProteinCount = genomeInfo["proteinCount"]
+            for pathogenName in self.pathogenNames:
+                pathogenProteinCount = self._pathogenProteinCount[pathogenName]
                 assert pathogenProteinCount > 0
-                for s in self.genomeAccessions[genomeAccession]:
+                for s in self.pathogenNames[pathogenName]:
                     sampleProteinCount = len(
-                        self.genomeAccessions[genomeAccession][s]["proteins"]
+                        self.pathogenNames[pathogenName][s]["proteins"]
                     )
                     if sampleProteinCount < minProteinCount:
-                        toDelete[genomeAccession].append(s)
+                        toDelete[pathogenName].append(s)
                     else:
                         sampleProteinFraction = (
                             sampleProteinCount / pathogenProteinCount
                         )
                         if sampleProteinFraction < minProteinFraction:
-                            toDelete[genomeAccession].append(s)
+                            toDelete[pathogenName].append(s)
 
-            for genomeAccession, samples in toDelete.items():
+            for pathogenName, samples in toDelete.items():
                 for sample in samples:
-                    del self.genomeAccessions[genomeAccession][sample]
+                    del self.pathogenNames[pathogenName][sample]
 
         pathogenNames = sorted(
             pathogenName

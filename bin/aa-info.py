@@ -12,7 +12,13 @@ from dark.aaVars import (
     STOP_CODONS,
 )
 
-parser = ArgumentParser()
+parser = ArgumentParser(
+    description=(
+        "Print detailed information (name, 1- and 3-letter abbreviations, "
+        "codons, properties) for one or more amino acids or codons named "
+        "on the command line, or for all amino acids if none are given."
+    )
+)
 parser.add_argument("targets", nargs="*", help="The items to look up.")
 parser.add_argument(
     "--details", action="store_true", help="Display numeric amino acid property values."

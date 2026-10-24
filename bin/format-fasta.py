@@ -35,7 +35,7 @@ if __name__ == "__main__":
         help=(
             'A string to use as the "end" keyword argument for print(). '
             "This will be passed to eval, allowing convenient use of "
-            "Python string constructs such as \\t on the command line. "
+            r"Python string constructs such as \t on the command line. "
             "If not specified, a newline will be printed."
         ),
     )
@@ -53,7 +53,7 @@ if __name__ == "__main__":
             "f-string format (with Python 3.6 or greater). The passed "
             "format string will be eval'd in a double quoted string, as "
             "with the --end string, allowing the use of Python string "
-            "conveniences such as \\t on the command line."
+            r"conveniences such as \t on the command line."
         ),
     )
 

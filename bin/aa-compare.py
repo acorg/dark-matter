@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import sys
 
 from rich import print as rprint
@@ -77,12 +78,25 @@ def main():
     def transitionsKey(codonInfo):
         return codonInfo[2]
 
-    if len(sys.argv) != 3:
-        print("Usage: %s amino_acid amino_acid" % sys.argv[0], file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description=(
+            "Compare two amino acids or codons: look each one up by name, "
+            "3- or 1-letter abbreviation, or codon, then print the "
+            "properties they have in common and those that differ, their "
+            "codons, and the possible codon-to-codon paths (with "
+            "transition/transversion counts) between them."
+        )
+    )
+    parser.add_argument(
+        "arg1", metavar="AMINO_ACID_OR_CODON_1", help="The first amino acid or codon."
+    )
+    parser.add_argument(
+        "arg2", metavar="AMINO_ACID_OR_CODON_2", help="The second amino acid or codon."
+    )
+    args = parser.parse_args()
 
-    arg1 = sys.argv[1]
-    arg2 = sys.argv[2]
+    arg1 = args.arg1
+    arg2 = args.arg2
 
     if arg1 == arg2:
         print("Identical arguments, nothing to do.", file=sys.stderr)

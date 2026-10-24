@@ -1,6 +1,6 @@
 [project]
 name = "dark-matter"
-version = "7.4.3"
+version = "7.5.0"
 description = "Python library and utility scripts for working with genetic sequence data."
 readme = "README.md"
 requires-python = ">=3.10,<3.16"
@@ -41,7 +41,6 @@ dependencies = [
     "ipython>=8.12.3",
     "kaleido>=1.2.0",
     "matplotlib>=3.7.5",
-    "mvlib",
     "mysql-connector-python>=9.0.0",
     "numpy>=1.14.2",
     "plotly>=6.6.0",
@@ -110,6 +109,3 @@ Homepage = "https://github.com/acorg/dark-matter"
 [tool.pytest.ini_options]
 testpaths = ["test"]
 pythonpath = ["src"]
-
-[tool.uv.sources]
-mvlib = { git = "https://github.com/VirologyCharite/minor-variants" }

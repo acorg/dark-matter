@@ -4,72 +4,83 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://app.travis-ci.com/acorg/dark-matter.svg?branch=master)](https://app.travis-ci.com/acorg/dark-matter)
 
-## Dark matter
+# Dark matter
 
-Python tools for bioinformatics.
+(Pure) Python scripts and libraries for bioinformatics.
+
+## Overview
+
+### Utility scripts
+
+The `bin` directory contains over 100 utility scripts. These fall into
+the following categories:
+
+1. FASTA/FASTQ: general sequence inspection, filtering, and manipulation
+1. DNA/amino-acid translation and codon tools
+1. Pairwise sequence comparison
+1. Multiple-sequence-alignment (MSA) and alignment-position analysis
+1. Consensus-sequence building
+1. Read mapping and SAM/BAM analysis
+1. BLAST/DIAMOND hit processing and alignment panels
+1. Protein/genome SQLite databases and GenBank data
+1. Taxonomy
+1. Phylogenetic trees (Newick)
+
+### Library functions
+
+1. Core reads & sequence I/O
+1. DNA & amino-acid biology
+1. Sequence alignment & comparison
+1. Alignment-result containers, filtering & summarization
+1. BLAST
+1. DIAMOND
+1. SAM/BAM, read mapping & consensus building
+1. Protein/genome databases, GenBank & taxonomy
+1. Phylogenetic trees
+1. Visualization: plotting & HTML
+1. General utilities
 
 ## Installation
 
-On Linux (at least) you will need to first:
-
 ```sh
-sudo apt install zlib1g-dev libbz2-dev liblzma-dev
+pip install dark-matter
 ```
 
-Then you should be able to install via
+or, using [uv](https://docs.astral.sh/uv/):
 
 ```sh
-$ pip install dark-matter
+uv add dark-matter
 ```
 
-Some additional information is available for
-[Linux](doc/linux.md), [OS X](doc/mac.md), and [Windows](doc/windows.md).
+dark-matter supports Python 3.10 through 3.15.
 
-## Optional dependencies
+## Documentation
 
-Not all of the following are mandatory. It depends which part of the
-dark-matter code you try to use.
+* [`doc/scripts.md`](doc/scripts.md) — the command-line scripts in `bin`,
+  for people who just want to run existing tools.
+* [`doc/library.md`](doc/library.md) — the `dark` Python library under
+  `src/dark`, for developers who want to write their own code against it.
 
-### Picard
+## Developers
 
-`run-bowtie2.py` can use [Picard](https://broadinstitute.github.io/picard/)
-to mark duplicates.
+```sh
+git clone https://github.com/acorg/dark-matter.git
+cd dark-matter
+uv sync
+```
 
-### GATK
+Run the tests with
 
-`run-bowtie2.py` uses [gatk](https://gatk.broadinstitute.org) if you call
-it with `--markDuplicatesGATK` or `--callHaplotypesGATK`. If you want to do
-this you'll need to download the `gatk` zip file, unzip it, and either put
-the directory where you unzip it into your shell's path or else move the
-contents of the zip file into a directory already in your path.
+```sh
+make pytest
+```
 
-### bcftools
+or directly via
 
-You'll need
-[bcftools](http://samtools.github.io/bcftools/howtos/index.html) if you
-want to make consensuses using the `make-consensus.py` script. Either
-follow
-[the installation instructions](http://samtools.github.io/bcftools/howtos/install.html)
-or, if you use [brew](https://brew.sh/) (or Linux brew), `brew install bcftools`.
+```sh
+uv run pytest
+```
 
-### samtools
+## License
 
-The `run-bowtie2.py` and `run-bwa.py` scripts both make use of
-[samtools](https://www.htslib.org/).
-
-### EMBOSS
-
-The `compare-sequences.py` script (if called with `--align`) requires the
-`needle` and (possibly) `stretcher` from
-[EMBOSS](http://emboss.sourceforge.net/).
-
-### iPython Notebook
-
-If you are using dark matter in an
-[iPython Notebook](https://ipython.org/notebook.html), you should install
-the requirements in `requirements-ipynb.txt`.
-
-### DIAMOND
-
-If you want to use the [DIAMOND](https://github.com/bbuchfink/diamond) functionality of
-`dark-matter` you will need DIAMOND version 2.1.16 or newer installed.
+MIT. See [LICENSE](LICENSE).

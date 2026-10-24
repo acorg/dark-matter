@@ -62,7 +62,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--printId",
-        default=False,
         action="store_true",
         help="If specified, also print the id.",
     )

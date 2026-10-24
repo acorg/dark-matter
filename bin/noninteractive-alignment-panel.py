@@ -65,6 +65,12 @@ def parseColors(colors, args):
 
 
 if __name__ == "__main__":
+    print(
+        "WARNING: This script is deprecated and is scheduled for removal "
+        "in a future dark-matter release, anticipated in early 2027.",
+        file=sys.stderr,
+    )
+
     # We do not use the addFASTACommandLineOptions and
     # parseFASTACommandLineOptions utility functions below because we allow
     # multiple FASTA or FASTQ files on the command line, which we specify

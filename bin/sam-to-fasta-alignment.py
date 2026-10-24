@@ -15,6 +15,12 @@ from dark.reads import Reads
 from dark.sam import PaddedSAM, SAMFilter
 from dark.utils import nucleotidesToStr
 
+print(
+    "WARNING: This script is deprecated and is scheduled for removal in a "
+    "future dark-matter release, anticipated in early 2027.",
+    file=sys.stderr,
+)
+
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     description="Produce aligned FASTA queries from a SAM/BAM file.",

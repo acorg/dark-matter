@@ -17,11 +17,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=(
-            "Filter reads alignments to select a subset of reads. ",
+            "Filter reads alignments to select a subset of reads. "
             "Given BLAST or DIAMOND JSON output files and the "
             "FASTA (or FASTQ) query sequence files given to BLAST or "
             "DIAMOND, and some filtering criteria, print the input "
-            "reads that pass the filtering.",
+            "reads that pass the filtering."
         ),
     )
 

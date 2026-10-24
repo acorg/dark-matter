@@ -9,9 +9,15 @@ from functools import partial
 from os.path import join
 from resource import RLIMIT_NOFILE, getrlimit
 
+from dark.civ.proteins import SqliteIndex
 from dark.diamond.conversion import FIELDS
 from dark.diamond.sam import PerReferenceDiamondSAMWriter, SimpleDiamondSAMWriter
-from dark.proteins import SqliteIndex
+
+print(
+    "WARNING: This script is incomplete and probably should not be used "
+    "unless you are very sure you know what you're doing.",
+    file=sys.stderr,
+)
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

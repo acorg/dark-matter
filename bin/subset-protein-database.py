@@ -2,7 +2,7 @@
 
 import argparse
 
-from dark.proteins import SqliteIndex
+from dark.civ.proteins import SqliteIndex
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,

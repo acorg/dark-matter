@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 
-import sys
+import argparse
 
 from dark.summarize import summarizeReads
 
-if len(sys.argv) != 2:
-    print("Usage: %s file.fasta / file.fastq" % sys.argv[0], file=sys.stderr)
-    sys.exit(1)
-else:
-    filename = sys.argv[1]
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description=(
+            "Given a FASTA or FASTQ file, print summary statistics: read "
+            "count, total/average/median/min/max length, and per-base "
+            "counts."
+        )
+    )
+    parser.add_argument("filename", help="The FASTA or FASTQ file to summarize.")
+    args = parser.parse_args()
+
+    filename = args.filename
     if filename.lower().endswith("q"):
         filetype = "fastq"
     else:

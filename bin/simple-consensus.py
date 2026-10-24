@@ -250,4 +250,10 @@ def main():
 
 
 if __name__ == "__main__":
+    print(
+        "WARNING: This script is incomplete and probably should not be "
+        "used unless you are very sure you know what you're doing.",
+        file=sys.stderr,
+    )
+
     main()
