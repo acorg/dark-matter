@@ -13,6 +13,7 @@ nav:
   - Library: library.md
   - Reads: reads.md
   - Translation: translation.md
+  - Releasing: deploy.md
 
 theme:
   name: material
