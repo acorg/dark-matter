@@ -2,8 +2,11 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/dark-matter.svg)](https://pypi.org/project/dark-matter/)
 [![Downloads](https://img.shields.io/pypi/dm/dark-matter.svg)](https://pypi.org/project/dark-matter/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://app.travis-ci.com/acorg/dark-matter.svg?branch=master)](https://app.travis-ci.com/acorg/dark-matter)
+[![Build Status](https://github.com/acorg/dark-matter/actions/workflows/nox.yml/badge.svg)](https://github.com/acorg/dark-matter/actions/workflows/nox.yml)
 [![Docs](https://img.shields.io/badge/docs-acorg.github.io-blue.svg)](https://acorg.github.io/dark-matter/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Last Commit](https://img.shields.io/github/last-commit/acorg/dark-matter)](https://github.com/acorg/dark-matter/commits/master)
+[![Open Issues](https://img.shields.io/github/issues/acorg/dark-matter)](https://github.com/acorg/dark-matter/issues)
 
 # Dark matter
 
