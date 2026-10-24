@@ -1,3 +1,11 @@
+## 7.5.3 October 24, 2026
+
+Minor docs and workflow changes.
+
+## 7.5.2 October 24, 2026
+
+Minor docs and workflow changes.
+
 ## 7.5.1 October 24, 2026
 
 Minor docs and workflow changes.
