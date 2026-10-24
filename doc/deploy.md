@@ -42,16 +42,11 @@ committing.
 ## 3. Commit, tag, and push the tag
 
 ```sh
-git add -u
-git commit -m "Bump version to $(make -s version)"
+git commit -a -m "Bump version to $(make -s version)"
 git tag v$(make -s version)
 git push
 git push --tags
 ```
-
-`git add -u` stages changes to files git already tracks (like
-`pyproject.toml` and `uv.lock`) without sweeping in unrelated untracked
-files that might be sitting in the working tree.
 
 Pushing the tag is what triggers `.github/workflows/publish.yml`: it runs
 the test suite, then `uv build` + `uv publish`, authenticated via PyPI's
