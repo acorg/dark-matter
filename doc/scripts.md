@@ -1,4 +1,4 @@
-# Categorizing the scripts in `bin`
+# dark-matter command-line scripts
 
 Every script described below accepts a `--help` option, which prints a
 full description of what it does along with its complete list of

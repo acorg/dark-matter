@@ -3,6 +3,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/dark-matter.svg)](https://pypi.org/project/dark-matter/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://app.travis-ci.com/acorg/dark-matter.svg?branch=master)](https://app.travis-ci.com/acorg/dark-matter)
+[![Docs](https://img.shields.io/badge/docs-acorg.github.io-blue.svg)](https://acorg.github.io/dark-matter/)
 
 # Dark matter
 
@@ -56,10 +57,15 @@ dark-matter supports Python 3.10 through 3.15.
 
 ## Documentation
 
+The full documentation is at
+[acorg.github.io/dark-matter](https://acorg.github.io/dark-matter/),
+built from the Markdown files below:
+
 * [`doc/scripts.md`](doc/scripts.md) — the command-line scripts in `bin`,
   for people who just want to run existing tools.
 * [`doc/library.md`](doc/library.md) — the `dark` Python library under
   `src/dark`, for developers who want to write their own code against it.
+* [`doc/reads.md`](doc/reads.md) — the central `Read` class hierarchy.
 
 ## Developers
 
