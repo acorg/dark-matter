@@ -1,3 +1,7 @@
+## 7.5.5 November 4, 2026
+
+Added `--dryRun`, `--idPrefix`, `--idSuffix`, `--filenamePrefix` and `--filenameSuffix` options to `bin/fasta-split-by-id.py`.
+
 ## 7.5.4 October 24, 2026
 
 Minor docs changes.

@@ -20,30 +20,59 @@ parser.add_argument("--outDir", default=".", help="The directory to make the fil
 
 parser.add_argument(
     "--verbose",
-    default=False,
+    "-v",
     action="store_true",
     help="If given, print sequence ids as they are processed.",
 )
 
 parser.add_argument(
     "--numeric",
-    default=False,
     action="store_true",
     help="If given, use numeric filenames, like 1.fasta, 2.fasta, etc.",
 )
 
 parser.add_argument(
     "--noLeadingZeroes",
-    default=False,
     action="store_true",
     help="If given, numeric filenames will not have leading zeroes.",
 )
 
 parser.add_argument(
+    "--filenamePrefix",
+    default="",
+    help="Use this as a prefix in output filenames.",
+)
+
+parser.add_argument(
+    "--filenameSuffix",
+    default="",
+    help="Use this as a suffix (coming before '.fasta') in output filenames.",
+)
+
+parser.add_argument(
+    "--idPrefix",
+    default="",
+    help="Use this as a prefix for sequence IDs.",
+)
+
+parser.add_argument(
+    "--idSuffix",
+    default="",
+    help="Use this as a suffix for sequence IDs.",
+)
+
+parser.add_argument(
     "--force",
-    default=False,
+    "-f",
     action="store_true",
     help="If given, overwrite pre-existing files.",
+)
+
+parser.add_argument(
+    "--dryRun",
+    "-n",
+    action="store_true",
+    help="Don't create files, just print what would be done. Implies --verbose.",
 )
 
 parser.add_argument(
@@ -52,13 +81,16 @@ parser.add_argument(
     help=(
         "The output format. The default is to match the input format, "
         "so there is usually no need to specify this option. It can be "
-        "used to force conversion from FASTQ to FASTA"
+        "used to force conversion from FASTQ to FASTA."
     ),
 )
 
 addFASTACommandLineOptions(parser)
 args = parser.parse_args()
 reads = parseFASTACommandLineOptions(args)
+
+if args.dryRun:
+    args.verbose = True
 
 if not exists(args.outDir):
     mkdir(args.outDir)
@@ -77,31 +109,53 @@ saveAs = (
 
 count = 0
 for count, read in enumerate(parseFASTACommandLineOptions(args), start=1):
-    id_ = read.id.split()[0]
-    if args.numeric:
-        base = "%d.fasta" % count
+    idFields = read.id.split(maxsplit=1)
+    id_ = idFields[0]
+    base = (
+        args.filenamePrefix
+        + (str(count) if args.numeric else id_)
+        + args.filenameSuffix
+        + ".fasta"
+    )
+    filename = base if args.outDir == "." else join(args.outDir, base)
+    read.id = (
+        args.idPrefix
+        + id_
+        + args.idSuffix
+        + (f" {idFields[1]}" if len(idFields) > 1 else "")
+    )
+    if args.dryRun:
+        assert args.verbose
+        if exists(filename) and not args.force:
+            print(
+                f"Would write {filename!r} ({len(read):,} nt) with ID "
+                f"{read.id!r} but it already exists. Use --force to overwrite."
+            )
+        else:
+            print(f"Would write {filename!r} ({len(read):,} nt) with ID {read.id!r}.")
     else:
-        id_ = read.id.split()[0]
-        base = "%s.fasta" % id_
-    if args.verbose:
-        print("Writing", base)
-    filename = join(args.outDir, base)
-    if not args.force and exists(filename):
-        print(
-            'Will not overwrite pre-existing file "%s". Use --force to '
-            "make me. Exiting." % filename,
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    with open(filename, "w") as fp:
-        print(read.toString(saveAs), end="", file=fp)
+        if exists(filename) and not args.force:
+            print(
+                f"Will not overwrite pre-existing file {filename!r}. "
+                "Use --force to make me. Exiting.",
+                file=sys.stderr,
+            )
+            continue
+        if args.verbose:
+            print(f"Writing {filename!r} ({len(read):,} nt) with ID {read.id!r}.")
+        with open(filename, "w") as fp:
+            print(read.toString(saveAs), end="", file=fp)
+
 
 # Rename numeric filenames to have leading zeroes.
 if count and args.numeric and not args.noLeadingZeroes:
     width = int(log10(count)) + 1
     if width > 1:
         if args.verbose:
-            print("Renaming to add leading zeroes")
+            if args.dryRun:
+                print("Renaming would be done to add leading zeroes")
+            else:
+                print("Renaming to add leading zeroes")
         for i in range(1, count + 1):
             old = str(i)
             new = "%0*d" % (width, i)
@@ -114,11 +168,17 @@ if count and args.numeric and not args.noLeadingZeroes:
                 newFilename = "%s.fasta" % join(args.outDir, new)
                 if not args.force and exists(newFilename):
                     print(
-                        'Will not overwrite pre-existing file "%s". Use '
-                        "--force to make me. Exiting." % newFilename,
+                        f"Will not overwrite pre-existing file {newFilename!r}. "
+                        "Use --force to make me. Exiting.",
                         file=sys.stderr,
                     )
-                    sys.exit(1)
+                    continue
+
+                if args.dryRun:
+                    print(f"  {oldFilename!r} would be renamed {newFilename!r}")
+                    continue
+
                 if args.verbose:
-                    print("  ", oldFilename, "->", newFilename)
+                    print(f"  {oldFilename!r} -> {newFilename!r}")
+
                 rename(oldFilename, newFilename)
