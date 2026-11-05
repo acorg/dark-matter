@@ -856,7 +856,7 @@ wheels = [
 
 [[package]]
 name = "dark-matter"
-version = "7.5.6"
+version = "7.5.7"
 source = { editable = "." }
 dependencies = [
     { name = "bio" },
