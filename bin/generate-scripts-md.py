@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import argparse
+import html
+import re
 import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -109,9 +111,31 @@ def collectHelpText(names: list[str], workers: int) -> dict[str, str | None]:
         return dict(executor.map(runHelp, uniqueNames))
 
 
-def detailsBlock(helpText: str) -> str:
+_CODE_SPAN_RE = re.compile(r"`([^`]+)`")
+_BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
+_ITALIC_RE = re.compile(r"\*([^*]+)\*")
+
+
+def markdownInlineToHtml(text: str) -> str:
+    """Convert the small subset of inline markdown used in script
+    descriptions (code spans, bold, italic) into literal HTML. GitHub
+    does not run its markdown parser on text placed inside a <summary>
+    tag on the same line as the tag, so that text must already be HTML."""
+    escaped = html.escape(text, quote=False)
+    escaped = _CODE_SPAN_RE.sub(lambda m: f"<code>{m.group(1)}</code>", escaped)
+    escaped = _BOLD_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
+    escaped = _ITALIC_RE.sub(lambda m: f"<em>{m.group(1)}</em>", escaped)
+    return escaped
+
+
+def detailsBlock(name: str, description: str, helpText: str) -> str:
+    summary = (
+        f"<strong><code>{name}</code></strong> — "
+        f"{markdownInlineToHtml(description)} "
+        '<span title="Show --help">ℹ️</span>'
+    )
     return (
-        "<details><summary>Show <code>--help</code></summary>\n"
+        f"<details><summary>{summary}</summary>\n"
         "\n"
         "```\n"
         f"{helpText.rstrip()}\n"
@@ -142,13 +166,12 @@ def buildMarkdown(
 
             name = script["name"]
             description = script["description"].strip()
-            entry = f"**`{name}`** — {description}"
-
             help_ = helpText.get(name)
-            if help_:
-                entry = f"{entry}\n{detailsBlock(help_)}"
 
-            parts.append(entry)
+            if help_:
+                parts.append(detailsBlock(name, description, help_))
+            else:
+                parts.append(f"**`{name}`** — {description}")
 
     return "\n\n".join(parts) + "\n"
 

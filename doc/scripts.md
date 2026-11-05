@@ -52,8 +52,7 @@ python path\to\your\venv\bin\fasta-lengths.py --help
 
 ## 1. FASTA/FASTQ: general read inspection, filtering, and manipulation
 
-**`fasta-ids.py`** — Given FASTA on stdin, write the sequence ids to stdout.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-ids.py</code></strong> — Given FASTA on stdin, write the sequence ids to stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-ids.py [-h] [--fastaFile FILENAME] [--readClass CLASSNAME]
@@ -91,8 +90,7 @@ options:
 
 </details>
 
-**`fasta-lengths.py`** — Given FASTA on stdin, write the sequence ids and lengths to stdout.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-lengths.py</code></strong> — Given FASTA on stdin, write the sequence ids and lengths to stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-lengths.py [-h] [--fastaFile FILENAME] [--readClass CLASSNAME]
@@ -130,8 +128,7 @@ options:
 
 </details>
 
-**`fasta-count.py`** — Given FASTA on stdin, print the number of sequences to stdout.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-count.py</code></strong> — Given FASTA on stdin, print the number of sequences to stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-count.py [-h] [--fastaFile FILENAME] [--readClass CLASSNAME]
@@ -171,9 +168,8 @@ options:
 
 </details>
 
-**`fasta-count-chars.py`** — Given FASTA on stdin, write information about the counts of characters in
-the sequences to stdout.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-count-chars.py</code></strong> — Given FASTA on stdin, write information about the counts of characters in
+the sequences to stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-count-chars.py [-h] [--ignoreCase] [--sep SEP] [--omitIds]
@@ -232,9 +228,8 @@ options:
 
 </details>
 
-**`fasta-join.py`** — Given FASTA on stdin, write the ids, sequences, and quality strings on a
-single TAB-separated line to stdout (used internally by `fasta-diff.sh`).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-join.py</code></strong> — Given FASTA on stdin, write the ids, sequences, and quality strings on a
+single TAB-separated line to stdout (used internally by <code>fasta-diff.sh</code>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-join.py [-h] [--separator SEPARATOR] [--removeIds]
@@ -278,9 +273,8 @@ options:
 
 </details>
 
-**`fasta-sort.py`** — Write sorted FASTA/FASTQ to stdout. Sorting is by sequence id, then by
-sequence, then by quality (if FASTQ).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-sort.py</code></strong> — Write sorted FASTA/FASTQ to stdout. Sorting is by sequence id, then by
+sequence, then by quality (if FASTQ). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-sort.py [-h] [--regex REGEX] [--reverse] [--length]
@@ -325,9 +319,8 @@ options:
 
 </details>
 
-**`fasta-split.py`** — Split sequences in a FASTA/FASTQ file into numerically named files, each
-containing a given number of sequences.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-split.py</code></strong> — Split sequences in a FASTA/FASTQ file into numerically named files, each
+containing a given number of sequences. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-split.py [-h] [--outDir OUTDIR] [--verbose] [--count COUNT]
@@ -384,9 +377,8 @@ options:
 
 </details>
 
-**`fasta-split-by-id.py`** — Split sequences in a FASTA file into separate files, named either by their
-sequence id or numerically.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-split-by-id.py</code></strong> — Split sequences in a FASTA file into separate files, named either by their
+sequence id or numerically. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-split-by-id.py [-h] [--outDir OUTDIR] [--verbose] [--numeric]
@@ -457,9 +449,8 @@ options:
 
 </details>
 
-**`fasta-split-by-length.py`** — Split FASTA/FASTQ sequences longer than a given length; print the
-beginning and end sequences of sufficiently long sequences separately.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-split-by-length.py</code></strong> — Split FASTA/FASTQ sequences longer than a given length; print the
+beginning and end sequences of sufficiently long sequences separately. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-split-by-length.py [-h] --length LENGTH [--leftPrefix LEFTPREFIX]
@@ -520,8 +511,7 @@ options:
 
 </details>
 
-**`fasta-subset.py`** — Extract a subset of FASTA reads by id.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-subset.py</code></strong> — Extract a subset of FASTA reads by id. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-subset.py [-h] [--readIdFile READIDFILE] [ids ...]
@@ -546,11 +536,10 @@ FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 file any read whose id also appears in a later file, and print what's
 left.
 
-**`filter-fasta.py`** — Given FASTA on stdin and a set of filtering criteria, write filtered
-FASTA to stdout. Has many options (see `--help`); the `bin/README.md`
+<details><summary><strong><code>filter-fasta.py</code></strong> — Given FASTA on stdin and a set of filtering criteria, write filtered
+FASTA to stdout. Has many options (see <code>--help</code>); the <code>bin/README.md</code>
 documents a couple of non-obvious uses (e.g., reformatting multi-line
-FASTA to one-line-per-sequence).
-<details><summary>Show <code>--help</code></summary>
+FASTA to one-line-per-sequence). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-fasta.py [-h] [--quiet] [--saveAs {fasta,fastq,fasta-ss}]
@@ -779,8 +768,7 @@ options:
 
 </details>
 
-**`filter-fasta-by-complexity.py`** — Filter FASTA for low-complexity sequences.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>filter-fasta-by-complexity.py</code></strong> — Filter FASTA for low-complexity sequences. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-fasta-by-complexity.py [-h] [--maxLowComplexity FRAC]
@@ -805,11 +793,10 @@ low complexity.
 
 </details>
 
-**`filter-fasta-by-taxonomy.py`** — Filter FASTA based on taxonomy, matched against a taxonomic regular
-expression. **Note:** only works on FASTA with old-style NCBI `gi|...|`
+<details><summary><strong><code>filter-fasta-by-taxonomy.py</code></strong> — Filter FASTA based on taxonomy, matched against a taxonomic regular
+expression. <strong>Note:</strong> only works on FASTA with old-style NCBI <code>gi|...|</code>
 description lines, a numbering scheme NCBI retired in 2016 — likely a
-candidate for the "probably obsolete" pile (see bottom of this document).
-<details><summary>Show <code>--help</code></summary>
+candidate for the "probably obsolete" pile (see bottom of this document). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-fasta-by-taxonomy.py [-h] --taxonomy TAXONOMY [--invert]
@@ -830,8 +817,7 @@ that match the requested taxonomy regular expression at any level.
 
 </details>
 
-**`format-fasta.py`** — Given FASTA on stdin, write it to stdout according to a given output format.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>format-fasta.py</code></strong> — Given FASTA on stdin, write it to stdout according to a given output format. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: format-fasta.py [-h] [--prefix PREFIX] [--start START] [--end END]
@@ -895,10 +881,9 @@ options:
 
 </details>
 
-**`fasta-diff.py`** — Diff two FASTA sequences with visual highlighting (this is the
+<details><summary><strong><code>fasta-diff.py</code></strong> — Diff two FASTA sequences with visual highlighting (this is the
 Python-based, within-file diff; compare with the shell-based
-`fasta-diff.sh` below, which diffs whole FASTA/FASTQ *files*).
-<details><summary>Show <code>--help</code></summary>
+<code>fasta-diff.sh</code> below, which diffs whole FASTA/FASTQ <em>files</em>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-diff.py [-h] [--name1 NAME1] [--name2 NAME2] [-c CONTEXT]
@@ -960,10 +945,9 @@ single sorted TAB-separated lines and runs `diff`, then converts the
 result back into FASTA/FASTQ-like output. Good for a quick "are these
 basically the same" check, not for pinpointing exact differences.
 
-**`fasta-find.py`** — Given FASTA on stdin and a sequence (or genome region) to find, write
+<details><summary><strong><code>fasta-find.py</code></strong> — Given FASTA on stdin and a sequence (or genome region) to find, write
 information about (potentially overlapping) matches, optionally including
-reversed/complemented/reverse-complemented matches.
-<details><summary>Show <code>--help</code></summary>
+reversed/complemented/reverse-complemented matches. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-find.py [-h] (--pattern PATTERN | --region REGION)
@@ -1053,9 +1037,8 @@ options:
 
 </details>
 
-**`fasta-match-offsets.py`** — Given FASTA on stdin and a sequence pattern, write information about
-which sequences the pattern matches, and where.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-match-offsets.py</code></strong> — Given FASTA on stdin and a sequence pattern, write information about
+which sequences the pattern matches, and where. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-match-offsets.py [-h] --regex REGEX [--noUpper] [--overlapping]
@@ -1111,10 +1094,9 @@ options:
 
 </details>
 
-**`fasta-base-indices.py`** — Given FASTA on stdin and a set of bases to look for, write the 1-based
-indices of where those bases occur in each sequence (or, with `--any`,
-where they occur in any sequence).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-base-indices.py</code></strong> — Given FASTA on stdin and a set of bases to look for, write the 1-based
+indices of where those bases occur in each sequence (or, with <code>--any</code>,
+where they occur in any sequence). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-base-indices.py [-h] [--bases BASES] [--matchCase] [--any]
@@ -1175,9 +1157,8 @@ index).
 
 </details>
 
-**`fasta-identity-table.py`** — Print a FASTA sequence identity table (pairwise percent identity between
-all sequences).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-identity-table.py</code></strong> — Print a FASTA sequence identity table (pairwise percent identity between
+all sequences). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-identity-table.py [-h] [--text] [--strict] [--numberedColumns]
@@ -1487,9 +1468,8 @@ options:
 **`randomize-fasta.py`** — Read DNA FASTA from stdin and print FASTA to stdout, with the sequences
 randomized (ids and lengths preserved).
 
-**`fastq-set-quality.py`** — Given FASTA/FASTQ on stdin, write FASTQ to stdout with all quality scores
-set to a given value.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fastq-set-quality.py</code></strong> — Given FASTA/FASTQ on stdin, write FASTQ to stdout with all quality scores
+set to a given value. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fastq-set-quality.py [-h] [--quality QUALITY] [--fastaFile FILENAME]
@@ -1532,8 +1512,7 @@ options:
 
 </details>
 
-**`combine-sequences.py`** — Combine multiple sequences into a single sequence.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>combine-sequences.py</code></strong> — Combine multiple sequences into a single sequence. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: combine-sequences.py [-h] --fastaFiles FASTAFILES [FASTAFILES ...]
@@ -1561,10 +1540,9 @@ options:
 
 </details>
 
-**`summarize-fasta-bases.py`** — Given FASTA on stdin, write a summary of sequence base categories to
+<details><summary><strong><code>summarize-fasta-bases.py</code></strong> — Given FASTA on stdin, write a summary of sequence base categories to
 stdout (categories are currently hard-coded, not selectable on the
-command line).
-<details><summary>Show <code>--help</code></summary>
+command line). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: summarize-fasta-bases.py [-h] [--baseType {nucl,prot}]
@@ -1613,9 +1591,8 @@ options:
 
 </details>
 
-**`summarize-reads.py`** — Given a FASTA or FASTQ filename argument, print summary statistics: read
-count, total/average/median/min/max length, and per-base counts.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>summarize-reads.py</code></strong> — Given a FASTA or FASTQ filename argument, print summary statistics: read
+count, total/average/median/min/max length, and per-base counts. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: summarize-reads.py [-h] filename
@@ -1632,10 +1609,9 @@ options:
 
 </details>
 
-**`fasta-coverage.py`** — Given a set of (presumably same-length or aligned) FASTA sequences, print
+<details><summary><strong><code>fasta-coverage.py</code></strong> — Given a set of (presumably same-length or aligned) FASTA sequences, print
 per-character coverage/composition information (e.g., GC fraction) to
-stdout.
-<details><summary>Show <code>--help</code></summary>
+stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-coverage.py [-h] [--digits DIGITS] [--noNames] [--strict] [--gc]
@@ -1692,10 +1668,9 @@ options:
 
 </details>
 
-**`trim-reads.py`** — Given a FASTA filename argument, detect a prefix/suffix common to all
+<details><summary><strong><code>trim-reads.py</code></strong> — Given a FASTA filename argument, detect a prefix/suffix common to all
 reads (e.g., leftover primer/adaptor) and print the reads with that
-trimmed off.
-<details><summary>Show <code>--help</code></summary>
+trimmed off. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: trim-reads.py [-h] filename
@@ -1712,9 +1687,8 @@ options:
 
 </details>
 
-**`trim-primers.py`** — Given FASTA on stdin, look for a primer sequence and write trimmed FASTA
-(the part after the primer) to stdout.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>trim-primers.py</code></strong> — Given FASTA on stdin, look for a primer sequence and write trimmed FASTA
+(the part after the primer) to stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: trim-primers.py [-h] [--verbose VERBOSE] primer
@@ -1732,9 +1706,8 @@ options:
 
 </details>
 
-**`split-fasta-by-adaptors.py`** — Given a set of known adaptors and FASTA on stdin, write separate FASTA
-files split by adaptor.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>split-fasta-by-adaptors.py</code></strong> — Given a set of known adaptors and FASTA on stdin, write separate FASTA
+files split by adaptor. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: split-fasta-by-adaptors.py [-h] [--adaptor-offset N]
@@ -1764,9 +1737,8 @@ options:
 
 </details>
 
-**`adaptor-distances.py`** — Print a Levenshtein distance matrix for a set of known adaptors (helper
-for choosing/checking adaptors used by the two scripts above).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>adaptor-distances.py</code></strong> — Print a Levenshtein distance matrix for a set of known adaptors (helper
+for choosing/checking adaptors used by the two scripts above). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: adaptor-distances.py [-h] adaptor [adaptor ...]
@@ -1782,9 +1754,8 @@ options:
 
 </details>
 
-**`reverse-complement.py`** — Print the reverse complement of one or more DNA sequences given directly
-as command-line arguments (not stdin).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>reverse-complement.py</code></strong> — Print the reverse complement of one or more DNA sequences given directly
+as command-line arguments (not stdin). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: reverse-complement.py [-h] SEQUENCE [SEQUENCE ...]
@@ -1800,9 +1771,8 @@ options:
 
 </details>
 
-**`local-align.py`** — Given two FASTA files, perform a local Smith-Waterman alignment of all
-sequences in one against all those in the other.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>local-align.py</code></strong> — Given two FASTA files, perform a local Smith-Waterman alignment of all
+sequences in one against all those in the other. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: local-align.py [-h] --fastaFile1 FASTAFILE1 --fastaFile2 FASTAFILE2
@@ -1835,10 +1805,9 @@ options:
 
 </details>
 
-**`fasta-to-phylip.py`** — Given FASTA sequences of equal length on stdin, write Phylip format to
+<details><summary><strong><code>fasta-to-phylip.py</code></strong> — Given FASTA sequences of equal length on stdin, write Phylip format to
 stdout (for feeding into Phylip-family or other tree-building tools —
-could equally live in the "phylogenetic trees" category below).
-<details><summary>Show <code>--help</code></summary>
+could equally live in the "phylogenetic trees" category below). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-to-phylip.py [-h] [--addIdSpace] [--fastaFile FILENAME]
@@ -1882,8 +1851,7 @@ options:
 
 ## 2. DNA/amino-acid translation and codon tools
 
-**`dna-to-aa.py`** — Convert DNA to amino acids.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>dna-to-aa.py</code></strong> — Convert DNA to amino acids. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: dna-to-aa.py [-h] [--minORFLength LEN] [--fastaFile FILENAME]
@@ -1926,10 +1894,9 @@ minimum required ORF length.
 
 </details>
 
-**`aa-to-dna.py`** — Given amino acid FASTA on stdin, write FASTA with DNA sequences that
+<details><summary><strong><code>aa-to-dna.py</code></strong> — Given amino acid FASTA on stdin, write FASTA with DNA sequences that
 would translate to the given amino acid sequences (codons chosen fixed or
-at random).
-<details><summary>Show <code>--help</code></summary>
+at random). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: aa-to-dna.py [-h] [--random] [--fastaFile FILENAME]
@@ -1974,8 +1941,7 @@ options:
 
 </details>
 
-**`fasta-translate.py`** — Translate FASTA and write the result to standard output.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-translate.py</code></strong> — Translate FASTA and write the result to standard output. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-translate.py [-h] [--fastaFile FILENAME] [--readClass CLASSNAME]
@@ -2013,9 +1979,8 @@ options:
 
 </details>
 
-**`translate.py`** — Print the amino acid translation of one or more DNA sequences given as
-command-line arguments.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>translate.py</code></strong> — Print the amino acid translation of one or more DNA sequences given as
+command-line arguments. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: translate.py [-h] DNA-SEQUENCE [DNA-SEQUENCE ...]
@@ -2031,8 +1996,7 @@ options:
 
 </details>
 
-**`extract-ORFs.py`** — Convert DNA or amino-acid FASTA to amino-acid, ORF-only FASTA.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>extract-ORFs.py</code></strong> — Convert DNA or amino-acid FASTA to amino-acid, ORF-only FASTA. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: extract-ORFs.py [-h] [--allowOpenORFs] [--minORFLength LEN]
@@ -2090,10 +2054,9 @@ short ORFs that are open.
 
 </details>
 
-**`aa-info.py`** — Print detailed information (name, 1- and 3-letter abbreviations, codons,
+<details><summary><strong><code>aa-info.py</code></strong> — Print detailed information (name, 1- and 3-letter abbreviations, codons,
 properties) for one or more amino acids or codons named on the command
-line, or for all amino acids if none are given.
-<details><summary>Show <code>--help</code></summary>
+line, or for all amino acids if none are given. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: aa-info.py [-h] [--details] [targets ...]
@@ -2112,11 +2075,10 @@ options:
 
 </details>
 
-**`aa-compare.py`** — Compare two amino acids (or codons), given as command-line arguments:
+<details><summary><strong><code>aa-compare.py</code></strong> — Compare two amino acids (or codons), given as command-line arguments:
 look each one up by name/abbreviation/codon, then print their shared and
 different properties and the possible codon-to-codon paths (with
-transition counts) between them, with colored terminal output.
-<details><summary>Show <code>--help</code></summary>
+transition counts) between them, with colored terminal output. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: aa-compare.py [-h] AMINO_ACID_OR_CODON_1 AMINO_ACID_OR_CODON_2
@@ -2140,10 +2102,9 @@ options:
 
 ## 3. Pairwise sequence comparison
 
-**`compare-sequences.py`** — Compare two DNA sequences: align them (MAFFT by default, or another
+<details><summary><strong><code>compare-sequences.py</code></strong> — Compare two DNA sequences: align them (MAFFT by default, or another
 aligner), then print a detailed match report (exact/ambiguous matches,
-mismatches, gaps, etc., via `matchToString`).
-<details><summary>Show <code>--help</code></summary>
+mismatches, gaps, etc., via <code>matchToString</code>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: compare-sequences.py [-h] [--index1 INDEX1] [--index2 INDEX2] [--align]
@@ -2266,9 +2227,8 @@ options:
 
 </details>
 
-**`compare-aa-sequences.py`** — The amino-acid equivalent of `compare-sequences.py`, aligning with
-`needle` (EMBOSS) and reporting the comparison via `dark.aa.matchToString`.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>compare-aa-sequences.py</code></strong> — The amino-acid equivalent of <code>compare-sequences.py</code>, aligning with
+<code>needle</code> (EMBOSS) and reporting the comparison via <code>dark.aa.matchToString</code>. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: compare-aa-sequences.py [-h] [--index1 INDEX1] [--index2 INDEX2]
@@ -2327,8 +2287,7 @@ options:
 
 ## 4. Multiple-sequence-alignment (MSA) and alignment-position analysis
 
-**`msa-find-and-extract.py`** — Find nucleotide sequences in an MSA and extract the matched region.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>msa-find-and-extract.py</code></strong> — Find nucleotide sequences in an MSA and extract the matched region. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: msa-find-and-extract.py [-h] [--fastaFile FILENAME]
@@ -2398,10 +2357,9 @@ options:
 
 </details>
 
-**`msa-merge-gapped-region.py`** — Find nucleotide sequences bounding a region in an MSA and merge the gaps
+<details><summary><strong><code>msa-merge-gapped-region.py</code></strong> — Find nucleotide sequences bounding a region in an MSA and merge the gaps
 within that region into one gap, placed at a specified offset, moving the
-non-gap characters to one side (or around it).
-<details><summary>Show <code>--help</code></summary>
+non-gap characters to one side (or around it). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: msa-merge-gapped-region.py [-h] [--fastaFile FILENAME]
@@ -2477,8 +2435,7 @@ options:
 
 </details>
 
-**`window-split-alignment.py`** — Split a FASTA alignment into equal-sized windows.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>window-split-alignment.py</code></strong> — Split a FASTA alignment into equal-sized windows. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: window-split-alignment.py [-h] [--fastaFile FILENAME]
@@ -2567,8 +2524,7 @@ options:
 
 </details>
 
-**`plot-windowed-identity.py`** — Make a plot showing windowed nucleotide identity across an alignment.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>plot-windowed-identity.py</code></strong> — Make a plot showing windowed nucleotide identity across an alignment. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: plot-windowed-identity.py [-h] [--fastaFile FILENAME]
@@ -2662,9 +2618,8 @@ options:
 
 </details>
 
-**`fasta-variable-sites.py`** — Given FASTA on stdin, write reads with only the variable sites to
-standard output (nothing is written if no sites are variable).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>fasta-variable-sites.py</code></strong> — Given FASTA on stdin, write reads with only the variable sites to
+standard output (nothing is written if no sites are variable). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: fasta-variable-sites.py [-h] [--printSites] [--sitesOnly]
@@ -2733,9 +2688,8 @@ options:
 
 </details>
 
-**`position-summary.py`** — For a FASTA file of (presumably aligned) sequences, summarize what's
-happening at one specific (1-based) position.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>position-summary.py</code></strong> — For a FASTA file of (presumably aligned) sequences, summarize what's
+happening at one specific (1-based) position. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: position-summary.py [-h] --fastaFile FASTAFILE --position POSITION
@@ -2754,8 +2708,7 @@ options:
 
 ## 5. Consensus-sequence building
 
-**`make-consensus.py`** — Make a consensus sequence from a FASTA reference and a BAM file, using external tools.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>make-consensus.py</code></strong> — Make a consensus sequence from a FASTA reference and a BAM file, using external tools. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: make-consensus.py [-h] --reference REFERENCE [--bam BAM]
@@ -2856,9 +2809,8 @@ options:
 
 ## 6. Read mapping and SAM/BAM analysis
 
-**`run-bwa.py`** — Run `bwa` on a FASTA file; optionally convert the result to BAM, sort,
-and index it.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>run-bwa.py</code></strong> — Run <code>bwa</code> on a FASTA file; optionally convert the result to BAM, sort,
+and index it. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: run-bwa.py [-h] --bwaIndex BWAINDEX [--bwaArgs BWAARGS]
@@ -2896,9 +2848,8 @@ options:
 
 </details>
 
-**`run-bowtie2.py`** — Run `bowtie2` on a FASTA file; optionally convert the result to BAM,
-sort, and index it.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>run-bowtie2.py</code></strong> — Run <code>bowtie2</code> on a FASTA file; optionally convert the result to BAM,
+sort, and index it. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: run-bowtie2.py [-h] [--index INDEX] [--ignoreIndex IGNOREDINDICES]
@@ -3004,8 +2955,7 @@ options:
 
 </details>
 
-**`bwa-index-to-fasta.py`** — Extract FASTA from BWA index files (`.pac`/`.ann`/`.amb`).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>bwa-index-to-fasta.py</code></strong> — Extract FASTA from BWA index files (<code>.pac</code>/<code>.ann</code>/<code>.amb</code>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: bwa-index-to-fasta.py [-h] [-o OUTPUT] [--lineWidth LINEWIDTH] prefix
@@ -3025,8 +2975,7 @@ options:
 
 </details>
 
-**`filter-sam.py`** — Given a SAM/BAM file and a set of filtering criteria, write filtered SAM/BAM to stdout.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>filter-sam.py</code></strong> — Given a SAM/BAM file and a set of filtering criteria, write filtered SAM/BAM to stdout. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-sam.py [-h] [--quiet] [--bam]
@@ -3177,8 +3126,7 @@ options:
 
 </details>
 
-**`sam-merge.py`** — Concatenate, sort, and index SAM/BAM files with `samtools`.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>sam-merge.py</code></strong> — Concatenate, sort, and index SAM/BAM files with <code>samtools</code>. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-merge.py [-h] --bam BAM [-f] [-@ THREADS] FILE [FILE ...]
@@ -3199,8 +3147,7 @@ options:
 
 </details>
 
-**`sam-references.py`** — Print SAM/BAM file reference names and lengths.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>sam-references.py</code></strong> — Print SAM/BAM file reference names and lengths. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-references.py [-h] FILENAME
@@ -3216,8 +3163,7 @@ options:
 
 </details>
 
-**`sam-reference-read-counts.py`** — Print SAM/BAM file reference-sequence and unmapped-read counts.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>sam-reference-read-counts.py</code></strong> — Print SAM/BAM file reference-sequence and unmapped-read counts. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-reference-read-counts.py [-h] [--sortBy {count,coverage,name}]
@@ -3258,8 +3204,7 @@ options:
 
 </details>
 
-**`sam-coverage.py`** — Print SAM/BAM file coverage statistics.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>sam-coverage.py</code></strong> — Print SAM/BAM file coverage statistics. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-coverage.py [-h] [--noFilter] [--includeZeroes] [--filter]
@@ -3439,9 +3384,8 @@ options:
 
 </details>
 
-**`sam-coverage-depth.py`** — Print SAM/BAM per-site nucleotide composition and coverage statistics
-(sites with no coverage produce no output).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>sam-coverage-depth.py</code></strong> — Print SAM/BAM per-site nucleotide composition and coverage statistics
+(sites with no coverage produce no output). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-coverage-depth.py [-h] [--referenceId ID] [--fasta FASTA]
@@ -3598,8 +3542,7 @@ options:
 
 </details>
 
-**`plot-coverage-depth.py`** — Plot per-base coverage depth from a SAM/BAM file.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>plot-coverage-depth.py</code></strong> — Plot per-base coverage depth from a SAM/BAM file. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: plot-coverage-depth.py [-h] --out OUT [--reference REFERENCE]
@@ -3662,10 +3605,9 @@ options:
 
 </details>
 
-**`sam-match-lengths.py`** — Print information about the lengths of query matches in a SAM/BAM file
+<details><summary><strong><code>sam-match-lengths.py</code></strong> — Print information about the lengths of query matches in a SAM/BAM file
 (query length, matched-region length excluding soft clips, soft-clip
-lengths on each end); can print per-query TSV and/or summary statistics.
-<details><summary>Show <code>--help</code></summary>
+lengths on each end); can print per-query TSV and/or summary statistics. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-match-lengths.py [-h] [--tsv] [--stats] samfile
@@ -3690,8 +3632,7 @@ options:
 
 </details>
 
-**`genome-protein-summary.py`** — Print SAM/BAM file protein-match statistics.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>genome-protein-summary.py</code></strong> — Print SAM/BAM file protein-match statistics. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: genome-protein-summary.py [-h]
@@ -3861,8 +3802,7 @@ options:
 
 </details>
 
-**`extract-reference-from-fasta-and-bam.py`** — Extract a reference sequence from a FASTA file and its matches from a BAM file.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>extract-reference-from-fasta-and-bam.py</code></strong> — Extract a reference sequence from a FASTA file and its matches from a BAM file. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: extract-reference-from-fasta-and-bam.py [-h] --reference-id ID
@@ -3899,9 +3839,8 @@ options:
 
 </details>
 
-**`reference-read-scores-to-JSON.py`** — Print a JSON object containing reference-to-read distances extracted
-from a SAM file.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>reference-read-scores-to-JSON.py</code></strong> — Print a JSON object containing reference-to-read distances extracted
+from a SAM file. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: reference-read-scores-to-JSON.py [-h] --samFile SAMFILE
@@ -3930,9 +3869,8 @@ options:
 
 </details>
 
-**`plot-references-by-inter-read-distance.py`** — Plot references according to their pairwise distances, computed from
-shared/non-shared read matches in a SAM file.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>plot-references-by-inter-read-distance.py</code></strong> — Plot references according to their pairwise distances, computed from
+shared/non-shared read matches in a SAM file. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: plot-references-by-inter-read-distance.py [-h] [--samFile SAMFILE]
@@ -3995,8 +3933,7 @@ Scripts built around dark matter's BLAST/DIAMOND JSON record format (an
 older, simplified JSON encoding of BLAST/DIAMOND hits used throughout this
 part of the codebase).
 
-**`convert-blast-xml-to-json.py`** — Convert a BLAST XML file to dark matter's JSON format.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>convert-blast-xml-to-json.py</code></strong> — Convert a BLAST XML file to dark matter's JSON format. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: convert-blast-xml-to-json.py [-h] [--json JSON-output-file]
@@ -4019,8 +3956,7 @@ output.
 
 </details>
 
-**`convert-diamond-to-json.py`** — Convert DIAMOND tabular output to dark matter's JSON format.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>convert-diamond-to-json.py</code></strong> — Convert DIAMOND tabular output to dark matter's JSON format. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: convert-diamond-to-json.py [-h] [--json JSON-output-file]
@@ -4059,8 +3995,7 @@ benchmarking/profiling script, not an end-user tool).
 **`read-blast-xml.py`** — Read dark matter's "simplified XML" BLAST records and report elapsed
 time (same purpose as above, for an XML-based variant).
 
-**`bit-score-to-e-value.py`** — Convert a BLAST bit score to an e-value (see also `e-value-to-bit-score.py`).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>bit-score-to-e-value.py</code></strong> — Convert a BLAST bit score to an e-value (see also <code>e-value-to-bit-score.py</code>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: bit-score-to-e-value.py [-h] --bitScore BITSCORE --dbSize DBSIZE
@@ -4084,8 +4019,7 @@ options:
 
 </details>
 
-**`e-value-to-bit-score.py`** — Convert a BLAST e-value to a bit score (see also `bit-score-to-e-value.py`).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>e-value-to-bit-score.py</code></strong> — Convert a BLAST e-value to a bit score (see also <code>bit-score-to-e-value.py</code>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: e-value-to-bit-score.py [-h] --eValue EVALUE --dbSize DBSIZE
@@ -4109,8 +4043,7 @@ options:
 
 </details>
 
-**`filter-hits-to-fasta.py`** — Extract FASTA from matching BLAST hits.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>filter-hits-to-fasta.py</code></strong> — Extract FASTA from matching BLAST hits. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-hits-to-fasta.py [-h] --fasta FASTA-file [--minStart MINSTART]
@@ -4194,11 +4127,10 @@ produce a FASTA file on stdout containing the reads that match the criteria.
 
 </details>
 
-**`filter-reads-alignments.py`** — Given BLAST/DIAMOND JSON output and the FASTA/FASTQ files that were
-searched, print the *input reads* that pass a set of filtering criteria
-(the complement of `filter-hits-to-fasta.py`, which extracts matched
-*subjects* rather than queries).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>filter-reads-alignments.py</code></strong> — Given BLAST/DIAMOND JSON output and the FASTA/FASTQ files that were
+searched, print the <em>input reads</em> that pass a set of filtering criteria
+(the complement of <code>filter-hits-to-fasta.py</code>, which extracts matched
+<em>subjects</em> rather than queries). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-reads-alignments.py [-h] [--matcher {blast,diamond}]
@@ -4301,14 +4233,13 @@ sequences it matches.
 **`get-reads.py`** — Print the reads that fall in a specified X-axis (read offset) and
 bit-score range of a BLAST alignment panel.
 
-**`alignment-panel-civ.py`** — Given BLAST/DIAMOND JSON output, the corresponding FASTA/FASTQ query
+<details><summary><strong><code>alignment-panel-civ.py</code></strong> — Given BLAST/DIAMOND JSON output, the corresponding FASTA/FASTQ query
 files, and filtering criteria, produce a summary of matched titles and
 (optionally) an alignment panel image. The "civ" variants in this group
 are tailored to a specific subject-title format
-(`civ|GENBANK|<protein-id>|GENBANK|<pathogen-accession>|<product>
-[<pathogen name>]`) used by protein databases built with
-`make-protein-database.py`.
-<details><summary>Show <code>--help</code></summary>
+(<code>civ|GENBANK|&lt;protein-id&gt;|GENBANK|&lt;pathogen-accession&gt;|&lt;product&gt;
+[&lt;pathogen name&gt;]</code>) used by protein databases built with
+<code>make-protein-database.py</code>. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: alignment-panel-civ.py [-h]
@@ -4511,10 +4442,9 @@ sequence files, and filtering criteria, produce an alignment panel.
 
 </details>
 
-**`proteins-to-pathogens-civ.py`** — Group protein match output (as produced by the alignment-panel scripts
+<details><summary><strong><code>proteins-to-pathogens-civ.py</code></strong> — Group protein match output (as produced by the alignment-panel scripts
 above) by the pathogen each protein comes from, using the pathogen
-accession number embedded in the "civ"-style subject title.
-<details><summary>Show <code>--help</code></summary>
+accession number embedded in the "civ"-style subject title. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: proteins-to-pathogens-civ.py [-h]
@@ -4655,8 +4585,7 @@ options:
 
 ## 8. Protein/genome SQLite databases and GenBank data
 
-**`make-fasta-database.py`** — Create an sqlite3 database from FASTA sequences.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>make-fasta-database.py</code></strong> — Create an sqlite3 database from FASTA sequences. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: make-fasta-database.py [-h] --out OUT [--force] [--quiet]
@@ -4679,11 +4608,10 @@ options:
 
 </details>
 
-**`make-protein-database.py`** — Create a genome/protein sqlite3 database from GenBank and JSON files;
+<details><summary><strong><code>make-protein-database.py</code></strong> — Create a genome/protein sqlite3 database from GenBank and JSON files;
 protein sequences for the database are printed to stdout for indexing by
-other tools. (This is the database consumed by the `-civ` scripts in
-category 7.)
-<details><summary>Show <code>--help</code></summary>
+other tools. (This is the database consumed by the <code>-civ</code> scripts in
+category 7.) <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: make-protein-database.py [-h] --databaseFile DATABASEFILE
@@ -4781,8 +4709,7 @@ options:
 
 </details>
 
-**`describe-protein-database.py`** — Print a description of a protein/genome database.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>describe-protein-database.py</code></strong> — Print a description of a protein/genome database. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: describe-protein-database.py [-h] databaseFile
@@ -4798,9 +4725,8 @@ options:
 
 </details>
 
-**`subset-protein-database.py`** — Query an sqlite3 protein/genome database and write the matching sequences
-to stdout as FASTA.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>subset-protein-database.py</code></strong> — Query an sqlite3 protein/genome database and write the matching sequences
+to stdout as FASTA. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: subset-protein-database.py [-h] --databaseFile DATABASEFILE
@@ -4834,9 +4760,8 @@ options:
 
 </details>
 
-**`parse-genbank-flat-file.py`** — Parse GenBank flat files; exits non-zero if parsing fails (also used as a
-sanity check by `download-genbank.sh`).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>parse-genbank-flat-file.py</code></strong> — Parse GenBank flat files; exits non-zero if parsing fails (also used as a
+sanity check by <code>download-genbank.sh</code>). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: parse-genbank-flat-file.py [-h] [--expectedCount EXPECTEDCOUNT]
@@ -4859,8 +4784,7 @@ options:
 
 </details>
 
-**`genbank-grep.py`** — Read a GenBank flat file and print GenBank or FASTA for matching records.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>genbank-grep.py</code></strong> — Read a GenBank flat file and print GenBank or FASTA for matching records. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: genbank-grep.py [-h] [--idRegex REGEX]
@@ -4908,8 +4832,7 @@ parallel batches, with retries. One of a documented set of tools (see
 **`download-refseq-viral-gbff.sh`** — Download the current RefSeq viral GenBank flat-file release from NCBI's
 FTP site (see also `download-refseq-viral-fasta.sh`).
 
-**`ncbi-fetch-id.py`** — Fetch a sequence by id from NCBI and write it to stdout as FASTA.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>ncbi-fetch-id.py</code></strong> — Fetch a sequence by id from NCBI and write it to stdout as FASTA. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: ncbi-fetch-id.py [-h] [--database {nucleotide,protein}]
@@ -4933,9 +4856,8 @@ options:
 
 ## 9. Taxonomy
 
-**`get-taxonomy.py`** — Print taxonomy information (e.g., lineage) for given accession numbers or
-taxonomy ids, using a local taxonomy database.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>get-taxonomy.py</code></strong> — Print taxonomy information (e.g., lineage) for given accession numbers or
+taxonomy ids, using a local taxonomy database. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: get-taxonomy.py [-h] [--separator SEPARATOR] [--namesOnly] [--print]
@@ -4969,9 +4891,8 @@ options:
 
 </details>
 
-**`get-hosts.py`** — Print known hosts for given accession numbers or taxonomy ids, using a
-local taxonomy database.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>get-hosts.py</code></strong> — Print known hosts for given accession numbers or taxonomy ids, using a
+local taxonomy database. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: get-hosts.py [-h] --database DATABASE [--printId]
@@ -5003,8 +4924,7 @@ options:
 
 ## 10. Phylogenetic trees (Newick)
 
-**`curate-trees-dendropy.py`** — Curate phylogenetic trees (i.e., their specification/newick files) using `dendropy`.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>curate-trees-dendropy.py</code></strong> — Curate phylogenetic trees (i.e., their specification/newick files) using <code>dendropy</code>. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: curate-trees-dendropy.py [-h] [--treeFiles TREEFILES [TREEFILES ...]]
@@ -5089,11 +5009,10 @@ options:
 
 </details>
 
-**`curate-tree-ete.py`** — The same kind of tree curation, but using the `ete4` library instead of
-`dendropy` (these look like two alternative implementations — worth
+<details><summary><strong><code>curate-tree-ete.py</code></strong> — The same kind of tree curation, but using the <code>ete4</code> library instead of
+<code>dendropy</code> (these look like two alternative implementations — worth
 deciding whether both are needed going forward, especially given the
-recent move to `ete4` noted in the CHANGELOG).
-<details><summary>Show <code>--help</code></summary>
+recent move to <code>ete4</code> noted in the CHANGELOG). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: curate-tree-ete.py [-h] [--parser PARSER] [--rootNode ROOTNODE]
@@ -5156,8 +5075,7 @@ options:
 
 </details>
 
-**`newick-to-ascii.py`** — Print a Newick phylogenetic tree in ASCII.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>newick-to-ascii.py</code></strong> — Print a Newick phylogenetic tree in ASCII. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: newick-to-ascii.py [-h] [--treeFile FILENAME]
@@ -5181,8 +5099,7 @@ options:
 
 </details>
 
-**`relabel-newick-tree.py`** — Relabel a Newick tree according to a file of from/to names.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>relabel-newick-tree.py</code></strong> — Relabel a Newick tree according to a file of from/to names. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: relabel-newick-tree.py [-h] [--nameFile NAMEFILE]
@@ -5215,10 +5132,9 @@ options:
 
 </details>
 
-**`create-newick-relabeling-output.py`** — Find sequences with a specific property (via a user-supplied "relabel"
+<details><summary><strong><code>create-newick-relabeling-output.py</code></strong> — Find sequences with a specific property (via a user-supplied "relabel"
 function) and print a TAB-separated list of renamings, suitable as input
-to `relabel-newick-tree.py`.
-<details><summary>Show <code>--help</code></summary>
+to <code>relabel-newick-tree.py</code>. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: create-newick-relabeling-output.py [-h]
@@ -5267,10 +5183,9 @@ options:
 
 </details>
 
-**`remove-alrt-from-tree.py`** — Read a Newick tree produced by `iqtree2` with both aLRT and bootstrap
+<details><summary><strong><code>remove-alrt-from-tree.py</code></strong> — Read a Newick tree produced by <code>iqtree2</code> with both aLRT and bootstrap
 support values on its nodes, drop the aLRT values, optionally adjust the
-support values against given thresholds, and print the resulting tree.
-<details><summary>Show <code>--help</code></summary>
+support values against given thresholds, and print the resulting tree. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: remove-alrt-from-tree.py [-h] [--supportThreshold SUPPORTTHRESHOLD]
@@ -5313,8 +5228,7 @@ options:
 
 </details>
 
-**`tree-info.py`** — Print information about phylogenetic tree nodes.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>tree-info.py</code></strong> — Print information about phylogenetic tree nodes. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: tree-info.py [-h] [--format {newick,nexml,nexus,phylip}]
@@ -5346,11 +5260,10 @@ options:
 
 ## 11. Small, general-purpose utilities
 
-**`ids.py`** — Print a generated sequence of ids (e.g., `id1`, `id2`, ... or a custom
+<details><summary><strong><code>ids.py</code></strong> — Print a generated sequence of ids (e.g., <code>id1</code>, <code>id2</code>, ... or a custom
 prefix and numeric range), with options for separators and zero-padding.
 General-purpose scripting/test-data helper; not specific to biological
-sequences.
-<details><summary>Show <code>--help</code></summary>
+sequences. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: ids.py [-h] [--prefix PREFIX] [--sep SEP] [-0] [-n MAXRESULTS]
@@ -5376,8 +5289,7 @@ options:
 
 </details>
 
-**`dark-matter-version.py`** — Print the installed `dark-matter` package version.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>dark-matter-version.py</code></strong> — Print the installed <code>dark-matter</code> package version. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: dark-matter-version.py [-h]
@@ -5392,9 +5304,8 @@ options:
 
 # Deprecated
 
-**`compare-consensuses.py`** — Compare different consensus-making methods (presumably running several of
-the above and diffing/scoring the results).
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>compare-consensuses.py</code></strong> — Compare different consensus-making methods (presumably running several of
+the above and diffing/scoring the results). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: compare-consensuses.py [-h] --referenceFile FILENAME
@@ -5426,11 +5337,10 @@ the sequence id, since some FASTQ-consuming tools insist on it being
 present even though it's technically optional. (Not previously listed in
 this document — added when generating it from doc/scripts.toml.)
 
-**`filter-fasta-by-taxonomy.py`** — Depends on NCBI's GI numbering scheme, which NCBI retired in 2016, so
+<details><summary><strong><code>filter-fasta-by-taxonomy.py</code></strong> — Depends on NCBI's GI numbering scheme, which NCBI retired in 2016, so
 this will silently do nothing useful on modern NCBI data unless you still
 have old-style FASTA/hit files lying around. (Also listed in category 1,
-where it still appears as a FASTA filter.)
-<details><summary>Show <code>--help</code></summary>
+where it still appears as a FASTA filter.) <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: filter-fasta-by-taxonomy.py [-h] --taxonomy TAXONOMY [--invert]
@@ -5451,11 +5361,10 @@ that match the requested taxonomy regular expression at any level.
 
 </details>
 
-**`noninteractive-alignment-panel.py`** — The same alignment-panel functionality as `alignment-panel-civ.py`,
+<details><summary><strong><code>noninteractive-alignment-panel.py</code></strong> — The same alignment-panel functionality as <code>alignment-panel-civ.py</code>,
 generated non-interactively (these two scripts look very close in
 structure/intent — worth checking whether one has simply superseded the
-other).
-<details><summary>Show <code>--help</code></summary>
+other). <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: noninteractive-alignment-panel.py [-h] [--earlyExit]
@@ -5675,10 +5584,9 @@ sequence files, and filtering criteria, produce an alignment panel.
 
 </details>
 
-**`proteins-to-pathogens.py`** — Group protein match output (as produced by the alignment-panel scripts
+<details><summary><strong><code>proteins-to-pathogens.py</code></strong> — Group protein match output (as produced by the alignment-panel scripts
 above) by the pathogen each protein comes from, using the pathogen
-accession number embedded in the "civ"-style subject title.
-<details><summary>Show <code>--help</code></summary>
+accession number embedded in the "civ"-style subject title. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: proteins-to-pathogens.py [-h] [--sampleName SAMPLENAME]
@@ -5803,8 +5711,7 @@ options:
 
 </details>
 
-**`sam-to-fasta-alignment.py`** — Produce aligned FASTA queries from a SAM/BAM file.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>sam-to-fasta-alignment.py</code></strong> — Produce aligned FASTA queries from a SAM/BAM file. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: sam-to-fasta-alignment.py [-h] [--rcSuffix RCSUFFIX] [--rcNeeded]
@@ -5986,9 +5893,8 @@ options:
 
 # Incomplete
 
-**`simple-consensus.py`** — Make a consensus sequence directly from a BAM file using dark matter's
-own (pure-Python) consensus code, rather than external tools.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>simple-consensus.py</code></strong> — Make a consensus sequence directly from a BAM file using dark matter's
+own (pure-Python) consensus code, rather than external tools. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: simple-consensus.py [-h] --bamFilename BAMFILENAME [--version]
@@ -6093,9 +5999,8 @@ options:
 
 </details>
 
-**`convert-diamond-to-sam.py`** — Convert DIAMOND tabular output (produced with a specific required
-`--outfmt 6` field order, printable via `--printFields`) to SAM format.
-<details><summary>Show <code>--help</code></summary>
+<details><summary><strong><code>convert-diamond-to-sam.py</code></strong> — Convert DIAMOND tabular output (produced with a specific required
+<code>--outfmt 6</code> field order, printable via <code>--printFields</code>) to SAM format. <span title="Show --help">ℹ️</span></summary>
 
 ```
 usage: convert-diamond-to-sam.py [-h] [--printFields]
