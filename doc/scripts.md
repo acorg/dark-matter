@@ -47,6 +47,20 @@ python path\to\your\venv\bin\fasta-lengths.py --help
 
 (use `py` in place of `python` if that's what's set up on your system).
 
+**If you don't want to install anything**, not even into a project's
+environment, use `uvx` (part of uv) to run a script straight from PyPI in
+a disposable, one-off environment:
+
+```sh
+uvx --from dark-matter fasta-lengths.py --help
+```
+
+This downloads dark-matter and its dependencies into a temporary
+environment just for this command and leaves nothing behind. The
+`--from dark-matter` part is required — `uvx` can only infer the package
+to install when a script's name matches its package's name, which isn't
+the case for any of dark-matter's scripts.
+
 ---
 
 
@@ -532,9 +546,25 @@ FASTA from stdin, and print FASTA to stdout for the given sequence ids.
 
 </details>
 
-**`fasta-subtraction.py`** — Given two or more FASTA file names as arguments, remove from the first
+<details><summary><strong><code>fasta-subtraction.py</code></strong> — Given two or more FASTA file names as arguments, remove from the first
 file any read whose id also appears in a later file, and print what's
-left.
+left. <span title="Show --help">ℹ️</span></summary>
+
+```
+usage: fasta-subtraction.py [-h] FASTA-file [FASTA-file ...]
+
+Given two or more FASTA file names as arguments, remove from the first file
+any read whose id also appears in a later file, and print what's left.
+
+positional arguments:
+  FASTA-file  A FASTA file name. Reads are removed from the first file named
+              if their id also appears in any of the later files.
+
+options:
+  -h, --help  show this help message and exit
+```
+
+</details>
 
 <details><summary><strong><code>filter-fasta.py</code></strong> — Given FASTA on stdin and a set of filtering criteria, write filtered
 FASTA to stdout. Has many options (see <code>--help</code>); the <code>bin/README.md</code>

@@ -145,6 +145,18 @@ class TestFastaSubtract(TestCase):
         result = list(fastaSubtract([BytesIO(fasta1)]))
         self.assertEqual(len(result), 4)
 
+    def testResultIsRead(self):
+        """
+        The objects produced by fastaSubtract must be dark.reads.Read
+        instances, not raw prseq FastaRecord instances, so that methods
+        such as toString() can be called on them.
+        """
+        fasta1 = b">one\nagtcagtcagtc\n"
+
+        result = list(fastaSubtract([BytesIO(fasta1)]))
+        self.assertIsInstance(result[0], Read)
+        self.assertEqual(">one\nagtcagtcagtc\n", result[0].toString())
+
     def testSubtractEverything(self):
         """
         When two input files have the same reads, subtraction must result in an

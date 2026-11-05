@@ -73,7 +73,7 @@ def fastaSubtract(fastaFiles: Iterable[str | TextIO | BinaryIO]) -> Iterator[Rea
     fastaFiles = list(fastaFiles)
     firstFile = fastaFiles.pop(0)
     for seq in FastaReader(firstFile):
-        reads[seq.id] = seq
+        reads[seq.id] = DNARead(seq.id, seq.sequence)
 
     for fastaFile in fastaFiles:
         for seq in FastaReader(fastaFile):

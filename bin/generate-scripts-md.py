@@ -69,6 +69,20 @@ python path\to\your\venv\bin\fasta-lengths.py --help
 
 (use `py` in place of `python` if that's what's set up on your system).
 
+**If you don't want to install anything**, not even into a project's
+environment, use `uvx` (part of uv) to run a script straight from PyPI in
+a disposable, one-off environment:
+
+```sh
+uvx --from dark-matter fasta-lengths.py --help
+```
+
+This downloads dark-matter and its dependencies into a temporary
+environment just for this command and leaves nothing behind. The
+`--from dark-matter` part is required — `uvx` can only infer the package
+to install when a script's name matches its package's name, which isn't
+the case for any of dark-matter's scripts.
+
 ---
 """
 

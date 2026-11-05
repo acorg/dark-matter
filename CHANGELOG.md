@@ -1,10 +1,15 @@
+## 7.5.8 November 6, 2026
+
+Fixed bug in `fasta-subtraction.py` and made it use `argparse`.
+
 ## 7.5.7 November 5, 2026
 
 Added automated `--help` text display to `doc/scripts.md`.
 
 ## 7.5.6 November 4, 2026
 
-Added `--dryRun`, `--idPrefix`, `--idSuffix`, `--filenamePrefix` and `--filenameSuffix` options to `bin/fasta-split-by-id.py`.
+Added `--dryRun`, `--idPrefix`, `--idSuffix`, `--filenamePrefix` and
+`--filenameSuffix` options to `bin/fasta-split-by-id.py`.
 
 ## 7.5.4 October 24, 2026
 
