@@ -54,6 +54,7 @@ dependencies = [
     "scikit-learn>=1.3.2",
     "simplejson>=3.5.3",
     "summarize-ranges>=0.1.1",
+    'tomli>=2.0.1; python_version<"3.11"',
     "types-cachetools>=5.5.0",
     "types-requests>=2.32.0",
     "xlsxwriter>=3.2.9",

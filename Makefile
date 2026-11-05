@@ -1,4 +1,4 @@
-.PHONY: pytest ruff nox wc clean clobber upload bump-patch bump-minor bump-major version
+.PHONY: pytest ruff nox wc clean clobber upload bump-patch bump-minor bump-major version scripts-md
 
 XARGS := xargs $(shell test $$(uname) = Linux && echo -r)
 
@@ -7,6 +7,9 @@ pytest:
 
 ruff:
 	uv run ruff check --fix --extend-select I
+
+scripts-md:
+	uv run bin/generate-scripts-md.py
 
 nox:
 	uv run noxfile.py

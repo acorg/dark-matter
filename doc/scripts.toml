@@ -1,0 +1,904 @@
+# Metadata used by bin/generate-scripts-md.py to build doc/scripts.md.
+#
+# Each [[category]] becomes a markdown heading (level 1 or 2, matching
+# "level") in the order given here. Each [[script]] names the category
+# ("category") it belongs to by that category's "id". A script may appear
+# under more than one category (see filter-fasta-by-taxonomy.py) by giving
+# it more than one [[script]] entry.
+#
+# Scripts ending in ".py" automatically get a collapsible "--help" section
+# in the generated doc; ".sh" scripts do not.
+
+[[category]]
+id = 1
+level = 2
+heading = "1. FASTA/FASTQ: general read inspection, filtering, and manipulation"
+
+[[category]]
+id = 2
+level = 2
+heading = "2. DNA/amino-acid translation and codon tools"
+
+[[category]]
+id = 3
+level = 2
+heading = "3. Pairwise sequence comparison"
+
+[[category]]
+id = 4
+level = 2
+heading = "4. Multiple-sequence-alignment (MSA) and alignment-position analysis"
+
+[[category]]
+id = 5
+level = 2
+heading = "5. Consensus-sequence building"
+
+[[category]]
+id = 6
+level = 2
+heading = "6. Read mapping and SAM/BAM analysis"
+
+[[category]]
+id = 7
+level = 2
+heading = "7. BLAST/DIAMOND hit processing and alignment panels"
+intro = """
+Scripts built around dark matter's BLAST/DIAMOND JSON record format (an
+older, simplified JSON encoding of BLAST/DIAMOND hits used throughout this
+part of the codebase).
+"""
+
+[[category]]
+id = 8
+level = 2
+heading = "8. Protein/genome SQLite databases and GenBank data"
+
+[[category]]
+id = 9
+level = 2
+heading = "9. Taxonomy"
+
+[[category]]
+id = 10
+level = 2
+heading = "10. Phylogenetic trees (Newick)"
+
+[[category]]
+id = 11
+level = 2
+heading = "11. Small, general-purpose utilities"
+
+[[category]]
+id = 12
+level = 1
+heading = "Deprecated"
+
+[[category]]
+id = 13
+level = 1
+heading = "Incomplete"
+
+# --- Category 1 --------------------------------------------------------
+
+[[script]]
+name = "fasta-ids.py"
+category = 1
+description = "Given FASTA on stdin, write the sequence ids to stdout."
+
+[[script]]
+name = "fasta-lengths.py"
+category = 1
+description = """
+Given FASTA on stdin, write the sequence ids and lengths to stdout.
+"""
+
+[[script]]
+name = "fasta-count.py"
+category = 1
+description = "Given FASTA on stdin, print the number of sequences to stdout."
+
+[[script]]
+name = "fasta-count-chars.py"
+category = 1
+description = """
+Given FASTA on stdin, write information about the counts of characters in
+the sequences to stdout.
+"""
+
+[[script]]
+name = "fasta-join.py"
+category = 1
+description = """
+Given FASTA on stdin, write the ids, sequences, and quality strings on a
+single TAB-separated line to stdout (used internally by `fasta-diff.sh`).
+"""
+
+[[script]]
+name = "fasta-sort.py"
+category = 1
+description = """
+Write sorted FASTA/FASTQ to stdout. Sorting is by sequence id, then by
+sequence, then by quality (if FASTQ).
+"""
+
+[[script]]
+name = "fasta-split.py"
+category = 1
+description = """
+Split sequences in a FASTA/FASTQ file into numerically named files, each
+containing a given number of sequences.
+"""
+
+[[script]]
+name = "fasta-split-by-id.py"
+category = 1
+description = """
+Split sequences in a FASTA file into separate files, named either by their
+sequence id or numerically.
+"""
+
+[[script]]
+name = "fasta-split-by-length.py"
+category = 1
+description = """
+Split FASTA/FASTQ sequences longer than a given length; print the
+beginning and end sequences of sufficiently long sequences separately.
+"""
+
+[[script]]
+name = "fasta-subset.py"
+category = 1
+description = "Extract a subset of FASTA reads by id."
+
+[[script]]
+name = "fasta-subtraction.py"
+category = 1
+description = """
+Given two or more FASTA file names as arguments, remove from the first
+file any read whose id also appears in a later file, and print what's
+left.
+"""
+
+[[script]]
+name = "filter-fasta.py"
+category = 1
+description = """
+Given FASTA on stdin and a set of filtering criteria, write filtered
+FASTA to stdout. Has many options (see `--help`); the `bin/README.md`
+documents a couple of non-obvious uses (e.g., reformatting multi-line
+FASTA to one-line-per-sequence).
+"""
+
+[[script]]
+name = "filter-fasta-by-complexity.py"
+category = 1
+description = "Filter FASTA for low-complexity sequences."
+
+[[script]]
+name = "filter-fasta-by-taxonomy.py"
+category = 1
+description = """
+Filter FASTA based on taxonomy, matched against a taxonomic regular
+expression. **Note:** only works on FASTA with old-style NCBI `gi|...|`
+description lines, a numbering scheme NCBI retired in 2016 — likely a
+candidate for the "probably obsolete" pile (see bottom of this document).
+"""
+
+[[script]]
+name = "format-fasta.py"
+category = 1
+description = "Given FASTA on stdin, write it to stdout according to a given output format."
+
+[[script]]
+name = "fasta-diff.py"
+category = 1
+description = """
+Diff two FASTA sequences with visual highlighting (this is the
+Python-based, within-file diff; compare with the shell-based
+`fasta-diff.sh` below, which diffs whole FASTA/FASTQ *files*).
+"""
+
+[[script]]
+name = "fasta-diff.sh"
+category = 1
+description = """
+A different, cruder FASTA/FASTQ diff: converts both files' records to
+single sorted TAB-separated lines and runs `diff`, then converts the
+result back into FASTA/FASTQ-like output. Good for a quick "are these
+basically the same" check, not for pinpointing exact differences.
+"""
+
+[[script]]
+name = "fasta-find.py"
+category = 1
+description = """
+Given FASTA on stdin and a sequence (or genome region) to find, write
+information about (potentially overlapping) matches, optionally including
+reversed/complemented/reverse-complemented matches.
+"""
+
+[[script]]
+name = "fasta-match-offsets.py"
+category = 1
+description = """
+Given FASTA on stdin and a sequence pattern, write information about
+which sequences the pattern matches, and where.
+"""
+
+[[script]]
+name = "fasta-base-indices.py"
+category = 1
+description = """
+Given FASTA on stdin and a set of bases to look for, write the 1-based
+indices of where those bases occur in each sequence (or, with `--any`,
+where they occur in any sequence).
+"""
+
+[[script]]
+name = "fasta-identity-table.py"
+category = 1
+description = """
+Print a FASTA sequence identity table (pairwise percent identity between
+all sequences).
+"""
+
+[[script]]
+name = "randomize-fasta.py"
+category = 1
+description = """
+Read DNA FASTA from stdin and print FASTA to stdout, with the sequences
+randomized (ids and lengths preserved).
+"""
+
+[[script]]
+name = "fastq-set-quality.py"
+category = 1
+description = """
+Given FASTA/FASTQ on stdin, write FASTQ to stdout with all quality scores
+set to a given value.
+"""
+
+[[script]]
+name = "combine-sequences.py"
+category = 1
+description = "Combine multiple sequences into a single sequence."
+
+[[script]]
+name = "summarize-fasta-bases.py"
+category = 1
+description = """
+Given FASTA on stdin, write a summary of sequence base categories to
+stdout (categories are currently hard-coded, not selectable on the
+command line).
+"""
+
+[[script]]
+name = "summarize-reads.py"
+category = 1
+description = """
+Given a FASTA or FASTQ filename argument, print summary statistics: read
+count, total/average/median/min/max length, and per-base counts.
+"""
+
+[[script]]
+name = "fasta-coverage.py"
+category = 1
+description = """
+Given a set of (presumably same-length or aligned) FASTA sequences, print
+per-character coverage/composition information (e.g., GC fraction) to
+stdout.
+"""
+
+[[script]]
+name = "trim-reads.py"
+category = 1
+description = """
+Given a FASTA filename argument, detect a prefix/suffix common to all
+reads (e.g., leftover primer/adaptor) and print the reads with that
+trimmed off.
+"""
+
+[[script]]
+name = "trim-primers.py"
+category = 1
+description = """
+Given FASTA on stdin, look for a primer sequence and write trimmed FASTA
+(the part after the primer) to stdout.
+"""
+
+[[script]]
+name = "split-fasta-by-adaptors.py"
+category = 1
+description = """
+Given a set of known adaptors and FASTA on stdin, write separate FASTA
+files split by adaptor.
+"""
+
+[[script]]
+name = "adaptor-distances.py"
+category = 1
+description = """
+Print a Levenshtein distance matrix for a set of known adaptors (helper
+for choosing/checking adaptors used by the two scripts above).
+"""
+
+[[script]]
+name = "reverse-complement.py"
+category = 1
+description = """
+Print the reverse complement of one or more DNA sequences given directly
+as command-line arguments (not stdin).
+"""
+
+[[script]]
+name = "local-align.py"
+category = 1
+description = """
+Given two FASTA files, perform a local Smith-Waterman alignment of all
+sequences in one against all those in the other.
+"""
+
+[[script]]
+name = "fasta-to-phylip.py"
+category = 1
+description = """
+Given FASTA sequences of equal length on stdin, write Phylip format to
+stdout (for feeding into Phylip-family or other tree-building tools —
+could equally live in the "phylogenetic trees" category below).
+"""
+
+# --- Category 2 --------------------------------------------------------
+
+[[script]]
+name = "dna-to-aa.py"
+category = 2
+description = "Convert DNA to amino acids."
+
+[[script]]
+name = "aa-to-dna.py"
+category = 2
+description = """
+Given amino acid FASTA on stdin, write FASTA with DNA sequences that
+would translate to the given amino acid sequences (codons chosen fixed or
+at random).
+"""
+
+[[script]]
+name = "fasta-translate.py"
+category = 2
+description = "Translate FASTA and write the result to standard output."
+
+[[script]]
+name = "translate.py"
+category = 2
+description = """
+Print the amino acid translation of one or more DNA sequences given as
+command-line arguments.
+"""
+
+[[script]]
+name = "extract-ORFs.py"
+category = 2
+description = "Convert DNA or amino-acid FASTA to amino-acid, ORF-only FASTA."
+
+[[script]]
+name = "aa-info.py"
+category = 2
+description = """
+Print detailed information (name, 1- and 3-letter abbreviations, codons,
+properties) for one or more amino acids or codons named on the command
+line, or for all amino acids if none are given.
+"""
+
+[[script]]
+name = "aa-compare.py"
+category = 2
+description = """
+Compare two amino acids (or codons), given as command-line arguments:
+look each one up by name/abbreviation/codon, then print their shared and
+different properties and the possible codon-to-codon paths (with
+transition counts) between them, with colored terminal output.
+"""
+
+# --- Category 3 --------------------------------------------------------
+
+[[script]]
+name = "compare-sequences.py"
+category = 3
+description = """
+Compare two DNA sequences: align them (MAFFT by default, or another
+aligner), then print a detailed match report (exact/ambiguous matches,
+mismatches, gaps, etc., via `matchToString`).
+"""
+
+[[script]]
+name = "compare-aa-sequences.py"
+category = 3
+description = """
+The amino-acid equivalent of `compare-sequences.py`, aligning with
+`needle` (EMBOSS) and reporting the comparison via `dark.aa.matchToString`.
+"""
+
+# --- Category 4 --------------------------------------------------------
+
+[[script]]
+name = "msa-find-and-extract.py"
+category = 4
+description = "Find nucleotide sequences in an MSA and extract the matched region."
+
+[[script]]
+name = "msa-merge-gapped-region.py"
+category = 4
+description = """
+Find nucleotide sequences bounding a region in an MSA and merge the gaps
+within that region into one gap, placed at a specified offset, moving the
+non-gap characters to one side (or around it).
+"""
+
+[[script]]
+name = "window-split-alignment.py"
+category = 4
+description = "Split a FASTA alignment into equal-sized windows."
+
+[[script]]
+name = "plot-windowed-identity.py"
+category = 4
+description = "Make a plot showing windowed nucleotide identity across an alignment."
+
+[[script]]
+name = "fasta-variable-sites.py"
+category = 4
+description = """
+Given FASTA on stdin, write reads with only the variable sites to
+standard output (nothing is written if no sites are variable).
+"""
+
+[[script]]
+name = "position-summary.py"
+category = 4
+description = """
+For a FASTA file of (presumably aligned) sequences, summarize what's
+happening at one specific (1-based) position.
+"""
+
+# --- Category 5 --------------------------------------------------------
+
+[[script]]
+name = "make-consensus.py"
+category = 5
+description = "Make a consensus sequence from a FASTA reference and a BAM file, using external tools."
+
+# --- Category 6 --------------------------------------------------------
+
+[[script]]
+name = "run-bwa.py"
+category = 6
+description = """
+Run `bwa` on a FASTA file; optionally convert the result to BAM, sort,
+and index it.
+"""
+
+[[script]]
+name = "run-bowtie2.py"
+category = 6
+description = """
+Run `bowtie2` on a FASTA file; optionally convert the result to BAM,
+sort, and index it.
+"""
+
+[[script]]
+name = "bwa-index-to-fasta.py"
+category = 6
+description = "Extract FASTA from BWA index files (`.pac`/`.ann`/`.amb`)."
+
+[[script]]
+name = "filter-sam.py"
+category = 6
+description = "Given a SAM/BAM file and a set of filtering criteria, write filtered SAM/BAM to stdout."
+
+[[script]]
+name = "sam-merge.py"
+category = 6
+description = "Concatenate, sort, and index SAM/BAM files with `samtools`."
+
+[[script]]
+name = "sam-references.py"
+category = 6
+description = "Print SAM/BAM file reference names and lengths."
+
+[[script]]
+name = "sam-reference-read-counts.py"
+category = 6
+description = "Print SAM/BAM file reference-sequence and unmapped-read counts."
+
+[[script]]
+name = "sam-coverage.py"
+category = 6
+description = "Print SAM/BAM file coverage statistics."
+
+[[script]]
+name = "sam-coverage-depth.py"
+category = 6
+description = """
+Print SAM/BAM per-site nucleotide composition and coverage statistics
+(sites with no coverage produce no output).
+"""
+
+[[script]]
+name = "plot-coverage-depth.py"
+category = 6
+description = "Plot per-base coverage depth from a SAM/BAM file."
+
+[[script]]
+name = "sam-match-lengths.py"
+category = 6
+description = """
+Print information about the lengths of query matches in a SAM/BAM file
+(query length, matched-region length excluding soft clips, soft-clip
+lengths on each end); can print per-query TSV and/or summary statistics.
+"""
+
+[[script]]
+name = "genome-protein-summary.py"
+category = 6
+description = "Print SAM/BAM file protein-match statistics."
+
+[[script]]
+name = "extract-reference-from-fasta-and-bam.py"
+category = 6
+description = "Extract a reference sequence from a FASTA file and its matches from a BAM file."
+
+[[script]]
+name = "reference-read-scores-to-JSON.py"
+category = 6
+description = """
+Print a JSON object containing reference-to-read distances extracted
+from a SAM file.
+"""
+
+[[script]]
+name = "plot-references-by-inter-read-distance.py"
+category = 6
+description = """
+Plot references according to their pairwise distances, computed from
+shared/non-shared read matches in a SAM file.
+"""
+
+# --- Category 7 --------------------------------------------------------
+
+[[script]]
+name = "convert-blast-xml-to-json.py"
+category = 7
+description = "Convert a BLAST XML file to dark matter's JSON format."
+
+[[script]]
+name = "convert-diamond-to-json.py"
+category = 7
+description = "Convert DIAMOND tabular output to dark matter's JSON format."
+
+[[script]]
+name = "cat-json-blast-records.py"
+category = 7
+description = """
+Read dark matter's JSON BLAST output (one JSON object per line) from
+stdin and pretty-print it to stdout.
+"""
+
+[[script]]
+name = "check-fasta-json-blast-consistency.py"
+category = 7
+description = """
+Verify that a FASTA file and the JSON BLAST file produced from it are
+mutually consistent; exits non-zero with a stderr message if not.
+"""
+
+[[script]]
+name = "read-blast-json.py"
+category = 7
+description = """
+Read dark matter's JSON BLAST records and report the elapsed time (a
+benchmarking/profiling script, not an end-user tool).
+"""
+
+[[script]]
+name = "read-blast-xml.py"
+category = 7
+description = """
+Read dark matter's "simplified XML" BLAST records and report elapsed
+time (same purpose as above, for an XML-based variant).
+"""
+
+[[script]]
+name = "bit-score-to-e-value.py"
+category = 7
+description = "Convert a BLAST bit score to an e-value (see also `e-value-to-bit-score.py`)."
+
+[[script]]
+name = "e-value-to-bit-score.py"
+category = 7
+description = "Convert a BLAST e-value to a bit score (see also `bit-score-to-e-value.py`)."
+
+[[script]]
+name = "filter-hits-to-fasta.py"
+category = 7
+description = "Extract FASTA from matching BLAST hits."
+
+[[script]]
+name = "filter-reads-alignments.py"
+category = 7
+description = """
+Given BLAST/DIAMOND JSON output and the FASTA/FASTQ files that were
+searched, print the *input reads* that pass a set of filtering criteria
+(the complement of `filter-hits-to-fasta.py`, which extracts matched
+*subjects* rather than queries).
+"""
+
+[[script]]
+name = "alignments-per-read.py"
+category = 7
+description = """
+Read in BLAST records and print, for each read, a count of how many
+sequences it matches.
+"""
+
+[[script]]
+name = "get-reads.py"
+category = 7
+description = """
+Print the reads that fall in a specified X-axis (read offset) and
+bit-score range of a BLAST alignment panel.
+"""
+
+[[script]]
+name = "alignment-panel-civ.py"
+category = 7
+description = """
+Given BLAST/DIAMOND JSON output, the corresponding FASTA/FASTQ query
+files, and filtering criteria, produce a summary of matched titles and
+(optionally) an alignment panel image. The "civ" variants in this group
+are tailored to a specific subject-title format
+(`civ|GENBANK|<protein-id>|GENBANK|<pathogen-accession>|<product>
+[<pathogen name>]`) used by protein databases built with
+`make-protein-database.py`.
+"""
+
+[[script]]
+name = "proteins-to-pathogens-civ.py"
+category = 7
+description = """
+Group protein match output (as produced by the alignment-panel scripts
+above) by the pathogen each protein comes from, using the pathogen
+accession number embedded in the "civ"-style subject title.
+"""
+
+# --- Category 8 --------------------------------------------------------
+
+[[script]]
+name = "make-fasta-database.py"
+category = 8
+description = "Create an sqlite3 database from FASTA sequences."
+
+[[script]]
+name = "make-protein-database.py"
+category = 8
+description = """
+Create a genome/protein sqlite3 database from GenBank and JSON files;
+protein sequences for the database are printed to stdout for indexing by
+other tools. (This is the database consumed by the `-civ` scripts in
+category 7.)
+"""
+
+[[script]]
+name = "describe-protein-database.py"
+category = 8
+description = "Print a description of a protein/genome database."
+
+[[script]]
+name = "subset-protein-database.py"
+category = 8
+description = """
+Query an sqlite3 protein/genome database and write the matching sequences
+to stdout as FASTA.
+"""
+
+[[script]]
+name = "parse-genbank-flat-file.py"
+category = 8
+description = """
+Parse GenBank flat files; exits non-zero if parsing fails (also used as a
+sanity check by `download-genbank.sh`).
+"""
+
+[[script]]
+name = "genbank-grep.py"
+category = 8
+description = "Read a GenBank flat file and print GenBank or FASTA for matching records."
+
+[[script]]
+name = "download-genbank.sh"
+category = 8
+description = """
+Download GenBank flat files for a list of accession numbers from NCBI, in
+parallel batches, with retries. One of a documented set of tools (see
+`doc/protein-database.md`) for building a protein database.
+"""
+
+[[script]]
+name = "download-refseq-viral-fasta.sh"
+category = 8
+description = """
+Download the current RefSeq viral FASTA release from NCBI's FTP site
+(see also `download-refseq-viral-gbff.sh`).
+"""
+
+[[script]]
+name = "download-refseq-viral-gbff.sh"
+category = 8
+description = """
+Download the current RefSeq viral GenBank flat-file release from NCBI's
+FTP site (see also `download-refseq-viral-fasta.sh`).
+"""
+
+[[script]]
+name = "ncbi-fetch-id.py"
+category = 8
+description = "Fetch a sequence by id from NCBI and write it to stdout as FASTA."
+
+# --- Category 9 --------------------------------------------------------
+
+[[script]]
+name = "get-taxonomy.py"
+category = 9
+description = """
+Print taxonomy information (e.g., lineage) for given accession numbers or
+taxonomy ids, using a local taxonomy database.
+"""
+
+[[script]]
+name = "get-hosts.py"
+category = 9
+description = """
+Print known hosts for given accession numbers or taxonomy ids, using a
+local taxonomy database.
+"""
+
+# --- Category 10 -------------------------------------------------------
+
+[[script]]
+name = "curate-trees-dendropy.py"
+category = 10
+description = "Curate phylogenetic trees (i.e., their specification/newick files) using `dendropy`."
+
+[[script]]
+name = "curate-tree-ete.py"
+category = 10
+description = """
+The same kind of tree curation, but using the `ete4` library instead of
+`dendropy` (these look like two alternative implementations — worth
+deciding whether both are needed going forward, especially given the
+recent move to `ete4` noted in the CHANGELOG).
+"""
+
+[[script]]
+name = "newick-to-ascii.py"
+category = 10
+description = "Print a Newick phylogenetic tree in ASCII."
+
+[[script]]
+name = "relabel-newick-tree.py"
+category = 10
+description = "Relabel a Newick tree according to a file of from/to names."
+
+[[script]]
+name = "create-newick-relabeling-output.py"
+category = 10
+description = """
+Find sequences with a specific property (via a user-supplied "relabel"
+function) and print a TAB-separated list of renamings, suitable as input
+to `relabel-newick-tree.py`.
+"""
+
+[[script]]
+name = "remove-alrt-from-tree.py"
+category = 10
+description = """
+Read a Newick tree produced by `iqtree2` with both aLRT and bootstrap
+support values on its nodes, drop the aLRT values, optionally adjust the
+support values against given thresholds, and print the resulting tree.
+"""
+
+[[script]]
+name = "tree-info.py"
+category = 10
+description = "Print information about phylogenetic tree nodes."
+
+# --- Category 11 -------------------------------------------------------
+
+[[script]]
+name = "ids.py"
+category = 11
+description = """
+Print a generated sequence of ids (e.g., `id1`, `id2`, ... or a custom
+prefix and numeric range), with options for separators and zero-padding.
+General-purpose scripting/test-data helper; not specific to biological
+sequences.
+"""
+
+[[script]]
+name = "dark-matter-version.py"
+category = 11
+description = "Print the installed `dark-matter` package version."
+
+# --- Deprecated ----------------------------------------------------------
+
+[[script]]
+name = "compare-consensuses.py"
+category = 12
+description = """
+Compare different consensus-making methods (presumably running several of
+the above and diffing/scoring the results).
+"""
+
+[[script]]
+name = "convert-sam-to-fastq.sh"
+category = 12
+description = """
+Read SAM (see http://samtools.github.io/hts-specs/SAMv1.pdf) from stdin
+and write FASTQ to stdout. The `+` line of each FASTQ record also repeats
+the sequence id, since some FASTQ-consuming tools insist on it being
+present even though it's technically optional. (Not previously listed in
+this document — added when generating it from doc/scripts.toml.)
+"""
+
+[[script]]
+name = "filter-fasta-by-taxonomy.py"
+category = 12
+description = """
+Depends on NCBI's GI numbering scheme, which NCBI retired in 2016, so
+this will silently do nothing useful on modern NCBI data unless you still
+have old-style FASTA/hit files lying around. (Also listed in category 1,
+where it still appears as a FASTA filter.)
+"""
+
+[[script]]
+name = "noninteractive-alignment-panel.py"
+category = 12
+description = """
+The same alignment-panel functionality as `alignment-panel-civ.py`,
+generated non-interactively (these two scripts look very close in
+structure/intent — worth checking whether one has simply superseded the
+other).
+"""
+
+[[script]]
+name = "proteins-to-pathogens.py"
+category = 12
+description = """
+Group protein match output (as produced by the alignment-panel scripts
+above) by the pathogen each protein comes from, using the pathogen
+accession number embedded in the "civ"-style subject title.
+"""
+
+[[script]]
+name = "sam-to-fasta-alignment.py"
+category = 12
+description = "Produce aligned FASTA queries from a SAM/BAM file."
+
+# --- Incomplete ----------------------------------------------------------
+
+[[script]]
+name = "simple-consensus.py"
+category = 13
+description = """
+Make a consensus sequence directly from a BAM file using dark matter's
+own (pure-Python) consensus code, rather than external tools.
+"""
+
+[[script]]
+name = "convert-diamond-to-sam.py"
+category = 13
+description = """
+Convert DIAMOND tabular output (produced with a specific required
+`--outfmt 6` field order, printable via `--printFields`) to SAM format.
+"""
