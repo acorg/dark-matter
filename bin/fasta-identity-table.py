@@ -905,7 +905,7 @@ def main():
         action="store_true",
         help=(
             "When only one file is given (and the table is therefore square with "
-            "symmetric entries), Make the table more concise by omitting the first "
+            "symmetric entries), make the table more concise by omitting the first "
             "column and last row. These can be omitted because the first column has "
             "the sequence that is in the first row (where it is matched against "
             "everything else) and the last row is the same sequence as the final "

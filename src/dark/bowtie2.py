@@ -41,6 +41,7 @@ class Bowtie2:
         self._indexCalled = self._samExists = self._bamExists = False
         self.nThreads = threads or multiprocessing.cpu_count()
         self._reference = reference
+        self._dryRun = dryRun
 
     def buildIndex(self, index: str) -> None:
         """
@@ -200,6 +201,9 @@ class Bowtie2:
         # Reading the SAM file manually doesn't require BAM that is sorted and indexed
         # (which is what we would need to do if we wanted to use the mapped and unmapped
         # attributes of an AlignmentFile instance).
+        if self._dryRun:
+            return False
+
         with open(self._samFile) as fp:
             for line in fp:
                 if not line.startswith("@"):

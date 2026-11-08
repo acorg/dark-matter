@@ -153,6 +153,7 @@ def main():
 
     parser.add_argument(
         "--dryRun",
+        "-n",
         action="store_true",
         help="Do not run commands, just print what would be done.",
     )

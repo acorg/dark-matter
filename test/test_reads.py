@@ -4097,6 +4097,21 @@ class TestReadsFiltering(TestCase):
         result = reads.filter(head=2)
         self.assertEqual([Read("cow", "AA"), Read("dog", "GG")], list(result))
 
+    def testFilterHeadTwice(self):
+        """
+        Iterating twice over reads filtered with 'head' must give the same
+        result both times (the filter's internal state must be reset at the
+        start of each fresh iteration).
+        """
+        reads = Reads()
+        reads.add(Read("cow", "AA"))
+        reads.add(Read("dog", "GG"))
+        reads.add(Read("cat", "TT"))
+        result = reads.filter(head=2)
+        expected = [Read("cow", "AA"), Read("dog", "GG")]
+        self.assertEqual(expected, list(result))
+        self.assertEqual(expected, list(result))
+
     def testFilterDuplicates(self):
         """
         Filtering on sequence duplicates must work correctly. The first of a
@@ -4108,6 +4123,23 @@ class TestReadsFiltering(TestCase):
         reads.add(read1)
         reads.add(read2)
         result = reads.filter(removeDuplicates=True)
+        self.assertEqual([read1], list(result))
+
+    def testFilterDuplicatesTwice(self):
+        """
+        Iterating twice over reads filtered with removeDuplicates must give
+        the same result both times. The filter's internal record of
+        already-seen sequences must be reset at the start of each fresh
+        iteration, else the second pass will treat every read as a
+        duplicate already seen in the first pass and yield nothing.
+        """
+        reads = Reads()
+        read1 = Read("id1", "ATCG")
+        read2 = Read("id2", "ATCG")
+        reads.add(read1)
+        reads.add(read2)
+        result = reads.filter(removeDuplicates=True)
+        self.assertEqual([read1], list(result))
         self.assertEqual([read1], list(result))
 
     def testFilterDuplicatesById(self):
@@ -4302,6 +4334,21 @@ class TestReadsFiltering(TestCase):
         reads = Reads(initialReads=[read1, read2, read3, read4, read5])
         result = reads.filter(randomSubset=2, trueLength=5)
         self.assertEqual(2, len(set(result)))
+
+    def testFilterRandomSubsetTwice(self):
+        """
+        Iterating twice over reads filtered with randomSubset must return a
+        full-size result both times. The filter's internal state (how many
+        reads it has returned so far) must be reset at the start of each
+        fresh iteration, else the second pass will incorrectly believe the
+        subset has already been fully returned and will yield nothing.
+        """
+        reads = Reads(
+            initialReads=[Read(f"id{i}", "ATCG") for i in range(5)],
+        )
+        result = reads.filter(randomSubset=2, trueLength=5)
+        self.assertEqual(2, len(list(result)))
+        self.assertEqual(2, len(list(result)))
 
     def testSampleFractionAndRandomSubsetRaisesValueError(self):
         """

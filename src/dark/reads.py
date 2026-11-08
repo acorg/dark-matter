@@ -1378,9 +1378,8 @@ class ReadFilter:
         if randomSubset is not None:
             if sampleFraction is not None:
                 raise ValueError(
-                    "randomSubset and sampleFraction cannot be "
-                    "used simultaneously in a filter. Make two "
-                    "read filters instead."
+                    "randomSubset and sampleFraction cannot be used simultaneously in "
+                    "a filter. Make two read filters instead."
                 )
 
             if trueLength is None:
@@ -1452,9 +1451,6 @@ class ReadFilter:
                 raise ValueError("The quality string must be a single character.")
         else:
             self.setQuality = None
-        self.alwaysFalse = False
-        self.yieldCount = 0
-        self.readIndex = -1
 
         self.titleFilter: TitleFilter | None = None
         self.sequenceFilter: SequenceFilter | None = None
@@ -1489,17 +1485,14 @@ class ReadFilter:
                                 f"numbers {lastNumber} and {n}."
                             )
 
-        self.wantedSequenceNumberGeneratorExhausted = False
-        self.nextWantedSequenceNumber = None
-
-        if sequenceNumbersFile is not None:
-            self.wantedSequenceNumberGenerator = _wantedSequences(sequenceNumbersFile)
-            try:
-                self.nextWantedSequenceNumber = next(self.wantedSequenceNumberGenerator)
-            except StopIteration:
-                # There was a sequence number file, but it was empty. So no
-                # reads will ever be accepted.
-                self.alwaysFalse = True
+        # Materialize (rather than keep as a live, one-shot generator) so that
+        # self.reset() can re-create our iteration state from scratch each time
+        # this filter is used to process a fresh stream of reads.
+        self._wantedSequenceNumbers: list[int] | None = (
+            list(_wantedSequences(sequenceNumbersFile))
+            if sequenceNumbersFile is not None
+            else None
+        )
 
         if (
             whitelist
@@ -1537,23 +1530,62 @@ class ReadFilter:
                 negativeRegex=sequenceNegativeRegex,
             )
 
-        if removeDuplicates:
-            self.sequencesSeen: set[str] = set()
-
-        if removeDuplicatesById:
-            self.idsSeen: set[str] = set()
+        # Whether this filter should always reject every read, independent of
+        # any read-by-read state below. This is the baseline self.alwaysFalse
+        # is reset to by self.reset().
+        initialAlwaysFalse = False
 
         if sampleFraction is not None:
             if sampleFraction == 0.0:
                 # The filter method should always return False.
-                self.alwaysFalse = True
+                initialAlwaysFalse = True
             elif sampleFraction == 1.0:
                 # Passing 1.0 can be treated the same as passing no value.
                 # This makes the filter code below simpler.
                 sampleFraction = None
         self.sampleFraction = sampleFraction
+        self._initialAlwaysFalse = initialAlwaysFalse
+
         self.idLambda = eval(idLambda) if idLambda else None
         self.readLambda = eval(readLambda) if readLambda else None
+
+        self.reset()
+
+    def reset(self) -> None:
+        """
+        Reset all per-pass filtering state.
+
+        This filter instance may be used (via C{Reads.filter}) to process more
+        than one pass over a stream of reads, e.g., when the C{Reads} instance
+        it is attached to is iterated more than once. Filtering options such
+        as C{randomSubset}, C{head}, C{sequenceNumbersFile}, C{removeDuplicates},
+        and C{removeDuplicatesById} rely on state that must be reset at the
+        start of each fresh pass, else (e.g.) a second pass over the reads
+        will wrongly see the random subset (or head) as already having been
+        fully returned, or will see all reads as duplicates already seen.
+        """
+        # There was a sequence number file, but it was empty, so no reads
+        # will ever be accepted.
+        emptySequenceNumbersFile = (
+            self._wantedSequenceNumbers is not None
+            and not self._wantedSequenceNumbers
+        )
+
+        self.alwaysFalse = self._initialAlwaysFalse or emptySequenceNumbersFile
+        self.yieldCount = 0
+        self.readIndex = -1
+
+        self.wantedSequenceNumberGeneratorExhausted = False
+        self.nextWantedSequenceNumber = None
+        if self._wantedSequenceNumbers:
+            self.wantedSequenceNumberGenerator = iter(self._wantedSequenceNumbers)
+            self.nextWantedSequenceNumber = next(self.wantedSequenceNumberGenerator)
+
+        if self.removeDuplicates:
+            self.sequencesSeen: set[str] = set()
+
+        if self.removeDuplicatesById:
+            self.idsSeen: set[str] = set()
 
     def filter(self, read: Read) -> Read | Literal[False]:
         """
@@ -1578,27 +1610,24 @@ class ReadFilter:
                         self.wantedSequenceNumberGenerator
                     )
                 except StopIteration:
-                    # The sequence number iterator ran out of sequence
-                    # numbers.  We must let the rest of the filtering
-                    # continue for the current sequence in case we
-                    # throw it out for other reasons (as we might have
-                    # done for any of the earlier wanted sequence
-                    # numbers).
+                    # The sequence number iterator ran out of sequence numbers.  We must
+                    # let the rest of the filtering continue for the current sequence in
+                    # case we throw it out for other reasons (as we might have done for
+                    # any of the earlier wanted sequence numbers).
                     self.wantedSequenceNumberGeneratorExhausted = True
             else:
                 # This sequence isn't one of the ones that's wanted.
                 return False
 
         if self.sampleFraction is not None and uniform(0.0, 1.0) > self.sampleFraction:
-            # Note that we don't have to worry about the 0.0 or 1.0
-            # cases in the above 'if', as they have been dealt with
-            # in self.__init__.
+            # Note that we don't have to worry about the 0.0 or 1.0 cases in the above
+            # 'if', as they have been dealt with in self.__init__.
             return False
 
         if self.randomSubset is not None:
             if self.yieldCount == self.randomSubset:
-                # The random subset has already been fully returned.
-                # There's no point in going any further through the input.
+                # The random subset has already been fully returned. There's no point
+                # in going any further through the input.
                 self.alwaysFalse = True
                 return False
             elif uniform(0.0, 1.0) > (
@@ -1783,6 +1812,7 @@ class Reads:
         self._initialReads: Iterable[Read] | None = initialReads
         self._additionalReads: list[Read] = []
         self._filters: list[Callable[[Read], Read | Literal[False]]] = []
+        self._readFilters: list[ReadFilter] = []
         self._iterated: bool = False
 
     def filterRead(self, read: Read) -> Literal[False] | Read:
@@ -1816,6 +1846,11 @@ class Reads:
         @return: A generator that yields reads. The returned read types depend
             on the kind of reads that were added to this instance.
         """
+        # Reset any per-pass filter state (e.g., for randomSubset, head,
+        # sequenceNumbersFile, removeDuplicates, removeDuplicatesById) so
+        # that each fresh iteration over self behaves like the first one.
+        for readFilter in self._readFilters:
+            readFilter.reset()
 
         for read in self._additionalReads:
             filteredRead = self.filterRead(read)
@@ -1931,6 +1966,7 @@ class Reads:
         """
         readFilter = ReadFilter(**kwargs)
         self._filters.append(readFilter.filter)
+        self._readFilters.append(readFilter)
         return self
 
     def clearFilters(self) -> Reads:
@@ -1940,6 +1976,7 @@ class Reads:
         @return: C{self}.
         """
         self._filters = []
+        self._readFilters = []
         return self
 
     def summarizePosition(self, index: int) -> dict[str, int | Counter[str]]:

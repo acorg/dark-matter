@@ -1,3 +1,9 @@
+## 7.5.9 November 8, 2026
+
+Claude found and fixed three `Read` double-filtering issues (all due
+to the same thing). Fixed a small output problem when `--dryRun` is
+used with `make-consensus.py`.
+
 ## 7.5.8 November 6, 2026
 
 Fixed bug in `fasta-subtraction.py` and made it use `argparse`.
